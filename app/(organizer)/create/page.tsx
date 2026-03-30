@@ -292,34 +292,50 @@ export default function CreateEventPage() {
             </h2>
             <div className="space-y-4">
               <div className="flex flex-col gap-3 rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <input
                     type="text"
                     readOnly
-                    value={`yourdomain.com/${eventInfo?.slug}`}
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/${eventInfo?.slug}`}
                     className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem]"
                   />
+                  <a
+                    href={`/${eventInfo?.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)] flex items-center justify-center whitespace-nowrap"
+                  >
+                    Open
+                  </a>
                   <button
                     type="button"
                     className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
-                    onClick={() => copyToClipboard(`yourdomain.com/${eventInfo?.slug}`)}
+                    onClick={() => copyToClipboard(`${window.location.origin}/${eventInfo?.slug}`)}
                   >
                     Copy
                   </button>
                 </div>
               </div>
               <div className="flex flex-col gap-3 rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
                   <input
                     type="text"
                     readOnly
-                    value={`yourdomain.com/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`}
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`}
                     className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem]"
                   />
+                  <a
+                    href={`/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)] flex items-center justify-center whitespace-nowrap"
+                  >
+                    Open
+                  </a>
                   <button
                     type="button"
                     className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
-                    onClick={() => copyToClipboard(`yourdomain.com/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`)}
+                    onClick={() => copyToClipboard(`${window.location.origin}/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`)}
                   >
                     Copy
                   </button>
