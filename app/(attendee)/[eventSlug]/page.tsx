@@ -1,5 +1,52 @@
+import type { Metadata } from 'next'
 import prisma from '@/lib/prisma'
 import RegistrationForm from './RegistrationForm'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { eventSlug: string }
+}): Promise<Metadata> {
+  const event = await prisma.event.findUnique({
+    where: { slug: params.eventSlug },
+    select: {
+      title: true,
+      description: true,
+      capacity: true,
+      confirmedCount: true,
+      organizerEmail: true,
+    },
+  })
+  if (!event) return {}
+
+  const spotsLeft =
+    event.capacity !== null
+      ? Math.max(0, event.capacity - event.confirmedCount)
+      : null
+
+  const base = process.env.NEXTAUTH_URL ?? ''
+  const ogUrl =
+    `${base}/api/og?title=${encodeURIComponent(event.title)}` +
+    `&organizer=${encodeURIComponent(event.organizerEmail)}` +
+    (spotsLeft !== null ? `&spots=${spotsLeft}` : '')
+
+  const description = event.description ?? `Register for ${event.title}`
+
+  return {
+    title: `${event.title} — EventSlot`,
+    description,
+    openGraph: {
+      title: event.title,
+      description,
+      images: [{ url: ogUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: event.title,
+      images: [ogUrl],
+    },
+  }
+}
 
 type EventQuestion = {
   id: string

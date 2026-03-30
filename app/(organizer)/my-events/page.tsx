@@ -18,7 +18,7 @@ type OrgEvent = {
 }
 
 export default function MyEventsPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
   const [events, setEvents] = useState<OrgEvent[]>([])
   const [loading, setLoading] = useState(true)

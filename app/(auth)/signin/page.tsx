@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -49,7 +50,7 @@ export default function SignInPage() {
           marginBottom: '2rem',
         }}
       >
-        <img src="/logo-full.png" alt="EventSlot" style={{ height: 48 }} />
+        <Image src="/assets/logo.png" alt="EventSlot" width={160} height={48} style={{ height: 48, width: 'auto' }} />
         <p
           style={{
             fontFamily: 'var(--font-dm-sans)',

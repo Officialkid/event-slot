@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: "EventSlot",
   },
   icons: {
-    apple: "/icon-192.png",
+    apple: "/assets/logo-unfiltered.png",
   },
 };
 

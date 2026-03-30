@@ -122,7 +122,11 @@ export default function Home() {
 
       <footer className="mx-auto max-w-7xl px-4 pb-12 text-sm text-[rgba(240,237,230,0.65)] sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 border-t border-[rgba(240,237,230,0.08)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>© 2026 EventSlot</div>
+          <div className="flex items-center gap-4">
+            <span>© 2026 EventSlot</span>
+            <a href="/privacy" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Privacy Policy</a>
+            <a href="/terms" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Terms of Use</a>
+          </div>
           <div>Built for event organizers who move fast.</div>
         </div>
       </footer>

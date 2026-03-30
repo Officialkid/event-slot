@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { ratelimit } from '@/lib/ratelimit'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
+  const { success } = await ratelimit.limit(ip)
+  if (!success) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests. Please try again shortly.' },
+      { status: 429 }
+    )
+  }
+
   try {
     const body = await req.json()
     const { eventSlug, attendees } = body as { eventSlug: string; attendees: AttendeePayload[] }
