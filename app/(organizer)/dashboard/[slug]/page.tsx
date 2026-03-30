@@ -37,7 +37,7 @@ export default function OrganizerDashboardPage() {
   const slug = params?.slug
   const token = searchParams?.get("token") || ""
 
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
@@ -56,6 +56,23 @@ export default function OrganizerDashboardPage() {
   const [capacityMessage, setCapacityMessage] = useState("")
   const [updating, setUpdating] = useState(false)
   const [origin, setOrigin] = useState("")
+  const [claimed, setClaimed] = useState(false)
+  const [claiming, setClaiming] = useState(false)
+
+  const claimEvent = async () => {
+    if (!slug || !token) return
+    setClaiming(true)
+    try {
+      const res = await fetch(`/api/events/${slug}/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      })
+      if (res.ok) setClaimed(true)
+    } finally {
+      setClaiming(false)
+    }
+  }
 
   const fetchDashboard = useCallback(async () => {
     if (!slug) return
@@ -199,6 +216,38 @@ export default function OrganizerDashboardPage() {
               </span>
             )}
           </div>
+          {token && !claimed && status === "unauthenticated" && (
+            <div style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)", borderRadius: 12, padding: "1rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" as const }}>
+              <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.6)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                Sign in to save this event to your account and manage it from My Events.
+              </p>
+              <a
+                href={`/signin?callbackUrl=/dashboard/${slug}%3Ftoken%3D${encodeURIComponent(token)}`}
+                style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 100, padding: "0.5rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, textDecoration: "none", whiteSpace: "nowrap" as const, fontFamily: "var(--font-dm-sans)" }}
+              >
+                Sign in
+              </a>
+            </div>
+          )}
+          {token && !claimed && status === "authenticated" && (
+            <div style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)", borderRadius: 12, padding: "1rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" as const }}>
+              <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.6)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                Signed in as {session?.user?.email}. Add this event to My Events.
+              </p>
+              <button
+                onClick={claimEvent}
+                disabled={claiming}
+                style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 100, padding: "0.5rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, border: "none", cursor: claiming ? "wait" : "pointer", whiteSpace: "nowrap" as const, fontFamily: "var(--font-dm-sans)" }}
+              >
+                {claiming ? "Saving…" : "Add to My Events"}
+              </button>
+            </div>
+          )}
+          {claimed && (
+            <div style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)", borderRadius: 12, padding: "0.75rem 1.25rem", fontSize: "0.85rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+              ✓ Event saved to your account. View it in My Events.
+            </div>
+          )}
           <div className="flex flex-col gap-3 rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4 sm:flex-row sm:items-center sm:justify-between">
             <input
               readOnly

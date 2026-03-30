@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 type QuestionType = "text" | "email" | "phone" | "select"
 
@@ -30,6 +32,9 @@ const defaultQuestion = (): Question => ({
 })
 
 export default function CreateEventPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [capacity, setCapacity] = useState("")
@@ -47,6 +52,24 @@ export default function CreateEventPage() {
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-fill organizer email from signed-in account
+  useEffect(() => {
+    if (session?.user?.email) {
+      setOrganizerEmail(session.user.email)
+    }
+  }, [session])
+
+  // Redirect to sign in if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/signin?callbackUrl=/create')
+    }
+  }, [status, router])
+
+  if (status === 'loading' || status === 'unauthenticated') {
+    return null
+  }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

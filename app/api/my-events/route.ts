@@ -6,12 +6,26 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Backfill: claim any events created with this email but no organizerId
+    await prisma.event.updateMany({
+      where: {
+        organizerEmail: session.user.email,
+        organizerId: null,
+      },
+      data: { organizerId: session.user.id },
+    })
+
     const events = await prisma.event.findMany({
-      where: { organizerId: session.user.id },
+      where: {
+        OR: [
+          { organizerId: session.user.id },
+          { organizerEmail: session.user.email },
+        ],
+      },
       select: {
         id: true,
         title: true,
