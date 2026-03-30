@@ -6,17 +6,12 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const events = await prisma.event.findMany({
-      where: {
-        OR: [
-          { organizerEmail: session.user.email },
-          { organizer: { email: session.user.email } },
-        ],
-      },
+      where: { organizerId: session.user.id },
       select: {
         id: true,
         title: true,
