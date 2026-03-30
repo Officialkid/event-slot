@@ -27,6 +27,7 @@ model Event {
   eventDate        DateTime?
   location         String?
   communityLink    String?
+  imageUrl         String?
   registrations    Registration[]
 }
 

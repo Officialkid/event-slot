@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { v4 as uuidv4 } from "uuid"
+import Image from "next/image"
 
 type QuestionType = "text" | "email" | "phone" | "select"
 
@@ -36,12 +37,35 @@ export default function CreateEventPage() {
   const [eventDate, setEventDate] = useState("")
   const [location, setLocation] = useState("")
   const [communityLink, setCommunityLink] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
   const [questions, setQuestions] = useState([defaultQuestion()])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string } | null>(null)
   const [error, setError] = useState("")
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageError("")
+    setImageUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) { setImageError(data.error || "Upload failed"); return }
+      setImageUrl(data.url)
+    } catch {
+      setImageError("Upload failed. Please try again.")
+    } finally {
+      setImageUploading(false)
+    }
+  }
 
   const handleQuestionChange = (idx: number, field: keyof Question, value: string | boolean) => {
     setQuestions(qs =>
@@ -78,6 +102,7 @@ export default function CreateEventPage() {
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
           location: location || undefined,
           communityLink: communityLink || undefined,
+          imageUrl: imageUrl || undefined,
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -229,6 +254,44 @@ export default function CreateEventPage() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Event Poster */}
+            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
+              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-1" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                Event Poster
+              </h2>
+              <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
+                Optional flyer or banner. JPEG, PNG, WebP or GIF · max 5 MB.
+              </p>
+              {imageUrl && (
+                <div className="mb-4 relative rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ height: 180 }}>
+                  <Image src={imageUrl} alt="Event poster preview" fill style={{ objectFit: "cover" }} unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl("")}
+                    className="absolute top-2 right-2 rounded-full bg-[rgba(0,0,0,0.6)] px-2 py-1 text-[0.7rem] text-[rgba(240,237,230,0.7)] border border-[rgba(240,237,230,0.15)]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleImageChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={imageUploading}
+                className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-5 py-2 text-[0.82rem] font-medium text-[rgba(240,237,230,0.6)]"
+              >
+                {imageUploading ? "Uploading…" : imageUrl ? "Replace image" : "Upload image"}
+              </button>
+              {imageError && <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>}
             </div>
 
             <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">

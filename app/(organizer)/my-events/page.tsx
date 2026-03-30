@@ -266,6 +266,21 @@ export default function MyEventsPage() {
                   >
                     Dashboard →
                   </Link>
+                  <Link
+                    href={`/edit/${event.slug}`}
+                    style={{
+                      background: 'transparent',
+                      border: '0.5px solid rgba(240,237,230,0.15)',
+                      borderRadius: 100,
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      color: 'rgba(240,237,230,0.6)',
+                      fontFamily: 'var(--font-dm-sans)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Edit
+                  </Link>
                 </div>
               </div>
             )

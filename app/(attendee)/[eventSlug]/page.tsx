@@ -26,6 +26,7 @@ export default async function EventRegistrationPage({ params }: { params: { even
       eventDate: true,
       location: true,
       communityLink: true,
+      imageUrl: true,
     },
   })
 

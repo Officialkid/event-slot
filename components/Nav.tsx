@@ -6,15 +6,16 @@ import { useSession, signOut } from "next-auth/react"
 import { useState, useRef, useEffect } from "react"
 
 const navItems = [
-  { title: "Home", href: "/" },
-  { title: "Features", href: "/#how-it-works" },
-  { title: "Get started", href: "/#get-started" },
+  { title: "Home", href: "/", sectionId: null },
+  { title: "Features", href: "/#how-it-works", sectionId: "how-it-works" },
+  { title: "Get started", href: "/#get-started", sectionId: "get-started" },
 ]
 
 export default function Nav() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown on outside click
@@ -27,6 +28,44 @@ export default function Nav() {
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
+
+  // Track which section is in view on the homepage
+  useEffect(() => {
+    if (pathname !== "/") return
+    const sectionIds = ["how-it-works", "get-started"]
+    const visible = new Map<string, boolean>()
+    const observers: IntersectionObserver[] = []
+
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          visible.set(id, entry.isIntersecting)
+          if (visible.get("get-started")) setActiveSection("get-started")
+          else if (visible.get("how-it-works")) setActiveSection("how-it-works")
+          else setActiveSection(null)
+        },
+        { threshold: 0.3 }
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+
+    return () => observers.forEach(obs => obs.disconnect())
+  }, [pathname])
+
+  function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, sectionId: string | null) {
+    if (pathname !== "/" || !sectionId) return
+    e.preventDefault()
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  function isActive(item: typeof navItems[number]) {
+    if (pathname !== "/") return false
+    if (item.sectionId === null) return activeSection === null
+    return activeSection === item.sectionId
+  }
 
   const initials = session?.user?.name
     ? session.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
@@ -42,16 +81,17 @@ export default function Nav() {
 
         <div className="hidden items-center gap-6 md:flex">
           {navItems.map(item => {
-            const isActive = pathname === item.href
+            const active = isActive(item)
             return (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
-                className={`inline-flex items-center gap-2 text-sm font-medium ${isActive ? "text-[#C8F55A]" : "text-[rgba(240,237,230,0.65)]"}`}
+                onClick={(e) => handleNavClick(e, item.sectionId)}
+                className={`inline-flex items-center gap-2 text-sm font-medium transition-colors ${active ? "text-[#C8F55A]" : "text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6]"}`}
               >
                 {item.title}
-                {isActive && <span className="h-2 w-2 rounded-full bg-[#C8F55A]" />}
-              </Link>
+                {active && <span className="h-2 w-2 rounded-full bg-[#C8F55A]" />}
+              </a>
             )
           })}
         </div>
@@ -129,12 +169,20 @@ export default function Nav() {
             </div>
           </div>
         ) : (
-          <Link
-            href="/create"
-            className={`inline-flex items-center justify-center rounded-full px-6 py-2 text-sm font-semibold text-[#0A0A0A] ${pathname === "/create" ? "bg-[#B7E86D]" : "bg-[#C8F55A]"}`}
-          >
-            Create an event
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/api/auth/signin"
+              className="text-sm font-medium text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6] transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/create"
+              className={`inline-flex items-center justify-center rounded-full px-6 py-2 text-sm font-semibold text-[#0A0A0A] ${pathname === "/create" ? "bg-[#B7E86D]" : "bg-[#C8F55A]"}`}
+            >
+              Create an event
+            </Link>
+          </div>
         )}
       </div>
     </nav>

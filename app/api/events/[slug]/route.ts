@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -55,6 +57,57 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       confirmed,
       waitlist,
     })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { slug } = params
+    const event = await prisma.event.findUnique({ where: { slug } })
+
+    if (!event) {
+      return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
+    }
+
+    if (event.organizerId !== session.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await req.json()
+    const { title, description, capacity, deadline, eventDate, location, communityLink, questions, imageUrl } = body
+
+    if (!title) {
+      return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
+    }
+
+    const updated = await prisma.event.update({
+      where: { slug },
+      data: {
+        title,
+        description: description || null,
+        capacity: capacity ? Number(capacity) : null,
+        deadline: deadline ? new Date(deadline) : null,
+        eventDate: eventDate ? new Date(eventDate) : null,
+        location: location || null,
+        communityLink: communityLink || null,
+        imageUrl: imageUrl || null,
+        questions,
+      },
+      select: { id: true, title: true, slug: true },
+    })
+
+    return NextResponse.json({ success: true, event: updated })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })

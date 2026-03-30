@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Image from "next/image"
 
 type EventQuestion = {
   id: string
@@ -22,6 +23,7 @@ type EventProps = {
     eventDate?: Date | null
     location?: string | null
     communityLink?: string | null
+    imageUrl?: string | null
     createdAt: Date
   }
 }
@@ -180,6 +182,12 @@ export default function RegistrationForm({ event }: EventProps) {
 
   return (
     <div className="mx-auto w-full max-w-[480px]">
+      {/* Event poster */}
+      {event.imageUrl && (
+        <div className="mb-5 relative w-full overflow-hidden rounded-[12px] border border-[rgba(240,237,230,0.08)]" style={{ height: 220 }}>
+          <Image src={event.imageUrl} alt={`${event.title} poster`} fill style={{ objectFit: "cover" }} unoptimized />
+        </div>
+      )}
       {/* Event header */}
       <div style={{ marginBottom: "0.5rem" }}>
         <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1.2, fontWeight: 400, marginBottom: "0.35rem" }}>
