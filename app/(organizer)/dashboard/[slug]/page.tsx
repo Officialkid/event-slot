@@ -37,7 +37,7 @@ export default function OrganizerDashboardPage() {
   const slug = params?.slug
   const token = searchParams?.get("token") || ""
 
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
