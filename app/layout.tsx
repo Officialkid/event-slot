@@ -18,6 +18,16 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "EventSlot — Smart Event Registration",
   description: "Share a link. Fill your event. Waitlist runs itself.",
+  manifest: "/manifest.json",
+  themeColor: "#0A0A0A",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "EventSlot",
+  },
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
 
 export default function RootLayout({

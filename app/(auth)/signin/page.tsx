@@ -36,6 +36,34 @@ export default function SignInPage() {
         padding: '4rem 1.5rem',
       }}
     >
+      {/* PWA Splash Header — visible only in standalone (installed) mode */}
+      <style>{`
+        .pwa-header { display: none; }
+        @media (display-mode: standalone) { .pwa-header { display: flex; } }
+      `}</style>
+      <div
+        className="pwa-header"
+        style={{
+          flexDirection: 'column',
+          alignItems: 'center',
+          marginBottom: '2rem',
+        }}
+      >
+        <img src="/logo-full.png" alt="EventSlot" style={{ height: 48 }} />
+        <p
+          style={{
+            fontFamily: 'var(--font-dm-sans)',
+            fontWeight: 300,
+            fontSize: '0.82rem',
+            color: 'rgba(240,237,230,0.4)',
+            margin: '0.5rem 0 0',
+            textAlign: 'center',
+          }}
+        >
+          Your events, under control.
+        </p>
+      </div>
+
       {/* Card */}
       <div
         style={{
