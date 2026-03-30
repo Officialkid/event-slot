@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 function generateSlug(title: string): string {
   const base = title
@@ -15,6 +17,7 @@ function generateSlug(title: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
     const body = await req.json()
     const { title, description, capacity, deadline, questions, organizerEmail } = body
 
@@ -38,6 +41,7 @@ export async function POST(req: NextRequest) {
         organizerEmail,
         slug,
         dashboardToken,
+        organizerId: session?.user?.id ?? null,
       },
       select: {
         id: true,
