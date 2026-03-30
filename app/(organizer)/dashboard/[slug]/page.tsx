@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 type Question = {
   id: string
@@ -34,6 +36,15 @@ export default function OrganizerDashboardPage() {
   const searchParams = useSearchParams()
   const slug = params?.slug
   const token = searchParams?.get("token") || ""
+
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === "unauthenticated" && !token) {
+      router.replace("/signin")
+    }
+  }, [status, token, router])
 
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
