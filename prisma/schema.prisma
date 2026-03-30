@@ -26,6 +26,7 @@ model Event {
   organizer        User?     @relation(fields: [organizerId], references: [id])
   eventDate        DateTime?
   location         String?
+  communityLink    String?
   registrations    Registration[]
 }
 

@@ -21,6 +21,7 @@ type EventProps = {
     organizerEmail: string
     eventDate?: Date | null
     location?: string | null
+    communityLink?: string | null
     createdAt: Date
   }
 }
@@ -95,40 +96,75 @@ export default function RegistrationForm({ event }: EventProps) {
 
   // Success screen
   if (bulkResult) {
-    const allConfirmed = bulkResult.results.every(r => r.status === "confirmed")
-    const allWaitlist = bulkResult.results.every(r => r.status === "waitlist")
+    const isSingle = bulkResult.results.length === 1
+    const communityLink = event.communityLink
+
+    function getCommunityLinkLabel(url: string): string {
+      if (url.includes("whatsapp") || url.includes("wa.me")) return "Join WhatsApp Group →"
+      if (url.includes("t.me") || url.includes("telegram")) return "Join Telegram Group →"
+      return url
+    }
+
     return (
-      <div className="mx-auto max-w-[480px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-8">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] text-[#C8F55A]">
-          <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
-        </div>
-        <h2 className="text-center text-[1.5rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-          {allConfirmed ? "You're in" : allWaitlist ? "You're on the waitlist" : "Registration received"}
-        </h2>
-        <p className="mt-2 mb-5 text-center text-[0.875rem] text-[rgba(240,237,230,0.5)]">
-          {event.title}
-        </p>
-        <div className="space-y-2">
-          {bulkResult.results.map((r, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-[8px] border border-[rgba(240,237,230,0.08)] bg-[rgba(240,237,230,0.03)] px-4 py-3"
-            >
-              <span className="text-[0.875rem] text-[rgba(240,237,230,0.7)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
-                Attendee {i + 1}
-              </span>
-              {r.status === "confirmed" ? (
-                <span className="rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] px-3 py-1 text-[0.7rem] text-[#C8F55A]">
-                  Confirmed
-                </span>
-              ) : (
-                <span className="rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)] px-3 py-1 text-[0.7rem] text-[rgba(240,237,230,0.55)]">
-                  Waitlist #{r.waitlistPosition}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="mx-auto w-full max-w-[480px] space-y-4">
+        {bulkResult.results.map((r, i) => (
+          <div key={i} className="rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-8">
+            {r.status === "confirmed" ? (
+              <>
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
+                  <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
+                </div>
+                <h2 className="text-center text-[1.6rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                  {isSingle ? "You're in!" : `Attendee ${i + 1} — You're in!`}
+                </h2>
+                <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem] text-[rgba(240,237,230,0.6)]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                  Thank you for registering for {event.title}. Your slot is confirmed and we look forward to seeing you.
+                </p>
+                <div className="mt-4 flex justify-center">
+                  <span className="rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] px-3 py-1 text-[0.7rem] text-[#C8F55A]">
+                    Confirmed
+                  </span>
+                </div>
+                {communityLink && (
+                  <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>
+                    <p style={{ fontSize: "0.7rem", color: "#C8F55A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>
+                      Join the community
+                    </p>
+                    <a
+                      href={communityLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full rounded-full border border-[rgba(200,245,90,0.4)] px-4 py-2 text-center text-[0.875rem] text-[#C8F55A]"
+                      style={{ fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      {getCommunityLinkLabel(communityLink)}
+                    </a>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)]">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.55)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <h2 className="text-center text-[1.6rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                  {isSingle ? "You're on the waitlist" : `Attendee ${i + 1} — Waitlist`}
+                </h2>
+                <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem] text-[rgba(240,237,230,0.6)]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                  Thank you for your interest in {event.title}. You are currently position #{r.waitlistPosition} on the waitlist. We will notify you if a slot opens up.
+                </p>
+                <div className="mt-4 flex justify-center">
+                  <span className="rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)] px-3 py-1 text-[0.7rem] text-[rgba(240,237,230,0.55)]">
+                    Waitlist #{r.waitlistPosition}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
       </div>
     )
   }

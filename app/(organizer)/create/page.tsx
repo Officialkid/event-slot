@@ -35,6 +35,7 @@ export default function CreateEventPage() {
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
   const [location, setLocation] = useState("")
+  const [communityLink, setCommunityLink] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
   const [questions, setQuestions] = useState([defaultQuestion()])
   const [loading, setLoading] = useState(false)
@@ -76,6 +77,7 @@ export default function CreateEventPage() {
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
           location: location || undefined,
+          communityLink: communityLink || undefined,
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -210,6 +212,21 @@ export default function CreateEventPage() {
                     value={organizerEmail}
                     onChange={e => setOrganizerEmail(e.target.value)}
                   />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Community link (optional)
+                  </label>
+                  <input
+                    type="url"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    placeholder="e.g. WhatsApp group, Telegram, website"
+                    value={communityLink}
+                    onChange={e => setCommunityLink(e.target.value)}
+                  />
+                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                    After registering, confirmed attendees will see this link.
+                  </p>
                 </div>
               </div>
             </div>
