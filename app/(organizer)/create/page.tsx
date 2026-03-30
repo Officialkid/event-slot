@@ -33,6 +33,8 @@ export default function CreateEventPage() {
   const [description, setDescription] = useState("")
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
+  const [eventDate, setEventDate] = useState("")
+  const [location, setLocation] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
   const [questions, setQuestions] = useState([defaultQuestion()])
   const [loading, setLoading] = useState(false)
@@ -72,6 +74,8 @@ export default function CreateEventPage() {
           description: description || undefined,
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
+          eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
+          location: location || undefined,
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -170,6 +174,29 @@ export default function CreateEventPage() {
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     value={deadline}
                     onChange={e => setDeadline(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Event Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    value={eventDate}
+                    onChange={e => setEventDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Location / Venue
+                  </label>
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    placeholder="e.g. iHub, Nairobi"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
                   />
                 </div>
                 <div>

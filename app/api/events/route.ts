@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     const body = await req.json()
-    const { title, description, capacity, deadline, questions, organizerEmail } = body
+    const { title, description, capacity, deadline, eventDate, location, questions, organizerEmail } = body
 
     if (!title || !organizerEmail) {
       return NextResponse.json({ success: false, error: 'Missing title or organizerEmail' }, { status: 400 })
@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
         description,
         capacity,
         deadline: deadline ? new Date(deadline) : undefined,
+        eventDate: eventDate ? new Date(eventDate) : undefined,
+        location: location || undefined,
         questions,
         organizerEmail,
         slug,

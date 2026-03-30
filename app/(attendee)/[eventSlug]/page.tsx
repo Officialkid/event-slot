@@ -21,6 +21,10 @@ export default async function EventRegistrationPage({ params }: { params: { even
       confirmedCount: true,
       questions: true,
       deadline: true,
+      organizerEmail: true,
+      createdAt: true,
+      eventDate: true,
+      location: true,
     },
   })
 

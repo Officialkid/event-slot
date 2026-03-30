@@ -24,6 +24,8 @@ model Event {
   createdAt        DateTime  @default(now())
   organizerId      String?
   organizer        User?     @relation(fields: [organizerId], references: [id])
+  eventDate        DateTime?
+  location         String?
   registrations    Registration[]
 }
 
