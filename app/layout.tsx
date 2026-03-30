@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Nav from "../components/Nav";
+import Providers from "../components/Providers";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -35,8 +36,10 @@ export default function RootLayout({
       className={`${dmSans.variable} ${instrumentSerif.variable}`}
     >
       <body className="antialiased">
-        <Nav />
-        {children}
+        <Providers>
+          <Nav />
+          {children}
+        </Providers>
       </body>
     </html>
   );
