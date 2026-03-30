@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
+type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number }
 
 export async function POST(req: NextRequest) {
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Find event by slug
     const event = await prisma.event.findUnique({ where: { slug: eventSlug } })
+    const eventQuestions = (event?.questions as EventQuestion[] | null) ?? []
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
@@ -44,6 +46,12 @@ export async function POST(req: NextRequest) {
           status = 'waitlist'
         }
 
+        const emailAnswer = attendee.answers.find(a => {
+          const question = eventQuestions.find(q => q.id === a.questionId)
+          return question?.type === 'email'
+        })
+        const attendeeEmail = emailAnswer?.value ?? null
+
         if (status === 'confirmed') {
           await tx.registration.create({
             data: {
@@ -52,6 +60,7 @@ export async function POST(req: NextRequest) {
               status,
               submittedAt: new Date(),
               notified: false,
+              attendeeEmail,
             },
           })
           await tx.event.update({
@@ -72,6 +81,7 @@ export async function POST(req: NextRequest) {
               waitlistPosition,
               submittedAt: new Date(),
               notified: false,
+              attendeeEmail,
             },
           })
         }

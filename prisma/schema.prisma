@@ -86,4 +86,5 @@ model Registration {
   waitlistPosition Int?
   submittedAt      DateTime  @default(now())
   notified         Boolean   @default(false)
+  attendeeEmail    String?
 }

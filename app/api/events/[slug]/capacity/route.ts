@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { sendSlotConfirmedEmail } from '@/lib/email'
 
 export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -66,10 +67,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
         newConfirmedCount: updatedEvent.confirmedCount,
         newWaitlistCount: updatedEvent.waitlistCount,
         remainingSlots,
+        promotedRegistrations: waitlistToPromote,
       }
     })
 
-    return NextResponse.json({ success: true, ...result })
+    // Send confirmation emails to promoted attendees (non-blocking)
+    await Promise.allSettled(
+      result.promotedRegistrations
+        .filter(r => r.attendeeEmail)
+        .map(r =>
+          sendSlotConfirmedEmail({
+            to: r.attendeeEmail!,
+            eventTitle: event.title,
+            communityLink: event.communityLink,
+          }).catch(err => console.error(`Email failed for ${r.attendeeEmail}:`, err))
+        )
+    )
+
+    return NextResponse.json({
+      success: true,
+      promoted: result.promoted,
+      newConfirmedCount: result.newConfirmedCount,
+      newWaitlistCount: result.newWaitlistCount,
+      remainingSlots: result.remainingSlots,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })
