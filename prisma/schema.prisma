@@ -1,0 +1,37 @@
+// Prisma schema file
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Event {
+  id               String    @id @default(cuid())
+  title            String
+  description      String?
+  slug             String    @unique
+  capacity         Int?
+  deadline         DateTime?
+  confirmedCount   Int       @default(0)
+  waitlistCount    Int       @default(0)
+  organizerEmail   String
+  dashboardToken   String    @unique
+  questions        Json
+  createdAt        DateTime  @default(now())
+  registrations    Registration[]
+}
+
+model Registration {
+  id               String    @id @default(cuid())
+  eventId          String
+  event            Event     @relation(fields: [eventId], references: [id])
+  answers          Json
+  status           String
+  waitlistPosition Int?
+  submittedAt      DateTime  @default(now())
+  notified         Boolean   @default(false)
+}
