@@ -29,6 +29,7 @@ type EventProps = {
 type AttendeeResult = {
   status: 'confirmed' | 'waitlist'
   waitlistPosition?: number
+  registrationId: string
 }
 
 type BulkResult = {
@@ -99,7 +100,7 @@ export default function RegistrationForm({ event }: EventProps) {
     const isSingle = bulkResult.results.length === 1
     const communityLink = event.communityLink
 
-    function getCommunityLinkLabel(url: string): string {
+    const getCommunityLinkLabel = (url: string): string => {
       if (url.includes("whatsapp") || url.includes("wa.me")) return "Join WhatsApp Group →"
       if (url.includes("t.me") || url.includes("telegram")) return "Join Telegram Group →"
       return url
@@ -163,6 +164,14 @@ export default function RegistrationForm({ event }: EventProps) {
                 </div>
               </>
             )}
+            <div style={{ textAlign: "center", marginTop: "1rem" }}>
+              <a
+                href={`/registration/${r.registrationId}`}
+                style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", textDecoration: "none" }}
+              >
+                View your registration status
+              </a>
+            </div>
           </div>
         ))}
       </div>

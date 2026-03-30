@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
-type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number }
+type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string }
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,8 +52,10 @@ export async function POST(req: NextRequest) {
         })
         const attendeeEmail = emailAnswer?.value ?? null
 
+        let registrationId: string
+
         if (status === 'confirmed') {
-          await tx.registration.create({
+          const reg = await tx.registration.create({
             data: {
               eventId: freshEvent.id,
               answers: attendee.answers,
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest) {
               attendeeEmail,
             },
           })
+          registrationId = reg.id
           await tx.event.update({
             where: { id: freshEvent.id },
             data: { confirmedCount: { increment: 1 } },
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest) {
             data: { waitlistCount: { increment: 1 } },
           })
           waitlistPosition = updatedEvent.waitlistCount
-          await tx.registration.create({
+          const reg = await tx.registration.create({
             data: {
               eventId: freshEvent.id,
               answers: attendee.answers,
@@ -84,9 +87,10 @@ export async function POST(req: NextRequest) {
               attendeeEmail,
             },
           })
+          registrationId = reg.id
         }
 
-        attendeeResults.push({ status, waitlistPosition })
+        attendeeResults.push({ status, waitlistPosition, registrationId })
       }
 
       return attendeeResults
