@@ -13,6 +13,11 @@ const navItems = [
 
 export default function Nav() {
   const pathname = usePathname()
+
+  const isOrganizerRoute = ["/my-events", "/create", "/edit", "/dashboard"].some(
+    p => pathname === p || pathname.startsWith(p + "/")
+  )
+  if (isOrganizerRoute) return null
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)

@@ -37,6 +37,9 @@ export async function GET() {
         dashboardToken: true,
         createdAt: true,
         archived: true,
+        status: true,
+        eventDate: true,
+        location: true,
       },
       orderBy: { createdAt: 'desc' },
     })

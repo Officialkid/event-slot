@@ -168,7 +168,7 @@ export default function OrganizerDashboardPage() {
 
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+      <div className="px-4 py-12">
         <div className="mx-auto max-w-[720px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-10 text-center">
           <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
             Access denied
@@ -183,7 +183,7 @@ export default function OrganizerDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-10">
+      <div className="px-4 py-10">
         <div className="mx-auto max-w-[1000px] space-y-6">
           <div className="h-10 rounded-[8px] bg-[#141414] animate-pulse opacity-70" />
           <div className="h-8 rounded-[8px] bg-[#141414] animate-pulse opacity-70" />
@@ -201,7 +201,7 @@ export default function OrganizerDashboardPage() {
 
   if (error && !eventData) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+      <div className="px-4 py-12">
         <div className="mx-auto max-w-[720px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-10 text-center">
           <p className="text-[0.95rem] text-[rgba(240,237,230,0.45)]">{error}</p>
         </div>
@@ -210,10 +210,9 @@ export default function OrganizerDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-8">
+    <div className="px-4 py-8">
       <div className="mx-auto max-w-[1000px] space-y-8 text-[#F0EDE6]">
         <header className="space-y-4">
-          <a href="/" className="text-[0.8rem] text-[rgba(240,237,230,0.35)]">← Back to home</a>
           <div>
             <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)" }}>
               {eventData?.title}

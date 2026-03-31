@@ -29,6 +29,7 @@ model Event {
   communityLink    String?
   imageUrl         String?
   archived         Boolean   @default(false)
+  status           String    @default("active")
   registrations    Registration[]
 }
 

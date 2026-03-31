@@ -171,7 +171,7 @@ export default function EditEventPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+      <div className="px-4 py-12">
         <div className="mx-auto max-w-[640px] text-[rgba(240,237,230,0.4)] text-sm" style={{ fontFamily: "var(--font-dm-sans)" }}>
           Loading…
         </div>
@@ -181,7 +181,7 @@ export default function EditEventPage() {
 
   if (error && questions.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+      <div className="px-4 py-12">
         <div className="mx-auto max-w-[640px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-8 text-center">
           <p className="text-[#FF6B6B] text-sm">{error}</p>
           <a href="/my-events" className="mt-4 inline-block text-sm text-[rgba(240,237,230,0.45)]">← Back to my events</a>
@@ -191,11 +191,8 @@ export default function EditEventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+    <div className="px-4 py-12">
       <div className="mx-auto max-w-[640px] space-y-6">
-        <div>
-          <a href="/my-events" className="text-[0.8rem] font-medium text-[rgba(240,237,230,0.45)]">← Back to my events</a>
-        </div>
 
         <div>
           <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>

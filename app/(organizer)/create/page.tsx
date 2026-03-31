@@ -157,11 +157,8 @@ export default function CreateEventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+    <div className="px-4 py-12">
       <div className="mx-auto max-w-[640px] space-y-6">
-        <div>
-          <a href="/" className="text-[0.8rem] font-medium text-[rgba(240,237,230,0.45)]">← Back to home</a>
-        </div>
 
         <div>
           <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
