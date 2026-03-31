@@ -28,6 +28,7 @@ model Event {
   location         String?
   communityLink    String?
   imageUrl         String?
+  archived         Boolean   @default(false)
   registrations    Registration[]
 }
 
@@ -81,7 +82,7 @@ model VerificationToken {
 model Registration {
   id               String    @id @default(cuid())
   eventId          String
-  event            Event     @relation(fields: [eventId], references: [id])
+  event            Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   answers          Json
   status           String
   waitlistPosition Int?

@@ -58,6 +58,19 @@ export default function OrganizerDashboardPage() {
   const [origin, setOrigin] = useState("")
   const [claimed, setClaimed] = useState(false)
   const [claiming, setClaiming] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const deleteEvent = async () => {
+    if (!slug) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/events/${slug}?token=${encodeURIComponent(token)}`, { method: "DELETE" })
+      if (res.ok) router.replace("/my-events")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const claimEvent = async () => {
     if (!slug || !token) return
@@ -399,6 +412,33 @@ export default function OrganizerDashboardPage() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        {/* Danger zone */}
+        <section className="space-y-3 border-t border-[rgba(255,107,107,0.15)] pt-6">
+          <h2 className="text-[0.75rem] uppercase tracking-[0.08em] text-[rgba(255,107,107,0.5)]" style={{ fontFamily: "var(--font-dm-sans)" }}>Danger zone</h2>
+          {!showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="rounded-full border border-[rgba(255,107,107,0.3)] px-4 py-2 text-[0.82rem] text-[#FF6B6B]"
+              style={{ background: "transparent", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+            >
+              Delete this event
+            </button>
+          ) : (
+            <div style={{ background: "rgba(255,107,107,0.06)", border: "0.5px solid rgba(255,107,107,0.2)", borderRadius: 12, padding: "1rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" as const }}>
+              <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.6)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                This will permanently delete the event and all registrations. Are you sure?
+              </p>
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <button onClick={() => setShowDeleteConfirm(false)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 100, padding: "0.5rem 1rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+                <button onClick={deleteEvent} disabled={deleting} style={{ background: "#FF6B6B", color: "#0A0A0A", borderRadius: 100, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 500, border: "none", cursor: deleting ? "wait" : "pointer", fontFamily: "var(--font-dm-sans)" }}>
+                  {deleting ? "Deleting..." : "Yes, delete"}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>

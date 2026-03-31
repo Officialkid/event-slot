@@ -82,8 +82,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
     }
 
     const body = await req.json()
-    const { title, description, capacity, deadline, eventDate, location, communityLink, questions, imageUrl } = body
+    const { action, title, description, capacity, deadline, eventDate, location, communityLink, questions, imageUrl, archived } = body
 
+    // Lightweight actions: rename or archive
+    if (action === 'rename') {
+      if (!title?.trim()) {
+        return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
+      }
+      await prisma.event.update({ where: { slug }, data: { title: title.trim() } })
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === 'archive') {
+      await prisma.event.update({ where: { slug }, data: { archived: !!archived } })
+      return NextResponse.json({ success: true })
+    }
+
+    // Full update (existing edit flow)
     if (!title) {
       return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
     }
@@ -108,6 +123,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
     })
 
     return NextResponse.json({ success: true, event: updated })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+    const token = req.nextUrl.searchParams.get('token')
+    const { slug } = params
+
+    const event = await prisma.event.findUnique({ where: { slug } })
+    if (!event) {
+      return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
+    }
+
+    const isOwner = session?.user?.id && event.organizerId === session.user.id
+    const hasToken = token && event.dashboardToken === token
+
+    if (!isOwner && !hasToken) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
+    await prisma.event.delete({ where: { slug } })
+    return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })

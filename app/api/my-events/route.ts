@@ -36,6 +36,7 @@ export async function GET() {
         waitlistCount: true,
         dashboardToken: true,
         createdAt: true,
+        archived: true,
       },
       orderBy: { createdAt: 'desc' },
     })
