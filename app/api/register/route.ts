@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
+import { getPlanLimits } from '@/lib/plans'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
@@ -54,10 +55,23 @@ export async function POST(req: NextRequest) {
         let status: 'confirmed' | 'waitlist'
         let waitlistPosition: number | undefined = undefined
 
-        if (freshEvent.capacity == null || freshEvent.confirmedCount < freshEvent.capacity) {
-          status = 'confirmed'
-        } else {
+        // Check organizer's plan registration limit
+        let planLimitReached = false
+        if (freshEvent.organizerId) {
+          const organizer = await tx.user.findUnique({
+            where: { id: freshEvent.organizerId },
+            select: { plan: true },
+          })
+          const limits = getPlanLimits(organizer?.plan ?? 'free')
+          if (limits.maxRegistrationsPerEvent !== Infinity && freshEvent.confirmedCount >= limits.maxRegistrationsPerEvent) {
+            planLimitReached = true
+          }
+        }
+
+        if (planLimitReached || freshEvent.capacity != null && freshEvent.confirmedCount >= freshEvent.capacity) {
           status = 'waitlist'
+        } else {
+          status = 'confirmed'
         }
 
         const emailAnswer = attendee.answers.find(a => {

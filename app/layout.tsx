@@ -3,6 +3,7 @@ import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
+import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -30,11 +31,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  try { await seedPrivilegedAccounts() } catch { /* non-critical */ }
+
   return (
     <html
       lang="en"

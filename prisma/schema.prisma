@@ -41,6 +41,11 @@ model User {
   image          String?
   password       String?
   createdAt      DateTime       @default(now())
+  plan           String         @default("free")
+  planStartDate  DateTime?
+  planEndDate    DateTime?
+  isAdmin        Boolean        @default(false)
+  billingCycle   String?
   accounts       Account[]
   sessions       Session[]
   events         Event[]

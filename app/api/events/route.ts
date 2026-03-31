@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getPlanLimits } from '@/lib/plans'
 
 function generateSlug(title: string): string {
   const base = title
@@ -26,6 +27,36 @@ export async function POST(req: NextRequest) {
     }
     if (!Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
+    }
+
+    // Plan limit: max active events
+    if (session?.user?.id) {
+      const organizer = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { plan: true },
+      })
+      const plan = organizer?.plan ?? 'free'
+      const limits = getPlanLimits(plan)
+
+      if (limits.maxActiveEvents !== Infinity) {
+        const activeEvents = await prisma.event.count({
+          where: {
+            organizerId: session.user.id,
+            archived: false,
+            status: { not: 'closed' },
+          },
+        })
+        if (activeEvents >= limits.maxActiveEvents) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'You have reached the limit for active events on your plan.',
+              upgradeRequired: true,
+            },
+            { status: 403 }
+          )
+        }
+      }
     }
 
     const slug = generateSlug(title)
