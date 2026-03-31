@@ -26,6 +26,25 @@ type EventProps = {
     imageUrl?: string | null
     createdAt: Date
   }
+  showBranding?: boolean
+}
+
+function BrandingFooter() {
+  return (
+    <div style={{ textAlign: "center", marginTop: "2rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>
+      Powered by{" "}
+      <a
+        href="/"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "rgba(200,245,90,0.4)", textDecoration: "none", transition: "color 0.2s" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "#C8F55A")}
+        onMouseLeave={e => (e.currentTarget.style.color = "rgba(200,245,90,0.4)")}
+      >
+        EventSlot
+      </a>
+    </div>
+  )
 }
 
 type AttendeeResult = {
@@ -47,7 +66,7 @@ function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
   return Object.fromEntries(questions.map(q => [q.id, ""]))
 }
 
-export default function RegistrationForm({ event }: EventProps) {
+export default function RegistrationForm({ event, showBranding = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
@@ -130,7 +149,8 @@ export default function RegistrationForm({ event }: EventProps) {
     }
 
     return (
-      <div className="mx-auto w-full max-w-[480px] space-y-4">
+      <div className="mx-auto w-full max-w-[480px]">
+        <div className="space-y-4">
         {bulkResult.results.map((r, i) => (
           <div key={i} className="rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-8">
             {r.status === "confirmed" ? (
@@ -213,6 +233,8 @@ export default function RegistrationForm({ event }: EventProps) {
             </div>
           </div>
         ))}
+        </div>
+        {showBranding && <BrandingFooter />}
       </div>
     )
   }
@@ -478,6 +500,7 @@ export default function RegistrationForm({ event }: EventProps) {
       </button>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
       </form>
+      {showBranding && <BrandingFooter />}
     </div>
   )
 }

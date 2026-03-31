@@ -75,6 +75,7 @@ export default async function EventRegistrationPage({ params }: { params: { even
       communityLink: true,
       imageUrl: true,
       status: true,
+      organizer: { select: { plan: true } },
     },
   })
 
@@ -129,9 +130,11 @@ export default async function EventRegistrationPage({ params }: { params: { even
     )
   }
 
+  const showBranding = !event.organizer || event.organizer.plan === 'free'
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-      <RegistrationForm event={{ ...event, slug: eventSlug, questions: event.questions as EventQuestion[] }} />
+      <RegistrationForm event={{ ...event, slug: eventSlug, questions: event.questions as EventQuestion[] }} showBranding={showBranding} />
     </div>
   )
 }
