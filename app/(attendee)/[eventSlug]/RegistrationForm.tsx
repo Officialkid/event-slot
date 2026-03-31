@@ -32,6 +32,7 @@ type AttendeeResult = {
   status: 'confirmed' | 'waitlist'
   waitlistPosition?: number
   registrationId: string
+  registrationNumber?: number
 }
 
 type BulkResult = {
@@ -73,8 +74,19 @@ export default function RegistrationForm({ event }: EventProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
+
+    // Client-side required field validation
+    for (let i = 0; i < attendees.length; i++) {
+      for (const q of event.questions) {
+        if (q.required && !attendees[i][q.id]?.trim()) {
+          setError(`Please fill in "${q.label}"${attendees.length > 1 ? ` for attendee ${i + 1}` : ""}.`)
+          return
+        }
+      }
+    }
+
+    setLoading(true)
     try {
       const attendeesPayload = attendees.map(form => ({
         answers: event.questions.map(q => ({ questionId: q.id, value: form[q.id] || "" })),
@@ -128,6 +140,11 @@ export default function RegistrationForm({ event }: EventProps) {
                     Confirmed
                   </span>
                 </div>
+                {r.registrationNumber && (
+                  <p className="mt-3 text-center text-[0.72rem] text-[rgba(240,237,230,0.35)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+                    Registration #{String(r.registrationNumber).padStart(4, "0")}
+                  </p>
+                )}
                 {communityLink && (
                   <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>
                     <p style={{ fontSize: "0.7rem", color: "#C8F55A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>
@@ -164,14 +181,25 @@ export default function RegistrationForm({ event }: EventProps) {
                     Waitlist #{r.waitlistPosition}
                   </span>
                 </div>
+                {r.registrationNumber && (
+                  <p className="mt-3 text-center text-[0.72rem] text-[rgba(240,237,230,0.35)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+                    Registration #{String(r.registrationNumber).padStart(4, "0")}
+                  </p>
+                )}
               </>
             )}
-            <div style={{ textAlign: "center", marginTop: "1rem" }}>
+            <div style={{ textAlign: "center", marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <a
                 href={`/registration/${r.registrationId}`}
                 style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", textDecoration: "none" }}
               >
-                View your registration status
+                View status
+              </a>
+              <a
+                href={`/registration/${r.registrationId}/edit`}
+                style={{ fontSize: "0.78rem", color: "rgba(200,245,90,0.5)", textDecoration: "none" }}
+              >
+                Edit your details →
               </a>
             </div>
           </div>

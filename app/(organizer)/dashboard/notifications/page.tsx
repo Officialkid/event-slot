@@ -16,6 +16,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [markingAll, setMarkingAll] = useState(false)
+  const [filter, setFilter] = useState<"all" | "unread">("all")
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -57,6 +58,7 @@ export default function NotificationsPage() {
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
+  const displayed = filter === "unread" ? notifications.filter(n => !n.read) : notifications
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
@@ -66,7 +68,7 @@ export default function NotificationsPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "1.75rem",
+          marginBottom: "1.25rem",
         }}
       >
         <h1
@@ -94,12 +96,36 @@ export default function NotificationsPage() {
               fontFamily: "var(--font-dm-sans)",
               cursor: markingAll ? "default" : "pointer",
               opacity: markingAll ? 0.5 : 1,
-              transition: "color 0.15s, border-color 0.15s",
             }}
           >
             {markingAll ? "Marking…" : "Mark all as read"}
           </button>
         )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.25rem", background: "rgba(240,237,230,0.04)", borderRadius: 10, padding: "0.25rem" }}>
+        {(["all", "unread"] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            style={{
+              flex: 1,
+              background: filter === tab ? "rgba(240,237,230,0.08)" : "transparent",
+              border: "none",
+              borderRadius: 8,
+              padding: "0.45rem 0",
+              fontSize: "0.82rem",
+              fontFamily: "var(--font-dm-sans)",
+              color: filter === tab ? "#F0EDE6" : "rgba(240,237,230,0.4)",
+              cursor: "pointer",
+              fontWeight: filter === tab ? 500 : 400,
+              transition: "background 0.15s, color 0.15s",
+            }}
+          >
+            {tab === "all" ? `All (${notifications.length})` : `Unread (${unreadCount})`}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
@@ -123,7 +149,7 @@ export default function NotificationsPage() {
             }}
           />
         </div>
-      ) : notifications.length === 0 ? (
+      ) : displayed.length === 0 ? (
         <div
           style={{
             textAlign: "center",
@@ -133,7 +159,7 @@ export default function NotificationsPage() {
             fontSize: "0.875rem",
           }}
         >
-          You are all caught up. No notifications yet.
+          {filter === "unread" ? "No unread notifications." : "You are all caught up. No notifications yet."}
         </div>
       ) : (
         <div
@@ -143,7 +169,7 @@ export default function NotificationsPage() {
             gap: 2,
           }}
         >
-          {notifications.map(notif => (
+          {displayed.map(notif => (
             <button
               key={notif.id}
               onClick={() => !notif.read && markOneRead(notif.id)}

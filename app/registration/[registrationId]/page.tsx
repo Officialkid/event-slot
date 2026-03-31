@@ -136,6 +136,16 @@ export default async function RegistrationStatusPage({ params }: { params: { reg
         )}
       </div>
 
+      {/* Edit link */}
+      <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+        <a
+          href={`/registration/${params.registrationId}/edit`}
+          style={{ fontSize: '0.82rem', color: 'rgba(200,245,90,0.5)', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
+        >
+          Edit your answers →
+        </a>
+      </div>
+
     </main>
   )
 }

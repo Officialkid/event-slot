@@ -82,15 +82,16 @@ model VerificationToken {
 }
 
 model Registration {
-  id               String    @id @default(cuid())
-  eventId          String
-  event            Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  answers          Json
-  status           String
-  waitlistPosition Int?
-  submittedAt      DateTime  @default(now())
-  notified         Boolean   @default(false)
-  attendeeEmail    String?
+  id                 String    @id @default(cuid())
+  eventId            String
+  event              Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers            Json
+  status             String
+  waitlistPosition   Int?
+  registrationNumber Int?
+  submittedAt        DateTime  @default(now())
+  notified           Boolean   @default(false)
+  attendeeEmail      String?
 }
 
 model Notification {

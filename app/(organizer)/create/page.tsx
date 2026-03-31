@@ -67,6 +67,16 @@ export default function CreateEventPage() {
     }
   }, [status, router])
 
+  // After creation, redirect to the event dashboard
+  useEffect(() => {
+    if (success && eventInfo) {
+      const timer = setTimeout(() => {
+        router.push(`/dashboard/events/${eventInfo.slug}`)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [success, eventInfo, router])
+
   if (status === 'loading' || status === 'unauthenticated') {
     return null
   }
@@ -410,68 +420,20 @@ export default function CreateEventPage() {
             </div>
           </form>
         ) : (
-          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6 space-y-6">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] text-[#C8F55A]">
+          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-8 text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
               <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
             </div>
-            <h2 className="text-[1.5rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-              Your event is live
+            <h2 className="text-[1.5rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+              Your event is live!
             </h2>
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3 rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/${eventInfo?.slug}`}
-                    className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem]"
-                  />
-                  <a
-                    href={`/${eventInfo?.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)] flex items-center justify-center whitespace-nowrap"
-                  >
-                    Open
-                  </a>
-                  <button
-                    type="button"
-                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
-                    onClick={() => copyToClipboard(`${window.location.origin}/${eventInfo?.slug}`)}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
-                <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`}
-                    className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem]"
-                  />
-                  <a
-                    href={`/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)] flex items-center justify-center whitespace-nowrap"
-                  >
-                    Open
-                  </a>
-                  <button
-                    type="button"
-                    className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-4 py-2 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
-                    onClick={() => copyToClipboard(`${window.location.origin}/dashboard/${eventInfo?.slug}?token=${eventInfo?.dashboardToken}`)}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
+            <p className="text-[0.875rem] text-[rgba(240,237,230,0.45)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+              Taking you to your event dashboard…
+            </p>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid rgba(200,245,90,0.2)", borderTopColor: "#C8F55A", animation: "spin 0.8s linear infinite" }} />
             </div>
-            <div className="rounded-[8px] bg-[rgba(255,107,107,0.08)] border border-[rgba(255,107,107,0.2)] px-4 py-3 text-[0.82rem] text-[rgba(255,107,107,0.9)]">
-              Save your dashboard link now. It is the only way to manage this event.
-            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
       </div>

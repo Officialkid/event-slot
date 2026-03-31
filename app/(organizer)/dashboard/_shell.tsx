@@ -580,7 +580,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
           {/* Page content */}
           <main
-            className="dash-content pb-20 md:pb-0"
+            className="dash-content pb-28 md:pb-0"
             style={{ flex: 1, background: "#0A0A0A" }}
           >
             {children}

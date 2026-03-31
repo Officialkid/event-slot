@@ -5,7 +5,7 @@ import { createNotification } from '@/lib/notifications'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
-type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string }
+type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number }
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
         })
         const attendeeEmail = emailAnswer?.value ?? null
 
+        // Sequential registration number per event
+        const existingCount = await tx.registration.count({ where: { eventId: freshEvent.id } })
+        const registrationNumber = existingCount + 1
+
         let registrationId: string
 
         if (status === 'confirmed') {
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
               eventId: freshEvent.id,
               answers: attendee.answers,
               status,
+              registrationNumber,
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
@@ -96,6 +101,7 @@ export async function POST(req: NextRequest) {
               answers: attendee.answers,
               status,
               waitlistPosition,
+              registrationNumber,
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
@@ -104,11 +110,28 @@ export async function POST(req: NextRequest) {
           registrationId = reg.id
         }
 
-        attendeeResults.push({ status, waitlistPosition, registrationId })
+        attendeeResults.push({ status, waitlistPosition, registrationId, registrationNumber })
       }
 
       return attendeeResults
     })
+
+    // Per-registration notifications for organizer (non-blocking)
+    if (event.organizerId) {
+      try {
+        for (let i = 0; i < results.length; i++) {
+          const reg = results[i]
+          const regAnswers = attendees[i]?.answers ?? []
+          const nameQ = eventQuestions.find(q => q.type === 'text' && q.label.toLowerCase().includes('name'))
+          const name = nameQ ? (regAnswers.find(a => a.questionId === nameQ.id)?.value?.trim() || '') : ''
+          const who = name || 'Someone'
+          const msg = reg.status === 'confirmed'
+            ? `${who} registered for "${event.title}" (#${reg.registrationNumber})`
+            : `${who} joined the waitlist for "${event.title}" (waitlist #${reg.waitlistPosition})`
+          await createNotification({ userId: event.organizerId, type: 'registration', message: msg, eventId: event.id })
+        }
+      } catch { /* non-critical */ }
+    }
 
     // Trigger fill-rate notifications (non-blocking, best-effort)
     if (event.capacity && event.organizerId) {
