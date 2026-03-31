@@ -160,12 +160,6 @@ export default function CreateEventPage() {
     }
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {}
-  }
-
   return (
     <div className="px-4 py-12">
       <div className="mx-auto max-w-[640px] space-y-6">
