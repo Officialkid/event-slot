@@ -104,10 +104,10 @@ export default function Nav() {
         {session ? (
           <div className="flex items-center gap-3">
             <Link
-              href="/my-events"
+              href="/dashboard"
               className="text-sm font-medium text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6] transition-colors"
             >
-              My events
+              My dashboard
             </Link>
 
             {/* Avatar + dropdown */}
