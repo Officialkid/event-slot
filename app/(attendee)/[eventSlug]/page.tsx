@@ -75,7 +75,7 @@ export default async function EventRegistrationPage({ params }: { params: { even
       communityLink: true,
       imageUrl: true,
       status: true,
-      organizer: { select: { plan: true } },
+      organizer: { select: { plan: true, suspended: true } },
     },
   })
 
@@ -130,7 +130,17 @@ export default async function EventRegistrationPage({ params }: { params: { even
     )
   }
 
-  const showBranding = !event.organizer || event.organizer.plan === 'free'
+  if (event.organizer?.suspended) {
+    return (
+      <main style={{ background: "#0A0A0A", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem" }}>
+          This event is currently unavailable.
+        </p>
+      </main>
+    )
+  }
+
+    const showBranding = !event.organizer || event.organizer.plan === 'free'
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">

@@ -25,6 +25,7 @@ export const authOptions = {
           where: { email: credentials.email },
         })
         if (!user || !user.password) return null
+        if (user.suspended) return null
         const valid = await bcrypt.compare(credentials.password, user.password)
         if (!valid) return null
         return user
@@ -36,6 +37,19 @@ export const authOptions = {
     signIn: '/signin',
   },
   callbacks: {
+    async signIn({ user }: { user: { email?: string | null } }) {
+      if (!user.email) return true
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { suspended: true },
+        })
+        if (dbUser?.suspended) return false
+      } catch {
+        // non-critical
+      }
+      return true
+    },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub

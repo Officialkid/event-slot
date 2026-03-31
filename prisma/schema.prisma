@@ -46,6 +46,7 @@ model User {
   planEndDate    DateTime?
   isAdmin        Boolean        @default(false)
   billingCycle   String?
+  suspended      Boolean        @default(false)
   accounts       Account[]
   sessions       Session[]
   events         Event[]
@@ -99,6 +100,27 @@ model Registration {
   attendeeEmail         String?
   consentTransactional  Boolean   @default(false)
   consentMarketing      Boolean   @default(false)
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  route     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  senderName  String?
+  senderEmail String?
+  eventId   String?
+  eventTitle String?
+  type      String   @default("organizer") // organizer | attendee
+  rating    Int?
+  body      String
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Notification {
