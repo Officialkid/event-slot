@@ -13,15 +13,14 @@ const navItems = [
 
 export default function Nav() {
   const pathname = usePathname()
-
-  const isOrganizerRoute = ["/my-events", "/create", "/edit", "/dashboard"].some(
-    p => pathname === p || pathname.startsWith(p + "/")
-  )
-  if (isOrganizerRoute) return null
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isOrganizerRoute = ["/my-events", "/create", "/edit", "/dashboard"].some(
+    p => pathname === p || pathname.startsWith(p + "/")
+  )
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -65,6 +64,8 @@ export default function Nav() {
     e.preventDefault()
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" })
   }
+
+  if (isOrganizerRoute) return null
 
   function isActive(item: typeof navItems[number]) {
     if (pathname !== "/") return false
