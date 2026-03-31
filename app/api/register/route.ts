@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { ratelimit } from '@/lib/ratelimit'
+import { createNotification } from '@/lib/notifications'
 
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
@@ -105,6 +106,34 @@ export async function POST(req: NextRequest) {
 
       return attendeeResults
     })
+
+    // Trigger fill-rate notifications (non-blocking, best-effort)
+    if (event.capacity && event.organizerId) {
+      try {
+        const updatedEvent = await prisma.event.findUnique({ where: { slug: eventSlug } })
+        if (updatedEvent) {
+          const oldFill = event.confirmedCount / event.capacity
+          const newFill = updatedEvent.confirmedCount / event.capacity
+          if (newFill >= 1.0 && oldFill < 1.0) {
+            await createNotification({
+              userId: event.organizerId,
+              type: "full",
+              message: `Your event "${event.title}" is now full. ${updatedEvent.waitlistCount} ${updatedEvent.waitlistCount === 1 ? "person is" : "people are"} on the waitlist.`,
+              eventId: event.id,
+            })
+          } else if (newFill >= 0.8 && oldFill < 0.8) {
+            await createNotification({
+              userId: event.organizerId,
+              type: "info",
+              message: `Your event "${event.title}" is 80% full. Consider increasing capacity.`,
+              eventId: event.id,
+            })
+          }
+        }
+      } catch {
+        // Notifications are non-critical; do not fail the registration
+      }
+    }
 
     return NextResponse.json({
       success: true,

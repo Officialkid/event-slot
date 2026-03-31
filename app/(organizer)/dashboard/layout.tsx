@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -297,7 +297,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const { data: session, status } = useSession()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [unreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?unread=true")
+      const data = await res.json()
+      if (typeof data.count === "number") setUnreadCount(data.count)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchUnreadCount()
+      const id = setInterval(fetchUnreadCount, 60_000)
+      return () => clearInterval(id)
+    }
+  }, [status, fetchUnreadCount])
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -307,7 +325,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setDrawerOpen(false)
-  }, [pathname])
+    // Re-fetch unread count when navigating away from the notifications page
+    if (pathname !== "/dashboard/notifications" && status === "authenticated") {
+      fetchUnreadCount()
+    }
+  }, [pathname, status, fetchUnreadCount])
 
   const name = session?.user?.name || session?.user?.email || "Organizer"
   const email = session?.user?.email ?? ""

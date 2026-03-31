@@ -34,16 +34,17 @@ model Event {
 }
 
 model User {
-  id             String    @id @default(cuid())
+  id             String         @id @default(cuid())
   name           String?
-  email          String?   @unique
+  email          String?        @unique
   emailVerified  DateTime?
   image          String?
   password       String?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime       @default(now())
   accounts       Account[]
   sessions       Session[]
   events         Event[]
+  notifications  Notification[]
 }
 
 model Account {
@@ -90,4 +91,15 @@ model Registration {
   submittedAt      DateTime  @default(now())
   notified         Boolean   @default(false)
   attendeeEmail    String?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  eventId   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

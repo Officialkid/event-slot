@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { sendSlotConfirmedEmail } from '@/lib/email'
+import { createNotification } from '@/lib/notifications'
 
 export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -83,6 +84,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
           }).catch(err => console.error(`Email failed for ${r.attendeeEmail}:`, err))
         )
     )
+
+    // Notify organizer about promoted attendees (non-blocking, best-effort)
+    if (result.promoted > 0 && event.organizerId) {
+      try {
+        await createNotification({
+          userId: event.organizerId,
+          type: "info",
+          message: `${result.promoted} ${result.promoted === 1 ? "person was" : "people were"} moved from the waitlist to confirmed for "${event.title}".`,
+          eventId: event.id,
+        })
+      } catch {
+        // Non-critical
+      }
+    }
 
     return NextResponse.json({
       success: true,
