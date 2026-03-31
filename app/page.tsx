@@ -124,6 +124,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 border-t border-[rgba(240,237,230,0.08)] pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span>© 2026 EventSlot</span>
+            <a href="/pricing" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Pricing</a>
             <a href="/privacy" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Privacy Policy</a>
             <a href="/terms" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Terms of Use</a>
           </div>
