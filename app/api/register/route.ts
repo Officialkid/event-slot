@@ -35,7 +35,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    // 2. Check deadline
+    // 2. Check deadline / closed status
+    if (event.status === 'closed') {
+      return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
+    }
     if (event.deadline && new Date(event.deadline) < new Date()) {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }

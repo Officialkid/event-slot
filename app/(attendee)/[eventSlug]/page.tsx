@@ -74,6 +74,7 @@ export default async function EventRegistrationPage({ params }: { params: { even
       location: true,
       communityLink: true,
       imageUrl: true,
+      status: true,
     },
   })
 
@@ -101,6 +102,24 @@ export default async function EventRegistrationPage({ params }: { params: { even
           </h1>
           <p className="mt-3 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
             Registration for this event is closed.
+          </p>
+          <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
+            Closed
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  if (event.status === "closed") {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
+        <div className="mx-auto max-w-[480px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-10 text-center">
+          <h1 className="text-[1.4rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            {event.title}
+          </h1>
+          <p className="mt-3 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
+            Unfortunately the slots are full and registration is not available at this time.
           </p>
           <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
             Closed

@@ -63,7 +63,7 @@ function StatusBadge({ event }: { event: OrgEvent }) {
       </span>
     )
   }
-  if (tab === "past") {
+  if (tab === "past" || event.status === "closed") {
     return (
       <span
         style={{
@@ -107,6 +107,7 @@ interface ThreeDotMenuProps {
   onArchive: () => void
   onDelete: () => void
   onDuplicate: () => void
+  onClose: () => void
   duplicating: boolean
 }
 
@@ -116,6 +117,7 @@ function ThreeDotMenu({
   onArchive,
   onDelete,
   onDuplicate,
+  onClose,
   duplicating,
 }: ThreeDotMenuProps) {
   const [open, setOpen] = useState(false)
@@ -131,6 +133,7 @@ function ThreeDotMenu({
   }, [open])
 
   const isArchived = classifyEvent(event) === "archived"
+  const isClosed = event.status === "closed"
 
   const itemStyle: React.CSSProperties = {
     display: "block",
@@ -153,7 +156,7 @@ function ThreeDotMenu({
   }
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} style={{ position: "relative" }} onClick={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(v => !v)}
         style={{
@@ -186,7 +189,7 @@ function ThreeDotMenu({
             borderRadius: 8,
             padding: "0.25rem",
             zIndex: 20,
-            minWidth: 160,
+            minWidth: 180,
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}
         >
@@ -206,6 +209,16 @@ function ThreeDotMenu({
           >
             {duplicating ? "Duplicating…" : "Duplicate"}
           </button>
+
+          {!isArchived && (
+            <button
+              className="dot-menu-item"
+              style={itemStyle}
+              onClick={() => { setOpen(false); onClose() }}
+            >
+              {isClosed ? "Reopen registrations" : "Close registrations"}
+            </button>
+          )}
 
           {!isArchived && (
             <button
@@ -555,6 +568,7 @@ interface EventCardProps {
   onArchiveSuccess: (slug: string) => void
   onDeleteSuccess: (slug: string) => void
   onDuplicateSuccess: (newSlug: string) => void
+  onCloseSuccess: (slug: string, status: string) => void
 }
 
 function EventCard({
@@ -564,6 +578,7 @@ function EventCard({
   onArchiveSuccess,
   onDeleteSuccess,
   onDuplicateSuccess,
+  onCloseSuccess,
 }: EventCardProps) {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
@@ -594,6 +609,14 @@ function EventCard({
     }
   }
 
+  const handleClose = async () => {
+    try {
+      const res = await fetch(`/api/events/${event.slug}/close`, { method: "PATCH" })
+      const data = await res.json()
+      if (res.ok) onCloseSuccess(event.slug, data.status)
+    } catch {}
+  }
+
   return (
     <>
       {modal === "rename" && (
@@ -619,11 +642,13 @@ function EventCard({
       )}
 
       <div
+        onClick={() => router.push(`/dashboard/events/${event.slug}?token=${event.dashboardToken}`)}
         style={{
           background: "#141414",
           border: "0.5px solid rgba(240,237,230,0.08)",
           borderRadius: 12,
           padding: "1.25rem",
+          cursor: "pointer",
         }}
       >
         {/* Card header */}
@@ -669,12 +694,13 @@ function EventCard({
             onArchive={() => setModal("archive")}
             onDelete={() => setModal("delete")}
             onDuplicate={handleDuplicate}
+            onClose={handleClose}
             duplicating={duplicating}
           />
         </div>
 
         {/* Registration link */}
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.875rem" }}>
+        <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <input
             readOnly
             value={regLink}
@@ -712,30 +738,6 @@ function EventCard({
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
-
-        {/* Open dashboard button */}
-        <Link
-          href={`/dashboard/events/${event.slug}?token=${event.dashboardToken}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.375rem",
-            background: "transparent",
-            border: "0.5px solid rgba(240,237,230,0.15)",
-            borderRadius: 8,
-            padding: "0.45rem 0.875rem",
-            fontSize: "0.78rem",
-            fontWeight: 500,
-            color: "rgba(240,237,230,0.6)",
-            textDecoration: "none",
-            fontFamily: "var(--font-dm-sans)",
-          }}
-        >
-          Open dashboard
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.25">
-            <path d="M2 8L8 2M8 2H4M8 2v4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
       </div>
     </>
   )
@@ -837,6 +839,10 @@ export default function DashboardEventsPage() {
 
   const handleDeleteSuccess = (slug: string) => {
     setEvents(prev => prev.filter(e => e.slug !== slug))
+  }
+
+  const handleCloseSuccess = (slug: string, status: string) => {
+    setEvents(prev => prev.map(e => e.slug === slug ? { ...e, status } : e))
   }
 
   const handleDuplicateSuccess = (newSlug: string) => {
@@ -988,6 +994,7 @@ export default function DashboardEventsPage() {
                 onArchiveSuccess={handleArchiveSuccess}
                 onDeleteSuccess={handleDeleteSuccess}
                 onDuplicateSuccess={handleDuplicateSuccess}
+                onCloseSuccess={handleCloseSuccess}
               />
             ))}
           </div>

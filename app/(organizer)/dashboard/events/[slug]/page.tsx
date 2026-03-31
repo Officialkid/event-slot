@@ -70,6 +70,10 @@ function isEventPast(e: EventData): boolean {
   return !!(e.deadline && new Date(e.deadline) < new Date())
 }
 
+function isEventClosed(e: EventData): boolean {
+  return e.status === "closed"
+}
+
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ event }: { event: EventData }) {
@@ -80,7 +84,7 @@ function StatusBadge({ event }: { event: EventData }) {
       </span>
     )
   }
-  if (isEventPast(event)) {
+  if (isEventClosed(event) || isEventPast(event)) {
     return (
       <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(255,107,107,0.12)", color: "#FF6B6B", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
         CLOSED
@@ -100,10 +104,12 @@ interface HeaderMenuProps {
   onRename: () => void
   onArchive: () => void
   onDelete: () => void
+  onClose: () => void
   archived: boolean
+  closed: boolean
 }
 
-function HeaderMenu({ onRename, onArchive, onDelete, archived }: HeaderMenuProps) {
+function HeaderMenu({ onRename, onArchive, onDelete, onClose, archived, closed }: HeaderMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -133,8 +139,13 @@ function HeaderMenu({ onRename, onArchive, onDelete, archived }: HeaderMenuProps
         ···
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 160, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
           <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onRename() }}>Rename</button>
+          {!archived && (
+            <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onClose() }}>
+              {closed ? "Reopen registrations" : "Close registrations"}
+            </button>
+          )}
           {!archived && (
             <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onArchive() }}>Archive</button>
           )}
@@ -511,6 +522,34 @@ export default function EventDashboardPage() {
     try { await navigator.clipboard.writeText(regLink); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
   }
 
+  const handleShare = async () => {
+    if (!regLink || !eventData) return
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: eventData.title,
+          text: `Register for ${eventData.title}`,
+          url: regLink,
+        })
+        return
+      } catch {
+        // user cancelled or not supported — fall through to copy
+      }
+    }
+    handleCopy()
+  }
+
+  const handleClose = async () => {
+    if (!eventData) return
+    try {
+      const res = await fetch(`/api/events/${slug}/close`, { method: "PATCH" })
+      const data = await res.json()
+      if (res.ok) {
+        setEventData(prev => prev ? { ...prev, status: data.status } : null)
+      }
+    } catch {}
+  }
+
   const handleRename = async (title: string) => {
     const res = await fetch(`/api/events/${slug}/rename`, {
       method: "PATCH",
@@ -691,7 +730,9 @@ export default function EventDashboardPage() {
               onRename={() => setModal("rename")}
               onArchive={() => setModal("archive")}
               onDelete={() => setModal("delete")}
+              onClose={handleClose}
               archived={isEventArchived(eventData)}
+              closed={isEventClosed(eventData)}
             />
           </div>
 
@@ -711,7 +752,7 @@ export default function EventDashboardPage() {
               {copied ? "Copied!" : "Copy"}
             </button>
             <button
-              onClick={handleCopy}
+              onClick={handleShare}
               style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", gap: "0.375rem" }}
             >
               <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
