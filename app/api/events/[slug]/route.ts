@@ -8,9 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')
 
-    if (!token) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
-    }
+    const session = await getServerSession(authOptions)
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -20,7 +18,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    if (event.dashboardToken !== token) {
+    const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
+    const hasValidToken = !!(token && event.dashboardToken === token)
+
+    if (!isOwner && !hasValidToken) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
     }
 
@@ -53,6 +54,12 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
         waitlistCount: event.waitlistCount,
         slug: event.slug,
         questions: event.questions,
+        eventDate: event.eventDate,
+        location: event.location,
+        communityLink: event.communityLink,
+        archived: event.archived,
+        status: event.status,
+        dashboardToken: event.dashboardToken,
       },
       confirmed,
       waitlist,
