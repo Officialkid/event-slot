@@ -39,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
         where: { eventId: event.id, status: 'waitlist' },
         orderBy: { waitlistPosition: 'asc' },
         take: Math.min(addedSlots, event.waitlistCount),
+        select: { id: true, attendeeEmail: true, consentTransactional: true },
       })
 
       const promoted = waitlistToPromote.length
@@ -81,6 +82,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
             to: r.attendeeEmail!,
             eventTitle: event.title,
             communityLink: event.communityLink,
+            consentTransactional: r.consentTransactional,
           }).catch(err => console.error(`Email failed for ${r.attendeeEmail}:`, err))
         )
     )

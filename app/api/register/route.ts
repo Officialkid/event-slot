@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { eventSlug, attendees } = body as { eventSlug: string; attendees: AttendeePayload[] }
+    const { eventSlug, attendees, consentTransactional, consentMarketing } = body as {
+      eventSlug: string
+      attendees: AttendeePayload[]
+      consentTransactional?: boolean
+      consentMarketing?: boolean
+    }
 
     if (!eventSlug || !Array.isArray(attendees) || attendees.length === 0) {
       return NextResponse.json({ success: false, error: 'Missing eventSlug or attendees' }, { status: 400 })
@@ -96,6 +101,8 @@ export async function POST(req: NextRequest) {
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              consentTransactional: consentTransactional ?? false,
+              consentMarketing: consentMarketing ?? false,
             },
           })
           registrationId = reg.id
@@ -119,6 +126,8 @@ export async function POST(req: NextRequest) {
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              consentTransactional: consentTransactional ?? false,
+              consentMarketing: consentMarketing ?? false,
             },
           })
           registrationId = reg.id

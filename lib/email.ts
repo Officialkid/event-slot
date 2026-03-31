@@ -6,11 +6,15 @@ export async function sendSlotConfirmedEmail({
   to,
   eventTitle,
   communityLink,
+  consentTransactional,
 }: {
   to: string
   eventTitle: string
   communityLink?: string | null
+  consentTransactional: boolean
 }) {
+  if (!consentTransactional) return
+
   const communitySection = communityLink
     ? `<p style="margin-top:16px">You can now join the event community here: <a href="${communityLink}">${communityLink}</a></p>`
     : ''

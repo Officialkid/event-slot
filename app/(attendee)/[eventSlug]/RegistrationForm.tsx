@@ -52,6 +52,9 @@ export default function RegistrationForm({ event }: EventProps) {
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
   const [error, setError] = useState("")
+  const [consentTransactional, setConsentTransactional] = useState(false)
+  const [consentMarketing, setConsentMarketing] = useState(false)
+  const [consentError, setConsentError] = useState("")
 
   const MAX_ATTENDEES = 20
 
@@ -75,6 +78,7 @@ export default function RegistrationForm({ event }: EventProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
+    setConsentError("")
 
     // Client-side required field validation
     for (let i = 0; i < attendees.length; i++) {
@@ -86,6 +90,11 @@ export default function RegistrationForm({ event }: EventProps) {
       }
     }
 
+    if (!consentTransactional) {
+      setConsentError("You must agree to receive event notifications to register.")
+      return
+    }
+
     setLoading(true)
     try {
       const attendeesPayload = attendees.map(form => ({
@@ -94,7 +103,7 @@ export default function RegistrationForm({ event }: EventProps) {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventSlug: event.slug, attendees: attendeesPayload }),
+        body: JSON.stringify({ eventSlug: event.slug, attendees: attendeesPayload, consentTransactional, consentMarketing }),
       })
       const data = await res.json()
       if (data.success) {
@@ -386,6 +395,79 @@ export default function RegistrationForm({ event }: EventProps) {
           </div>
         </div>
       ))}
+
+      {/* Consent checkboxes */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.25rem" }}>
+        {/* Checkbox 1 — Required */}
+        <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
+          <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
+            <input
+              type="checkbox"
+              checked={consentTransactional}
+              onChange={e => { setConsentTransactional(e.target.checked); if (e.target.checked) setConsentError("") }}
+              style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
+            />
+            <span style={{
+              display: "block",
+              width: 16,
+              height: 16,
+              borderRadius: 3,
+              border: consentTransactional ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
+              background: consentTransactional ? "#C8F55A" : "transparent",
+              flexShrink: 0,
+              transition: "background 0.15s, border 0.15s",
+            }}>
+              {consentTransactional && (
+                <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
+                  <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+          </span>
+          <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+            I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Required)
+          </span>
+        </label>
+        {consentError && (
+          <div style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "-0.25rem", paddingLeft: "1.6rem" }}>{consentError}</div>
+        )}
+
+        {/* Checkbox 2 — Optional */}
+        <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
+          <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
+            <input
+              type="checkbox"
+              checked={consentMarketing}
+              onChange={e => setConsentMarketing(e.target.checked)}
+              style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
+            />
+            <span style={{
+              display: "block",
+              width: 16,
+              height: 16,
+              borderRadius: 3,
+              border: consentMarketing ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
+              background: consentMarketing ? "#C8F55A" : "transparent",
+              flexShrink: 0,
+              transition: "background 0.15s, border 0.15s",
+            }}>
+              {consentMarketing && (
+                <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
+                  <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+          </span>
+          <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+            I would like to hear about future events from this organiser. (Optional)
+          </span>
+        </label>
+
+        {/* Privacy note */}
+        <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", lineHeight: 1.5, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
+          Your data is protected under Kenya&apos;s Data Protection Act 2019. We never sell your information.
+        </p>
+      </div>
 
       <button
         type="submit"
