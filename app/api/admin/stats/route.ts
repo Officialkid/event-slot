@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
@@ -7,7 +7,7 @@ function isSuperAdmin(email: string | null | undefined) {
   return email && email === process.env.SUPER_ADMIN_EMAIL
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions)
   if (!isSuperAdmin(session?.user?.email)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
