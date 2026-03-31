@@ -12,11 +12,55 @@ interface Notification {
   eventId?: string | null
 }
 
+interface FeedbackState {
+  rating: number
+  message: string
+  submitting: boolean
+  submitted: boolean
+}
+
+function StarRating({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (v: number) => void
+}) {
+  const [hovered, setHovered] = useState(0)
+  return (
+    <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.75rem" }}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "0 2px",
+            fontSize: "1.4rem",
+            lineHeight: 1,
+            color: star <= (hovered || value) ? "#C8F55A" : "rgba(240,237,230,0.2)",
+            transition: "color 0.1s",
+          }}
+          aria-label={`${star} star`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [markingAll, setMarkingAll] = useState(false)
   const [filter, setFilter] = useState<"all" | "unread">("all")
+  const [feedbackStates, setFeedbackStates] = useState<Record<string, FeedbackState>>({})
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -57,8 +101,53 @@ export default function NotificationsPage() {
     }
   }
 
+  const getFeedbackState = (id: string): FeedbackState =>
+    feedbackStates[id] ?? { rating: 0, message: "", submitting: false, submitted: false }
+
+  const setFeedbackField = (id: string, patch: Partial<FeedbackState>) =>
+    setFeedbackStates(prev => ({ ...prev, [id]: { ...getFeedbackState(id), ...patch } }))
+
+  const submitFeedback = async (notif: Notification) => {
+    const state = getFeedbackState(notif.id)
+    if (state.rating === 0) return
+    setFeedbackField(notif.id, { submitting: true })
+    try {
+      const res = await fetch("/api/feedback/organizer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notificationId: notif.id,
+          eventId: notif.eventId,
+          rating: state.rating,
+          message: state.message,
+        }),
+      })
+      if (res.ok) {
+        setFeedbackField(notif.id, { submitted: true, submitting: false })
+        setNotifications(prev =>
+          prev.map(n => (n.id === notif.id ? { ...n, read: true } : n))
+        )
+      } else {
+        setFeedbackField(notif.id, { submitting: false })
+      }
+    } catch {
+      setFeedbackField(notif.id, { submitting: false })
+    }
+  }
+
   const unreadCount = notifications.filter(n => !n.read).length
-  const displayed = filter === "unread" ? notifications.filter(n => !n.read) : notifications
+  const displayed =
+    filter === "unread" ? notifications.filter(n => !n.read) : notifications
+
+  const cardBase: React.CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "0.875rem",
+    padding: "0.875rem 1rem",
+    borderRadius: 10,
+    textAlign: "left",
+    width: "100%",
+  }
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
@@ -104,7 +193,16 @@ export default function NotificationsPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.25rem", background: "rgba(240,237,230,0.04)", borderRadius: 10, padding: "0.25rem" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "0.25rem",
+          marginBottom: "1.25rem",
+          background: "rgba(240,237,230,0.04)",
+          borderRadius: 10,
+          padding: "0.25rem",
+        }}
+      >
         {(["all", "unread"] as const).map(tab => (
           <button
             key={tab}
@@ -130,13 +228,7 @@ export default function NotificationsPage() {
 
       {/* Content */}
       {loading ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "3rem 0",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "center", padding: "3rem 0" }}>
           <style>{`@keyframes notif-spin { to { transform: rotate(360deg); } }`}</style>
           <div
             style={{
@@ -162,81 +254,106 @@ export default function NotificationsPage() {
           {filter === "unread" ? "No unread notifications." : "You are all caught up. No notifications yet."}
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          {displayed.map(notif => (
-            <button
-              key={notif.id}
-              onClick={() => !notif.read && markOneRead(notif.id)}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "0.875rem",
-                padding: "0.875rem 1rem",
-                borderRadius: 10,
-                background: notif.read
-                  ? "transparent"
-                  : "rgba(200,245,90,0.04)",
-                borderLeft: notif.read
-                  ? "2px solid transparent"
-                  : "2px solid #C8F55A",
-                border: notif.read
-                  ? "0.5px solid rgba(240,237,230,0.06)"
-                  : "0.5px solid rgba(200,245,90,0.12)",
-                borderLeftWidth: notif.read ? undefined : 2,
-                cursor: notif.read ? "default" : "pointer",
-                textAlign: "left",
-                width: "100%",
-                transition: "background 0.15s",
-              }}
-            >
-              {/* Colored dot */}
-              <span
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {displayed.map(notif => {
+            const isFeedbackRequest = notif.type === "feedback_request"
+            const fb = getFeedbackState(notif.id)
+            const isUnread = !notif.read
+            const borderColor = isUnread ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)"
+            const bgColor = isUnread ? "rgba(200,245,90,0.04)" : "transparent"
+            const dotColor = notif.type === "full" ? "#FF6B6B" : "#C8F55A"
+
+            if (isFeedbackRequest) {
+              return (
+                <div
+                  key={notif.id}
+                  style={{
+                    ...cardBase,
+                    flexDirection: "column",
+                    background: bgColor,
+                    border: `0.5px solid ${borderColor}`,
+                    borderLeft: isUnread ? "2px solid #C8F55A" : undefined,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-start", width: "100%" }}>
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        marginTop: 4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: "#C8F55A",
+                        opacity: isUnread ? 1 : 0.35,
+                      }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
+                        {notif.message}
+                      </p>
+                      <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ paddingLeft: "1.5rem", width: "100%", boxSizing: "border-box" }}>
+                    {fb.submitted ? (
+                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                        Thank you for your feedback.
+                      </p>
+                    ) : (
+                      <div style={{ marginTop: "0.75rem" }}>
+                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+                          Rate your experience
+                        </p>
+                        <StarRating value={fb.rating} onChange={v => setFeedbackField(notif.id, { rating: v })} />
+                        <textarea
+                          rows={3}
+                          placeholder="Tell us about your experience"
+                          value={fb.message}
+                          onChange={e => setFeedbackField(notif.id, { message: e.target.value })}
+                          style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6, marginBottom: "0.625rem" }}
+                        />
+                        <button
+                          onClick={() => submitFeedback(notif)}
+                          disabled={fb.submitting || fb.rating === 0}
+                          style={{ background: fb.rating === 0 ? "rgba(200,245,90,0.25)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: fb.rating === 0 ? "rgba(8,8,8,0.4)" : "#080808", cursor: fb.submitting || fb.rating === 0 ? "default" : "pointer", opacity: fb.submitting ? 0.6 : 1, transition: "background 0.15s, opacity 0.15s" }}
+                        >
+                          {fb.submitting ? "Sending…" : "Send feedback"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
+            return (
+              <button
+                key={notif.id}
+                onClick={() => !notif.read && markOneRead(notif.id)}
                 style={{
-                  flexShrink: 0,
-                  marginTop: 4,
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: notif.type === "full" ? "#FF6B6B" : "#C8F55A",
-                  opacity: notif.read ? 0.35 : 1,
+                  ...cardBase,
+                  background: bgColor,
+                  border: `0.5px solid ${borderColor}`,
+                  borderLeft: isUnread ? "2px solid #C8F55A" : undefined,
+                  cursor: isUnread ? "pointer" : "default",
+                  transition: "background 0.15s",
                 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "0.875rem",
-                    fontFamily: "var(--font-dm-sans)",
-                    color: notif.read
-                      ? "rgba(240,237,230,0.5)"
-                      : "#F0EDE6",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {notif.message}
-                </p>
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: "0.3rem",
-                    fontSize: "0.72rem",
-                    color: "rgba(240,237,230,0.3)",
-                    fontFamily: "var(--font-dm-sans)",
-                  }}
-                >
-                  {formatDistanceToNow(new Date(notif.createdAt), {
-                    addSuffix: true,
-                  })}
-                </span>
-              </div>
-            </button>
-          ))}
+              >
+                <span style={{ flexShrink: 0, marginTop: 4, width: 8, height: 8, borderRadius: "50%", background: dotColor, opacity: isUnread ? 1 : 0.35 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
+                    {notif.message}
+                  </p>
+                  <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                    {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

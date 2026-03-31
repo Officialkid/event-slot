@@ -64,6 +64,28 @@ export async function GET() {
       }))
       .sort((a, b) => b.confirmedCount / b.capacity - a.confirmedCount / a.capacity)
 
+    // Trigger feedback_request notifications for events whose deadline has passed
+    const expiredEvents = events.filter(e => e.deadline && e.deadline < now)
+    if (expiredEvents.length > 0) {
+      const expiredEventIds = expiredEvents.map(e => e.id)
+      const existingFeedbackNotifs = await prisma.notification.findMany({
+        where: { userId, type: "feedback_request", eventId: { in: expiredEventIds } },
+        select: { eventId: true },
+      })
+      const alreadyNotified = new Set(existingFeedbackNotifs.map(n => n.eventId))
+      const needFeedback = expiredEvents.filter(e => !alreadyNotified.has(e.id))
+      if (needFeedback.length > 0) {
+        await prisma.notification.createMany({
+          data: needFeedback.map(e => ({
+            userId,
+            type: "feedback_request",
+            eventId: e.id,
+            message: `How did ${e.title} go? Share your experience with EventSlot.`,
+          })),
+        })
+      }
+    }
+
     // Recent activity: last 10 registrations across all organizer events
     const eventIds = events.map(e => e.id)
     const recentRegs = await prisma.registration.findMany({
