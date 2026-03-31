@@ -56,7 +56,6 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
 }
 
 function PlanBar({ plans }: { plans: { free: number; pro: number; business: number } }) {
-  const total = (plans.free || 0) + (plans.pro || 0) + (plans.business || 0) || 1
   const bars = [
     { label: "Free", count: plans.free || 0, color: "rgba(240,237,230,0.3)" },
     { label: "Pro", count: plans.pro || 0, color: "#C8F55A" },

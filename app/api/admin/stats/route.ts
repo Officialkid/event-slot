@@ -7,7 +7,7 @@ function isSuperAdmin(email: string | null | undefined) {
   return email && email === process.env.SUPER_ADMIN_EMAIL
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!isSuperAdmin(session?.user?.email)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
