@@ -105,11 +105,12 @@ interface HeaderMenuProps {
   onArchive: () => void
   onDelete: () => void
   onClose: () => void
+  onEdit: () => void
   archived: boolean
   closed: boolean
 }
 
-function HeaderMenu({ onRename, onArchive, onDelete, onClose, archived, closed }: HeaderMenuProps) {
+function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, closed }: HeaderMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -140,6 +141,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, archived, closed }
       </button>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+          <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onEdit() }}>Edit event</button>
           <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onRename() }}>Rename</button>
           {!archived && (
             <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onClose() }}>
@@ -727,6 +729,7 @@ export default function EventDashboardPage() {
 
             {/* Three-dot menu */}
             <HeaderMenu
+              onEdit={() => router.push(`/edit/${slug}`)}
               onRename={() => setModal("rename")}
               onArchive={() => setModal("archive")}
               onDelete={() => setModal("delete")}
@@ -808,7 +811,7 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Capacity panel */}
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
+            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem", marginBottom: "0.5rem" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
                 Increase Capacity
               </h2>

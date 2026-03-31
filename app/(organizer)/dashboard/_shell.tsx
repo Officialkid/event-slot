@@ -467,7 +467,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             position: "fixed",
             top: 0,
             left: 0,
-            width: 240,
+            width: 210,
             height: "100vh",
             background: "#0D0D0D",
             borderRight: "0.5px solid rgba(240,237,230,0.06)",
@@ -480,7 +480,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Content column — offset for sidebar on desktop */}
         <div
-          className="md:ml-[240px]"
+          className="md:ml-[210px]"
           style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
         >
           {/* Top bar */}
