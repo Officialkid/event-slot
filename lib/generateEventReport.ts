@@ -338,7 +338,6 @@ function registrationTable(
 ): Table {
   const numberColW = 500
   const dateColW = 1500
-  const extraCols = showPosition ? 0 : 0 // # or Position — same width
   const questionColsTotal = TABLE_WIDTH - numberColW - dateColW
   const qCount = questions.length
   const questionColW = qCount > 0 ? Math.floor(questionColsTotal / qCount) : questionColsTotal
