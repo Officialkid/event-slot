@@ -57,7 +57,13 @@ type EventData = {
   organizerPlan: string
 }
 
-type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "settings"
+type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "settings"
+
+type FeedbackData = {
+  feedback: { id: string; rating: number; enjoyed: string | null; improve: string | null; complaint: string | null; submittedAt: string }[]
+  totalResponses: number
+  averageRating: number | null
+}
 
 type AnalyticsData = {
   totalViews: number
@@ -596,6 +602,12 @@ export default function EventDashboardPage() {
   const [analyticsError, setAnalyticsError] = useState("")
   const [showAnalyticsUpgrade, setShowAnalyticsUpgrade] = useState(false)
 
+  // Feedback
+  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [feedbackError, setFeedbackError] = useState("")
+  const [showFeedbackUpgrade, setShowFeedbackUpgrade] = useState(false)
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -824,6 +836,7 @@ export default function EventDashboardPage() {
     { key: "confirmed", label: `Confirmed (${confirmed.length})` },
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
     { key: "analytics", label: "Analytics" },
+    { key: "feedback", label: "Feedback" },
     { key: "settings", label: "Settings" },
   ]
 
@@ -842,6 +855,23 @@ export default function EventDashboardPage() {
       setAnalyticsData(data)
     } catch { setAnalyticsError("Unable to load analytics.") }
     finally { setAnalyticsLoading(false) }
+  }
+
+  const loadFeedback = async () => {
+    if (!eventData || feedbackLoading) return
+    setFeedbackLoading(true)
+    setFeedbackError("")
+    try {
+      const res = await fetch(`/api/events/${slug}/feedback${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+      const data = await res.json()
+      if (res.status === 403 && data.upgradeRequired) {
+        setShowFeedbackUpgrade(true)
+        return
+      }
+      if (!res.ok) { setFeedbackError(data.error || "Failed to load feedback"); return }
+      setFeedbackData(data)
+    } catch { setFeedbackError("Unable to load feedback.") }
+    finally { setFeedbackLoading(false) }
   }
 
   return (
@@ -869,6 +899,9 @@ export default function EventDashboardPage() {
       )}
       {showAnalyticsUpgrade && (
         <UpgradePrompt feature="Event Analytics" requiredPlan="pro" onClose={() => setShowAnalyticsUpgrade(false)} />
+      )}
+      {showFeedbackUpgrade && (
+        <UpgradePrompt feature="Attendee Feedback" requiredPlan="business" onClose={() => setShowFeedbackUpgrade(false)} />
       )}
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -1271,6 +1304,101 @@ export default function EventDashboardPage() {
             {!analyticsData && !analyticsLoading && !analyticsError && (
               <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
                 <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load analytics&rdquo; to see views, conversions, and registration trends.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Tab: Feedback ─────────────────────────────────────────────── */}
+        {activeTab === "feedback" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Attendee Feedback</h2>
+              {!feedbackData && !feedbackLoading && !feedbackError && (
+                <button
+                  onClick={loadFeedback}
+                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Load feedback
+                </button>
+              )}
+            </div>
+
+            {feedbackLoading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {[1, 2, 3].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+              </div>
+            )}
+
+            {feedbackError && (
+              <p style={{ fontSize: "0.875rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{feedbackError}</p>
+            )}
+
+            {feedbackData && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {/* Summary stats */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
+                  {[
+                    { label: "Responses", value: feedbackData.totalResponses },
+                    { label: "Average Rating", value: feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "—" },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+                      <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {feedbackData.feedback.length === 0 ? (
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>No feedback submitted yet. Feedback request emails are sent automatically after the event date.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {feedbackData.feedback.map(fb => (
+                      <div key={fb.id} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: fb.enjoyed || fb.improve || fb.complaint ? "1rem" : 0, flexWrap: "wrap", gap: "0.5rem" }}>
+                          <div style={{ display: "flex", gap: "2px" }}>
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "rgba(240,237,230,0.15)" }}>★</span>
+                            ))}
+                          </div>
+                          <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                            {new Date(fb.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </span>
+                        </div>
+                        {(fb.enjoyed || fb.improve || fb.complaint) && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+                            {fb.enjoyed && (
+                              <div>
+                                <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(200,245,90,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Enjoyed</div>
+                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.enjoyed}</p>
+                              </div>
+                            )}
+                            {fb.improve && (
+                              <div>
+                                <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Improve</div>
+                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.improve}</p>
+                              </div>
+                            )}
+                            {fb.complaint && (
+                              <div>
+                                <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,107,107,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Complaint</div>
+                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.complaint}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!feedbackData && !feedbackLoading && !feedbackError && (
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load feedback&rdquo; to see attendee responses.</p>
               </div>
             )}
           </div>

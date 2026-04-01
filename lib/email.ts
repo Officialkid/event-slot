@@ -2,6 +2,37 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+export async function sendFeedbackRequestEmail({
+  to,
+  eventTitle,
+  registrationId,
+}: {
+  to: string
+  eventTitle: string
+  registrationId: string
+}) {
+  const feedbackUrl = `${process.env.NEXTAUTH_URL}/feedback/${registrationId}`
+
+  await resend.emails.send({
+    from: 'EventSlot <noreply@eventslot.app>',
+    to,
+    subject: `How was ${eventTitle}? Share your feedback`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
+        <h2 style="color:#0A0A0A">How was the event?</h2>
+        <p>Thanks for attending <strong>${eventTitle}</strong>. We'd love to hear what you thought.</p>
+        <p>It only takes a minute — your feedback helps organisers improve future events.</p>
+        <p style="margin-top:1.5rem">
+          <a href="${feedbackUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.6rem 1.4rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+            Leave feedback
+          </a>
+        </p>
+        <p style="margin-top:2rem;color:#888;font-size:0.8rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
+      </div>
+    `,
+  })
+}
+
 export async function sendSlotConfirmedEmail({
   to,
   eventTitle,

@@ -30,8 +30,10 @@ model Event {
   imageUrl         String?
   archived         Boolean   @default(false)
   status           String    @default("active")
+  feedbackSent     Boolean   @default(false)
   registrations    Registration[]
   views            EventView[]
+  feedback         AttendeeFeedback[]
 }
 
 model EventView {
@@ -151,4 +153,16 @@ model OrganizerFeedback {
   rating    Int
   message   String
   createdAt DateTime @default(now())
+}
+
+model AttendeeFeedback {
+  id             String   @id @default(cuid())
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrationId String   @unique
+  rating         Int
+  enjoyed        String?
+  improve        String?
+  complaint      String?
+  submittedAt    DateTime @default(now())
 }
