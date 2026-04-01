@@ -55,6 +55,17 @@ function IconInsights() {
   )
 }
 
+function IconUsers() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="5" r="2.5" />
+      <path d="M1 14c0-2.761 2.239-5 5-5s5 2.239 5 5" />
+      <path d="M12 7c1.105 0 2 .895 2 2v1" />
+      <path d="M10 4a2 2 0 110 3.999" />
+    </svg>
+  )
+}
+
 function IconMenu() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -257,6 +268,32 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             >
               <IconInsights />
               <span style={{ flex: 1 }}>Insights</span>
+            </Link>
+          )
+        })()}
+        {/* Team — pro and business only */}
+        {(userPlan === "pro" || userPlan === "business") && (() => {
+          const active = getIsActive(pathname, "/dashboard/team", false)
+          return (
+            <Link
+              href="/dashboard/team"
+              onClick={onNavClick}
+              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                background: active ? "rgba(200,245,90,0.08)" : "transparent",
+                color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+              }}
+            >
+              <IconUsers />
+              <span style={{ flex: 1 }}>Team</span>
             </Link>
           )
         })()}

@@ -62,6 +62,8 @@ model User {
   sessions       Session[]
   events         Event[]
   notifications  Notification[]
+  ownedTeam       TeamMember[]   @relation("OwnedTeam")
+  teamMemberships TeamMember[]   @relation("TeamMemberships")
 }
 
 model Account {
@@ -165,4 +167,16 @@ model AttendeeFeedback {
   improve        String?
   complaint      String?
   submittedAt    DateTime @default(now())
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation("OwnedTeam", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberId    String?
+  member      User?    @relation("TeamMemberships", fields: [memberId], references: [id])
+  email       String
+  status      String   @default("pending")
+  inviteToken String   @unique
+  createdAt   DateTime @default(now())
 }
