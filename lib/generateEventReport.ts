@@ -15,8 +15,6 @@ import {
   PageNumber,
   Header,
   Footer,
-  AbstractNumbering,
-  Numbering,
 } from 'docx'
 import { format } from 'date-fns'
 
@@ -145,7 +143,7 @@ function makeFooter(eventTitle: string): Footer {
 
 // ── Cover Page ────────────────────────────────────────────────────────────────
 
-function coverPage(event: IEvent): Paragraph[] {
+function coverPage(event: IEvent): (Paragraph | Table)[] {
   // Two-column info table rows
   const infoRows: [string, string][] = [
     ['Organizer:', event.organizerEmail],
@@ -229,7 +227,7 @@ function coverPage(event: IEvent): Paragraph[] {
 
 // ── Summary Page ──────────────────────────────────────────────────────────────
 
-function summaryPage(event: IEvent): Paragraph[] {
+function summaryPage(event: IEvent): (Paragraph | Table)[] {
   const fillRate =
     event.capacity && event.capacity > 0
       ? `${Math.round((event.confirmedCount / event.capacity) * 100)}%`
@@ -596,26 +594,23 @@ export async function generateEventReport({
   confirmed: IRegistration[]
   waitlist: IRegistration[]
 }): Promise<Buffer> {
-  // Numbering config (required by docx even if we use no bullets, keeps styles valid)
-  const abstractNumbering = new AbstractNumbering({
-    abstractNumId: 0,
-    levels: [
-      {
-        level: 0,
-        format: LevelFormat.BULLET,
-        text: '-',
-        alignment: AlignmentType.LEFT,
-        style: { paragraph: { indent: { left: 720, hanging: 360 } } },
-      },
-    ],
-  })
-  const numbering = new Numbering({
-    config: [{ reference: 'bullet-list', levels: [{ reference: abstractNumbering, overriddenLevel: 0 }] }],
-    abstractNumbering: [abstractNumbering],
-  })
-
   const doc = new Document({
-    numbering,
+    numbering: {
+      config: [
+        {
+          reference: 'bullet-list',
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: '-',
+              alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+            },
+          ],
+        },
+      ],
+    },
     styles: {
       default: {
         document: {
