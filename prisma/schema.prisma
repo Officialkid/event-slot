@@ -100,6 +100,7 @@ model Registration {
   attendeeEmail         String?
   consentTransactional  Boolean   @default(false)
   consentMarketing      Boolean   @default(false)
+  isDuplicate           Boolean   @default(false)
 }
 
 model ErrorLog {

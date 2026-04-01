@@ -66,6 +66,20 @@ function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
   return Object.fromEntries(questions.map(q => [q.id, ""]))
 }
 
+type DuplicateInfo = {
+  attendeeIndex: number
+  registrationNumber: number | null
+  name: string
+  maskedPhone: string
+}
+
+type PendingPayload = {
+  eventSlug: string
+  attendeesPayload: Array<{ answers: Array<{ questionId: string; value: string }> }>
+  consentTransactional: boolean
+  consentMarketing: boolean
+}
+
 export default function RegistrationForm({ event, showBranding = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
@@ -74,6 +88,15 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
   const [consentTransactional, setConsentTransactional] = useState(false)
   const [consentMarketing, setConsentMarketing] = useState(false)
   const [consentError, setConsentError] = useState("")
+  // Duplicate detection
+  const [duplicateInfo, setDuplicateInfo] = useState<DuplicateInfo | null>(null)
+  const [pendingPayload, setPendingPayload] = useState<PendingPayload | null>(null)
+  // Waitlist email capture (shown when event has no email question)
+  const [waitlistEmails, setWaitlistEmails] = useState<Record<string, string>>({})
+  const [waitlistEmailSaving, setWaitlistEmailSaving] = useState<Record<string, boolean>>({})
+  const [waitlistEmailSaved, setWaitlistEmailSaved] = useState<Record<string, boolean>>({})
+
+  const hasEmailQuestion = event.questions.some(q => q.type === 'email')
 
   const MAX_ATTENDEES = 20
 
@@ -127,6 +150,14 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
       const data = await res.json()
       if (data.success) {
         setBulkResult(data)
+      } else if (data.duplicate) {
+        setDuplicateInfo({
+          attendeeIndex: data.attendeeIndex ?? 0,
+          registrationNumber: data.existing?.registrationNumber ?? null,
+          name: data.existing?.name ?? "",
+          maskedPhone: data.existing?.maskedPhone ?? "",
+        })
+        setPendingPayload({ eventSlug: event.slug, attendeesPayload, consentTransactional, consentMarketing })
       } else {
         setError(data.error || "Registration failed.")
       }
@@ -134,6 +165,47 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
       setError("Unexpected error. Please try again.")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForceRegister = async () => {
+    if (!pendingPayload) return
+    setLoading(true)
+    setDuplicateInfo(null)
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...pendingPayload, attendees: pendingPayload.attendeesPayload, forceDuplicate: true }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setBulkResult(data)
+        setPendingPayload(null)
+      } else {
+        setError(data.error || "Registration failed.")
+      }
+    } catch {
+      setError("Unexpected error. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveWaitlistEmail = async (registrationId: string, email: string) => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+    setWaitlistEmailSaving(prev => ({ ...prev, [registrationId]: true }))
+    try {
+      const res = await fetch(`/api/registrations/${registrationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendeeEmail: email }),
+      })
+      if (res.ok) {
+        setWaitlistEmailSaved(prev => ({ ...prev, [registrationId]: true }))
+      }
+    } finally {
+      setWaitlistEmailSaving(prev => ({ ...prev, [registrationId]: false }))
     }
   }
 
@@ -215,6 +287,36 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
                     Registration #{String(r.registrationNumber).padStart(4, "0")}
                   </p>
                 )}
+                {/* Waitlist email capture (if event has no email question) */}
+                {!hasEmailQuestion && !waitlistEmailSaved[r.registrationId] && (
+                  <div style={{ marginTop: "1.25rem", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 10, padding: "1rem" }}>
+                    <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem", lineHeight: 1.5 }}>
+                      Enter your email to be notified when a slot opens up:
+                    </p>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={waitlistEmails[r.registrationId] ?? ""}
+                        onChange={e => setWaitlistEmails(prev => ({ ...prev, [r.registrationId]: e.target.value }))}
+                        style={{ flex: 1, minWidth: 0, background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => saveWaitlistEmail(r.registrationId, waitlistEmails[r.registrationId] ?? "")}
+                        disabled={waitlistEmailSaving[r.registrationId]}
+                        style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
+                      >
+                        {waitlistEmailSaving[r.registrationId] ? "Saving…" : "Notify me"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!hasEmailQuestion && waitlistEmailSaved[r.registrationId] && (
+                  <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                    ✓ You will be notified when a slot opens.
+                  </p>
+                )}
               </>
             )}
             <div style={{ textAlign: "center", marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -241,7 +343,59 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
 
   return (
     <div className="mx-auto w-full max-w-[480px]">
-      {/* Event poster */}
+      {/* Duplicate warning dialog */}
+      {duplicateInfo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 99, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)" }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,168,0,0.12)", border: "0.5px solid rgba(255,168,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M9 2L16.5 15H1.5L9 2z" stroke="#FFA800" strokeWidth="1.25" strokeLinejoin="round" />
+                <path d="M9 7v4" stroke="#FFA800" strokeWidth="1.25" strokeLinecap="round" />
+                <circle cx="9" cy="13" r="0.75" fill="#FFA800" />
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.5rem" }}>Similar registration found</h3>
+            <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem", lineHeight: 1.6 }}>
+              We found a registration in our system with identical details{duplicateInfo.attendeeIndex > 0 ? ` (attendee ${duplicateInfo.attendeeIndex + 1})` : ""}:
+            </p>
+            <div style={{ background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 10, padding: "0.875rem 1rem", marginBottom: "1.25rem" }}>
+              {duplicateInfo.registrationNumber !== null && (
+                <p style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                  Registration #{String(duplicateInfo.registrationNumber).padStart(4, "0")}
+                </p>
+              )}
+              {duplicateInfo.name && (
+                <p style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                  Name: {duplicateInfo.name}
+                </p>
+              )}
+              {duplicateInfo.maskedPhone && (
+                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)" }}>
+                  Phone: {duplicateInfo.maskedPhone}
+                </p>
+              )}
+            </div>
+            <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem", lineHeight: 1.6 }}>
+              Is this the same person — or a different person with the same details?
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+              <button
+                onClick={() => { setDuplicateInfo(null); setPendingPayload(null) }}
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.6)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", textAlign: "left" }}
+              >
+                Same person — cancel, I&apos;m already registered
+              </button>
+              <button
+                onClick={handleForceRegister}
+                disabled={loading}
+                style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: loading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", textAlign: "left", opacity: loading ? 0.7 : 1 }}
+              >
+                Different person — register anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {event.imageUrl && (
         <div className="mb-5 relative w-full overflow-hidden rounded-[12px] border border-[rgba(240,237,230,0.08)]" style={{ height: 220 }}>
           <Image src={event.imageUrl} alt={`${event.title} poster`} fill style={{ objectFit: "cover" }} unoptimized />

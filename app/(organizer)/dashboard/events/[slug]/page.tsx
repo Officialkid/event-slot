@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
@@ -20,6 +20,7 @@ type Registration = {
   answers: Array<{ questionId: string; value: string }>
   submittedAt: string
   waitlistPosition?: number | null
+  isDuplicate?: boolean
 }
 
 type EventData = {
@@ -260,7 +261,32 @@ function DeleteModal({ title, slug, token, onClose, onSuccess }: { title: string
 
 // ─── Registration tables ──────────────────────────────────────────────────────
 
-function RegTable({ rows, questions, showPosition = false, emptyText }: { rows: Registration[]; questions: Question[]; showPosition?: boolean; emptyText: string }) {
+function RegTable({
+  rows, questions, showPosition = false, emptyText, token, onRemove,
+}: {
+  rows: Registration[]
+  questions: Question[]
+  showPosition?: boolean
+  emptyText: string
+  token: string
+  onRemove: (id: string) => void
+}) {
+  const [confirmingId, setConfirmingId] = React.useState<string | null>(null)
+  const [removingId, setRemovingId] = React.useState<string | null>(null)
+
+  const handleRemove = async (regId: string) => {
+    setRemovingId(regId)
+    try {
+      const res = await fetch(`/api/registrations/${regId}?token=${encodeURIComponent(token)}`, { method: "DELETE" })
+      if (res.ok) {
+        onRemove(regId)
+      }
+    } finally {
+      setRemovingId(null)
+      setConfirmingId(null)
+    }
+  }
+
   const labels = questions.map(q => q.label)
   return (
     <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
@@ -270,12 +296,13 @@ function RegTable({ rows, questions, showPosition = false, emptyText }: { rows: 
             {showPosition && <th style={thStyle}>#</th>}
             {labels.map(label => <th key={label} style={thStyle}>{label}</th>)}
             <th style={thStyle}>Registered</th>
+            <th style={thStyle}>Remove</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={labels.length + (showPosition ? 2 : 1)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={labels.length + (showPosition ? 3 : 2)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                 {emptyText}
               </td>
             </tr>
@@ -287,7 +314,42 @@ function RegTable({ rows, questions, showPosition = false, emptyText }: { rows: 
                   const answer = reg.answers.find(a => a.questionId === q.id)?.value || ""
                   return <td key={q.id} style={tdStyle}>{answer}</td>
                 })}
-                <td style={{ ...tdStyle, color: "rgba(240,237,230,0.4)", fontSize: "0.75rem" }}>{new Date(reg.submittedAt).toLocaleString()}</td>
+                <td style={{ ...tdStyle, color: "rgba(240,237,230,0.4)", fontSize: "0.75rem" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {new Date(reg.submittedAt).toLocaleString()}
+                    {reg.isDuplicate && (
+                      <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(255,168,0,0.12)", color: "#FFA800", border: "0.5px solid rgba(255,168,0,0.3)", borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap" }}>
+                        DIFFERENT
+                      </span>
+                    )}
+                  </span>
+                </td>
+                <td style={{ ...tdStyle, width: 80 }}>
+                  {confirmingId === reg.id ? (
+                    <span style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+                      <button
+                        onClick={() => handleRemove(reg.id)}
+                        disabled={removingId === reg.id}
+                        style={{ background: "#FF6B6B", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", fontWeight: 600, color: "#fff", cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: removingId === reg.id ? 0.6 : 1 }}
+                      >
+                        {removingId === reg.id ? "…" : "Yes"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmingId(null)}
+                        style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        No
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingId(reg.id)}
+                      style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(255,107,107,0.7)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </td>
               </tr>
             ))
           )}
@@ -862,7 +924,16 @@ export default function EventDashboardPage() {
                 {confirmed.length} confirmed
               </span>
             </div>
-            <RegTable rows={confirmed} questions={eventData.questions} emptyText="No confirmed registrations yet" />
+            <RegTable
+              rows={confirmed}
+              questions={eventData.questions}
+              emptyText="No confirmed registrations yet"
+              token={token || eventData.dashboardToken}
+              onRemove={id => {
+                setConfirmed(prev => prev.filter(r => r.id !== id))
+                setEventData(prev => prev ? { ...prev, confirmedCount: Math.max(0, prev.confirmedCount - 1) } : null)
+              }}
+            />
           </div>
         )}
 
@@ -877,7 +948,17 @@ export default function EventDashboardPage() {
                 {waitlist.length} waiting
               </span>
             </div>
-            <RegTable rows={waitlist} questions={eventData.questions} showPosition emptyText="Waitlist is empty" />
+            <RegTable
+              rows={waitlist}
+              questions={eventData.questions}
+              showPosition
+              emptyText="Waitlist is empty"
+              token={token || eventData.dashboardToken}
+              onRemove={id => {
+                setWaitlist(prev => prev.filter(r => r.id !== id))
+                setEventData(prev => prev ? { ...prev, waitlistCount: Math.max(0, prev.waitlistCount - 1) } : null)
+              }}
+            />
           </div>
         )}
 

@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { eventSlug, attendees, consentTransactional, consentMarketing } = body as {
+    const { eventSlug, attendees, consentTransactional, consentMarketing, forceDuplicate } = body as {
       eventSlug: string
       attendees: AttendeePayload[]
       consentTransactional?: boolean
       consentMarketing?: boolean
+      forceDuplicate?: boolean
     }
 
     if (!eventSlug || !Array.isArray(attendees) || attendees.length === 0) {
@@ -49,7 +50,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
 
-    // 3. Process each attendee sequentially inside a transaction
+    // 3. Duplicate detection (skip if forceDuplicate is set)
+    if (!forceDuplicate) {
+      const existingRegs = await prisma.registration.findMany({
+        where: { eventId: event.id },
+        select: { registrationNumber: true, answers: true },
+      })
+
+      for (let i = 0; i < attendees.length; i++) {
+        const newAnswers = attendees[i].answers
+        for (const reg of existingRegs) {
+          const existingAnswers = reg.answers as Array<{ questionId: string; value: string }>
+          // All submitted answer values must match the existing registration's values
+          const allMatch = newAnswers.every(newA => {
+            const existingA = existingAnswers.find(e => e.questionId === newA.questionId)
+            return (existingA?.value?.trim().toLowerCase() ?? '') === (newA.value?.trim().toLowerCase() ?? '')
+          })
+
+          if (allMatch && newAnswers.length > 0) {
+            // Extract name from the first text/name-type question
+            const nameQ = eventQuestions.find(q =>
+              q.type === 'text' && q.label.toLowerCase().includes('name')
+            )
+            const name = nameQ
+              ? (existingAnswers.find(a => a.questionId === nameQ.id)?.value?.trim() ?? '')
+              : ''
+
+            // Extract phone from tel/phone question
+            const phoneQ = eventQuestions.find(q =>
+              q.type === 'tel' || q.label.toLowerCase().includes('phone')
+            )
+            const phone = phoneQ
+              ? (existingAnswers.find(a => a.questionId === phoneQ.id)?.value?.trim() ?? '')
+              : ''
+            const maskedPhone = phone.length >= 5
+              ? phone.slice(0, 2) + '****' + phone.slice(-2)
+              : phone
+
+            return NextResponse.json({
+              success: false,
+              duplicate: true,
+              attendeeIndex: i,
+              existing: {
+                registrationNumber: reg.registrationNumber,
+                name,
+                maskedPhone,
+              },
+            }, { status: 409 })
+          }
+        }
+      }
+    }
+
+    // 4. Process each attendee sequentially inside a transaction
     const results = await prisma.$transaction(async (tx): Promise<AttendeeResult[]> => {
       const attendeeResults: AttendeeResult[] = []
 
@@ -103,6 +156,7 @@ export async function POST(req: NextRequest) {
               attendeeEmail,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
+              isDuplicate: forceDuplicate ?? false,
             },
           })
           registrationId = reg.id
@@ -128,6 +182,7 @@ export async function POST(req: NextRequest) {
               attendeeEmail,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
+              isDuplicate: forceDuplicate ?? false,
             },
           })
           registrationId = reg.id
