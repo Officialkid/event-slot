@@ -46,25 +46,27 @@ model EventView {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  name           String?
-  email          String?        @unique
-  emailVerified  DateTime?
-  image          String?
-  password       String?
-  createdAt      DateTime       @default(now())
-  plan           String         @default("free")
-  planStartDate  DateTime?
-  planEndDate    DateTime?
-  isAdmin        Boolean        @default(false)
-  billingCycle   String?
-  suspended      Boolean        @default(false)
-  accounts       Account[]
-  sessions       Session[]
-  events         Event[]
-  notifications  Notification[]
-  ownedTeam       TeamMember[]   @relation("OwnedTeam")
-  teamMemberships TeamMember[]   @relation("TeamMemberships")
+  id                   String         @id @default(cuid())
+  name                 String?
+  email                String?        @unique
+  emailVerified        DateTime?
+  image                String?
+  password             String?
+  createdAt            DateTime       @default(now())
+  plan                 String         @default("free")
+  planStartDate        DateTime?
+  planEndDate          DateTime?
+  isAdmin              Boolean        @default(false)
+  billingCycle         String?
+  suspended            Boolean        @default(false)
+  stripeCustomerId     String?        @unique
+  stripeSubscriptionId String?        @unique
+  accounts             Account[]
+  sessions             Session[]
+  events               Event[]
+  notifications        Notification[]
+  ownedTeam            TeamMember[]   @relation("OwnedTeam")
+  teamMemberships      TeamMember[]   @relation("TeamMemberships")
 }
 
 model Account {
