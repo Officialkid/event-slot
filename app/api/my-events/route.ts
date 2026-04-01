@@ -45,6 +45,7 @@ export async function GET() {
         status: true,
         eventDate: true,
         location: true,
+        dataExpired: true,
       },
       orderBy: { createdAt: 'desc' },
     })

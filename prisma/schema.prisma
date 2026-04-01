@@ -31,6 +31,7 @@ model Event {
   archived         Boolean   @default(false)
   status           String    @default("active")
   feedbackSent     Boolean   @default(false)
+  dataExpired      Boolean   @default(false)
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]

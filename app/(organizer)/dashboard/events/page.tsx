@@ -20,6 +20,7 @@ type OrgEvent = {
   status: string
   eventDate: string | null
   location: string | null
+  dataExpired: boolean
 }
 
 type TabKey = "active" | "past" | "archived"
@@ -45,6 +46,24 @@ function formatDate(iso: string): string {
 
 function StatusBadge({ event }: { event: OrgEvent }) {
   const tab = classifyEvent(event)
+  if (event.dataExpired || event.status === "expired") {
+    return (
+      <span
+        style={{
+          fontSize: "0.65rem",
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          background: "rgba(240,237,230,0.06)",
+          color: "rgba(240,237,230,0.3)",
+          borderRadius: 100,
+          padding: "2px 8px",
+          fontFamily: "var(--font-dm-sans)",
+        }}
+      >
+        DATA EXPIRED
+      </span>
+    )
+  }
   if (tab === "archived") {
     return (
       <span
@@ -134,6 +153,7 @@ function ThreeDotMenu({
 
   const isArchived = classifyEvent(event) === "archived"
   const isClosed = event.status === "closed"
+  const isExpired = event.dataExpired || event.status === "expired"
 
   const itemStyle: React.CSSProperties = {
     display: "block",
@@ -201,16 +221,18 @@ function ThreeDotMenu({
             Rename
           </button>
 
-          <button
-            className="dot-menu-item"
-            style={itemStyle}
-            onClick={() => { setOpen(false); onDuplicate() }}
-            disabled={duplicating}
-          >
-            {duplicating ? "Duplicating…" : "Duplicate"}
-          </button>
+          {!isExpired && (
+            <button
+              className="dot-menu-item"
+              style={itemStyle}
+              onClick={() => { setOpen(false); onDuplicate() }}
+              disabled={duplicating}
+            >
+              {duplicating ? "Duplicating…" : "Duplicate"}
+            </button>
+          )}
 
-          {!isArchived && (
+          {!isArchived && !isExpired && (
             <button
               className="dot-menu-item"
               style={itemStyle}
@@ -220,7 +242,7 @@ function ThreeDotMenu({
             </button>
           )}
 
-          {!isArchived && (
+          {!isArchived && !isExpired && (
             <button
               className="dot-menu-item"
               style={itemStyle}
@@ -673,10 +695,16 @@ function EventCard({
             </div>
 
             {/* Meta */}
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-              {event.confirmedCount} confirmed · {event.waitlistCount} waitlisted ·{" "}
-              {event.capacity ? `${event.capacity} capacity` : "Unlimited"}
-            </p>
+            {event.dataExpired ? (
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
+                Registration data has been deleted. Upgrade to recover future data.
+              </p>
+            ) : (
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+                {event.confirmedCount} confirmed · {event.waitlistCount} waitlisted ·{" "}
+                {event.capacity ? `${event.capacity} capacity` : "Unlimited"}
+              </p>
+            )}
 
             {/* Date / location */}
             {(event.eventDate || event.location) && (

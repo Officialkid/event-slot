@@ -329,6 +329,72 @@ export default function NotificationsPage() {
               )
             }
 
+            if (notif.type === "data_expiry_warning") {
+              return (
+                <div
+                  key={notif.id}
+                  onClick={() => !notif.read && markOneRead(notif.id)}
+                  style={{
+                    ...cardBase,
+                    background: isUnread ? "rgba(255,107,107,0.04)" : "transparent",
+                    border: `0.5px solid ${isUnread ? "rgba(255,107,107,0.15)" : "rgba(240,237,230,0.06)"}`,
+                    borderLeft: "2px solid #FF6B6B",
+                    cursor: isUnread ? "pointer" : "default",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      marginTop: 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#FF6B6B",
+                      opacity: isUnread ? 1 : 0.35,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.875rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {notif.message}
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.375rem", flexWrap: "wrap" }}>
+                      <a
+                        href="/pricing"
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          fontSize: "0.8rem",
+                          fontFamily: "var(--font-dm-sans)",
+                          fontWeight: 600,
+                          color: "#C8F55A",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Upgrade to Pro →
+                      </a>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "rgba(240,237,230,0.3)",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                      >
+                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             return (
               <button
                 key={notif.id}
