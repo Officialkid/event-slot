@@ -9,6 +9,7 @@ const navItems = [
   { label: "Events", href: "/admin/events" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Platform Health", href: "/admin/health" },
+  { label: "Launch Checklist", href: "/admin/launch" },
 ]
 
 export default function AdminSidebar() {
