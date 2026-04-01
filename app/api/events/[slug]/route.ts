@@ -12,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
     const event = await prisma.event.findUnique({
       where: { slug },
+      include: { organizer: { select: { plan: true } } },
     })
 
     if (!event) {
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
         archived: event.archived,
         status: event.status,
         dashboardToken: event.dashboardToken,
+        organizerPlan: event.organizer?.plan ?? 'free',
       },
       confirmed,
       waitlist,

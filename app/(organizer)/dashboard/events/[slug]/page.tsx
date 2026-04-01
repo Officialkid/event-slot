@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import UpgradePrompt from "@/app/components/UpgradePrompt"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ type EventData = {
   archived: boolean
   status: string
   dashboardToken: string
+  organizerPlan: string
 }
 
 type TabKey = "overview" | "confirmed" | "waitlist" | "settings"
@@ -570,6 +572,10 @@ export default function EventDashboardPage() {
   const [scanError, setScanError] = useState("")
   const [removingDup, setRemovingDup] = useState<Set<string>>(new Set())
 
+  // Report download
+  const [downloadingReport, setDownloadingReport] = useState(false)
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -714,6 +720,32 @@ export default function EventDashboardPage() {
     }
   }
 
+  const handleDownloadReport = async () => {
+    if (!eventData) return
+    const plan = eventData.organizerPlan ?? 'free'
+    if (plan === 'free') {
+      setShowUpgradePrompt(true)
+      return
+    }
+    setDownloadingReport(true)
+    try {
+      const res = await fetch(`/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}`)
+      if (!res.ok) {
+        const data = await res.json()
+        if (data.upgradeRequired) { setShowUpgradePrompt(true); return }
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `event-report-${slug}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* silent */ }
+    finally { setDownloadingReport(false) }
+  }
+
   const keepDupReg = (regId: string) => {
     // Locally dismiss this entry from the scanner results
     setDupGroups(prev => {
@@ -794,6 +826,10 @@ export default function EventDashboardPage() {
         <DeleteModal title={eventData.title} slug={slug} token={token || eventData.dashboardToken} onClose={() => setModal(null)} onSuccess={() => router.replace("/dashboard/events")} />
       )}
 
+      {showUpgradePrompt && (
+        <UpgradePrompt feature="Event Reports" requiredPlan="pro" onClose={() => setShowUpgradePrompt(false)} />
+      )}
+
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* ── Back breadcrumb ─────────────────────────────────────────── */}
         <Link
@@ -856,15 +892,29 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Three-dot menu */}
-            <HeaderMenu
-              onEdit={() => router.push(`/edit/${slug}`)}
-              onRename={() => setModal("rename")}
-              onArchive={() => setModal("archive")}
-              onDelete={() => setModal("delete")}
-              onClose={handleClose}
-              archived={isEventArchived(eventData)}
-              closed={isEventClosed(eventData)}
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+              <button
+                onClick={handleDownloadReport}
+                disabled={downloadingReport}
+                title="Download event report"
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontWeight: 500, color: downloadingReport ? "rgba(240,237,230,0.3)" : "rgba(240,237,230,0.5)", cursor: downloadingReport ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", whiteSpace: "nowrap" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v8M5 7l3 3 3-3" />
+                  <path d="M2 12h12" />
+                </svg>
+                {downloadingReport ? "Generating…" : "Report"}
+              </button>
+              <HeaderMenu
+                onEdit={() => router.push(`/edit/${slug}`)}
+                onRename={() => setModal("rename")}
+                onArchive={() => setModal("archive")}
+                onDelete={() => setModal("delete")}
+                onClose={handleClose}
+                archived={isEventArchived(eventData)}
+                closed={isEventClosed(eventData)}
+              />
+            </div>
           </div>
 
           {/* Registration link row */}
