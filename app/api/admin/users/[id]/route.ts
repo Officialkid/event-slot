@@ -17,6 +17,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const data: Record<string, unknown> = {}
   if (body.plan !== undefined) data.plan = body.plan
   if (body.suspended !== undefined) data.suspended = body.suspended
+  if (body.name !== undefined) data.name = body.name || null
+  if (body.email !== undefined && body.email) data.email = body.email
 
   const updated = await prisma.user.update({
     where: { id: params.id },

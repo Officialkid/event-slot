@@ -230,6 +230,43 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
   )
 }
 
+const REPORT_THEMES = [
+  { id: 'navy',     label: 'Midnight Navy', color: '#1F3864' },
+  { id: 'forest',   label: 'Deep Forest',   color: '#1B4332' },
+  { id: 'wine',     label: 'Wine',          color: '#4A0E2E' },
+  { id: 'graphite', label: 'Graphite',      color: '#1C1C1C' },
+] as const
+
+function ReportOptionsModal({ onClose, onGenerate, downloading }: { onClose: () => void; onGenerate: (theme: string) => void; downloading: boolean }) {
+  const [selected, setSelected] = useState('navy')
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={onClose}>
+      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 420, width: "90%" }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.35rem" }}>Download Report</h3>
+        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem" }}>Choose a cover style for your report</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          {REPORT_THEMES.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSelected(t.id)}
+              style={{ background: t.color, border: selected === t.id ? "2px solid #C8F55A" : "2px solid transparent", borderRadius: 10, padding: "1.1rem 1rem", cursor: "pointer", textAlign: "left" }}
+            >
+              <div style={{ color: "#FFFFFF", fontWeight: 600, fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{t.label}</div>
+              <div style={{ height: 3, background: "rgba(255,255,255,0.25)", borderRadius: 2, marginBottom: "0.25rem" }} />
+              <div style={{ height: 3, width: "60%", background: "rgba(255,255,255,0.12)", borderRadius: 2 }} />
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
+          <button type="button" onClick={onClose} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button type="button" onClick={() => onGenerate(selected)} disabled={downloading} style={{ padding: "0.55rem 1.5rem", borderRadius: 100, border: "none", background: downloading ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: downloading ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{downloading ? "Generating…" : "Generate Report"}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ArchiveConfirm({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => Promise<void> }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -595,6 +632,7 @@ export default function EventDashboardPage() {
   // Report download
   const [downloadingReport, setDownloadingReport] = useState(false)
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
+  const [showReportOptions, setShowReportOptions] = useState(false)
 
   // Analytics
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -752,7 +790,7 @@ export default function EventDashboardPage() {
     }
   }
 
-  const handleDownloadReport = async () => {
+  const handleDownloadReport = async (theme = 'navy') => {
     if (!eventData) return
     const plan = eventData.organizerPlan ?? 'free'
     if (plan === 'free') {
@@ -761,7 +799,7 @@ export default function EventDashboardPage() {
     }
     setDownloadingReport(true)
     try {
-      const res = await fetch(`/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}`)
+      const res = await fetch(`/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}&theme=${encodeURIComponent(theme)}`)
       if (!res.ok) {
         const data = await res.json()
         if (data.upgradeRequired) { setShowUpgradePrompt(true); return }
@@ -831,12 +869,13 @@ export default function EventDashboardPage() {
   const capacityDisplay = eventData.capacity === null ? "Unlimited" : eventData.capacity
   const slotsRemaining = eventData.capacity === null ? "Unlimited" : Math.max(0, eventData.capacity - eventData.confirmedCount)
   const hasRegistrations = confirmed.length + waitlist.length > 0
+  const organizerPlan = eventData?.organizerPlan ?? 'free'
   const tabs: { key: TabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "confirmed", label: `Confirmed (${confirmed.length})` },
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
-    { key: "analytics", label: "Analytics" },
-    { key: "feedback", label: "Feedback" },
+    { key: "analytics", label: organizerPlan === 'free' ? "Analytics ⚡" : "Analytics" },
+    { key: "feedback", label: organizerPlan !== 'business' ? "Feedback ✦" : "Feedback" },
     { key: "settings", label: "Settings" },
   ]
 
@@ -896,6 +935,14 @@ export default function EventDashboardPage() {
 
       {showUpgradePrompt && (
         <UpgradePrompt feature="Event Reports" requiredPlan="pro" onClose={() => setShowUpgradePrompt(false)} />
+      )}
+
+      {showReportOptions && (
+        <ReportOptionsModal
+          downloading={downloadingReport}
+          onClose={() => setShowReportOptions(false)}
+          onGenerate={theme => { setShowReportOptions(false); handleDownloadReport(theme) }}
+        />
       )}
       {showAnalyticsUpgrade && (
         <UpgradePrompt feature="Event Analytics" requiredPlan="pro" onClose={() => setShowAnalyticsUpgrade(false)} />
@@ -968,7 +1015,10 @@ export default function EventDashboardPage() {
             {/* Three-dot menu */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
               <button
-                onClick={handleDownloadReport}
+                onClick={() => {
+                  const plan = eventData?.organizerPlan ?? 'free'
+                  if (plan === 'free') { setShowUpgradePrompt(true) } else { setShowReportOptions(true) }
+                }}
                 disabled={downloadingReport}
                 title="Download event report"
                 style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontWeight: 500, color: downloadingReport ? "rgba(240,237,230,0.3)" : "rgba(240,237,230,0.5)", cursor: downloadingReport ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", whiteSpace: "nowrap" }}
@@ -1089,6 +1139,63 @@ export default function EventDashboardPage() {
               </div>
               {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
               {capacityError && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{capacityError}</p>}
+            </div>
+
+            {/* Duplicate Scanner */}
+            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Scan all registrations for identical responses</div>
+                </div>
+                <button
+                  onClick={runDuplicateScan}
+                  disabled={scanning}
+                  style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
+                >
+                  {scanning ? "Scanning…" : "Run scan"}
+                </button>
+              </div>
+              {scanError && <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{scanError}</p>}
+              {dupGroups !== null && dupGroups.length === 0 && (
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>✓ No duplicates found</p>
+              )}
+              {dupGroups !== null && dupGroups.length > 0 && (
+                <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                  <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                    Found <strong style={{ color: "rgba(240,237,230,0.6)" }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
+                  </div>
+                  {dupGroups.map((group, gi) => (
+                    <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ padding: "0.5rem 0.875rem", background: "rgba(255,168,0,0.08)", borderBottom: "0.5px solid rgba(255,168,0,0.15)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,168,0,0.6)", fontFamily: "var(--font-dm-sans)" }}>
+                        Group {gi + 1} — {group.length} identical submissions
+                      </div>
+                      {group.map((reg, ri) => {
+                        const firstName = reg.answers[0]?.value || `#${reg.registrationNumber ?? ri + 1}`
+                        const isRemoving = removingDup.has(reg.id)
+                        return (
+                          <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)", color: reg.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", whiteSpace: "nowrap" }}>
+                                {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
+                              </span>
+                              {reg.registrationNumber && (
+                                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
+                              )}
+                              <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
+                              <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{new Date(reg.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+                              <button onClick={() => keepDupReg(reg.id)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Keep</button>
+                              <button onClick={() => removeDupReg(reg.id)} disabled={isRemoving} style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}>{isRemoving ? "…" : "Remove"}</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Community link (if set) */}
@@ -1234,7 +1341,7 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Event Analytics</h2>
-              {!analyticsData && !analyticsLoading && !analyticsError && (
+              {organizerPlan !== 'free' && !analyticsData && !analyticsLoading && !analyticsError && (
                 <button
                   onClick={loadAnalytics}
                   style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
@@ -1243,6 +1350,29 @@ export default function EventDashboardPage() {
                 </button>
               )}
             </div>
+
+            {/* Pro plan lock for free users */}
+            {organizerPlan === 'free' && (
+              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ opacity: 0.25, pointerEvents: "none", userSelect: "none" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }} className="stat-grid">
+                    {["Total Views", "Total Registrations", "Conversion Rate", "Confirmed → Waitlist"].map(l => (
+                      <div key={l} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                        <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{l}</div>
+                        <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>—</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ height: 200, background: "#141414", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }} />
+                </div>
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", backdropFilter: "blur(2px)", background: "rgba(10,10,10,0.4)" }}>
+                  <span style={{ fontSize: "1.5rem" }}>⚡</span>
+                  <p style={{ fontSize: "0.95rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6", margin: 0, textAlign: "center" }}>Pro plan feature</p>
+                  <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0, textAlign: "center" }}>Upgrade to see views, conversions, and registration trends</p>
+                  <a href="/pricing" style={{ marginTop: "0.25rem", background: "#C8F55A", color: "#0A0A0A", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Upgrade to Pro →</a>
+                </div>
+              </div>
+            )}
 
             {analyticsLoading && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
@@ -1314,7 +1444,7 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Attendee Feedback</h2>
-              {!feedbackData && !feedbackLoading && !feedbackError && (
+              {organizerPlan === 'business' && !feedbackData && !feedbackLoading && !feedbackError && (
                 <button
                   onClick={loadFeedback}
                   style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
@@ -1323,6 +1453,29 @@ export default function EventDashboardPage() {
                 </button>
               )}
             </div>
+
+            {/* Business plan lock for free/pro users */}
+            {organizerPlan !== 'business' && (
+              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ opacity: 0.25, pointerEvents: "none", userSelect: "none" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }} className="stat-grid">
+                    {["Responses", "Average Rating"].map(l => (
+                      <div key={l} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                        <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{l}</div>
+                        <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>—</div>
+                      </div>
+                    ))}
+                  </div>
+                  {[1,2,3].map(i => <div key={i} style={{ height: 72, background: "#141414", borderRadius: 10, border: "0.5px solid rgba(240,237,230,0.08)", marginBottom: "0.75rem" }} />)}
+                </div>
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", backdropFilter: "blur(2px)", background: "rgba(10,10,10,0.4)" }}>
+                  <span style={{ fontSize: "1.5rem" }}>✦</span>
+                  <p style={{ fontSize: "0.95rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6", margin: 0, textAlign: "center" }}>Business plan feature</p>
+                  <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0, textAlign: "center" }}>Upgrade to collect post-event feedback from your attendees</p>
+                  <a href="/pricing" style={{ marginTop: "0.25rem", background: "#C8F55A", color: "#0A0A0A", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Upgrade to Business →</a>
+                </div>
+              </div>
+            )}
 
             {feedbackLoading && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

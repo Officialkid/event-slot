@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getPlanLimits } from '@/lib/plans'
-import { generateEventReport, IRegistration } from '@/lib/generateEventReport'
+import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')
+    const theme = (req.nextUrl.searchParams.get('theme') ?? 'navy') as ReportTheme
 
     const session = await getServerSession(authOptions)
 
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       },
       confirmed,
       waitlist,
+      theme,
     })
 
     return new Response(buffer as unknown as BodyInit, {

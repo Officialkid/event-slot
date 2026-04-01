@@ -27,6 +27,52 @@ function PlanBadge({ plan }: { plan: string }) {
   )
 }
 
+interface EditUserState { id: string; name: string; email: string }
+
+function EditUserModal({ user, onClose, onSaved }: { user: EditUserState; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(user.name)
+  const [email, setEmail] = useState(user.email)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+
+  async function handleSave() {
+    if (!email.trim()) { setError("Email is required."); return }
+    setSaving(true)
+    setError("")
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() || null, email: email.trim() }),
+    })
+    setSaving(false)
+    if (!res.ok) { setError("Failed to save. Email may already be in use."); return }
+    onSaved()
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 420, width: "90%" }}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1.25rem" }}>Edit user details</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginBottom: "1.25rem" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" style={{ width: "100%", background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.9rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>Email</label>
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" type="email" style={{ width: "100%", background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.9rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{error}</p>}
+        </div>
+        <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+          <button type="button" onClick={onClose} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving…" : "Save changes"}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,6 +80,7 @@ export default function AdminUsersPage() {
   const [planFilter, setPlanFilter] = useState("all")
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [editUser, setEditUser] = useState<EditUserState | null>(null)
 
   const fetchUsers = useCallback(() => {
     setLoading(true)
@@ -187,6 +234,13 @@ export default function AdminUsersPage() {
                       >
                         View events
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => { setEditUser({ id: u.id, name: u.name ?? "", email: u.email ?? "" }); setOpenMenu(null) }}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.7)", background: "transparent", border: "none", cursor: "pointer", borderRadius: 6, fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Edit details
+                      </button>
                       <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.07)", margin: "0.25rem 0" }} />
                       <div style={{ padding: "0.5rem 0.75rem" }}>
                         <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.3)", marginBottom: "0.4rem", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>Change plan</div>
@@ -224,6 +278,15 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Edit user modal */}
+      {editUser && (
+        <EditUserModal
+          user={editUser}
+          onClose={() => setEditUser(null)}
+          onSaved={() => { setEditUser(null); fetchUsers() }}
+        />
+      )}
 
       {/* Delete confirmation modal */}
       {confirmDelete && (

@@ -18,6 +18,17 @@ import {
 } from 'docx'
 import { format } from 'date-fns'
 
+// ── Theme palette ─────────────────────────────────────────────────────────────
+
+export type ReportTheme = 'navy' | 'forest' | 'wine' | 'graphite'
+
+const THEMES: Record<ReportTheme, { banner: string; accent: string; sub: string }> = {
+  navy:     { banner: '1F3864', accent: 'FFFFFF', sub: 'B8CDE8' },
+  forest:   { banner: '1B4332', accent: 'FFFFFF', sub: 'A8D5B8' },
+  wine:     { banner: '4A0E2E', accent: 'FFFFFF', sub: 'E8B4CD' },
+  graphite: { banner: '1C1C1C', accent: 'FFFFFF', sub: 'B8B8B8' },
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface IQuestion {
@@ -143,84 +154,132 @@ function makeFooter(eventTitle: string): Footer {
 
 // ── Cover Page ────────────────────────────────────────────────────────────────
 
-function coverPage(event: IEvent): (Paragraph | Table)[] {
-  // Two-column info table rows
+function coverPage(event: IEvent, palette: { banner: string; accent: string; sub: string }): (Paragraph | Table)[] {
+  const bannerFill = { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' }
+  const dividerFill = { type: ShadingType.CLEAR, fill: palette.sub, color: 'auto' }
+
+  // Full-width colored banner table (brand + title + subtitle)
+  const bannerTable = new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: noBorder(),
+    rows: [
+      // Brand row
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: bannerFill,
+            borders: noBorder(),
+            margins: { top: 520, bottom: 0, left: 560, right: 560 },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: 'EventSlot', font: 'Arial', size: 18, color: palette.sub }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Event title row
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: bannerFill,
+            borders: noBorder(),
+            margins: { top: 180, bottom: 180, left: 560, right: 560 },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: event.title, font: 'Arial', bold: true, size: 56, color: palette.accent }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Subtitle row
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: bannerFill,
+            borders: noBorder(),
+            margins: { top: 0, bottom: 520, left: 560, right: 560 },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: 'Event Report', font: 'Arial', size: 24, color: palette.sub }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      // Thin accent stripe
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: dividerFill,
+            borders: noBorder(),
+            margins: { top: 0, bottom: 0, left: 0, right: 0 },
+            children: [new Paragraph({ children: [new TextRun({ text: '' })] })],
+          }),
+        ],
+      }),
+    ],
+  })
+
+  // Info table — labels in theme color, values in dark grey
   const infoRows: [string, string][] = [
-    ['Organizer:', event.organizerEmail],
-    ['Date generated:', todayStr()],
-    ['Event date:', fmt(event.eventDate)],
-    ['Location:', event.location ?? 'Not specified'],
-    ['Registration deadline:', fmt(event.deadline, 'No deadline')],
+    ['Organizer', event.organizerEmail],
+    ['Date generated', todayStr()],
+    ['Event date', fmt(event.eventDate)],
+    ['Location', event.location ?? 'Not specified'],
+    ['Registration deadline', fmt(event.deadline, 'No deadline')],
   ]
 
-  const labelW = 2200
+  const labelW = 2400
   const valueW = TABLE_WIDTH - labelW
 
   const infoTable = new Table({
     width: { size: TABLE_WIDTH, type: WidthType.DXA },
     borders: noBorder(),
-    rows: infoRows.map(
-      ([label, value]) =>
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: labelW, type: WidthType.DXA },
-              margins: CELL_MARGINS,
-              borders: noBorder(),
-              children: [
-                new Paragraph({
-                  children: [
-                    new TextRun({ text: label, font: 'Arial', size: 20, bold: true, color: '444444' }),
-                  ],
-                }),
-              ],
-            }),
-            new TableCell({
-              width: { size: valueW, type: WidthType.DXA },
-              margins: CELL_MARGINS,
-              borders: noBorder(),
-              children: [
-                new Paragraph({
-                  children: [
-                    new TextRun({ text: value, font: 'Arial', size: 20, color: '222222' }),
-                  ],
-                }),
-              ],
-            }),
-          ],
-        })
+    rows: infoRows.map(([label, value]) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: labelW, type: WidthType.DXA },
+            margins: { top: 120, bottom: 120, left: 0, right: 280 },
+            borders: noBorder(),
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: label, font: 'Arial', size: 20, bold: true, color: palette.banner })],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: valueW, type: WidthType.DXA },
+            margins: { top: 120, bottom: 120, left: 280, right: 0 },
+            borders: { ...noBorder(), left: { style: BorderStyle.SINGLE, size: 4, color: palette.sub } },
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: value, font: 'Arial', size: 20, color: '111111' })],
+              }),
+            ],
+          }),
+        ],
+      })
     ),
   })
 
   return [
-    // Branding line
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({ text: 'EventSlot', font: 'Arial', size: 20, color: '888888' }),
-      ],
-      spacing: { before: 960, after: 0 },
-    }),
+    bannerTable,
     spacer(),
-    // Event title
-    new Paragraph({
-      heading: HeadingLevel.HEADING_1,
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({ text: event.title, font: 'Arial', bold: true, size: 32, color: '000000' }),
-      ],
-    }),
-    // Subtitle
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({ text: 'Event Report', font: 'Arial', size: 28, color: '666666' }),
-      ],
-      spacing: { after: 480 },
-    }),
     spacer(),
     infoTable,
-    // Page break
     new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }),
   ]
 }
@@ -589,11 +648,14 @@ export async function generateEventReport({
   event,
   confirmed,
   waitlist,
+  theme = 'navy',
 }: {
   event: IEvent
   confirmed: IRegistration[]
   waitlist: IRegistration[]
+  theme?: ReportTheme
 }): Promise<Buffer> {
+  const palette = THEMES[theme] ?? THEMES.navy
   const doc = new Document({
     numbering: {
       config: [
@@ -637,7 +699,7 @@ export async function generateEventReport({
         headers: { default: makeHeader(event.title) },
         footers: { default: makeFooter(event.title) },
         children: [
-          ...coverPage(event),
+          ...coverPage(event, palette),
           ...summaryPage(event),
           ...confirmedPage(event, confirmed),
           ...waitlistPage(event, waitlist),
