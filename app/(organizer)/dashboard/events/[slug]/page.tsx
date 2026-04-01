@@ -17,10 +17,22 @@ type Question = {
 
 type Registration = {
   id: string
+  registrationNumber?: number | null
   answers: Array<{ questionId: string; value: string }>
   submittedAt: string
+  status?: string
   waitlistPosition?: number | null
   isDuplicate?: boolean
+}
+
+type DupReg = {
+  id: string
+  registrationNumber: number | null
+  answers: Array<{ questionId: string; value: string }>
+  status: string
+  waitlistPosition: number | null
+  submittedAt: string
+  isDuplicate: boolean
 }
 
 type EventData = {
@@ -552,6 +564,12 @@ export default function EventDashboardPage() {
   const [capacityError, setCapacityError] = useState("")
   const [updatingCapacity, setUpdatingCapacity] = useState(false)
 
+  // Duplicate scanner
+  const [dupGroups, setDupGroups] = useState<DupReg[][] | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [scanError, setScanError] = useState("")
+  const [removingDup, setRemovingDup] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -657,6 +675,54 @@ export default function EventDashboardPage() {
       await fetchDashboard()
     } catch { setCapacityError("Unable to update capacity.") }
     finally { setUpdatingCapacity(false) }
+  }
+
+  const runDuplicateScan = async () => {
+    if (!eventData) return
+    setScanning(true)
+    setScanError("")
+    setDupGroups(null)
+    try {
+      const res = await fetch(`/api/events/${slug}/duplicates?token=${encodeURIComponent(token || eventData.dashboardToken)}`)
+      const data = await res.json()
+      if (!res.ok) { setScanError(data.error || "Scan failed."); return }
+      setDupGroups(data.groups)
+    } catch { setScanError("Unable to run scan.") }
+    finally { setScanning(false) }
+  }
+
+  const removeDupReg = async (regId: string) => {
+    if (!eventData) return
+    setRemovingDup(prev => new Set(prev).add(regId))
+    try {
+      const res = await fetch(`/api/registrations/${regId}?token=${encodeURIComponent(token || eventData.dashboardToken)}`, { method: "DELETE" })
+      if (res.ok) {
+        // Remove from main lists
+        setConfirmed(prev => prev.filter(r => r.id !== regId))
+        setWaitlist(prev => prev.filter(r => r.id !== regId))
+        // Remove from dup groups, drop groups that fall below 2
+        setDupGroups(prev => {
+          if (!prev) return prev
+          const next = prev
+            .map(grp => grp.filter(r => r.id !== regId))
+            .filter(grp => grp.length >= 2)
+          return next.length > 0 ? next : []
+        })
+      }
+    } finally {
+      setRemovingDup(prev => { const s = new Set(prev); s.delete(regId); return s })
+    }
+  }
+
+  const keepDupReg = (regId: string) => {
+    // Locally dismiss this entry from the scanner results
+    setDupGroups(prev => {
+      if (!prev) return prev
+      const next = prev
+        .map(grp => grp.filter(r => r.id !== regId))
+        .filter(grp => grp.length >= 2)
+      return next.length > 0 ? next : []
+    })
   }
 
   // ── Renders ────────────────────────────────────────────────────────────────
@@ -940,6 +1006,83 @@ export default function EventDashboardPage() {
         {/* ── Tab: Waitlist ─────────────────────────────────────────────── */}
         {activeTab === "waitlist" && (
           <div>
+            {/* ── Duplicate Scanner panel ─────────────────────────────── */}
+            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                    Scan all registrations for identical responses
+                  </div>
+                </div>
+                <button
+                  onClick={runDuplicateScan}
+                  disabled={scanning}
+                  style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
+                >
+                  {scanning ? "Scanning…" : "Run scan"}
+                </button>
+              </div>
+
+              {scanError && (
+                <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{scanError}</p>
+              )}
+
+              {dupGroups !== null && dupGroups.length === 0 && (
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>✓ No duplicates found</p>
+              )}
+
+              {dupGroups !== null && dupGroups.length > 0 && (
+                <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+                  <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                    Found <strong style={{ color: "rgba(240,237,230,0.6)" }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
+                  </div>
+                  {dupGroups.map((group, gi) => (
+                    <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ padding: "0.5rem 0.875rem", background: "rgba(255,168,0,0.08)", borderBottom: "0.5px solid rgba(255,168,0,0.15)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,168,0,0.6)", fontFamily: "var(--font-dm-sans)" }}>
+                        Group {gi + 1} — {group.length} identical submissions
+                      </div>
+                      {group.map((reg, ri) => {
+                        const firstName = reg.answers[0]?.value || `#${reg.registrationNumber ?? ri + 1}`
+                        const isRemoving = removingDup.has(reg.id)
+                        return (
+                          <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)", color: reg.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", whiteSpace: "nowrap" }}>
+                                {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
+                              </span>
+                              {reg.registrationNumber && (
+                                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
+                              )}
+                              <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
+                              <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
+                                {new Date(reg.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
+                              <button
+                                onClick={() => keepDupReg(reg.id)}
+                                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                              >
+                                Keep
+                              </button>
+                              <button
+                                onClick={() => removeDupReg(reg.id)}
+                                disabled={isRemoving}
+                                style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
+                              >
+                                {isRemoving ? "…" : "Remove"}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
                 Waitlist
