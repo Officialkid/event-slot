@@ -88,7 +88,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       waitlist,
     })
 
-    return new Response(buffer, {
+    return new Response(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
