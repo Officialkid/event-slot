@@ -5,6 +5,9 @@ import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import UpgradePrompt from "@/app/components/UpgradePrompt"
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +57,18 @@ type EventData = {
   organizerPlan: string
 }
 
-type TabKey = "overview" | "confirmed" | "waitlist" | "settings"
+type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "settings"
+
+type AnalyticsData = {
+  totalViews: number
+  totalRegistrations: number
+  conversionRate: number
+  confirmedCount: number
+  waitlistCount: number
+  waitlistConversionRate: number
+  registrationsByDay: { date: string; count: number }[]
+  registrationsByHour: { hour: number; count: number }[]
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -576,6 +590,12 @@ export default function EventDashboardPage() {
   const [downloadingReport, setDownloadingReport] = useState(false)
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
 
+  // Analytics
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState("")
+  const [showAnalyticsUpgrade, setShowAnalyticsUpgrade] = useState(false)
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -803,8 +823,26 @@ export default function EventDashboardPage() {
     { key: "overview", label: "Overview" },
     { key: "confirmed", label: `Confirmed (${confirmed.length})` },
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
+    { key: "analytics", label: "Analytics" },
     { key: "settings", label: "Settings" },
   ]
+
+  const loadAnalytics = async () => {
+    if (!eventData || analyticsLoading) return
+    setAnalyticsLoading(true)
+    setAnalyticsError("")
+    try {
+      const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+      const data = await res.json()
+      if (res.status === 403 && data.upgradeRequired) {
+        setShowAnalyticsUpgrade(true)
+        return
+      }
+      if (!res.ok) { setAnalyticsError(data.error || "Failed to load analytics"); return }
+      setAnalyticsData(data)
+    } catch { setAnalyticsError("Unable to load analytics.") }
+    finally { setAnalyticsLoading(false) }
+  }
 
   return (
     <>
@@ -828,6 +866,9 @@ export default function EventDashboardPage() {
 
       {showUpgradePrompt && (
         <UpgradePrompt feature="Event Reports" requiredPlan="pro" onClose={() => setShowUpgradePrompt(false)} />
+      )}
+      {showAnalyticsUpgrade && (
+        <UpgradePrompt feature="Event Analytics" requiredPlan="pro" onClose={() => setShowAnalyticsUpgrade(false)} />
       )}
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -1152,6 +1193,86 @@ export default function EventDashboardPage() {
                 setEventData(prev => prev ? { ...prev, waitlistCount: Math.max(0, prev.waitlistCount - 1) } : null)
               }}
             />
+          </div>
+        )}
+
+        {/* ── Tab: Analytics ────────────────────────────────────────────── */}
+        {activeTab === "analytics" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Event Analytics</h2>
+              {!analyticsData && !analyticsLoading && !analyticsError && (
+                <button
+                  onClick={loadAnalytics}
+                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Load analytics
+                </button>
+              )}
+            </div>
+
+            {analyticsLoading && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
+                {[1,2,3,4].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+              </div>
+            )}
+
+            {analyticsError && (
+              <p style={{ fontSize: "0.875rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{analyticsError}</p>
+            )}
+
+            {analyticsData && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {/* Stat cards */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
+                  {[
+                    { label: "Total Views", value: analyticsData.totalViews },
+                    { label: "Total Registrations", value: analyticsData.totalRegistrations },
+                    { label: "Conversion Rate", value: `${analyticsData.conversionRate}%` },
+                    { label: "Confirmed → Waitlist", value: `${analyticsData.waitlistConversionRate}%` },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Registrations by day */}
+                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations — last 30 days</div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={analyticsData.registrationsByDay} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={v => v.slice(5)} interval={4} />
+                      <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                      <Tooltip contentStyle={{ background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }} />
+                      <Line type="monotone" dataKey="count" stroke="#C8F55A" strokeWidth={1.5} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Registrations by hour */}
+                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations by hour of day</div>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <BarChart data={analyticsData.registrationsByHour} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
+                      <XAxis dataKey="hour" tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={h => `${h}h`} />
+                      <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                      <Tooltip contentStyle={{ background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }} />
+                      <Bar dataKey="count" fill="rgba(200,245,90,0.6)" radius={[3,3,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+
+            {!analyticsData && !analyticsLoading && !analyticsError && (
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load analytics&rdquo; to see views, conversions, and registration trends.</p>
+              </div>
+            )}
           </div>
         )}
 

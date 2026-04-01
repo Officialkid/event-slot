@@ -140,7 +140,12 @@ export default async function EventRegistrationPage({ params }: { params: { even
     )
   }
 
-    const showBranding = !event.organizer || event.organizer.plan === 'free'
+  // Track page view — never let this break the page
+  try {
+    await prisma.eventView.create({ data: { eventId: event.id } })
+  } catch { /* silent */ }
+
+  const showBranding = !event.organizer || event.organizer.plan === 'free'
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">

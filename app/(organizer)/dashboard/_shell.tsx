@@ -46,6 +46,15 @@ function IconUser() {
   )
 }
 
+function IconInsights() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 12.5l4-5 3 2.5 4-6" />
+      <path d="M13.5 4v3.5H10" />
+    </svg>
+  )
+}
+
 function IconMenu() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -85,10 +94,11 @@ interface SidebarInnerProps {
   image?: string | null
   initials: string
   unreadCount: number
+  userPlan: string
   onNavClick?: () => void
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, onNavClick }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, onNavClick }: SidebarInnerProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -224,6 +234,32 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, onN
             </Link>
           )
         })}
+        {/* Insights — business plan only */}
+        {userPlan === "business" && (() => {
+          const active = getIsActive(pathname, "/dashboard/insights", false)
+          return (
+            <Link
+              href="/dashboard/insights"
+              onClick={onNavClick}
+              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                background: active ? "rgba(200,245,90,0.08)" : "transparent",
+                color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+              }}
+            >
+              <IconInsights />
+              <span style={{ flex: 1 }}>Insights</span>
+            </Link>
+          )
+        })()}
       </nav>
 
       {/* Bottom: links + sign out */}
@@ -298,6 +334,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const { data: session, status } = useSession()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [userPlan, setUserPlan] = useState("free")
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -316,6 +353,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       return () => clearInterval(id)
     }
   }, [status, fetchUnreadCount])
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/me")
+        .then(r => r.json())
+        .then(d => { if (d.plan) setUserPlan(d.plan) })
+        .catch(() => { /* ignore */ })
+    }
+  }, [status])
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -349,6 +395,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     image,
     initials,
     unreadCount,
+    userPlan,
   }
 
   if (status === "loading") {

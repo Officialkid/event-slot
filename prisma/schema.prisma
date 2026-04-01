@@ -31,6 +31,15 @@ model Event {
   archived         Boolean   @default(false)
   status           String    @default("active")
   registrations    Registration[]
+  views            EventView[]
+}
+
+model EventView {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+  source    String?
 }
 
 model User {
