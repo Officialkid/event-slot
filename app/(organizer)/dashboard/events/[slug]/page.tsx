@@ -332,6 +332,69 @@ function DeleteModal({ title, slug, token, onClose, onSuccess }: { title: string
 
 // ─── Registration tables ──────────────────────────────────────────────────────
 
+function EditRegModal({
+  registration, questions, token, onClose, onSaved,
+}: {
+  registration: Registration
+  questions: Question[]
+  token: string
+  onClose: () => void
+  onSaved: (updated: Registration) => void
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const q of questions) {
+      init[q.id] = registration.answers.find(a => a.questionId === q.id)?.value ?? ""
+    }
+    return init
+  })
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState("")
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError("")
+    const answers = questions.map(q => ({ questionId: q.id, value: values[q.id] ?? "" }))
+    try {
+      const res = await fetch(
+        `/api/registrations/${registration.id}?token=${encodeURIComponent(token)}`,
+        { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers }) }
+      )
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || "Failed to save."); return }
+      onSaved({ ...registration, answers })
+    } catch { setError("Unexpected error.") }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
+      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 480, width: "90%", maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.25rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.25rem" }}>Edit registration</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.25rem" }}>
+          {questions.map(q => (
+            <div key={q.id}>
+              <label style={{ display: "block", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>
+                {q.label}{q.required && <span style={{ color: "#FF6B6B", marginLeft: 2 }}>*</span>}
+              </label>
+              <input
+                value={values[q.id] ?? ""}
+                onChange={e => setValues(prev => ({ ...prev, [q.id]: e.target.value }))}
+                style={{ width: "100%", background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.9rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+          ))}
+          {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{error}</p>}
+        </div>
+        <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
+          <button type="button" onClick={onClose} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving…" : "Save changes"}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function RegTable({
   rows, questions, showPosition = false, emptyText, token, onRemove,
 }: {
@@ -344,6 +407,7 @@ function RegTable({
 }) {
   const [confirmingId, setConfirmingId] = React.useState<string | null>(null)
   const [removingId, setRemovingId] = React.useState<string | null>(null)
+  const [editingReg, setEditingReg] = React.useState<Registration | null>(null)
 
   const handleRemove = async (regId: string) => {
     setRemovingId(regId)
@@ -359,7 +423,22 @@ function RegTable({
   }
 
   const labels = questions.map(q => q.label)
+  const [rowData, setRowData] = React.useState<Registration[]>(rows)
+  React.useEffect(() => { setRowData(rows) }, [rows])
   return (
+    <>
+    {editingReg && (
+      <EditRegModal
+        registration={editingReg}
+        questions={questions}
+        token={token}
+        onClose={() => setEditingReg(null)}
+        onSaved={updated => {
+          setRowData(prev => prev.map(r => r.id === updated.id ? updated : r))
+          setEditingReg(null)
+        }}
+      />
+    )}
     <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
       <table style={{ minWidth: "100%", borderCollapse: "collapse" }}>
         <thead style={{ background: "#141414" }}>
@@ -371,14 +450,14 @@ function RegTable({
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {rowData.length === 0 ? (
             <tr>
               <td colSpan={labels.length + (showPosition ? 3 : 2)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                 {emptyText}
               </td>
             </tr>
           ) : (
-            rows.map(reg => (
+            rowData.map(reg => (
               <tr key={reg.id} style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)" }} className="reg-row">
                 {showPosition && <td style={tdStyle}>{reg.waitlistPosition}</td>}
                 {questions.map(q => {
@@ -395,7 +474,7 @@ function RegTable({
                     )}
                   </span>
                 </td>
-                <td style={{ ...tdStyle, width: 80 }}>
+                <td style={{ ...tdStyle, width: 120 }}>
                   {confirmingId === reg.id ? (
                     <span style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
                       <button
@@ -413,12 +492,20 @@ function RegTable({
                       </button>
                     </span>
                   ) : (
-                    <button
-                      onClick={() => setConfirmingId(reg.id)}
-                      style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(255,107,107,0.7)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      Remove
-                    </button>
+                    <span style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+                      <button
+                        onClick={() => setEditingReg(reg)}
+                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(200,245,90,0.7)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setConfirmingId(reg.id)}
+                        style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(255,107,107,0.7)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Remove
+                      </button>
+                    </span>
                   )}
                 </td>
               </tr>
@@ -427,6 +514,7 @@ function RegTable({
         </tbody>
       </table>
     </div>
+    </>
   )
 }
 

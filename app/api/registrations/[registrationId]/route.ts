@@ -31,12 +31,19 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { registrationId: string } }
 ) {
+  const token = new URL(req.url).searchParams.get('token')
+
   const registration = await prisma.registration.findUnique({
     where: { id: params.registrationId },
+    include: { event: { select: { dashboardToken: true, id: true, status: true, archived: true, questions: true } } },
   })
 
   if (!registration) {
     return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
+  }
+
+  if (!token || registration.event.dashboardToken !== token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await req.json()
@@ -54,15 +61,7 @@ export async function PATCH(
     return NextResponse.json({ success: true, registration: updated })
   }
 
-  // Fetch event to check status + get questions
-  const event = await prisma.event.findUnique({
-    where: { id: registration.eventId },
-    select: { status: true, archived: true, questions: true },
-  })
-
-  if (!event) {
-    return NextResponse.json({ error: 'Event not found' }, { status: 404 })
-  }
+  const event = registration.event
 
   // Don't allow editing answers if event is closed/archived
   if (event.status === 'closed' || event.status === 'archived' || event.archived) {
