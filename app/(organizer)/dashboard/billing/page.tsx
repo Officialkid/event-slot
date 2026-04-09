@@ -53,8 +53,8 @@ function fmtCredits(n: number) {
 }
 
 function fmtAmt(n: number) {
-  const abs = Math.abs(n).toFixed(2)
-  return n >= 0 ? "+$" + abs : "-$" + abs
+  const abs = fmtCredits(Math.abs(n))
+  return n >= 0 ? "+" + abs : "-" + abs
 }
 
 const PLAN_DISPLAY: Record<string, string> = {
@@ -130,8 +130,8 @@ function PlanCard({
 }) {
   const isCurrent = currentPlan === plan
   const isBiz = plan === "business"
-  const monthlyPrice = isBiz ? 49 : 19
-  const annualPrice = isBiz ? 39 : 15
+  const monthlyPrice = isBiz ? 4900 : 1900
+  const annualPrice = isBiz ? 3900 : 1500
   const price = billingCycle === "annual" ? annualPrice : monthlyPrice
   const features = isBiz ? BUSINESS_FEATURES : PRO_FEATURES
   const accentHex = isBiz ? "#9370DB" : "#C8F55A"
@@ -148,7 +148,7 @@ function PlanCard({
           {isBiz ? "Business" : "Pro"}
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.2rem" }}>
-          <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{ price }</span>
+          <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>\u20a6{price.toLocaleString()}</span>
           <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>/mo</span>
         </div>
         {billingCycle === "annual" && (
@@ -183,18 +183,18 @@ function PlanCard({
 }
 
 const PAYG_ROWS = [
-  { feature: "Registration (per 100 after free limit)", cost: "$1" },
-  { feature: "Remove watermark (one event)", cost: "$5" },
-  { feature: "CSV export", cost: "$2 + $1/100 registrations" },
-  { feature: "Word report", cost: "$3 + $1/100 registrations" },
-  { feature: "Analytics unlock (one event)", cost: "$4" },
-  { feature: "Custom thank you (one event)", cost: "$2" },
+  { feature: "Registration (per 100 after free limit)", cost: "₦100" },
+  { feature: "Remove watermark (one event)", cost: "₦500" },
+  { feature: "CSV export", cost: "₦200 + ₦100/100 registrations" },
+  { feature: "Word report", cost: "₦300 + ₦100/100 registrations" },
+  { feature: "Analytics unlock (one event)", cost: "₦400" },
+  { feature: "Custom thank you (one event)", cost: "₦200" },
 ]
 
 const CREDITS_OPTS = [
-  { label: "$10", sub: "10 credits", amount: 10 },
-  { label: "$45", sub: "50 credits - save 10%", amount: 45 },
-  { label: "$80", sub: "100 credits - save 20%", amount: 80 },
+  { label: "\u20a610,000", sub: "100 credits", amount: 100 },
+  { label: "\u20a645,000", sub: "500 credits \u00b7 save 10%", amount: 500 },
+  { label: "\u20a680,000", sub: "1,000 credits \u00b7 save 20%", amount: 1000 },
 ] as const
 
 export default function BillingPage() {
@@ -272,7 +272,7 @@ export default function BillingPage() {
     try {
       const res = await fetch("/api/billing/credits", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creditAmount: amount }),
+        body: JSON.stringify({ credits: amount }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
@@ -404,7 +404,7 @@ export default function BillingPage() {
                   {status ? fmtCredits(creditBalance) : "..."} credits
                 </div>
                 <p style={{ margin: "0.4rem 0 0", fontSize: "0.8rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                  Credits power pay-as-you-go features. $1 = 1 credit.
+                  Credits power pay-as-you-go features. \u20a6100 = 1 credit.
                 </p>
               </div>
               <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
