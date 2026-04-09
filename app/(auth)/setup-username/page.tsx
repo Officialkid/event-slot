@@ -126,7 +126,9 @@ export default function SetupUsernamePage() {
               margin: "0 0 1.75rem",
             }}
           >
-            This becomes your public profile URL. You can&apos;t change it later.
+            This gives you a public profile page at{" "}
+            <span style={{ color: "rgba(240,237,230,0.7)" }}>eventslot.co/your-name</span>.
+            {" "}You can skip this and set it up later in your profile settings.
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -256,6 +258,22 @@ export default function SetupUsernamePage() {
           >
             3–20 characters · letters, numbers, and hyphens only
           </p>
+
+          <div style={{ textAlign: "center", marginTop: "1rem" }}>
+            <a
+              href="/dashboard"
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "0.8rem",
+                color: "rgba(240,237,230,0.3)",
+                textDecoration: "underline",
+                textDecorationColor: "rgba(240,237,230,0.15)",
+                cursor: "pointer",
+              }}
+            >
+              Skip for now
+            </a>
+          </div>
         </div>
       </div>
     </div>

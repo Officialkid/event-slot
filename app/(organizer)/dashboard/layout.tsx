@@ -12,9 +12,6 @@ export default async function DashboardLayout({
   if (!session) {
     redirect("/signin")
   }
-  if (!session.user.username) {
-    redirect("/setup-username")
-  }
 
   return <DashboardShell>{children}</DashboardShell>
 }

@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: transaction.data.authorization_url })
   } catch (err) {
+    console.error('[billing/credits]', err)
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })
   }

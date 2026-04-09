@@ -29,6 +29,9 @@ export const metadata: Metadata = {
   icons: {
     apple: "/assets/logo-unfiltered.png",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default async function RootLayout({

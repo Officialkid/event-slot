@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
     await sendTeamInviteEmail({ to: normalizedEmail, inviterName, inviteToken })
 
     return NextResponse.json({ ok: true }, { status: 201 })
-  } catch {
+  } catch (err) {
+    console.error('[team/invite]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

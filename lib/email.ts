@@ -1,6 +1,14 @@
-import { Resend } from 'resend'
+﻿import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+async function sendEmail(options: Parameters<typeof resend.emails.send>[0]) {
+  const { error } = await sendEmail(options)
+  if (error) {
+    console.error('[email] Resend send error:', error)
+    throw new Error(error.message ?? 'Failed to send email')
+  }
+}
 
 export async function sendFeedbackRequestEmail({
   to,
@@ -13,7 +21,7 @@ export async function sendFeedbackRequestEmail({
 }) {
   const feedbackUrl = `${process.env.NEXTAUTH_URL}/feedback/${registrationId}`
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'EventSlot <noreply@eventslot.app>',
     to,
     subject: `How was ${eventTitle}? Share your feedback`,
@@ -21,7 +29,7 @@ export async function sendFeedbackRequestEmail({
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
         <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
         <h2 style="color:#F0EDE6;font-size:1.3rem;font-weight:400;margin:0 0 1rem">How was ${eventTitle}?</h2>
-        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Thanks for attending. We'd love to hear what you thought — it only takes a minute and helps organisers improve future events.</p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Thanks for attending. We'd love to hear what you thought â€” it only takes a minute and helps organisers improve future events.</p>
         <p style="margin-top:1.5rem">
           <a href="${feedbackUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
             Leave feedback
@@ -44,7 +52,7 @@ export async function sendTeamInviteEmail({
 }) {
   const acceptUrl = `${process.env.NEXTAUTH_URL}/team/accept?token=${inviteToken}`
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'EventSlot <noreply@eventslot.app>',
     to,
     subject: `${inviterName} invited you to join their EventSlot team`,
@@ -84,14 +92,14 @@ export async function sendSlotConfirmedEmail({
     ? `<p style="margin-top:16px">You can now join the event community here: <a href="${communityLink}">${communityLink}</a></p>`
     : ''
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'EventSlot <noreply@eventslot.app>',
     to,
     subject: `Your slot for ${eventTitle} is confirmed`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
         <h2 style="color:#0A0A0A">You're in!</h2>
-        <p>Good news — a slot has opened up and you have been confirmed for <strong>${eventTitle}</strong>.</p>
+        <p>Good news â€” a slot has opened up and you have been confirmed for <strong>${eventTitle}</strong>.</p>
         <p>Your spot is now secured. We look forward to seeing you there.</p>
         ${communitySection}
         <p style="margin-top:2rem;color:#888;font-size:0.8rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
@@ -107,7 +115,7 @@ export async function sendWelcomeEmail({
   to: string
   name: string
 }) {
-  await resend.emails.send({
+  await sendEmail({
     from: 'EventSlot <noreply@eventslot.app>',
     to,
     subject: `Welcome to EventSlot, ${name}`,
@@ -117,7 +125,7 @@ export async function sendWelcomeEmail({
         <div style="color:#C8F55A;font-size:1.2rem;margin-bottom:1rem">EventSlot</div>
         <h2 style="color:#F0EDE6">Welcome, ${name}</h2>
         <p style="color:rgba(240,237,230,0.6)">
-          You are all set. Create your first event and share the link —
+          You are all set. Create your first event and share the link â€”
           registrations and waitlists are handled automatically from here.
         </p>
         <a href="${process.env.NEXTAUTH_URL}/create"
@@ -127,7 +135,7 @@ export async function sendWelcomeEmail({
           Create your first event
         </a>
         <p style="margin-top:2rem;color:rgba(240,237,230,0.25);font-size:0.75rem">
-          Questions? Reply to this email — we read everything.
+          Questions? Reply to this email â€” we read everything.
         </p>
       </div>
     `,
@@ -143,7 +151,7 @@ export async function sendPasswordResetEmail({
 }) {
   const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
 
-  await resend.emails.send({
+  await sendEmail({
     from: 'EventSlot <noreply@eventslot.app>',
     to,
     subject: 'Reset your EventSlot password',
@@ -169,3 +177,4 @@ export async function sendPasswordResetEmail({
     `,
   })
 }
+
