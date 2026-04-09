@@ -28,7 +28,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
     const plan = event.organizer?.plan ?? 'free'
     const limits = getPlanLimits(plan)
-    if (!limits.canViewAnalytics) {
+    const hasUnlock = !!(session?.user?.id && await prisma.eventUnlock.findFirst({
+      where: { eventId: event.id, userId: session.user.id, feature: 'analytics' },
+    }))
+    if (!limits.canViewAnalytics && !hasUnlock) {
       return NextResponse.json({ error: 'Upgrade required', upgradeRequired: true }, { status: 403 })
     }
 

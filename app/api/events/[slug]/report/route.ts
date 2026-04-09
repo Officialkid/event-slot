@@ -32,12 +32,15 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check organizer plan
+    // Check organizer plan OR event unlock
     const plan = event.organizer?.plan ?? 'free'
     const limits = getPlanLimits(plan)
-    if (!limits.canDownloadReport) {
+    const hasUnlock = !!(session?.user?.id && await prisma.eventUnlock.findFirst({
+      where: { eventId: event.id, userId: session.user.id, feature: 'report' },
+    }))
+    if (!limits.canDownloadReport && !hasUnlock) {
       return NextResponse.json(
-        { error: 'Report download is available on Pro and Business plans.', upgradeRequired: true },
+        { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true },
         { status: 403 }
       )
     }

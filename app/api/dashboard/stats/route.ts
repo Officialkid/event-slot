@@ -2,38 +2,29 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getEffectiveUserId } from "@/lib/getEffectiveUserId"
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const effective = await getEffectiveUserId()
-    if (!effective) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-    const userId = effective.userId
-    const email = effective.email
+    const userId = session.user.id
+    const email = session.user.email
 
     // Backfill unclaimed events for this email
-    if (email) {
-      await prisma.event.updateMany({
-        where: { organizerEmail: email, organizerId: null },
-        data: { organizerId: userId },
-      })
-    }
+    await prisma.event.updateMany({
+      where: { organizerEmail: email, organizerId: null },
+      data: { organizerId: userId },
+    })
 
     const now = new Date()
 
     // All events owned by this organizer
     const events = await prisma.event.findMany({
       where: {
-        OR: [
-          { organizerId: userId },
-          ...(email ? [{ organizerEmail: email }] : []),
-        ],
+        OR: [{ organizerId: userId }, { organizerEmail: email }],
       },
       select: {
         id: true,

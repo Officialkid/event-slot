@@ -35,38 +35,33 @@ model Event {
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
-}
-
-model EventView {
-  id        String   @id @default(cuid())
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  viewedAt  DateTime @default(now())
-  source    String?
+  unlocks          EventUnlock[]
 }
 
 model User {
-  id                   String         @id @default(cuid())
-  name                 String?
-  email                String?        @unique
-  emailVerified        DateTime?
-  image                String?
-  password             String?
-  createdAt            DateTime       @default(now())
-  plan                 String         @default("free")
-  planStartDate        DateTime?
-  planEndDate          DateTime?
-  isAdmin              Boolean        @default(false)
-  billingCycle         String?
-  suspended            Boolean        @default(false)
-  stripeCustomerId     String?        @unique
-  stripeSubscriptionId String?        @unique
-  accounts             Account[]
-  sessions             Session[]
-  events               Event[]
-  notifications        Notification[]
-  ownedTeam            TeamMember[]   @relation("OwnedTeam")
-  teamMemberships      TeamMember[]   @relation("TeamMemberships")
+  id             String         @id @default(cuid())
+  name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?
+  createdAt      DateTime       @default(now())
+  plan           String         @default("free")
+  planStartDate  DateTime?
+  planEndDate    DateTime?
+  isAdmin        Boolean        @default(false)
+  billingCycle   String?
+  suspended      Boolean        @default(false)
+  paystackCustomerCode     String?  @unique
+  paystackSubscriptionCode String?  @unique
+  creditBalance            Float    @default(0)
+  accounts       Account[]
+  ownedTeam      TeamMember[] @relation("OwnedTeam")
+  memberOf       TeamMember[] @relation("MemberOf")
+  sessions       Session[]
+  events         Event[]
+  notifications  Notification[]
+  creditTransactions CreditTransaction[]
 }
 
 model Account {
@@ -151,6 +146,26 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  description String
+  eventId     String?
+  createdAt   DateTime @default(now())
+}
+
+model EventUnlock {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId     String
+  feature    String
+  unlockedAt DateTime @default(now())
+}
+
 model OrganizerFeedback {
   id        String   @id @default(cuid())
   userId    String
@@ -158,6 +173,14 @@ model OrganizerFeedback {
   rating    Int
   message   String
   createdAt DateTime @default(now())
+}
+
+model EventView {
+  id       String   @id @default(cuid())
+  eventId  String
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+  source   String?
 }
 
 model AttendeeFeedback {
@@ -177,7 +200,7 @@ model TeamMember {
   ownerId     String
   owner       User     @relation("OwnedTeam", fields: [ownerId], references: [id], onDelete: Cascade)
   memberId    String?
-  member      User?    @relation("TeamMemberships", fields: [memberId], references: [id])
+  member      User?    @relation("MemberOf", fields: [memberId], references: [id], onDelete: SetNull)
   email       String
   status      String   @default("pending")
   inviteToken String   @unique

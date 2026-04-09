@@ -1,0 +1,106 @@
+import crypto from 'crypto'
+import prisma from '@/lib/prisma'
+import { getPlanFromPlanCode, getBillingCycleFromPlanCode } from '@/lib/paystack'
+
+export async function POST(request: Request) {
+  const body = await request.text()
+  const signature = request.headers.get('x-paystack-signature')
+
+  const hash = crypto
+    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
+    .update(body)
+    .digest('hex')
+
+  if (hash !== signature) {
+    return Response.json({ error: 'Invalid signature' }, { status: 400 })
+  }
+
+  const event = JSON.parse(body)
+
+  switch (event.event) {
+
+    case 'subscription.create': {
+      const { customer, plan, next_payment_date, subscription_code } = event.data
+      const userId = event.data.metadata?.userId
+
+      if (!userId) break
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          plan: getPlanFromPlanCode(plan.plan_code),
+          billingCycle: getBillingCycleFromPlanCode(plan.plan_code),
+          planEndDate: new Date(next_payment_date),
+          paystackCustomerCode: customer.customer_code,
+          paystackSubscriptionCode: subscription_code,
+        },
+      })
+      break
+    }
+
+    case 'invoice.payment_failed': {
+      const { subscription } = event.data
+      const user = await prisma.user.findFirst({
+        where: { paystackSubscriptionCode: subscription.subscription_code },
+      })
+      if (!user) break
+
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: 'payment_failed',
+          message: 'Your last payment failed. Please update your payment method to keep your plan active.',
+        },
+      })
+      break
+    }
+
+    case 'subscription.disable': {
+      const { subscription_code } = event.data
+      const user = await prisma.user.findFirst({
+        where: { paystackSubscriptionCode: subscription_code },
+      })
+      if (!user) break
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          plan: 'free',
+          billingCycle: null,
+          planEndDate: null,
+          paystackSubscriptionCode: null,
+        },
+      })
+      break
+    }
+
+    case 'subscription.not_renew': {
+      const { subscription_code, next_payment_date } = event.data
+      const user = await prisma.user.findFirst({
+        where: { paystackSubscriptionCode: subscription_code },
+      })
+      if (!user) break
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { planEndDate: new Date(next_payment_date) },
+      })
+      break
+    }
+
+    case 'charge.success': {
+      const { metadata, amount } = event.data
+      if (metadata?.type === 'credits') {
+        const creditsToAdd = amount / 100
+        await prisma.user.update({
+          where: { id: metadata.userId },
+          data: { creditBalance: { increment: creditsToAdd } },
+        })
+      }
+      break
+    }
+  }
+
+  return Response.json({ received: true })
+}
+

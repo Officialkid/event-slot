@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 
 interface UpgradePromptProps {
   feature: string
@@ -10,6 +10,27 @@ interface UpgradePromptProps {
 
 export default function UpgradePrompt({ feature, requiredPlan, onClose }: UpgradePromptProps) {
   const planLabel = requiredPlan === "business" ? "Business" : "Pro"
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
+  const [loading, setLoading] = useState(false)
+
+  async function handleUpgrade() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: requiredPlan, billingCycle }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setLoading(false)
+      }
+    } catch {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -93,25 +114,72 @@ export default function UpgradePrompt({ feature, requiredPlan, onClose }: Upgrad
           powerful tools for your events.
         </p>
 
+        {/* Billing cycle toggle */}
+        <div
+          style={{
+            display: "flex",
+            gap: "0.375rem",
+            background: "rgba(240,237,230,0.06)",
+            borderRadius: 8,
+            padding: "0.25rem",
+            marginBottom: "1rem",
+          }}
+        >
+          {(["monthly", "annual"] as const).map((cycle) => (
+            <button
+              key={cycle}
+              onClick={() => setBillingCycle(cycle)}
+              style={{
+                flex: 1,
+                padding: "0.4rem 0",
+                borderRadius: 6,
+                border: "none",
+                fontSize: "0.8125rem",
+                fontFamily: "var(--font-dm-sans)",
+                cursor: "pointer",
+                fontWeight: billingCycle === cycle ? 600 : 400,
+                background: billingCycle === cycle ? "rgba(200,245,90,0.15)" : "transparent",
+                color: billingCycle === cycle ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                transition: "all 0.15s",
+              }}
+            >
+              {cycle === "monthly" ? "Monthly" : "Annual"}
+              {cycle === "annual" && (
+                <span
+                  style={{
+                    marginLeft: "0.375rem",
+                    fontSize: "0.6875rem",
+                    color: "#C8F55A",
+                    opacity: billingCycle === "annual" ? 1 : 0.6,
+                  }}
+                >
+                  –20%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-          <a
-            href="/dashboard/billing"
+          <button
+            onClick={handleUpgrade}
+            disabled={loading}
             style={{
               display: "block",
-              background: "#C8F55A",
+              width: "100%",
+              background: loading ? "rgba(200,245,90,0.5)" : "#C8F55A",
               border: "none",
               borderRadius: 10,
               padding: "0.65rem 1.25rem",
               fontSize: "0.875rem",
               fontWeight: 600,
               color: "#0A0A0A",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               fontFamily: "var(--font-dm-sans)",
-              textDecoration: "none",
             }}
           >
-            Upgrade to {planLabel}
-          </a>
+            {loading ? "Redirecting…" : `Upgrade to ${planLabel}`}
+          </button>
           <button
             onClick={onClose}
             style={{

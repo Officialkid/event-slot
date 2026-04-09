@@ -66,6 +66,16 @@ function IconUsers() {
   )
 }
 
+function IconBilling() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+      <path d="M1.5 6.5h13" />
+      <path d="M4.5 9.5h3M11 9.5h.5" />
+    </svg>
+  )
+}
+
 function IconMenu() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -88,12 +98,56 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { label: "My Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
 ] as const
 
 function getIsActive(pathname: string, href: string, exact: boolean): boolean {
   if (exact) return pathname === href
   return pathname === href || pathname.startsWith(href + "/")
+}
+
+// ─── Plan badge ───────────────────────────────────────────────────────────────
+
+function PlanBadge({ plan }: { plan: string }) {
+  const styleMap: Record<string, React.CSSProperties> = {
+    free: {
+      background: "rgba(240,237,230,0.06)",
+      border: "0.5px solid rgba(240,237,230,0.15)",
+      color: "rgba(240,237,230,0.55)",
+    },
+    pro: {
+      background: "rgba(200,245,90,0.1)",
+      border: "0.5px solid rgba(200,245,90,0.3)",
+      color: "#C8F55A",
+    },
+    business: {
+      background: "rgba(147,112,219,0.1)",
+      border: "0.5px solid rgba(147,112,219,0.3)",
+      color: "#9370DB",
+    },
+  }
+  const labelMap: Record<string, string> = {
+    free: "Free Plan",
+    pro: "Pro Plan",
+    business: "Business Plan",
+  }
+  return (
+    <span
+      style={{
+        ...(styleMap[plan] ?? styleMap.free),
+        borderRadius: 100,
+        fontSize: "0.7rem",
+        fontWeight: 500,
+        padding: "0.3rem 0.75rem",
+        display: "inline-block",
+        letterSpacing: "0.04em",
+        fontFamily: "var(--font-dm-sans)",
+      }}
+    >
+      {labelMap[plan] ?? "Free Plan"}
+    </span>
+  )
 }
 
 // ─── Sidebar inner content ────────────────────────────────────────────────────
@@ -106,10 +160,11 @@ interface SidebarInnerProps {
   initials: string
   unreadCount: number
   userPlan: string
+  creditBalance: number
   onNavClick?: () => void
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, onNavClick }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, onNavClick }: SidebarInnerProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -307,6 +362,67 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           flexShrink: 0,
         }}
       >
+        {/* Plan badge section */}
+        <div style={{ marginBottom: "0.875rem" }}>
+          <PlanBadge plan={userPlan} />
+          {creditBalance > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginTop: "0.45rem" }}>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "rgba(240,237,230,0.35)",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                {creditBalance % 1 === 0 ? String(creditBalance) : creditBalance.toFixed(2)} credits
+              </span>
+              <Link
+                href="/dashboard/billing#credits"
+                style={{
+                  color: "rgba(240,237,230,0.35)",
+                  fontSize: "0.85rem",
+                  lineHeight: 1,
+                  textDecoration: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                +
+              </Link>
+            </div>
+          )}
+          {userPlan === "free" && (
+            <Link
+              href="/pricing"
+              style={{
+                display: "inline-block",
+                marginTop: "0.45rem",
+                fontSize: "0.75rem",
+                color: "#C8F55A",
+                textDecoration: "none",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              Upgrade
+            </Link>
+          )}
+          {userPlan === "pro" && (
+            <Link
+              href="/pricing#business"
+              style={{
+                display: "inline-block",
+                marginTop: "0.45rem",
+                fontSize: "0.75rem",
+                color: "#C8F55A",
+                textDecoration: "none",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              Upgrade to Business
+            </Link>
+          )}
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: "0.625rem" }}>
           <a
             href="/terms"
@@ -372,6 +488,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [userPlan, setUserPlan] = useState("free")
+  const [creditBalance, setCreditBalance] = useState(0)
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -395,7 +512,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     if (status === "authenticated") {
       fetch("/api/me")
         .then(r => r.json())
-        .then(d => { if (d.plan) setUserPlan(d.plan) })
+        .then(d => {
+          if (d.plan) setUserPlan(d.plan)
+          if (typeof d.creditBalance === "number") setCreditBalance(d.creditBalance)
+        })
         .catch(() => { /* ignore */ })
     }
   }, [status])
@@ -433,6 +553,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     initials,
     unreadCount,
     userPlan,
+    creditBalance,
   }
 
   if (status === "loading") {
@@ -719,6 +840,24 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     height: 6,
                     borderRadius: "50%",
                     background: "#C8F55A",
+                  }}
+                />
+              )}
+              {item.href === "/dashboard/profile" && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 8,
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background:
+                      userPlan === "pro"
+                        ? "#C8F55A"
+                        : userPlan === "business"
+                        ? "#9370DB"
+                        : "rgba(240,237,230,0.35)",
                   }}
                 />
               )}
