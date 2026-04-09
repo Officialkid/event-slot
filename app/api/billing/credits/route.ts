@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { paystack } from '@/lib/paystack'
+import { paystackFetch } from '@/lib/paystack'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,20 +16,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid creditAmount' }, { status: 400 })
     }
 
-    const transaction = await paystack.transaction.initialize({
-      email: session.user.email,
-      amount: creditAmount * 100,
-      callback_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?credits=added`,
-      metadata: {
-        userId: session.user.id,
-        type: 'credits',
-      },
+    const data = await paystackFetch('/transaction/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: session.user.email,
+        amount: creditAmount * 100,
+        currency: 'NGN',
+        callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
+        metadata: {
+          userId: session.user.id,
+          type: 'credits',
+          creditAmount,
+        },
+      }),
     })
 
-    return NextResponse.json({ url: transaction.data.authorization_url })
+    if (!data.status) {
+      console.error('[billing/credits] Paystack error:', data.message)
+      return NextResponse.json({ error: data.message ?? 'Paystack error' }, { status: 500 })
+    }
+
+    return NextResponse.json({ url: data.data.authorization_url })
   } catch (err) {
     console.error('[billing/credits]', err)
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

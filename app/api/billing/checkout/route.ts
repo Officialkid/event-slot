@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { paystack } from '@/lib/paystack'
-
-const PLAN_CODES: Record<string, Record<string, string>> = {
-  pro: {
-    monthly: process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE!,
-    annual: process.env.PAYSTACK_PRO_ANNUAL_PLAN_CODE!,
-  },
-  business: {
-    monthly: process.env.PAYSTACK_BUSINESS_MONTHLY_PLAN_CODE!,
-    annual: process.env.PAYSTACK_BUSINESS_ANNUAL_PLAN_CODE!,
-  },
-}
+import { paystackFetch } from '@/lib/paystack'
 
 const PLAN_AMOUNTS: Record<string, Record<string, number>> = {
-  pro: { monthly: 2000, annual: 19200 },
-  business: { monthly: 10000, annual: 96000 },
+  pro: { monthly: 1900, annual: 18000 },
+  business: { monthly: 4900, annual: 46800 },
 }
 
 export async function POST(req: NextRequest) {
@@ -28,29 +17,36 @@ export async function POST(req: NextRequest) {
 
     const { plan, billingCycle } = await req.json()
 
-    if (!plan || !billingCycle || !PLAN_CODES[plan]?.[billingCycle]) {
+    if (!plan || !billingCycle || !PLAN_AMOUNTS[plan]?.[billingCycle]) {
       return NextResponse.json({ error: 'Invalid plan or billingCycle' }, { status: 400 })
     }
 
-    const planCode = PLAN_CODES[plan][billingCycle]
     const amount = PLAN_AMOUNTS[plan][billingCycle]
 
-    const transaction = await paystack.transaction.initialize({
-      email: session.user.email,
-      amount,
-      plan: planCode,
-      callback_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?success=true&plan=${plan}`,
-      metadata: {
-        userId: session.user.id,
-        planCode,
-        billingCycle,
-      },
+    const data = await paystackFetch('/transaction/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: session.user.email,
+        amount: amount * 100,
+        currency: 'NGN',
+        callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
+        metadata: {
+          userId: session.user.id,
+          plan,
+          billingCycle,
+          type: 'plan',
+        },
+      }),
     })
 
-    return NextResponse.json({ url: transaction.data.authorization_url })
+    if (!data.status) {
+      console.error('[billing/checkout] Paystack error:', data.message)
+      return NextResponse.json({ error: data.message ?? 'Paystack error' }, { status: 500 })
+    }
+
+    return NextResponse.json({ url: data.data.authorization_url })
   } catch (err) {
     console.error('[billing/checkout]', err)
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
