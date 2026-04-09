@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.2.3] — April 9, 2026
+
+### Build Fix
+- Added `types/paystack-node.d.ts` — local type declaration shim for `paystack-node` which ships no TypeScript types, resolving `Could not find a declaration file for module 'paystack-node'` build error
+
 ## [0.2.2] — April 9, 2026
 
 ### Build Fix
