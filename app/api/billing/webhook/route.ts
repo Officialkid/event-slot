@@ -3,21 +3,22 @@ import prisma from '@/lib/prisma'
 import { getPlanFromPlanCode, getBillingCycleFromPlanCode } from '@/lib/paystack'
 
 export async function POST(request: Request) {
-  const body = await request.text()
-  const signature = request.headers.get('x-paystack-signature')
+  try {
+    const body = await request.text()
+    const signature = request.headers.get('x-paystack-signature')
 
-  const hash = crypto
-    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
-    .update(body)
-    .digest('hex')
+    const hash = crypto
+      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
+      .update(body)
+      .digest('hex')
 
-  if (hash !== signature) {
-    return Response.json({ error: 'Invalid signature' }, { status: 400 })
-  }
+    if (hash !== signature) {
+      return Response.json({ error: 'Invalid signature' }, { status: 400 })
+    }
 
-  const event = JSON.parse(body)
+    const event = JSON.parse(body)
 
-  switch (event.event) {
+    switch (event.event) {
 
     case 'subscription.create': {
       const { customer, plan, next_payment_date, subscription_code } = event.data
@@ -101,6 +102,10 @@ export async function POST(request: Request) {
     }
   }
 
-  return Response.json({ received: true })
+    return Response.json({ received: true })
+  } catch (err) {
+    console.error('[billing/webhook] POST error:', err)
+    return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 

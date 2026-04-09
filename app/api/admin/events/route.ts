@@ -8,48 +8,58 @@ function isSuperAdmin(email: string | null | undefined) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!isSuperAdmin(session?.user?.email)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!isSuperAdmin(session?.user?.email)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const search = searchParams.get("search") ?? ""
+    const status = searchParams.get("status") ?? "all"
+    const userId = searchParams.get("user") ?? ""
+
+    const events = await prisma.event.findMany({
+      where: {
+        ...(search ? { OR: [{ title: { contains: search, mode: "insensitive" } }, { organizerEmail: { contains: search, mode: "insensitive" } }] } : {}),
+        ...(status !== "all" ? (status === "archived" ? { archived: true } : { status, archived: false }) : {}),
+        ...(userId ? { organizerId: userId } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        organizerEmail: true,
+        confirmedCount: true,
+        waitlistCount: true,
+        status: true,
+        archived: true,
+        createdAt: true,
+      },
+    })
+
+    return NextResponse.json({ events })
+  } catch (err) {
+    console.error("[admin/events] GET error:", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  const { searchParams } = new URL(req.url)
-  const search = searchParams.get("search") ?? ""
-  const status = searchParams.get("status") ?? "all"
-  const userId = searchParams.get("user") ?? ""
-
-  const events = await prisma.event.findMany({
-    where: {
-      ...(search ? { OR: [{ title: { contains: search, mode: "insensitive" } }, { organizerEmail: { contains: search, mode: "insensitive" } }] } : {}),
-      ...(status !== "all" ? (status === "archived" ? { archived: true } : { status, archived: false }) : {}),
-      ...(userId ? { organizerId: userId } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      organizerEmail: true,
-      confirmedCount: true,
-      waitlistCount: true,
-      status: true,
-      archived: true,
-      createdAt: true,
-    },
-  })
-
-  return NextResponse.json({ events })
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!isSuperAdmin(session?.user?.email)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
+    const session = await getServerSession(authOptions)
+    if (!isSuperAdmin(session?.user?.email)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+
+    const { id } = await req.json()
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+
+    await prisma.event.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error("[admin/events] DELETE error:", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  const { id } = await req.json()
-  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
-
-  await prisma.event.delete({ where: { id } })
-  return NextResponse.json({ success: true })
 }

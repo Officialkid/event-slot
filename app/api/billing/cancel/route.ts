@@ -4,23 +4,23 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { paystackSubscriptionCode: true },
-  })
-
-  if (!user?.paystackSubscriptionCode) {
-    return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
-  }
-
-  const subCode = user.paystackSubscriptionCode
-
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { paystackSubscriptionCode: true },
+    })
+
+    if (!user?.paystackSubscriptionCode) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
+    }
+
+    const subCode = user.paystackSubscriptionCode
+
     // Fetch subscription to retrieve email_token required by Paystack disable endpoint
     const fetchRes = await fetch(`https://api.paystack.co/subscription/${subCode}`, {
       headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
@@ -54,7 +54,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[billing/cancel] POST error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -38,51 +38,56 @@ function buildBroadcastEmail(name: string | null | undefined, body: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!isSuperAdmin(session?.user?.email)) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  const { plans, subject, body } = await req.json() as {
-    plans: string[]
-    subject: string
-    body: string
-  }
-
-  if (!subject?.trim() || !body?.trim()) {
-    return NextResponse.json({ error: 'Subject and body are required.' }, { status: 400 })
-  }
-
-  const isAll = plans.includes('all') || !plans.length
-
-  const users = await prisma.user.findMany({
-    where: {
-      email: { not: null },
-      suspended: false,
-      ...(isAll ? {} : { plan: { in: plans } }),
-    },
-    select: { id: true, email: true, name: true },
-  })
-
-  const recipients = users.filter((u): u is typeof u & { email: string } => !!u.email)
-
-  const batches = chunk(recipients, 50)
-  let sent = 0
-
-  for (const batch of batches) {
-    await resend.batch.send(
-      batch.map(user => ({
-        from: 'EventSlot <noreply@eventslot.app>',
-        to: user.email,
-        subject: subject.trim(),
-        html: buildBroadcastEmail(user.name, body.trim()),
-      }))
-    )
-    sent += batch.length
-    if (batches.indexOf(batch) < batches.length - 1) {
-      await new Promise(r => setTimeout(r, 1000))
+  try {
+    const session = await getServerSession(authOptions)
+    if (!isSuperAdmin(session?.user?.email)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-  }
 
-  return NextResponse.json({ ok: true, sent })
+    const { plans, subject, body } = await req.json() as {
+      plans: string[]
+      subject: string
+      body: string
+    }
+
+    if (!subject?.trim() || !body?.trim()) {
+      return NextResponse.json({ error: 'Subject and body are required.' }, { status: 400 })
+    }
+
+    const isAll = plans.includes('all') || !plans.length
+
+    const users = await prisma.user.findMany({
+      where: {
+        email: { not: null },
+        suspended: false,
+        ...(isAll ? {} : { plan: { in: plans } }),
+      },
+      select: { id: true, email: true, name: true },
+    })
+
+    const recipients = users.filter((u): u is typeof u & { email: string } => !!u.email)
+
+    const batches = chunk(recipients, 50)
+    let sent = 0
+
+    for (const batch of batches) {
+      await resend.batch.send(
+        batch.map(user => ({
+          from: 'EventSlot <noreply@eventsslot.com>',
+          to: user.email,
+          subject: subject.trim(),
+          html: buildBroadcastEmail(user.name, body.trim()),
+        }))
+      )
+      sent += batch.length
+      if (batches.indexOf(batch) < batches.length - 1) {
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    }
+
+    return NextResponse.json({ ok: true, sent })
+  } catch (err) {
+    console.error('[admin/broadcast] POST error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

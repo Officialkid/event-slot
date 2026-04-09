@@ -9,31 +9,36 @@ const RESERVED = [
 ]
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const username = searchParams.get("username")?.toLowerCase().trim()
+  try {
+    const { searchParams } = new URL(req.url)
+    const username = searchParams.get("username")?.toLowerCase().trim()
 
-  if (!username) {
-    return NextResponse.json({ available: false, error: "Missing username" }, { status: 400 })
+    if (!username) {
+      return NextResponse.json({ available: false, error: "Missing username" }, { status: 400 })
+    }
+
+    if (username.length < 3 || username.length > 20) {
+      return NextResponse.json({
+        available: false,
+        error: "Username must be 3–20 characters",
+      })
+    }
+
+    if (!/^[a-z0-9-]+$/.test(username)) {
+      return NextResponse.json({
+        available: false,
+        error: "Only letters, numbers, and hyphens allowed",
+      })
+    }
+
+    if (RESERVED.includes(username)) {
+      return NextResponse.json({ available: false, error: "Username is reserved" })
+    }
+
+    const existing = await prisma.user.findUnique({ where: { username } })
+    return NextResponse.json({ available: !existing })
+  } catch (err) {
+    console.error("[users/check-username] GET error:", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  if (username.length < 3 || username.length > 20) {
-    return NextResponse.json({
-      available: false,
-      error: "Username must be 3–20 characters",
-    })
-  }
-
-  if (!/^[a-z0-9-]+$/.test(username)) {
-    return NextResponse.json({
-      available: false,
-      error: "Only letters, numbers, and hyphens allowed",
-    })
-  }
-
-  if (RESERVED.includes(username)) {
-    return NextResponse.json({ available: false, error: "Username is reserved" })
-  }
-
-  const existing = await prisma.user.findUnique({ where: { username } })
-  return NextResponse.json({ available: !existing })
 }

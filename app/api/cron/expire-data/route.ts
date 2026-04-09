@@ -2,26 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  try {
+    const authHeader = req.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  const now = new Date()
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-  const twentyDaysAgo = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000)
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const twentyDaysAgo = new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000)
 
-  // ─── Step 1: Delete data for free users past 30-day window ────────────────
+    // ─── Step 1: Delete data for free users past 30-day window ────────────────
 
-  const candidatesForExpiry = await prisma.event.findMany({
-    where: {
-      deadline: { lt: thirtyDaysAgo },
-      dataExpired: false,
-    },
-    include: {
-      organizer: { select: { plan: true } },
-    },
-  })
+    const candidatesForExpiry = await prisma.event.findMany({
+      where: {
+        deadline: { lt: thirtyDaysAgo },
+        dataExpired: false,
+      },
+      include: {
+        organizer: { select: { plan: true } },
+      },
+    })
 
   let expiredCount = 0
 
@@ -116,5 +117,9 @@ export async function GET(req: NextRequest) {
     warnCount++
   }
 
-  return NextResponse.json({ ok: true, expiredCount, warnCount })
+    return NextResponse.json({ ok: true, expiredCount, warnCount })
+  } catch (err) {
+    console.error('[cron/expire-data] GET error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
