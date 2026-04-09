@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.3.1] — April 9, 2026
+
+### Event Creation Templates
+- Added `lib/eventTemplates.ts` — 6 templates: Community Meetup, Corporate Training, Workshop, Conference, Church/Faith Event, Start from scratch, each with pre-built question sets
+- `app/(organizer)/create/page.tsx` — two-step flow: template picker shown first (before form); selecting a template pre-fills questions and smooth-scrolls to the form
+- Template picker: Instrument Serif heading "Start with a template", auto-fill grid (minmax 172px), cards with icon / name / description, lime border + bg on selected, lime hover on unselected
+- Template banner inside Registration Questions card shows icon + "Using [Template Name] template. You can edit the questions below." (hidden for blank/scratch)
+- Templates remain visible after selection so organizer can switch templates mid-form
+
 ## [0.3.0] — April 9, 2026
 
 ### Organizer Public Profiles

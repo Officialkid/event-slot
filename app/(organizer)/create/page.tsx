@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 
 type QuestionType = "text" | "email" | "phone" | "select"
 
@@ -51,7 +52,9 @@ export default function CreateEventPage() {
   const [error, setError] = useState("")
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
   // Auto-fill organizer email from signed-in account
   useEffect(() => {
@@ -66,6 +69,24 @@ export default function CreateEventPage() {
       router.replace('/signin?callbackUrl=/create')
     }
   }, [status, router])
+
+  function handlePickTemplate(templateId: string) {
+    const tpl = EVENT_TEMPLATES.find(t => t.id === templateId)
+    if (!tpl) return
+    setQuestions(
+      tpl.questions.map(q => ({
+        id: q.id,
+        label: q.label,
+        type: q.type,
+        required: q.required,
+        options: q.options ?? [],
+      }))
+    )
+    setSelectedTemplateId(templateId)
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 50)
+  }
 
   // After creation, redirect to the event dashboard
   useEffect(() => {
@@ -160,6 +181,8 @@ export default function CreateEventPage() {
     }
   }
 
+  const activeTpl = selectedTemplateId ? EVENT_TEMPLATES.find(t => t.id === selectedTemplateId) : null
+
   return (
     <div className="px-4 py-12">
       <div className="mx-auto max-w-[640px] space-y-6">
@@ -173,7 +196,104 @@ export default function CreateEventPage() {
           </p>
         </div>
 
-        {!success ? (
+        {/* ── Template picker ── */}
+        <div>
+          <h2
+            style={{
+              fontFamily: "var(--font-instrument-serif)",
+              fontSize: "1.5rem",
+              fontWeight: 400,
+              color: "#F0EDE6",
+              margin: "0 0 0.375rem",
+            }}
+          >
+            Start with a template
+          </h2>
+          <p
+            style={{
+              margin: "0 0 1.125rem",
+              fontSize: "0.875rem",
+              fontWeight: 300,
+              color: "rgba(240,237,230,0.4)",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
+            Choose a template or start from scratch.
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(172px, 1fr))",
+              gap: "0.75rem",
+            }}
+          >
+            {EVENT_TEMPLATES.map(tpl => {
+              const isSelected = selectedTemplateId === tpl.id
+              return (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => handlePickTemplate(tpl.id)}
+                  style={{
+                    background: isSelected
+                      ? "rgba(200,245,90,0.06)"
+                      : "#141414",
+                    border: isSelected
+                      ? "1.5px solid #C8F55A"
+                      : "0.5px solid rgba(240,237,230,0.1)",
+                    borderRadius: 12,
+                    padding: "1.125rem 1rem",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "border-color 0.15s, background 0.15s",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.375rem",
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSelected) {
+                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(200,245,90,0.4)"
+                      ;(e.currentTarget as HTMLButtonElement).style.background = "rgba(200,245,90,0.04)"
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSelected) {
+                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(240,237,230,0.1)"
+                      ;(e.currentTarget as HTMLButtonElement).style.background = "#141414"
+                    }
+                  }}
+                >
+                  <span style={{ fontSize: "2rem", lineHeight: 1 }}>{tpl.icon}</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-instrument-serif)",
+                      fontSize: "1rem",
+                      fontWeight: 400,
+                      color: "#F0EDE6",
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {tpl.name}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-dm-sans)",
+                      fontWeight: 300,
+                      fontSize: "0.8rem",
+                      color: "rgba(240,237,230,0.45)",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {tpl.description}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {selectedTemplateId && !success ? (
+          <div ref={formRef}>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
               <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
@@ -322,6 +442,29 @@ export default function CreateEventPage() {
               <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
                 Registration Questions
               </h2>
+
+              {activeTpl && activeTpl.id !== "blank" && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    background: "rgba(200,245,90,0.07)",
+                    border: "0.5px solid rgba(200,245,90,0.25)",
+                    borderRadius: 8,
+                    padding: "0.6rem 0.875rem",
+                    marginBottom: "1.25rem",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "0.8rem",
+                    color: "rgba(200,245,90,0.9)",
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>{activeTpl.icon}</span>
+                  <span>
+                    Using <strong style={{ fontWeight: 600 }}>{activeTpl.name}</strong> template. You can edit the questions below.
+                  </span>
+                </div>
+              )}
               <div className="space-y-4">
                 {questions.map((q, idx) => (
                   <div key={q.id} className="bg-[#1A1A1A] border border-[rgba(240,237,230,0.08)] rounded-[8px] p-4">
@@ -413,7 +556,8 @@ export default function CreateEventPage() {
               {error && <div className="text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
             </div>
           </form>
-        ) : (
+          </div>
+        ) : selectedTemplateId && success ? (
           <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-8 text-center space-y-4">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
               <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />

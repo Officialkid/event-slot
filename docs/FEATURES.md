@@ -40,6 +40,7 @@
 | Data expiry (Free) | Free-plan event registrations auto-deleted 30 days after event deadline | Free | `GET /api/cron/expire-data` |
 | Organizer public profile | Public profile page at `/[username]` showing organizer's active events grid, slot bars, register CTA | All | `/[username]` |
 | Username setup | Onboarding page to choose a unique organizer username; required before accessing dashboard | All | `/setup-username` |
+| Event creation templates | 6 pre-built templates (meetup, corporate, workshop, conference, church, blank) pre-fill registration questions on event creation | All | `/create` |
 | Admin panel | Super admin view of all users, events, messages, system health | Admin | `/admin` |
 
 ---
