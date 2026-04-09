@@ -137,7 +137,34 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly")
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [regs, setRegs] = useState(500)
+  const [loading, setLoading] = useState<string | null>(null)
   const isAnnual = billing === "annual"
+
+  async function handleUpgrade(plan: "pro" | "business") {
+    const key = `${plan}_${billing}`
+    setLoading(key)
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, billingCycle: billing }),
+      })
+      const data = await res.json()
+      if (res.status === 401) {
+        window.location.href = `/signin?callbackUrl=/pricing`
+        return
+      }
+      if (!res.ok) {
+        alert(`Error: ${data.error ?? "Something went wrong"}`)
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      alert("Something went wrong. Please try again.")
+    } finally {
+      setLoading(null)
+    }
+  }
 
   return (
     <main style={{ background: "#0A0A0A", minHeight: "100vh", color: "#F0EDE6" }}>
@@ -367,25 +394,28 @@ export default function PricingPage() {
               <p style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.5rem" }}>
                 For active event organizers
               </p>
-              <a
-                href="/signup?plan=pro"
+              <button
+                type="button"
+                onClick={() => handleUpgrade("pro")}
+                disabled={loading !== null}
                 style={{
                   display: "block",
+                  width: "100%",
                   padding: "0.65rem 1rem",
                   borderRadius: 100,
                   border: "none",
-                  background: "#C8F55A",
+                  background: loading === `pro_${billing}` ? "rgba(200,245,90,0.5)" : "#C8F55A",
                   color: "#0A0A0A",
                   fontSize: "0.875rem",
                   fontWeight: 600,
                   fontFamily: "var(--font-dm-sans)",
                   textAlign: "center",
-                  textDecoration: "none",
+                  cursor: loading !== null ? "not-allowed" : "pointer",
                   marginBottom: "1.75rem",
                 }}
               >
-                Upgrade to Pro
-              </a>
+                {loading === `pro_${billing}` ? "Redirecting..." : "Upgrade to Pro"}
+              </button>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.65rem" }}>
                 {[
                   "Everything in Free",
@@ -449,25 +479,28 @@ export default function PricingPage() {
             <p style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.5rem" }}>
               For teams and organisations
             </p>
-            <a
-              href="/signup?plan=business"
+            <button
+              type="button"
+              onClick={() => handleUpgrade("business")}
+              disabled={loading !== null}
               style={{
                 display: "block",
+                width: "100%",
                 padding: "0.65rem 1rem",
                 borderRadius: 100,
                 border: "0.5px solid rgba(240,237,230,0.2)",
-                background: "transparent",
+                background: loading === `business_${billing}` ? "rgba(240,237,230,0.08)" : "transparent",
                 color: "#F0EDE6",
                 fontSize: "0.875rem",
                 fontWeight: 500,
                 fontFamily: "var(--font-dm-sans)",
                 textAlign: "center",
-                textDecoration: "none",
+                cursor: loading !== null ? "not-allowed" : "pointer",
                 marginBottom: "1.75rem",
               }}
             >
-              Upgrade to Business
-            </a>
+              {loading === `business_${billing}` ? "Redirecting..." : "Upgrade to Business"}
+            </button>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.65rem" }}>
               {[
                 "Everything in Pro",
