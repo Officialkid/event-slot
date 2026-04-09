@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.4] — April 9, 2026
+
+### Build Fix
+- Rewrote `types/paystack-node.d.ts` to declare `PaystackResource` interface with `[method: string]: (...args: any[]) => Promise<any>` and typed `transaction`, `subscription`, `customer`, `plan` etc. as `PaystackResource` — resolves `'paystack.transaction' is of type 'unknown'` build error
+- Ran `prisma generate` locally to clear stale Prisma client (VS Code TypeScript errors for `paystackSubscriptionCode`, `creditBalance`, `creditTransaction`, `eventUnlock` were all stale — fields/models already existed in schema)
+
 ## [0.2.3] — April 9, 2026
 
 ### Build Fix
