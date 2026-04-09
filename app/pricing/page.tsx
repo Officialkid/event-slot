@@ -136,6 +136,7 @@ function FeatureItem({ label, ok }: { label: string; ok: boolean }) {
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly")
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [regs, setRegs] = useState(500)
   const isAnnual = billing === "annual"
 
   return (
@@ -482,6 +483,180 @@ export default function PricingPage() {
                 <FeatureItem key={i} label={f} ok={true} />
               ))}
             </ul>
+          </div>
+        </div>
+
+        {/* PAY AS YOU GO */}
+        <div style={{ marginBottom: "5rem" }}>
+          <div style={{ marginBottom: "1.75rem" }}>
+            <h2
+              style={{
+                fontFamily: "var(--font-instrument-serif)",
+                fontSize: "1.3rem",
+                fontWeight: 400,
+                color: "#F0EDE6",
+                margin: "0 0 0.4rem",
+              }}
+            >
+              Only need it once?
+            </h2>
+            <p
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "0.875rem",
+                color: "rgba(240,237,230,0.45)",
+                margin: 0,
+              }}
+            >
+              Use credits for one-time access. No subscription needed.
+            </p>
+          </div>
+
+          {/* Credits pricing table */}
+          <div
+            style={{
+              background: "#141414",
+              border: "0.5px solid rgba(240,237,230,0.08)",
+              borderRadius: 16,
+              overflow: "hidden",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "rgba(240,237,230,0.03)", borderBottom: "0.5px solid rgba(240,237,230,0.07)" }}>
+                  <th style={{ padding: "0.75rem 1.25rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Feature</th>
+                  <th style={{ padding: "0.75rem 1.25rem", textAlign: "right", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  { feature: "Registrations (per 100 after free threshold)", cost: "$1" },
+                  { feature: "Remove EventSlot watermark (one event)", cost: "$5" },
+                  { feature: "Export CSV", cost: "$2 + $1/100 registrations" },
+                  { feature: "Download Word report", cost: "$3 + $1/100 registrations" },
+                  { feature: "Unlock analytics (one event)", cost: "$4" },
+                  { feature: "Custom thank you message", cost: "$2" },
+                ] as const).map((row, i) => (
+                  <tr key={i} style={{ borderTop: "0.5px solid rgba(240,237,230,0.05)" }}>
+                    <td style={{ padding: "0.875rem 1.25rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
+                      {row.feature}
+                    </td>
+                    <td style={{ padding: "0.875rem 1.25rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 500, textAlign: "right", whiteSpace: "nowrap" as const }}>
+                      {row.cost}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ padding: "0.875rem 1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", background: "rgba(200,245,90,0.03)" }}>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(200,245,90,0.65)", fontFamily: "var(--font-dm-sans)" }}>
+                First 100 registrations are always free on every plan.
+              </p>
+            </div>
+          </div>
+
+          {/* Credits calculator */}
+          <div
+            style={{
+              background: "#141414",
+              border: "0.5px solid rgba(240,237,230,0.08)",
+              borderRadius: 16,
+              padding: "1.75rem",
+            }}
+          >
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.25rem" }}>
+                <label
+                  htmlFor="reg-slider"
+                  style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "#F0EDE6", fontWeight: 500 }}
+                >
+                  How many registrations do you expect?
+                </label>
+                <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#C8F55A" }}>
+                  {regs.toLocaleString()}
+                </span>
+              </div>
+              <input
+                id="reg-slider"
+                type="range"
+                min={100}
+                max={10000}
+                step={100}
+                value={regs}
+                onChange={e => setRegs(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "#C8F55A", cursor: "pointer" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.35rem" }}>
+                <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>100</span>
+                <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>10,000</span>
+              </div>
+            </div>
+
+            {/* Cost breakdown pills */}
+            <div
+              style={{
+                background: "rgba(240,237,230,0.03)",
+                border: "0.5px solid rgba(240,237,230,0.07)",
+                borderRadius: 10,
+                padding: "0.75rem 1rem",
+                marginBottom: "1.25rem",
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "0.125rem",
+              }}
+            >
+              <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
+                0–100: <strong style={{ color: "#C8F55A" }}>Free</strong>
+              </span>
+              {regs > 100 && (
+                <>
+                  <span style={{ color: "rgba(240,237,230,0.2)", fontSize: "0.82rem" }}>|</span>
+                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
+                    101–{Math.min(regs, 500).toLocaleString()}:{" "}
+                    <strong style={{ color: "#F0EDE6" }}>${Math.min(Math.ceil((regs - 100) / 100), 4)}</strong>
+                  </span>
+                </>
+              )}
+              {regs > 500 && (
+                <>
+                  <span style={{ color: "rgba(240,237,230,0.2)", fontSize: "0.82rem" }}>|</span>
+                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
+                    501–{regs.toLocaleString()}:{" "}
+                    <strong style={{ color: "#F0EDE6" }}>${Math.ceil((regs - 100) / 100)}</strong>
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+              <div>
+                <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+                  Total credits needed:{" "}
+                </span>
+                <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: regs <= 100 ? "#C8F55A" : "#F0EDE6" }}>
+                  {regs <= 100 ? "Free" : `$${Math.ceil((regs - 100) / 100)} in credits`}
+                </span>
+              </div>
+              <a
+                href="/dashboard/billing#credits"
+                style={{
+                  padding: "0.55rem 1.25rem",
+                  borderRadius: 100,
+                  background: "#C8F55A",
+                  color: "#0A0A0A",
+                  fontSize: "0.825rem",
+                  fontWeight: 600,
+                  fontFamily: "var(--font-dm-sans)",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap" as const,
+                  display: "inline-block",
+                }}
+              >
+                Buy credits
+              </a>
+            </div>
           </div>
         </div>
 
