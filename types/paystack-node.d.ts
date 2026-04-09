@@ -1,12 +1,19 @@
 declare module 'paystack-node' {
+  interface PaystackResource {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [method: string]: (...args: any[]) => Promise<any>
+  }
+
   class Paystack {
     constructor(secretKey: string | undefined)
-    initializeTransaction(params: Record<string, unknown>): Promise<{ body: Record<string, unknown> }>
-    verifyTransaction(params: { reference: string }): Promise<{ body: Record<string, unknown> }>
-    createSubscription(params: Record<string, unknown>): Promise<{ body: Record<string, unknown> }>
-    disableSubscription(params: Record<string, unknown>): Promise<{ body: Record<string, unknown> }>
-    listTransactions(params?: Record<string, unknown>): Promise<{ body: Record<string, unknown> }>
-    [key: string]: unknown
+    transaction: PaystackResource
+    subscription: PaystackResource
+    customer: PaystackResource
+    plan: PaystackResource
+    charge: PaystackResource
+    refund: PaystackResource
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: PaystackResource | any
   }
   export = Paystack
 }
