@@ -42,6 +42,8 @@
 | Username setup | Onboarding page to choose a unique organizer username; required before accessing dashboard | All | `/setup-username` |
 | Event creation templates | 6 pre-built templates (meetup, corporate, workshop, conference, church, blank) pre-fill registration questions on event creation | All | `/create` |
 | Intelligent capacity suggestions | After 3+ completed events, the create form suggests a capacity based on historical fill rate and confirmed attendance | All | `/create` |
+| Welcome email | New organizer accounts receive a branded onboarding email after signup | All | auto |
+| Forgot / reset password | Full password reset flow: email link with 1-hour expiry, SHA-256 hashed token, bcrypt 12 on update | All | `/forgot-password`, `/reset-password` |
 | Admin panel | Super admin view of all users, events, messages, system health | Admin | `/admin` |
 
 ---

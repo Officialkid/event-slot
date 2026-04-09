@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.3.3] — April 9, 2026
+
+### Auth — Welcome Email, Forgot Password, Reset Password
+- `lib/email.ts` — added `sendWelcomeEmail` and `sendPasswordResetEmail` functions (dark-themed HTML, lime CTA, EventSlot brand)
+- `POST /api/auth/signup` — now fires `sendWelcomeEmail` after account creation (fire-and-forget, does not block response)
+- `prisma/schema.prisma` — added `resetToken String?` and `resetTokenExpiry DateTime?` to User model; pushed via `prisma db push`
+- `POST /api/auth/forgot-password` — finds user by email, generates a UUID raw token, hashes it (SHA-256) and stores the hash + 1-hour expiry; sends reset email with raw token; always returns 200 even if email is not registered (enum security)
+- `POST /api/auth/reset-password` — hashes incoming token, finds user where hash matches and expiry is in the future; updates password (bcrypt 12 rounds), clears token fields; returns 400 with message if link invalid or expired
+- `app/(auth)/forgot-password/page.tsx` — new page: card, back link, Instrument Serif heading, email input, "Send reset link" button; always shows same success message after submit regardless of outcome
+- `app/(auth)/reset-password/page.tsx` — new page: reads `?token` from search params; new password + confirm fields; client-side match/length validation; on success redirects to `/signin?reset=success`
+- `app/(auth)/signin/page.tsx` — added "Forgot password?" ghost link below password input; added lime banner shown when `?reset=success` is in the URL; page now wrapped in `Suspense` for `useSearchParams`
+
 ## [0.3.2] — April 9, 2026
 
 ### Intelligent Capacity Suggestions

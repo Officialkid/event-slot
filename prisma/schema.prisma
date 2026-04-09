@@ -56,6 +56,8 @@ model User {
   paystackSubscriptionCode String?  @unique
   creditBalance            Float    @default(0)
   username                 String?  @unique
+  resetToken               String?
+  resetTokenExpiry         DateTime?
   accounts       Account[]
   ownedTeam      TeamMember[] @relation("OwnedTeam")
   memberOf       TeamMember[] @relation("MemberOf")

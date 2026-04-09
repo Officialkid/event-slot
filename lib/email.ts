@@ -99,3 +99,73 @@ export async function sendSlotConfirmedEmail({
     `,
   })
 }
+
+export async function sendWelcomeEmail({
+  to,
+  name,
+}: {
+  to: string
+  name: string
+}) {
+  await resend.emails.send({
+    from: 'EventSlot <noreply@eventslot.app>',
+    to,
+    subject: `Welcome to EventSlot, ${name}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;
+                  margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1.2rem;margin-bottom:1rem">EventSlot</div>
+        <h2 style="color:#F0EDE6">Welcome, ${name}</h2>
+        <p style="color:rgba(240,237,230,0.6)">
+          You are all set. Create your first event and share the link —
+          registrations and waitlists are handled automatically from here.
+        </p>
+        <a href="${process.env.NEXTAUTH_URL}/create"
+           style="display:inline-block;background:#C8F55A;color:#0A0A0A;
+                  padding:12px 28px;border-radius:100px;text-decoration:none;
+                  font-weight:500;margin-top:1.5rem">
+          Create your first event
+        </a>
+        <p style="margin-top:2rem;color:rgba(240,237,230,0.25);font-size:0.75rem">
+          Questions? Reply to this email — we read everything.
+        </p>
+      </div>
+    `,
+  })
+}
+
+export async function sendPasswordResetEmail({
+  to,
+  token,
+}: {
+  to: string
+  token: string
+}) {
+  const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
+
+  await resend.emails.send({
+    from: 'EventSlot <noreply@eventslot.app>',
+    to,
+    subject: 'Reset your EventSlot password',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;
+                  margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1.2rem;margin-bottom:1rem">EventSlot</div>
+        <h2 style="color:#F0EDE6">Reset your password</h2>
+        <p style="color:rgba(240,237,230,0.6)">
+          We received a request to reset your password. Click the button below
+          to choose a new one. This link expires in 1 hour.
+        </p>
+        <a href="${resetUrl}"
+           style="display:inline-block;background:#C8F55A;color:#0A0A0A;
+                  padding:12px 28px;border-radius:100px;text-decoration:none;
+                  font-weight:500;margin-top:1.5rem">
+          Reset password
+        </a>
+        <p style="margin-top:2rem;color:rgba(240,237,230,0.25);font-size:0.75rem">
+          If you did not request this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  })
+}

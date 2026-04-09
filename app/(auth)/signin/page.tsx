@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 
-export default function SignInPage() {
+function SignInForm() {
+  const searchParams = useSearchParams()
+  const didReset = searchParams.get('reset') === 'success'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -74,6 +78,23 @@ export default function SignInPage() {
           padding: '2rem',
         }}
       >
+        {didReset && (
+          <div
+            style={{
+              background: 'rgba(200,245,90,0.08)',
+              border: '0.5px solid rgba(200,245,90,0.3)',
+              borderRadius: 10,
+              padding: '0.75rem 1rem',
+              marginBottom: '1.5rem',
+              fontSize: '0.85rem',
+              color: '#C8F55A',
+              fontFamily: 'var(--font-dm-sans)',
+            }}
+          >
+            Password updated. Sign in below.
+          </div>
+        )}
+
         {/* Heading */}
         <h1
           style={{
@@ -168,6 +189,19 @@ export default function SignInPage() {
             onChange={e => setPassword(e.target.value)}
             style={inputStyle}
           />
+          <div style={{ textAlign: 'right', marginTop: '-0.25rem' }}>
+            <Link
+              href="/forgot-password"
+              style={{
+                fontSize: '0.78rem',
+                color: 'rgba(240,237,230,0.35)',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-dm-sans)',
+              }}
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           {error && (
             <p
@@ -238,4 +272,12 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
+  )
 }
