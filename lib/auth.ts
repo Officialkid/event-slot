@@ -54,13 +54,12 @@ export const authOptions = {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: { username: true },
-        })
-        session.user.username = dbUser?.username ?? null
       }
       return session
+    },
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      if (url.startsWith(baseUrl)) return url
+      return `${baseUrl}/dashboard`
     },
   },
 }
