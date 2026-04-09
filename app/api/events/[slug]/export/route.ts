@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     const limits = getPlanLimits(plan)
 
     if (!limits.canExportCSV) {
-      const lookupUserId = session?.user?.id ?? event.organizerId
+      const lookupUserId = (session?.user?.id ?? event.organizerId) ?? undefined
       const hasUnlock = await prisma.eventUnlock.findFirst({
         where: { eventId: event.id, userId: lookupUserId, feature: 'csv' },
       })
