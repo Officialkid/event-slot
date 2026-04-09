@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   })
 
   // Resolve event slugs for notifications that have an eventId
-  const eventIds = [...new Set(notifications.map(n => n.eventId).filter(Boolean) as string[])]
+  const eventIds = Array.from(new Set(notifications.map(n => n.eventId).filter(Boolean) as string[]))
   const events = eventIds.length > 0
     ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, slug: true } })
     : []
