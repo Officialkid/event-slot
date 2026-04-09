@@ -41,6 +41,7 @@
 | Organizer public profile | Public profile page at `/[username]` showing organizer's active events grid, slot bars, register CTA | All | `/[username]` |
 | Username setup | Onboarding page to choose a unique organizer username; required before accessing dashboard | All | `/setup-username` |
 | Event creation templates | 6 pre-built templates (meetup, corporate, workshop, conference, church, blank) pre-fill registration questions on event creation | All | `/create` |
+| Intelligent capacity suggestions | After 3+ completed events, the create form suggests a capacity based on historical fill rate and confirmed attendance | All | `/create` |
 | Admin panel | Super admin view of all users, events, messages, system health | Admin | `/admin` |
 
 ---

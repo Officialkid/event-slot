@@ -53,6 +53,13 @@ export default function CreateEventPage() {
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [capacitySuggestion, setCapacitySuggestion] = useState<{
+    suggestedCapacity: number
+    averageFillRate: number
+    basedOnEvents: number
+    message: string
+  } | null>(null)
+  const [capacitySuggestionFetched, setCapacitySuggestionFetched] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -69,6 +76,16 @@ export default function CreateEventPage() {
       router.replace('/signin?callbackUrl=/create')
     }
   }, [status, router])
+
+  async function fetchCapacitySuggestion() {
+    if (capacitySuggestionFetched) return
+    setCapacitySuggestionFetched(true)
+    try {
+      const res = await fetch("/api/events/suggest-capacity")
+      const data = await res.json()
+      if (data.suggestion) setCapacitySuggestion(data.suggestion)
+    } catch { /* ignore */ }
+  }
 
   function handlePickTemplate(templateId: string) {
     const tpl = EVENT_TEMPLATES.find(t => t.id === templateId)
@@ -334,7 +351,65 @@ export default function CreateEventPage() {
                     placeholder="Leave empty for unlimited"
                     value={capacity}
                     onChange={e => setCapacity(e.target.value)}
+                    onFocus={fetchCapacitySuggestion}
                   />
+                  {capacitySuggestion && !capacity && (
+                    <div
+                      style={{
+                        marginTop: "0.625rem",
+                        background: "rgba(200,245,90,0.06)",
+                        border: "0.5px solid rgba(200,245,90,0.15)",
+                        borderRadius: 8,
+                        padding: "0.75rem 1rem",
+                        display: "flex",
+                        gap: "0.625rem",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <svg
+                        width="15" height="15" viewBox="0 0 20 20" fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ flexShrink: 0, marginTop: 2 }}
+                      >
+                        <path
+                          d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z"
+                          fill="rgba(200,245,90,0.25)" stroke="#C8F55A" strokeWidth="1.25"
+                        />
+                        <path d="M8 17h4" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M9 19h2" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                      </svg>
+                      <div style={{ flex: 1 }}>
+                        <p
+                          style={{
+                            margin: "0 0 0.5rem",
+                            fontSize: "0.8rem",
+                            color: "rgba(200,245,90,0.8)",
+                            fontFamily: "var(--font-dm-sans)",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {capacitySuggestion.message}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setCapacity(String(capacitySuggestion.suggestedCapacity))}
+                          style={{
+                            background: "transparent",
+                            border: "0.5px solid rgba(200,245,90,0.35)",
+                            borderRadius: 6,
+                            padding: "0.3rem 0.75rem",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: "#C8F55A",
+                            cursor: "pointer",
+                            fontFamily: "var(--font-dm-sans)",
+                          }}
+                        >
+                          Use this suggestion
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">

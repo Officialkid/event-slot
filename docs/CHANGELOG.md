@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.3.2] — April 9, 2026
+
+### Intelligent Capacity Suggestions
+- Added `GET /api/events/suggest-capacity` — analyses the organizer’s last 5 completed events (deadline passed, capacity set) and returns a suggested capacity with an average fill rate, event count, and human-readable message
+- Suggestion logic: average confirmed count × 1.2 buffer; message adapts based on fill rate (≥85%, 50–84%, <50%); includes fastest fill time if any event fully filled
+- Returns `{ suggestion: null }` if organizer has fewer than 3 qualifying events
+- `app/(organizer)/create/page.tsx` — capacity input now fetches the suggestion on first focus; if a suggestion exists and the field is empty, a lime card appears below with a lightbulb icon, the API message, and a “Use this suggestion” ghost button that fills the field
+
 ## [0.3.1] — April 9, 2026
 
 ### Event Creation Templates
