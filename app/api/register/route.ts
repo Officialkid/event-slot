@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { v4 as uuidv4 } from 'uuid'
 import prisma from '@/lib/prisma'
 import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
@@ -144,6 +145,7 @@ export async function POST(req: NextRequest) {
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
+              qrCode: uuidv4(),
             },
           })
           registrationId = reg.id

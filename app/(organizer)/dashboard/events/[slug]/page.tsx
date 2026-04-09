@@ -57,7 +57,7 @@ type EventData = {
   organizerPlan: string
 }
 
-type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "settings"
+type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings"
 
 type FeedbackData = {
   feedback: { id: string; rating: number; enjoyed: string | null; improve: string | null; complaint: string | null; submittedAt: string }[]
@@ -1033,6 +1033,7 @@ export default function EventDashboardPage() {
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
     { key: "analytics", label: organizerPlan === 'free' ? "Analytics ⚡" : "Analytics" },
     { key: "feedback", label: organizerPlan !== 'business' ? "Feedback ✦" : "Feedback" },
+    ...(organizerPlan === 'business' ? [{ key: "checkin" as TabKey, label: "Check-in" }] : []),
     { key: "settings", label: "Settings" },
   ]
 
@@ -1757,6 +1758,27 @@ export default function EventDashboardPage() {
                 <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load feedback&rdquo; to see attendee responses.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Tab: Check-in ─────────────────────────────────────────────── */}
+        {activeTab === "checkin" && (
+          <div>
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
+              Check-in
+            </h2>
+            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2.5rem 2rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.25)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <p style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+                QR Code Check-in
+              </p>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "rgba(240,237,230,0.45)", margin: 0, maxWidth: 380, lineHeight: 1.6 }}>
+                Scan attendee QR codes at the door to mark attendance. This feature is coming soon.
+              </p>
+            </div>
           </div>
         )}
 

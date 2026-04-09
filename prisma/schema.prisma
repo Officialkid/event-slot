@@ -115,6 +115,9 @@ model Registration {
   consentTransactional  Boolean   @default(false)
   consentMarketing      Boolean   @default(false)
   isDuplicate           Boolean   @default(false)
+  checkedIn             Boolean   @default(false)
+  checkedInAt           DateTime?
+  qrCode                String?   @unique
 }
 
 model ErrorLog {
