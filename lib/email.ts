@@ -3,7 +3,7 @@
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 async function sendEmail(options: Parameters<typeof resend.emails.send>[0]) {
-  const { error } = await sendEmail(options)
+  const { error } = await resend.emails.send(options)
   if (error) {
     console.error('[email] Resend send error:', error)
     throw new Error(error.message ?? 'Failed to send email')
@@ -22,7 +22,7 @@ export async function sendFeedbackRequestEmail({
   const feedbackUrl = `${process.env.NEXTAUTH_URL}/feedback/${registrationId}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventslot.app>',
+    from: 'EventSlot <noreply@eventsslot.com>',
     to,
     subject: `How was ${eventTitle}? Share your feedback`,
     html: `
@@ -53,7 +53,7 @@ export async function sendTeamInviteEmail({
   const acceptUrl = `${process.env.NEXTAUTH_URL}/team/accept?token=${inviteToken}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventslot.app>',
+    from: 'EventSlot <noreply@eventsslot.com>',
     to,
     subject: `${inviterName} invited you to join their EventSlot team`,
     html: `
@@ -93,7 +93,7 @@ export async function sendSlotConfirmedEmail({
     : ''
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventslot.app>',
+    from: 'EventSlot <noreply@eventsslot.com>',
     to,
     subject: `Your slot for ${eventTitle} is confirmed`,
     html: `
@@ -116,7 +116,7 @@ export async function sendWelcomeEmail({
   name: string
 }) {
   await sendEmail({
-    from: 'EventSlot <noreply@eventslot.app>',
+    from: 'EventSlot <noreply@eventsslot.com>',
     to,
     subject: `Welcome to EventSlot, ${name}`,
     html: `
@@ -152,7 +152,7 @@ export async function sendPasswordResetEmail({
   const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventslot.app>',
+    from: 'EventSlot <noreply@eventsslot.com>',
     to,
     subject: 'Reset your EventSlot password',
     html: `
