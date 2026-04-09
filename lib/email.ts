@@ -18,16 +18,16 @@ export async function sendFeedbackRequestEmail({
     to,
     subject: `How was ${eventTitle}? Share your feedback`,
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
-        <h2 style="color:#0A0A0A">How was the event?</h2>
-        <p>Thanks for attending <strong>${eventTitle}</strong>. We'd love to hear what you thought.</p>
-        <p>It only takes a minute — your feedback helps organisers improve future events.</p>
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.3rem;font-weight:400;margin:0 0 1rem">How was ${eventTitle}?</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Thanks for attending. We'd love to hear what you thought — it only takes a minute and helps organisers improve future events.</p>
         <p style="margin-top:1.5rem">
-          <a href="${feedbackUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.6rem 1.4rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+          <a href="${feedbackUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
             Leave feedback
           </a>
         </p>
-        <p style="margin-top:2rem;color:#888;font-size:0.8rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
+        <p style="margin-top:2.5rem;color:rgba(240,237,230,0.3);font-size:0.75rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
       </div>
     `,
   })

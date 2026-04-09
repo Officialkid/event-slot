@@ -32,25 +32,30 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ error: 'Upgrade required', upgradeRequired: true }, { status: 403 })
     }
 
-    const feedback = await prisma.attendeeFeedback.findMany({
-      where: { eventId: event.id },
-      orderBy: { submittedAt: 'desc' },
-      select: {
-        id: true,
-        rating: true,
-        enjoyed: true,
-        improve: true,
-        complaint: true,
-        submittedAt: true,
-      },
-    })
+    const [feedback, confirmedCount] = await Promise.all([
+      prisma.attendeeFeedback.findMany({
+        where: { eventId: event.id },
+        orderBy: { submittedAt: 'desc' },
+        select: {
+          id: true,
+          rating: true,
+          enjoyed: true,
+          improve: true,
+          complaint: true,
+          submittedAt: true,
+        },
+      }),
+      prisma.registration.count({
+        where: { eventId: event.id, status: 'confirmed' },
+      }),
+    ])
 
     const totalResponses = feedback.length
     const averageRating = totalResponses > 0
       ? Math.round((feedback.reduce((sum, f) => sum + f.rating, 0) / totalResponses) * 10) / 10
       : null
 
-    return NextResponse.json({ feedback, totalResponses, averageRating })
+    return NextResponse.json({ feedback, totalResponses, averageRating, confirmedCount })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

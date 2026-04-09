@@ -63,6 +63,7 @@ type FeedbackData = {
   feedback: { id: string; rating: number; enjoyed: string | null; improve: string | null; complaint: string | null; submittedAt: string }[]
   totalResponses: number
   averageRating: number | null
+  confirmedCount: number
 }
 
 type AnalyticsData = {
@@ -1689,15 +1690,19 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                 {/* Summary stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
-                  {[
-                    { label: "Responses", value: feedbackData.totalResponses },
-                    { label: "Average Rating", value: feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "—" },
-                  ].map(stat => (
-                    <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
-                      <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Response Rate</div>
+                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>
+                      {feedbackData.totalResponses} of {feedbackData.confirmedCount}
                     </div>
-                  ))}
+                    <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>attendees responded</div>
+                  </div>
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Average Rating</div>
+                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>
+                      {feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "—"}
+                    </div>
+                  </div>
                 </div>
 
                 {feedbackData.feedback.length === 0 ? (
