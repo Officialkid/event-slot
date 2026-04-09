@@ -38,6 +38,8 @@
 | Subscription billing | Monthly or annual Pro/Business plan via Paystack | Pro, Business | `POST /api/billing/checkout` / `/dashboard/billing` |
 | Billing management | View plan status, buy credits, cancel subscription, view transaction history | All | `/dashboard/billing` |
 | Data expiry (Free) | Free-plan event registrations auto-deleted 30 days after event deadline | Free | `GET /api/cron/expire-data` |
+| Organizer public profile | Public profile page at `/[username]` showing organizer's active events grid, slot bars, register CTA | All | `/[username]` |
+| Username setup | Onboarding page to choose a unique organizer username; required before accessing dashboard | All | `/setup-username` |
 | Admin panel | Super admin view of all users, events, messages, system health | Admin | `/admin` |
 
 ---

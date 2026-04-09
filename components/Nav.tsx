@@ -152,6 +152,27 @@ export default function Nav() {
                     zIndex: 50,
                   }}
                 >
+                  {session.user.username && (
+                    <Link
+                      href={`/${session.user.username}`}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.82rem",
+                        color: "rgba(240,237,230,0.6)",
+                        background: "transparent",
+                        borderRadius: 6,
+                        fontFamily: "var(--font-dm-sans)",
+                        textDecoration: "none",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,237,230,0.05)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      My public profile
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: "/" })}

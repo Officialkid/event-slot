@@ -55,6 +55,7 @@ model User {
   paystackCustomerCode     String?  @unique
   paystackSubscriptionCode String?  @unique
   creditBalance            Float    @default(0)
+  username                 String?  @unique
   accounts       Account[]
   ownedTeam      TeamMember[] @relation("OwnedTeam")
   memberOf       TeamMember[] @relation("MemberOf")

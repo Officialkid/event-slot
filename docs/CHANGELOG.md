@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.3.0] — April 9, 2026
+
+### Organizer Public Profiles
+- Added `username String? @unique` to User model in Prisma schema; applied via `prisma db push`
+- Added `username` to the NextAuth `session` callback (fetched from DB on every session) and to `types/next-auth.d.ts`
+- New route `GET /api/users/check-username` — availability check with validation (3–20 chars, alphanumeric + hyphens, reserved words list)
+- New route `PATCH /api/users/username` — authenticated endpoint to set/update username
+- New page `/setup-username` (`app/(auth)/setup-username/page.tsx`) — centered card with inline "eventslot.co/" prefix input, debounced availability check (400ms), lime green/red availability feedback, "Set username" button → redirects to `/dashboard`
+- `app/(organizer)/dashboard/layout.tsx` now redirects to `/setup-username` if `!session.user.username`
+- New page `/[username]` (`app/[username]/page.tsx`) — server component public profile with: initials circle, upcoming active events grid (2-col `auto-fill`), slot-fill bar, "Register →" CTA, disabled "Follow" button (Coming soon), `generateMetadata` for SEO; reserved usernames return `notFound()`
+- `components/Nav.tsx` — added "My public profile" link above "Sign out" in dropdown (only shown when `session.user.username` exists)
+
 ## [0.2.4] — April 9, 2026
 
 ### Build Fix
