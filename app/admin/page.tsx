@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
 interface Stats {
   totalUsers: number
@@ -11,6 +12,18 @@ interface Stats {
   newEventsThisMonth: number
   plans: { free: number; pro: number; business: number }
   recentSignups: Array<{ id: string; name: string | null; email: string | null; plan: string; createdAt: string }>
+}
+
+interface Revenue {
+  totalCreditsPurchased: number
+  totalCreditsSpent: number
+  creditRevenueTotal: number
+  proSubscribers: number
+  businessSubscribers: number
+  estimatedMRR: number
+  newPaidThisMonth: number
+  churnedThisMonth: number
+  creditsByMonth: Array<{ month: string; revenue: number }>
 }
 
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
@@ -134,13 +147,17 @@ function PlanBadge({ plan }: { plan: string }) {
 
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [revenue, setRevenue] = useState<Revenue | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/admin/stats")
-      .then(r => r.json())
-      .then(setStats)
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch("/api/admin/stats").then(r => r.json()),
+      fetch("/api/admin/revenue").then(r => r.json()),
+    ]).then(([s, r]) => {
+      setStats(s)
+      setRevenue(r)
+    }).finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -185,6 +202,140 @@ export default function AdminOverviewPage() {
         <StatCard label="New Events" value={stats.newEventsThisMonth} sub="this month" />
         <PlanBar plans={stats.plans} />
       </div>
+
+      {/* Revenue section */}
+      <h2
+        style={{
+          fontFamily: "var(--font-instrument-serif)",
+          fontSize: "1.3rem",
+          fontWeight: 400,
+          color: "#F0EDE6",
+          marginBottom: "1rem",
+        }}
+      >
+        Revenue
+      </h2>
+
+      {revenue && (
+        <>
+          {/* Revenue cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: "1.25rem" }}>
+            {/* Estimated MRR */}
+            <div
+              style={{
+                background: "#111",
+                border: "0.5px solid rgba(200,245,90,0.18)",
+                borderRadius: 12,
+                padding: "1.5rem",
+              }}
+            >
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                Estimated MRR
+              </div>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#C8F55A", lineHeight: 1 }}>
+                ${revenue.estimatedMRR.toLocaleString()}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+                {revenue.newPaidThisMonth > 0 && `+${revenue.newPaidThisMonth} new`}
+                {revenue.newPaidThisMonth > 0 && revenue.churnedThisMonth > 0 && " · "}
+                {revenue.churnedThisMonth > 0 && `${revenue.churnedThisMonth} churned`}
+                {revenue.newPaidThisMonth === 0 && revenue.churnedThisMonth === 0 && "this month"}
+              </div>
+            </div>
+
+            {/* Pro subscribers */}
+            <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                Pro Subscribers
+              </div>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
+                {revenue.proSubscribers}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+                $20/mo each
+              </div>
+            </div>
+
+            {/* Business subscribers */}
+            <div style={{ background: "#111", border: "0.5px solid rgba(147,112,219,0.15)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                Business Subscribers
+              </div>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#9370DB", lineHeight: 1 }}>
+                {revenue.businessSubscribers}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+                $100/mo each
+              </div>
+            </div>
+
+            {/* Credit revenue */}
+            <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                Credit Revenue
+              </div>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
+                ${revenue.creditRevenueTotal.toLocaleString()}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+                total · {revenue.totalCreditsSpent} credits spent
+              </div>
+            </div>
+          </div>
+
+          {/* Bar chart — credits revenue by month */}
+          <div
+            style={{
+              background: "#111",
+              border: "0.5px solid rgba(240,237,230,0.08)",
+              borderRadius: 12,
+              padding: "1.5rem",
+              marginBottom: "2.5rem",
+            }}
+          >
+            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
+              Credit Revenue · Last 12 Months
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={revenue.creditsByMonth} barCategoryGap="30%">
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "rgba(240,237,230,0.3)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "rgba(240,237,230,0.25)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) => `$${v}`}
+                  width={36}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(240,237,230,0.04)" }}
+                  contentStyle={{
+                    background: "#1A1A1A",
+                    border: "0.5px solid rgba(240,237,230,0.1)",
+                    borderRadius: 8,
+                    fontSize: "0.78rem",
+                    fontFamily: "var(--font-dm-sans)",
+                    color: "#F0EDE6",
+                  }}
+                  formatter={(value) => [`$${value}`, "Revenue"]}
+                />
+                <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                  {revenue.creditsByMonth.map((entry, index) => (
+                    <Cell
+                      key={index}
+                      fill={entry.revenue > 0 ? "#C8F55A" : "rgba(200,245,90,0.15)"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
 
       {/* Recent signups */}
       <h2
