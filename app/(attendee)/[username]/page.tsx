@@ -5,10 +5,10 @@ import RegistrationForm from './RegistrationForm'
 export async function generateMetadata({
   params,
 }: {
-  params: { eventSlug: string }
+  params: { username: string }
 }): Promise<Metadata> {
   const event = await prisma.event.findUnique({
-    where: { slug: params.eventSlug },
+    where: { slug: params.username },
     select: {
       title: true,
       description: true,
@@ -56,8 +56,8 @@ type EventQuestion = {
   required: boolean
 }
 
-export default async function EventRegistrationPage({ params }: { params: { eventSlug: string } }) {
-  const { eventSlug } = params
+export default async function EventRegistrationPage({ params }: { params: { username: string } }) {
+  const eventSlug = params.username
   const event = await prisma.event.findUnique({
     where: { slug: eventSlug },
     select: {

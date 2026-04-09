@@ -25,7 +25,7 @@
 | OG image generation | Dynamic OpenGraph images for event pages | All | `GET /api/og` |
 | Pay-as-you-go credits | Buy credits to unlock premium features one event at a time | Free, Pro | `/dashboard/billing` |
 | Registration overage | $1/100 registrations above free threshold, charged in credits | Free, Pro | `POST /api/register` |
-| CSV export | Export event registrations as CSV (PAYG on Free, included on Pro/Business) | Pro+ / PAYG | `GET /api/events/[slug]/report` |
+| CSV export | Export confirmed registrations as CSV with BOM encoding; Free plan requires one-time credit unlock via EventUnlock | Pro+ / PAYG | `GET /api/events/[slug]/export` |
 | Word report | Download registration report as Word doc (PAYG on Free, included on Pro/Business) | Pro+ / PAYG | `GET /api/events/[slug]/report` |
 | Analytics | View event analytics: views, conversion rate, registration trends | Pro+ / PAYG | `GET /api/events/[slug]/analytics` / `/dashboard/[slug]` |
 | Watermark removal | Remove EventSlot branding from event pages (PAYG on Free) | Pro+ / PAYG | `POST /api/billing/unlock` |

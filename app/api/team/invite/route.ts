@@ -32,24 +32,16 @@ export async function POST(req: NextRequest) {
 
     const plan = owner?.plan ?? 'free'
     const limits = getPlanLimits(plan)
-    const maxMembers = limits.maxTeamMembers as number
 
-    if (maxMembers === 0) {
-      return NextResponse.json({ error: 'Team members are not available on the free plan. Upgrade to Pro or Business.', upgradeRequired: true }, { status: 403 })
-    }
-
-    // Count active (pending + accepted) team members
-    const currentCount = await prisma.teamMember.count({
-      where: {
-        ownerId: session.user.id,
-        status: { in: ['pending', 'accepted'] },
-      },
+    const currentMembers = await prisma.teamMember.count({
+      where: { ownerId: session.user.id, status: 'accepted' },
     })
 
-    if (currentCount >= maxMembers) {
+    if (currentMembers >= limits.maxTeamMembers) {
       return NextResponse.json({
-        error: `You have reached your team member limit (${maxMembers} for ${plan}). Upgrade to add more.`,
-        atLimit: true,
+        success: false,
+        error: `Your ${plan} plan supports up to ${limits.maxTeamMembers} team member${limits.maxTeamMembers === 1 ? '' : 's'}. Upgrade to add more.`,
+        upgradeRequired: true,
       }, { status: 403 })
     }
 

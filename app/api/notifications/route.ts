@@ -24,5 +24,17 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   })
 
-  return NextResponse.json({ notifications })
+  // Resolve event slugs for notifications that have an eventId
+  const eventIds = [...new Set(notifications.map(n => n.eventId).filter(Boolean) as string[])]
+  const events = eventIds.length > 0
+    ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, slug: true } })
+    : []
+  const slugMap = Object.fromEntries(events.map(e => [e.id, e.slug]))
+
+  const mapped = notifications.map(n => ({
+    ...n,
+    eventSlug: n.eventId ? (slugMap[n.eventId] ?? null) : null,
+  }))
+
+  return NextResponse.json({ notifications: mapped })
 }

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.3.4] — April 9, 2026
+
+### CSV Export with Pay-as-you-go Unlock
+- `GET /api/events/[slug]/export` — new route; validates session owner or dashboard token; returns UTF-8 BOM CSV of all confirmed registrations with dynamic question headers + Status + Registered At columns; values containing commas/quotes/newlines are properly escaped; if organizer is on Free plan without a `csv` EventUnlock, returns 402 with `{ cost, eventId, upgradeRequired: true }` so the client can present the purchase flow
+- `calculateCSVCost` from `lib/plans.ts` used to compute cost: `csvExportBase ($2) + ceil(confirmedCount / 100) × $1`
+- `app/(organizer)/dashboard/events/[slug]/page.tsx` — Overview tab now includes an **Export Registrations** panel:
+  - On Pro/Business (or after unlock): "Export CSV" button downloads the file directly via `<a>` blob trick
+  - On Free without unlock: shows cost preview "Export this data for $X.XX credits" with **Buy & Export** and Cancel buttons
+  - **Buy & Export** POSTs to `POST /api/billing/unlock` with `{ eventId, feature: "csv" }`; on `insufficientCredits` (402) redirects to `/dashboard/billing`; on success re-triggers export
+  - Button disabled when there are 0 confirmed registrations
+  - State variables added: `csvExporting`, `csvCost`, `csvEventId`, `csvUnlockLoading`, `csvError`
+
 ## [0.3.3] — April 9, 2026
 
 ### Auth — Welcome Email, Forgot Password, Reset Password

@@ -722,6 +722,13 @@ export default function EventDashboardPage() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
   const [showReportOptions, setShowReportOptions] = useState(false)
 
+  // CSV export
+  const [csvExporting, setCsvExporting] = useState(false)
+  const [csvCost, setCsvCost] = useState<number | null>(null)
+  const [csvEventId, setCsvEventId] = useState<string | null>(null)
+  const [csvUnlockLoading, setCsvUnlockLoading] = useState(false)
+  const [csvError, setCsvError] = useState("")
+
   // Analytics
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
@@ -913,6 +920,67 @@ export default function EventDashboardPage() {
         .filter(grp => grp.length >= 2)
       return next.length > 0 ? next : []
     })
+  }
+
+  const handleExportCSV = async () => {
+    if (!eventData) return
+    setCsvExporting(true)
+    setCsvError("")
+    setCsvCost(null)
+    try {
+      const res = await fetch(`/api/events/${slug}/export${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+      if (res.status === 402) {
+        const data = await res.json()
+        setCsvCost(data.cost ?? null)
+        setCsvEventId(data.eventId ?? null)
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json()
+        setCsvError(data.error || "Export failed.")
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `registrations-${slug}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setCsvError("Unable to export CSV.")
+    } finally {
+      setCsvExporting(false)
+    }
+  }
+
+  const handleBuyAndExport = async () => {
+    if (!csvEventId) return
+    setCsvUnlockLoading(true)
+    setCsvError("")
+    try {
+      const res = await fetch("/api/billing/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: csvEventId, feature: "csv" }),
+      })
+      const data = await res.json()
+      if (res.status === 402 && data.insufficientCredits) {
+        router.push("/dashboard/billing")
+        return
+      }
+      if (!res.ok) {
+        setCsvError(data.error || "Failed to unlock CSV export.")
+        return
+      }
+      setCsvCost(null)
+      setCsvEventId(null)
+      await handleExportCSV()
+    } catch {
+      setCsvError("Unable to complete purchase.")
+    } finally {
+      setCsvUnlockLoading(false)
+    }
   }
 
   // ── Renders ────────────────────────────────────────────────────────────────
@@ -1227,6 +1295,48 @@ export default function EventDashboardPage() {
               </div>
               {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
               {capacityError && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{capacityError}</p>}
+            </div>
+
+            {/* Export CSV */}
+            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Export Registrations</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Download all confirmed registrations as a CSV file</div>
+                </div>
+                {csvCost === null && (
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={csvExporting || confirmed.length === 0}
+                    style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
+                  >
+                    {csvExporting ? "Exporting…" : "Export CSV"}
+                  </button>
+                )}
+              </div>
+              {csvCost !== null && (
+                <div style={{ marginTop: "0.875rem", background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 10, padding: "0.875rem 1rem" }}>
+                  <p style={{ margin: "0 0 0.625rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
+                    Export this data for <strong style={{ color: "#C8F55A" }}>${csvCost.toFixed(2)} credits</strong>
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <button
+                      onClick={handleBuyAndExport}
+                      disabled={csvUnlockLoading}
+                      style={{ background: csvUnlockLoading ? "rgba(200,245,90,0.4)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A", cursor: csvUnlockLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      {csvUnlockLoading ? "Processing…" : "Buy & Export"}
+                    </button>
+                    <button
+                      onClick={() => { setCsvCost(null); setCsvEventId(null) }}
+                      style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {csvError && <p style={{ marginTop: "0.5rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: "0.5rem 0 0" }}>{csvError}</p>}
             </div>
 
             {/* Duplicate Scanner */}

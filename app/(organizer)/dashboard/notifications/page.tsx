@@ -10,6 +10,7 @@ interface Notification {
   read: boolean
   createdAt: string
   eventId?: string | null
+  eventSlug?: string | null
 }
 
 interface FeedbackState {
@@ -324,6 +325,78 @@ export default function NotificationsPage() {
                         </button>
                       </div>
                     )}
+                  </div>
+                </div>
+              )
+            }
+
+            if (notif.type === "waitlist_growing") {
+              return (
+                <div
+                  key={notif.id}
+                  onClick={() => !notif.read && markOneRead(notif.id)}
+                  style={{
+                    ...cardBase,
+                    background: isUnread ? "rgba(250,199,117,0.04)" : "transparent",
+                    border: `0.5px solid ${isUnread ? "rgba(250,199,117,0.15)" : "rgba(240,237,230,0.06)"}`,
+                    borderLeft: "2px solid #FAC775",
+                    cursor: isUnread ? "pointer" : "default",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      marginTop: 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#FAC775",
+                      opacity: isUnread ? 1 : 0.35,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.875rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {notif.message}
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.375rem", flexWrap: "wrap" }}>
+                      {notif.eventSlug && (
+                        <a
+                          href={`/dashboard/events/${notif.eventSlug}#capacity`}
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            fontSize: "0.78rem",
+                            fontFamily: "var(--font-dm-sans)",
+                            fontWeight: 500,
+                            color: "#FAC775",
+                            textDecoration: "none",
+                            background: "rgba(250,199,117,0.1)",
+                            border: "0.5px solid rgba(250,199,117,0.25)",
+                            borderRadius: 6,
+                            padding: "0.25rem 0.625rem",
+                          }}
+                        >
+                          Increase capacity →
+                        </a>
+                      )}
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "rgba(240,237,230,0.3)",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                      >
+                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )

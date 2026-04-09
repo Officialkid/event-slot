@@ -1,10 +1,10 @@
-"use client"
+﻿"use client"
 
 import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type TeamMemberRecord = {
   id: string
@@ -14,7 +14,7 @@ type TeamMemberRecord = {
   member: { name: string | null; email: string | null; image: string | null } | null
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getInitials(name: string | null, email: string): string {
   if (name) {
@@ -25,84 +25,8 @@ function getInitials(name: string | null, email: string): string {
   return email[0]?.toUpperCase() ?? "?"
 }
 
-// ─── Upgrade wall ─────────────────────────────────────────────────────────────
 
-function UpgradeWall() {
-  return (
-    <div style={{ maxWidth: 560, margin: "0 auto", paddingTop: "3rem" }}>
-      <div
-        style={{
-          background: "#141414",
-          border: "0.5px solid rgba(240,237,230,0.08)",
-          borderRadius: 16,
-          padding: "2.5rem",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            background: "rgba(200,245,90,0.08)",
-            border: "0.5px solid rgba(200,245,90,0.2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            margin: "0 auto 1.25rem",
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="6" cy="5" r="2.5" />
-            <path d="M1 14c0-2.761 2.239-5 5-5s5 2.239 5 5" />
-            <path d="M12 7c1.105 0 2 .895 2 2v1" />
-            <path d="M10 4a2 2 0 110 3.999" />
-          </svg>
-        </div>
-        <h2
-          style={{
-            fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.4rem",
-            color: "#F0EDE6",
-            marginBottom: "0.625rem",
-          }}
-        >
-          Team Members
-        </h2>
-        <p
-          style={{
-            fontSize: "0.875rem",
-            color: "rgba(240,237,230,0.4)",
-            fontFamily: "var(--font-dm-sans)",
-            lineHeight: 1.6,
-            marginBottom: "1.5rem",
-          }}
-        >
-          Team collaboration is available on the <strong style={{ color: "#C8F55A" }}>Pro</strong> plan.
-          Invite team members to help manage your events and registrations.
-        </p>
-        <Link
-          href="/dashboard/billing"
-          style={{
-            display: "inline-block",
-            background: "#C8F55A",
-            color: "#0A0A0A",
-            fontFamily: "var(--font-dm-sans)",
-            fontWeight: 600,
-            fontSize: "0.875rem",
-            borderRadius: 8,
-            padding: "0.625rem 1.5rem",
-            textDecoration: "none",
-          }}
-        >
-          Upgrade to Pro
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function TeamPage() {
   useSession()
@@ -131,9 +55,10 @@ export default function TeamPage() {
         ])
         if (meRes.ok) {
           const me = await meRes.json()
-          setUserPlan(me.plan ?? "free")
+          const p = me.plan ?? "free"
+          setUserPlan(p)
           setMaxMembers(
-            me.plan === "business" ? 5 : me.plan === "pro" ? 2 : 0
+            p === "business" ? 20 : p === "pro" ? 10 : 1
           )
         }
         if (membersRes.ok) {
@@ -211,13 +136,7 @@ export default function TeamPage() {
     }
   }
 
-  // ─── Upgrade wall ─────────────────────────────────────────────────────────
-
-  if (!loading && userPlan === "free") {
-    return <UpgradeWall />
-  }
-
-  // ─── Loading ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (loading) {
     return (
@@ -232,7 +151,7 @@ export default function TeamPage() {
     )
   }
 
-  // ─── Confirm remove dialog ────────────────────────────────────────────────
+  // â”€â”€â”€ Confirm remove dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const confirmTarget = confirmRemoveId ? members.find(m => m.id === confirmRemoveId) : null
 
@@ -280,7 +199,7 @@ export default function TeamPage() {
                 disabled={removingId === confirmTarget.id}
                 style={{ background: "rgba(239,68,68,0.12)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, color: "#EF4444", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
               >
-                {removingId === confirmTarget.id ? "Removing…" : "Remove"}
+                {removingId === confirmTarget.id ? "Removingâ€¦" : "Remove"}
               </button>
             </div>
           </div>
@@ -301,17 +220,58 @@ export default function TeamPage() {
       </h1>
       <p
         style={{
-          fontSize: "0.875rem",
+          fontSize: "0.8rem",
           color: "rgba(240,237,230,0.4)",
           fontFamily: "var(--font-dm-sans)",
-          marginBottom: "2rem",
+          marginBottom: "0.75rem",
         }}
       >
-        {activeCount} of {maxMembers} team {maxMembers === 1 ? "member" : "members"} used
-        {userPlan === "pro" && (
-          <> &mdash; <Link href="/dashboard/billing" style={{ color: "#C8F55A", textDecoration: "none" }}>upgrade to Business</Link> for up to 5</>
-        )}
+        {activeCount} of {maxMembers} team {maxMembers === 1 ? "member" : "members"}
       </p>
+
+      {/* Team usage progress bar */}
+      <div
+        style={{
+          height: 3,
+          borderRadius: 100,
+          background: "rgba(240,237,230,0.07)",
+          marginBottom: "1.5rem",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            borderRadius: 100,
+            background: "#C8F55A",
+            width: `${Math.min(100, maxMembers > 0 ? (activeCount / maxMembers) * 100 : 0)}%`,
+            transition: "width 0.3s ease",
+          }}
+        />
+      </div>
+
+      {/* Free plan note */}
+      {userPlan === "free" && (
+        <div
+          style={{
+            background: "rgba(200,245,90,0.04)",
+            border: "0.5px solid rgba(200,245,90,0.12)",
+            borderRadius: 10,
+            padding: "0.875rem 1rem",
+            marginBottom: "1.75rem",
+            fontSize: "0.82rem",
+            color: "rgba(240,237,230,0.5)",
+            fontFamily: "var(--font-dm-sans)",
+            lineHeight: 1.55,
+          }}
+        >
+          Free plan includes 1 team member.{" "}
+          <Link href="/dashboard/billing" style={{ color: "#C8F55A", textDecoration: "none", fontWeight: 500 }}>
+            Upgrade to Pro
+          </Link>{" "}
+          for up to 10 members.
+        </div>
+      )}
 
       {/* Current members */}
       {accepted.length > 0 && (
@@ -512,7 +472,7 @@ export default function TeamPage() {
                     transition: "color 0.2s",
                   }}
                 >
-                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sending…" : "Resend invite"}
+                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sendingâ€¦" : "Resend invite"}
                 </button>
                 {/* Cancel */}
                 <button
@@ -627,7 +587,7 @@ export default function TeamPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {inviting ? "Sending…" : "Send invite"}
+                {inviting ? "Sendingâ€¦" : "Send invite"}
               </button>
             </form>
           )}

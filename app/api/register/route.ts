@@ -181,6 +181,33 @@ export async function POST(req: NextRequest) {
       return attendeeResults
     })
 
+    // Waitlist intelligence notification (non-blocking)
+    if (event.organizerId && event.capacity && event.capacity > 0) {
+      try {
+        const updatedEvent = await prisma.event.findUnique({
+          where: { id: event.id },
+          select: { waitlistCount: true },
+        })
+        const waitlistCount = updatedEvent?.waitlistCount ?? 0
+        const prevWaitlistCount = waitlistCount - results.filter(r => r.status === 'waitlist').length
+
+        const crossedThreshold =
+          (waitlistCount >= 5 && prevWaitlistCount < 5) ||
+          (waitlistCount >= 10 && prevWaitlistCount < 10) ||
+          (Math.floor(waitlistCount / 25) > Math.floor(prevWaitlistCount / 25) && waitlistCount >= 25)
+
+        if (crossedThreshold && waitlistCount > 0) {
+          const suggestedIncrease = Math.min(waitlistCount, Math.round(event.capacity * 0.2))
+          await createNotification({
+            userId: event.organizerId,
+            type: 'waitlist_growing',
+            message: `${waitlistCount} ${waitlistCount === 1 ? 'person is' : 'people are'} waiting for "${event.title}". Increasing capacity by ${suggestedIncrease} would confirm ${suggestedIncrease} of them immediately.`,
+            eventId: event.id,
+          })
+        }
+      } catch { /* non-critical */ }
+    }
+
     // Per-registration notifications for organizer (non-blocking)
     if (event.organizerId) {
       try {
