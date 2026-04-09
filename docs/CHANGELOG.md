@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.2.2] — April 9, 2026
+
+### Build Fix
+- Replaced `require('paystack-node')` with `import Paystack from 'paystack-node'` in `lib/paystack.ts` — ESLint rule `@typescript-eslint/no-require-imports` was blocking the Vercel build
+
+## [0.2.1] — April 9, 2026
+
+### Build Fix
+- Deleted stale `lib/stripe.ts` from git tracking — it was causing a Vercel build failure (`Type '"2024-06-20"' is not assignable to type '"2026-03-25.dahlia"'`) after the Stripe → Paystack migration
+- Committed and pushed all prior session work that had not been pushed to GitHub (27 files, 2210 insertions): Paystack billing routes, credits system, billing page rewrite, `lib/credits.ts`, `lib/paystack.ts`, updated plan limits, Prisma schema, and `/docs`
+
 ## [0.2.0] — April 9, 2026
 
 ### Paystack Billing & Credits System
