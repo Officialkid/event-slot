@@ -104,11 +104,15 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 const PRO_FEATURES = [
-  "Up to 5 active events",
-  "500 free registrations per event",
+  "Unlimited active events",
+  "Unlimited registrations per event",
   "Team members (up to 10)",
-  "Export registrations",
-  "Email reminders",
+  "Export registrations (CSV)",
+  "Word report download",
+  "Remove EventSlot watermark",
+  "Event analytics",
+  "Custom thank you message",
+  "Duplicate events",
 ]
 
 const BUSINESS_FEATURES = [
@@ -130,8 +134,8 @@ function PlanCard({
 }) {
   const isCurrent = currentPlan === plan
   const isBiz = plan === "business"
-  const monthlyPrice = isBiz ? 19 : 9
-  const annualPrice = isBiz ? 15 : 7
+  const monthlyPrice = isBiz ? 100 : 20
+  const annualPrice = isBiz ? 80 : 16
   const price = billingCycle === "annual" ? annualPrice : monthlyPrice
   const features = isBiz ? BUSINESS_FEATURES : PRO_FEATURES
   const accentHex = isBiz ? "#9370DB" : "#C8F55A"

@@ -21,7 +21,7 @@ const comparisonSections: ComparisonSection[] = [
     title: "Core",
     rows: [
       { feature: "Active events", free: "1", pro: "Unlimited", business: "Unlimited" },
-      { feature: "Registrations per event", free: "100", pro: "500", business: "Unlimited" },
+      { feature: "Registrations per event", free: "100", pro: "Unlimited", business: "Unlimited" },
       { feature: "Waitlist", free: true, pro: true, business: true },
       { feature: "Form questions", free: "Unlimited", pro: "Unlimited", business: "Unlimited" },
       { feature: "Waitlist automation", free: true, pro: true, business: true },
@@ -365,10 +365,10 @@ export default function PricingPage() {
               </p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                 <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2.4rem", color: "#F0EDE6" }}>
-                  {isAnnual ? "$7" : "$9"}
+                  {isAnnual ? "$16" : "$20"}
                 </span>
                 <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-                  {isAnnual ? "\u00a0/ month, billed $84/year" : "\u00a0/ month"}
+                  {isAnnual ? "\u00a0/ month, billed $192/year" : "\u00a0/ month"}
                 </span>
               </div>
               {isAnnual && (
@@ -386,7 +386,7 @@ export default function PricingPage() {
                       border: "0.5px solid rgba(200,245,90,0.25)",
                     }}
                   >
-                    Save $24/year
+                    Save $48/year
                   </span>
                 </div>
               )}
@@ -419,7 +419,7 @@ export default function PricingPage() {
                 {[
                   "Everything in Free",
                   "Unlimited active events",
-                  "500 registrations per event",
+                  "Unlimited registrations per event",
                   "Data stored forever",
                   "Export attendees (CSV)",
                   "Event report download (Word)",

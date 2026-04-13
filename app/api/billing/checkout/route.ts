@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 
-// Amounts in KES (Kenyan Shillings). Prices shown to users in USD but Paystack charges KES.
+// Amounts in KES (Kenyan Shillings) at ~130 KES/USD.
+// Target: Pro $20/mo, Business $100/mo.
 const PLAN_AMOUNTS: Record<string, Record<string, number>> = {
-  pro: { monthly: 1200, annual: 11500 },
-  business: { monthly: 2500, annual: 24000 },
+  pro: { monthly: 2600, annual: 25000 },      // $20/mo · $192/yr
+  business: { monthly: 13000, annual: 125000 }, // $100/mo · $960/yr
 }
 
 export async function POST(req: NextRequest) {
