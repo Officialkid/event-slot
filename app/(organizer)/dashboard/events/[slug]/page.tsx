@@ -238,8 +238,15 @@ const REPORT_THEMES = [
   { id: 'graphite', label: 'Graphite',      color: '#1C1C1C' },
 ] as const
 
-function ReportOptionsModal({ onClose, onGenerate, downloading }: { onClose: () => void; onGenerate: (theme: string) => void; downloading: boolean }) {
+function ReportOptionsModal({ onClose, onGenerate, downloading, plan, creditBalance }: { onClose: () => void; onGenerate: (theme: string) => void; downloading: boolean; plan: string; creditBalance: number }) {
   const [selected, setSelected] = useState('navy')
+  const isAI = plan === 'pro' || plan === 'business' || creditBalance >= 150
+  const btnLabel = downloading ? "Generating…" : isAI
+    ? plan === 'free' ? `Download AI Report (150 pts)` : "Download AI Report"
+    : "Download Standard Report"
+  const subLabel = !downloading && plan === 'free' && isAI
+    ? `You have ${creditBalance} points`
+    : null
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={onClose}>
       <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 420, width: "90%" }} onClick={e => e.stopPropagation()}>
@@ -259,9 +266,17 @@ function ReportOptionsModal({ onClose, onGenerate, downloading }: { onClose: () 
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button type="button" onClick={onClose} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button type="button" onClick={() => onGenerate(selected)} disabled={downloading} style={{ padding: "0.55rem 1.5rem", borderRadius: 100, border: "none", background: downloading ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: downloading ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{downloading ? "Generating…" : "Generate Report"}</button>
+        {isAI && (
+          <p style={{ fontSize: "0.75rem", color: "rgba(200,245,90,0.7)", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            <span>⚡</span> AI-enhanced analysis will be included
+          </p>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.35rem" }}>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <button type="button" onClick={onClose} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+            <button type="button" onClick={() => onGenerate(selected)} disabled={downloading} style={{ padding: "0.55rem 1.5rem", borderRadius: 100, border: "none", background: downloading ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: downloading ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{btnLabel}</button>
+          </div>
+          {subLabel && <span style={{ fontSize: "0.72rem", color: "rgba(200,245,90,0.55)", fontFamily: "var(--font-dm-sans)" }}>{subLabel}</span>}
         </div>
       </div>
     </div>
@@ -722,6 +737,7 @@ export default function EventDashboardPage() {
   const [downloadingReport, setDownloadingReport] = useState(false)
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
   const [showReportOptions, setShowReportOptions] = useState(false)
+  const [reportCreditBalance, setReportCreditBalance] = useState(0)
 
   // CSV export
   const [csvExporting, setCsvExporting] = useState(false)
@@ -768,6 +784,10 @@ export default function EventDashboardPage() {
   }, [slug, token])
 
   useEffect(() => { fetchDashboard() }, [fetchDashboard])
+
+  useEffect(() => {
+    fetch('/api/user/credits').then(r => r.ok ? r.json() : null).then(d => { if (d?.balance !== undefined) setReportCreditBalance(d.balance) }).catch(() => {})
+  }, [])
 
   const regLink = origin && eventData ? `${origin}/${eventData.slug}` : ""
 
@@ -889,7 +909,7 @@ export default function EventDashboardPage() {
   const handleDownloadReport = async (theme = 'navy') => {
     if (!eventData) return
     const plan = eventData.organizerPlan ?? 'free'
-    if (plan === 'free') {
+    if (plan === 'free' && reportCreditBalance < 150) {
       setShowUpgradePrompt(true)
       return
     }
@@ -1098,6 +1118,8 @@ export default function EventDashboardPage() {
       {showReportOptions && (
         <ReportOptionsModal
           downloading={downloadingReport}
+          plan={eventData?.organizerPlan ?? 'free'}
+          creditBalance={reportCreditBalance}
           onClose={() => setShowReportOptions(false)}
           onGenerate={theme => { setShowReportOptions(false); handleDownloadReport(theme) }}
         />
@@ -1175,7 +1197,7 @@ export default function EventDashboardPage() {
               <button
                 onClick={() => {
                   const plan = eventData?.organizerPlan ?? 'free'
-                  if (plan === 'free') { setShowUpgradePrompt(true) } else { setShowReportOptions(true) }
+                  if (plan === 'free' && reportCreditBalance < 150) { setShowUpgradePrompt(true) } else { setShowReportOptions(true) }
                 }}
                 disabled={downloadingReport}
                 title="Download event report"

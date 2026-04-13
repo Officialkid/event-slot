@@ -1,7 +1,7 @@
 import prisma from './prisma'
 
 export const CREDIT_COSTS = {
-  ai_report: 5,
+  ai_report: 150,
   ai_insights: 2,
   ai_query: 1,
   remove_watermark: 10,

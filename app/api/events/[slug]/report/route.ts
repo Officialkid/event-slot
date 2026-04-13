@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { getPlanLimits } from '@/lib/plans'
 import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
+import { CREDIT_COSTS, spendCredits } from '@/lib/credits'
+import { generateAIReportContent } from '@/lib/generateAIReportContent'
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -39,10 +41,21 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       where: { eventId: event.id, userId: session.user.id, feature: 'report' },
     }))
     if (!limits.canDownloadReport && !hasUnlock) {
-      return NextResponse.json(
-        { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true },
-        { status: 403 }
-      )
+      // Free users with enough credits may still proceed (AI report costs 150 points)
+      const userId = session?.user?.id
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true },
+          { status: 403 }
+        )
+      }
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { creditBalance: true } })
+      if ((user?.creditBalance ?? 0) < CREDIT_COSTS.ai_report) {
+        return NextResponse.json(
+          { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true },
+          { status: 403 }
+        )
+      }
     }
 
     // Fetch all registrations
@@ -70,8 +83,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
         waitlistPosition: r.waitlistPosition,
       }))
 
-    const buffer = await generateEventReport({
-      event: {
+    const eventPayload = {
         title: event.title,
         slug: event.slug,
         organizerEmail: event.organizerEmail,
@@ -87,10 +99,30 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
           label: q.label,
           type: q.type,
         })),
-      },
+      }
+
+    // Determine AI eligibility and generate AI content
+    let aiContent = undefined
+    const userId = session?.user?.id
+    if (userId) {
+      const isPaidPlan = plan === 'pro' || plan === 'business'
+      if (isPaidPlan) {
+        try { aiContent = await generateAIReportContent({ event: eventPayload, confirmed, waitlist }) } catch { /* skip AI on error */ }
+      } else {
+        // Free plan: spend 150 points for AI
+        const spent = await spendCredits({ userId, amount: CREDIT_COSTS.ai_report, description: `AI report for "${event.title}"` })
+        if (spent.success) {
+          try { aiContent = await generateAIReportContent({ event: eventPayload, confirmed, waitlist }) } catch { /* skip AI on error */ }
+        }
+      }
+    }
+
+    const buffer = await generateEventReport({
+      event: eventPayload,
       confirmed,
       waitlist,
       theme,
+      aiContent,
     })
 
     return new Response(buffer as unknown as BodyInit, {
