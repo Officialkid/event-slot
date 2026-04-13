@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
+import { Analytics } from "@vercel/analytics/next";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default async function RootLayout({
         <Providers>
           <Nav />
           {children}
+          <Analytics />
         </Providers>
       </body>
     </html>

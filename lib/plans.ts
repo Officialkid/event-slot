@@ -52,20 +52,20 @@ export const PLAN_LIMITS = {
   },
 }
 
-// Pay as you go pricing
+// Pay as you go pricing — in POINTS (100 KSH = 10 points, so 1 point = 10 KSH)
 export const PAYG_PRICING = {
-  // Per every 100 registrations above free threshold
-  registrationsPer100: 1.00,
+  // Registration is FREE for all plans — no charge
+  registrationsPer100: 0,
 
-  // One-time per event unlocks
-  removeWatermark: 5.00,
-  csvExportBase: 2.00,          // minimum, then per 100 registrations
-  csvExportPer100: 1.00,
-  wordReportBase: 3.00,
-  wordReportPer100: 1.00,
-  analyticsUnlock: 4.00,
-  customThankYou: 2.00,
-  extraActiveEvent: 3.00,       // per month per event slot
+  // One-time per event unlocks (in points)
+  removeWatermark: 10,
+  csvExportBase: 15,
+  csvExportPer100: 0,
+  wordReportBase: 100,
+  wordReportPer100: 0,
+  analyticsUnlock: 150,
+  customThankYou: 20,
+  extraActiveEvent: 0,
 }
 
 export function calculateOverageCost(

@@ -3,9 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 
+// Amounts in KES (Kenyan Shillings). Prices shown to users in USD but Paystack charges KES.
 const PLAN_AMOUNTS: Record<string, Record<string, number>> = {
-  pro: { monthly: 9, annual: 86 },
-  business: { monthly: 19, annual: 182 },
+  pro: { monthly: 1200, annual: 11500 },
+  business: { monthly: 2500, annual: 24000 },
 }
 
 export async function POST(req: NextRequest) {
@@ -31,8 +32,8 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: JSON.stringify({
         email: session.user.email,
-        amount: amount * 100, // cents
-        currency: 'USD',
+        amount: amount * 100, // KES cents
+        currency: 'KES',
         callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
         metadata: {
           userId: session.user.id,

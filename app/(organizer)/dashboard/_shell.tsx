@@ -378,7 +378,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
                   fontFamily: "var(--font-dm-sans)",
                 }}
               >
-                {creditBalance % 1 === 0 ? String(creditBalance) : creditBalance.toFixed(2)} credits
+                {creditBalance % 1 === 0 ? String(creditBalance) : creditBalance.toFixed(2)} points
               </span>
               <Link
                 href="/dashboard/billing#credits"

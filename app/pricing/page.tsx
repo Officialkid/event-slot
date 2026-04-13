@@ -136,7 +136,6 @@ function FeatureItem({ label, ok }: { label: string; ok: boolean }) {
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly")
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [regs, setRegs] = useState(500)
   const [loading, setLoading] = useState<string | null>(null)
   const isAnnual = billing === "annual"
 
@@ -366,10 +365,10 @@ export default function PricingPage() {
               </p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                 <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2.4rem", color: "#F0EDE6" }}>
-                  {isAnnual ? "$16" : "$20"}
+                  {isAnnual ? "$7" : "$9"}
                 </span>
                 <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-                  {isAnnual ? "\u00a0/ month, billed $192/year" : "\u00a0/ month"}
+                  {isAnnual ? "\u00a0/ month, billed $84/year" : "\u00a0/ month"}
                 </span>
               </div>
               {isAnnual && (
@@ -387,7 +386,7 @@ export default function PricingPage() {
                       border: "0.5px solid rgba(200,245,90,0.25)",
                     }}
                   >
-                    Save $48/year
+                    Save $24/year
                   </span>
                 </div>
               )}
@@ -451,10 +450,10 @@ export default function PricingPage() {
             </p>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
               <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2.4rem", color: "#F0EDE6" }}>
-                {isAnnual ? "$80" : "$100"}
+                {isAnnual ? "$15" : "$19"}
               </span>
               <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-                {isAnnual ? "\u00a0/ month, billed $960/year" : "\u00a0/ month"}
+                {isAnnual ? "\u00a0/ month, billed $180/year" : "\u00a0/ month"}
               </span>
             </div>
             {isAnnual && (
@@ -472,7 +471,7 @@ export default function PricingPage() {
                     border: "0.5px solid rgba(200,245,90,0.25)",
                   }}
                 >
-                  Save $240/year
+                  Save $48/year
                 </span>
               </div>
             )}
@@ -541,11 +540,11 @@ export default function PricingPage() {
                 margin: 0,
               }}
             >
-              Use credits for one-time access. No subscription needed.
+              Use points for one-time access. No subscription needed. Registration is always free.
             </p>
           </div>
 
-          {/* Credits pricing table */}
+          {/* Points pricing table */}
           <div
             style={{
               background: "#141414",
@@ -564,12 +563,11 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {([
-                  { feature: "Registrations (per 100 after free threshold)", cost: "$1" },
-                  { feature: "Remove EventSlot watermark (one event)", cost: "$5" },
-                  { feature: "Export CSV", cost: "$2 + $1/100 registrations" },
-                  { feature: "Download Word report", cost: "$3 + $1/100 registrations" },
-                  { feature: "Unlock analytics (one event)", cost: "$4" },
-                  { feature: "Custom thank you message", cost: "$2" },
+                  { feature: "Remove EventSlot watermark (one event)", cost: "10 points" },
+                  { feature: "Export CSV", cost: "15 points" },
+                  { feature: "Generate Word report", cost: "100 points" },
+                  { feature: "Analytics tracking (one event)", cost: "150 points" },
+                  { feature: "Custom thank you message", cost: "20 points" },
                 ] as const).map((row, i) => (
                   <tr key={i} style={{ borderTop: "0.5px solid rgba(240,237,230,0.05)" }}>
                     <td style={{ padding: "0.875rem 1.25rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
@@ -584,12 +582,12 @@ export default function PricingPage() {
             </table>
             <div style={{ padding: "0.875rem 1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", background: "rgba(200,245,90,0.03)" }}>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(200,245,90,0.65)", fontFamily: "var(--font-dm-sans)" }}>
-                First 100 registrations are always free on every plan.
+                Registration is always free on every plan. Unlocks apply to one event at a time.
               </p>
             </div>
           </div>
 
-          {/* Credits calculator */}
+          {/* Points packages */}
           <div
             style={{
               background: "#141414",
@@ -598,80 +596,26 @@ export default function PricingPage() {
               padding: "1.75rem",
             }}
           >
-            <div style={{ marginBottom: "1.25rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.25rem" }}>
-                <label
-                  htmlFor="reg-slider"
-                  style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "#F0EDE6", fontWeight: 500 }}
-                >
-                  How many registrations do you expect?
-                </label>
-                <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#C8F55A" }}>
-                  {regs.toLocaleString()}
-                </span>
-              </div>
-              <input
-                id="reg-slider"
-                type="range"
-                min={100}
-                max={10000}
-                step={100}
-                value={regs}
-                onChange={e => setRegs(Number(e.target.value))}
-                style={{ width: "100%", accentColor: "#C8F55A", cursor: "pointer" }}
-              />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.35rem" }}>
-                <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>100</span>
-                <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>10,000</span>
-              </div>
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "#F0EDE6", fontWeight: 500, margin: "0 0 1rem" }}>
+              Points packages
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
+              {[
+                { ksh: "Ksh 1,000", points: "100 points" },
+                { ksh: "Ksh 4,500", points: "500 points", badge: "Save 10%" },
+                { ksh: "Ksh 8,000", points: "1,000 points", badge: "Save 20%" },
+              ].map((pkg, i) => (
+                <div key={i} style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem" }}>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", marginBottom: "0.2rem" }}>{pkg.ksh}</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>{pkg.points}</div>
+                  {pkg.badge && <div style={{ marginTop: "0.4rem", fontSize: "0.65rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, letterSpacing: "0.05em" }}>{pkg.badge}</div>}
+                </div>
+              ))}
             </div>
-
-            {/* Cost breakdown pills */}
-            <div
-              style={{
-                background: "rgba(240,237,230,0.03)",
-                border: "0.5px solid rgba(240,237,230,0.07)",
-                borderRadius: 10,
-                padding: "0.75rem 1rem",
-                marginBottom: "1.25rem",
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: "0.125rem",
-              }}
-            >
-              <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
-                0–100: <strong style={{ color: "#C8F55A" }}>Free</strong>
-              </span>
-              {regs > 100 && (
-                <>
-                  <span style={{ color: "rgba(240,237,230,0.2)", fontSize: "0.82rem" }}>|</span>
-                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
-                    101–{Math.min(regs, 500).toLocaleString()}:{" "}
-                    <strong style={{ color: "#F0EDE6" }}>${Math.min(Math.ceil((regs - 100) / 100), 4)}</strong>
-                  </span>
-                </>
-              )}
-              {regs > 500 && (
-                <>
-                  <span style={{ color: "rgba(240,237,230,0.2)", fontSize: "0.82rem" }}>|</span>
-                  <span style={{ fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.6)", padding: "0.2rem 0.5rem" }}>
-                    501–{regs.toLocaleString()}:{" "}
-                    <strong style={{ color: "#F0EDE6" }}>${Math.ceil((regs - 100) / 100)}</strong>
-                  </span>
-                </>
-              )}
-            </div>
-
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
-              <div>
-                <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-                  Total credits needed:{" "}
-                </span>
-                <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: regs <= 100 ? "#C8F55A" : "#F0EDE6" }}>
-                  {regs <= 100 ? "Free" : `$${Math.ceil((regs - 100) / 100)} in credits`}
-                </span>
-              </div>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                100 Ksh = 10 points &bull; pay only when you need a feature
+              </p>
               <a
                 href="/dashboard/billing#credits"
                 style={{
@@ -687,7 +631,7 @@ export default function PricingPage() {
                   display: "inline-block",
                 }}
               >
-                Buy credits
+                Buy points
               </a>
             </div>
           </div>

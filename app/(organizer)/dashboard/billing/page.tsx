@@ -183,18 +183,17 @@ function PlanCard({
 }
 
 const PAYG_ROWS = [
-  { feature: "Registration (per 100 after free limit)", cost: "1 credit" },
-  { feature: "Remove watermark (one event)", cost: "5 credits" },
-  { feature: "CSV export", cost: "2 credits + 1/100 registrations" },
-  { feature: "Word report", cost: "3 credits + 1/100 registrations" },
-  { feature: "Analytics unlock (one event)", cost: "4 credits" },
-  { feature: "Custom thank you (one event)", cost: "2 credits" },
+  { feature: "Remove EventSlot watermark (one event)", cost: "10 points" },
+  { feature: "Export CSV", cost: "15 points" },
+  { feature: "Generate Word report", cost: "100 points" },
+  { feature: "Analytics tracking (one event)", cost: "150 points" },
+  { feature: "Custom thank you message", cost: "20 points" },
 ]
 
 const CREDITS_OPTS = [
-  { label: "$5", sub: "100 credits", amount: 100 },
-  { label: "$22", sub: "500 credits · save 12%", amount: 500 },
-  { label: "$40", sub: "1,000 credits · save 20%", amount: 1000 },
+  { label: "Ksh 1,000", sub: "100 points", amount: 100 },
+  { label: "Ksh 4,500", sub: "500 points · save 10%", amount: 500 },
+  { label: "Ksh 8,000", sub: "1,000 points · save 20%", amount: 1000 },
 ] as const
 
 export default function BillingPage() {
@@ -334,7 +333,7 @@ export default function BillingPage() {
               <circle cx="8" cy="8" r="6.5" /><path d="M5 8l2 2 4-4" />
             </svg>
             <span style={{ fontSize: "0.875rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}>
-              Credits added to your account successfully.
+              Points added to your account successfully.
             </span>
           </div>
           <button onClick={() => setCreditsVisible(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(200,245,90,0.5)", fontSize: "1.1rem", lineHeight: 1, padding: 0 }}>x</button>
@@ -396,15 +395,15 @@ export default function BillingPage() {
         </section>
 
         <section>
-          <SectionHeading>EventSlot Credits</SectionHeading>
+          <SectionHeading>Points Balance</SectionHeading>
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div>
                 <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.6rem", color: "#C8F55A", lineHeight: 1 }}>
-                  {status ? fmtCredits(creditBalance) : "..."} credits
+                  {status ? fmtCredits(creditBalance) : "..."} points
                 </div>
                 <p style={{ margin: "0.4rem 0 0", fontSize: "0.8rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                  Credits power pay-as-you-go features. $5 = 100 credits.
+                  Points power pay-as-you-go features. 100 Ksh = 10 points.
                 </p>
               </div>
               <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
@@ -435,7 +434,7 @@ export default function BillingPage() {
                   color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
                 }}>
                   <IconChevron open={pricingOpen} />
-                  What do credits cost?
+                  What do points cost?
                 </button>
                 {pricingOpen && (
                   <div style={{ marginTop: "0.875rem", overflowX: "auto" }}>
@@ -500,7 +499,7 @@ export default function BillingPage() {
         )}
 
         <section>
-          <SectionHeading>Credit history</SectionHeading>
+          <SectionHeading>Points history</SectionHeading>
           <Card>
             {transactions.length === 0 ? (
               <p style={{ margin: 0, fontSize: "0.875rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
