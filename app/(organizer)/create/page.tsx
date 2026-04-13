@@ -60,6 +60,12 @@ export default function CreateEventPage() {
     message: string
   } | null>(null)
   const [capacitySuggestionFetched, setCapacitySuggestionFetched] = useState(false)
+  const [aiPrediction, setAiPrediction] = useState<{
+    suggestedCapacity: number
+    confidence: 'low' | 'medium' | 'high'
+    reasoning: string
+  } | null>(null)
+  const [aiPredictionLoading, setAiPredictionLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
@@ -85,6 +91,24 @@ export default function CreateEventPage() {
       const data = await res.json()
       if (data.suggestion) setCapacitySuggestion(data.suggestion)
     } catch { /* ignore */ }
+  }
+
+  async function fetchAiPrediction(eventTitle: string, eventDescription?: string) {
+    if (!eventTitle.trim()) return
+    setAiPredictionLoading(true)
+    setAiPrediction(null)
+    try {
+      const res = await fetch('/api/events/predict-capacity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: eventTitle, description: eventDescription }),
+      })
+      if (!res.ok) return // Free plan or error — silent skip
+      const data = await res.json()
+      if (data.prediction) setAiPrediction(data.prediction)
+    } catch { /* ignore */ } finally {
+      setAiPredictionLoading(false)
+    }
   }
 
   function handlePickTemplate(templateId: string) {
@@ -327,6 +351,7 @@ export default function CreateEventPage() {
                     required
                     value={title}
                     onChange={e => setTitle(e.target.value)}
+                    onBlur={e => fetchAiPrediction(e.target.value, description)}
                   />
                 </div>
                 <div>
@@ -353,7 +378,62 @@ export default function CreateEventPage() {
                     onChange={e => setCapacity(e.target.value)}
                     onFocus={fetchCapacitySuggestion}
                   />
-                  {capacitySuggestion && !capacity && (
+                  {aiPredictionLoading && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
+                        <circle cx="12" cy="12" r="10" stroke="rgba(200,245,90,0.3)" strokeWidth="2.5" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="#C8F55A" strokeWidth="2.5" strokeLinecap="round" />
+                      </svg>
+                      <span style={{ fontSize: '0.75rem', color: 'rgba(200,245,90,0.6)', fontFamily: 'var(--font-dm-sans)' }}>Analysing your past events…</span>
+                    </div>
+                  )}
+                  {aiPrediction && !capacity && (
+                    <div
+                      style={{
+                        marginTop: '0.625rem',
+                        background: 'rgba(200,245,90,0.06)',
+                        border: '0.5px solid rgba(200,245,90,0.2)',
+                        borderRadius: 8,
+                        padding: '0.6rem 0.85rem',
+                        display: 'flex',
+                        gap: '0.625rem',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginTop: 2 }}>
+                        <path d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z" fill="rgba(200,245,90,0.2)" stroke="#C8F55A" strokeWidth="1.25" />
+                        <path d="M8 17h4" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M9 19h2" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                      </svg>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', color: 'rgba(200,245,90,0.85)', fontFamily: 'var(--font-dm-sans)', fontWeight: 500, lineHeight: 1.4 }}>
+                          AI suggestion: <strong>{aiPrediction.suggestedCapacity}</strong> attendees&nbsp;
+                          <span style={{ fontWeight: 400, opacity: 0.7 }}>({aiPrediction.confidence} confidence)</span>
+                        </p>
+                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)', fontWeight: 300, lineHeight: 1.4 }}>
+                          {aiPrediction.reasoning}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setCapacity(String(aiPrediction.suggestedCapacity))}
+                          style={{
+                            background: 'transparent',
+                            border: '0.5px solid rgba(200,245,90,0.35)',
+                            borderRadius: 6,
+                            padding: '0.3rem 0.75rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 500,
+                            color: '#C8F55A',
+                            cursor: 'pointer',
+                            fontFamily: 'var(--font-dm-sans)',
+                          }}
+                        >
+                          Use this suggestion
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {capacitySuggestion && !aiPrediction && !capacity && (
                     <div
                       style={{
                         marginTop: "0.625rem",
