@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
+import CreditsBalance from "@/components/CreditsBalance"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -369,33 +370,9 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
         {/* Plan badge section */}
         <div style={{ marginBottom: "0.875rem" }}>
           <PlanBadge plan={userPlan} />
-          {creditBalance > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginTop: "0.45rem" }}>
-              <span
-                style={{
-                  fontSize: "0.7rem",
-                  color: "rgba(240,237,230,0.35)",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                {creditBalance % 1 === 0 ? String(creditBalance) : creditBalance.toFixed(2)} points
-              </span>
-              <Link
-                href="/dashboard/billing#credits"
-                style={{
-                  color: "rgba(240,237,230,0.35)",
-                  fontSize: "0.85rem",
-                  lineHeight: 1,
-                  textDecoration: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                +
-              </Link>
-            </div>
-          )}
+          <div style={{ marginTop: "0.45rem" }}>
+            <CreditsBalance initialBalance={creditBalance} />
+          </div>
           {userPlan === "free" && (
             <Link
               href="/pricing"

@@ -1,5 +1,32 @@
 import prisma from './prisma'
 
+export const CREDIT_COSTS = {
+  ai_report: 5,
+  ai_insights: 2,
+  ai_query: 1,
+  remove_watermark: 10,
+  export_csv: 15,
+  word_report: 100,
+  analytics_unlock: 150,
+  custom_thank_you: 20,
+}
+
+export const CREDIT_BUNDLES = [
+  { id: 'credits_100', credits: 100, kesPrice: 1000, label: '100 points — Ksh 1,000' },
+  { id: 'credits_500', credits: 500, kesPrice: 4500, label: '500 points — Ksh 4,500 (save 10%)' },
+  { id: 'credits_1000', credits: 1000, kesPrice: 8000, label: '1,000 points — Ksh 8,000 (save 20%)' },
+] as const
+
+export type CreditBundleId = typeof CREDIT_BUNDLES[number]['id']
+
+export async function getUserCredits(userId: string): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { creditBalance: true },
+  })
+  return user?.creditBalance ?? 0
+}
+
 export async function spendCredits({
   userId,
   amount,
@@ -34,18 +61,20 @@ export async function addCredits({
   userId,
   amount,
   description,
+  reference,
 }: {
   userId: string
   amount: number
   description: string
-}) {
+  reference?: string
+}): Promise<void> {
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
       data: { creditBalance: { increment: amount } },
     }),
     prisma.creditTransaction.create({
-      data: { userId, amount, type: 'purchase', description },
+      data: { userId, amount, type: 'purchase', description, reference },
     }),
   ])
 }

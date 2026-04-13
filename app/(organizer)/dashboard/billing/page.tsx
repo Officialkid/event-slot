@@ -195,9 +195,9 @@ const PAYG_ROWS = [
 ]
 
 const CREDITS_OPTS = [
-  { label: "Ksh 1,000", sub: "100 points", amount: 100 },
-  { label: "Ksh 4,500", sub: "500 points · save 10%", amount: 500 },
-  { label: "Ksh 8,000", sub: "1,000 points · save 20%", amount: 1000 },
+  { label: "Ksh 1,000", sub: "100 points", amount: 100, bundleId: "credits_100" },
+  { label: "Ksh 4,500", sub: "500 points · save 10%", amount: 500, bundleId: "credits_500" },
+  { label: "Ksh 8,000", sub: "1,000 points · save 20%", amount: 1000, bundleId: "credits_1000" },
 ] as const
 
 export default function BillingPage() {
@@ -270,12 +270,12 @@ export default function BillingPage() {
     finally { setCancelLoading(false) }
   }
 
-  async function handleBuyCredits(amount: number) {
+  async function handleBuyCredits(amount: number, bundleId: string) {
     setCreditsLoading(amount)
     try {
       const res = await fetch("/api/billing/credits", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credits: amount }),
+        body: JSON.stringify({ bundleId }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
@@ -412,7 +412,7 @@ export default function BillingPage() {
               </div>
               <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
                 {CREDITS_OPTS.map(opt => (
-                  <button key={opt.amount} onClick={() => handleBuyCredits(opt.amount)}
+                  <button key={opt.amount} onClick={() => handleBuyCredits(opt.amount, opt.bundleId)}
                     disabled={creditsLoading !== null} className="bil-ghost"
                     style={{
                       background: "transparent", border: "0.5px solid rgba(240,237,230,0.14)", borderRadius: 8,

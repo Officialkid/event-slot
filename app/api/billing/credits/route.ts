@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
-
-// credits count → KES price in Kenyan Shillings (× 100 = cents for Paystack)
-// Conversion: 100 KSH = 10 points (so 1 point = 10 KSH)
-const CREDIT_PACKAGES: Record<number, number> = {
-  100: 1000,   // 100 points = Ksh 1,000
-  500: 4500,   // 500 points = Ksh 4,500 (save 10%)
-  1000: 8000,  // 1,000 points = Ksh 8,000 (save 20%)
-}
+import { CREDIT_BUNDLES } from '@/lib/credits'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,18 +11,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { credits } = await req.json()
-
-    if (!credits || typeof credits !== 'number') {
-      return NextResponse.json({ error: 'Invalid credit package' }, { status: 400 })
-    }
-
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 })
     }
 
-    const kesPrice = CREDIT_PACKAGES[credits]
-    if (!kesPrice) {
+    const body = await req.json()
+
+    // Support both { bundleId } and legacy { credits } formats
+    let bundle = CREDIT_BUNDLES.find(b => b.id === body.bundleId)
+    if (!bundle && typeof body.credits === 'number') {
+      bundle = CREDIT_BUNDLES.find(b => b.credits === body.credits)
+    }
+    if (!bundle) {
       return NextResponse.json({ error: 'Invalid credit package' }, { status: 400 })
     }
 
@@ -37,13 +30,14 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: JSON.stringify({
         email: session.user.email,
-        amount: kesPrice * 100, // KES cents
+        amount: bundle.kesPrice * 100, // KES kobo
         currency: 'KES',
         callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
         metadata: {
           userId: session.user.id,
           type: 'credits',
-          creditAmount: credits, // number of credits to add to balance
+          creditAmount: bundle.credits,
+          bundleId: bundle.id,
         },
       }),
     })

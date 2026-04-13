@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
+import { addCredits } from '@/lib/credits'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -25,18 +26,12 @@ export async function GET(request: Request) {
     }
 
     if (type === 'credits') {
-      const amount = typeof creditAmount === 'number' ? creditAmount : data.data.amount / 100
-      await prisma.user.update({
-        where: { id: userId },
-        data: { creditBalance: { increment: amount } },
-      })
-      await prisma.creditTransaction.create({
-        data: {
-          userId,
-          amount,
-          type: 'purchase',
-          description: `Purchased ${amount} credits`,
-        },
+      const amount = typeof creditAmount === 'number' ? creditAmount : Math.round(data.data.amount / 100)
+      await addCredits({
+        userId,
+        amount,
+        description: `Purchased ${amount} points`,
+        reference,
       })
       redirect('/dashboard/billing?credits=added')
     } else {

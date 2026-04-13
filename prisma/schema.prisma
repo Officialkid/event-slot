@@ -159,6 +159,7 @@ model CreditTransaction {
   amount      Float
   type        String
   description String
+  reference   String?
   eventId     String?
   createdAt   DateTime @default(now())
 }
