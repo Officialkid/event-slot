@@ -29,7 +29,7 @@ export async function GET() {
       prisma.user.count(),
       prisma.event.count(),
       prisma.registration.count(),
-      prisma.event.count({ where: { status: "active", archived: false } }),
+      prisma.event.count({ where: { status: "active", archived: false, OR: [{ eventDate: null }, { eventDate: { gte: new Date() } }] } }),
       prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
       prisma.event.count({ where: { createdAt: { gte: startOfMonth } } }),
       prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),

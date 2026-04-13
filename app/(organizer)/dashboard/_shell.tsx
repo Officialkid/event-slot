@@ -169,6 +169,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
       <div
+        className="dash-hdr-top"
         style={{
           padding: "1.5rem 1.25rem 1.25rem",
           borderBottom: "0.5px solid rgba(240,237,230,0.06)",
@@ -177,6 +178,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
       >
         <Link
           href="/"
+          className="dash-hdr-logo"
           style={{ textDecoration: "none", display: "inline-block", marginBottom: "1.25rem" }}
         >
           <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#F0EDE6" }}>
@@ -187,7 +189,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           </span>
         </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+        <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -217,7 +219,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               {initials}
             </div>
           )}
-          <div style={{ overflow: "hidden", minWidth: 0 }}>
+          <div className="dash-user-det" style={{ overflow: "hidden", minWidth: 0 }}>
             <div
               style={{
                 fontSize: "0.8rem",
@@ -251,6 +253,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
 
       {/* Nav items */}
       <nav
+        className="dash-sl-nav"
         style={{
           flex: 1,
           padding: "0.875rem 0.75rem",
@@ -281,7 +284,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               }}
             >
               {item.icon}
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>{item.label}</span>
               {item.href === "/dashboard/notifications" && unreadCount > 0 && (
                 <span
                   style={{
@@ -322,7 +325,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               }}
             >
               <IconInsights />
-              <span style={{ flex: 1 }}>Insights</span>
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>Insights</span>
             </Link>
           )
         })()}
@@ -348,7 +351,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               }}
             >
               <IconUsers />
-              <span style={{ flex: 1 }}>Team</span>
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>Team</span>
             </Link>
           )
         })()}
@@ -356,6 +359,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
 
       {/* Bottom: links + sign out */}
       <div
+        className="dash-bottom"
         style={{
           padding: "0.875rem 1.25rem",
           borderTop: "0.5px solid rgba(240,237,230,0.06)",
@@ -486,6 +490,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const router = useRouter()
   const { data: session, status } = useSession()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [userPlan, setUserPlan] = useState("free")
   const [creditBalance, setCreditBalance] = useState(0)
@@ -602,6 +607,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             padding: 1.25rem;
           }
         }
+        @media (min-width: 768px) {
+          .dash-main-col { margin-left: ${sidebarCollapsed ? 52 : 210}px; transition: margin-left 0.22s ease; }
+        }
+        .dash-sidebar-col { transition: width 0.22s ease; }
+        .dash-sidebar-collapsed .dash-sl-nav a { padding-left: 0 !important; padding-right: 0 !important; justify-content: center !important; }
+        .dash-sidebar-collapsed .dash-sl-nav .dash-nav-lbl { display: none !important; }
+        .dash-sidebar-collapsed .dash-bottom { opacity: 0; visibility: hidden; height: 0; overflow: hidden; padding: 0 !important; border: none !important; }
+        .dash-sidebar-collapsed .dash-hdr-top { padding: 0.85rem 0 0.75rem !important; align-items: center !important; }
+        .dash-sidebar-collapsed .dash-hdr-logo { display: none !important; }
+        .dash-sidebar-collapsed .dash-user-det { display: none !important; }
+        .dash-sidebar-collapsed .dash-avatar-wrap { justify-content: center !important; }
       `}</style>
 
       {/* Drawer backdrop */}
@@ -667,25 +683,49 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div style={{ display: "flex", minHeight: "100vh" }}>
         {/* Desktop sidebar — fixed, hidden below md */}
         <aside
-          className="hidden md:flex flex-col"
+          className={`hidden md:flex flex-col dash-sidebar-col${sidebarCollapsed ? " dash-sidebar-collapsed" : ""}`}
           style={{
             position: "fixed",
             top: 0,
             left: 0,
-            width: 210,
+            width: sidebarCollapsed ? 52 : 210,
             height: "100vh",
             background: "#0D0D0D",
             borderRight: "0.5px solid rgba(240,237,230,0.06)",
             zIndex: 30,
             overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           <SidebarInner {...sidebarProps} />
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(c => !c)}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 10,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "rgba(240,237,230,0.2)",
+              padding: "0.25rem",
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              {sidebarCollapsed ? <path d="M4 2l4 4-4 4" /> : <path d="M8 2L4 6l4 4" />}
+            </svg>
+          </button>
         </aside>
 
         {/* Content column — offset for sidebar on desktop */}
         <div
-          className="md:ml-[210px]"
+          className="dash-main-col"
           style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
         >
           {/* Top bar */}

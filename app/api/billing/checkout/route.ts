@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 
 const PLAN_AMOUNTS: Record<string, Record<string, number>> = {
-  pro: { monthly: 1900, annual: 18000 },
-  business: { monthly: 4900, annual: 46800 },
+  pro: { monthly: 9, annual: 86 },
+  business: { monthly: 19, annual: 182 },
 }
 
 export async function POST(req: NextRequest) {
@@ -21,14 +21,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan or billingCycle' }, { status: 400 })
     }
 
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 })
+    }
+
     const amount = PLAN_AMOUNTS[plan][billingCycle]
 
     const data = await paystackFetch('/transaction/initialize', {
       method: 'POST',
       body: JSON.stringify({
         email: session.user.email,
-        amount: amount * 100,
-        currency: 'NGN',
+        amount: amount * 100, // cents
+        currency: 'USD',
         callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
         metadata: {
           userId: session.user.id,

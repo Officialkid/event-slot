@@ -3,11 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 
-// credits count → NGN price in naira (× 100 = kobo for Paystack)
+// credits count → USD price in dollars (× 100 = cents for Paystack)
 const CREDIT_PACKAGES: Record<number, number> = {
-  100: 10000,   // 100 credits = ₦10,000
-  500: 45000,   // 500 credits = ₦45,000 (10% off)
-  1000: 80000,  // 1,000 credits = ₦80,000 (20% off)
+  100: 5,    // 100 credits = $5
+  500: 22,   // 500 credits = $22 (save ~12%)
+  1000: 40,  // 1,000 credits = $40 (save 20%)
 }
 
 export async function POST(req: NextRequest) {
@@ -23,8 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credit package' }, { status: 400 })
     }
 
-    const ngnPrice = CREDIT_PACKAGES[credits]
-    if (!ngnPrice) {
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 })
+    }
+
+    const usdPrice = CREDIT_PACKAGES[credits]
+    if (!usdPrice) {
       return NextResponse.json({ error: 'Invalid credit package' }, { status: 400 })
     }
 
@@ -32,8 +36,8 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: JSON.stringify({
         email: session.user.email,
-        amount: ngnPrice * 100, // kobo
-        currency: 'NGN',
+        amount: usdPrice * 100, // cents
+        currency: 'USD',
         callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
         metadata: {
           userId: session.user.id,
