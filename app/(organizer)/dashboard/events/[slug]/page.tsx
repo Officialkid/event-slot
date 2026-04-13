@@ -77,6 +77,12 @@ type AnalyticsData = {
   registrationsByHour: { hour: number; count: number }[]
 }
 
+type InsightCard = {
+  type: "success" | "warning" | "tip" | "info"
+  title: string
+  body: string
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -752,6 +758,13 @@ export default function EventDashboardPage() {
   const [analyticsError, setAnalyticsError] = useState("")
   const [showAnalyticsUpgrade, setShowAnalyticsUpgrade] = useState(false)
 
+  // AI Insights
+  const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsLocked, setInsightsLocked] = useState(false)
+  const [insightsRequiredCredits, setInsightsRequiredCredits] = useState(2)
+  const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
+
   // Feedback
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
@@ -1057,6 +1070,29 @@ export default function EventDashboardPage() {
     { key: "settings", label: "Settings" },
   ]
 
+  const loadInsights = async (force = false) => {
+    if (!eventData || insightsLoading) return
+    setInsightsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (token) params.set('token', token)
+      if (force) params.set('force', 'true')
+      const qs = params.toString() ? `?${params.toString()}` : ''
+      const res = await fetch(`/api/events/${slug}/insights${qs}`)
+      const data = await res.json()
+      if (res.status === 402 && data.locked) {
+        setInsightsLocked(true)
+        setInsightsRequiredCredits(data.requiredCredits ?? 2)
+        return
+      }
+      if (!res.ok) return
+      setInsightsData(data.cards)
+      setInsightsGeneratedAt(data.generatedAt ?? null)
+      setInsightsLocked(false)
+    } catch {}
+    finally { setInsightsLoading(false) }
+  }
+
   const loadAnalytics = async () => {
     if (!eventData || analyticsLoading) return
     setAnalyticsLoading(true)
@@ -1070,6 +1106,7 @@ export default function EventDashboardPage() {
       }
       if (!res.ok) { setAnalyticsError(data.error || "Failed to load analytics"); return }
       setAnalyticsData(data)
+      loadInsights()
     } catch { setAnalyticsError("Unable to load analytics.") }
     finally { setAnalyticsLoading(false) }
   }
@@ -1608,6 +1645,63 @@ export default function EventDashboardPage() {
 
             {analyticsData && (
               <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {/* AI Insights */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>AI Insights</span>
+                      {insightsGeneratedAt && (
+                        <span style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>· {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                    {insightsData && !insightsLoading && (
+                      <button
+                        onClick={() => loadInsights(true)}
+                        style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Regenerate{organizerPlan === 'free' ? ` (${insightsRequiredCredits} pts)` : ""}
+                      </button>
+                    )}
+                  </div>
+
+                  {insightsLocked && (
+                    <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "1rem" }}>🔒</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights — {insightsRequiredCredits} credits</p>
+                        <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Get 3 personalised insights about your event performance.</p>
+                      </div>
+                      <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                    </div>
+                  )}
+
+                  {insightsLoading && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
+                      {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 8, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+                    </div>
+                  )}
+
+                  {insightsData && !insightsLoading && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
+                      {insightsData.map((card, i) => (
+                        <div key={i} style={{
+                          borderLeft: `3px solid ${card.type === 'warning' ? '#FF6B6B' : card.type === 'info' ? 'rgba(240,237,230,0.2)' : '#C8F55A'}`,
+                          borderTop: "0.5px solid rgba(240,237,230,0.06)",
+                          borderRight: "0.5px solid rgba(240,237,230,0.06)",
+                          borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+                          background: card.type === 'warning' ? "rgba(255,107,107,0.04)" : card.type === 'info' ? "rgba(240,237,230,0.03)" : "rgba(200,245,90,0.04)",
+                          borderRadius: 8,
+                          padding: "0.875rem 1rem",
+                        }}>
+                          <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: card.type === 'warning' ? '#FF6B6B' : card.type === 'info' ? 'rgba(240,237,230,0.35)' : '#C8F55A', fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>{card.type}</div>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
+                          <div style={{ fontSize: "0.76rem", fontWeight: 300, color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
                   {[
@@ -1819,6 +1913,7 @@ export default function EventDashboardPage() {
         .pencil-btn:hover { color: rgba(240,237,230,0.65) !important; }
         .back-link:hover { color: rgba(240,237,230,0.6) !important; }
         @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4,1fr) !important; } }
+        @media (max-width: 639px) { .insight-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </>
   )

@@ -36,6 +36,7 @@ model Event {
   views            EventView[]
   feedback         AttendeeFeedback[]
   unlocks          EventUnlock[]
+  insight          EventInsight?
 }
 
 model User {
@@ -212,4 +213,12 @@ model TeamMember {
   status      String   @default("pending")
   inviteToken String   @unique
   createdAt   DateTime @default(now())
+}
+
+model EventInsight {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cards       Json
+  generatedAt DateTime @default(now())
 }
