@@ -83,6 +83,12 @@ type InsightCard = {
   body: string
 }
 
+type QAItem = {
+  question: string
+  answer: string
+  timestamp: string
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -765,6 +771,12 @@ export default function EventDashboardPage() {
   const [insightsRequiredCredits, setInsightsRequiredCredits] = useState(2)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
 
+  // AI Q&A
+  const [qaHistory, setQaHistory] = useState<QAItem[]>([])
+  const [qaInput, setQaInput] = useState("")
+  const [qaLoading, setQaLoading] = useState(false)
+  const [qaLocked, setQaLocked] = useState(false)
+
   // Feedback
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
@@ -1091,6 +1103,29 @@ export default function EventDashboardPage() {
       setInsightsLocked(false)
     } catch {}
     finally { setInsightsLoading(false) }
+  }
+
+  const submitQuestion = async (question: string) => {
+    const q = question.trim()
+    if (!q || qaLoading) return
+    setQaInput("")
+    setQaLoading(true)
+    try {
+      const params = token ? `?token=${encodeURIComponent(token)}` : ""
+      const res = await fetch(`/api/events/${slug}/ask${params}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q }),
+      })
+      const data = await res.json()
+      if (res.status === 402 && data.locked) {
+        setQaLocked(true)
+        return
+      }
+      if (!res.ok) return
+      setQaHistory(prev => [...prev.slice(-4), { question: q, answer: data.answer, timestamp: new Date().toISOString() }])
+    } catch {}
+    finally { setQaLoading(false) }
   }
 
   const loadAnalytics = async () => {
@@ -1752,6 +1787,105 @@ export default function EventDashboardPage() {
                 <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load analytics&rdquo; to see views, conversions, and registration trends.</p>
               </div>
             )}
+
+            {/* ── AI Q&A ───────────────────────────────────────────────── */}
+            <div style={{ marginTop: "2rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", paddingTop: "1.75rem" }}>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.25rem 0" }}>Ask about your event</h3>
+              <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem 0" }}>Ask anything about your registration data.</p>
+
+              {qaLocked ? (
+                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "1rem" }}>🔒</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A — 1 credit per question</p>
+                    <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
+                  </div>
+                  <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                </div>
+              ) : (
+                <>
+                  {/* Suggested questions */}
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                    {[
+                      "How does this compare to my last event?",
+                      "When should I share my next event link?",
+                      "Why was my conversion rate low?",
+                      "What does my waitlist tell me?",
+                    ].map(q => (
+                      <button
+                        key={q}
+                        onClick={() => setQaInput(q)}
+                        style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 20, padding: "0.3rem 0.7rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Input row */}
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+                    <div style={{ flex: 1 }}>
+                      <input
+                        value={qaInput}
+                        onChange={e => setQaInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitQuestion(qaInput) } }}
+                        placeholder="Ask a question about this event..."
+                        disabled={qaLoading}
+                        style={{ width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.65rem 0.875rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                      />
+                      {organizerPlan !== "business" && (
+                        <p style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.3rem 0 0 0" }}>1 credit per question</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => submitQuestion(qaInput)}
+                      disabled={qaLoading || !qaInput.trim()}
+                      style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.65rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: qaLoading || !qaInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qaLoading || !qaInput.trim() ? 0.55 : 1, whiteSpace: "nowrap", flexShrink: 0 }}
+                    >
+                      {qaLoading ? "…" : "Ask"}
+                    </button>
+                  </div>
+
+                  {/* Loading indicator */}
+                  {qaLoading && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "1.25rem" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
+                      </div>
+                      <div style={{ background: "#141414", borderRadius: "2px 12px 12px 12px", padding: "0.55rem 0.875rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
+                        Thinking…
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Q&A history */}
+                  {qaHistory.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", marginTop: "1.5rem" }}>
+                      {qaHistory.map((item, i) => (
+                        <div key={i}>
+                          {/* Question bubble */}
+                          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
+                            <div style={{ background: "#1E1E1E", border: "0.5px solid rgba(240,237,230,0.07)", borderRadius: "12px 12px 2px 12px", padding: "0.55rem 0.875rem", maxWidth: "80%", fontSize: "0.82rem", color: "rgba(240,237,230,0.8)", fontFamily: "var(--font-dm-sans)" }}>
+                              {item.question}
+                            </div>
+                          </div>
+                          {/* Answer bubble */}
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                              <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
+                            </div>
+                            <div>
+                              <p style={{ fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 300, lineHeight: 1.65, margin: "0 0 0.2rem 0" }}>{item.answer}</p>
+                              <span style={{ fontSize: "0.6rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>{new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
 
