@@ -66,6 +66,7 @@ model User {
   events         Event[]
   notifications  Notification[]
   creditTransactions CreditTransaction[]
+  featureAccess      FeatureAccess[]
 }
 
 model Account {
@@ -221,4 +222,15 @@ model EventInsight {
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   cards       Json
   generatedAt DateTime @default(now())
+}
+
+model FeatureAccess {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String?
+  feature   String
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
 }

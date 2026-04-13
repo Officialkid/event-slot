@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { getPlanLimits, calculateCSVCost } from '@/lib/plans'
+import { CREDIT_COSTS, hasFeatureAccess } from '@/lib/credits'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
@@ -37,28 +37,18 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check organizer plan OR event-level csv unlock
     const plan = event.organizer?.plan ?? 'free'
-    const limits = getPlanLimits(plan)
+    const userId = session?.user?.id ?? event.organizerId
+    if (!userId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
 
-    if (!limits.canExportCSV) {
-      const lookupUserId = (session?.user?.id ?? event.organizerId) ?? undefined
-      const hasUnlock = await prisma.eventUnlock.findFirst({
-        where: { eventId: event.id, userId: lookupUserId, feature: 'csv' },
-      })
-
-      if (!hasUnlock) {
-        const cost = calculateCSVCost(event.confirmedCount)
-        return NextResponse.json(
-          {
-            error: 'CSV export requires a Pro/Business plan or a one-time credit unlock.',
-            upgradeRequired: true,
-            cost,
-            eventId: event.id,
-          },
-          { status: 402 }
-        )
-      }
+    const canAccess = await hasFeatureAccess({ userId, feature: 'export_csv', eventId: event.id, plan })
+    if (!canAccess) {
+      return NextResponse.json(
+        { error: 'CSV export requires a Pro/Business plan or a one-time credit unlock.', upgradeRequired: true, creditsRequired: CREDIT_COSTS.export_csv, eventId: event.id },
+        { status: 403 }
+      )
     }
 
     // Fetch confirmed registrations

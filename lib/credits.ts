@@ -78,3 +78,92 @@ export async function addCredits({
     }),
   ])
 }
+
+export async function purchaseFeatureAccess({
+  userId,
+  feature,
+  eventId,
+}: {
+  userId: string
+  feature: keyof typeof CREDIT_COSTS
+  eventId?: string
+}): Promise<{ success: boolean; accessId?: string; error?: string }> {
+  const cost = CREDIT_COSTS[feature]
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { creditBalance: true, plan: true },
+  })
+  if (!user) return { success: false, error: 'User not found' }
+
+  // Idempotent: return existing active access for this event
+  if (eventId) {
+    const existing = await prisma.featureAccess.findFirst({
+      where: { userId, feature, eventId, expiresAt: { gt: new Date() } },
+    })
+    if (existing) return { success: true, accessId: existing.id }
+  }
+
+  if (user.creditBalance < cost) {
+    return {
+      success: false,
+      error: `Insufficient credits. You need ${cost} credits but have ${user.creditBalance}.`,
+    }
+  }
+
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + 30)
+
+  const [, , access] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { creditBalance: { decrement: cost } },
+    }),
+    prisma.creditTransaction.create({
+      data: {
+        userId,
+        type: 'spend',
+        amount: -cost,
+        description: `One-time access: ${feature}${eventId ? ' for event' : ''}`,
+      },
+    }),
+    prisma.featureAccess.create({
+      data: { userId, feature, eventId: eventId ?? null, expiresAt },
+    }),
+  ])
+
+  return { success: true, accessId: access.id }
+}
+
+export async function hasFeatureAccess({
+  userId,
+  feature,
+  eventId,
+  plan,
+}: {
+  userId: string
+  feature: keyof typeof CREDIT_COSTS
+  eventId?: string
+  plan: string
+}): Promise<boolean> {
+  // Subscription access — these features are included in plan
+  if (feature === 'ai_report' || feature === 'ai_insights') {
+    if (plan === 'pro' || plan === 'business') return true
+  }
+  if (feature === 'ai_query') {
+    if (plan === 'business') return true
+  }
+  if (feature === 'export_csv' || feature === 'remove_watermark') {
+    if (plan === 'pro' || plan === 'business') return true
+  }
+
+  // Credits access — check for an active FeatureAccess record
+  const access = await prisma.featureAccess.findFirst({
+    where: {
+      userId,
+      feature,
+      eventId: eventId ?? null,
+      expiresAt: { gt: new Date() },
+    },
+  })
+  return !!access
+}

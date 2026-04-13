@@ -3,6 +3,7 @@ import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
+import { Toast } from "../components/Toast";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -56,6 +57,7 @@ export default async function RootLayout({
         <Providers>
           <Nav />
           {children}
+          <Toast />
           <Analytics />
         </Providers>
       </body>

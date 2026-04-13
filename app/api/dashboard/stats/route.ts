@@ -30,11 +30,13 @@ export async function GET() {
         id: true,
         title: true,
         slug: true,
+        status: true,
         capacity: true,
         deadline: true,
         confirmedCount: true,
         waitlistCount: true,
         dashboardToken: true,
+        createdAt: true,
       },
     })
 
@@ -49,10 +51,45 @@ export async function GET() {
 
     const totalWaitlisted = events.reduce((sum, e) => sum + e.waitlistCount, 0)
 
-    // Near capacity: confirmedCount / capacity >= 0.8, and has a capacity set
+    // Events created this calendar month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const eventsThisMonth = events.filter(e => e.createdAt >= monthStart).length
+
+    // Registrations this month vs last month
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const eventIds = events.map(e => e.id)
+    const [registrationsThisMonth, registrationsLastMonth] = await Promise.all([
+      eventIds.length ? prisma.registration.count({
+        where: { eventId: { in: eventIds }, status: "confirmed", submittedAt: { gte: monthStart } },
+      }) : Promise.resolve(0),
+      eventIds.length ? prisma.registration.count({
+        where: { eventId: { in: eventIds }, status: "confirmed", submittedAt: { gte: lastMonthStart, lt: monthStart } },
+      }) : Promise.resolve(0),
+    ])
+
+    // Events closing within 7 days (active, deadline between now and +7d)
+    const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const eventsClosingThisWeek = events.filter(
+      e => e.deadline !== null && e.deadline > now && e.deadline <= weekAhead
+    ).length
+
+    // Events that have waitlisted attendees
+    const waitlistEventCount = events.filter(e => e.waitlistCount > 0).length
+
+    // Conversion rate: total confirmed / total views
+    const totalViews = eventIds.length ? await prisma.eventView.count({
+      where: { eventId: { in: eventIds } },
+    }) : 0
+    const conversionRate = totalViews > 0
+      ? Math.round((totalRegistrations / totalViews) * 100)
+      : 0
+
+    // Near capacity: active events only, not ended, confirmedCount / capacity >= 0.8
     const eventsNearCapacity = events
       .filter(e => {
+        if (e.status !== "active") return false
         if (!e.capacity || e.capacity === 0) return false
+        if (e.deadline && e.deadline <= now) return false
         return e.confirmedCount / e.capacity >= 0.8
       })
       .map(e => ({
@@ -87,7 +124,6 @@ export async function GET() {
     }
 
     // Recent activity: last 10 registrations across all organizer events
-    const eventIds = events.map(e => e.id)
     const recentRegs = await prisma.registration.findMany({
       where: {
         eventId: { in: eventIds },
@@ -120,13 +156,33 @@ export async function GET() {
       }
     })
 
+    // Upcoming: events with deadline in the future, soonest first, limit 3
+    const upcomingEvents = events
+      .filter(e => e.deadline !== null && e.deadline > now)
+      .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime())
+      .slice(0, 3)
+      .map(e => ({
+        title: e.title,
+        slug: e.slug,
+        confirmedCount: e.confirmedCount,
+        capacity: e.capacity,
+        deadline: e.deadline!.toISOString(),
+      }))
+
     return NextResponse.json({
       totalEvents,
       totalRegistrations,
       activeEvents,
       totalWaitlisted,
       eventsNearCapacity,
+      upcomingEvents,
       recentActivity,
+      eventsThisMonth,
+      registrationsThisMonth,
+      registrationsLastMonth,
+      conversionRate,
+      eventsClosingThisWeek,
+      waitlistEventCount,
     })
   } catch {
     return NextResponse.json({ error: "Failed to load stats" }, { status: 500 })

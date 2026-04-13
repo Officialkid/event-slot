@@ -163,9 +163,11 @@ interface SidebarInnerProps {
   userPlan: string
   creditBalance: number
   onNavClick?: () => void
+  collapsed?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, onNavClick }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, onNavClick, collapsed = false }: SidebarInnerProps) {
+  const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -188,6 +190,13 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#C8F55A" }}>
             Slot
           </span>
+        </Link>
+        <Link
+          href="/"
+          className="dash-logo-e"
+          style={{ textDecoration: "none", display: "none", marginBottom: "1.25rem" }}
+        >
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#C8F55A" }}>E</span>
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -270,6 +279,13 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               key={item.href}
               href={item.href}
               onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: item.label, y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
               className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
               style={{
                 display: "flex",
@@ -311,6 +327,13 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             <Link
               href="/dashboard/insights"
               onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: "Insights", y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
               className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
               style={{
                 display: "flex",
@@ -337,6 +360,13 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             <Link
               href="/dashboard/team"
               onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: "Team", y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
               className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
               style={{
                 display: "flex",
@@ -456,6 +486,29 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           Sign out
         </button>
       </div>
+      {/* Tooltip for icon-only collapsed nav items */}
+      {collapsed && tooltip && (
+        <div
+          style={{
+            position: "fixed",
+            left: 64,
+            top: tooltip.y,
+            transform: "translateY(-50%)",
+            background: "#1A1A1A",
+            border: "0.5px solid rgba(240,237,230,0.1)",
+            borderRadius: 6,
+            padding: "0.35rem 0.6rem",
+            fontSize: "0.78rem",
+            color: "rgba(240,237,230,0.75)",
+            fontFamily: "var(--font-dm-sans)",
+            whiteSpace: "nowrap" as const,
+            zIndex: 50,
+            pointerEvents: "none" as const,
+          }}
+        >
+          {tooltip.label}
+        </div>
+      )}
     </div>
   )
 }
@@ -514,6 +567,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       fetchUnreadCount()
     }
   }, [pathname, status, fetchUnreadCount])
+
+  // Persist sidebar collapse state across sessions
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebarCollapsed")
+    if (stored !== null) setSidebarCollapsed(stored === "true")
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   const name = session?.user?.name || session?.user?.email || "Organizer"
   const email = session?.user?.email ?? ""
@@ -585,16 +648,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           }
         }
         @media (min-width: 768px) {
-          .dash-main-col { margin-left: ${sidebarCollapsed ? 52 : 210}px; transition: margin-left 0.22s ease; }
+          .dash-main-col { margin-left: ${sidebarCollapsed ? 56 : 240}px; transition: margin-left 0.25s ease; }
         }
-        .dash-sidebar-col { transition: width 0.22s ease; }
+        .dash-sidebar-col { transition: width 0.25s ease; }
         .dash-sidebar-collapsed .dash-sl-nav a { padding-left: 0 !important; padding-right: 0 !important; justify-content: center !important; }
         .dash-sidebar-collapsed .dash-sl-nav .dash-nav-lbl { display: none !important; }
         .dash-sidebar-collapsed .dash-bottom { opacity: 0; visibility: hidden; height: 0; overflow: hidden; padding: 0 !important; border: none !important; }
         .dash-sidebar-collapsed .dash-hdr-top { padding: 0.85rem 0 0.75rem !important; align-items: center !important; }
         .dash-sidebar-collapsed .dash-hdr-logo { display: none !important; }
+        .dash-sidebar-collapsed .dash-logo-e { display: inline-block !important; }
         .dash-sidebar-collapsed .dash-user-det { display: none !important; }
         .dash-sidebar-collapsed .dash-avatar-wrap { justify-content: center !important; }
+        .dash-collapse-btn:hover { color: rgba(240,237,230,0.55) !important; }
       `}</style>
 
       {/* Drawer backdrop */}
@@ -665,40 +730,71 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             position: "fixed",
             top: 0,
             left: 0,
-            width: sidebarCollapsed ? 52 : 210,
+            width: sidebarCollapsed ? 56 : 240,
             height: "100vh",
             background: "#0D0D0D",
             borderRight: "0.5px solid rgba(240,237,230,0.06)",
             zIndex: 30,
             overflowY: "auto",
             overflowX: "hidden",
+            transition: "width 0.25s ease",
           }}
         >
-          <SidebarInner {...sidebarProps} />
-          {/* Collapse toggle */}
-          <button
-            onClick={() => setSidebarCollapsed(c => !c)}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          <SidebarInner {...sidebarProps} collapsed={sidebarCollapsed} />
+          {/* Collapse button — only shown when expanded */}
+          {!sidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(true)}
+              aria-label="Collapse sidebar"
+              className="dash-collapse-btn"
+              style={{
+                position: "absolute",
+                top: 16,
+                right: 10,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "rgba(240,237,230,0.25)",
+                padding: "0.25rem",
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 2L4 6l4 4" />
+              </svg>
+            </button>
+          )}
+        </aside>
+        {/* Protruding reopen tab — desktop only, visible when collapsed */}
+        {sidebarCollapsed && (
+          <div
+            className="hidden md:flex"
+            onClick={() => setSidebarCollapsed(false)}
             style={{
-              position: "absolute",
-              top: 16,
-              right: 10,
-              background: "transparent",
-              border: "none",
+              position: "fixed",
+              top: "50%",
+              left: 56,
+              transform: "translateY(-50%)",
+              width: 16,
+              height: 48,
+              background: "#141414",
+              border: "0.5px solid rgba(240,237,230,0.08)",
+              borderLeft: "none",
+              borderRadius: "0 8px 8px 0",
               cursor: "pointer",
-              color: "rgba(240,237,230,0.2)",
-              padding: "0.25rem",
-              borderRadius: 6,
-              display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              zIndex: 31,
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              {sidebarCollapsed ? <path d="M4 2l4 4-4 4" /> : <path d="M8 2L4 6l4 4" />}
+            <svg width="7" height="11" viewBox="0 0 8 12" fill="none" stroke="rgba(240,237,230,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 2l4 4-4 4" />
             </svg>
-          </button>
-        </aside>
+          </div>
+        )}
 
         {/* Content column — offset for sidebar on desktop */}
         <div

@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import UpgradePrompt from "@/app/components/UpgradePrompt"
+import { useToast } from "@/components/Toast"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -719,6 +720,7 @@ export default function EventDashboardPage() {
   const token = searchParams?.get("token") || ""
   const router = useRouter()
   useSession()
+  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -770,6 +772,8 @@ export default function EventDashboardPage() {
   const [insightsLocked, setInsightsLocked] = useState(false)
   const [insightsRequiredCredits, setInsightsRequiredCredits] = useState(2)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
+  const [insightsEventId, setInsightsEventId] = useState<string | null>(null)
+  const [insightsUnlockLoading, setInsightsUnlockLoading] = useState(false)
 
   // AI Q&A
   const [qaHistory, setQaHistory] = useState<QAItem[]>([])
@@ -933,17 +937,31 @@ export default function EventDashboardPage() {
 
   const handleDownloadReport = async (theme = 'navy') => {
     if (!eventData) return
-    const plan = eventData.organizerPlan ?? 'free'
-    if (plan === 'free' && reportCreditBalance < 150) {
-      setShowUpgradePrompt(true)
-      return
-    }
     setDownloadingReport(true)
+    const reportUrl = `/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}&theme=${encodeURIComponent(theme)}`
     try {
-      const res = await fetch(`/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}&theme=${encodeURIComponent(theme)}`)
-      if (!res.ok) {
-        const data = await res.json()
-        if (data.upgradeRequired) { setShowUpgradePrompt(true); return }
+      let res = await fetch(reportUrl)
+      if (res.status === 403) {
+        const json = await res.json()
+        if (json.creditsRequired && json.eventId && reportCreditBalance >= json.creditsRequired) {
+          const unlockRes = await fetch('/api/features/unlock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feature: 'ai_report', eventId: json.eventId }),
+          })
+          const unlockData = await unlockRes.json()
+          if (!unlockRes.ok || !unlockData.success) {
+            router.push('/dashboard/billing')
+            return
+          }
+          res = await fetch(reportUrl)
+          if (!res.ok) return
+          showToast({ featureName: 'Event Report', creditsUsed: json.creditsRequired, creditsRemaining: unlockData.creditsRemaining })
+        } else {
+          router.push('/dashboard/billing')
+          return
+        }
+      } else if (!res.ok) {
         return
       }
       const blob = await res.blob()
@@ -975,9 +993,9 @@ export default function EventDashboardPage() {
     setCsvCost(null)
     try {
       const res = await fetch(`/api/events/${slug}/export${token ? `?token=${encodeURIComponent(token)}` : ""}`)
-      if (res.status === 402) {
+      if (res.status === 403) {
         const data = await res.json()
-        setCsvCost(data.cost ?? null)
+        setCsvCost(data.creditsRequired ?? null)
         setCsvEventId(data.eventId ?? null)
         return
       }
@@ -1005,22 +1023,23 @@ export default function EventDashboardPage() {
     setCsvUnlockLoading(true)
     setCsvError("")
     try {
-      const res = await fetch("/api/billing/unlock", {
+      const res = await fetch("/api/features/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: csvEventId, feature: "csv" }),
+        body: JSON.stringify({ feature: "export_csv", eventId: csvEventId }),
       })
       const data = await res.json()
-      if (res.status === 402 && data.insufficientCredits) {
+      if (res.status === 402) {
         router.push("/dashboard/billing")
         return
       }
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         setCsvError(data.error || "Failed to unlock CSV export.")
         return
       }
       setCsvCost(null)
       setCsvEventId(null)
+      showToast({ featureName: "CSV Export", creditsUsed: 15, creditsRemaining: data.creditsRemaining })
       await handleExportCSV()
     } catch {
       setCsvError("Unable to complete purchase.")
@@ -1092,9 +1111,10 @@ export default function EventDashboardPage() {
       const qs = params.toString() ? `?${params.toString()}` : ''
       const res = await fetch(`/api/events/${slug}/insights${qs}`)
       const data = await res.json()
-      if (res.status === 402 && data.locked) {
+      if (res.status === 403 && data.locked) {
         setInsightsLocked(true)
-        setInsightsRequiredCredits(data.requiredCredits ?? 2)
+        setInsightsRequiredCredits(data.creditsRequired ?? 2)
+        setInsightsEventId(data.eventId ?? null)
         return
       }
       if (!res.ok) return
@@ -1103,6 +1123,28 @@ export default function EventDashboardPage() {
       setInsightsLocked(false)
     } catch {}
     finally { setInsightsLoading(false) }
+  }
+
+  const handleUnlockInsights = async () => {
+    if (!insightsEventId) return
+    setInsightsUnlockLoading(true)
+    try {
+      const res = await fetch('/api/features/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feature: 'ai_insights', eventId: insightsEventId }),
+      })
+      const data = await res.json()
+      if (res.status === 402) {
+        router.push('/dashboard/billing')
+        return
+      }
+      if (!res.ok || !data.success) return
+      showToast({ featureName: 'AI Insights', creditsUsed: insightsRequiredCredits, creditsRemaining: data.creditsRemaining })
+      setInsightsLocked(false)
+      await loadInsights(true)
+    } catch {}
+    finally { setInsightsUnlockLoading(false) }
   }
 
   const submitQuestion = async (question: string) => {
@@ -1269,7 +1311,7 @@ export default function EventDashboardPage() {
               <button
                 onClick={() => {
                   const plan = eventData?.organizerPlan ?? 'free'
-                  if (plan === 'free' && reportCreditBalance < 150) { setShowUpgradePrompt(true) } else { setShowReportOptions(true) }
+                  if (plan === 'free' && reportCreditBalance < 150) { router.push('/dashboard/billing') } else { setShowReportOptions(true) }
                 }}
                 disabled={downloadingReport}
                 title="Download event report"
@@ -1706,7 +1748,17 @@ export default function EventDashboardPage() {
                         <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights — {insightsRequiredCredits} credits</p>
                         <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Get 3 personalised insights about your event performance.</p>
                       </div>
-                      <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                      {reportCreditBalance >= insightsRequiredCredits ? (
+                        <button
+                          onClick={handleUnlockInsights}
+                          disabled={insightsUnlockLoading}
+                          style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", border: "none", cursor: insightsUnlockLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: insightsUnlockLoading ? 0.6 : 1 }}
+                        >
+                          {insightsUnlockLoading ? "Unlocking…" : `Unlock (${insightsRequiredCredits} credits)`}
+                        </button>
+                      ) : (
+                        <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                      )}
                     </div>
                   )}
 
