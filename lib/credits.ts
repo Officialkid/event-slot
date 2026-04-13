@@ -12,9 +12,9 @@ export const CREDIT_COSTS = {
 }
 
 export const CREDIT_BUNDLES = [
-  { id: 'credits_100', credits: 100, kesPrice: 1000, label: '100 points — Ksh 1,000' },
-  { id: 'credits_500', credits: 500, kesPrice: 4500, label: '500 points — Ksh 4,500 (save 10%)' },
-  { id: 'credits_1000', credits: 1000, kesPrice: 8000, label: '1,000 points — Ksh 8,000 (save 20%)' },
+  { id: 'credits_100', credits: 100, kesPrice: 1000, label: '100 credits — Ksh 1,000', savePct: null },
+  { id: 'credits_500', credits: 500, kesPrice: 4500, label: '500 credits — Ksh 4,500 (save 10%)', savePct: 10 },
+  { id: 'credits_1000', credits: 1000, kesPrice: 8000, label: '1,000 credits — Ksh 8,000 (save 20%)', savePct: 20 },
 ] as const
 
 export type CreditBundleId = typeof CREDIT_BUNDLES[number]['id']

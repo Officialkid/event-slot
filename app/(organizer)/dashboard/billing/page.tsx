@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
+import { CREDIT_BUNDLES } from "@/lib/credits"
 
 interface BillingStatus {
   plan: string
@@ -24,18 +25,6 @@ function IconCheck() {
   return (
     <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#C8F55A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 7l3.5 3.5L12 3" />
-    </svg>
-  )
-}
-
-function IconChevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="11" height="11" viewBox="0 0 12 12" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-      style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.18s" }}
-    >
-      <path d="M2 4l4 4 4-4" />
     </svg>
   )
 }
@@ -186,19 +175,13 @@ function PlanCard({
   )
 }
 
-const PAYG_ROWS = [
-  { feature: "Remove EventSlot watermark (one event)", cost: "10 points" },
-  { feature: "Export CSV", cost: "15 points" },
-  { feature: "Generate Word report", cost: "100 points" },
-  { feature: "Analytics tracking (one event)", cost: "150 points" },
-  { feature: "Custom thank you message", cost: "20 points" },
+const FEATURE_COSTS = [
+  { feature: "AI event report", cost: "5" },
+  { feature: "AI insight cards", cost: "2" },
+  { feature: "Analytics Q&A query", cost: "1 per question" },
+  { feature: "Remove watermark", cost: "3" },
+  { feature: "Export CSV", cost: "2" },
 ]
-
-const CREDITS_OPTS = [
-  { label: "Ksh 1,000", sub: "100 points", amount: 100, bundleId: "credits_100" },
-  { label: "Ksh 4,500", sub: "500 points · save 10%", amount: 500, bundleId: "credits_500" },
-  { label: "Ksh 8,000", sub: "1,000 points · save 20%", amount: 1000, bundleId: "credits_1000" },
-] as const
 
 export default function BillingPage() {
   const searchParams = useSearchParams()
@@ -207,15 +190,15 @@ export default function BillingPage() {
   const planParam = searchParams.get("plan") ?? ""
 
   const [status, setStatus] = useState<BillingStatus | null>(null)
-  const [transactions, setTransactions] = useState<CreditTx[]>([])
   const [successVisible, setSuccessVisible] = useState(isSuccess)
   const [creditsVisible, setCreditsVisible] = useState(isCreditsAdded)
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
   const [upgradeLoading, setUpgradeLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [cancelError, setCancelError] = useState("")
-  const [creditsLoading, setCreditsLoading] = useState<number | null>(null)
-  const [pricingOpen, setPricingOpen] = useState(false)
+  const [creditsLoading, setCreditsLoading] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [creditHistory, setCreditHistory] = useState<CreditTx[]>([])
 
   useEffect(() => {
     if (isSuccess) {
@@ -235,15 +218,15 @@ export default function BillingPage() {
     try { const res = await fetch("/api/billing/status"); const data = await res.json(); setStatus(data) } catch { /* ignore */ }
   }, [])
 
-  const fetchTransactions = useCallback(async () => {
+  const fetchCreditHistory = useCallback(async () => {
     try {
-      const res = await fetch("/api/billing/transactions")
+      const res = await fetch('/api/user/credits/history')
       const data = await res.json()
-      if (data.transactions) setTransactions(data.transactions)
+      if (data.transactions) setCreditHistory(data.transactions)
     } catch { /* ignore */ }
   }, [])
 
-  useEffect(() => { fetchStatus(); fetchTransactions() }, [fetchStatus, fetchTransactions])
+  useEffect(() => { fetchStatus() }, [fetchStatus])
 
   async function handleUpgrade(plan: "pro" | "business") {
     setUpgradeLoading(true)
@@ -270,8 +253,8 @@ export default function BillingPage() {
     finally { setCancelLoading(false) }
   }
 
-  async function handleBuyCredits(amount: number, bundleId: string) {
-    setCreditsLoading(amount)
+  async function handleBuyCredits(bundleId: string) {
+    setCreditsLoading(bundleId)
     try {
       const res = await fetch("/api/billing/credits", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -281,6 +264,13 @@ export default function BillingPage() {
       if (data.url) window.location.href = data.url
       else setCreditsLoading(null)
     } catch { setCreditsLoading(null) }
+  }
+
+  async function toggleHistory() {
+    if (!historyOpen && creditHistory.length === 0) {
+      await fetchCreditHistory()
+    }
+    setHistoryOpen(o => !o)
   }
 
   const plan = status?.plan ?? "free"
@@ -337,7 +327,7 @@ export default function BillingPage() {
               <circle cx="8" cy="8" r="6.5" /><path d="M5 8l2 2 4-4" />
             </svg>
             <span style={{ fontSize: "0.875rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}>
-              Points added to your account successfully.
+              Credits added to your account.
             </span>
           </div>
           <button onClick={() => setCreditsVisible(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(200,245,90,0.5)", fontSize: "1.1rem", lineHeight: 1, padding: 0 }}>x</button>
@@ -399,53 +389,130 @@ export default function BillingPage() {
         </section>
 
         <section>
-          <SectionHeading>Points Balance</SectionHeading>
+          <SectionHeading>EventSlot Credits</SectionHeading>
+
+          {/* Balance card */}
           <Card>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.6rem", color: "#C8F55A", lineHeight: 1 }}>
-                  {status ? fmtCredits(creditBalance) : "..."} points
-                </div>
-                <p style={{ margin: "0.4rem 0 0", fontSize: "0.8rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                  Points power pay-as-you-go features. 100 Ksh = 10 points.
-                </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6" }}>
+                Your credits
+              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", margin: "0.375rem 0 0.125rem" }}>
+                <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2.5rem", color: "#C8F55A", lineHeight: 1 }}>
+                  {status ? fmtCredits(creditBalance) : "—"}
+                </span>
+                <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+                  credits available
+                </span>
               </div>
-              <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
-                {CREDITS_OPTS.map(opt => (
-                  <button key={opt.amount} onClick={() => handleBuyCredits(opt.amount, opt.bundleId)}
-                    disabled={creditsLoading !== null} className="bil-ghost"
+              <button
+                onClick={toggleHistory}
+                style={{
+                  alignSelf: "flex-start", background: "none", border: "none", padding: 0, cursor: "pointer",
+                  fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)",
+                  textDecoration: "underline", textDecorationColor: "rgba(240,237,230,0.15)", marginTop: "0.25rem",
+                }}
+              >
+                View transaction history
+              </button>
+            </div>
+          </Card>
+
+          {/* Bundle cards */}
+          <div style={{ display: "flex", gap: "0.875rem", marginTop: "1rem", flexWrap: "wrap" }}>
+            {CREDIT_BUNDLES.map(b => {
+              const isLoading = creditsLoading === b.id
+              const isDisabled = creditsLoading !== null
+              return (
+                <div
+                  key={b.id}
+                  style={{
+                    flex: "1 1 160px", minWidth: 0, background: "#141414",
+                    border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 12,
+                    padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
+                    <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: "#F0EDE6", lineHeight: 1 }}>
+                      {b.credits.toLocaleString()}
+                    </span>
+                    {b.savePct && (
+                      <span style={{
+                        background: "rgba(200,245,90,0.12)", border: "0.5px solid rgba(200,245,90,0.3)",
+                        borderRadius: 100, padding: "0.2rem 0.55rem", fontSize: "0.68rem",
+                        fontWeight: 600, color: "#C8F55A", fontFamily: "var(--font-dm-sans)",
+                        whiteSpace: "nowrap", flexShrink: 0,
+                      }}>
+                        Save {b.savePct}%
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 500, color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
+                    Ksh {b.kesPrice.toLocaleString()}
+                  </p>
+                  <button
+                    onClick={() => handleBuyCredits(b.id)}
+                    disabled={isDisabled}
                     style={{
-                      background: "transparent", border: "0.5px solid rgba(240,237,230,0.14)", borderRadius: 8,
-                      padding: "0.55rem 1rem", cursor: creditsLoading !== null ? "not-allowed" : "pointer",
-                      fontFamily: "var(--font-dm-sans)", display: "flex", flexDirection: "column",
-                      alignItems: "flex-start", gap: "0.1rem",
-                      opacity: (creditsLoading !== null && creditsLoading !== opt.amount) ? 0.45 : 1,
-                      transition: "opacity 0.15s",
+                      marginTop: "auto", paddingTop: "0.375rem",
+                      background: isLoading ? "rgba(200,245,90,0.5)" : isDisabled ? "rgba(200,245,90,0.3)" : "#C8F55A",
+                      border: "none", borderRadius: 8, padding: "0.5rem 0.875rem",
+                      fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A",
+                      cursor: isDisabled ? "not-allowed" : "pointer",
+                      fontFamily: "var(--font-dm-sans)", width: "100%",
                     }}
                   >
-                    <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "#F0EDE6" }}>
-                      {creditsLoading === opt.amount ? "Redirecting..." : opt.label}
-                    </span>
-                    <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)" }}>{opt.sub}</span>
+                    {isLoading ? "Redirecting…" : "Buy"}
                   </button>
-                ))}
-              </div>
-              <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "0.875rem" }}>
-                <button onClick={() => setPricingOpen(o => !o)} className="bil-collapsible" style={{
-                  display: "flex", alignItems: "center", gap: "0.45rem",
-                  background: "transparent", border: "none", cursor: "pointer",
-                  padding: "0.3rem 0.5rem", borderRadius: 6, margin: "-0.3rem -0.5rem",
-                  color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
-                }}>
-                  <IconChevron open={pricingOpen} />
-                  What do points cost?
-                </button>
-                {pricingOpen && (
-                  <div style={{ marginTop: "0.875rem", overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Feature cost table */}
+          <div style={{ marginTop: "1.25rem" }}>
+            <p style={{ margin: "0 0 0.625rem", fontSize: "0.72rem", fontWeight: 600, color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              What you can do with credits
+            </p>
+            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "0.6rem 0.875rem", color: "rgba(240,237,230,0.3)", fontWeight: 500, fontSize: "0.68rem", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "0.5px solid rgba(240,237,230,0.06)" }}>Feature</th>
+                    <th style={{ textAlign: "right", padding: "0.6rem 0.875rem", color: "rgba(240,237,230,0.3)", fontWeight: 500, fontSize: "0.68rem", textTransform: "uppercase" as const, letterSpacing: "0.05em", borderBottom: "0.5px solid rgba(240,237,230,0.06)", whiteSpace: "nowrap" as const }}>Credits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FEATURE_COSTS.map((row, i) => (
+                    <tr key={row.feature} className="bil-row">
+                      <td style={{ padding: "0.6rem 0.875rem", color: "rgba(240,237,230,0.6)", borderBottom: i < FEATURE_COSTS.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none" }}>
+                        {row.feature}
+                      </td>
+                      <td style={{ padding: "0.6rem 0.875rem", color: "rgba(240,237,230,0.75)", fontWeight: 500, textAlign: "right", whiteSpace: "nowrap" as const, borderBottom: i < FEATURE_COSTS.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none" }}>
+                        {row.cost}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Transaction history (collapsible) */}
+          {historyOpen && (
+            <div style={{ marginTop: "1.25rem" }} className="bil-in">
+              <Card>
+                {creditHistory.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: "0.875rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                    No transactions yet.
+                  </p>
+                ) : (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
                       <thead><tr>
-                        {["Feature", "Cost"].map(h => (
-                          <th key={h} style={{ textAlign: "left", padding: "0 0.5rem 0.5rem",
+                        {["Date", "Type", "Amount", "Description"].map(h => (
+                          <th key={h} style={{
+                            textAlign: "left", padding: "0 0.75rem 0.75rem",
                             color: "rgba(240,237,230,0.3)", fontWeight: 500, fontSize: "0.68rem",
                             textTransform: "uppercase" as const, letterSpacing: "0.05em",
                             borderBottom: "0.5px solid rgba(240,237,230,0.06)", whiteSpace: "nowrap" as const,
@@ -453,23 +520,31 @@ export default function BillingPage() {
                         ))}
                       </tr></thead>
                       <tbody>
-                        {PAYG_ROWS.map(row => (
-                          <tr key={row.feature}>
-                            <td style={{ padding: "0.5rem", color: "rgba(240,237,230,0.55)", borderBottom: "0.5px solid rgba(240,237,230,0.04)" }}>
-                              {row.feature}
-                            </td>
-                            <td style={{ padding: "0.5rem", color: "rgba(240,237,230,0.75)", borderBottom: "0.5px solid rgba(240,237,230,0.04)", whiteSpace: "nowrap" as const }}>
-                              {row.cost}
-                            </td>
-                          </tr>
-                        ))}
+                        {creditHistory.map(tx => {
+                          const isPos = tx.amount >= 0
+                          const typeLabel = isPos ? "Purchase" : "Spent"
+                          return (
+                            <tr key={tx.id} className="bil-row" style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)" }}>
+                              <td style={{ padding: "0.7rem 0.75rem", color: "rgba(240,237,230,0.5)", whiteSpace: "nowrap" as const }}>{fmtDate(tx.createdAt)}</td>
+                              <td style={{ padding: "0.7rem 0.75rem", whiteSpace: "nowrap" as const }}>
+                                <span style={{ fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: isPos ? "#C8F55A" : "rgba(240,237,230,0.35)" }}>
+                                  {typeLabel}
+                                </span>
+                              </td>
+                              <td style={{ padding: "0.7rem 0.75rem", whiteSpace: "nowrap" as const, fontWeight: 500, color: isPos ? "#C8F55A" : "rgba(255,107,107,0.75)" }}>{fmtAmt(tx.amount)}</td>
+                              <td style={{ padding: "0.7rem 0.75rem", color: "rgba(240,237,230,0.55)", maxWidth: 220 }}>
+                                <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{tx.description}</span>
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
-              </div>
+              </Card>
             </div>
-          </Card>
+          )}
         </section>
 
         {status && plan !== "business" && (
@@ -501,47 +576,6 @@ export default function BillingPage() {
             </div>
           </section>
         )}
-
-        <section>
-          <SectionHeading>Points history</SectionHeading>
-          <Card>
-            {transactions.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "0.875rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-                No credit transactions yet.
-              </p>
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
-                  <thead><tr>
-                    {["Date", "Description", "Amount", "Balance"].map(h => (
-                      <th key={h} style={{
-                        textAlign: "left", padding: "0 0.75rem 0.75rem",
-                        color: "rgba(240,237,230,0.3)", fontWeight: 500, fontSize: "0.68rem",
-                        textTransform: "uppercase" as const, letterSpacing: "0.05em",
-                        borderBottom: "0.5px solid rgba(240,237,230,0.06)", whiteSpace: "nowrap" as const,
-                      }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {transactions.map(tx => {
-                      const isPos = tx.amount >= 0
-                      return (
-                        <tr key={tx.id} className="bil-row" style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)" }}>
-                          <td style={{ padding: "0.7rem 0.75rem", color: "rgba(240,237,230,0.5)", whiteSpace: "nowrap" as const }}>{fmtDate(tx.createdAt)}</td>
-                          <td style={{ padding: "0.7rem 0.75rem", color: "rgba(240,237,230,0.65)", maxWidth: 220 }}>
-                            <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{tx.description}</span>
-                          </td>
-                          <td style={{ padding: "0.7rem 0.75rem", whiteSpace: "nowrap" as const, fontWeight: 500, color: isPos ? "#C8F55A" : "rgba(255,107,107,0.75)" }}>{fmtAmt(tx.amount)}</td>
-                          <td style={{ padding: "0.7rem 0.75rem", color: "rgba(240,237,230,0.45)", whiteSpace: "nowrap" as const }}>{fmtCredits(tx.balance)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        </section>
 
       </div>
     </div>
