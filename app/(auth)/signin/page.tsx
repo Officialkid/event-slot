@@ -1,14 +1,23 @@
 'use client'
 
-import { useState, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, Suspense, useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 
 function SignInForm() {
+  const { status } = useSession()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const didReset = searchParams.get('reset') === 'success'
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard')
+    }
+  }, [status, router])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

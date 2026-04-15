@@ -130,7 +130,7 @@ function CapacityModal({
     setError("")
     try {
       const res = await fetch(`/api/events/${event.slug}/capacity`, {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newCapacity: parsed, token: event.dashboardToken }),
       })

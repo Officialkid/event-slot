@@ -21,7 +21,7 @@ const comparisonSections: ComparisonSection[] = [
     title: "Core",
     rows: [
       { feature: "Active events", free: "1", pro: "Unlimited", business: "Unlimited" },
-      { feature: "Registrations per event", free: "100", pro: "Unlimited", business: "Unlimited" },
+      { feature: "Registrations per event", free: "100 included", pro: "500 included", business: "Unlimited" },
       { feature: "Waitlist", free: true, pro: true, business: true },
       { feature: "Form questions", free: "Unlimited", pro: "Unlimited", business: "Unlimited" },
       { feature: "Waitlist automation", free: true, pro: true, business: true },
@@ -46,9 +46,13 @@ const comparisonSections: ComparisonSection[] = [
     ],
   },
   {
-    title: "Analytics & Insights",
+    title: "Analytics & AI",
     rows: [
       { feature: "Analytics", free: false, pro: true, business: "Advanced" },
+      { feature: "AI insight cards", free: false, pro: true, business: true },
+      { feature: "AI event reports", free: false, pro: false, business: true },
+      { feature: "Natural language Q&A", free: false, pro: false, business: true },
+      { feature: "Event Insights Tracker", free: false, pro: false, business: true },
       { feature: "Attendee demographics", free: false, pro: false, business: true },
       { feature: "Post-event feedback form", free: false, pro: false, business: true },
     ],
@@ -56,9 +60,9 @@ const comparisonSections: ComparisonSection[] = [
   {
     title: "Team & Operations",
     rows: [
-      { feature: "Team members", free: "1", pro: "2", business: "5" },
+      { feature: "Team members", free: "1", pro: "10", business: "20" },
       { feature: "Duplicate events", free: false, pro: true, business: true },
-      { feature: "Bulk registration", free: false, pro: "Up to 20", business: "Unlimited" },
+      { feature: "Bulk registration", free: "Up to 3", pro: "Up to 20", business: "Unlimited" },
       { feature: "QR code check-in", free: false, pro: false, business: "Coming soon" },
       { feature: "Priority support", free: false, pro: false, business: true },
     ],
@@ -415,15 +419,16 @@ export default function PricingPage() {
                 {[
                   "Everything in Free",
                   "Unlimited active events",
-                  "Unlimited registrations per event",
+                  "500 registrations included (pay-as-you-go beyond)",
                   "Data stored forever",
                   "Export attendees (CSV)",
                   "Event report download (Word)",
                   "Remove EventSlot watermark",
                   "Event analytics",
+                  "AI insight cards",
                   "Custom thank you message",
                   "Duplicate events",
-                  "2 team members",
+                  "10 team members",
                   "Bulk registration (up to 20)",
                 ].map((f, i) => (
                   <FeatureItem key={i} label={f} ok={true} />
@@ -447,10 +452,10 @@ export default function PricingPage() {
             </p>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
               <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2.4rem", color: "#F0EDE6" }}>
-                {isAnnual ? "$15" : "$19"}
+                {isAnnual ? "$80" : "$100"}
               </span>
               <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
-                {isAnnual ? "\u00a0/ month, billed $180/year" : "\u00a0/ month"}
+                {isAnnual ? "\u00a0/ month, billed $960/year" : "\u00a0/ month"}
               </span>
             </div>
             {isAnnual && (
@@ -468,7 +473,7 @@ export default function PricingPage() {
                     border: "0.5px solid rgba(200,245,90,0.25)",
                   }}
                 >
-                  Save $48/year
+                  Save $240/year
                 </span>
               </div>
             )}
@@ -499,15 +504,17 @@ export default function PricingPage() {
             </button>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.65rem" }}>
               {[
-                "Everything in Pro",
-                "Unlimited registrations",
-                "5 team members",
-                "Custom domain",
-                "Advanced analytics + Insight Tracker",
-                "Post-event feedback form",
-                "Attendee demographics",
-                "Priority support",
-                "QR code check-in (coming soon)",
+                  "Everything in Pro",
+                  "Unlimited registrations (no extra cost)",
+                  "20 team members",
+                  "AI event reports (included)",
+                  "AI insight cards (included)",
+                  "Natural language analytics Q&A",
+                  "Event Insights Tracker",
+                  "Post-event feedback forms",
+                  "Attendee demographics",
+                  "Priority support",
+                  "QR code check-in (coming soon)",
               ].map((f, i) => (
                 <FeatureItem key={i} label={f} ok={true} />
               ))}
@@ -516,7 +523,7 @@ export default function PricingPage() {
         </div>
 
         {/* CREDITS / PAY AS YOU GO */}
-        <div style={{ marginBottom: "5rem" }}>
+        <div id="ai-features" style={{ marginBottom: "5rem" }}>
           <div style={{
             background: "#0D0D0D",
             border: "0.5px solid rgba(240,237,230,0.06)",

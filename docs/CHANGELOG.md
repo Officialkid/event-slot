@@ -1,6 +1,26 @@
 # EventSlot — Changelog
 
-## [0.4.0] — April 15, 2026
+## [0.4.1] — April 15, 2026
+
+### UI/UX Fixes & Accuracy Pass
+
+- **Navbar active state** — Added `id="how-it-works"` to the Feature Highlights section and `id="get-started"` to the CTA band section so the IntersectionObserver in Nav correctly highlights Features and Get Started links when those sections are in view
+- **Pricing page — Business plan price corrected** — Monthly: $100 (was incorrectly showing $19); Annual: $80/month billed $960/year, saving $240/year (not $48)
+- **Pricing page — Pro team members corrected** — Updated from "2 team members" to "10 team members" in feature list
+- **Pricing page — Business team members corrected** — Updated from "5 team members" to "20 team members" in feature list
+- **Pricing page — Business feature list updated** — Added AI event reports, AI insight cards, Natural language Q&A, Event Insights Tracker; removed inaccurate "Custom domain" entry
+- **Pricing page — Pro feature list updated** — Added "AI insight cards" (included in Pro); corrected registrations label to "500 included (pay-as-you-go beyond)"
+- **Pricing page — Comparison table corrected** — Team members (Free: 1, Pro: 10, Business: 20); Registrations (Free: 100 included, Pro: 500 included, Business: Unlimited); Analytics & AI section expanded with AI insight cards, AI reports, Q&A, Insights Tracker, demographics, feedback; Bulk registration (Free: Up to 3)
+- **Pricing page — `id="ai-features"` anchor added** — "See all AI features →" link on homepage now scrolls to the credits/AI section on /pricing
+- **Home page — "See all AI features" link** — Changed from `/pricing` to `/pricing#ai-features`
+- **Home page — Trust stat updated** — "Loved by organizers in 5+ countries" changed to "Used across Kenya, Nigeria, Uganda & beyond"
+- **Home page — Smart CTAs** — Hero "Start for free", Feature 1 CTA, and CTA band buttons now use `SmartCTA` component: signed-in users are sent to `/dashboard`, others to `/signup`
+- **Home page — Pro plan preview updated** — Added "AI insight cards" to Pro plan feature list; "Up to 500 registrations" → "500 registrations included"
+- **Signup page** — Already-signed-in users are immediately redirected to `/dashboard` instead of being shown the signup form
+- **Signin page** — Already-signed-in users are immediately redirected to `/dashboard`
+- **New component: `components/SmartCTA.tsx`** — Session-aware CTA link component
+
+
 
 ### Documentation & System Updates
 - **Documentation System** — Updated all docs files post-build completion

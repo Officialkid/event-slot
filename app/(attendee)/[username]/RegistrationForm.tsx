@@ -19,6 +19,7 @@ type EventProps = {
     confirmedCount: number
     questions: EventQuestion[]
     organizerEmail: string
+    organizerName?: string | null
     eventDate?: Date | null
     location?: string | null
     communityLink?: string | null
@@ -412,7 +413,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           {event.title}
         </h1>
         <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", marginBottom: event.description ? "0.75rem" : "0.5rem" }}>
-          Organised by {event.organizerEmail}
+          Organised by {event.organizerName || event.organizerEmail}
         </p>
         {event.description && (
           <p style={{ fontWeight: 300, fontSize: "0.95rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.65, marginBottom: "0.75rem", maxWidth: 480 }}>

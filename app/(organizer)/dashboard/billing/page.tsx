@@ -176,11 +176,11 @@ function PlanCard({
 }
 
 const FEATURE_COSTS = [
-  { feature: "AI event report", cost: "5" },
-  { feature: "AI insight cards", cost: "2" },
-  { feature: "Analytics Q&A query", cost: "1 per question" },
-  { feature: "Remove watermark", cost: "3" },
-  { feature: "Export CSV", cost: "2" },
+  { feature: "AI event report", cost: "50 credits" },
+  { feature: "AI insight cards", cost: "20 credits" },
+  { feature: "Analytics Q&A query", cost: "60 credits per question" },
+  { feature: "Remove watermark", cost: "10 credits" },
+  { feature: "Export CSV", cost: "15 credits" },
 ]
 
 export default function BillingPage() {

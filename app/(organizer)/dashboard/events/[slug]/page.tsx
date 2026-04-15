@@ -256,9 +256,9 @@ const REPORT_THEMES = [
 
 function ReportOptionsModal({ onClose, onGenerate, downloading, plan, creditBalance }: { onClose: () => void; onGenerate: (theme: string) => void; downloading: boolean; plan: string; creditBalance: number }) {
   const [selected, setSelected] = useState('navy')
-  const isAI = plan === 'pro' || plan === 'business' || creditBalance >= 150
+  const isAI = plan === 'pro' || plan === 'business' || creditBalance >= 50
   const btnLabel = downloading ? "Generating…" : isAI
-    ? plan === 'free' ? `Download AI Report (150 pts)` : "Download AI Report"
+    ? plan === 'free' ? `Download AI Report (50 pts)` : "Download AI Report"
     : "Download Standard Report"
   const subLabel = !downloading && plan === 'free' && isAI
     ? `You have ${creditBalance} points`
@@ -721,47 +721,96 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
 
 // ─── Manual Registration Modal ────────────────────────────────────────────────
 
+type ManualAttendee = Record<string, string>
+
+function emptyManualAttendee(questions: Question[]): ManualAttendee {
+  const init: ManualAttendee = {}
+  for (const q of questions) init[q.id] = ""
+  return init
+}
+
 function ManualRegModal({
-  questions, slug, token, onClose, onSuccess,
+  questions, slug, token, onClose, onSuccess, confirmedCount, capacity,
 }: {
   questions: Question[]
   slug: string
   token: string
   onClose: () => void
   onSuccess: () => void
+  confirmedCount: number
+  capacity: number | null
 }) {
-  const [values, setValues] = React.useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {}
-    for (const q of questions) init[q.id] = ""
-    return init
-  })
+  const [attendees, setAttendees] = React.useState<ManualAttendee[]>([emptyManualAttendee(questions)])
   const [regStatus, setRegStatus] = React.useState<'confirmed' | 'waitlist'>('confirmed')
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState("")
+  const [results, setResults] = React.useState<Array<{ registrationNumber: number; status: string; name: string }>>([])
+  const [dupWarning, setDupWarning] = React.useState<{ attendeeIdx: number; regNumber: number } | null>(null)
+  const [forceIndexes, setForceIndexes] = React.useState<Set<number>>(new Set())
+
+  const atCapacity = !!(capacity && confirmedCount >= capacity)
+  const slotsLeft = capacity ? Math.max(0, capacity - confirmedCount) : null
+
+  const addAttendee = () => setAttendees(a => [...a, emptyManualAttendee(questions)])
+  const removeAttendee = (idx: number) => {
+    setAttendees(a => a.filter((_, i) => i !== idx))
+    setForceIndexes(s => { const n = new Set(s); n.delete(idx); return n })
+  }
+  const handleChange = (idx: number, qId: string, val: string) => {
+    setAttendees(a => { const next = [...a]; next[idx] = { ...next[idx], [qId]: val }; return next })
+  }
 
   const handleSubmit = async () => {
-    // Client-side required check
-    for (const q of questions) {
-      if (q.required && !values[q.id]?.trim()) {
-        setError(`"${q.label}" is required`)
-        return
+    setError("")
+    setDupWarning(null)
+    for (let i = 0; i < attendees.length; i++) {
+      for (const q of questions) {
+        if (q.required && !attendees[i][q.id]?.trim()) {
+          setError(`${attendees.length > 1 ? `Attendee ${i + 1}: ` : ""}"${q.label}" is required`)
+          return
+        }
       }
     }
     setSaving(true)
-    setError("")
-    const answers = questions.map(q => ({ questionId: q.id, value: values[q.id] ?? "" }))
+    const nameQ = questions.find(q => q.label.toLowerCase().includes('name') && q.type === 'text')
+    const registered: Array<{ registrationNumber: number; status: string; name: string }> = []
     try {
-      const res = await fetch(`/api/events/${slug}/manual-register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers, status: regStatus, token }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error || "Failed to register."); return }
+      for (let i = 0; i < attendees.length; i++) {
+        const answers = questions.map(q => ({ questionId: q.id, value: attendees[i][q.id] ?? "" }))
+        const res = await fetch(`/api/events/${slug}/manual-register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers, status: regStatus, token, forceDuplicate: forceIndexes.has(i) }),
+        })
+        const data = await res.json()
+        if (res.status === 409 && data.duplicate) {
+          setSaving(false)
+          setDupWarning({ attendeeIdx: i, regNumber: data.existing?.registrationNumber ?? 0 })
+          return
+        }
+        if (!res.ok) {
+          setSaving(false)
+          setError(`${attendees.length > 1 ? `Attendee ${i + 1}: ` : ""}${data.error || "Failed to register."}`)
+          return
+        }
+        const name = nameQ ? (attendees[i][nameQ.id]?.trim() || `Attendee ${i + 1}`) : `Attendee ${i + 1}`
+        registered.push({ registrationNumber: data.registrationNumber, status: data.status, name })
+      }
+      setResults(registered)
       onSuccess()
-      onClose()
-    } catch { setError("Unexpected error.") }
-    finally { setSaving(false) }
+    } catch {
+      setSaving(false)
+      setError("Unexpected error.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleForce = () => {
+    if (!dupWarning) return
+    setForceIndexes(s => new Set(s).add(dupWarning.attendeeIdx))
+    setDupWarning(null)
+    void handleSubmit()
   }
 
   const inputStyle: React.CSSProperties = {
@@ -770,76 +819,122 @@ function ManualRegModal({
     fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box",
   }
 
+  if (results.length > 0) {
+    return (
+      <>
+        <Backdrop onClick={onClose} />
+        <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "1rem" }}>
+            {results.length === 1 ? "Registered" : `${results.length} people registered`}
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {results.map((r, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#101010", borderRadius: 8, padding: "0.6rem 0.875rem" }}>
+                <span style={{ fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
+                <span style={{ fontSize: "0.72rem", color: r.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "capitalize" }}>#{r.registrationNumber} · {r.status}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
+            <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <Backdrop onClick={onClose} />
       <div
-        style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)", maxHeight: "85vh", overflowY: "auto" }}
+        style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,480px)", maxHeight: "90vh", overflowY: "auto" }}
         onClick={e => e.stopPropagation()}
       >
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.25rem" }}>Register someone manually</h3>
-        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
-          Add a registration directly without the public form.
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {questions.map(q => (
-            <div key={q.id}>
-              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
-                {q.label}{q.required && <span style={{ color: "#C8F55A", marginLeft: 2 }}>*</span>}
-              </label>
-              {q.type === "select" && q.options ? (
-                <select
-                  value={values[q.id] ?? ""}
-                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
-                  style={{ ...inputStyle }}
-                >
-                  <option value="">Select…</option>
-                  {q.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-              ) : q.type === "textarea" ? (
-                <textarea
-                  rows={3}
-                  value={values[q.id] ?? ""}
-                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
-                  style={{ ...inputStyle, resize: "vertical" }}
-                />
-              ) : (
-                <input
-                  type={q.type === "tel" ? "tel" : q.type === "email" ? "email" : q.type === "number" ? "number" : "text"}
-                  value={values[q.id] ?? ""}
-                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
-                  style={inputStyle}
-                />
-              )}
-            </div>
-          ))}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>Register manually</h3>
+          <button onClick={addAttendee} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "rgba(200,245,90,0.1)", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.3rem 0.75rem", fontSize: "0.75rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M5 1v8M1 5h8" /></svg>
+            Add person
+          </button>
         </div>
+        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0.25rem 0 1rem" }}>
+          Add registrations directly without the public form.
+        </p>
+
+        {atCapacity && regStatus === 'confirmed' && (
+          <div style={{ background: "rgba(255,168,0,0.08)", border: "0.5px solid rgba(255,168,0,0.25)", borderRadius: 8, padding: "0.6rem 0.875rem", marginBottom: "1rem", fontSize: "0.78rem", color: "rgba(255,168,0,0.9)", fontFamily: "var(--font-dm-sans)" }}>
+            Event is at capacity — people will be added to the waitlist.
+          </div>
+        )}
+        {!atCapacity && slotsLeft !== null && slotsLeft <= 5 && (
+          <div style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.18)", borderRadius: 8, padding: "0.6rem 0.875rem", marginBottom: "1rem", fontSize: "0.78rem", color: "rgba(255,168,0,0.7)", fontFamily: "var(--font-dm-sans)" }}>
+            {slotsLeft} slot{slotsLeft !== 1 ? "s" : ""} remaining before event is full.
+          </div>
+        )}
+
+        {dupWarning && (
+          <div style={{ background: "rgba(255,107,107,0.08)", border: "0.5px solid rgba(255,107,107,0.25)", borderRadius: 8, padding: "0.875rem", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.625rem" }}>
+              {attendees.length > 1 ? `Attendee ${dupWarning.attendeeIdx + 1} appears` : "This person appears"} to already be registered (#{dupWarning.regNumber}). Add anyway?
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button onClick={handleForce} style={{ background: "#C8F55A", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Add anyway</button>
+              <button onClick={() => setDupWarning(null)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {attendees.map((form, idx) => (
+          <div key={idx} style={idx > 0 ? { borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1.25rem", marginTop: "1.25rem" } : {}}>
+            {attendees.length > 1 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>Attendee {idx + 1}</span>
+                {idx > 0 && <button type="button" onClick={() => removeAttendee(idx)} style={{ background: "transparent", border: "none", color: "rgba(240,237,230,0.3)", cursor: "pointer", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", padding: 0 }}>Remove</button>}
+              </div>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {questions.map(q => (
+                <div key={q.id}>
+                  <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                    {q.label}{q.required && <span style={{ color: "#C8F55A", marginLeft: 2 }}>*</span>}
+                  </label>
+                  {q.type === "select" && q.options ? (
+                    <select value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={{ ...inputStyle }}>
+                      <option value="">Select…</option>
+                      {q.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : q.type === "textarea" ? (
+                    <textarea rows={3} value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={{ ...inputStyle, resize: "vertical" }} />
+                  ) : (
+                    <input type={q.type === "tel" ? "tel" : q.type === "email" ? "email" : q.type === "number" ? "number" : "text"} value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={inputStyle} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
         {/* Status selector */}
         <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.08)" }}>
           <div style={{ fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem" }}>Status</div>
           <div style={{ display: "flex", gap: "1rem" }}>
             {(['confirmed', 'waitlist'] as const).map(s => (
               <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", color: regStatus === s ? "#F0EDE6" : "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
-                <input
-                  type="radio"
-                  name="regStatus"
-                  value={s}
-                  checked={regStatus === s}
-                  onChange={() => setRegStatus(s)}
-                  style={{ accentColor: "#C8F55A" }}
-                />
+                <input type="radio" name="regStatus" value={s} checked={regStatus === s} onChange={() => setRegStatus(s)} style={{ accentColor: "#C8F55A" }} />
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </label>
             ))}
           </div>
           <p style={{ marginTop: "0.4rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-            Confirmed adds directly to your attendee list.
+            {atCapacity && regStatus === 'confirmed' ? "Capacity full — will be added to waitlist." : "Confirmed adds directly to your attendee list. Capacity rules apply."}
           </p>
         </div>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Registering…" : "Add registration"}</button>
+          <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Registering…" : attendees.length > 1 ? `Register ${attendees.length} people` : "Add registration"}
+          </button>
         </div>
       </div>
     </>
@@ -1366,6 +1461,8 @@ export default function EventDashboardPage() {
           questions={eventData.questions}
           slug={slug}
           token={token || eventData.dashboardToken}
+          confirmedCount={confirmed.length}
+          capacity={eventData.capacity ?? null}
           onClose={() => setShowManualReg(false)}
           onSuccess={() => { fetchDashboard() }}
         />
@@ -1469,7 +1566,7 @@ export default function EventDashboardPage() {
               <button
                 onClick={() => {
                   const plan = eventData?.organizerPlan ?? 'free'
-                  if (plan === 'free' && reportCreditBalance < 150) { router.push('/dashboard/billing') } else { setShowReportOptions(true) }
+                  if (plan === 'free' && reportCreditBalance < 50) { router.push('/dashboard/billing') } else { setShowReportOptions(true) }
                 }}
                 disabled={downloadingReport}
                 title="Download event report"

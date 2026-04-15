@@ -34,6 +34,7 @@ export default async function RegistrationStatusPage({ params }: { params: { reg
       communityLink: true,
       status: true,
       deadline: true,
+      organizer: { select: { name: true } },
     },
   })
 
@@ -60,7 +61,7 @@ export default async function RegistrationStatusPage({ params }: { params: { reg
           {event.title}
         </h1>
         <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.4)', margin: '0 0 0.6rem' }}>
-          Organised by {event.organizerEmail}
+          Organised by {event.organizer?.name || event.organizerEmail}
         </p>
         {(event.eventDate || event.location) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

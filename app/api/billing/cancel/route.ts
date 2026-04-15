@@ -16,7 +16,12 @@ export async function POST() {
     })
 
     if (!user?.paystackSubscriptionCode) {
-      return NextResponse.json({ error: 'No active subscription found' }, { status: 400 })
+      // No subscription code — downgrade locally (handles manual upgrades or partial webhook state)
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { plan: 'free', billingCycle: null, planEndDate: null, paystackSubscriptionCode: null },
+      })
+      return NextResponse.json({ success: true })
     }
 
     const subCode = user.paystackSubscriptionCode
@@ -51,6 +56,11 @@ export async function POST() {
         { status: 400 }
       )
     }
+
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { plan: 'free', billingCycle: null, planEndDate: null, paystackSubscriptionCode: null },
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

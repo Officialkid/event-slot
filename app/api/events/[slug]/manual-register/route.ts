@@ -12,13 +12,8 @@ export async function POST(
 ) {
   try {
     const body = await req.json()
-    const { answers, status, token } = body as {
-      answers: Array<{ questionId: string; value: string }>
-      status?: string
-      token?: string
-    }
 
-    if (!Array.isArray(answers) || answers.length === 0) {
+    if (!Array.isArray(body.answers) || body.answers.length === 0) {
       return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
     }
 
@@ -39,10 +34,17 @@ export async function POST(
     // Auth: session ownership OR valid dashboardToken
     const session = await getServerSession(authOptions)
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
-    const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasValidToken = !!(body.token && event.dashboardToken === body.token)
 
     if (!isOwner && !hasValidToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { answers, status, forceDuplicate } = body as {
+      answers: Array<{ questionId: string; value: string }>
+      status?: string
+      token?: string
+      forceDuplicate?: boolean
     }
 
     // Server-side required field validation
@@ -56,8 +58,37 @@ export async function POST(
       }
     }
 
-    // Organizer chooses status; capacity check bypassed for manual registrations
-    const forcedStatus = status === 'waitlist' ? 'waitlist' : 'confirmed'
+    // Duplicate detection (same name answer as an existing registration)
+    if (!forceDuplicate) {
+      const nameQ = questions.find(q => q.label.toLowerCase().includes('name') && q.type === 'text')
+      if (nameQ) {
+        const nameValue = answers.find(a => a.questionId === nameQ.id)?.value?.trim()?.toLowerCase()
+        if (nameValue) {
+          const allRegs = await prisma.registration.findMany({
+            where: { eventId: event.id, status: { in: ['confirmed', 'waitlist'] } },
+            select: { registrationNumber: true, answers: true },
+          })
+          const existing = allRegs.find(r => {
+            const ans = r.answers as Array<{ questionId: string; value: string }>
+            return ans.some(a => a.questionId === nameQ.id && a.value?.trim().toLowerCase() === nameValue)
+          })
+          if (existing) {
+            return NextResponse.json(
+              { duplicate: true, existing: { registrationNumber: existing.registrationNumber } },
+              { status: 409 }
+            )
+          }
+        }
+      }
+    }
+
+    // Capacity enforcement: if event is at or over capacity, force waitlist
+    const eventFull = await prisma.event.findUnique({
+      where: { id: event.id },
+      select: { capacity: true, confirmedCount: true },
+    })
+    const atCapacity = !!(eventFull?.capacity && eventFull.confirmedCount >= eventFull.capacity)
+    const forcedStatus = (status === 'waitlist' || atCapacity) ? 'waitlist' : 'confirmed'
 
     // Extract email answer if present
     const emailAnswer = answers.find(a => {
@@ -111,6 +142,7 @@ export async function POST(
       status: registration.status,
       registrationId: registration.id,
       registrationNumber: registration.registrationNumber,
+      movedToWaitlist: atCapacity && status === 'confirmed',
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'

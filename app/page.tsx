@@ -1,6 +1,7 @@
 ﻿import Link from "next/link"
 import Image from "next/image"
 import type { CSSProperties } from "react"
+import SmartCTA from "@/components/SmartCTA"
 
 // ── Shared tokens ──────────────────────────────────────────────────────────────
 const LIME = "#C8F55A"
@@ -42,9 +43,10 @@ const PLANS = [
     badge: "Most popular",
     features: [
       "Unlimited active events",
-      "Up to 500 registrations",
+      "500 registrations included",
       "Data kept forever",
       "CSV export & Word reports",
+      "AI insight cards",
       "Duplicate events",
       "Remove watermark",
       "10 team members",
@@ -255,7 +257,7 @@ export default function Home() {
 
             {/* Buttons */}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              <Link href="/signup" style={{
+              <SmartCTA style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.4rem",
@@ -271,7 +273,7 @@ export default function Home() {
                 letterSpacing: "0.01em",
               }}>
                 Start for free
-              </Link>
+              </SmartCTA>
               <a href="#demo" style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -296,7 +298,7 @@ export default function Home() {
               {[
                 "10,000+ registrations processed",
                 "Zero spreadsheets needed",
-                "Loved by organizers in 5+ countries",
+                "Used across Kenya, Nigeria, Uganda & beyond",
               ].map((s, i) => (
                 <span key={s} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                   {i > 0 && <span style={{ color: MUTED_LO, fontSize: "0.6rem", margin: "0 0.2rem" }}>·</span>}
@@ -420,7 +422,7 @@ export default function Home() {
       </section>
 
       {/* ── FEATURE HIGHLIGHTS ────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "0 1.5rem 6rem" }}>
+      <section id="how-it-works" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 1.5rem 6rem" }}>
         <div style={{ textAlign: "center", marginBottom: "4rem" }}>
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
             Built for real events
@@ -445,9 +447,9 @@ export default function Home() {
               <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
                 See confirmed counts, waitlists, and capacity across all your events instantly. Get notified when things need your attention before they become problems.
               </p>
-              <Link href="/signup" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+              <SmartCTA style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
                 Start your first event →
-              </Link>
+              </SmartCTA>
             </div>
           </div>
 
@@ -461,7 +463,7 @@ export default function Home() {
               <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
                 AI reads your registration data and writes a narrative report — audience profile, registration patterns, recommendations. Not just a spreadsheet.
               </p>
-              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+              <Link href="/pricing#ai-features" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
                 See all AI features →
               </Link>
             </div>
@@ -582,7 +584,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA BAND ───────────────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "6rem 1.5rem" }}>
+      <section id="get-started" style={{ maxWidth: 1100, margin: "0 auto", padding: "6rem 1.5rem" }}>
         <div style={{
           background: SURFACE,
           border: "0.5px solid " + BORDER,
@@ -597,7 +599,7 @@ export default function Home() {
           <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 2rem" }}>
             Takes less than 3 minutes to set up. Free forever on the basics.
           </p>
-          <Link href="/signup" style={{
+          <SmartCTA style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "0.4rem",
@@ -611,7 +613,7 @@ export default function Home() {
             textDecoration: "none",
           }}>
             Create your first event — it&apos;s free
-          </Link>
+          </SmartCTA>
         </div>
       </section>
 

@@ -101,7 +101,7 @@ export default async function PublicProfilePage({
         confirmedCount: true, questions: true, deadline: true,
         organizerEmail: true, createdAt: true, eventDate: true,
         location: true, communityLink: true, imageUrl: true, status: true,
-        organizer: { select: { plan: true, suspended: true } },
+        organizer: { select: { name: true, plan: true, suspended: true } },
       },
     })
     if (!event) notFound()
@@ -159,7 +159,7 @@ export default async function PublicProfilePage({
     return (
       <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
         <RegistrationForm
-          event={{ ...event, slug: username, questions: event.questions as EventQuestion[] }}
+          event={{ ...event, slug: username, questions: event.questions as EventQuestion[], organizerName: event.organizer?.name ?? null }}
           showBranding={showBranding}
           maxAttendees={maxAttendees}
         />
