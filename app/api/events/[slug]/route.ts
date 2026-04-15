@@ -37,12 +37,12 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     const confirmed = registrations
       .filter(r => r.status === 'confirmed')
       .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
-      .map(r => ({ id: r.id, answers: r.answers, submittedAt: r.submittedAt }))
+      .map(r => ({ id: r.id, answers: r.answers, submittedAt: r.submittedAt, source: r.source }))
 
     const waitlist = registrations
       .filter(r => r.status === 'waitlist')
       .sort((a, b) => (a.waitlistPosition ?? 0) - (b.waitlistPosition ?? 0))
-      .map(r => ({ id: r.id, answers: r.answers, waitlistPosition: r.waitlistPosition, submittedAt: r.submittedAt }))
+      .map(r => ({ id: r.id, answers: r.answers, waitlistPosition: r.waitlistPosition, submittedAt: r.submittedAt, source: r.source }))
 
     return NextResponse.json({
       success: true,
@@ -62,6 +62,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
         status: event.status,
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
+        imageUrl: event.imageUrl ?? null,
       },
       confirmed,
       waitlist,

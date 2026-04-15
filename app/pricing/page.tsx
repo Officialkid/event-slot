@@ -82,6 +82,14 @@ const faqItems = [
     q: "Is there a limit on attendees for free events?",
     a: "Free accounts support up to 100 confirmed registrations per event. The waitlist is always unlimited.",
   },
+  {
+    q: "What happens to unused credits?",
+    a: "Credits never expire. They stay in your account until you use them.",
+  },
+  {
+    q: "Can I switch between monthly and annual billing?",
+    a: "Yes. You can switch at any time. Annual billing gives you 20% off and is charged as one payment per year.",
+  },
 ]
 
 function CheckIcon() {
@@ -170,25 +178,13 @@ export default function PricingPage() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "4rem 1.5rem" }}>
 
         {/* PAGE HEADER */}
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              borderRadius: 100,
-              border: "1px solid #C8F55A",
-              padding: "0.25rem 0.75rem",
-              fontSize: "0.72rem",
-              fontWeight: 600,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "#C8F55A",
-              fontFamily: "var(--font-dm-sans)",
-              marginBottom: "1.5rem",
-            }}
-          >
-            Simple pricing
-          </div>
+        <div style={{
+          textAlign: "center",
+          marginBottom: "3rem",
+          padding: "3rem 1rem 2rem",
+          background: "radial-gradient(ellipse at 50% 0%, rgba(200,245,90,0.04) 0%, transparent 70%)",
+          borderRadius: 20,
+        }}>
           <h1
             style={{
               fontFamily: "var(--font-instrument-serif)",
@@ -199,7 +195,7 @@ export default function PricingPage() {
               marginBottom: "0.75rem",
             }}
           >
-            Pay for what you need.
+            Pricing that grows with you
           </h1>
           <p
             style={{
@@ -210,7 +206,7 @@ export default function PricingPage() {
               margin: 0,
             }}
           >
-            Start free. Upgrade when your events grow.
+            Start free. Buy what you need. Upgrade when you&apos;re ready.
           </p>
         </div>
 
@@ -274,6 +270,7 @@ export default function PricingPage() {
             style={{
               background: "#141414",
               border: "0.5px solid rgba(240,237,230,0.08)",
+              borderTop: "3px solid rgba(240,237,230,0.1)",
               borderRadius: 16,
               padding: "2rem",
             }}
@@ -333,18 +330,16 @@ export default function PricingPage() {
             <div
               style={{
                 position: "absolute",
-                top: 0,
+                top: -12,
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "rgba(200,245,90,0.12)",
-                border: "0.5px solid rgba(200,245,90,0.3)",
+                background: "#C8F55A",
                 borderRadius: 100,
-                padding: "0.2rem 0.85rem",
-                fontSize: "0.65rem",
+                padding: "3px 12px",
+                fontSize: "0.7rem",
                 fontWeight: 700,
-                color: "#C8F55A",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
+                color: "#0A0A0A",
+                letterSpacing: "0.06em",
                 fontFamily: "var(--font-dm-sans)",
                 whiteSpace: "nowrap",
                 zIndex: 1,
@@ -355,7 +350,8 @@ export default function PricingPage() {
             <div
               style={{
                 background: "#141414",
-                border: "1.5px solid rgba(200,245,90,0.3)",
+                border: "0.5px solid rgba(200,245,90,0.2)",
+                borderTop: "3px solid #C8F55A",
                 borderRadius: 16,
                 padding: "2rem",
               }}
@@ -441,6 +437,7 @@ export default function PricingPage() {
             style={{
               background: "#141414",
               border: "0.5px solid rgba(240,237,230,0.08)",
+              borderTop: "3px solid rgba(127,119,221,0.6)",
               borderRadius: 16,
               padding: "2rem",
             }}
@@ -518,103 +515,101 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* PAY AS YOU GO */}
+        {/* CREDITS / PAY AS YOU GO */}
         <div style={{ marginBottom: "5rem" }}>
-          <div style={{ marginBottom: "1.75rem" }}>
-            <h2
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.3rem",
-                fontWeight: 400,
-                color: "#F0EDE6",
-                margin: "0 0 0.4rem",
-              }}
-            >
-              Only need it once?
-            </h2>
-            <p
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "0.875rem",
-                color: "rgba(240,237,230,0.45)",
-                margin: 0,
-              }}
-            >
-              Use points for one-time access. No subscription needed. Registration is always free.
-            </p>
-          </div>
-
-          {/* Points pricing table */}
-          <div
-            style={{
-              background: "#141414",
-              border: "0.5px solid rgba(240,237,230,0.08)",
-              borderRadius: 16,
-              overflow: "hidden",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "rgba(240,237,230,0.03)", borderBottom: "0.5px solid rgba(240,237,230,0.07)" }}>
-                  <th style={{ padding: "0.75rem 1.25rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Feature</th>
-                  <th style={{ padding: "0.75rem 1.25rem", textAlign: "right", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {([
-                  { feature: "Remove EventSlot watermark (one event)", cost: "10 points" },
-                  { feature: "Export CSV", cost: "15 points" },
-                  { feature: "Generate Word report", cost: "100 points" },
-                  { feature: "Analytics tracking (one event)", cost: "150 points" },
-                  { feature: "Custom thank you message", cost: "20 points" },
-                ] as const).map((row, i) => (
-                  <tr key={i} style={{ borderTop: "0.5px solid rgba(240,237,230,0.05)" }}>
-                    <td style={{ padding: "0.875rem 1.25rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
-                      {row.feature}
-                    </td>
-                    <td style={{ padding: "0.875rem 1.25rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 500, textAlign: "right", whiteSpace: "nowrap" as const }}>
-                      {row.cost}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ padding: "0.875rem 1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", background: "rgba(200,245,90,0.03)" }}>
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(200,245,90,0.65)", fontFamily: "var(--font-dm-sans)" }}>
-                Registration is always free on every plan. Unlocks apply to one event at a time.
+          <div style={{
+            background: "#0D0D0D",
+            border: "0.5px solid rgba(240,237,230,0.06)",
+            borderRadius: 16,
+            padding: "2.5rem",
+          }}>
+            <div style={{ marginBottom: "2rem" }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.6rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.4rem" }}>
+                Or just pay for what you use
+              </h2>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "rgba(240,237,230,0.45)", margin: 0 }}>
+                No subscription needed. Buy credits and unlock features one event at a time.
               </p>
             </div>
-          </div>
 
-          {/* Points packages */}
-          <div
-            style={{
-              background: "#141414",
-              border: "0.5px solid rgba(240,237,230,0.08)",
-              borderRadius: 16,
-              padding: "1.75rem",
-            }}
-          >
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "#F0EDE6", fontWeight: 500, margin: "0 0 1rem" }}>
-              Points packages
-            </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
+            {/* Credit bundles */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "2.5rem" }}>
               {[
-                { ksh: "Ksh 1,000", points: "100 points" },
-                { ksh: "Ksh 4,500", points: "500 points", badge: "Save 10%" },
-                { ksh: "Ksh 8,000", points: "1,000 points", badge: "Save 20%" },
+                { credits: "100 credits", price: "$5", save: null, best: "Best for: one-time events" },
+                { credits: "500 credits", price: "$22", save: "Save 12%", best: "Best for: occasional organizers" },
+                { credits: "1,000 credits", price: "$40", save: "Save 20%", best: "Best for: regular organizers" },
               ].map((pkg, i) => (
-                <div key={i} style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem" }}>
-                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", marginBottom: "0.2rem" }}>{pkg.ksh}</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>{pkg.points}</div>
-                  {pkg.badge && <div style={{ marginTop: "0.4rem", fontSize: "0.65rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, letterSpacing: "0.05em" }}>{pkg.badge}</div>}
+                <div key={i} style={{
+                  background: "#141414",
+                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  borderRadius: 12,
+                  padding: "1.25rem",
+                  position: "relative",
+                }}>
+                  {pkg.save && (
+                    <div style={{
+                      position: "absolute",
+                      top: "0.75rem",
+                      right: "0.75rem",
+                      background: "rgba(200,245,90,0.1)",
+                      color: "#C8F55A",
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      fontFamily: "var(--font-dm-sans)",
+                      padding: "0.15rem 0.5rem",
+                      borderRadius: 100,
+                      letterSpacing: "0.06em",
+                    }}>
+                      {pkg.save}
+                    </div>
+                  )}
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.6rem", color: "#F0EDE6", marginBottom: "0.15rem" }}>{pkg.price}</div>
+                  <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem", color: "rgba(240,237,230,0.55)", marginBottom: "0.6rem" }}>{pkg.credits}</div>
+                  <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "0.6rem" }}>{pkg.best}</div>
                 </div>
               ))}
             </div>
+
+            {/* Feature cost table */}
+            <div style={{ borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.07)", overflow: "hidden", marginBottom: "1.5rem" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "rgba(240,237,230,0.02)", borderBottom: "0.5px solid rgba(240,237,230,0.07)" }}>
+                    <th style={{ padding: "0.75rem 1.25rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Feature</th>
+                    <th style={{ padding: "0.75rem 1.25rem", textAlign: "right", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Credits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {([
+                    { feature: "AI event report", cost: "50" },
+                    { feature: "Event analytics", cost: "10" },
+                    { feature: "AI insight cards", cost: "20" },
+                    { feature: "Ask your data (per query)", cost: "60" },
+                    { feature: "Export CSV", cost: "15" },
+                    { feature: "Remove watermark", cost: "10" },
+                    { feature: "Duplicate event", cost: "5" },
+                    { feature: "Custom thank you message", cost: "10" },
+                    { feature: "Team member (1)", cost: "10" },
+                    { feature: "Insight Tracker", cost: "50" },
+                    { feature: "Feedback forms", cost: "30" },
+                    { feature: "Predictive capacity", cost: "25" },
+                  ] as { feature: string; cost: string }[]).map((row, i) => (
+                    <tr key={i} style={{ borderTop: "0.5px solid rgba(240,237,230,0.04)", background: i % 2 !== 0 ? "rgba(240,237,230,0.015)" : "transparent" }}>
+                      <td style={{ padding: "0.8rem 1.25rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
+                        {row.feature}
+                      </td>
+                      <td style={{ padding: "0.8rem 1.25rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, textAlign: "right", whiteSpace: "nowrap" as const }}>
+                        {row.cost} cr
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
               <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                100 Ksh = 10 points &bull; pay only when you need a feature
+                Registration is always free on every plan. Credits unlock one event at a time.
               </p>
               <a
                 href="/dashboard/billing#credits"
@@ -631,7 +626,7 @@ export default function PricingPage() {
                   display: "inline-block",
                 }}
               >
-                Buy points
+                Buy credits
               </a>
             </div>
           </div>

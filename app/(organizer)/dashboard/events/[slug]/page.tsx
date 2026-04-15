@@ -28,6 +28,7 @@ type Registration = {
   status?: string
   waitlistPosition?: number | null
   isDuplicate?: boolean
+  source?: string
 }
 
 type DupReg = {
@@ -56,6 +57,7 @@ type EventData = {
   status: string
   dashboardToken: string
   organizerPlan: string
+  imageUrl?: string | null
 }
 
 type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings"
@@ -234,6 +236,7 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
         <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "1rem" }}>Rename event</h3>
         <input autoFocus type="text" value={value} onChange={e => { setValue(e.target.value); setError("") }} onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose() }}
           style={{ width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }} />
+        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.28)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>Note: Your public registration link stays the same after renaming.</p>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
@@ -501,6 +504,11 @@ function RegTable({
                         DIFFERENT
                       </span>
                     )}
+                  {reg.source === 'manual' && (
+                    <span style={{ fontSize: "0.65rem", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}>
+                      Manual
+                    </span>
+                  )}
                   </span>
                 </td>
                 <td style={{ ...tdStyle, width: 120 }}>
@@ -711,6 +719,133 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   )
 }
 
+// ─── Manual Registration Modal ────────────────────────────────────────────────
+
+function ManualRegModal({
+  questions, slug, token, onClose, onSuccess,
+}: {
+  questions: Question[]
+  slug: string
+  token: string
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const q of questions) init[q.id] = ""
+    return init
+  })
+  const [regStatus, setRegStatus] = React.useState<'confirmed' | 'waitlist'>('confirmed')
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState("")
+
+  const handleSubmit = async () => {
+    // Client-side required check
+    for (const q of questions) {
+      if (q.required && !values[q.id]?.trim()) {
+        setError(`"${q.label}" is required`)
+        return
+      }
+    }
+    setSaving(true)
+    setError("")
+    const answers = questions.map(q => ({ questionId: q.id, value: values[q.id] ?? "" }))
+    try {
+      const res = await fetch(`/api/events/${slug}/manual-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, status: regStatus, token }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || "Failed to register."); return }
+      onSuccess()
+      onClose()
+    } catch { setError("Unexpected error.") }
+    finally { setSaving(false) }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.15)",
+    borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6",
+    fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box",
+  }
+
+  return (
+    <>
+      <Backdrop onClick={onClose} />
+      <div
+        style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)", maxHeight: "85vh", overflowY: "auto" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.25rem" }}>Register someone manually</h3>
+        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
+          Add a registration directly without the public form.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {questions.map(q => (
+            <div key={q.id}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                {q.label}{q.required && <span style={{ color: "#C8F55A", marginLeft: 2 }}>*</span>}
+              </label>
+              {q.type === "select" && q.options ? (
+                <select
+                  value={values[q.id] ?? ""}
+                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
+                  style={{ ...inputStyle }}
+                >
+                  <option value="">Select…</option>
+                  {q.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              ) : q.type === "textarea" ? (
+                <textarea
+                  rows={3}
+                  value={values[q.id] ?? ""}
+                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
+                  style={{ ...inputStyle, resize: "vertical" }}
+                />
+              ) : (
+                <input
+                  type={q.type === "tel" ? "tel" : q.type === "email" ? "email" : q.type === "number" ? "number" : "text"}
+                  value={values[q.id] ?? ""}
+                  onChange={e => setValues(v => ({ ...v, [q.id]: e.target.value }))}
+                  style={inputStyle}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Status selector */}
+        <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.08)" }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem" }}>Status</div>
+          <div style={{ display: "flex", gap: "1rem" }}>
+            {(['confirmed', 'waitlist'] as const).map(s => (
+              <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", color: regStatus === s ? "#F0EDE6" : "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                <input
+                  type="radio"
+                  name="regStatus"
+                  value={s}
+                  checked={regStatus === s}
+                  onChange={() => setRegStatus(s)}
+                  style={{ accentColor: "#C8F55A" }}
+                />
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </label>
+            ))}
+          </div>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+            Confirmed adds directly to your attendee list.
+          </p>
+        </div>
+        {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
+        <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Registering…" : "Add registration"}</button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EventDashboardPage() {
@@ -734,6 +869,7 @@ export default function EventDashboardPage() {
 
   // Modals
   const [modal, setModal] = useState<"rename" | "archive" | "delete" | null>(null)
+  const [showManualReg, setShowManualReg] = useState(false)
 
   // Capacity
   const [newCapacity, setNewCapacity] = useState("")
@@ -1113,7 +1249,7 @@ export default function EventDashboardPage() {
       const data = await res.json()
       if (res.status === 403 && data.locked) {
         setInsightsLocked(true)
-        setInsightsRequiredCredits(data.creditsRequired ?? 2)
+        setInsightsRequiredCredits(data.creditsRequired ?? 20)
         setInsightsEventId(data.eventId ?? null)
         return
       }
@@ -1225,6 +1361,16 @@ export default function EventDashboardPage() {
         <DeleteModal title={eventData.title} slug={slug} token={token || eventData.dashboardToken} onClose={() => setModal(null)} onSuccess={() => router.replace("/dashboard/events")} />
       )}
 
+      {showManualReg && eventData?.questions && (
+        <ManualRegModal
+          questions={eventData.questions}
+          slug={slug}
+          token={token || eventData.dashboardToken}
+          onClose={() => setShowManualReg(false)}
+          onSuccess={() => { fetchDashboard() }}
+        />
+      )}
+
       {showUpgradePrompt && (
         <UpgradePrompt feature="Event Reports" requiredPlan="pro" onClose={() => setShowUpgradePrompt(false)} />
       )}
@@ -1257,6 +1403,18 @@ export default function EventDashboardPage() {
           </svg>
           My Events
         </Link>
+
+        {/* ── Cover image ──────────────────────────────────────────────── */}
+        {eventData.imageUrl && (
+          <div style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={eventData.imageUrl}
+              alt={eventData.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+            />
+          </div>
+        )}
 
         {/* ── Event header ─────────────────────────────────────────────── */}
         <div style={{ marginBottom: "1.75rem" }}>
@@ -1406,6 +1564,20 @@ export default function EventDashboardPage() {
               ))}
             </div>
 
+            {/* Register someone button */}
+            <div>
+              <button
+                onClick={() => setShowManualReg(true)}
+                style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="5" r="3"/><path d="M1 14c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
+                  <path d="M12 11v4M10 13h4" />
+                </svg>
+                Register someone
+              </button>
+            </div>
+
             {/* Capacity panel */}
             <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem", marginBottom: "0.5rem" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
@@ -1553,9 +1725,20 @@ export default function EventDashboardPage() {
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
                 Confirmed registrations
               </h2>
-              <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
-                {confirmed.length} confirmed
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                <button
+                  onClick={() => setShowManualReg(true)}
+                  style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M5 1v8M1 5h8" />
+                  </svg>
+                  Add registrant
+                </button>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
+                  {confirmed.length} confirmed
+                </span>
+              </div>
             </div>
             <RegTable
               rows={confirmed}

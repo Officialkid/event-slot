@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { v4 as uuidv4 } from 'uuid'
+import { validateR2Env } from '@/lib/validateEnv'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
@@ -22,6 +23,14 @@ function getR2Client() {
 }
 
 export async function POST(req: NextRequest) {
+  const missing = validateR2Env()
+  if (missing.length > 0) {
+    return NextResponse.json(
+      { error: 'Image upload is not configured. Contact support.' },
+      { status: 503 }
+    )
+  }
+
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

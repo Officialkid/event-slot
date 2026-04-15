@@ -61,10 +61,10 @@ export const PAYG_PRICING = {
   removeWatermark: 10,
   csvExportBase: 15,
   csvExportPer100: 0,
-  wordReportBase: 100,
+  wordReportBase: 0,
   wordReportPer100: 0,
-  analyticsUnlock: 150,
-  customThankYou: 20,
+  analyticsUnlock: 10,
+  customThankYou: 10,
   extraActiveEvent: 0,
 }
 

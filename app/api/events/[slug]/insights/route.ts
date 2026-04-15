@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { CREDIT_COSTS, hasFeatureAccess } from '@/lib/credits'
+import { hasFeatureAccess } from '@/lib/credits'
 import { generateInsightCards } from '@/lib/generateInsightCards'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
@@ -40,10 +40,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ error: 'Authentication required', upgradeRequired: true }, { status: 401 })
     }
 
-    const canAccess = await hasFeatureAccess({ userId, feature: 'ai_insights', eventId: event.id, plan })
-    if (!canAccess) {
+    const access = await hasFeatureAccess({ userId, feature: 'ai_insights', eventId: event.id, plan })
+    if (!access.hasAccess) {
       return NextResponse.json(
-        { locked: true, upgradeRequired: true, creditsRequired: CREDIT_COSTS.ai_insights, eventId: event.id },
+        { locked: true, upgradeRequired: true, creditsRequired: access.cost, eventId: event.id },
         { status: 403 }
       )
     }

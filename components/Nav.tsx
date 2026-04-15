@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { useState, useRef, useEffect } from "react"
@@ -83,9 +84,18 @@ export default function Nav() {
   return (
     <nav className="sticky top-0 z-30 bg-[#0A0A0A] border-b border-[rgba(240,237,230,0.1)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="text-[1.4rem] font-semibold tracking-tight" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-          <span className="text-[#F0EDE6]">Event</span>
-          <span className="text-[#C8F55A]">Slot</span>
+        <Link href="/" className="flex items-center gap-2">
+          <Image 
+            src="/assets/logo.png" 
+            alt="EventSlot logo"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
+          <span className="text-[1.4rem] font-semibold tracking-tight" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <span className="text-[#F0EDE6]">Event</span>
+            <span className="text-[#C8F55A]">Slot</span>
+          </span>
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">

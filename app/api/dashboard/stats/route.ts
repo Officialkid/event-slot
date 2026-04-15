@@ -123,23 +123,23 @@ export async function GET() {
       }
     }
 
-    // Recent activity: last 10 registrations across all organizer events
+    // Recent activity: last registrations across all organizer events, excluding events that ended >7 days ago
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const recentRegs = await prisma.registration.findMany({
       where: {
-        eventId: { in: eventIds },
-        status: "confirmed",
-      },
-      orderBy: { submittedAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        answers: true,
-        submittedAt: true,
-        eventId: true,
         event: {
-          select: { title: true, slug: true },
+          organizerId: userId,
+          OR: [
+            { deadline: null },
+            { deadline: { gt: sevenDaysAgo } },
+          ],
         },
       },
+      include: {
+        event: { select: { title: true, slug: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
+      take: 5,
     })
 
     const recentActivity = recentRegs.map(r => {

@@ -377,6 +377,9 @@ function RenameModal({
             {error}
           </p>
         )}
+        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
+          Your registration link will not change. Only the event title updates.
+        </p>
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
             Cancel

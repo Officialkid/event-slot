@@ -1,6 +1,7 @@
 ﻿import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
 
 async function sendEmail(options: Parameters<typeof resend.emails.send>[0]) {
   const { error } = await resend.emails.send(options)
@@ -19,7 +20,7 @@ export async function sendFeedbackRequestEmail({
   eventTitle: string
   registrationId: string
 }) {
-  const feedbackUrl = `${process.env.NEXTAUTH_URL}/feedback/${registrationId}`
+  const feedbackUrl = `${BASE_URL}/feedback/${registrationId}`
 
   await sendEmail({
     from: 'EventSlot <noreply@eventsslot.com>',
@@ -50,7 +51,7 @@ export async function sendTeamInviteEmail({
   inviterName: string
   inviteToken: string
 }) {
-  const acceptUrl = `${process.env.NEXTAUTH_URL}/team/accept?token=${inviteToken}`
+  const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
 
   await sendEmail({
     from: 'EventSlot <noreply@eventsslot.com>',
@@ -128,7 +129,7 @@ export async function sendWelcomeEmail({
           You are all set. Create your first event and share the link â€”
           registrations and waitlists are handled automatically from here.
         </p>
-        <a href="${process.env.NEXTAUTH_URL}/create"
+        <a href="${BASE_URL}/create"
            style="display:inline-block;background:#C8F55A;color:#0A0A0A;
                   padding:12px 28px;border-radius:100px;text-decoration:none;
                   font-weight:500;margin-top:1.5rem">
@@ -149,7 +150,7 @@ export async function sendPasswordResetEmail({
   to: string
   token: string
 }) {
-  const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
+  const resetUrl = `${BASE_URL}/reset-password?token=${token}`
 
   await sendEmail({
     from: 'EventSlot <noreply@eventsslot.com>',

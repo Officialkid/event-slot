@@ -37,49 +37,44 @@ export async function PATCH(
   { params }: { params: { registrationId: string } }
 ) {
   try {
-    const token = new URL(req.url).searchParams.get('token')
-
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
-      include: { event: { select: { dashboardToken: true, id: true, status: true, archived: true, questions: true } } },
+      include: { event: { select: { id: true, status: true, archived: true, deadline: true, questions: true } } },
     })
 
     if (!registration) {
       return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
     }
 
-    if (!token || registration.event.dashboardToken !== token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Check if event is still open for edits
+    if (registration.event.status === 'archived' || registration.event.archived) {
+      return NextResponse.json(
+        { error: 'This event is closed. Registrations cannot be edited.' },
+        { status: 400 }
+      )
     }
 
+    if (
+      registration.event.deadline &&
+      new Date(registration.event.deadline) < new Date()
+    ) {
+      return NextResponse.json(
+        { error: 'Registration deadline has passed.' },
+        { status: 400 }
+      )
+    }
+
+    // NO session check — attendees are unauthenticated.
+    // The registrationId itself is the auth token (it is a CUID, unguessable).
     const body = await req.json()
-    const { answers, attendeeEmail } = body as { answers?: Array<{ questionId: string; value: string }>; attendeeEmail?: string }
+    const { answers } = body as { answers?: Array<{ questionId: string; value: string }> }
 
-    // Allow saving attendeeEmail for waitlist notification even on closed/archived events
-    if (!answers && attendeeEmail !== undefined) {
-      if (!attendeeEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(attendeeEmail)) {
-        return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
-      }
-      const updated = await prisma.registration.update({
-        where: { id: params.registrationId },
-        data: { attendeeEmail },
-      })
-      return NextResponse.json({ success: true, registration: updated })
-    }
-
-    const event = registration.event
-
-    // Don't allow editing answers if event is closed/archived
-    if (event.status === 'closed' || event.status === 'archived' || event.archived) {
-      return NextResponse.json({ error: 'Registrations cannot be edited for this event' }, { status: 400 })
-    }
-
-    if (!Array.isArray(answers)) {
-      return NextResponse.json({ error: 'Invalid answers' }, { status: 400 })
+    if (!answers || !Array.isArray(answers)) {
+      return NextResponse.json({ error: 'Invalid answers format' }, { status: 400 })
     }
 
     // Server-side required field validation
-    const questions = (event.questions as EventQuestion[]) ?? []
+    const questions = (registration.event.questions as EventQuestion[]) ?? []
     for (const q of questions) {
       if (q.required) {
         const answer = answers.find(a => a.questionId === q.id)

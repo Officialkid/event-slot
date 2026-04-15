@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import Image from "next/image"
 
 type EventQuestion = {
   id: string
@@ -27,6 +26,7 @@ type EventProps = {
     createdAt: Date
   }
   showBranding?: boolean
+  maxAttendees?: number
 }
 
 function BrandingFooter() {
@@ -80,7 +80,7 @@ type PendingPayload = {
   consentMarketing: boolean
 }
 
-export default function RegistrationForm({ event, showBranding = false }: EventProps) {
+export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3 }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
@@ -98,10 +98,10 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
 
-  const MAX_ATTENDEES = 20
+  const canAddMore = attendees.length < maxAttendees
 
   function addAttendee() {
-    if (attendees.length >= MAX_ATTENDEES) return
+    if (!canAddMore) return
     setAttendees(a => [...a, emptyAnswers(event.questions)])
   }
 
@@ -397,8 +397,13 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
         </div>
       )}
       {event.imageUrl && (
-        <div className="mb-5 relative w-full overflow-hidden rounded-[12px] border border-[rgba(240,237,230,0.08)]" style={{ height: 220 }}>
-          <Image src={event.imageUrl} alt={`${event.title} poster`} fill style={{ objectFit: "cover" }} unoptimized />
+        <div style={{ width: '100%', height: '200px', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={event.imageUrl}
+            alt={event.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+          />
         </div>
       )}
       {/* Event header */}
@@ -456,9 +461,9 @@ export default function RegistrationForm({ event, showBranding = false }: EventP
         {/* Bulk prompt row */}
       <div className="flex items-center justify-between">
         <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
-          Registering more than one person?
+          {attendees.length > 1 ? `Registering ${attendees.length} people` : "Registering 1 person"}
         </span>
-        {attendees.length < MAX_ATTENDEES && (
+        {canAddMore && (
           <button
             type="button"
             onClick={addAttendee}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { CREDIT_COSTS, hasFeatureAccess } from '@/lib/credits'
+import { hasFeatureAccess } from '@/lib/credits'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
@@ -43,10 +43,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const canAccess = await hasFeatureAccess({ userId, feature: 'export_csv', eventId: event.id, plan })
-    if (!canAccess) {
+    const access = await hasFeatureAccess({ userId, feature: 'export_csv', eventId: event.id, plan })
+    if (!access.hasAccess) {
       return NextResponse.json(
-        { error: 'CSV export requires a Pro/Business plan or a one-time credit unlock.', upgradeRequired: true, creditsRequired: CREDIT_COSTS.export_csv, eventId: event.id },
+        { error: 'CSV export requires a Pro/Business plan or a one-time credit unlock.', upgradeRequired: true, creditsRequired: access.cost, eventId: event.id },
         { status: 403 }
       )
     }

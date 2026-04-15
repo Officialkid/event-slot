@@ -2,9 +2,19 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { sendWelcomeEmail } from '@/lib/email'
+import { signupRatelimit } from '@/lib/ratelimit'
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
+    const { success } = await signupRatelimit.limit(`signup:${ip}`)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Too many signup attempts. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
     const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {

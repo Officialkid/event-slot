@@ -1,6 +1,57 @@
 # EventSlot — Changelog
 
+## [0.4.0] — April 15, 2026
+
+### Documentation & System Updates
+- **Documentation System** — Updated all docs files post-build completion
+- **`docs/FEATURES.md`** — Updated credit costs and plan access logic to reflect v0.3.7 changes
+- **`docs/AI_CONTEXT.md`** — Verified feature matrix table with current credit pricing
+- **`docs/SYSTEM.md`** — Updated version to 0.4.0; refreshed plan tiers section
+- **`docs/KNOWN_ISSUES.md`** — Marked KI-001, KI-002, KI-003, KI-005 as ✅ Resolved
+- **Landing Page** — Integrated hero background and dashboard mockup images from `/public/assets/`
+- **Visual Assets** — Added dashboard-laptop.jpg, hero-bg.png, event-checkin.jpg, organizer-mobile.jpg to enhance landing page UX
+
 ## [Unreleased]
+
+## [0.3.7] — April 14, 2026
+
+### Credit Cost Restructure
+- **`lib/credits.ts`** — Replaced `CREDIT_COSTS` object entirely with new keys and values:
+  - `ai_report`: 150 → 50 credits
+  - `ai_insights`: 2 → 20 credits
+  - `ai_query` (renamed `ask_your_data`): 1 → 60 credits per query
+  - `word_report` (renamed `standard_report`): 100 → 0 (now free)
+  - `analytics_unlock` (renamed `event_analytics`): 150 → 10 credits
+  - `export_csv`: 15 (unchanged)
+  - `remove_watermark`: 10 (unchanged)
+  - `custom_thank_you`: 20 → 10 credits
+  - New: `duplicate_event` (5), `team_members` (10), `insight_tracker` (50), `feedback_forms` (30), `predictive_capacity` (25)
+  - Updated `hasFeatureAccess` plan check: `ai_query` → `ask_your_data`
+- **`lib/plans.ts`** — Updated `PAYG_PRICING` to match: `wordReportBase` 100 → 0, `analyticsUnlock` 150 → 10, `customThankYou` 20 → 10
+- **`app/api/events/[slug]/ask/route.ts`** — Updated `CREDIT_COSTS.ai_query` → `CREDIT_COSTS.ask_your_data` (2 references)
+- **`app/(organizer)/dashboard/page.tsx`** — FEATURES array: AI event report cost 150 → 50, AI insight cards cost 2 → 20; hardcoded `creditBalance >= 150` → `>= 50`; featureModal `credits: 150` → 50; badge `>150 cr` → `>50 cr`
+- **`app/pricing/page.tsx`** — Credits table fully rewritten: 5 old rows → 13 rows with new costs including all new features; "points" → "credits" terminology; standard report shown as Free
+- **`docs/FEATURES.md`** — Updated AI feature tier descriptions with new credit costs; feature access matrix already reflected new values
+- **`docs/AI_CONTEXT.md`** — Credits section rewritten with itemised costs for all 13 credit-purchasable features
+
+
+
+### Security Fixes — KI-001 / KI-002 / KI-003 / KI-005
+- **KI-001** — Added `signupRatelimit` (5 req / 1 h per IP, sliding window) via Upstash Redis to `POST /api/auth/signup`; prevents email bombing and Resend quota exhaustion
+- **KI-002** — Rewrote `/api/billing/unlock` to execute the idempotency check, balance check, credit deduction, `EventUnlock` create, and `CreditTransaction` create inside a single `prisma.$transaction`; eliminates double-spend race condition; added per-user rate limit (10 req / 1 min)
+- **KI-003** — Created `lib/validateEnv.ts` with `validateR2Env()` helper; `POST /api/upload` now calls it before authentication and returns a clean `503 Service Unavailable` when R2 environment variables are missing instead of an unhandled 500
+- **KI-005** — Added `const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'` in `lib/email.ts`; all 4 email template URL references now use `BASE_URL` so password-reset and team-invite links never contain `undefined/...`
+
+## [0.3.5] — April 13, 2026
+
+### Documentation System — Full E2E Audit & Live Docs
+- Created `/docs/API.md` — complete API reference for all 60+ endpoints (auth, events, registration, billing, team, admin, cron)
+- Created `/docs/KNOWN_ISSUES.md` — honest codebase audit of 18 tracked issues (3 critical, 7 important, 8 minor); verified working list of 46 confirmed features
+- Created `/docs/AI_CONTEXT.md` — AI chatbot training knowledge base covering all features, plans, FAQs, feature matrix
+- Created `/docs/TEST_RESULTS.md` — E2E test results from static codebase audit; 38 code-verified PASS, 4 FAIL flagged, 24 requiring live browser test
+- Updated `/docs/SYSTEM.md` — full rewrite with live URLs, complete tech stack table, all user roles, accurate plan pricing (KSH), complete DB model table (17 models), all env vars including R2
+- Updated `/docs/FEATURES.md` — full rewrite replacing old table-based format with structured feature entries; accurate credit costs from lib/credits.ts; complete feature access matrix
+- Issues found during audit: KI-001 (signup rate limiting missing), KI-002 (unlock race condition), KI-003 (R2 env validation), KI-005 (NEXTAUTH_URL null check in emails)
 
 ## [0.3.4] — April 9, 2026
 

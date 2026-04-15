@@ -1,14 +1,23 @@
 import prisma from './prisma'
 
 export const CREDIT_COSTS = {
-  ai_report: 150,
-  ai_insights: 2,
-  ai_query: 1,
-  remove_watermark: 10,
+  // Reports
+  standard_report: 0,
+  ai_report: 50,
+  // Analytics
+  event_analytics: 10,
+  ai_insights: 20,
+  ask_your_data: 60,
+  // Per-event unlocks
   export_csv: 15,
-  word_report: 100,
-  analytics_unlock: 150,
-  custom_thank_you: 20,
+  remove_watermark: 10,
+  duplicate_event: 5,
+  custom_thank_you: 10,
+  // Advanced features
+  team_members: 10,
+  insight_tracker: 50,
+  feedback_forms: 30,
+  predictive_capacity: 25,
 }
 
 export const CREDIT_BUNDLES = [
@@ -134,6 +143,28 @@ export async function purchaseFeatureAccess({
   return { success: true, accessId: access.id }
 }
 
+// Features included free on Pro (and Business)
+const PRO_INCLUDED_FEATURES = [
+  'standard_report',
+  'ai_report',
+  'event_analytics',
+  'ai_insights',
+  'export_csv',
+  'remove_watermark',
+  'duplicate_event',
+  'custom_thank_you',
+  'predictive_capacity',
+]
+
+// Features included free on Business (everything Pro + more)
+const BUSINESS_INCLUDED_FEATURES = [
+  ...PRO_INCLUDED_FEATURES,
+  'ask_your_data',
+  'team_members',
+  'insight_tracker',
+  'feedback_forms',
+]
+
 export async function hasFeatureAccess({
   userId,
   feature,
@@ -141,22 +172,21 @@ export async function hasFeatureAccess({
   plan,
 }: {
   userId: string
-  feature: keyof typeof CREDIT_COSTS
+  feature: string
   eventId?: string
   plan: string
-}): Promise<boolean> {
-  // Subscription access — these features are included in plan
-  if (feature === 'ai_report' || feature === 'ai_insights') {
-    if (plan === 'pro' || plan === 'business') return true
-  }
-  if (feature === 'ai_query') {
-    if (plan === 'business') return true
-  }
-  if (feature === 'export_csv' || feature === 'remove_watermark') {
-    if (plan === 'pro' || plan === 'business') return true
+}): Promise<{ hasAccess: boolean; reason: 'plan' | 'unlock' | 'none'; cost?: number }> {
+  // Business plan — everything is included, no credits ever needed
+  if (plan === 'business' && BUSINESS_INCLUDED_FEATURES.includes(feature)) {
+    return { hasAccess: true, reason: 'plan' }
   }
 
-  // Credits access — check for an active FeatureAccess record
+  // Pro plan — check if feature is included
+  if (plan === 'pro' && PRO_INCLUDED_FEATURES.includes(feature)) {
+    return { hasAccess: true, reason: 'plan' }
+  }
+
+  // Check for existing credits unlock (active FeatureAccess record)
   const access = await prisma.featureAccess.findFirst({
     where: {
       userId,
@@ -165,5 +195,12 @@ export async function hasFeatureAccess({
       expiresAt: { gt: new Date() },
     },
   })
-  return !!access
+
+  if (access) {
+    return { hasAccess: true, reason: 'unlock' }
+  }
+
+  // No access — return the credit cost so the client can show "Unlock for X credits"
+  const cost = CREDIT_COSTS[feature as keyof typeof CREDIT_COSTS]
+  return { hasAccess: false, reason: 'none', cost }
 }

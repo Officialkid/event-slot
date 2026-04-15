@@ -27,10 +27,13 @@ export default async function RegistrationStatusPage({ params }: { params: { reg
     where: { id: registration.eventId },
     select: {
       title: true,
+      slug: true,
       organizerEmail: true,
       eventDate: true,
       location: true,
       communityLink: true,
+      status: true,
+      deadline: true,
     },
   })
 
@@ -136,8 +139,27 @@ export default async function RegistrationStatusPage({ params }: { params: { reg
         )}
       </div>
 
-      {/* Edit link */}
-      <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+      {/* Actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' }}>
+        {/* Register another person — only for open events */}
+        {event.status === 'active' && (!event.deadline || new Date(event.deadline) > new Date()) && (
+          <a
+            href={`/${event.slug}`}
+            style={{
+              display: 'inline-block',
+              background: '#C8F55A',
+              color: '#0A0A0A',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              padding: '0.6rem 1.5rem',
+              borderRadius: 999,
+              textDecoration: 'none',
+            }}
+          >
+            Register another person
+          </a>
+        )}
         <a
           href={`/registration/${params.registrationId}/edit`}
           style={{ fontSize: '0.82rem', color: 'rgba(200,245,90,0.5)', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}

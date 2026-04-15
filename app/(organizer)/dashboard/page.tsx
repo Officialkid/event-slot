@@ -340,9 +340,9 @@ export default function DashboardOverviewPage() {
     { name: "Community link",       tier: "free",     desc: "Add WhatsApp or Telegram link",                  icon: "🔗", cost: undefined },
     { name: "Export CSV",           tier: "credits",  desc: "Download attendee data as spreadsheet",          icon: "↓",  cost: 15 },
     { name: "Standard report",      tier: "free",     desc: "Basic Word document with attendee list",         icon: "📄", cost: undefined },
-    { name: "AI event report",      tier: "credits",  desc: "Narrative analysis written by AI",               icon: "✦",  cost: 150 },
+    { name: "AI event report",      tier: "credits",  desc: "Narrative analysis written by AI",               icon: "✦",  cost: 50 },
     { name: "Event analytics",      tier: "pro",      desc: "Views, conversion rate, timelines",              icon: "📊", cost: undefined },
-    { name: "AI insight cards",     tier: "credits",  desc: "3 AI-generated insights per event",              icon: "💡", cost: 2 },
+    { name: "AI insight cards",     tier: "credits",  desc: "3 AI-generated insights per event",              icon: "💡", cost: 20 },
     { name: "Ask your data",        tier: "business", desc: "Chat with your event analytics",                 icon: "💬", cost: undefined },
     { name: "Duplicate event",      tier: "pro",      desc: "Clone any event setup instantly",                icon: "⧉",  cost: undefined },
     { name: "Custom thank you",     tier: "pro",      desc: "Personalised confirmation message",              icon: "✉",  cost: undefined },
@@ -692,7 +692,7 @@ export default function DashboardOverviewPage() {
             )
           }
           {/* Get Report — Credits gated */}
-          {creditBalance >= 150
+          {creditBalance >= 50
             ? (
               <Link href="/dashboard/events" style={{ textDecoration: "none" }}>
                 <div style={{
@@ -706,7 +706,7 @@ export default function DashboardOverviewPage() {
             )
             : (
               <div
-                onClick={() => setFeatureModal({ name: "AI Event Report", icon: "✦", tier: "credits", description: "A narrative analysis of your event written by AI — attendance patterns, highlights, and recommendations.", credits: 150 })}
+                onClick={() => setFeatureModal({ name: "AI Event Report", icon: "✦", tier: "credits", description: "A narrative analysis of your event written by AI — attendance patterns, highlights, and recommendations.", credits: 50 })}
                 style={{
                   background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
                   borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column",
@@ -718,7 +718,7 @@ export default function DashboardOverviewPage() {
                 <span style={{
                   position: "absolute", top: "0.6rem", right: "0.7rem",
                   fontSize: "0.62rem", color: "#378ADD",
-                }}>150 cr</span>
+                }}>50 cr</span>
               </div>
             )
           }
@@ -1150,68 +1150,76 @@ export default function DashboardOverviewPage() {
                     margin: 0,
                   }}
                 >
-                  No registrations yet. Share your event link to get started.
+                  No recent activity. Create a new event to get started.
                 </p>
               </div>
             ) : (
-              <div
-                style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                }}
-              >
-                {stats.recentActivity.map((item, i) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: "0.875rem 1.25rem",
-                      borderBottom:
-                        i < stats.recentActivity.length - 1
-                          ? "0.5px solid rgba(240,237,230,0.06)"
-                          : "none",
-                      display: "flex",
-                      alignItems: "baseline",
-                      justifyContent: "space-between",
-                      gap: "0.75rem",
-                    }}
-                  >
-                    <p
+              <>
+                <div
+                  style={{
+                    background: "#141414",
+                    border: "0.5px solid rgba(240,237,230,0.08)",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                  }}
+                >
+                  {stats!.recentActivity.map((item, i, arr) => (
+                    <div
+                      key={item.id}
                       style={{
-                        margin: 0,
-                        fontSize: "0.82rem",
-                        fontFamily: "var(--font-dm-sans)",
-                        lineHeight: 1.5,
+                        padding: "0.875rem 1.25rem",
+                        borderBottom:
+                          i < arr.length - 1
+                            ? "0.5px solid rgba(240,237,230,0.06)"
+                            : "none",
+                        display: "flex",
+                        alignItems: "baseline",
+                        justifyContent: "space-between",
+                        gap: "0.75rem",
                       }}
                     >
-                      <span style={{ color: "#F0EDE6", fontWeight: 500 }}>{item.name}</span>
-                      <span style={{ color: "rgba(240,237,230,0.4)" }}> registered for </span>
-                      <Link
-                        href={`/dashboard/${item.eventSlug}`}
+                      <p
                         style={{
-                          color: "#C8F55A",
-                          textDecoration: "none",
-                          fontWeight: 500,
+                          margin: 0,
+                          fontSize: "0.82rem",
+                          fontFamily: "var(--font-dm-sans)",
+                          lineHeight: 1.5,
                         }}
                       >
-                        {item.eventTitle}
-                      </Link>
-                    </p>
-                    <span
-                      style={{
-                        fontSize: "0.72rem",
-                        color: "rgba(240,237,230,0.3)",
-                        fontFamily: "var(--font-dm-sans)",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {formatDistanceToNow(new Date(item.submittedAt), { addSuffix: true })}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                        <span style={{ color: "#F0EDE6", fontWeight: 500 }}>{item.name}</span>
+                        <span style={{ color: "rgba(240,237,230,0.4)" }}> registered for </span>
+                        <Link
+                          href={`/dashboard/${item.eventSlug}`}
+                          style={{
+                            color: "#C8F55A",
+                            textDecoration: "none",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {item.eventTitle}
+                        </Link>
+                      </p>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "rgba(240,237,230,0.3)",
+                          fontFamily: "var(--font-dm-sans)",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatDistanceToNow(new Date(item.submittedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/dashboard/events"
+                  style={{ display: "block", padding: "0.75rem 1.25rem", textAlign: "center", fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", borderTop: "0.5px solid rgba(240,237,230,0.06)" }}
+                >
+                  View all activity
+                </Link>
+              </>
             )}
           </section>
 

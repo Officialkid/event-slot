@@ -1,9 +1,342 @@
 # EventSlot — Feature Reference
-*Updated with every prompt build. Last updated: April 9, 2026*
+
+_Last updated: April 13, 2026_
 
 ---
 
-## Core Features
+## Registration System
+
+### Event Creation
+**Where:** /create  
+**Who:** Any signed-in organizer (username required)  
+**What it does:** Two-step flow — organizer picks a template first (6 options:
+Community Meetup, Corporate Training, Workshop, Conference, Church/Faith,
+Blank), which pre-fills the question set. Then fills title, description,
+capacity, deadline, event date, location, community link, cover image,
+and custom form questions. Capacity suggestion shown on first focus if
+organizer has 3+ completed past events.  
+**API:** POST /api/events
+
+### Attendee Registration
+**Where:** /[eventSlug]  
+**Who:** Anyone with the link (no account needed)  
+**What it does:** Shows event details and a dynamic form built from the
+organizer's custom questions. On submit, assigns confirmed or waitlist
+status based on current capacity. Supports bulk registration. Event views
+tracked automatically. Duplicate detection flags re-registrations from
+the same email.  
+**API:** POST /api/register  
+**Rate limit:** 10 requests per IP per minute (Upstash Redis)
+
+### Waitlist Promotion
+**Where:** Organizer dashboard → Overview tab → Increase capacity  
+**Who:** Organizer or team member  
+**What it does:** When capacity is increased, the system automatically
+promotes waitlisted registrations in FIFO order. Promoted attendees
+receive an email notification if they consented to transactional emails.  
+**API:** PATCH /api/events/[slug]/capacity
+
+### Registration Status Page
+**Where:** /registration/[registrationId]  
+**Who:** Attendee (link provided after registration)  
+**What it does:** Shows confirmed status or waitlist position. Editable
+draft mode supported.  
+**API:** GET /api/registrations/[registrationId], PATCH /api/registrations/[registrationId]
+
+### Bulk Registration
+**Where:** /[eventSlug]  
+**What it does:** Attendee can add multiple people in one form submission.
+Each gets their own registration record.  
+**Limits:** Free: 3, Pro: 20, Business: unlimited
+
+---
+
+## Organizer Dashboard
+
+### Dashboard Home
+**Where:** /dashboard  
+**What it does:** Stat cards (total events, registrations, active events,
+waitlist count) with monthly delta indicators. Needs Attention section
+(events near capacity or approaching deadline — filtered to active events
+only). Recent activity feed. Upcoming events list. Plan badge with
+upgrade CTA. Quick actions grid.
+
+### My Events
+**Where:** /dashboard/events  
+**Tabs:** Active | Past | Archived  
+**Three-dot menu per event:** Rename, Duplicate (Pro+), Archive, Delete
+
+### Individual Event Dashboard
+**Where:** /dashboard/events/[slug]  
+**Tabs:**
+- **Overview** — Stats, capacity management, Export CSV panel
+- **Confirmed** — Table of confirmed registrations with answers
+- **Waitlist** — Table with position numbers
+- **Analytics** — Charts, insight cards, Q&A (plan/credits gated)
+- **Settings** — Edit event description, date, location, deadline
+- **Feedback** — Attendee feedback inbox (Business plan only)
+
+### Notifications
+**Where:** /dashboard/notifications  
+**Triggers:**
+- Event reaches 80% capacity → notification created
+- Event reaches 100% capacity → notification created
+- Waitlist attendees promoted → notification created
+- Payment failure → notification created
+- Data expiry warning (10 days before Free plan deletion)
+- Organizer feedback request appears after event ends
+
+### Profile
+**Where:** /dashboard/profile  
+**Features:** Edit name, profile photo (uploaded to Cloudflare R2),
+change password (email/password users only), delete account
+
+### Billing
+**Where:** /dashboard/billing  
+**Features:**
+- Current plan card (badge, billing cycle, renewal date, cancel subscription button)
+- Live credits balance from /api/billing/status
+- Buy credits: 3 bundles (100 credits / 500 credits / 1,000 credits)
+- Collapsible PAYG pricing reference table
+- Upgrade section with monthly/annual toggle (hidden for Business users)
+- Credit transaction history (last 20 with running balance)
+**Provider:** Paystack
+
+### Team Members
+**Where:** /dashboard/team  
+**Features:** Invite by email (token link sent via Resend), accept at
+/team/accept, resend invite, remove members  
+**Limits:** Free: 1, Pro: 10, Business: 20
+
+### Insights Tracker
+**Where:** /dashboard/insights  
+**Tier:** Business only  
+**What it does:** Cross-event audience analytics. Aggregates form answers
+across all events to surface demographic patterns, peak registration days,
+repeat attendees, and location trends.  
+**API:** GET /api/insights
+
+---
+
+## AI Features
+
+### AI Event Report
+**Tier:** Pro/Business (included), Free (standard Word report free, 50 credits AI version)  
+**Where:** /dashboard/events/[slug] → Download Report  
+**What it does:** Generates a Word document (.docx). Standard report
+contains attendee data tables. AI version adds Claude-written narrative:
+executive summary, audience profile, registration behaviour, waitlist
+analysis, recommendations.  
+**API:** GET /api/events/[slug]/report
+
+### AI Insight Cards
+**Tier:** Pro/Business (included), or 20 credits  
+**Where:** /dashboard/events/[slug] → Analytics tab  
+**What it does:** Generates 3 personalised insight cards using Claude and
+actual event data. Cached per event. Can be regenerated.  
+**API:** GET /api/events/[slug]/insights
+
+### Natural Language Q&A
+**Tier:** Business (included), or 60 credits per query  
+**Where:** /dashboard/events/[slug] → Analytics tab  
+**What it does:** Chat interface for asking questions about event data.
+Claude answers using real registration and analytics data.  
+**API:** POST /api/events/[slug]/ask
+
+### Intelligent Capacity Suggestions
+**Tier:** All plans (requires 3+ completed past events)  
+**Where:** /create → capacity field (on first focus)  
+**What it does:** Analyses last 5 completed events, calculates average
+confirmed count × 1.2 buffer, returns suggested capacity with message
+adapted to fill rate (≥85%, 50–84%, <50%).  
+**API:** GET /api/events/suggest-capacity
+
+---
+
+## Post-Event Features
+
+### Feedback Form
+**Tier:** Business plan events only  
+**Where:** /feedback/[registrationId]  
+**Trigger:** Auto-sent via cron to consenting confirmed attendees  
+**What it does:** Star rating plus three open text fields (enjoyed, improve,
+complaint). Responses visible in Organizer Dashboard Feedback tab.  
+**API:** POST /api/feedback, GET /api/events/[slug]/feedback
+
+### Event Report Download
+**Tier:** All plans (Standard Word doc free on all plans),
+Pro/Business included for AI report  
+**Format:** Word document (.docx). Cover page, summary stats, confirmed
+table, waitlist table, AI narrative (if AI version unlocked).  
+**API:** GET /api/events/[slug]/report
+
+### CSV Export
+**Tier:** Pro/Business (included), Free (15 credits base + per 100
+registrations)  
+**Where:** /dashboard/events/[slug] → Overview tab  
+**Format:** UTF-8 BOM CSV with dynamic question headers, Status,
+Registered At columns  
+**API:** GET /api/events/[slug]/export
+
+---
+
+## Payments
+
+### Subscriptions
+**Provider:** Paystack (recurring subscription)  
+**Plans:** Pro monthly (KSH 2,600), Pro annual (KSH 25,000),
+Business monthly (KSH 13,000), Business annual (KSH 125,000)  
+**Webhook events handled:** subscription.create, charge.success,
+invoice.payment_failed, subscription.disable, subscription.not_renew  
+**API:** POST /api/billing/checkout, POST /api/billing/webhook,
+POST /api/billing/cancel
+
+### Credits (Pay As You Go)
+**Provider:** Paystack (one-time payment)  
+**Bundles:** 100 credits = KSH 1,000 | 500 credits = KSH 4,500 |
+1,000 credits = KSH 8,000  
+**Credit Costs:**
+- Standard report: Free
+- AI-enhanced report: 50 credits
+- Event analytics: 10 credits
+- AI insight cards: 20 credits
+- Analytics Q&A: 60 credits per query
+- CSV export: 15 credits base + (confirmedCount / 100) × cost
+- Remove watermark: 10 credits
+- Custom thank you: 10 credits
+- Duplicate event: 5 credits
+- Team members: 10 credits per member/month
+- Insight Tracker: 50 credits
+- Feedback forms: 30 credits
+- Predictive capacity: 25 credits  
+**API:** POST /api/billing/credits, POST /api/billing/verify
+
+### Feature Unlock (EventUnlock)
+**What it does:** Spending credits creates an EventUnlock record for a
+specific feature + event combination. Valid 30 days.  
+**Features:** analytics, watermark, csv, report, ai_report, thankYou  
+**API:** POST /api/billing/unlock
+
+---
+
+## Auth & Accounts
+
+### Google OAuth
+**Provider:** NextAuth.js + Google OAuth  
+**Flow:** Sign in → account linked or created → username setup (if new)
+→ redirect to /dashboard
+
+### Email/Password
+**Flow:** /signup → bcrypt 12 rounds → /signin  
+**Forgot password:** /forgot-password → SHA-256 hashed UUID token (1h
+expiry) → email link → /reset-password → new bcrypt hash stored
+
+### Username Setup
+**Where:** /setup-username (required before accessing dashboard)  
+**Rules:** 3–20 chars, alphanumeric + hyphens, reserved words blocked  
+**API:** PATCH /api/users/username, GET /api/users/check-username
+
+---
+
+## Public Pages
+
+### Organizer Public Profile
+**Where:** /[username]  
+**What it does:** Server-rendered profile showing organizer's upcoming
+active events with slot-fill progress bars and Register CTAs. SEO
+metadata generated. Follow button present (disabled, coming soon).
+
+### Landing Page
+**Where:** /  
+**Contents:** Hero section, features grid, testimonials, pricing CTA, footer.
+PWA splash header shown on /signin in standalone mode.
+
+### Pricing Page
+**Where:** /pricing  
+**Contents:** Plan cards, monthly/annual toggle, feature comparison table,
+credit bundle cards, FAQ accordion.
+
+---
+
+## PWA
+
+**Manifest:** /public/manifest.json  
+**Start URL:** /signin  
+**Theme:** Dark (#0A0A0A)  
+**Purpose:** Quick dashboard access on mobile  
+**Supported:** Android Chrome (Add to Home Screen), iOS Safari
+
+---
+
+## Super Admin Panel
+
+**Access:** /admin (returns 404 to all non-admin users)  
+**Auth:** SUPER_ADMIN_EMAIL env var match required  
+**Pages:**
+- /admin → Platform overview stats
+- /admin/users → All users, plan management, suspend/delete
+- /admin/events → All platform events with action controls
+- /admin/messages → Organizer feedback inbox
+- /admin/health → System health (DB, Redis, Auth status)
+- /admin/broadcast → Email broadcast to all platform users
+- /admin/launch → Launch checklist (env vars, DB, Redis, admin)
+
+---
+
+## Cron Jobs
+
+| Endpoint                 | Schedule  | Auth        | Action                                    |
+|--------------------------|-----------|-------------|-------------------------------------------|
+| /api/cron/send-feedback  | 9AM daily | CRON_SECRET | Send feedback emails for ended events     |
+| /api/cron/expire-data    | 2AM daily | CRON_SECRET | Delete Free plan registrations after 30d  |
+
+---
+
+## Email Templates (Resend)
+
+All emails use dark-themed HTML with lime CTA buttons:
+- **Welcome email** — sent after new account signup
+- **Password reset** — token link, 1-hour expiry, SHA-256 secured
+- **Slot confirmed** — sent when attendee is registered as confirmed
+- **Waitlist notification** — sent when attendee is promoted from waitlist
+- **Team invite** — invite link with acceptance token
+- **Feedback request** — post-event link to /feedback/[registrationId]
+- **Data expiry warning** — Free plan deletion notice (10-day heads up)
+- **Payment failure** — subscription charge failed notification
+
+---
+
+## Feature Access Matrix
+
+| Feature | Free | Pro | Business | Credits |
+|---------|------|-----|----------|---------|
+| Active events | 1 | Unlimited | Unlimited | — |
+| Registrations per event | 100 | 500 | Unlimited | — |
+| Waitlist | ✓ | ✓ | ✓ | — |
+| Custom form questions | ✓ | ✓ | ✓ | — |
+| Bulk registration | 3 max | 20 max | Unlimited | — |
+| Team members | 1 | 10 | 20 | — |
+| Data retention | 30 days | Forever | Forever | — |
+| EventSlot watermark | Yes | No | No | 10 credits to remove |
+| CSV export | — | ✓ | ✓ | 15 credits base |
+| Standard report (Word doc) | ✓ | ✓ | ✓ | Free |
+| AI report | — | ✓ | ✓ | 50 credits |
+| Event analytics | — | ✓ | ✓ | 10 credits |
+| AI insight cards | — | ✓ | ✓ | 20 credits |
+| Duplicate events | — | ✓ | ✓ | 5 credits |
+| Custom thank you | — | ✓ | ✓ | 10 credits |
+| Team members | — | ✓ | ✓ | 10 credits/member |
+| Ask your data (Q&A) | — | — | ✓ | 60 credits/query |
+| Attendee feedback forms | — | — | ✓ | 30 credits |
+| Insights Tracker | — | — | ✓ | 50 credits |
+| Predictive capacity | — | ✓ | ✓ | 25 credits |
+| PAYG costs | Yes | Yes | No | — |
+
+---
+
+## DEPRECATED / REMOVED
+
+_The following table captures old content removed from FEATURES.md:_
 
 | Feature | Description | Plan | Route / Page |
 |---------|-------------|------|--------------|

@@ -155,11 +155,13 @@ export default async function PublicProfilePage({
     try { await prisma.eventView.create({ data: { eventId: event.id } }) } catch { /* silent */ }
 
     const showBranding = !event.organizer || event.organizer.plan === "free"
+    const maxAttendees = (event.organizer?.plan === 'pro' || event.organizer?.plan === 'business') ? 20 : 3
     return (
       <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
         <RegistrationForm
           event={{ ...event, slug: username, questions: event.questions as EventQuestion[] }}
           showBranding={showBranding}
+          maxAttendees={maxAttendees}
         />
       </div>
     )

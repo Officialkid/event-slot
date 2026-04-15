@@ -43,15 +43,15 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     if (plan !== 'business') {
       if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       const credits = await getUserCredits(userId)
-      if (credits < CREDIT_COSTS.ai_query) {
+      if (credits < CREDIT_COSTS.ask_your_data) {
         return NextResponse.json(
-          { locked: true, requiredCredits: CREDIT_COSTS.ai_query, currentCredits: credits },
+          { locked: true, requiredCredits: CREDIT_COSTS.ask_your_data, currentCredits: credits },
           { status: 402 }
         )
       }
       const spendResult = await spendCredits({
         userId,
-        amount: CREDIT_COSTS.ai_query,
+        amount: CREDIT_COSTS.ask_your_data,
         description: `AI Q&A for "${event.title}"`,
         eventId: event.id,
       })

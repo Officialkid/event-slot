@@ -1,136 +1,709 @@
+﻿import Link from "next/link"
+import Image from "next/image"
+import type { CSSProperties } from "react"
+
+// ── Shared tokens ──────────────────────────────────────────────────────────────
+const LIME = "#C8F55A"
+const FG = "#F0EDE6"
+const BG = "#0A0A0A"
+const SURFACE = "#141414"
+const BORDER = "rgba(240,237,230,0.08)"
+const MUTED = "rgba(240,237,230,0.45)"
+const MUTED_LO = "rgba(240,237,230,0.25)"
+
+// ── Plan card data ─────────────────────────────────────────────────────────────
+const PLANS = [
+  {
+    name: "Free",
+    price: "Ksh 0",
+    period: "/ month",
+    tagline: "For occasional organizers",
+    cta: "Get started",
+    ctaHref: "/signup",
+    highlight: false,
+    features: [
+      "1 active event",
+      "Up to 100 registrations",
+      "Unlimited waitlist",
+      "Unlimited form questions",
+      "Waitlist automation",
+      "Community link",
+      "Email notifications",
+    ],
+  },
+  {
+    name: "Pro",
+    price: "Ksh 2,600",
+    period: "/ month",
+    tagline: "For active organizers",
+    cta: "Start Pro",
+    ctaHref: "/pricing",
+    highlight: true,
+    badge: "Most popular",
+    features: [
+      "Unlimited active events",
+      "Up to 500 registrations",
+      "Data kept forever",
+      "CSV export & Word reports",
+      "Duplicate events",
+      "Remove watermark",
+      "10 team members",
+    ],
+  },
+  {
+    name: "Business",
+    price: "Ksh 13,000",
+    period: "/ month",
+    tagline: "For teams & organizations",
+    cta: "Start Business",
+    ctaHref: "/pricing",
+    highlight: false,
+    features: [
+      "Everything in Pro",
+      "Unlimited registrations",
+      "AI reports & insight cards",
+      "Analytics & Q&A",
+      "Post-event feedback forms",
+      "Cross-event Insights Tracker",
+      "20 team members",
+    ],
+  },
+]
+
+const EVENT_TYPE_PILLS = [
+  "Community Meetups",
+  "Corporate Training",
+  "Workshops",
+  "Church Events",
+  "Sports Tournaments",
+  "Conferences",
+  "Campus Events",
+]
+
+const SCREENSHOT_FRAME: CSSProperties = {
+  background: "linear-gradient(180deg, rgba(20,20,20,0.98) 0%, rgba(10,10,10,0.94) 100%)",
+  border: "0.5px solid rgba(240,237,230,0.1)",
+  borderRadius: 24,
+  boxShadow: "0 30px 60px rgba(0,0,0,0.35)",
+  overflow: "hidden",
+}
+
+type ShowcaseImageProps = {
+  src: string
+  alt: string
+  width: number
+  height: number
+  priority?: boolean
+  maxWidth?: number
+  aspectRatio?: string
+}
+
+function ShowcaseImage({
+  src,
+  alt,
+  width,
+  height,
+  priority = false,
+  maxWidth,
+  aspectRatio = "3 / 2",
+}: ShowcaseImageProps) {
+  return (
+    <div
+      style={{
+        ...SCREENSHOT_FRAME,
+        width: "100%",
+        maxWidth: maxWidth ?? 640,
+        margin: "0 auto",
+      }}
+    >
+      <div
+        style={{
+          padding: "1rem 1.25rem",
+          borderBottom: "0.5px solid " + BORDER,
+          display: "flex",
+          gap: "0.35rem",
+          alignItems: "center",
+          background: "rgba(255,255,255,0.02)",
+        }}
+      >
+        {["#F7685B", "#F2C94C", "#33D69F"].map(c => (
+          <span key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c, display: "inline-block" }} />
+        ))}
+        <span style={{ marginLeft: "0.5rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.65rem", color: MUTED }}>
+          EventSlot preview
+        </span>
+      </div>
+      <div
+        style={{
+          padding: "1rem",
+          background: "radial-gradient(circle at top, rgba(200,245,90,0.08), transparent 50%), #0A0A0A",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio,
+            borderRadius: 18,
+            overflow: "hidden",
+            background: "#101010",
+            border: "0.5px solid rgba(240,237,230,0.08)",
+          }}
+        >
+          <Image
+            src={src}
+            alt={alt}
+            width={width}
+            height={height}
+            priority={priority}
+            sizes="(max-width: 900px) 100vw, 50vw"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              objectPosition: "center",
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid gap-16 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center rounded-full border border-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
-              Smart registration
-            </div>
-            <div className="space-y-4">
-              <h1 className="hero-heading font-semibold">
-                <span className="block">Your event, your slots,</span>
-                <span className="block text-[var(--accent)] italic">zero chaos.</span>
-              </h1>
-              <p className="max-w-2xl body-text text-[rgba(240,237,230,0.75)] sm:text-lg">
-                Share a link. Watch registrations fill. Overflow goes to a waitlist automatically — no spreadsheets, no DMs, no manual tracking.
-              </p>
+    <main style={{ background: BG, color: FG, minHeight: "100vh", overflowX: "hidden" }}>
+
+      {/* ── HERO ──────────────────────────────────────────────────────────────── */}
+      <section style={{ 
+        maxWidth: 1200, 
+        margin: "0 auto", 
+        padding: "5rem 1.5rem 4rem",
+        backgroundImage: "url('/assets/hero-bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        position: "relative",
+        borderRadius: 32,
+        overflow: "hidden",
+      }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(90deg, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.72) 50%, rgba(10,10,10,0.82) 100%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "4rem",
+            alignItems: "center",
+            position: "relative",
+            zIndex: 1,
+          }}
+          className="hero-grid"
+        >
+          {/* Left */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem" }}>
+            {/* Eyebrow */}
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              background: "rgba(200,245,90,0.08)",
+              border: "0.5px solid rgba(200,245,90,0.25)",
+              borderRadius: 100,
+              padding: "0.3rem 0.9rem",
+              width: "fit-content",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: LIME, display: "inline-block" }} />
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", fontWeight: 500, color: LIME, letterSpacing: "0.04em" }}>
+                Used by event organizers across Africa
+              </span>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <a href="/create" className="btn-base btn-primary w-full sm:w-auto">
-                Create your event
+            {/* Headline */}
+            <h1 style={{
+              fontFamily: "var(--font-instrument-serif)",
+              fontSize: "clamp(2.4rem, 5vw, 3.6rem)",
+              fontWeight: 400,
+              color: FG,
+              lineHeight: 1.1,
+              margin: 0,
+            }}>
+              The smartest way<br />
+              to run your event<br />
+              <span style={{ color: LIME, fontStyle: "italic" }}>registration.</span>
+            </h1>
+
+            {/* Subheading */}
+            <p style={{
+              fontFamily: "var(--font-dm-sans)",
+              fontWeight: 300,
+              fontSize: "1.05rem",
+              color: MUTED,
+              lineHeight: 1.7,
+              margin: 0,
+              maxWidth: 480,
+            }}>
+              Set a capacity. Share one link. Waitlists manage themselves.
+              From community meetups to 10,000-person conferences.
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <Link href="/signup" style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                background: LIME,
+                color: BG,
+                border: "none",
+                borderRadius: 100,
+                padding: "0.7rem 1.5rem",
+                fontFamily: "var(--font-dm-sans)",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                textDecoration: "none",
+                letterSpacing: "0.01em",
+              }}>
+                Start for free
+              </Link>
+              <a href="#demo" style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                background: "transparent",
+                color: FG,
+                border: "0.5px solid rgba(240,237,230,0.18)",
+                borderRadius: 100,
+                padding: "0.7rem 1.5rem",
+                fontFamily: "var(--font-dm-sans)",
+                fontWeight: 500,
+                fontSize: "0.9rem",
+                textDecoration: "none",
+              }}>
+                See it in action
+                <span style={{ opacity: 0.5 }}>↓</span>
               </a>
-              <a href="#how-it-works" className="btn-base btn-ghost w-full sm:w-auto">
-                See how it works
-              </a>
+            </div>
+
+            {/* Trust stats */}
+            <div style={{ display: "flex", gap: "0", flexWrap: "wrap", alignItems: "center" }}>
+              {[
+                "10,000+ registrations processed",
+                "Zero spreadsheets needed",
+                "Loved by organizers in 5+ countries",
+              ].map((s, i) => (
+                <span key={s} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  {i > 0 && <span style={{ color: MUTED_LO, fontSize: "0.6rem", margin: "0 0.2rem" }}>·</span>}
+                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem", color: MUTED, fontWeight: 400 }}>{s}</span>
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="fade-up fade-up-delay-1 surface border-[rgba(240,237,230,0.08)] p-6 shadow-[0_30px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="h-3 w-3 rounded-full bg-[#F7685B]" />
-                <span className="h-3 w-3 rounded-full bg-[#F2C94C]" />
-                <span className="h-3 w-3 rounded-full bg-[#33D69F]" />
-                <div className="ml-auto rounded-full border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.04)] px-3 py-1 text-[0.68rem] uppercase tracking-[0.14em] text-[rgba(240,237,230,0.7)]">
-                  eventslot.co/nairobi-founders-meetup
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-[#0A0A0A] p-6">
-                <div className="text-sm uppercase tracking-[0.2em] text-[rgba(240,237,230,0.45)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
-                  Nairobi Founders Meetup
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[rgba(240,237,230,0.45)]">
-                  <span>Sat 12 Apr · 6PM</span>
-                  <span className="h-1 w-1 rounded-full bg-[rgba(240,237,230,0.18)]" />
-                  <span>iHub, Nairobi</span>
-                </div>
-
-                <div className="mt-6 rounded-2xl border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="mb-3 flex items-center justify-between text-sm text-[rgba(240,237,230,0.7)]">
-                    <span>11 spots left</span>
-                    <span>out of 50</span>
-                  </div>
-                  <div className="progress-bar h-3 rounded-full">
-                    <div className="progress-fill rounded-full" style={{ width: "78%" }} />
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl bg-[rgba(255,255,255,0.04)] p-3 text-sm text-[rgba(240,237,230,0.75)]">
-                    Full name
-                  </div>
-                  <div className="rounded-2xl bg-[rgba(255,255,255,0.04)] p-3 text-sm text-[rgba(240,237,230,0.75)]">
-                    Email address
-                  </div>
-                  <button className="btn-base btn-primary w-full">
-                    Register now
-                  </button>
-                </div>
-              </div>
-            </div>
+          {/* Right - Dashboard image */}
+          <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+            <ShowcaseImage
+              src="/assets/dashboard-laptop.png"
+              alt="EventSlot dashboard analytics view showing registrations, waitlist, and attendee data"
+              width={1536}
+              height={1024}
+              priority
+              maxWidth={560}
+            />
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.04)] p-1">
-          <div className="grid divide-y divide-[rgba(240,237,230,0.08)] sm:grid-cols-2 sm:divide-y-0 sm:divide-x">
-            {[
-              {
-                number: "01",
-                title: "Set your limit",
-                description: "Define exactly how many people can attend. No limit? Leave it open. You are in control.",
-              },
-              {
-                number: "02",
-                title: "Waitlist runs itself",
-                description: "When slots fill up, registrations keep coming — they just queue automatically. FIFO. Fair. Hands-free.",
-              },
-              {
-                number: "03",
-                title: "One link, done",
-                description: "Share a single URL. Attendees register on any device. No app, no account, no friction.",
-              },
-              {
-                number: "04",
-                title: "Open more slots",
-                description: "Increase capacity anytime. Waitlisted people get confirmed automatically, in order.",
-              },
-            ].map((feature) => (
-              <div key={feature.number} className="flex flex-col gap-4 rounded-3xl bg-[#0A0A0A] p-8 first:border-b first:border-[rgba(240,237,230,0.08)] sm:first:border-b-0 sm:first:border-r sm:last:border-l-0">
-                <span className="label-text">{feature.number}</span>
-                <h3 className="section-title font-semibold">{feature.title}</h3>
-                <p className="text-sm leading-7 text-[rgba(240,237,230,0.65)]">{feature.description}</p>
-              </div>
+      {/* ── SOCIAL PROOF ───────────────────────────────────────────────────────── */}
+      <section style={{ background: "#0D0D0D", padding: "3rem 1.5rem", borderTop: "0.5px solid " + BORDER, borderBottom: "0.5px solid " + BORDER }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+          <p style={{
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "0.72rem",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: MUTED,
+            fontWeight: 500,
+            marginBottom: "1.5rem",
+          }}>
+            Trusted by organizers running all kinds of events
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", justifyContent: "center" }}>
+            {EVENT_TYPE_PILLS.map(pill => (
+              <span key={pill} style={{
+                background: SURFACE,
+                border: "0.5px solid " + BORDER,
+                borderRadius: 100,
+                padding: "0.4rem 1rem",
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "0.82rem",
+                color: "rgba(240,237,230,0.6)",
+                fontWeight: 400,
+              }}>
+                {pill}
+              </span>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="get-started" className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border-t border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.04)] px-8 py-12 text-center">
-          <h2 className="page-heading font-semibold">Ready to run your event the right way?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[rgba(240,237,230,0.7)]">Takes less than 3 minutes to set up.</p>
-          <a href="/create" className="btn-base btn-primary mt-8 inline-flex">
-            Create an event — it’s free
-          </a>
+      {/* ── HOW IT WORKS ───────────────────────────────────────────────────────── */}
+      <section id="demo" style={{ maxWidth: 1100, margin: "0 auto", padding: "6rem 1.5rem" }}>
+        <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, fontWeight: 500, marginBottom: "0.75rem" }}>
+            How it works
+          </p>
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
+            Simple by design
+          </h2>
+        </div>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto 1fr", gap: "1rem", alignItems: "center" }}
+          className="steps-grid"
+        >
+          {[
+            {
+              n: "01",
+              title: "Create your event",
+              desc: "Set a title, capacity, deadline, and your registration questions. Done in 3 minutes.",
+            },
+            {
+              n: "02",
+              title: "Share one link",
+              desc: "Share it on WhatsApp, Instagram, or anywhere. Registrations come in automatically.",
+            },
+            {
+              n: "03",
+              title: "Everything else is automatic",
+              desc: "Slots fill up. Waitlists form. Capacity increases promote people instantly. You just watch.",
+            },
+          ].flatMap((step, i) => [
+            <div key={step.n} style={{
+              background: SURFACE,
+              border: "0.5px solid " + BORDER,
+              borderRadius: 16,
+              padding: "2rem 1.75rem",
+            }}>
+              <div style={{
+                fontFamily: "var(--font-instrument-serif)",
+                fontSize: "3rem",
+                color: "rgba(200,245,90,0.15)",
+                lineHeight: 1,
+                marginBottom: "1rem",
+              }}>{step.n}</div>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: FG, fontWeight: 400, margin: "0 0 0.75rem" }}>
+                {step.title}
+              </h3>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.875rem", color: MUTED, margin: 0, lineHeight: 1.65 }}>
+                {step.desc}
+              </p>
+            </div>,
+            i < 2 && (
+              <div key={"arrow-" + i} style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "1.5rem",
+                color: LIME,
+                textAlign: "center" as const,
+                opacity: 0.7,
+                flexShrink: 0,
+              }} className="step-arrow">→</div>
+            ),
+          ])}
         </div>
       </section>
 
-      <footer className="mx-auto max-w-7xl px-4 pb-12 text-sm text-[rgba(240,237,230,0.65)] sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 border-t border-[rgba(240,237,230,0.08)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <span>© 2026 EventSlot</span>
-            <a href="/pricing" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Pricing</a>
-            <a href="/privacy" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Privacy Policy</a>
-            <a href="/terms" className="text-[rgba(240,237,230,0.4)] hover:text-[rgba(240,237,230,0.7)] transition-colors text-xs">Terms of Use</a>
+      {/* ── FEATURE HIGHLIGHTS ────────────────────────────────────────────────── */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "0 1.5rem 6rem" }}>
+        <div style={{ textAlign: "center", marginBottom: "4rem" }}>
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
+            Built for real events
+          </h2>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "5rem" }}>
+
+          {/* Feature 1 - image left, text right */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }} className="feature-row">
+            <ShowcaseImage
+              src="/assets/event-checkin.png"
+              alt="EventSlot attendee list and check-in experience"
+              width={1536}
+              height={1024}
+            />
+            <div>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: "1rem", fontWeight: 500 }}>Command center</p>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 400, color: FG, margin: "0 0 1rem", lineHeight: 1.2 }}>
+                Every event, every registration — at a glance.
+              </h3>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
+                See confirmed counts, waitlists, and capacity across all your events instantly. Get notified when things need your attention before they become problems.
+              </p>
+              <Link href="/signup" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+                Start your first event →
+              </Link>
+            </div>
           </div>
-          <div>Built for event organizers who move fast.</div>
+
+          {/* Feature 2 - text left, image right */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }} className="feature-row">
+            <div>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: "1rem", fontWeight: 500 }}>AI reports</p>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 400, color: FG, margin: "0 0 1rem", lineHeight: 1.2 }}>
+                Reports that actually tell you something.
+              </h3>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
+                AI reads your registration data and writes a narrative report — audience profile, registration patterns, recommendations. Not just a spreadsheet.
+              </p>
+              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+                See all AI features →
+              </Link>
+            </div>
+            <ShowcaseImage
+              src="/assets/dashboard-laptop.png"
+              alt="EventSlot reporting and analytics dashboard"
+              width={1536}
+              height={1024}
+            />
+          </div>
+
+          {/* Feature 3 - image left, text right */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }} className="feature-row">
+            <ShowcaseImage
+              src="/assets/organizer-mobile.png"
+              alt="EventSlot mobile interface showing event management on the go"
+              width={1024}
+              height={1536}
+              maxWidth={420}
+              aspectRatio="4 / 5"
+            />
+            <div>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: "1rem", fontWeight: 500 }}>Pricing model</p>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 400, color: FG, margin: "0 0 1rem", lineHeight: 1.2 }}>
+                Free to start. Powerful when you grow.
+              </h3>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
+                Start for free. Buy credits for individual features when you need them. Or upgrade to Pro or Business for everything included — no per-feature costs.
+              </p>
+              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+                View pricing →
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── PRICING PREVIEW ────────────────────────────────────────────────────── */}
+      <section style={{ background: "#0D0D0D", borderTop: "0.5px solid " + BORDER, borderBottom: "0.5px solid " + BORDER, padding: "6rem 1.5rem" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, fontWeight: 500, marginBottom: "0.75rem" }}>Pricing</p>
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
+              Simple, transparent pricing
+            </h2>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem", marginBottom: "2.5rem" }} className="plan-grid">
+            {PLANS.map(plan => (
+              <div key={plan.name} style={{
+                background: SURFACE,
+                border: plan.highlight ? "0.5px solid rgba(200,245,90,0.3)" : "0.5px solid " + BORDER,
+                borderRadius: 16,
+                padding: "1.75rem",
+                position: "relative",
+              }}>
+                {"badge" in plan && plan.badge && (
+                  <div style={{
+                    position: "absolute",
+                    top: -12,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "rgba(200,245,90,0.12)",
+                    border: "0.5px solid rgba(200,245,90,0.3)",
+                    borderRadius: 100,
+                    padding: "0.2rem 0.8rem",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "0.65rem",
+                    fontWeight: 600,
+                    color: LIME,
+                    letterSpacing: "0.08em",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {plan.badge}
+                  </div>
+                )}
+                <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.15rem", color: FG, marginBottom: "0.35rem" }}>{plan.name}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.3rem" }}>
+                  <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: FG }}>{plan.price}</span>
+                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED }}>{plan.period}</span>
+                </div>
+                <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED, margin: "0 0 1.25rem" }}>{plan.tagline}</p>
+                <Link href={plan.ctaHref} style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "0.6rem",
+                  borderRadius: 100,
+                  background: plan.highlight ? LIME : "transparent",
+                  color: plan.highlight ? BG : FG,
+                  border: plan.highlight ? "none" : "0.5px solid rgba(240,237,230,0.2)",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontWeight: 600,
+                  fontSize: "0.82rem",
+                  textDecoration: "none",
+                  marginBottom: "1.25rem",
+                }}>
+                  {plan.cta}
+                </Link>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {plan.features.map(f => (
+                    <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem", color: "rgba(240,237,230,0.7)", lineHeight: 1.45 }}>
+                      <span style={{ color: LIME, fontSize: "0.7rem", marginTop: "0.15rem", flexShrink: 0 }}>✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: "center" }}>
+            <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+              See full pricing comparison →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA BAND ───────────────────────────────────────────────────────────── */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "6rem 1.5rem" }}>
+        <div style={{
+          background: SURFACE,
+          border: "0.5px solid " + BORDER,
+          borderRadius: 20,
+          padding: "4rem 3rem",
+          textAlign: "center",
+        }}>
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 400, color: FG, margin: "0 0 1rem", lineHeight: 1.15 }}>
+            Ready to run your event<br />
+            <span style={{ color: LIME, fontStyle: "italic" }}>the right way?</span>
+          </h2>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 2rem" }}>
+            Takes less than 3 minutes to set up. Free forever on the basics.
+          </p>
+          <Link href="/signup" style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            background: LIME,
+            color: BG,
+            borderRadius: 100,
+            padding: "0.8rem 2rem",
+            fontFamily: "var(--font-dm-sans)",
+            fontWeight: 600,
+            fontSize: "0.9rem",
+            textDecoration: "none",
+          }}>
+            Create your first event — it&apos;s free
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ─────────────────────────────────────────────────────────────── */}
+      <footer style={{ borderTop: "0.5px solid " + BORDER, padding: "3.5rem 1.5rem 2rem" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "2rem", marginBottom: "3rem" }} className="footer-grid">
+            {/* Brand */}
+            <div>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: FG, marginBottom: "0.75rem" }}>
+                EventSlot
+              </div>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.82rem", color: MUTED, margin: 0, maxWidth: 220, lineHeight: 1.6 }}>
+                Smart event registration for organizers who move fast.
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Product</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {[["Features", "/#demo"], ["Pricing", "/pricing"], ["How it works", "/#demo"]].map(([label, href]) => (
+                  <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Plans */}
+            <div>
+              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Plans</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {[["Free", "/pricing"], ["Pro", "/pricing"], ["Business", "/pricing"], ["Credits", "/pricing"]].map(([label, href]) => (
+                  <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Company */}
+            <div>
+              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Company</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {[["About", "/"], ["Contact", "/"]].map(([label, href]) => (
+                  <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Legal</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {[["Privacy Policy", "/privacy"], ["Terms of Service", "/terms"]].map(([label, href]) => (
+                  <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div style={{
+            borderTop: "0.5px solid " + BORDER,
+            paddingTop: "1.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+          }}>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED }}>
+              © 2026 EventSlot · Built for event organizers
+            </span>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>
+              Made in Nairobi 🇰🇪
+            </span>
+          </div>
         </div>
       </footer>
+
+      {/* ── Responsive overrides ───────────────────────────────────────────────── */}
+      <style>{`
+        @media (max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr !important; }
+          .steps-grid { grid-template-columns: 1fr !important; }
+          .step-arrow { display: none !important; }
+          .feature-row { grid-template-columns: 1fr !important; }
+          .plan-grid { grid-template-columns: 1fr !important; }
+          .footer-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .footer-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </main>
-  );
+  )
 }

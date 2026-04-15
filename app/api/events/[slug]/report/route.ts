@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
-import { CREDIT_COSTS, hasFeatureAccess } from '@/lib/credits'
+import { hasFeatureAccess } from '@/lib/credits'
 import { generateAIReportContent } from '@/lib/generateAIReportContent'
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
@@ -42,10 +42,10 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
       )
     }
 
-    const canAccess = await hasFeatureAccess({ userId, feature: 'ai_report', eventId: event.id, plan })
-    if (!canAccess) {
+    const access = await hasFeatureAccess({ userId, feature: 'ai_report', eventId: event.id, plan })
+    if (!access.hasAccess) {
       return NextResponse.json(
-        { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true, creditsRequired: CREDIT_COSTS.ai_report, eventId: event.id },
+        { error: 'Report download is available on Pro and Business plans, or can be unlocked with credits.', upgradeRequired: true, creditsRequired: access.cost, eventId: event.id },
         { status: 403 }
       )
     }
