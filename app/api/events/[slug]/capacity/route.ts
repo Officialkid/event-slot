@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { sendSlotConfirmedEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
+import { generateConfirmationCode } from '@/lib/confirmationCode'
 
 export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -44,11 +45,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
 
       const promoted = waitlistToPromote.length
 
-      const updateRegistrations = waitlistToPromote.map(item =>
-        tx.registration.update({
-          where: { id: item.id },
-          data: { status: 'confirmed', waitlistPosition: null },
-        })
+      const updatedRegistrations = await Promise.all(
+        waitlistToPromote.map(item =>
+          tx.registration.update({
+            where: { id: item.id },
+            data: { status: 'confirmed', waitlistPosition: null, confirmationCode: generateConfirmationCode() },
+            select: { id: true, attendeeEmail: true, consentTransactional: true, confirmationCode: true },
+          })
+        )
       )
 
       const updatedEvent = await tx.event.update({
@@ -60,8 +64,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
         },
       })
 
-      await Promise.all(updateRegistrations)
-
       const remainingSlots = Math.max(0, addedSlots - promoted)
 
       return {
@@ -69,11 +71,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
         newConfirmedCount: updatedEvent.confirmedCount,
         newWaitlistCount: updatedEvent.waitlistCount,
         remainingSlots,
-        promotedRegistrations: waitlistToPromote,
+        promotedRegistrations: updatedRegistrations,
       }
     })
 
     // Send confirmation emails to promoted attendees (non-blocking)
+    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://eventsslot.com'
     await Promise.allSettled(
       result.promotedRegistrations
         .filter(r => r.attendeeEmail)
@@ -83,6 +86,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { slug: stri
             eventTitle: event.title,
             communityLink: event.communityLink,
             consentTransactional: r.consentTransactional,
+            ticketUrl: r.confirmationCode ? `${BASE_URL}/register/success/${r.confirmationCode}` : null,
           }).catch(err => console.error(`Email failed for ${r.attendeeEmail}:`, err))
         )
     )

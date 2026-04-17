@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { generateConfirmationCode } from '@/lib/confirmationCode'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
@@ -123,7 +124,7 @@ export async function POST(
           attendeeEmail,
           isDuplicate: false,
           source: 'manual',
-          ...(forcedStatus === 'confirmed' ? { qrCode: uuidv4() } : {}),
+          ...(forcedStatus === 'confirmed' ? { qrCode: uuidv4(), confirmationCode: generateConfirmationCode() } : {}),
         },
       })
 

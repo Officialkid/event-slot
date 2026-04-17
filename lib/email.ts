@@ -81,16 +81,22 @@ export async function sendSlotConfirmedEmail({
   eventTitle,
   communityLink,
   consentTransactional,
+  ticketUrl,
 }: {
   to: string
   eventTitle: string
   communityLink?: string | null
   consentTransactional: boolean
+  ticketUrl?: string | null
 }) {
   if (!consentTransactional) return
 
   const communitySection = communityLink
     ? `<p style="margin-top:16px">You can now join the event community here: <a href="${communityLink}">${communityLink}</a></p>`
+    : ''
+
+  const ticketSection = ticketUrl
+    ? `<div style="margin-top:20px;padding:16px;background:#f8f8f8;border-radius:8px;text-align:center"><a href="${ticketUrl}" style="display:inline-block;background:#0A0A0A;color:#C8F55A;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:0.9rem;font-weight:600">View &amp; Download Your Ticket &rarr;</a></div>`
     : ''
 
   await sendEmail({
@@ -100,14 +106,16 @@ export async function sendSlotConfirmedEmail({
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
         <h2 style="color:#0A0A0A">You're in!</h2>
-        <p>Good news â€” a slot has opened up and you have been confirmed for <strong>${eventTitle}</strong>.</p>
+        <p>Good news &mdash; a slot has opened up and you have been confirmed for <strong>${eventTitle}</strong>.</p>
         <p>Your spot is now secured. We look forward to seeing you there.</p>
+        ${ticketSection}
         ${communitySection}
         <p style="margin-top:2rem;color:#888;font-size:0.8rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
       </div>
     `,
   })
 }
+
 
 export async function sendWelcomeEmail({
   to,

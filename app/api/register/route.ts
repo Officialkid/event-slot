@@ -10,9 +10,10 @@ import {
   sendOrganizerCapacityFullEmail,
   sendOrganizerFirstWaitlistEmail,
 } from '@/lib/email'
+import { generateConfirmationCode } from '@/lib/confirmationCode'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
-type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number }
+type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
         let registrationId: string
 
         if (status === 'confirmed') {
+          const confirmationCode = generateConfirmationCode()
           const reg = await tx.registration.create({
             data: {
               eventId: freshEvent.id,
@@ -151,9 +153,11 @@ export async function POST(req: NextRequest) {
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
               qrCode: uuidv4(),
+              confirmationCode,
             },
           })
           registrationId = reg.id
+          attendeeResults.push({ status, registrationId, registrationNumber, confirmationCode })
           await tx.event.update({
             where: { id: freshEvent.id },
             data: { confirmedCount: { increment: 1 } },
@@ -180,9 +184,9 @@ export async function POST(req: NextRequest) {
             },
           })
           registrationId = reg.id
+          attendeeResults.push({ status, waitlistPosition, registrationId, registrationNumber })
         }
 
-        attendeeResults.push({ status, waitlistPosition, registrationId, registrationNumber })
       }
 
       return attendeeResults

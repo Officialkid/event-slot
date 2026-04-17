@@ -53,6 +53,7 @@ type AttendeeResult = {
   waitlistPosition?: number
   registrationId: string
   registrationNumber?: number
+  confirmationCode?: string
 }
 
 type BulkResult = {
@@ -246,6 +247,17 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   <p className="mt-3 text-center text-[0.72rem] text-[rgba(240,237,230,0.35)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
                     Registration #{String(r.registrationNumber).padStart(4, "0")}
                   </p>
+                )}
+                {r.confirmationCode && (
+                  <div className="mt-4 flex justify-center">
+                    <a
+                      href={`/register/success/${r.confirmationCode}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(200,245,90,0.4)] bg-[rgba(200,245,90,0.08)] px-4 py-2 text-[0.8rem] text-[#C8F55A]"
+                      style={{ fontFamily: "var(--font-dm-sans)", textDecoration: "none", fontWeight: 500 }}
+                    >
+                      View &amp; Download Ticket →
+                    </a>
+                  </div>
                 )}
                 {communityLink && (
                   <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>

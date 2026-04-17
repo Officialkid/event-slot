@@ -122,6 +122,7 @@ model Registration {
   checkedIn             Boolean   @default(false)
   checkedInAt           DateTime?
   qrCode                String?   @unique
+  confirmationCode      String?   @unique
   source                String    @default("form")
 }
 
