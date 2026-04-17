@@ -150,13 +150,11 @@ export async function sendWelcomeEmail({
 export async function sendOrganizerCapacity90Email({
   to,
   eventTitle,
-  eventSlug,
   confirmedCount,
   capacity,
 }: {
   to: string
   eventTitle: string
-  eventSlug: string
   confirmedCount: number
   capacity: number
 }) {

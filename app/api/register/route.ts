@@ -282,7 +282,6 @@ export async function POST(req: NextRequest) {
               sendOrganizerCapacity90Email({
                 to: organizer.email,
                 eventTitle: event.title,
-                eventSlug,
                 confirmedCount: updatedEvent.confirmedCount,
                 capacity: event.capacity,
               }).catch(() => {})
