@@ -83,7 +83,7 @@ export async function PATCH(
       }
       const updated = await prisma.registration.update({
         where: { id: params.registrationId },
-        data: { attendeeEmail },
+        data: { attendeeEmail, consentTransactional: true },
       })
       return NextResponse.json({ success: true, registration: updated })
     }
