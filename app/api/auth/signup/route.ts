@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const { name, email, password } = await req.json()
+    const { name, email, password, consentSystemEmails } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 })
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     const hashed = await bcrypt.hash(password, 12)
     await prisma.user.create({
-      data: { name, email, password: hashed },
+      data: { name, email, password: hashed, consentSystemEmails: consentSystemEmails === true },
     })
 
     // Fire-and-forget welcome email — don't block the response

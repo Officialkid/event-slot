@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { sendFeedbackRequestEmail } from '@/lib/email'
 import { getPlanLimits } from '@/lib/plans'
 
 export async function GET(req: NextRequest) {
@@ -21,14 +20,9 @@ export async function GET(req: NextRequest) {
       },
       include: {
         organizer: { select: { plan: true } },
-        registrations: {
-          where: { status: 'confirmed', attendeeEmail: { not: null }, consentTransactional: true },
-          select: { id: true, attendeeEmail: true },
-        },
       },
     })
 
-    let totalEmails = 0
     let totalEvents = 0
 
     for (const event of events) {
@@ -36,22 +30,9 @@ export async function GET(req: NextRequest) {
       const limits = getPlanLimits(plan)
       if (!limits.canSendFeedbackForm) continue
 
-      const recipients = event.registrations.filter(
-        (r): r is typeof r & { attendeeEmail: string } => !!r.attendeeEmail
-      )
-
-      for (const reg of recipients) {
-        try {
-          await sendFeedbackRequestEmail({
-            to: reg.attendeeEmail,
-            eventTitle: event.title,
-            registrationId: reg.id,
-          })
-          totalEmails++
-        } catch {
-          // Log but continue — don't block other sends
-        }
-      }
+      // Feedback emails to attendees are disabled per privacy policy.
+      // Attendees only receive waitlist-to-confirmed emails.
+      // Still mark feedbackSent = true so this event is not reprocessed.
 
       await prisma.event.update({
         where: { id: event.id },
@@ -61,7 +42,7 @@ export async function GET(req: NextRequest) {
       totalEvents++
     }
 
-    return NextResponse.json({ ok: true, eventsProcessed: totalEvents, emailsSent: totalEmails })
+    return NextResponse.json({ ok: true, eventsProcessed: totalEvents, emailsSent: 0 })
   } catch (err) {
     console.error('[cron/send-feedback] GET error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

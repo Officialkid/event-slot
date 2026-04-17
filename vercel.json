@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/expire-data",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/event-reminder",
+      "schedule": "0 8 * * *"
     }
   ]
 }

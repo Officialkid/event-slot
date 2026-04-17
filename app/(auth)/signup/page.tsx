@@ -11,6 +11,7 @@ export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [consentSystemEmails, setConsentSystemEmails] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -32,7 +33,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, consentSystemEmails }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -180,6 +181,33 @@ export default function SignUpPage() {
               {error}
             </p>
           )}
+
+          {/* System email consent */}
+          <label style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', cursor: 'pointer', marginTop: '0.25rem' }}>
+            <span style={{ position: 'relative', flexShrink: 0, marginTop: '2px' }}>
+              <input
+                type="checkbox"
+                checked={consentSystemEmails}
+                onChange={e => setConsentSystemEmails(e.target.checked)}
+                style={{ position: 'absolute', opacity: 0, width: 16, height: 16, margin: 0, cursor: 'pointer' }}
+              />
+              <span style={{
+                display: 'block', width: 16, height: 16, borderRadius: 3,
+                border: consentSystemEmails ? '1.5px solid #C8F55A' : '1.5px solid rgba(240,237,230,0.2)',
+                background: consentSystemEmails ? '#C8F55A' : 'transparent',
+                flexShrink: 0, transition: 'background 0.15s, border 0.15s',
+              }}>
+                {consentSystemEmails && (
+                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: 'block', margin: '3px auto 0' }}>
+                    <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </span>
+            </span>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.5)', lineHeight: 1.5, fontFamily: 'var(--font-dm-sans)' }}>
+              I agree to receive event notifications (capacity alerts, reminders) from EventSlot. (Optional)
+            </span>
+          </label>
 
           <button
             type="submit"

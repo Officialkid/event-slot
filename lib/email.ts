@@ -143,6 +143,146 @@ export async function sendWelcomeEmail({
   })
 }
 
+// ────────────────────────────────────────────────────────────
+// Organizer system emails — only sent if consentSystemEmails = true
+// ────────────────────────────────────────────────────────────
+
+export async function sendOrganizerCapacity90Email({
+  to,
+  eventTitle,
+  eventSlug,
+  confirmedCount,
+  capacity,
+}: {
+  to: string
+  eventTitle: string
+  eventSlug: string
+  confirmedCount: number
+  capacity: number
+}) {
+  const dashUrl = `${BASE_URL}/dashboard`
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `"${eventTitle}" is 90% full`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your event is almost full</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 0.75rem">
+          <strong style="color:#F0EDE6">${eventTitle}</strong> now has <strong style="color:#C8F55A">${confirmedCount} of ${capacity}</strong> spots filled (90%).
+        </p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
+          If you want to accommodate more people, you can increase the capacity from your dashboard.
+        </p>
+        <a href="${dashUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+          Go to dashboard
+        </a>
+        <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.75rem">You opted in to event notifications. You can update this preference in your account settings.</p>
+      </div>
+    `,
+  })
+}
+
+export async function sendOrganizerCapacityFullEmail({
+  to,
+  eventTitle,
+  waitlistCount,
+}: {
+  to: string
+  eventTitle: string
+  waitlistCount: number
+}) {
+  const dashUrl = `${BASE_URL}/dashboard`
+  const waitlistNote = waitlistCount > 0
+    ? `<p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
+        <strong style="color:#C8F55A">${waitlistCount} ${waitlistCount === 1 ? 'person is' : 'people are'}</strong> on the waitlist. Increasing capacity will confirm them immediately.
+       </p>`
+    : `<p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">You can still increase capacity from the dashboard if needed.</p>`
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `"${eventTitle}" is now full`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your event is full</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 0.75rem">
+          All spots for <strong style="color:#F0EDE6">${eventTitle}</strong> have been filled.
+        </p>
+        ${waitlistNote}
+        <a href="${dashUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+          Go to dashboard
+        </a>
+        <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.75rem">You opted in to event notifications. You can update this preference in your account settings.</p>
+      </div>
+    `,
+  })
+}
+
+export async function sendOrganizerFirstWaitlistEmail({
+  to,
+  eventTitle,
+}: {
+  to: string
+  eventTitle: string
+}) {
+  const dashUrl = `${BASE_URL}/dashboard`
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `People are joining the waitlist for "${eventTitle}"`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your waitlist has started</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
+          People have started joining the waitlist for <strong style="color:#F0EDE6">${eventTitle}</strong>. If you'd like to let them in, increase your event capacity from the dashboard — waitlisted attendees will be confirmed automatically.
+        </p>
+        <a href="${dashUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+          Add more slots
+        </a>
+        <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.75rem">You opted in to event notifications. You can update this preference in your account settings.</p>
+      </div>
+    `,
+  })
+}
+
+export async function sendOrganizerEventReminderEmail({
+  to,
+  eventTitle,
+  eventDate,
+}: {
+  to: string
+  eventTitle: string
+  eventDate: Date
+}) {
+  const dashUrl = `${BASE_URL}/dashboard`
+  const dateStr = eventDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `Reminder: "${eventTitle}" is in 2 days`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your event is coming up</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 0.75rem">
+          <strong style="color:#F0EDE6">${eventTitle}</strong> is happening on <strong style="color:#C8F55A">${dateStr}</strong>.
+        </p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
+          Head to your dashboard to check registrations, manage the waitlist, or make any last-minute changes.
+        </p>
+        <a href="${dashUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
+          View dashboard
+        </a>
+        <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.75rem">You opted in to event notifications. You can update this preference in your account settings.</p>
+      </div>
+    `,
+  })
+}
+
 export async function sendPasswordResetEmail({
   to,
   token,

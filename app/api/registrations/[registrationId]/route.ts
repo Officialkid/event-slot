@@ -67,7 +67,26 @@ export async function PATCH(
     // NO session check — attendees are unauthenticated.
     // The registrationId itself is the auth token (it is a CUID, unguessable).
     const body = await req.json()
-    const { answers } = body as { answers?: Array<{ questionId: string; value: string }> }
+    const { answers, attendeeEmail } = body as {
+      answers?: Array<{ questionId: string; value: string }>
+      attendeeEmail?: string
+    }
+
+    // Waitlist email-capture path: attendee provides contact email for slot notifications
+    if (attendeeEmail !== undefined) {
+      if (registration.status !== 'waitlist') {
+        return NextResponse.json({ error: 'Only waitlisted registrations can set a notification email' }, { status: 400 })
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(attendeeEmail)) {
+        return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+      }
+      const updated = await prisma.registration.update({
+        where: { id: params.registrationId },
+        data: { attendeeEmail },
+      })
+      return NextResponse.json({ success: true, registration: updated })
+    }
 
     if (!answers || !Array.isArray(answers)) {
       return NextResponse.json({ error: 'Invalid answers format' }, { status: 400 })

@@ -5,6 +5,11 @@ import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
 import { getPlanLimits } from '@/lib/plans'
 import { spendCredits } from '@/lib/credits'
+import {
+  sendOrganizerCapacity90Email,
+  sendOrganizerCapacityFullEmail,
+  sendOrganizerFirstWaitlistEmail,
+} from '@/lib/email'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number }
@@ -207,6 +212,20 @@ export async function POST(req: NextRequest) {
             eventId: event.id,
           })
         }
+
+        // One-time email when the first person joins the waitlist
+        if (prevWaitlistCount === 0 && waitlistCount >= 1) {
+          const organizer = await prisma.user.findUnique({
+            where: { id: event.organizerId },
+            select: { email: true, consentSystemEmails: true },
+          })
+          if (organizer?.email && organizer.consentSystemEmails) {
+            sendOrganizerFirstWaitlistEmail({
+              to: organizer.email,
+              eventTitle: event.title,
+            }).catch(() => {})
+          }
+        }
       } catch { /* non-critical */ }
     }
 
@@ -234,6 +253,10 @@ export async function POST(req: NextRequest) {
         if (updatedEvent) {
           const oldFill = event.confirmedCount / event.capacity
           const newFill = updatedEvent.confirmedCount / event.capacity
+          const organizer = await prisma.user.findUnique({
+            where: { id: event.organizerId },
+            select: { email: true, consentSystemEmails: true },
+          })
           if (newFill >= 1.0 && oldFill < 1.0) {
             await createNotification({
               userId: event.organizerId,
@@ -241,13 +264,29 @@ export async function POST(req: NextRequest) {
               message: `Your event "${event.title}" is now full. ${updatedEvent.waitlistCount} ${updatedEvent.waitlistCount === 1 ? "person is" : "people are"} on the waitlist.`,
               eventId: event.id,
             })
-          } else if (newFill >= 0.8 && oldFill < 0.8) {
+            if (organizer?.email && organizer.consentSystemEmails) {
+              sendOrganizerCapacityFullEmail({
+                to: organizer.email,
+                eventTitle: event.title,
+                waitlistCount: updatedEvent.waitlistCount,
+              }).catch(() => {})
+            }
+          } else if (newFill >= 0.9 && oldFill < 0.9) {
             await createNotification({
               userId: event.organizerId,
               type: "info",
-              message: `Your event "${event.title}" is 80% full. Consider increasing capacity.`,
+              message: `Your event "${event.title}" is 90% full. Consider increasing capacity.`,
               eventId: event.id,
             })
+            if (organizer?.email && organizer.consentSystemEmails) {
+              sendOrganizerCapacity90Email({
+                to: organizer.email,
+                eventTitle: event.title,
+                eventSlug,
+                confirmedCount: updatedEvent.confirmedCount,
+                capacity: event.capacity,
+              }).catch(() => {})
+            }
           }
         }
       } catch {
