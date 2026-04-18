@@ -77,7 +77,7 @@ type DuplicateInfo = {
 
 type PendingPayload = {
   eventSlug: string
-  attendeesPayload: Array<{ answers: Array<{ questionId: string; value: string }> }>
+  attendeesPayload: Array<{ answers: Array<{ questionId: string; value: string }>; baseEmail?: string }>
   consentTransactional: boolean
   consentMarketing: boolean
 }
@@ -97,6 +97,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [waitlistEmails, setWaitlistEmails] = useState<Record<string, string>>({})
   const [waitlistEmailSaving, setWaitlistEmailSaving] = useState<Record<string, boolean>>({})
   const [waitlistEmailSaved, setWaitlistEmailSaved] = useState<Record<string, boolean>>({})
+  // Base email inputs — always collected when event has no email question
+  const [baseEmails, setBaseEmails] = useState<string[]>([""])
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
 
@@ -105,10 +107,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   function addAttendee() {
     if (!canAddMore) return
     setAttendees(a => [...a, emptyAnswers(event.questions)])
+    setBaseEmails(e => [...e, ""])
   }
 
   function removeAttendee(index: number) {
     setAttendees(a => a.filter((_, i) => i !== index))
+    setBaseEmails(e => e.filter((_, i) => i !== index))
   }
 
   function handleChange(attendeeIndex: number, qId: string, value: string) {
@@ -141,8 +145,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
     setLoading(true)
     try {
-      const attendeesPayload = attendees.map(form => ({
+      const attendeesPayload = attendees.map((form, i) => ({
         answers: event.questions.map(q => ({ questionId: q.id, value: form[q.id] || "" })),
+        ...((!hasEmailQuestion && baseEmails[i]) ? { baseEmail: baseEmails[i] } : {}),
       }))
       const res = await fetch("/api/register", {
         method: "POST",
@@ -537,6 +542,21 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
           {/* Questions for this attendee */}
           <div className="space-y-4">
+            {/* System email field — always collected when organiser hasn't added an email question */}
+            {!hasEmailQuestion && (
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  Email address <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(for your ticket)</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  value={baseEmails[attendeeIndex] ?? ""}
+                  onChange={e => setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = e.target.value; return next })}
+                />
+              </div>
+            )}
             {event.questions.map(q => (
               <div key={q.id}>
                 <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">

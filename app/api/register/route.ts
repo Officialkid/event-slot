@@ -11,7 +11,7 @@ import {
   sendOrganizerFirstWaitlistEmail,
 } from '@/lib/email'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
-type AttendeePayload = { answers: Array<{ questionId: string; value: string }> }
+type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
 
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
           const question = eventQuestions.find(q => q.id === a.questionId)
           return question?.type === 'email'
         })
-        const attendeeEmail = emailAnswer?.value ?? null
+        const attendeeEmail = emailAnswer?.value ?? attendee.baseEmail ?? null
 
         // Sequential registration number per event
         const existingCount = await tx.registration.count({ where: { eventId: freshEvent.id } })
