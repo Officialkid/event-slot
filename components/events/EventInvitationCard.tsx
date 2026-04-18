@@ -65,7 +65,7 @@ const GRADIENTS = [
 ]
 
 function pickGradient(title: string): string {
-  const sum = [...title].reduce((acc, c) => acc + c.charCodeAt(0), 0)
+  const sum = Array.from(title).reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return GRADIENTS[sum % GRADIENTS.length]
 }
 
