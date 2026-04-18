@@ -238,3 +238,12 @@ model FeatureAccess {
   expiresAt DateTime
   createdAt DateTime  @default(now())
 }
+
+model FeatureInterest {
+  id          String   @id @default(cuid())
+  email       String
+  featureName String
+  createdAt   DateTime @default(now())
+
+  @@unique([email, featureName])
+}
