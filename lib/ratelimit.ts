@@ -13,3 +13,10 @@ export const signupRatelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(5, '1 h'),
   analytics: true,
 })
+
+// Attendance self-lookup: 5 lookups per IP per 10 minutes
+export const attendanceLookupRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, '10 m'),
+  analytics: true,
+})

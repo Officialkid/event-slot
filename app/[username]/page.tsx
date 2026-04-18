@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
+import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 
 type EventQuestion = {
   id: string
@@ -158,11 +159,17 @@ export default async function PublicProfilePage({
     const maxAttendees = (event.organizer?.plan === 'pro' || event.organizer?.plan === 'business') ? 20 : 3
     return (
       <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-        <RegistrationForm
-          event={{ ...event, slug: username, questions: event.questions as EventQuestion[], organizerName: event.organizer?.name ?? null }}
-          showBranding={showBranding}
-          maxAttendees={maxAttendees}
-        />
+        <div className="mx-auto max-w-[1040px] grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-8 items-start">
+          {/* Registration form */}
+          <RegistrationForm
+            event={{ ...event, slug: username, questions: event.questions as EventQuestion[], organizerName: event.organizer?.name ?? null }}
+            showBranding={showBranding}
+            maxAttendees={maxAttendees}
+          />
+
+          {/* Already Registered? lookup panel */}
+          <ConfirmAttendance eventId={event.id} />
+        </div>
       </div>
     )
   }

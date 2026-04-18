@@ -1,5 +1,31 @@
 # EventSlot — Changelog
 
+## [0.4.3] — April 18, 2026
+
+### Feature: Confirm My Attendance (Public Self-Lookup)
+
+- **New component: `components/attendance/ConfirmAttendance.tsx`** — Client-side "Already Registered?" panel embedded on the public event page. Accepts an email address, queries the attendance lookup API, and displays one of: confirmed ticket (inline `ConfirmationTicket` card with PDF download), waitlist status message, or not-found message. No login required.
+- **New API: `POST /api/attendance/confirm`** — Looks up a registration by email + eventId. Returns ticket data for confirmed registrations, waitlist position message, or not-found. Rate-limited to 5 lookups per IP per 10 minutes via Upstash Redis.
+- **Updated: `app/[username]/page.tsx`** — Public event page now renders a two-column grid on large screens (registration form + "Already Registered?" panel side-by-side). Single-column on mobile.
+- **Updated: `lib/ratelimit.ts`** — Added `attendanceLookupRatelimit` (5 per 10 min sliding window).
+
+
+## [0.4.2] — April 18, 2026
+
+### Feature: Confirmation Ticket Card with QR Code & PDF Download
+
+- **Schema:** Added `confirmationCode String? @unique` to Registration model
+- **New: `lib/confirmationCode.ts`** — Generates unique `EVT-XXXXXXXX` confirmation codes
+- **New: `components/tickets/ConfirmationTicket.tsx`** — Client component displaying attendee ticket with QR code (via `qrcode`) and PDF download (via `html2canvas` + `jspdf`)
+- **New: `app/register/success/[confirmationCode]/page.tsx`** — Post-registration success page showing the ticket; no login required
+- **New: `app/verify/[confirmationCode]/page.tsx`** — QR scan check-in verification page showing green ✓ (valid) or red ✗ (invalid)
+- **Updated: `app/api/register/route.ts`** — Generates and stores confirmation code on confirmed registration
+- **Updated: `app/api/events/[slug]/capacity/route.ts`** — Generates confirmation codes when waitlisted attendees are promoted
+- **Updated: `app/api/events/[slug]/manual-register/route.ts`** — Generates confirmation code for manually added confirmed registrants
+- **Updated: `lib/email.ts`** — `sendSlotConfirmedEmail` now includes optional ticket URL button
+- **Updated: `app/(attendee)/[username]/RegistrationForm.tsx`** — Shows "View & Download Ticket →" link on successful confirmed registration
+
+
 ## [0.4.1] — April 15, 2026
 
 ### UI/UX Fixes & Accuracy Pass

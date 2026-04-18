@@ -17,6 +17,19 @@ and custom form questions. Capacity suggestion shown on first focus if
 organizer has 3+ completed past events.  
 **API:** POST /api/events
 
+### Confirm My Attendance (Self-Lookup)
+**Where:** /[eventSlug] — "Already Registered?" panel beside the registration form  
+**Who:** Anyone (no account needed)  
+**What it does:** Attendees enter their email to look up their registration for the event. On confirmed match, shows an inline `ConfirmationTicket` card with a PDF download button. If waitlisted, shows their position. If not found, shows an error message.  
+**API:** POST /api/attendance/confirm  
+**Rate limit:** 5 lookups per IP per 10 minutes (Upstash Redis)
+
+### Confirmation Ticket Card
+**Where:** /register/success/[confirmationCode] (post-registration redirect) and inline in the self-lookup panel  
+**Who:** Anyone with the confirmation code link (no account needed)  
+**What it does:** Shows a styled ticket card with event details, attendee info, and a QR code. QR encodes `/verify/[confirmationCode]` for door check-in scanning. Supports one-click PDF download via html2canvas + jspdf.  
+**Component:** `components/tickets/ConfirmationTicket.tsx`
+
 ### Attendee Registration
 **Where:** /[eventSlug]  
 **Who:** Anyone with the link (no account needed)  
