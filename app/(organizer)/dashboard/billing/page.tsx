@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
-import { CREDIT_BUNDLES } from "@/lib/credits"
 import ComingSoon from "@/components/ui/ComingSoon"
 
 interface BillingStatus {
@@ -20,14 +19,6 @@ interface CreditTx {
   description: string
   createdAt: string
   balance: number
-}
-
-function IconCheck() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#C8F55A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 7l3.5 3.5L12 3" />
-    </svg>
-  )
 }
 
 function fmtDate(iso: string) {
@@ -93,89 +84,6 @@ function Card({ children }: { children: React.ReactNode }) {
   )
 }
 
-const PRO_FEATURES = [
-  "Unlimited active events",
-  "Unlimited registrations per event",
-  "Team members (up to 10)",
-  "Export registrations (CSV)",
-  "Word report download",
-  "Remove EventSlot watermark",
-  "Event analytics",
-  "Custom thank you message",
-  "Duplicate events",
-]
-
-const BUSINESS_FEATURES = [
-  "Unlimited active events",
-  "Unlimited registrations",
-  "Advanced analytics and insights",
-  "Unlimited team members",
-  "Priority support",
-]
-
-function PlanCard({
-  plan, billingCycle, onUpgrade, loading, currentPlan,
-}: {
-  plan: "pro" | "business"
-  billingCycle: "monthly" | "annual"
-  onUpgrade: (p: "pro" | "business") => void
-  loading: boolean
-  currentPlan: string
-}) {
-  const isCurrent = currentPlan === plan
-  const isBiz = plan === "business"
-  const monthlyPrice = isBiz ? 100 : 20
-  const annualPrice = isBiz ? 80 : 16
-  const price = billingCycle === "annual" ? annualPrice : monthlyPrice
-  const features = isBiz ? BUSINESS_FEATURES : PRO_FEATURES
-  const accentHex = isBiz ? "#9370DB" : "#C8F55A"
-  const borderColor = isBiz ? "rgba(147,112,219,0.35)" : "rgba(200,245,90,0.3)"
-  return (
-    <div style={{
-      background: "#141414",
-      border: isCurrent ? ("0.5px solid " + borderColor) : "0.5px solid rgba(240,237,230,0.1)",
-      borderRadius: 12, padding: "1.25rem",
-      display: "flex", flexDirection: "column", gap: "0.875rem", flex: 1, minWidth: 0,
-    }}>
-      <div>
-        <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1rem", color: "#F0EDE6", marginBottom: "0.35rem" }}>
-          {isBiz ? "Business" : "Pro"}
-        </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "0.2rem" }}>
-          <span style={{ fontSize: "1.5rem", fontWeight: 700, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>${price}</span>
-          <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>/mo</span>
-        </div>
-        {billingCycle === "annual" && (
-          <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.75)", fontFamily: "var(--font-dm-sans)", marginTop: 2 }}>
-            Billed annually - save 20%
-          </div>
-        )}
-      </div>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-        {features.map(f => (
-          <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem" }}>
-            <span style={{ marginTop: 1, flexShrink: 0 }}><IconCheck /></span>
-            <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.45 }}>{f}</span>
-          </li>
-        ))}
-      </ul>
-      {isCurrent ? (
-        <div style={{ textAlign: "center", fontSize: "0.78rem", color: accentHex + "99", fontFamily: "var(--font-dm-sans)", padding: "0.4rem" }}>
-          Current plan
-        </div>
-      ) : (
-        <button onClick={() => onUpgrade(plan)} disabled={loading} style={{
-          background: loading ? "rgba(200,245,90,0.4)" : "#C8F55A", border: "none", borderRadius: 8,
-          padding: "0.55rem 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A",
-          cursor: loading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", width: "100%",
-        }}>
-          {loading ? "Redirecting..." : ("Upgrade to " + (isBiz ? "Business" : "Pro"))}
-        </button>
-      )}
-    </div>
-  )
-}
-
 const FEATURE_COSTS = [
   { feature: "AI event report", cost: "50 credits" },
   { feature: "AI insight cards", cost: "20 credits" },
@@ -193,11 +101,8 @@ export default function BillingPage() {
   const [status, setStatus] = useState<BillingStatus | null>(null)
   const [successVisible, setSuccessVisible] = useState(isSuccess)
   const [creditsVisible, setCreditsVisible] = useState(isCreditsAdded)
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
-  const [upgradeLoading, setUpgradeLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [cancelError, setCancelError] = useState("")
-  const [creditsLoading, setCreditsLoading] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [creditHistory, setCreditHistory] = useState<CreditTx[]>([])
 
@@ -229,18 +134,7 @@ export default function BillingPage() {
 
   useEffect(() => { fetchStatus() }, [fetchStatus])
 
-  async function handleUpgrade(plan: "pro" | "business") {
-    setUpgradeLoading(true)
-    try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, billingCycle }),
-      })
-      const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else setUpgradeLoading(false)
-    } catch { setUpgradeLoading(false) }
-  }
+
 
   async function handleCancel() {
     if (!window.confirm("Cancel your subscription? You will keep access until end of the current billing period.")) return
@@ -254,18 +148,7 @@ export default function BillingPage() {
     finally { setCancelLoading(false) }
   }
 
-  async function handleBuyCredits(bundleId: string) {
-    setCreditsLoading(bundleId)
-    try {
-      const res = await fetch("/api/billing/credits", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bundleId }),
-      })
-      const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else setCreditsLoading(null)
-    } catch { setCreditsLoading(null) }
-  }
+
 
   async function toggleHistory() {
     if (!historyOpen && creditHistory.length === 0) {

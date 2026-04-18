@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import Link from "next/link"
 import ComingSoon from "@/components/ui/ComingSoon"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
