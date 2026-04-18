@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import UpgradePrompt from "@/app/components/UpgradePrompt"
 import { useToast } from "@/components/Toast"
+import ComingSoon from "@/components/ui/ComingSoon"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -1969,25 +1970,7 @@ export default function EventDashboardPage() {
 
             {/* Pro plan lock for free users */}
             {organizerPlan === 'free' && (
-              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ opacity: 0.25, pointerEvents: "none", userSelect: "none" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }} className="stat-grid">
-                    {["Total Views", "Total Registrations", "Conversion Rate", "Confirmed → Waitlist"].map(l => (
-                      <div key={l} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{l}</div>
-                        <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>—</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ height: 200, background: "#141414", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }} />
-                </div>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", backdropFilter: "blur(2px)", background: "rgba(10,10,10,0.4)" }}>
-                  <span style={{ fontSize: "1.5rem" }}>⚡</span>
-                  <p style={{ fontSize: "0.95rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6", margin: 0, textAlign: "center" }}>Pro plan feature</p>
-                  <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0, textAlign: "center" }}>Upgrade to see views, conversions, and registration trends</p>
-                  <a href="/pricing" style={{ marginTop: "0.25rem", background: "#C8F55A", color: "#0A0A0A", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Upgrade to Pro →</a>
-                </div>
-              </div>
+              <ComingSoon featureName="Event Analytics" description="Track views, registrations, conversion rates, and registration trends. Available on the Pro plan once our payment system goes live." />
             )}
 
             {analyticsLoading && (
@@ -2238,25 +2221,7 @@ export default function EventDashboardPage() {
 
             {/* Business plan lock for free/pro users */}
             {organizerPlan !== 'business' && (
-              <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ opacity: 0.25, pointerEvents: "none", userSelect: "none" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }} className="stat-grid">
-                    {["Responses", "Average Rating"].map(l => (
-                      <div key={l} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                        <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{l}</div>
-                        <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>—</div>
-                      </div>
-                    ))}
-                  </div>
-                  {[1,2,3].map(i => <div key={i} style={{ height: 72, background: "#141414", borderRadius: 10, border: "0.5px solid rgba(240,237,230,0.08)", marginBottom: "0.75rem" }} />)}
-                </div>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.75rem", backdropFilter: "blur(2px)", background: "rgba(10,10,10,0.4)" }}>
-                  <span style={{ fontSize: "1.5rem" }}>✦</span>
-                  <p style={{ fontSize: "0.95rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6", margin: 0, textAlign: "center" }}>Business plan feature</p>
-                  <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0, textAlign: "center" }}>Upgrade to collect post-event feedback from your attendees</p>
-                  <a href="/pricing" style={{ marginTop: "0.25rem", background: "#C8F55A", color: "#0A0A0A", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Upgrade to Business →</a>
-                </div>
-              </div>
+              <ComingSoon featureName="Attendee Feedback" description="Collect post-event ratings and written feedback from your attendees. Available on the Business plan once our payment system goes live." />
             )}
 
             {feedbackLoading && (

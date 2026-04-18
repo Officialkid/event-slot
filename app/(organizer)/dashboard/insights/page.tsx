@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import ComingSoon from "@/components/ui/ComingSoon"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -52,31 +53,7 @@ export default function InsightsPage() {
   // ─── Upgrade wall ─────────────────────────────────────────────────────────
 
   if (upgradeRequired) {
-    return (
-      <div style={{ maxWidth: 560, margin: "0 auto", paddingTop: "3rem" }}>
-        <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem" }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10 2L2 7v11h16V7L10 2z" />
-              <path d="M7 18v-7h6v7" />
-            </svg>
-          </div>
-          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.4rem", color: "#F0EDE6", marginBottom: "0.625rem" }}>
-            Insight Tracker
-          </h2>
-          <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, marginBottom: "1.5rem" }}>
-            Cross-event audience insights are available on the <strong style={{ color: "#C8F55A" }}>Business</strong> plan.
-            Discover patterns across all your events, repeat attendees, and demographic trends.
-          </p>
-          <Link
-            href="/dashboard/billing"
-            style={{ display: "inline-block", background: "#C8F55A", color: "#0A0A0A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, fontSize: "0.875rem", borderRadius: 8, padding: "0.625rem 1.5rem", textDecoration: "none" }}
-          >
-            Upgrade to Business
-          </Link>
-        </div>
-      </div>
-    )
+    return <ComingSoon featureName="Insight Tracker" description="Cross-event audience insights are a Business plan feature. Discover patterns across all your events, repeat attendees, and demographic trends — once our payment system goes live." />
   }
 
   // ─── Loading skeleton ─────────────────────────────────────────────────────

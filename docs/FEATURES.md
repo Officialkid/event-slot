@@ -1,6 +1,21 @@
 # EventSlot — Feature Reference
 
-_Last updated: April 13, 2026_
+_Last updated: April 18, 2026_
+
+---
+
+## Premium Feature Gating
+
+### ComingSoon Gates
+**Where:** Insights page, Analytics tab, Feedback tab, Billing (plan upgrades + credit purchases)  
+**Who:** Users whose plan lacks the required tier  
+**What it does:** Replaces the locked content section with the `<ComingSoon>` component — shows feature name, description, and an email opt-in form so users are notified when the feature launches.  
+**Gated features:**
+- **Insight Tracker** — Business plan; replaces upgrade wall on `/dashboard/insights`
+- **Event Analytics** — Pro plan; replaces blurred overlay in Analytics tab of event detail page
+- **Attendee Feedback** — Business plan; replaces blurred overlay in Feedback tab of event detail page
+- **Plan Upgrades** — All non-Business users; replaces plan upgrade cards on `/dashboard/billing`
+- **Credit Purchases** — All users; replaces credit bundle buy cards on `/dashboard/billing`
 
 ---
 

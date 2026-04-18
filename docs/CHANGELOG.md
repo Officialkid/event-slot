@@ -1,5 +1,15 @@
 # EventSlot — Changelog
 
+## [0.4.4] — April 18, 2026
+
+### Feature: Gate Premium Features with ComingSoon Component (Phase 4)
+
+- **Updated: `app/(organizer)/dashboard/insights/page.tsx`** — Replaced custom upgrade wall with `<ComingSoon featureName="Insight Tracker" />` (Business plan gate).
+- **Updated: `app/(organizer)/dashboard/events/[slug]/page.tsx`** — Replaced blurred Pro plan overlay in the Analytics tab and blurred Business plan overlay in the Feedback tab with `<ComingSoon>` component.
+- **Updated: `app/(organizer)/dashboard/billing/page.tsx`** — Replaced plan upgrade cards section and credit bundle purchase cards section with `<ComingSoon>` gates, preserving the credits balance display and feature cost reference table.
+- **Import added** to all three pages: `import ComingSoon from "@/components/ui/ComingSoon"`
+
+
 ## [0.4.3] — April 18, 2026
 
 ### Feature: Confirm My Attendance (Public Self-Lookup)

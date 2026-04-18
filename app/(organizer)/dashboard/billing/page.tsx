@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { CREDIT_BUNDLES } from "@/lib/credits"
+import ComingSoon from "@/components/ui/ComingSoon"
 
 interface BillingStatus {
   plan: string
@@ -418,55 +419,12 @@ export default function BillingPage() {
             </div>
           </Card>
 
-          {/* Bundle cards */}
-          <div style={{ display: "flex", gap: "0.875rem", marginTop: "1rem", flexWrap: "wrap" }}>
-            {CREDIT_BUNDLES.map(b => {
-              const isLoading = creditsLoading === b.id
-              const isDisabled = creditsLoading !== null
-              return (
-                <div
-                  key={b.id}
-                  style={{
-                    flex: "1 1 160px", minWidth: 0, background: "#141414",
-                    border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 12,
-                    padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
-                    <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: "#F0EDE6", lineHeight: 1 }}>
-                      {b.credits.toLocaleString()}
-                    </span>
-                    {b.savePct && (
-                      <span style={{
-                        background: "rgba(200,245,90,0.12)", border: "0.5px solid rgba(200,245,90,0.3)",
-                        borderRadius: 100, padding: "0.2rem 0.55rem", fontSize: "0.68rem",
-                        fontWeight: 600, color: "#C8F55A", fontFamily: "var(--font-dm-sans)",
-                        whiteSpace: "nowrap", flexShrink: 0,
-                      }}>
-                        Save {b.savePct}%
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 500, color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
-                    Ksh {b.kesPrice.toLocaleString()}
-                  </p>
-                  <button
-                    onClick={() => handleBuyCredits(b.id)}
-                    disabled={isDisabled}
-                    style={{
-                      marginTop: "auto", paddingTop: "0.375rem",
-                      background: isLoading ? "rgba(200,245,90,0.5)" : isDisabled ? "rgba(200,245,90,0.3)" : "#C8F55A",
-                      border: "none", borderRadius: 8, padding: "0.5rem 0.875rem",
-                      fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      fontFamily: "var(--font-dm-sans)", width: "100%",
-                    }}
-                  >
-                    {isLoading ? "Redirecting…" : "Buy"}
-                  </button>
-                </div>
-              )
-            })}
+          {/* Bundle cards — payment coming soon */}
+          <div style={{ marginTop: "1rem" }}>
+            <ComingSoon
+              featureName="Credit Purchases"
+              description="Purchasing credits will be available once our payment system goes live. You'll be notified as soon as top-ups are open."
+            />
           </div>
 
           {/* Feature cost table */}
@@ -547,33 +505,13 @@ export default function BillingPage() {
           )}
         </section>
 
-        {status && plan !== "business" && (
+        {plan !== "business" && (
           <section>
-            <SectionHeading>{plan === "free" ? "Upgrade your plan" : "Plan options"}</SectionHeading>
-            <div style={{ display: "inline-flex", gap: "0.25rem", background: "rgba(240,237,230,0.05)", borderRadius: 8, padding: "0.25rem", marginBottom: "1rem" }}>
-              {(["monthly", "annual"] as const).map(cycle => (
-                <button key={cycle} onClick={() => setBillingCycle(cycle)} style={{
-                  padding: "0.35rem 0.875rem", borderRadius: 6, border: "none",
-                  fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", cursor: "pointer",
-                  fontWeight: billingCycle === cycle ? 600 : 400,
-                  background: billingCycle === cycle ? "rgba(200,245,90,0.14)" : "transparent",
-                  color: billingCycle === cycle ? "#C8F55A" : "rgba(240,237,230,0.45)",
-                }}>
-                  {cycle === "monthly" ? "Monthly" : "Annual"}
-                  {cycle === "annual" && (
-                    <span style={{ marginLeft: "0.3rem", fontSize: "0.68rem", color: "#C8F55A", opacity: billingCycle === "annual" ? 1 : 0.5 }}>
-                      -20%
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              {plan === "free" && (
-                <PlanCard plan="pro" billingCycle={billingCycle} onUpgrade={handleUpgrade} loading={upgradeLoading} currentPlan={plan} />
-              )}
-              <PlanCard plan="business" billingCycle={billingCycle} onUpgrade={handleUpgrade} loading={upgradeLoading} currentPlan={plan} />
-            </div>
+            <SectionHeading>Upgrade your plan</SectionHeading>
+            <ComingSoon
+              featureName="Plan Upgrades"
+              description="Pro and Business subscriptions are coming soon. Once our payment system goes live you'll be able to upgrade directly from here."
+            />
           </section>
         )}
 
