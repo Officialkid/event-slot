@@ -184,7 +184,23 @@ export async function GET() {
       eventsClosingThisWeek,
       waitlistEventCount,
     })
-  } catch {
-    return NextResponse.json({ error: "Failed to load stats" }, { status: 500 })
+  } catch (err) {
+    console.error('[DASHBOARD STATS ERROR]', err)
+    return NextResponse.json({
+      error: "Failed to load stats",
+      totalEvents: 0,
+      totalRegistrations: 0,
+      activeEvents: 0,
+      totalWaitlisted: 0,
+      eventsNearCapacity: [],
+      upcomingEvents: [],
+      recentActivity: [],
+      eventsThisMonth: 0,
+      registrationsThisMonth: 0,
+      registrationsLastMonth: 0,
+      conversionRate: 0,
+      eventsClosingThisWeek: 0,
+      waitlistEventCount: 0,
+    }, { status: 500 })
   }
 }

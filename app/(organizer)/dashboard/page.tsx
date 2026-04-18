@@ -728,7 +728,7 @@ export default function DashboardOverviewPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
           {/* Needs attention — only rendered when loading or there are near-capacity events */}
-          {(loading || (stats?.eventsNearCapacity.length ?? 0) > 0) && (
+          {(loading || (stats?.eventsNearCapacity?.length ?? 0) > 0) && (
             <section>
             <h2
               style={{
@@ -766,7 +766,7 @@ export default function DashboardOverviewPage() {
                   />
                 ))}
               </div>
-            ) : !stats?.eventsNearCapacity.length ? (
+            ) : !stats?.eventsNearCapacity?.length ? (
               <div
                 style={{
                   background: "#141414",
@@ -922,7 +922,7 @@ export default function DashboardOverviewPage() {
                   />
                 ))}
               </div>
-            ) : !stats?.upcomingEvents.length ? (
+            ) : !stats?.upcomingEvents?.length ? (
               <div
                 style={{
                   background: "#141414",
@@ -1133,7 +1133,7 @@ export default function DashboardOverviewPage() {
                   />
                 ))}
               </div>
-            ) : !stats?.recentActivity.length ? (
+            ) : !stats?.recentActivity?.length ? (
               <div
                 style={{
                   background: "#141414",
@@ -1163,7 +1163,7 @@ export default function DashboardOverviewPage() {
                     overflow: "hidden",
                   }}
                 >
-                  {stats!.recentActivity.map((item, i, arr) => (
+                  {(stats?.recentActivity ?? []).map((item, i, arr) => (
                     <div
                       key={item.id}
                       style={{
