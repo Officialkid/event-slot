@@ -299,6 +299,17 @@ export default function DashboardOverviewPage() {
   const [capacityEvent, setCapacityEvent] = useState<EventNearCapacity | null>(null)
   const [userPlan, setUserPlan] = useState("free")
   const [creditBalance, setCreditBalance] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminStats, setAdminStats] = useState<{
+    totalUsers: number
+    newUsersThisMonth: number
+    recentSignups: Array<{ id: string; name: string | null; email: string | null; plan: string; createdAt: string }>
+  } | null>(null)
+  const [adminFeedback, setAdminFeedback] = useState<{
+    unreadCount: number
+    items: Array<{ id: string; subject: string; type: string; createdAt: string; organizer: { name: string | null; email: string | null } }>
+  } | null>(null)
+  const [adminLoading, setAdminLoading] = useState(false)
   const [featureModal, setFeatureModal] = useState<{ name: string; icon: string; tier: string; description: string; credits?: number } | null>(null)
 
   const firstName = session?.user?.name
@@ -315,9 +326,25 @@ export default function DashboardOverviewPage() {
       .then(d => {
         if (d.plan) setUserPlan(d.plan)
         if (typeof d.creditBalance === "number") setCreditBalance(d.creditBalance)
+        if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    setAdminLoading(true)
+    Promise.all([
+      fetch("/api/admin/stats").then(r => r.json()),
+      fetch("/api/admin/feedback?status=unread&limit=3").then(r => r.json()),
+    ])
+      .then(([s, f]) => {
+        setAdminStats({ totalUsers: s.totalUsers, newUsersThisMonth: s.newUsersThisMonth, recentSignups: (s.recentSignups ?? []).slice(0, 5) })
+        setAdminFeedback({ unreadCount: f.unreadCount ?? 0, items: (f.items ?? []).slice(0, 3) })
+      })
+      .catch(() => {})
+      .finally(() => setAdminLoading(false))
+  }, [isAdmin])
 
   const handleCapacitySuccess = (slug: string, newCapacity: number) => {
     setStats(prev => {
@@ -1222,6 +1249,148 @@ export default function DashboardOverviewPage() {
               </>
             )}
           </section>
+
+          {/* ── Admin Snapshot ─────────────────────────────────────────────── */}
+          {isAdmin && (
+            <section>
+              {/* Header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 22, height: 22, borderRadius: 6,
+                    background: "rgba(200,245,90,0.12)", border: "0.5px solid rgba(200,245,90,0.25)",
+                    flexShrink: 0,
+                  }}>
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#C8F55A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 1.5L2 4v4c0 3.3 2.5 5.5 6 6 3.5-.5 6-2.7 6-6V4L8 1.5z" />
+                    </svg>
+                  </span>
+                  <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+                    Admin Overview
+                  </h2>
+                </div>
+                <Link
+                  href="/admin"
+                  style={{ fontSize: "0.75rem", color: "#C8F55A", textDecoration: "none", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                >
+                  Open Admin Panel →
+                </Link>
+              </div>
+
+              {/* Mini stat cards */}
+              <div className="admin-stat-grid" style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1rem" }}>
+                <style>{`.admin-stat-grid { grid-template-columns: repeat(3, 1fr) !important; }`}</style>
+                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Total Users</div>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "#F0EDE6", lineHeight: 1 }}>
+                    {adminLoading ? "—" : (adminStats?.totalUsers ?? 0)}
+                  </div>
+                </div>
+                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>New Signups</div>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "#C8F55A", lineHeight: 1 }}>
+                    {adminLoading ? "—" : (adminStats?.newUsersThisMonth ?? 0)}
+                  </div>
+                  <div style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginTop: "0.2rem" }}>this month</div>
+                </div>
+                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Unread Feedback</div>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: adminFeedback && adminFeedback.unreadCount > 0 ? "#FAC775" : "#F0EDE6", lineHeight: 1 }}>
+                    {adminLoading ? "—" : (adminFeedback?.unreadCount ?? 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Two columns: Recent Signups + Unread Feedback */}
+              <div className="admin-two-col" style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "1fr" }}>
+                <style>{`@media (min-width: 640px) { .admin-two-col { grid-template-columns: 1fr 1fr !important; } }`}</style>
+
+                {/* Recent signups */}
+                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Recent Signups</span>
+                    <Link href="/admin/users" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
+                  </div>
+                  {adminLoading ? (
+                    <div style={{ padding: "0.75rem 1rem" }}>
+                      {[1,2,3].map(i => <div key={i} style={{ height: 28, borderRadius: 6, background: "rgba(240,237,230,0.04)", marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
+                    </div>
+                  ) : !adminStats?.recentSignups?.length ? (
+                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>No signups yet.</div>
+                  ) : (
+                    adminStats.recentSignups.map((u, i, arr) => (
+                      <div key={u.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none", display: "flex", alignItems: "center", gap: "0.625rem", justifyContent: "space-between" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: "0.8rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name ?? u.email ?? "—"}</div>
+                          {u.name && <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>}
+                        </div>
+                        <span style={{
+                          fontSize: "0.62rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
+                          padding: "0.15rem 0.4rem", borderRadius: 99,
+                          background: u.plan === "business" ? "rgba(127,119,221,0.18)" : u.plan === "pro" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.07)",
+                          color: u.plan === "business" ? "#9370DB" : u.plan === "pro" ? "#C8F55A" : "rgba(240,237,230,0.4)",
+                          fontFamily: "var(--font-dm-sans)", flexShrink: 0,
+                        }}>{u.plan}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Unread Feedback */}
+                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Unread Feedback</span>
+                    <Link href="/admin/feedback" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
+                  </div>
+                  {adminLoading ? (
+                    <div style={{ padding: "0.75rem 1rem" }}>
+                      {[1,2,3].map(i => <div key={i} style={{ height: 42, borderRadius: 6, background: "rgba(240,237,230,0.04)", marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
+                    </div>
+                  ) : !adminFeedback?.items?.length ? (
+                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>No unread feedback.</div>
+                  ) : (
+                    adminFeedback.items.map((fb, i, arr) => (
+                      <div key={fb.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.2rem" }}>
+                          <span style={{
+                            fontSize: "0.6rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
+                            padding: "0.12rem 0.4rem", borderRadius: 99, fontFamily: "var(--font-dm-sans)",
+                            background: fb.type === "complaint" ? "rgba(255,107,107,0.12)" : fb.type === "compliment" ? "rgba(74,222,128,0.12)" : fb.type === "suggestion" ? "rgba(96,165,250,0.12)" : "rgba(240,237,230,0.07)",
+                            color: fb.type === "complaint" ? "#FF6B6B" : fb.type === "compliment" ? "#4ADE80" : fb.type === "suggestion" ? "#60A5FA" : "rgba(240,237,230,0.45)",
+                          }}>{fb.type}</span>
+                          <span style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>{fb.organizer.name ?? fb.organizer.email ?? "—"}</span>
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fb.subject}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Quick-access admin links */}
+              <div className="admin-links-grid" style={{ display: "grid", gap: "0.5rem", marginTop: "0.75rem", gridTemplateColumns: "repeat(4, 1fr)" }}>
+                <style>{`@media (max-width: 479px) { .admin-links-grid { grid-template-columns: repeat(2, 1fr) !important; } }`}</style>
+                {([
+                  { label: "Users", href: "/admin/users", icon: "👥" },
+                  { label: "Events", href: "/admin/events", icon: "📅" },
+                  { label: "Feedback", href: "/admin/feedback", icon: "💬" },
+                  { label: "Broadcast", href: "/admin/broadcast", icon: "📢" },
+                ] as const).map(item => (
+                  <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}>
+                    <div style={{
+                      background: "rgba(200,245,90,0.04)", border: "0.5px solid rgba(200,245,90,0.1)",
+                      borderRadius: 8, padding: "0.6rem 0.75rem", display: "flex", alignItems: "center",
+                      gap: "0.5rem",
+                    }}>
+                      <span style={{ fontSize: "0.9rem" }}>{item.icon}</span>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "rgba(200,245,90,0.75)", fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* ── Feature Discovery ──────────────────────────────────────────── */}
           <section>
