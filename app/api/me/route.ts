@@ -13,7 +13,8 @@ export async function GET() {
       where: { id: session.user.id },
       select: { plan: true, creditBalance: true },
     })
-    return NextResponse.json({ plan: user?.plan ?? 'free', creditBalance: user?.creditBalance ?? 0 })
+    const isAdmin = session.user.email === process.env.SUPER_ADMIN_EMAIL
+    return NextResponse.json({ plan: user?.plan ?? 'free', creditBalance: user?.creditBalance ?? 0, isAdmin })
   } catch (err) {
     console.error('[me] GET error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

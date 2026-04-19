@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -98,6 +98,32 @@ function IconX() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <path d="M4 4l10 10M14 4L4 14" />
+    </svg>
+  )
+}
+
+function IconMore() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 5h10M3 8h10M3 11h10" />
+    </svg>
+  )
+}
+
+function IconLogOut() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.5 5.5l3 2.5-3 2.5" />
+      <path d="M13.5 8h-7" />
+      <path d="M6.5 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3.5" />
+    </svg>
+  )
+}
+
+function IconAdmin() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.5L2 4v4c0 3.3 2.5 5.5 6 6 3.5-.5 6-2.7 6-6V4L8 1.5z" />
     </svg>
   )
 }
@@ -534,6 +560,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [unreadCount, setUnreadCount] = useState(0)
   const [userPlan, setUserPlan] = useState("free")
   const [creditBalance, setCreditBalance] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [signOutConfirm, setSignOutConfirm] = useState(false)
+  const moreSheetRef = useRef<HTMLDivElement>(null)
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -560,6 +590,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .then(d => {
           if (d.plan) setUserPlan(d.plan)
           if (typeof d.creditBalance === "number") setCreditBalance(d.creditBalance)
+          if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
         })
         .catch(() => { /* ignore */ })
     }
@@ -573,10 +604,40 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   useEffect(() => {
     setDrawerOpen(false)
+    setMoreOpen(false)
+    setSignOutConfirm(false)
     if (pathname !== "/dashboard/notifications" && status === "authenticated") {
       fetchUnreadCount()
     }
   }, [pathname, status, fetchUnreadCount])
+
+  // Focus trap for More sheet
+  useEffect(() => {
+    if (!moreOpen) return
+    const el = moreSheetRef.current
+    if (!el) return
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled])',
+    )
+    focusable[0]?.focus()
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setMoreOpen(false)
+        setSignOutConfirm(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus() }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first?.focus() }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [moreOpen])
 
   // Persist sidebar collapse state across sessions
   useEffect(() => {
@@ -670,6 +731,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .dash-sidebar-collapsed .dash-user-det { display: none !important; }
         .dash-sidebar-collapsed .dash-avatar-wrap { justify-content: center !important; }
         .dash-collapse-btn:hover { color: rgba(240,237,230,0.55) !important; }
+        @keyframes moreSheetSlideUp {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+        .more-sheet-item:hover {
+          background: rgba(240,237,230,0.04) !important;
+        }
       `}</style>
 
       {/* Drawer backdrop */}
@@ -916,8 +984,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar — 4 items max: Dashboard, Events, Notifications, More */}
       <nav
+        aria-label="Mobile navigation"
         className="flex md:hidden"
         style={{
           position: "fixed",
@@ -932,12 +1001,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           zIndex: 50,
         }}
       >
-        {NAV_ITEMS.map(item => {
+        {([
+          { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
+          { label: "Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+          { label: "Alerts", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+        ] as const).map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-label={item.label}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -950,9 +1024,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               }}
             >
               {item.icon}
-              <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>
-                {item.label}
-              </span>
+              <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
               {item.href === "/dashboard/notifications" && unreadCount > 0 && (
                 <span
                   style={{
@@ -966,28 +1038,211 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   }}
                 />
               )}
-              {item.href === "/dashboard/profile" && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    right: 8,
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background:
-                      userPlan === "pro"
-                        ? "#C8F55A"
-                        : userPlan === "business"
-                        ? "#9370DB"
-                        : "rgba(240,237,230,0.35)",
-                  }}
-                />
-              )}
             </Link>
           )
         })}
+        {/* More button */}
+        <button
+          aria-label="More options"
+          onClick={() => setMoreOpen(true)}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
+            padding: "0.3rem 1rem",
+            color: moreOpen ? "#C8F55A" : "rgba(240,237,230,0.35)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          <IconMore />
+          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>More</span>
+        </button>
       </nav>
+
+      {/* More bottom sheet */}
+      {moreOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="md:hidden"
+            onClick={() => { setMoreOpen(false); setSignOutConfirm(false) }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              zIndex: 60,
+            }}
+          />
+          {/* Sheet */}
+          <div
+            ref={moreSheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="More options"
+            className="md:hidden"
+            style={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: "#0D0D0D",
+              borderTop: "0.5px solid rgba(240,237,230,0.1)",
+              borderRadius: "16px 16px 0 0",
+              zIndex: 61,
+              paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+              animation: "moreSheetSlideUp 0.25s cubic-bezier(0.4,0,0.2,1)",
+            }}
+          >
+            {/* Drag handle */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "0.75rem 0 0.25rem" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(240,237,230,0.15)" }} />
+            </div>
+
+            {!signOutConfirm ? (
+              <div style={{ padding: "0.25rem 0.75rem 0.25rem" }}>
+                {([
+                  { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
+                  { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: userPlan === "pro" || userPlan === "business" },
+                  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: true },
+                  { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
+                  { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: userPlan === "business" },
+                ] as const).filter(i => i.show).map(item => {
+                  const active = getIsActive(pathname, item.href, false)
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-label={item.label}
+                      onClick={() => setMoreOpen(false)}
+                      className="more-sheet-item"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "0.75rem 1rem",
+                        borderRadius: 10,
+                        color: active ? "#C8F55A" : "rgba(240,237,230,0.75)",
+                        background: active ? "rgba(200,245,90,0.06)" : "transparent",
+                        textDecoration: "none",
+                        fontSize: "0.9rem",
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+
+                {isAdmin && (
+                  <>
+                    <div style={{ height: 1, background: "rgba(240,237,230,0.08)", margin: "0.5rem 0.25rem" }} />
+                    <Link
+                      href="/admin"
+                      aria-label="Switch to Admin View"
+                      onClick={() => setMoreOpen(false)}
+                      className="more-sheet-item"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "0.75rem 1rem",
+                        borderRadius: 10,
+                        color: "rgba(200,245,90,0.8)",
+                        textDecoration: "none",
+                        fontSize: "0.9rem",
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    >
+                      <IconAdmin />
+                      Switch to Admin View
+                    </Link>
+                  </>
+                )}
+
+                <div style={{ height: 1, background: "rgba(240,237,230,0.08)", margin: "0.5rem 0.25rem" }} />
+                <button
+                  aria-label="Sign out"
+                  onClick={() => setSignOutConfirm(true)}
+                  className="more-sheet-item"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "0.75rem 1rem",
+                    borderRadius: 10,
+                    color: "#FF6B6B",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    fontFamily: "var(--font-dm-sans)",
+                    width: "100%",
+                    textAlign: "left",
+                  }}
+                >
+                  <IconLogOut />
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div style={{ padding: "1.25rem 1.5rem 1rem" }}>
+                <p
+                  style={{
+                    fontSize: "0.9rem",
+                    color: "rgba(240,237,230,0.75)",
+                    fontFamily: "var(--font-dm-sans)",
+                    marginBottom: "1rem",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Are you sure you want to sign out?
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    aria-label="Cancel sign out"
+                    onClick={() => setSignOutConfirm(false)}
+                    style={{
+                      flex: 1,
+                      padding: "0.625rem 1rem",
+                      borderRadius: 8,
+                      background: "rgba(240,237,230,0.06)",
+                      border: "0.5px solid rgba(240,237,230,0.1)",
+                      color: "rgba(240,237,230,0.75)",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontFamily: "var(--font-dm-sans)",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    aria-label="Confirm sign out"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    style={{
+                      flex: 1,
+                      padding: "0.625rem 1rem",
+                      borderRadius: 8,
+                      background: "rgba(255,107,107,0.12)",
+                      border: "0.5px solid rgba(255,107,107,0.3)",
+                      color: "#FF6B6B",
+                      cursor: "pointer",
+                      fontSize: "0.875rem",
+                      fontFamily: "var(--font-dm-sans)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </>
   )
 }
