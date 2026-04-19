@@ -401,7 +401,7 @@ export default function Home() {
             How it works
           </p>
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
-            How EventSlot's Event Registration System Works
+            How EventSlot&apos;s Event Registration System Works
           </h2>
           <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "1rem auto 0", maxWidth: 560, lineHeight: 1.7 }}>
             From creating your event to auto-confirming waitlisted attendees — our online event registration platform handles every step.

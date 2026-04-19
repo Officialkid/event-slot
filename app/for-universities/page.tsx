@@ -19,7 +19,6 @@ const LIME = "#C8F55A"
 const FG = "#F0EDE6"
 const BG = "#0A0A0A"
 const SURFACE = "#141414"
-const BORDER = "rgba(240,237,230,0.08)"
 const MUTED = "rgba(240,237,230,0.45)"
 
 const USE_CASES = [

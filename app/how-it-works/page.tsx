@@ -89,7 +89,7 @@ export default function HowItWorksPage() {
       {/* Steps */}
       <section style={{ maxWidth: 860, margin: "0 auto", padding: "0 1.5rem 6rem" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          {STEPS.map((step, i) => (
+          {STEPS.map((step) => (
             <div key={step.n} style={{
               background: SURFACE,
               border: `0.5px solid ${BORDER}`,
