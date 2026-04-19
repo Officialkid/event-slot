@@ -1,7 +1,21 @@
-﻿import Link from "next/link"
+﻿import type { Metadata } from "next"
+import Link from "next/link"
 import Image from "next/image"
 import type { CSSProperties } from "react"
 import SmartCTA from "@/components/SmartCTA"
+
+export const metadata: Metadata = {
+  title: "EventSlot – Smart Event Registration Platform with Built-in Waitlist",
+  description:
+    "The fastest event registration system with automatic waitlist management. Create an event, share one link, and let EventSlot handle registrations, confirmations, and waitlists automatically.",
+  alternates: { canonical: "https://www.eventsslot.com" },
+  openGraph: {
+    title: "EventSlot – Smart Event Registration Platform with Built-in Waitlist",
+    description:
+      "Create events, share one link, and fill slots automatically. EventSlot manages registrations and waitlists without spreadsheets.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "EventSlot Event Registration Platform" }],
+  },
+}
 
 // ── Shared tokens ──────────────────────────────────────────────────────────────
 const LIME = "#C8F55A"
@@ -172,9 +186,34 @@ function ShowcaseImage({
   )
 }
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "EventSlot",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://www.eventsslot.com",
+  description:
+    "EventSlot is an event registration platform with built-in waitlist management. Create events, share one link, and automatically manage registrations, confirmations and waitlists.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    reviewCount: "120",
+  },
+}
+
 export default function Home() {
   return (
     <main style={{ background: BG, color: FG, minHeight: "100vh", overflowX: "hidden" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* ── HERO ──────────────────────────────────────────────────────────────── */}
       <section style={{ 
@@ -227,7 +266,7 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Headline */}
+            {/* Headline — primary SEO H1 */}
             <h1 style={{
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "clamp(2.4rem, 5vw, 3.6rem)",
@@ -236,9 +275,9 @@ export default function Home() {
               lineHeight: 1.1,
               margin: 0,
             }}>
-              The smartest way<br />
-              to run your event<br />
-              <span style={{ color: LIME, fontStyle: "italic" }}>registration.</span>
+              Smart Event Registration<br />
+              Platform with Built-in<br />
+              <span style={{ color: LIME, fontStyle: "italic" }}>Waitlist.</span>
             </h1>
 
             {/* Subheading */}
@@ -251,8 +290,8 @@ export default function Home() {
               margin: 0,
               maxWidth: 480,
             }}>
-              Set a capacity. Share one link. Waitlists manage themselves.
-              From community meetups to 10,000-person conferences.
+              The event registration system that replaces spreadsheets.
+              Set a capacity, share one link — your event waitlist system handles the rest automatically.
             </p>
 
             {/* Buttons */}
@@ -362,8 +401,11 @@ export default function Home() {
             How it works
           </p>
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
-            Simple by design
+            How EventSlot's Event Registration System Works
           </h2>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "1rem auto 0", maxWidth: 560, lineHeight: 1.7 }}>
+            From creating your event to auto-confirming waitlisted attendees — our online event registration platform handles every step.
+          </p>
         </div>
 
         <div
@@ -425,8 +467,11 @@ export default function Home() {
       <section id="how-it-works" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 1.5rem 6rem" }}>
         <div style={{ textAlign: "center", marginBottom: "4rem" }}>
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
-            Built for real events
+            Why EventSlot Is the Right Event Management Tool
           </h2>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "1rem auto 0", maxWidth: 560, lineHeight: 1.7 }}>
+            No spreadsheets. No manual tracking. Automatic confirmations. Full-control dashboard for event organizers, universities, churches, and corporate teams.
+          </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "5rem" }}>

@@ -36,25 +36,39 @@ export async function generateMetadata({
   if (!user) {
     const event = await prisma.event.findUnique({
       where: { slug: username },
-      select: { title: true, description: true, capacity: true, confirmedCount: true, organizerEmail: true },
+      select: { title: true, description: true, capacity: true, confirmedCount: true, organizerEmail: true, location: true, eventDate: true },
     })
     if (!event) return {}
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = process.env.NEXTAUTH_URL ?? ""
+    const canonical = `${base}/${username}`
     const ogUrl = `${base}/api/og?title=${encodeURIComponent(event.title)}&organizer=${encodeURIComponent(event.organizerEmail)}${spotsLeft !== null ? `&spots=${spotsLeft}` : ""}`
-    const description = event.description ?? `Register for ${event.title}`
+    const spotsText = spotsLeft !== null ? ` ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left.` : ""
+    const locationText = event.location ? ` at ${event.location}` : ""
+    const richDescription =
+      event.description ??
+      `Register for ${event.title}${locationText}. Powered by EventSlot — the event registration platform with built-in waitlist management.${spotsText}`
     return {
       title: `${event.title} — EventSlot`,
-      description,
-      openGraph: { title: event.title, description, images: [{ url: ogUrl, width: 1200, height: 630 }] },
-      twitter: { card: "summary_large_image", title: event.title, images: [ogUrl] },
+      description: richDescription,
+      alternates: { canonical },
+      openGraph: {
+        title: event.title,
+        description: richDescription,
+        url: canonical,
+        images: [{ url: ogUrl, width: 1200, height: 630, alt: event.title }],
+        type: "website",
+      },
+      twitter: { card: "summary_large_image", title: event.title, description: richDescription, images: [ogUrl] },
     }
   }
 
   const displayName = user.name ?? user.username ?? "Organizer"
+  const userCanonical = `${process.env.NEXTAUTH_URL ?? ""}/${username}`
   return {
     title: `${displayName} — EventSlot`,
-    description: `See upcoming events from ${displayName} on EventSlot.`,
+    description: `See upcoming events from ${displayName} on EventSlot — the online event registration platform.`,
+    alternates: { canonical: userCanonical },
   }
 }
 
