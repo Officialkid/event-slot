@@ -6,12 +6,15 @@ import Link from "next/link"
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+type EventSummary = { id: string; title: string; slug: string; status: string }
+
 type TeamMemberRecord = {
   id: string
   email: string
   status: "pending" | "accepted"
   createdAt: string
   member: { name: string | null; email: string | null; image: string | null } | null
+  eventAccess?: Array<{ event: EventSummary }>
 }
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -43,6 +46,16 @@ export default function TeamPage() {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const [resendingId, setResendingId] = useState<string | null>(null)
   const [resendSuccess, setResendSuccess] = useState("")
+  const [resendFailedUrls, setResendFailedUrls] = useState<Record<string, string>>({})
+  const [inviteAcceptUrl, setInviteAcceptUrl] = useState("")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  // Event assignment modal
+  const [orgEvents, setOrgEvents] = useState<EventSummary[]>([])
+  const [assignModal, setAssignModal] = useState<{ memberId: string; memberLabel: string; currentIds: string[] } | null>(null)
+  const [assignSelectedIds, setAssignSelectedIds] = useState<string[]>([])
+  const [assignSaving, setAssignSaving] = useState(false)
+
   const emailRef = useRef<HTMLInputElement>(null)
 
   // Load plan info + members
@@ -95,7 +108,8 @@ export default function TeamPage() {
         return
       }
       if (data.emailFailed) {
-        setInviteSuccess(`Invite created for ${email} — the invitation email could not be delivered right now, but the member can still accept via direct link.`)
+        setInviteSuccess(`Invite created for ${email} — email delivery failed, share the link below.`)
+        setInviteAcceptUrl(data.acceptUrl ?? "")
       } else {
         setInviteSuccess(`Invite sent to ${email}`)
       }
@@ -132,11 +146,60 @@ export default function TeamPage() {
         body: JSON.stringify({ memberId }),
       })
       if (res.ok) {
-        setResendSuccess(memberId)
-        setTimeout(() => setResendSuccess(""), 3000)
+        const data = await res.json()
+        if (data.emailFailed && data.acceptUrl) {
+          setResendFailedUrls(prev => ({ ...prev, [memberId]: data.acceptUrl }))
+        } else {
+          setResendSuccess(memberId)
+          setTimeout(() => setResendSuccess(""), 3000)
+        }
       }
     } finally {
       setResendingId(null)
+    }
+  }
+
+  async function copyToClipboard(text: string, key: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(key)
+      setTimeout(() => setCopiedId(null), 2500)
+    } catch {
+      // fallback
+    }
+  }
+
+  async function openAssignModal(m: TeamMemberRecord) {
+    if (orgEvents.length === 0) {
+      const res = await fetch("/api/team/events")
+      if (res.ok) {
+        const data = await res.json()
+        setOrgEvents(data.events ?? [])
+      }
+    }
+    const currentIds = (m.eventAccess ?? []).map(a => a.event.id)
+    setAssignSelectedIds(currentIds)
+    setAssignModal({ memberId: m.id, memberLabel: m.member?.name ?? m.email, currentIds })
+  }
+
+  async function handleSaveAccess() {
+    if (!assignModal) return
+    setAssignSaving(true)
+    try {
+      await fetch(`/api/team/${assignModal.memberId}/events`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventIds: assignSelectedIds }),
+      })
+      // Refresh member list
+      const mr = await fetch("/api/team/members")
+      if (mr.ok) {
+        const d = await mr.json()
+        setMembers(d.members ?? [])
+      }
+      setAssignModal(null)
+    } finally {
+      setAssignSaving(false)
     }
   }
 
@@ -204,6 +267,109 @@ export default function TeamPage() {
                 style={{ background: "rgba(239,68,68,0.12)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, color: "#EF4444", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
               >
                 {removingId === confirmTarget.id ? "Removingâ€¦" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Event access assignment modal */}
+      {assignModal && (
+        <>
+          <div
+            onClick={() => setAssignModal(null)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60 }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%,-50%)",
+              zIndex: 61,
+              background: "#1A1A1A",
+              border: "0.5px solid rgba(240,237,230,0.1)",
+              borderRadius: 16,
+              padding: "1.75rem",
+              width: "min(92vw,480px)",
+              fontFamily: "var(--font-dm-sans)",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.25rem" }}>
+              Manage event access
+            </h3>
+            <p style={{ fontSize: "0.8125rem", color: "rgba(240,237,230,0.4)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
+              Choose which events <strong style={{ color: "rgba(240,237,230,0.7)" }}>{assignModal.memberLabel}</strong> can access.
+            </p>
+            <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
+              {orgEvents.length === 0 ? (
+                <p style={{ fontSize: "0.8125rem", color: "rgba(240,237,230,0.35)", textAlign: "center", padding: "1rem 0" }}>
+                  No events found.
+                </p>
+              ) : (
+                orgEvents.map(ev => {
+                  const checked = assignSelectedIds.includes(ev.id)
+                  return (
+                    <label
+                      key={ev.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        background: checked ? "rgba(200,245,90,0.05)" : "rgba(240,237,230,0.03)",
+                        border: `0.5px solid ${checked ? "rgba(200,245,90,0.2)" : "rgba(240,237,230,0.07)"}`,
+                        borderRadius: 8,
+                        padding: "0.6875rem 0.875rem",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setAssignSelectedIds(prev =>
+                            prev.includes(ev.id) ? prev.filter(id => id !== ev.id) : [...prev, ev.id]
+                          )
+                        }
+                        style={{ accentColor: "#C8F55A", width: 15, height: 15, flexShrink: 0 }}
+                      />
+                      <span style={{ flex: 1, fontSize: "0.875rem", color: "rgba(240,237,230,0.85)", lineHeight: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ev.title}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.6875rem",
+                          borderRadius: 5,
+                          padding: "0.15rem 0.4rem",
+                          background: ev.status === "active" ? "rgba(200,245,90,0.1)" : "rgba(240,237,230,0.06)",
+                          color: ev.status === "active" ? "#C8F55A" : "rgba(240,237,230,0.35)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {ev.status}
+                      </span>
+                    </label>
+                  )
+                })
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setAssignModal(null)}
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, color: "rgba(240,237,230,0.5)", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAccess}
+                disabled={assignSaving}
+                style={{ background: "#C8F55A", color: "#0A0A0A", fontWeight: 600, fontSize: "0.8125rem", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", cursor: assignSaving ? "not-allowed" : "pointer", opacity: assignSaving ? 0.7 : 1 }}
+              >
+                {assignSaving ? "Saving…" : "Save access"}
               </button>
             </div>
           </div>
@@ -373,8 +539,25 @@ export default function TeamPage() {
                       flexShrink: 0,
                     }}
                   >
-                    Member
+                    {(m.eventAccess?.length ?? 0) > 0 ? `${m.eventAccess!.length} event${m.eventAccess!.length !== 1 ? "s" : ""}` : "No events"}
                   </span>
+                  {/* Manage access button */}
+                  <button
+                    onClick={() => openAssignModal(m)}
+                    style={{
+                      background: "transparent",
+                      border: "0.5px solid rgba(200,245,90,0.2)",
+                      borderRadius: 7,
+                      color: "#C8F55A",
+                      fontSize: "0.75rem",
+                      fontFamily: "var(--font-dm-sans)",
+                      padding: "0.3rem 0.625rem",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Manage access
+                  </button>
                   {/* Remove button */}
                   <button
                     onClick={() => setConfirmRemoveId(m.id)}
@@ -477,8 +660,25 @@ export default function TeamPage() {
                   }}
                 >
                   {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sendingâ€¦" : "Resend invite"}
-                </button>
-                {/* Cancel */}
+                </button>                {/* Copy link (shown when resend email failed) */}
+                {resendFailedUrls[m.id] && (
+                  <button
+                    onClick={() => copyToClipboard(resendFailedUrls[m.id], `resend-${m.id}`)}
+                    style={{
+                      background: "transparent",
+                      border: "0.5px solid rgba(200,245,90,0.2)",
+                      borderRadius: 7,
+                      color: copiedId === `resend-${m.id}` ? "#C8F55A" : "rgba(200,245,90,0.7)",
+                      fontSize: "0.75rem",
+                      fontFamily: "var(--font-dm-sans)",
+                      padding: "0.3rem 0.625rem",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {copiedId === `resend-${m.id}` ? "Copied!" : "Copy link"}
+                  </button>
+                )}                {/* Cancel */}
                 <button
                   onClick={() => setConfirmRemoveId(m.id)}
                   style={{
@@ -558,7 +758,7 @@ export default function TeamPage() {
                 ref={emailRef}
                 type="email"
                 value={inviteEmail}
-                onChange={e => { setInviteEmail(e.target.value); setInviteError(""); setInviteSuccess("") }}
+                onChange={e => { setInviteEmail(e.target.value); setInviteError(""); setInviteSuccess(""); setInviteAcceptUrl("") }}
                 placeholder="teammate@example.com"
                 required
                 style={{
@@ -601,9 +801,50 @@ export default function TeamPage() {
             </p>
           )}
           {inviteSuccess && (
-            <p style={{ marginTop: "0.625rem", fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
-              {inviteSuccess}
-            </p>
+            <div style={{ marginTop: "0.625rem" }}>
+              <p style={{ fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: inviteAcceptUrl ? "0.5rem" : 0 }}>
+                {inviteSuccess}
+              </p>
+              {inviteAcceptUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      fontSize: "0.75rem",
+                      color: "rgba(240,237,230,0.4)",
+                      fontFamily: "var(--font-dm-sans)",
+                      background: "rgba(240,237,230,0.04)",
+                      border: "0.5px solid rgba(240,237,230,0.08)",
+                      borderRadius: 6,
+                      padding: "0.375rem 0.625rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {inviteAcceptUrl}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(inviteAcceptUrl, "invite")}
+                    style={{
+                      background: "#C8F55A",
+                      color: "#0A0A0A",
+                      fontFamily: "var(--font-dm-sans)",
+                      fontWeight: 600,
+                      fontSize: "0.75rem",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "0.375rem 0.875rem",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {copiedId === "invite" ? "Copied!" : "Copy link"}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </section>

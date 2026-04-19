@@ -14,6 +14,9 @@ export async function GET() {
       where: { ownerId: session.user.id },
       include: {
         member: { select: { name: true, email: true, image: true } },
+        eventAccess: {
+          include: { event: { select: { id: true, title: true, slug: true, status: true } } },
+        },
       },
       orderBy: { createdAt: 'asc' },
     })

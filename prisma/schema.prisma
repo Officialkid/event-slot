@@ -38,6 +38,7 @@ model Event {
   feedback         AttendeeFeedback[]
   unlocks          EventUnlock[]
   insight          EventInsight?
+  teamAccess       TeamMemberEvent[]
 }
 
 model User {
@@ -214,15 +215,27 @@ model AttendeeFeedback {
 }
 
 model TeamMember {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   ownerId     String
-  owner       User     @relation("OwnedTeam", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner       User              @relation("OwnedTeam", fields: [ownerId], references: [id], onDelete: Cascade)
   memberId    String?
-  member      User?    @relation("MemberOf", fields: [memberId], references: [id], onDelete: SetNull)
+  member      User?             @relation("MemberOf", fields: [memberId], references: [id], onDelete: SetNull)
   email       String
-  status      String   @default("pending")
-  inviteToken String   @unique
-  createdAt   DateTime @default(now())
+  status      String            @default("pending")
+  inviteToken String            @unique
+  createdAt   DateTime          @default(now())
+  eventAccess TeamMemberEvent[]
+}
+
+model TeamMemberEvent {
+  id           String     @id @default(cuid())
+  teamMemberId String
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  eventId      String
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([teamMemberId, eventId])
 }
 
 model EventInsight {

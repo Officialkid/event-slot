@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
     })
 
     const inviterName = owner?.name || owner?.email || 'Someone'
+    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+    const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
 
     let emailFailed = false
     try {
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
       emailFailed = true
     }
 
-    return NextResponse.json({ ok: true, emailFailed }, { status: 201 })
+    return NextResponse.json({ ok: true, emailFailed, acceptUrl }, { status: 201 })
   } catch (err) {
     console.error('[team/invite]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
