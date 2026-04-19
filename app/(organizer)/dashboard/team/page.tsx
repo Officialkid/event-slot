@@ -94,7 +94,11 @@ export default function TeamPage() {
         setInviteError(data.error ?? "Failed to send invite")
         return
       }
-      setInviteSuccess(`Invite sent to ${email}`)
+      if (data.emailFailed) {
+        setInviteSuccess(`Invite created for ${email} — the invitation email could not be delivered right now, but the member can still accept via direct link.`)
+      } else {
+        setInviteSuccess(`Invite sent to ${email}`)
+      }
       setInviteEmail("")
       // Refresh list
       const mr = await fetch("/api/team/members")

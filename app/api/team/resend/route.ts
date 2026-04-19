@@ -44,13 +44,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    await sendTeamInviteEmail({
-      to: record.email,
-      inviterName: record.owner.name ?? session.user.email ?? 'Your teammate',
-      inviteToken: newToken,
-    })
-
-    return NextResponse.json({ ok: true })
+    let emailFailed = false\n    try {\n      await sendTeamInviteEmail({\n        to: record.email,\n        inviterName: record.owner.name ?? session.user.email ?? 'Your teammate',\n        inviteToken: newToken,\n      })\n    } catch (emailErr) {\n      console.error('[team/resend] email failed:', emailErr)\n      emailFailed = true\n    }\n\n    return NextResponse.json({ ok: true, emailFailed })
   } catch (err) {
     console.error('[POST /api/team/resend]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

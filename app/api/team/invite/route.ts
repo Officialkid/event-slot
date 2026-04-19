@@ -66,17 +66,15 @@ export async function POST(req: NextRequest) {
 
     const inviterName = owner?.name || owner?.email || 'Someone'
 
+    let emailFailed = false
     try {
       await sendTeamInviteEmail({ to: normalizedEmail, inviterName, inviteToken })
     } catch (emailErr) {
       console.error('[team/invite] email failed:', emailErr)
-      return NextResponse.json({
-        success: false,
-        error: 'Invitation created but the email could not be sent. Check your Resend configuration.',
-      }, { status: 500 })
+      emailFailed = true
     }
 
-    return NextResponse.json({ ok: true }, { status: 201 })
+    return NextResponse.json({ ok: true, emailFailed }, { status: 201 })
   } catch (err) {
     console.error('[team/invite]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
