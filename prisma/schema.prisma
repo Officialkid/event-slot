@@ -69,6 +69,7 @@ model User {
   notifications  Notification[]
   creditTransactions CreditTransaction[]
   featureAccess      FeatureAccess[]
+  organizerFeedback  OrganizerFeedback[]
 }
 
 model Account {
@@ -180,12 +181,16 @@ model EventUnlock {
 }
 
 model OrganizerFeedback {
-  id        String   @id @default(cuid())
-  userId    String
-  eventId   String?
-  rating    Int
-  message   String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  type        String   // "complaint" | "compliment" | "suggestion" | "general"
+  subject     String
+  message     String
+  rating      Int?
+  status      String   @default("unread")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model EventView {

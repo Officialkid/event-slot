@@ -77,6 +77,15 @@ function IconBilling() {
   )
 }
 
+function IconFeedback() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13.5 2.5h-11a1 1 0 00-1 1v7a1 1 0 001 1H5l3 2.5 3-2.5h2.5a1 1 0 001-1v-7a1 1 0 00-1-1z" />
+      <path d="M5 6.5h6M5 9h4" />
+    </svg>
+  )
+}
+
 function IconMenu() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -101,6 +110,7 @@ const NAV_ITEMS = [
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
+  { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
 ] as const
 
 function getIsActive(pathname: string, href: string, exact: boolean): boolean {
