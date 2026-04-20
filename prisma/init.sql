@@ -1,0 +1,2 @@
+-- Optional bootstrap SQL for local Postgres container startup.
+-- Intentionally left minimal; Prisma migrations are the source of truth.
