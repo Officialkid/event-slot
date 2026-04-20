@@ -3,11 +3,11 @@ import prisma from '@/lib/prisma'
 import FeedbackForm from './FeedbackForm'
 
 interface Props {
-  params: { registrationId: string }
+  params: Promise<{ registrationId: string }>
 }
 
 export default async function FeedbackPage({ params }: Props) {
-  const { registrationId } = params
+  const { registrationId } = await params
 
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },

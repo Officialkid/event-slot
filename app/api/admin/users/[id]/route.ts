@@ -7,7 +7,8 @@ function isSuperAdmin(email: string | null | undefined) {
   return email && email === process.env.SUPER_ADMIN_EMAIL
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!isSuperAdmin(session?.user?.email)) {
@@ -34,7 +35,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!isSuperAdmin(session?.user?.email)) {

@@ -1,9 +1,17 @@
 ﻿import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not configured')
+  }
+  return new Resend(apiKey)
+}
+
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
 
-async function sendEmail(options: Parameters<typeof resend.emails.send>[0]) {
+async function sendEmail(options: Parameters<Resend['emails']['send']>[0]) {
+  const resend = getResendClient()
   const { error } = await resend.emails.send(options)
   if (error) {
     console.error('[email] Resend send error:', error)

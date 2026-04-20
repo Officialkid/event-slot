@@ -4,7 +4,8 @@ import { sendSlotConfirmedEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 
-export async function PATCH(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const { slug } = params
     const body = await req.json()

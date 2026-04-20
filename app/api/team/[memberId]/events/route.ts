@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-interface Ctx { params: { memberId: string } }
+interface Ctx { params: Promise<{ memberId: string }> }
 
 // GET /api/team/[memberId]/events — return assigned event IDs for this member
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(_req: NextRequest, props: Ctx) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -30,7 +31,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 // PUT /api/team/[memberId]/events — replace all assigned events { eventIds: string[] }
-export async function PUT(req: NextRequest, { params }: Ctx) {
+export async function PUT(req: NextRequest, props: Ctx) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {

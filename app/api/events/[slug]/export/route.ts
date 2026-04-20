@@ -6,12 +6,13 @@ import { hasFeatureAccess } from '@/lib/credits'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
-    return `"${value.replace(/"/g, '""')}"`
+    return `"${value.replace(/"/g, '""')}"`;
   }
   return value
 }
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')

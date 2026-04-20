@@ -4,7 +4,13 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not configured')
+  }
+  return new Resend(apiKey)
+}
 
 function isSuperAdmin(email: string | null | undefined) {
   return email && email === process.env.SUPER_ADMIN_EMAIL
@@ -39,6 +45,8 @@ function buildBroadcastEmail(name: string | null | undefined, body: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    const resend = getResendClient()
+
     const session = await getServerSession(authOptions)
     if (!isSuperAdmin(session?.user?.email)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })

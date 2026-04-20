@@ -24,9 +24,9 @@ const RESERVED = [
 export async function generateMetadata({
   params,
 }: {
-  params: { username: string }
+  params: Promise<{ username: string }>
 }): Promise<Metadata> {
-  const { username } = params
+  const { username } = await params
   if (RESERVED.includes(username.toLowerCase())) return {}
 
   const user = await prisma.user.findUnique({
@@ -75,9 +75,9 @@ export async function generateMetadata({
 export default async function PublicProfilePage({
   params,
 }: {
-  params: { username: string }
+  params: Promise<{ username: string }>
 }) {
-  const { username } = params
+  const { username } = await params
 
   if (RESERVED.includes(username.toLowerCase())) notFound()
 

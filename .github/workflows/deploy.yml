@@ -7,8 +7,10 @@ on:
     branches: [main]
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'dotted-spot-476513-i2' }}
+  REGION: us-central1
+  SERVICE: eventslot-web
+  REPOSITORY: eventslot
 
 jobs:
   checks:
@@ -45,104 +47,48 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
           NEXT_PUBLIC_APP_URL: https://www.eventsslot.com
 
-  build-and-push:
-    name: Build Docker Image
+  deploy:
+    name: Deploy to Cloud Run
     runs-on: ubuntu-latest
     needs: checks
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     permissions:
       contents: read
-      packages: write
-
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build-push.outputs.digest }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        id: build-push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            NEXT_PUBLIC_APP_URL=https://www.eventsslot.com
-
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id-token: write
 
     environment:
       name: production
-      url: https://www.eventsslot.com
+      url: https://eventslot-web-y6t3xsonxa-uc.a.run.app
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          script: |
-            cd /opt/eventslot
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-            # Pull latest docker-compose and configs
-            git pull origin main
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
 
-            # Log in to GitHub Container Registry
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Deploy with Cloud Build
+        run: |
+          gcloud config set project "$PROJECT_ID"
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions=_SERVICE=$SERVICE,_REGION=$REGION,_REPOSITORY=$REPOSITORY,_IMAGE_TAG=github-${GITHUB_SHA::12}
 
-            # Pull latest image
-            docker pull ghcr.io/${{ github.repository }}:latest
-
-            # Run migrations before starting new container
-            docker compose run --rm migrate
-
-            # Rolling restart (zero downtime)
-            docker compose up -d --no-deps --pull always app
-
-            # Clean up old images
-            docker image prune -f
-
-            echo "Deployment complete"
+      - name: Show Cloud Run URL
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format="value(status.url)")
+          echo "Cloud Run URL: $URL"
 
       - name: Notify deployment success
         if: success()
-        run: echo "Deployed successfully to https://www.eventsslot.com"
+        run: echo "Deployed successfully to Cloud Run"
 
       - name: Notify deployment failure
         if: failure()

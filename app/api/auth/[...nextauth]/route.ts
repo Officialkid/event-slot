@@ -5,9 +5,10 @@ import { loginRateLimiter, getClientIp } from '@/lib/rateLimiter'
 
 const handler = NextAuth(authOptions)
 
-async function POST(req: NextRequest, context: { params: { nextauth: string[] } }) {
+async function POST(req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) {
   // Only rate-limit the credentials callback (not OAuth callbacks)
-  const segments = context.params.nextauth
+  const { nextauth } = await context.params
+  const segments = nextauth
   if (segments.join('/') === 'callback/credentials') {
     const ip = getClientIp(req)
     try {

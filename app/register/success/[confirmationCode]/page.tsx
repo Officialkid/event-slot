@@ -29,9 +29,9 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? "https://eventsslot.com"
 export default async function TicketSuccessPage({
   params,
 }: {
-  params: { confirmationCode: string }
+  params: Promise<{ confirmationCode: string }>
 }) {
-  const { confirmationCode } = params
+  const { confirmationCode } = await params
 
   const registration = await prisma.registration.findUnique({
     where: { confirmationCode },

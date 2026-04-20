@@ -6,9 +6,11 @@ function getCommunityLinkLabel(url: string): string {
   return url
 }
 
-export default async function RegistrationStatusPage({ params }: { params: { registrationId: string } }) {
+export default async function RegistrationStatusPage(props: { params: Promise<{ registrationId: string }> }) {
+  const params = await props.params;
+  const { registrationId } = await params
   const registration = await prisma.registration.findUnique({
-    where: { id: params.registrationId },
+    where: { id: registrationId },
   })
 
   if (!registration) {

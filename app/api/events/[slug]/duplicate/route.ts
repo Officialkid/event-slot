@@ -5,23 +5,18 @@ import { prisma } from "@/lib/prisma"
 import { randomBytes } from "crypto"
 
 function generateSlug(title: string): string {
-  return (
-    title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 60) +
-    "-" +
-    randomBytes(3).toString("hex")
-  )
+  return (title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 60) +
+  "-" + randomBytes(3).toString("hex"));
 }
 
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session?.user?.email) {

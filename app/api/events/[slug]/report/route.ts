@@ -6,7 +6,8 @@ import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateE
 import { hasFeatureAccess } from '@/lib/credits'
 import { generateAIReportContent } from '@/lib/generateAIReportContent'
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')

@@ -3,8 +3,8 @@ import prisma from "@/lib/prisma"
 type EventQuestion = { id: string; type: string; label: string }
 type Answer = { questionId: string; value: string }
 
-export default async function VerifyPage({ params }: { params: { confirmationCode: string } }) {
-  const { confirmationCode } = params
+export default async function VerifyPage({ params }: { params: Promise<{ confirmationCode: string }> }) {
+  const { confirmationCode } = await params
 
   const registration = await prisma.registration.findUnique({
     where: { confirmationCode },

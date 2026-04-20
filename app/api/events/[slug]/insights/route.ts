@@ -8,7 +8,8 @@ import { generateInsightCards } from '@/lib/generateInsightCards'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')

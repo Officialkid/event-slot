@@ -5,7 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { CREDIT_COSTS, getUserCredits, spendCredits } from '@/lib/credits'
 import { askClaude } from '@/lib/claude'
 
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')

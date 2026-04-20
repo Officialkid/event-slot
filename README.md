@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EventSlot
 
-## Getting Started
+EventSlot is a Next.js 16 application for event registration, waitlists, organizer dashboards, analytics, and attendee workflows.
 
-First, run the development server:
+## Local Development
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Configure environment variables in `.env`.
+
+3. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploying on Google Cloud (Cloud Run)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This repository is configured for container-based deployment to Google Cloud Run using Cloud Build.
 
-## Learn More
+### Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+1. Install and authenticate Google Cloud CLI.
+2. Enable APIs in your GCP project:
+	- Cloud Build API
+	- Artifact Registry API
+	- Cloud Run Admin API
+3. Grant required IAM roles to your deploy identity:
+	- Cloud Run Admin
+	- Service Account User
+	- Artifact Registry Writer
+	- Cloud Build Editor (or equivalent)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### One-time setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Create Artifact Registry repository (if not already created):
 
-## Deploy on Vercel
+```bash
+gcloud artifacts repositories create eventslot --repository-format=docker --location=us-central1
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deploy from local machine
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+PowerShell helper:
+
+```powershell
+./scripts/deploy-gcp.ps1 -ProjectId YOUR_GCP_PROJECT_ID -Region us-central1 -Service eventslot-web -Repository eventslot
+```
+
+Or direct Cloud Build command:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml --substitutions _REGION=us-central1,_SERVICE=eventslot-web,_REPOSITORY=eventslot
+```
+
+### Configure Cloud Run environment variables
+
+Set required runtime environment variables on Cloud Run after the first deploy:
+
+```bash
+gcloud run services update eventslot-web \
+  --region=us-central1 \
+  --set-env-vars=NEXTAUTH_URL=https://YOUR_CLOUD_RUN_URL,NODE_ENV=production
+```
+
+Then add the rest of your required app secrets and env vars via:
+
+1. Cloud Run console UI, or
+2. Secret Manager + `--set-secrets`, or
+3. Additional `--set-env-vars` flags.
+
+## Current Deployment Model
+
+- Primary deployment target: Google Cloud Run
+- Build pipeline: Cloud Build (`cloudbuild.yaml`)
+- Container source: `Dockerfile`
+- Local Docker Compose files are kept for local workflows, but production hosting should use Cloud Run.
+
+## Verification Commands
+
+```bash
+npm run type-check
+npm run build
+npm audit --audit-level=high
+```

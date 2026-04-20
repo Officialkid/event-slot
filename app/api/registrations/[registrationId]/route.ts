@@ -3,10 +3,8 @@ import prisma from '@/lib/prisma'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { registrationId: string } }
-) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ registrationId: string }> }) {
+  const params = await props.params;
   try {
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
@@ -32,10 +30,8 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { registrationId: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ registrationId: string }> }) {
+  const params = await props.params;
   try {
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
@@ -115,10 +111,8 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { registrationId: string } }
-) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ registrationId: string }> }) {
+  const params = await props.params;
   try {
     const token = new URL(req.url).searchParams.get('token')
 

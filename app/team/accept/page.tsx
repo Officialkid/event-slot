@@ -5,11 +5,11 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
 interface Props {
-  searchParams: { token?: string }
+  searchParams: Promise<{ token?: string }>
 }
 
 export default async function TeamAcceptPage({ searchParams }: Props) {
-  const { token } = searchParams
+  const { token } = await searchParams
 
   if (!token) {
     notFound()

@@ -5,10 +5,8 @@ import { prisma } from '@/lib/prisma'
 
 const VALID_STATUSES = ['read', 'resolved'] as const
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.email || session.user.email !== process.env.SUPER_ADMIN_EMAIL) {

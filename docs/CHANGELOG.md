@@ -1,5 +1,27 @@
 # EventSlot — Changelog
 
+## [0.4.5] — April 20, 2026
+
+### Platform: Security + Runtime Upgrade + Google Cloud Migration
+
+- **Dependencies upgraded for security and compatibility**:
+  - `next` upgraded to `^16.2.4`
+  - `eslint-config-next` upgraded to `^16.2.4`
+  - `eslint` upgraded to `^9.25.0`
+  - migrated from `next-pwa` to `@ducanh2912/next-pwa@^10.2.9`
+- **Security hardening in package resolution**:
+  - Added `overrides` for `cookie`, `got`, and `serialize-javascript`
+  - `npm audit --audit-level=high` now reports **0 vulnerabilities**
+- **Next.js async request API migration completed**:
+  - Updated affected App Router pages and API route handlers to async `params`/`searchParams` signatures required by Next.js 15+
+- **Build pipeline updated for Next.js 16 compatibility**:
+  - Build script changed to `next build --webpack`
+- **Google Cloud deployment path added (Cloud Run)**:
+  - Added `cloudbuild.yaml` for Cloud Build + Artifact Registry + Cloud Run deploy
+  - Added `scripts/deploy-gcp.ps1` for local one-command GCP deploy flow
+  - Replaced README boilerplate with project-specific setup and Cloud Run deployment instructions
+
+
 ## [0.4.4] — April 18, 2026
 
 ### Feature: Gate Premium Features with ComingSoon Component (Phase 4)

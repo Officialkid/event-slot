@@ -1,6 +1,24 @@
 # EventSlot — Feature Reference
 
-_Last updated: April 18, 2026_
+_Last updated: April 20, 2026_
+
+---
+
+## Deployment & Infrastructure
+
+### Google Cloud Run Deployment
+**Where:** `cloudbuild.yaml`, `scripts/deploy-gcp.ps1`  
+**What it does:** Builds and pushes the production container to Artifact Registry, then deploys the app to Cloud Run. Supports parameterized service name, region, and repository.  
+**Target:** Cloud Run (`managed`)  
+**Image source:** `Dockerfile`
+
+### Runtime Upgrade (Next.js 16)
+**Where:** `package.json`, app route handlers/pages  
+**What it does:** Upgrades the app runtime from Next.js 14 to Next.js 16, including async App Router request API compatibility (`params`/`searchParams`) and compatible lint/build tooling.
+
+### Dependency Security Hardening
+**Where:** `package.json` (`overrides`)  
+**What it does:** Forces secure transitive versions for vulnerable packages (`cookie`, `got`, `serialize-javascript`) to keep high-severity audit findings at zero.
 
 ---
 

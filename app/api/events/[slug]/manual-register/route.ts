@@ -7,10 +7,8 @@ import { generateConfirmationCode } from '@/lib/confirmationCode'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json()
 
