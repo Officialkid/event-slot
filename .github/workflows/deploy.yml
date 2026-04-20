@@ -82,9 +82,18 @@ jobs:
             --substitutions=_SERVICE=$SERVICE,_REGION=$REGION,_REPOSITORY=$REPOSITORY,_IMAGE_TAG=github-${GITHUB_SHA::12}
 
       - name: Show Cloud Run URL
+        id: cloudrun-url
         run: |
           URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT_ID" --format="value(status.url)")
           echo "Cloud Run URL: $URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Run Cloud Run smoke tests (5 checks)
+        env:
+          CLOUD_RUN_URL: ${{ steps.cloudrun-url.outputs.url }}
+        run: |
+          TOKEN=$(gcloud auth print-identity-token --audiences="$CLOUD_RUN_URL" || gcloud auth print-identity-token)
+          CLOUD_RUN_ID_TOKEN="$TOKEN" npm run test:cloudrun
 
       - name: Notify deployment success
         if: success()

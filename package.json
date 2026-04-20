@@ -9,6 +9,7 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
+    "test:cloudrun": "node scripts/cloudrun-smoke-tests.mjs",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
