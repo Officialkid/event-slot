@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { attendanceLookupRatelimit } from '@/lib/ratelimit'
+import { attendanceRateLimiter, getClientIp } from '@/lib/rateLimiter'
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://eventsslot.com'
 
@@ -31,10 +31,11 @@ function extractField(
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limit by IP: 5 lookups per 10 minutes
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
-  const { success } = await attendanceLookupRatelimit.limit(ip)
-  if (!success) {
+  // Rate limit by IP: 10 lookups per 10 minutes
+  const ip = getClientIp(req)
+  try {
+    await attendanceRateLimiter.consume(ip)
+  } catch {
     return NextResponse.json(
       { error: 'Too many lookup attempts. Please wait a few minutes and try again.' },
       { status: 429 }

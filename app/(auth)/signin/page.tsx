@@ -34,7 +34,10 @@ function SignInForm() {
       callbackUrl: '/my-events',
       redirect: false,
     })
-    if (result?.error) {
+    if (result?.status === 429) {
+      setError('Too many login attempts. Please wait 10 minutes before trying again.')
+      setLoading(false)
+    } else if (result?.error) {
       setError('Invalid email or password')
       setLoading(false)
     } else if (result?.url) {
