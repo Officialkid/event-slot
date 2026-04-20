@@ -25,10 +25,11 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=high
 
-      - name: Run Trivy vulnerability scanner on Docker image
+      - name: Run Trivy vulnerability scanner on repository
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}:latest
+          scan-type: 'fs'
+          scan-ref: '.'
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
