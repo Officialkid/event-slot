@@ -1,0 +1,4 @@
+#Tue Apr 21 16:48:50 EAT 2026
+base.0=C\:\\Users\\DANIEL\\Documents\\WebApp Projects\\eventslot\\event-slot\\twa\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+path.0=classes.dex
+renamed.0=classes.dex

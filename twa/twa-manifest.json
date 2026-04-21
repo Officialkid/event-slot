@@ -1,0 +1,43 @@
+{
+  "packageId": "com.alphatech.eventslot",
+  "host": "www.eventsslot.com",
+  "name": "EventSlot",
+  "launcherName": "EventSlot",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#a3e635",
+  "navigationColor": "#0a0a0a",
+  "navigationColorDark": "#0a0a0a",
+  "navigationDividerColor": "#0a0a0a",
+  "navigationDividerColorDark": "#0a0a0a",
+  "backgroundColor": "#0a0a0a",
+  "enableNotifications": false,
+  "startUrl": "/dashboard",
+  "iconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
+  "maskableIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
+  "monochromeIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./eventslot-release.keystore",
+    "alias": "eventslot"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.eventsslot.com/",
+  "minSdkVersion": 19,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://www.eventsslot.com/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

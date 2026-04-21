@@ -94,6 +94,22 @@ type QAItem = {
   timestamp: string
 }
 
+type CheckInResult = {
+  success: boolean
+  valid?: boolean
+  alreadyVerified?: boolean
+  message?: string
+  error?: string
+  ticket?: {
+    registrationId: string
+    registrationNumber: number | null
+    attendeeName: string
+    attendeeEmail: string | null
+    confirmationCode: string | null
+    checkedInAt: string | null
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -1063,6 +1079,13 @@ export default function EventDashboardPage() {
   const [feedbackError, setFeedbackError] = useState("")
   const [showFeedbackUpgrade, setShowFeedbackUpgrade] = useState(false)
 
+  // Check-in
+  const [ticketCodeInput, setTicketCodeInput] = useState("")
+  const [scanCodeInput, setScanCodeInput] = useState("")
+  const [identityInput, setIdentityInput] = useState("")
+  const [checkInLoading, setCheckInLoading] = useState(false)
+  const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null)
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -1321,6 +1344,35 @@ export default function EventDashboardPage() {
       setCsvError("Unable to complete purchase.")
     } finally {
       setCsvUnlockLoading(false)
+    }
+  }
+
+  const verifyTicket = async (payload: { code?: string; identity?: string }) => {
+    if (!eventData) return
+    setCheckInLoading(true)
+    setCheckInResult(null)
+    try {
+      const res = await fetch(`/api/events/${slug}/verify-ticket`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: token || eventData.dashboardToken,
+          ...payload,
+        }),
+      })
+      const data = (await res.json()) as CheckInResult
+      setCheckInResult(data)
+
+      if (res.ok && data.success && data.valid) {
+        setTicketCodeInput("")
+        setScanCodeInput("")
+        setIdentityInput("")
+        await fetchDashboard()
+      }
+    } catch {
+      setCheckInResult({ success: false, error: "Unable to verify ticket right now." })
+    } finally {
+      setCheckInLoading(false)
     }
   }
 
@@ -2356,20 +2408,81 @@ export default function EventDashboardPage() {
         {activeTab === "checkin" && (
           <div>
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
-              Check-in
+              Ticket Verification
             </h2>
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2.5rem 2rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.25)" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <p style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
-                QR Code Check-in
-              </p>
-              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: "rgba(240,237,230,0.45)", margin: 0, maxWidth: 380, lineHeight: 1.6 }}>
-                Scan attendee QR codes at the door to mark attendance. This feature is coming soon.
-              </p>
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", margin: "0 0 1rem" }}>
+              Verify by ticket code, scanned QR value, or attendee email/name. Once verified, a ticket cannot be verified again.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.9rem" }}>
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
+                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Ticket code</p>
+                <input
+                  value={ticketCodeInput}
+                  onChange={e => setTicketCodeInput(e.target.value)}
+                  placeholder="Enter confirmation code"
+                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                />
+                <button
+                  onClick={() => verifyTicket({ code: ticketCodeInput })}
+                  disabled={checkInLoading || !ticketCodeInput.trim()}
+                  style={{ marginTop: "0.55rem", width: "100%", background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A", cursor: checkInLoading || !ticketCodeInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !ticketCodeInput.trim() ? 0.6 : 1 }}
+                >
+                  Verify code
+                </button>
+              </div>
+
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
+                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Scan code</p>
+                <input
+                  value={scanCodeInput}
+                  onChange={e => setScanCodeInput(e.target.value)}
+                  placeholder="Paste scanned QR/URL/code"
+                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                />
+                <button
+                  onClick={() => verifyTicket({ code: scanCodeInput })}
+                  disabled={checkInLoading || !scanCodeInput.trim()}
+                  style={{ marginTop: "0.55rem", width: "100%", background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "#C8F55A", cursor: checkInLoading || !scanCodeInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !scanCodeInput.trim() ? 0.5 : 1 }}
+                >
+                  Verify scan
+                </button>
+              </div>
+
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
+                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Owner email or name</p>
+                <input
+                  value={identityInput}
+                  onChange={e => setIdentityInput(e.target.value)}
+                  placeholder="jane@email.com or Jane Doe"
+                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                />
+                <button
+                  onClick={() => verifyTicket({ identity: identityInput })}
+                  disabled={checkInLoading || !identityInput.trim()}
+                  style={{ marginTop: "0.55rem", width: "100%", background: "transparent", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "rgba(240,237,230,0.7)", cursor: checkInLoading || !identityInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !identityInput.trim() ? 0.5 : 1 }}
+                >
+                  Find and verify
+                </button>
+              </div>
             </div>
+
+            {checkInResult && (
+              <div style={{ marginTop: "1rem", background: "#141414", border: checkInResult.valid ? "0.5px solid rgba(200,245,90,0.3)" : checkInResult.alreadyVerified ? "0.5px solid rgba(255,168,0,0.3)" : "0.5px solid rgba(255,107,107,0.3)", borderRadius: 12, padding: "1rem" }}>
+                <p style={{ margin: 0, fontSize: "0.88rem", color: checkInResult.valid ? "#C8F55A" : checkInResult.alreadyVerified ? "rgba(255,168,0,0.9)" : "#FF6B6B", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                  {checkInResult.message || checkInResult.error || "Verification complete."}
+                </p>
+                {checkInResult.ticket && (
+                  <div style={{ marginTop: "0.55rem", display: "flex", flexDirection: "column", gap: "0.3rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)" }}>
+                    <span>Name: {checkInResult.ticket.attendeeName || "Not provided"}</span>
+                    <span>Email: {checkInResult.ticket.attendeeEmail || "Not provided"}</span>
+                    <span>Ticket code: {checkInResult.ticket.confirmationCode || "Not provided"}</span>
+                    {checkInResult.ticket.registrationNumber && <span>Registration #: {checkInResult.ticket.registrationNumber}</span>}
+                    {checkInResult.ticket.checkedInAt && <span>Verified at: {new Date(checkInResult.ticket.checkedInAt).toLocaleString()}</span>}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

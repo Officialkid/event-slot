@@ -275,11 +275,11 @@ export async function POST(req: NextRequest) {
                 waitlistCount: updatedEvent.waitlistCount,
               }).catch(() => {})
             }
-          } else if (newFill >= 0.9 && oldFill < 0.9) {
+          } else if (newFill >= 0.8 && oldFill < 0.8) {
             await createNotification({
               userId: event.organizerId,
               type: "info",
-              message: `Your event "${event.title}" is 90% full. Consider increasing capacity.`,
+              message: `Your event "${event.title}" is 80% full. Consider increasing capacity.`,
               eventId: event.id,
             })
             if (organizer?.email && organizer.consentSystemEmails) {

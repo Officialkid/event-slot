@@ -9,10 +9,15 @@ function getResendClient() {
 }
 
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <onboarding@resend.dev>'
 
 async function sendEmail(options: Parameters<Resend['emails']['send']>[0]) {
   const resend = getResendClient()
-  const { error } = await resend.emails.send(options)
+  const { error } = await resend.emails.send({
+    ...options,
+    // Always use configured sender to avoid delivery failures from unverified hardcoded domains.
+    from: EMAIL_FROM,
+  })
   if (error) {
     console.error('[email] Resend send error:', error)
     throw new Error(error.message ?? 'Failed to send email')
@@ -176,15 +181,15 @@ export async function sendOrganizerCapacity90Email({
 }) {
   const dashUrl = `${BASE_URL}/dashboard`
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: EMAIL_FROM,
     to,
-    subject: `"${eventTitle}" is 90% full`,
+    subject: `"${eventTitle}" is 80% full`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
         <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
         <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your event is almost full</h2>
         <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 0.75rem">
-          <strong style="color:#F0EDE6">${eventTitle}</strong> now has <strong style="color:#C8F55A">${confirmedCount} of ${capacity}</strong> spots filled (90%).
+          <strong style="color:#F0EDE6">${eventTitle}</strong> now has <strong style="color:#C8F55A">${confirmedCount} of ${capacity}</strong> spots filled (80%).
         </p>
         <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
           If you want to accommodate more people, you can increase the capacity from your dashboard.

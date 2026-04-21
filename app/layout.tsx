@@ -82,14 +82,20 @@ export const metadata: Metadata = {
     canonical: "https://www.eventsslot.com",
   },
   manifest: "/manifest.json",
-  themeColor: "#0A0A0A",
+  themeColor: "#a3e635",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "EventSlot",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   icons: {
-    apple: "/assets/logo-unfiltered.png",
+    apple: "/icons/icon-192x192.png",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -101,7 +107,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  try { await seedPrivilegedAccounts() } catch { /* non-critical */ }
+  const shouldSeedPrivilegedAccounts =
+    process.env.CI !== "true" &&
+    process.env.NEXT_PHASE !== "phase-production-build" &&
+    process.env.SKIP_PRIVILEGED_SEED !== "true";
+
+  if (shouldSeedPrivilegedAccounts) {
+    try {
+      await seedPrivilegedAccounts();
+    } catch {
+      /* non-critical */
+    }
+  }
 
   return (
     <html

@@ -115,6 +115,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [waitlistEmails, setWaitlistEmails] = useState<Record<string, string>>({})
   const [waitlistEmailSaving, setWaitlistEmailSaving] = useState<Record<string, boolean>>({})
   const [waitlistEmailSaved, setWaitlistEmailSaved] = useState<Record<string, boolean>>({})
+  const [waitlistEmailErrors, setWaitlistEmailErrors] = useState<Record<string, string>>({})
   // Base email inputs — always collected when event has no email question
   const [baseEmails, setBaseEmails] = useState<string[]>([""])
 
@@ -223,17 +224,28 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }
 
   const saveWaitlistEmail = async (registrationId: string, email: string) => {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setWaitlistEmailErrors(prev => ({ ...prev, [registrationId]: "Enter a valid email address." }))
+      return
+    }
+
+    setWaitlistEmailErrors(prev => ({ ...prev, [registrationId]: "" }))
     setWaitlistEmailSaving(prev => ({ ...prev, [registrationId]: true }))
     try {
       const res = await fetch(`/api/registrations/${registrationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendeeEmail: email }),
+        body: JSON.stringify({ attendeeEmail: trimmedEmail }),
       })
       if (res.ok) {
         setWaitlistEmailSaved(prev => ({ ...prev, [registrationId]: true }))
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setWaitlistEmailErrors(prev => ({ ...prev, [registrationId]: data.error || "Unable to save your email right now." }))
       }
+    } catch {
+      setWaitlistEmailErrors(prev => ({ ...prev, [registrationId]: "Network error. Please try again." }))
     } finally {
       setWaitlistEmailSaving(prev => ({ ...prev, [registrationId]: false }))
     }
@@ -339,18 +351,28 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         type="email"
                         placeholder="your@email.com"
                         value={waitlistEmails[r.registrationId] ?? ""}
-                        onChange={e => setWaitlistEmails(prev => ({ ...prev, [r.registrationId]: e.target.value }))}
+                        onChange={e => {
+                          setWaitlistEmails(prev => ({ ...prev, [r.registrationId]: e.target.value }))
+                          if (waitlistEmailErrors[r.registrationId]) {
+                            setWaitlistEmailErrors(prev => ({ ...prev, [r.registrationId]: "" }))
+                          }
+                        }}
                         style={{ flex: 1, minWidth: 0, background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
                       />
                       <button
                         type="button"
                         onClick={() => saveWaitlistEmail(r.registrationId, waitlistEmails[r.registrationId] ?? "")}
-                        disabled={waitlistEmailSaving[r.registrationId]}
+                        disabled={waitlistEmailSaving[r.registrationId] || !(waitlistEmails[r.registrationId] ?? "").trim()}
                         style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
                       >
                         {waitlistEmailSaving[r.registrationId] ? "Saving…" : "Notify me"}
                       </button>
                     </div>
+                    {waitlistEmailErrors[r.registrationId] && (
+                      <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
+                        {waitlistEmailErrors[r.registrationId]}
+                      </p>
+                    )}
                   </div>
                 )}
                 {!hasEmailQuestion && waitlistEmailSaved[r.registrationId] && (

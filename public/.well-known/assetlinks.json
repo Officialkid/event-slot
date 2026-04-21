@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.alphatech.eventslot",
+    "sha256_cert_fingerprints": ["AE:6E:70:05:A1:3C:18:D7:6A:DA:90:25:90:5A:1E:DF:23:47:56:3F:53:89:C0:45:7D:F4:53:63:0B:39:8E:B5"]
+  }
+}]
