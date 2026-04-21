@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import QRCode from "qrcode"
+import Image from "next/image"
 
 export type TicketData = {
   confirmationCode: string
@@ -129,11 +130,12 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
         {/* ── Right: QR code ──────────────────────────────────────────────── */}
         <div style={{ width: 150, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem 1rem", gap: "0.75rem" }}>
           {qrDataUrl ? (
-            <img
+            <Image
               src={qrDataUrl}
               alt="Scan to verify"
               width={116}
               height={116}
+              unoptimized
               style={{ borderRadius: 8, display: "block" }}
             />
           ) : (
