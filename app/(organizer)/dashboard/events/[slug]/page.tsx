@@ -110,6 +110,13 @@ type CheckInResult = {
   }
 }
 
+type WaitlistEmailDiagnosticsSummary = {
+  attempted: number
+  sent: number
+  failed: number
+  skippedNoEmail: number
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -1032,6 +1039,7 @@ export default function EventDashboardPage() {
   const [capacityMessage, setCapacityMessage] = useState("")
   const [capacityError, setCapacityError] = useState("")
   const [updatingCapacity, setUpdatingCapacity] = useState(false)
+  const [waitlistEmailDiagnostics, setWaitlistEmailDiagnostics] = useState<WaitlistEmailDiagnosticsSummary | null>(null)
 
   // Duplicate scanner
   const [dupGroups, setDupGroups] = useState<DupReg[][] | null>(null)
@@ -1176,6 +1184,7 @@ export default function EventDashboardPage() {
 
   const handleCapacityUpdate = async () => {
     if (!eventData) return
+    const accessToken = token || eventData.dashboardToken
     setCapacityMessage("")
     setCapacityError("")
     const parsed = Number(newCapacity)
@@ -1186,16 +1195,40 @@ export default function EventDashboardPage() {
       const res = await fetch(`/api/events/${slug}/capacity`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newCapacity: parsed, token }),
+        body: JSON.stringify({ newCapacity: parsed, token: accessToken }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) { setCapacityError(data.error || "Unable to update capacity."); return }
       setCapacityMessage(`✓ ${data.promoted} ${data.promoted === 1 ? "person" : "people"} moved from waitlist to confirmed`)
+      if (data.emailDiagnostics) {
+        setWaitlistEmailDiagnostics(data.emailDiagnostics)
+      }
       setNewCapacity("")
       await fetchDashboard()
+
+      const diagnosticsRes = await fetch(`/api/events/${slug}/capacity/email-diagnostics?token=${encodeURIComponent(accessToken)}`)
+      if (diagnosticsRes.ok) {
+        const diagnosticsData = await diagnosticsRes.json()
+        if (diagnosticsData?.latest?.summary) {
+          setWaitlistEmailDiagnostics(diagnosticsData.latest.summary)
+        }
+      }
     } catch { setCapacityError("Unable to update capacity.") }
     finally { setUpdatingCapacity(false) }
   }
+
+  useEffect(() => {
+    if (activeTab !== "waitlist" || !eventData) return
+    const accessToken = token || eventData.dashboardToken
+    fetch(`/api/events/${slug}/capacity/email-diagnostics?token=${encodeURIComponent(accessToken)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.latest?.summary) {
+          setWaitlistEmailDiagnostics(data.latest.summary)
+        }
+      })
+      .catch(() => {})
+  }, [activeTab, eventData, slug, token])
 
   const runDuplicateScan = async () => {
     if (!eventData) return
@@ -1425,7 +1458,7 @@ export default function EventDashboardPage() {
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
     { key: "analytics", label: organizerPlan === 'free' ? "Analytics ⚡" : "Analytics" },
     { key: "feedback", label: organizerPlan !== 'business' ? "Feedback ✦" : "Feedback" },
-    ...(organizerPlan === 'business' ? [{ key: "checkin" as TabKey, label: "Check-in" }] : []),
+    { key: "checkin" as TabKey, label: "Check-in" },
     { key: "settings", label: "Settings" },
   ]
 
@@ -1966,8 +1999,24 @@ export default function EventDashboardPage() {
         {/* ── Tab: Waitlist ─────────────────────────────────────────────── */}
         {activeTab === "waitlist" && (
           <div data-tutorial="waitlist-section">
+            {waitlistEmailDiagnostics && waitlistEmailDiagnostics.attempted > 0 && (
+              <div
+                style={{
+                  background: waitlistEmailDiagnostics.failed > 0 ? "rgba(255,107,107,0.08)" : "rgba(200,245,90,0.08)",
+                  border: waitlistEmailDiagnostics.failed > 0 ? "0.5px solid rgba(255,107,107,0.25)" : "0.5px solid rgba(200,245,90,0.25)",
+                  borderRadius: 10,
+                  padding: "0.75rem 0.9rem",
+                  marginBottom: "0.9rem",
+                }}
+              >
+                <p style={{ margin: 0, fontSize: "0.8rem", color: waitlistEmailDiagnostics.failed > 0 ? "#FF6B6B" : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                  Promotion email status: {waitlistEmailDiagnostics.sent} sent, {waitlistEmailDiagnostics.failed} failed, {waitlistEmailDiagnostics.skippedNoEmail} skipped (no email)
+                </p>
+              </div>
+            )}
+
             {/* ── Duplicate Scanner panel ─────────────────────────────── */}
-            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
+            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>

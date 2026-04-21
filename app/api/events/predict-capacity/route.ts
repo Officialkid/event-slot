@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     })
     const plan = user?.plan ?? 'free'
     if (plan !== 'pro' && plan !== 'business') {
-      return NextResponse.json({ error: 'Pro or Business plan required' }, { status: 403 })
+      // Avoid noisy 403s in the create flow for users without plan access.
+      return NextResponse.json({ prediction: null, reason: 'upgrade_required' })
     }
 
     // Fetch organizer's previous non-archived events with registration data

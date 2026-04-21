@@ -85,6 +85,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
+            echo "GCP_SA_KEY is empty. Add a valid Google service account JSON key in repository secrets."
+            exit 1
+          fi
+
           validate_key_json() {
             echo "$1" | jq -e 'type == "object" and has("client_email") and has("private_key")' >/dev/null 2>&1
           }
@@ -102,6 +107,14 @@ jobs:
             candidate="$(normalize_candidate "$1")"
             if validate_key_json "$candidate"; then
               printf '%s' "$candidate"
+              return 0
+            fi
+
+            # Handle values stored as a JSON string payload.
+            local parsed
+            parsed="$(printf '%s' "$candidate" | jq -r 'fromjson? // empty' 2>/dev/null || true)"
+            if [ -n "$parsed" ] && validate_key_json "$parsed"; then
+              printf '%s' "$parsed"
               return 0
             fi
 

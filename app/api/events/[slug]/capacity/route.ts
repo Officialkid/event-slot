@@ -4,6 +4,13 @@ import { sendSlotConfirmedEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 
+type EmailAttemptResult = {
+  registrationId: string
+  attendeeEmail: string | null
+  status: 'sent' | 'failed' | 'skipped_no_email'
+  error?: string
+}
+
 export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   try {
@@ -76,21 +83,68 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       }
     })
 
-    // Send confirmation emails to promoted attendees (non-blocking)
-    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://eventsslot.com'
-    await Promise.allSettled(
-      result.promotedRegistrations
-        .filter(r => r.attendeeEmail)
-        .map(r =>
-          sendSlotConfirmedEmail({
-            to: r.attendeeEmail!,
+    // Send confirmation emails to promoted attendees and capture diagnostics.
+    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+    const emailAttempts: EmailAttemptResult[] = await Promise.all(
+      result.promotedRegistrations.map(async r => {
+        if (!r.attendeeEmail) {
+          return {
+            registrationId: r.id,
+            attendeeEmail: null,
+            status: 'skipped_no_email',
+          }
+        }
+
+        try {
+          await sendSlotConfirmedEmail({
+            to: r.attendeeEmail,
             eventTitle: event.title,
             communityLink: event.communityLink,
             consentTransactional: r.consentTransactional,
             ticketUrl: r.confirmationCode ? `${BASE_URL}/register/success/${r.confirmationCode}` : null,
-          }).catch(err => console.error(`Email failed for ${r.attendeeEmail}:`, err))
-        )
+          })
+
+          return {
+            registrationId: r.id,
+            attendeeEmail: r.attendeeEmail,
+            status: 'sent',
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown email error'
+          console.error(`Email failed for ${r.attendeeEmail}:`, err)
+          return {
+            registrationId: r.id,
+            attendeeEmail: r.attendeeEmail,
+            status: 'failed',
+            error: message,
+          }
+        }
+      })
     )
+
+    const emailDiagnostics = {
+      attempted: emailAttempts.length,
+      sent: emailAttempts.filter(a => a.status === 'sent').length,
+      failed: emailAttempts.filter(a => a.status === 'failed').length,
+      skippedNoEmail: emailAttempts.filter(a => a.status === 'skipped_no_email').length,
+    }
+
+    // Persist a compact diagnostics log so support can inspect outcomes live.
+    await prisma.errorLog.create({
+      data: {
+        route: `waitlist-promotion-email:${event.id}`,
+        message: JSON.stringify({
+          eventId: event.id,
+          slug,
+          promoted: result.promoted,
+          summary: emailDiagnostics,
+          attempts: emailAttempts,
+          createdAt: new Date().toISOString(),
+        }),
+      },
+    }).catch(() => {
+      // Non-critical diagnostics write failure.
+    })
 
     // Notify organizer about promoted attendees (non-blocking, best-effort)
     if (result.promoted > 0 && event.organizerId) {
@@ -112,6 +166,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       newConfirmedCount: result.newConfirmedCount,
       newWaitlistCount: result.newWaitlistCount,
       remainingSlots: result.remainingSlots,
+      emailDiagnostics,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
