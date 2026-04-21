@@ -40,14 +40,13 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/scripts/docker-entrypoint.sh ./
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 EXPOSE 3000
-ENV PORT=3000
+ENV PORT=${PORT:-3000}
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "docker-entrypoint.sh"]
+CMD ["sh", "-c", "if [ \"$RUN_DB_MIGRATIONS\" = \"true\" ]; then npx prisma@5.22.0 migrate deploy; fi && node server.js"]

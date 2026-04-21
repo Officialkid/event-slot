@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { dashboardStatsCache } from "@/lib/cache"
 
 export async function GET() {
   try {
@@ -12,87 +13,168 @@ export async function GET() {
 
     const userId = session.user.id
     const email = session.user.email
+    const cacheKey = `dashboard-stats:${userId}:${email}`
+    const cached = dashboardStatsCache.get(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached)
+    }
 
-    // Backfill unclaimed events for this email
-    await prisma.event.updateMany({
-      where: { organizerEmail: email, organizerId: null },
-      data: { organizerId: userId },
-    })
+    // Backfill unclaimed events for this email (non-critical, isolated)
+    try {
+      await prisma.event.updateMany({
+        where: { organizerEmail: email, organizerId: null },
+        data: { organizerId: userId },
+      })
+    } catch (backfillErr) {
+      console.warn('[DASHBOARD STATS] backfill skipped:', backfillErr)
+    }
 
     const now = new Date()
-
-    // All events owned by this organizer
-    const events = await prisma.event.findMany({
-      where: {
-        OR: [{ organizerId: userId }, { organizerEmail: email }],
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        status: true,
-        capacity: true,
-        deadline: true,
-        confirmedCount: true,
-        waitlistCount: true,
-        dashboardToken: true,
-        createdAt: true,
-      },
-    })
-
-    const totalEvents = events.length
-
-    const totalRegistrations = events.reduce((sum, e) => sum + e.confirmedCount, 0)
-
-    // Active: no deadline OR deadline in future
-    const activeEvents = events.filter(
-      e => e.deadline === null || e.deadline > now
-    ).length
-
-    const totalWaitlisted = events.reduce((sum, e) => sum + e.waitlistCount, 0)
-
-    // Events created this calendar month
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const eventsThisMonth = events.filter(e => e.createdAt >= monthStart).length
-
-    // Registrations this month vs last month
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const eventIds = events.map(e => e.id)
-    const [registrationsThisMonth, registrationsLastMonth] = await Promise.all([
-      eventIds.length ? prisma.registration.count({
-        where: { eventId: { in: eventIds }, status: "confirmed", submittedAt: { gte: monthStart } },
-      }) : Promise.resolve(0),
-      eventIds.length ? prisma.registration.count({
-        where: { eventId: { in: eventIds }, status: "confirmed", submittedAt: { gte: lastMonthStart, lt: monthStart } },
-      }) : Promise.resolve(0),
+    const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    const organizerFilter = {
+      OR: [{ organizerId: userId }, { organizerEmail: email }],
+    }
+
+    const [
+      totalEvents,
+      activeEvents,
+      totals,
+      eventsThisMonth,
+      eventsClosingThisWeek,
+      waitlistEventCount,
+      registrationsThisMonth,
+      registrationsLastMonth,
+      totalViews,
+      nearCapacityCandidates,
+      upcomingCandidates,
+      expiredEvents,
+      recentRegs,
+    ] = await Promise.all([
+      prisma.event.count({ where: organizerFilter }).catch(() => 0),
+      prisma.event.count({
+        where: {
+          AND: [
+            organizerFilter,
+            {
+              OR: [{ deadline: null }, { deadline: { gt: now } }],
+            },
+          ],
+        },
+      }).catch(() => 0),
+      prisma.event.aggregate({
+        where: organizerFilter,
+        _sum: {
+          confirmedCount: true,
+          waitlistCount: true,
+        },
+      }).catch(() => ({ _sum: { confirmedCount: 0, waitlistCount: 0 } })),
+      prisma.event.count({
+        where: {
+          AND: [organizerFilter, { createdAt: { gte: monthStart } }],
+        },
+      }).catch(() => 0),
+      prisma.event.count({
+        where: {
+          AND: [organizerFilter, { deadline: { gt: now, lte: weekAhead } }],
+        },
+      }).catch(() => 0),
+      prisma.event.count({
+        where: {
+          AND: [organizerFilter, { waitlistCount: { gt: 0 } }],
+        },
+      }).catch(() => 0),
+      prisma.registration.count({
+        where: {
+          event: { organizerId: userId },
+          status: "confirmed",
+          submittedAt: { gte: monthStart },
+        },
+      }).catch(() => 0),
+      prisma.registration.count({
+        where: {
+          event: { organizerId: userId },
+          status: "confirmed",
+          submittedAt: { gte: lastMonthStart, lt: monthStart },
+        },
+      }).catch(() => 0),
+      prisma.eventView.count({
+        where: { event: { organizerId: userId } },
+      }).catch(() => 0),
+      prisma.event.findMany({
+        where: {
+          AND: [
+            organizerFilter,
+            { status: "active" },
+            { capacity: { gt: 0 } },
+            {
+              OR: [{ deadline: null }, { deadline: { gt: now } }],
+            },
+          ],
+        },
+        select: {
+          title: true,
+          slug: true,
+          confirmedCount: true,
+          capacity: true,
+          dashboardToken: true,
+        },
+        take: 50,
+      }).catch(() => []),
+      prisma.event.findMany({
+        where: {
+          AND: [organizerFilter, { deadline: { gt: now } }],
+        },
+        select: {
+          title: true,
+          slug: true,
+          confirmedCount: true,
+          capacity: true,
+          deadline: true,
+        },
+        orderBy: { deadline: "asc" },
+        take: 3,
+      }).catch(() => []),
+      prisma.event.findMany({
+        where: {
+          AND: [organizerFilter, { deadline: { lt: now } }],
+        },
+        select: {
+          id: true,
+          title: true,
+        },
+      }).catch(() => []),
+      prisma.registration.findMany({
+        where: {
+          event: {
+            organizerId: userId,
+            OR: [{ deadline: null }, { deadline: { gt: sevenDaysAgo } }],
+          },
+        },
+        select: {
+          id: true,
+          answers: true,
+          submittedAt: true,
+          event: { select: { title: true, slug: true } },
+        },
+        orderBy: { submittedAt: 'desc' },
+        take: 5,
+      }).catch(() => []),
     ])
 
-    // Events closing within 7 days (active, deadline between now and +7d)
-    const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const eventsClosingThisWeek = events.filter(
-      e => e.deadline !== null && e.deadline > now && e.deadline <= weekAhead
-    ).length
+    const totalRegistrations = totals._sum.confirmedCount ?? 0
+    const totalWaitlisted = totals._sum.waitlistCount ?? 0
 
-    // Events that have waitlisted attendees
-    const waitlistEventCount = events.filter(e => e.waitlistCount > 0).length
-
-    // Conversion rate: total confirmed / total views
-    const totalViews = eventIds.length ? await prisma.eventView.count({
-      where: { eventId: { in: eventIds } },
-    }) : 0
     const conversionRate = totalViews > 0
       ? Math.round((totalRegistrations / totalViews) * 100)
       : 0
 
-    // Near capacity: active events only, not ended, confirmedCount / capacity >= 0.8
-    const eventsNearCapacity = events
-      .filter(e => {
-        if (e.status !== "active") return false
-        if (!e.capacity || e.capacity === 0) return false
-        if (e.deadline && e.deadline <= now) return false
-        return e.confirmedCount / e.capacity >= 0.8
-      })
-      .map(e => ({
+    const eventsNearCapacity = nearCapacityCandidates
+      .filter((e) => !!e.capacity && e.confirmedCount / (e.capacity as number) >= 0.8)
+      .map((e) => ({
         title: e.title,
         slug: e.slug,
         confirmedCount: e.confirmedCount,
@@ -101,46 +183,38 @@ export async function GET() {
       }))
       .sort((a, b) => b.confirmedCount / b.capacity - a.confirmedCount / a.capacity)
 
-    // Trigger feedback_request notifications for events whose deadline has passed
-    const expiredEvents = events.filter(e => e.deadline && e.deadline < now)
+    const upcomingEvents = upcomingCandidates.map((e) => ({
+      title: e.title,
+      slug: e.slug,
+      confirmedCount: e.confirmedCount,
+      capacity: e.capacity,
+      deadline: e.deadline!.toISOString(),
+    }))
+
+    // Trigger feedback_request notifications for events whose deadline has passed (non-critical)
     if (expiredEvents.length > 0) {
-      const expiredEventIds = expiredEvents.map(e => e.id)
-      const existingFeedbackNotifs = await prisma.notification.findMany({
-        where: { userId, type: "feedback_request", eventId: { in: expiredEventIds } },
-        select: { eventId: true },
-      })
-      const alreadyNotified = new Set(existingFeedbackNotifs.map(n => n.eventId))
-      const needFeedback = expiredEvents.filter(e => !alreadyNotified.has(e.id))
-      if (needFeedback.length > 0) {
-        await prisma.notification.createMany({
-          data: needFeedback.map(e => ({
-            userId,
-            type: "feedback_request",
-            eventId: e.id,
-            message: `How did ${e.title} go? Share your experience with EventSlot.`,
-          })),
+      try {
+        const expiredEventIds = expiredEvents.map(e => e.id)
+        const existingFeedbackNotifs = await prisma.notification.findMany({
+          where: { userId, type: "feedback_request", eventId: { in: expiredEventIds } },
+          select: { eventId: true },
         })
+        const alreadyNotified = new Set(existingFeedbackNotifs.map(n => n.eventId))
+        const needFeedback = expiredEvents.filter(e => !alreadyNotified.has(e.id))
+        if (needFeedback.length > 0) {
+          await prisma.notification.createMany({
+            data: needFeedback.map(e => ({
+              userId,
+              type: "feedback_request",
+              eventId: e.id,
+              message: `How did ${e.title} go? Share your experience with EventSlot.`,
+            })),
+          })
+        }
+      } catch (notifErr) {
+        console.warn('[DASHBOARD STATS] feedback notification skipped:', notifErr)
       }
     }
-
-    // Recent activity: last registrations across all organizer events, excluding events that ended >7 days ago
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const recentRegs = await prisma.registration.findMany({
-      where: {
-        event: {
-          organizerId: userId,
-          OR: [
-            { deadline: null },
-            { deadline: { gt: sevenDaysAgo } },
-          ],
-        },
-      },
-      include: {
-        event: { select: { title: true, slug: true } },
-      },
-      orderBy: { submittedAt: 'desc' },
-      take: 5,
-    })
 
     const recentActivity = recentRegs.map(r => {
       const answers = Array.isArray(r.answers)
@@ -156,20 +230,7 @@ export async function GET() {
       }
     })
 
-    // Upcoming: events with deadline in the future, soonest first, limit 3
-    const upcomingEvents = events
-      .filter(e => e.deadline !== null && e.deadline > now)
-      .sort((a, b) => a.deadline!.getTime() - b.deadline!.getTime())
-      .slice(0, 3)
-      .map(e => ({
-        title: e.title,
-        slug: e.slug,
-        confirmedCount: e.confirmedCount,
-        capacity: e.capacity,
-        deadline: e.deadline!.toISOString(),
-      }))
-
-    return NextResponse.json({
+    const payload = {
       totalEvents,
       totalRegistrations,
       activeEvents,
@@ -183,7 +244,11 @@ export async function GET() {
       conversionRate,
       eventsClosingThisWeek,
       waitlistEventCount,
-    })
+    }
+
+    dashboardStatsCache.set(cacheKey, payload)
+
+    return NextResponse.json(payload)
   } catch (err) {
     console.error('[DASHBOARD STATS ERROR]', err)
     return NextResponse.json({

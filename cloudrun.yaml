@@ -1,0 +1,102 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: eventslot
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/maxScale: '10'
+        run.googleapis.com/cpu-throttling: 'false'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+        - image: us-central1-docker.pkg.dev/eventslot-prod/eventslot/app:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: '2'
+              memory: 1Gi
+            requests:
+              cpu: '1'
+              memory: 512Mi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: NEXT_TELEMETRY_DISABLED
+              value: '1'
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: DATABASE_URL
+                  key: latest
+            - name: DIRECT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: DIRECT_URL
+                  key: latest
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: NEXTAUTH_SECRET
+                  key: latest
+            - name: NEXTAUTH_URL
+              valueFrom:
+                secretKeyRef:
+                  name: NEXTAUTH_URL
+                  key: latest
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: STRIPE_SECRET_KEY
+                  key: latest
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: GOOGLE_CLIENT_ID
+                  key: latest
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: GOOGLE_CLIENT_SECRET
+                  key: latest
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: RESEND_API_KEY
+                  key: latest
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: GEMINI_API_KEY
+                  key: latest
+            - name: CRON_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: CRON_SECRET
+                  key: latest
+            - name: R2_ACCOUNT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_ACCOUNT_ID
+                  key: latest
+            - name: R2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_ACCESS_KEY_ID
+                  key: latest
+            - name: R2_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+                  key: latest
+            - name: R2_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_BUCKET_NAME
+                  key: latest

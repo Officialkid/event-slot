@@ -6,7 +6,6 @@ import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 import { Analytics } from "@vercel/analytics/next";
-import { defaultSEO } from "@/lib/seo.config";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -20,31 +19,68 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: { default: defaultSEO.title, template: `%s | EventSlot` },
-  description: defaultSEO.description,
-  keywords: defaultSEO.keywords,
-  metadataBase: new URL(defaultSEO.siteUrl),
+  metadataBase: new URL("https://www.eventsslot.com"),
+  title: {
+    default: "EventSlot — Smart Event Registration & Waitlist Platform",
+    template: "%s | EventSlot",
+  },
+  description:
+    "EventSlot is an event registration platform built for organizers who run events with limited slots. Create your event, share one link, and let EventSlot handle registrations, waitlists, and automatic confirmations — free.",
+  keywords: [
+    "event registration platform",
+    "event waitlist system",
+    "event management tool",
+    "RSVP system",
+    "event booking system",
+    "online event registration",
+    "event registration Kenya",
+    "event management Nairobi",
+    "free event registration",
+    "event slot management",
+  ],
+  authors: [{ name: "EventSlot", url: "https://www.eventsslot.com" }],
+  creator: "EventSlot",
+  publisher: "EventSlot",
   openGraph: {
     type: "website",
-    locale: defaultSEO.locale,
-    url: defaultSEO.siteUrl,
-    siteName: defaultSEO.siteName,
-    title: defaultSEO.title,
-    description: defaultSEO.description,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "EventSlot – Event Registration & Waitlist Platform" }],
+    locale: "en_KE",
+    url: "https://www.eventsslot.com",
+    siteName: "EventSlot",
+    title: "EventSlot — Smart Event Registration & Waitlist Platform",
+    description:
+      "EventSlot is an event registration platform built for organizers who run events with limited slots. Manage registrations, waitlists, and automatic confirmations — free.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "EventSlot — Smart Event Registration Platform",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: defaultSEO.title,
-    description: defaultSEO.description,
+    site: "@eventsslot",
+    creator: "@eventsslot",
+    title: "EventSlot — Smart Event Registration & Waitlist Platform",
+    description:
+      "Create events, share one link, fill slots automatically. EventSlot handles registrations and waitlists — no spreadsheets needed.",
     images: ["/og-image.png"],
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true },
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
-  alternates: { canonical: defaultSEO.siteUrl },
+  alternates: {
+    canonical: "https://www.eventsslot.com",
+  },
   manifest: "/manifest.json",
   themeColor: "#0A0A0A",
   appleWebApp: {

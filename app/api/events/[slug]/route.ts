@@ -29,6 +29,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const registrations = await prisma.registration.findMany({
       where: { eventId: event.id },
+      select: {
+        id: true,
+        answers: true,
+        submittedAt: true,
+        source: true,
+        status: true,
+        waitlistPosition: true,
+      },
       orderBy: [
         { submittedAt: 'asc' },
         { waitlistPosition: 'asc' },

@@ -17,25 +17,35 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search") ?? ""
     const plan = searchParams.get("plan") ?? "all"
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10), 1), 200)
+    const skip = (page - 1) * limit
 
-    const users = await prisma.user.findMany({
-      where: {
-        ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { email: { contains: search, mode: "insensitive" } }] } : {}),
-        ...(plan !== "all" ? { plan } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        plan: true,
-        suspended: true,
-        createdAt: true,
-        _count: { select: { events: true } },
-      },
-    })
+    const where = {
+      ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" as const } }, { email: { contains: search, mode: "insensitive" as const } }] } : {}),
+      ...(plan !== "all" ? { plan } : {}),
+    }
 
-    return NextResponse.json({ users })
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          plan: true,
+          suspended: true,
+          createdAt: true,
+          _count: { select: { events: true } },
+        },
+        take: limit,
+        skip,
+      }),
+      prisma.user.count({ where }),
+    ])
+
+    return NextResponse.json({ users, page, limit, total })
   } catch (err) {
     console.error("[admin/users] GET error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

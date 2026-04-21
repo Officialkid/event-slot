@@ -18,28 +18,38 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search") ?? ""
     const status = searchParams.get("status") ?? "all"
     const userId = searchParams.get("user") ?? ""
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20', 10), 1), 100)
+    const skip = (page - 1) * limit
 
-    const events = await prisma.event.findMany({
-      where: {
-        ...(search ? { OR: [{ title: { contains: search, mode: "insensitive" } }, { organizerEmail: { contains: search, mode: "insensitive" } }] } : {}),
-        ...(status !== "all" ? (status === "archived" ? { archived: true } : { status, archived: false }) : {}),
-        ...(userId ? { organizerId: userId } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        organizerEmail: true,
-        confirmedCount: true,
-        waitlistCount: true,
-        status: true,
-        archived: true,
-        createdAt: true,
-      },
-    })
+    const where = {
+      ...(search ? { OR: [{ title: { contains: search, mode: "insensitive" as const } }, { organizerEmail: { contains: search, mode: "insensitive" as const } }] } : {}),
+      ...(status !== "all" ? (status === "archived" ? { archived: true } : { status, archived: false }) : {}),
+      ...(userId ? { organizerId: userId } : {}),
+    }
 
-    return NextResponse.json({ events })
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          organizerEmail: true,
+          confirmedCount: true,
+          waitlistCount: true,
+          status: true,
+          archived: true,
+          createdAt: true,
+        },
+        take: limit,
+        skip,
+      }),
+      prisma.event.count({ where }),
+    ])
+
+    return NextResponse.json({ events, page, limit, total })
   } catch (err) {
     console.error("[admin/events] GET error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

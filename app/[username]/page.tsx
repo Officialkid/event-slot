@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { unstable_cache } from "next/cache"
 import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
@@ -21,6 +22,89 @@ const RESERVED = [
   "team", "clear-sw", "fonts",
 ]
 
+const getUserMetaByUsername = unstable_cache(
+  async (username: string) => prisma.user.findUnique({
+    where: { username: username.toLowerCase() },
+    select: { name: true, username: true },
+  }),
+  ["public-user-meta"],
+  { revalidate: 60 }
+)
+
+const getEventMetaBySlug = unstable_cache(
+  async (slug: string) => prisma.event.findUnique({
+    where: { slug },
+    select: {
+      title: true,
+      description: true,
+      capacity: true,
+      confirmedCount: true,
+      organizerEmail: true,
+      location: true,
+      eventDate: true,
+    },
+  }),
+  ["public-event-meta"],
+  { revalidate: 60 }
+)
+
+const getPublicUserProfile = unstable_cache(
+  async (username: string) => prisma.user.findUnique({
+    where: { username: username.toLowerCase() },
+    select: {
+      name: true,
+      username: true,
+      createdAt: true,
+      events: {
+        where: {
+          archived: false,
+          status: "active",
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          eventDate: true,
+          location: true,
+          capacity: true,
+          confirmedCount: true,
+          deadline: true,
+          imageUrl: true,
+          description: true,
+        },
+        orderBy: { eventDate: "asc" },
+      },
+    },
+  }),
+  ["public-user-profile"],
+  { revalidate: 60 }
+)
+
+const getEventBySlug = unstable_cache(
+  async (slug: string) => prisma.event.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      capacity: true,
+      confirmedCount: true,
+      questions: true,
+      deadline: true,
+      organizerEmail: true,
+      createdAt: true,
+      eventDate: true,
+      location: true,
+      communityLink: true,
+      imageUrl: true,
+      status: true,
+      organizer: { select: { name: true, plan: true, suspended: true } },
+    },
+  }),
+  ["public-event-detail"],
+  { revalidate: 60 }
+)
+
 export async function generateMetadata({
   params,
 }: {
@@ -29,15 +113,9 @@ export async function generateMetadata({
   const { username } = await params
   if (RESERVED.includes(username.toLowerCase())) return {}
 
-  const user = await prisma.user.findUnique({
-    where: { username: username.toLowerCase() },
-    select: { name: true, username: true },
-  })
+  const user = await getUserMetaByUsername(username)
   if (!user) {
-    const event = await prisma.event.findUnique({
-      where: { slug: username },
-      select: { title: true, description: true, capacity: true, confirmedCount: true, organizerEmail: true, location: true, eventDate: true },
-    })
+    const event = await getEventMetaBySlug(username)
     if (!event) return {}
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = process.env.NEXTAUTH_URL ?? ""
@@ -81,45 +159,10 @@ export default async function PublicProfilePage({
 
   if (RESERVED.includes(username.toLowerCase())) notFound()
 
-  const user = await prisma.user.findUnique({
-    where: { username: username.toLowerCase() },
-    select: {
-      name: true,
-      username: true,
-      createdAt: true,
-      events: {
-        where: {
-          archived: false,
-          status: "active",
-        },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          eventDate: true,
-          location: true,
-          capacity: true,
-          confirmedCount: true,
-          deadline: true,
-          imageUrl: true,
-          description: true,
-        },
-        orderBy: { eventDate: "asc" },
-      },
-    },
-  })
+  const user = await getPublicUserProfile(username)
 
   if (!user) {
-    const event = await prisma.event.findUnique({
-      where: { slug: username },
-      select: {
-        id: true, title: true, description: true, capacity: true,
-        confirmedCount: true, questions: true, deadline: true,
-        organizerEmail: true, createdAt: true, eventDate: true,
-        location: true, communityLink: true, imageUrl: true, status: true,
-        organizer: { select: { name: true, plan: true, suspended: true } },
-      },
-    })
+    const event = await getEventBySlug(username)
     if (!event) notFound()
 
     if (event.deadline && new Date(event.deadline) < new Date()) {

@@ -30,10 +30,16 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Run unit tests
+        run: npm test -- --ci
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-for-ci
+          NEXTAUTH_URL: http://localhost:3000
+
       - name: Check for build errors
         run: npm run build
         env:
           NEXTAUTH_SECRET: test-secret-for-ci
           NEXTAUTH_URL: http://localhost:3000
           DATABASE_URL: postgresql://test:test@localhost:5432/test
-          NEXT_PUBLIC_APP_URL: http://localhost:3000

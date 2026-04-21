@@ -12,6 +12,11 @@ npm install
 
 2. Configure environment variables in `.env`.
 
+Neon connection guidance:
+- Use pooled endpoint for `DATABASE_URL` (host contains `-pooler`)
+- Use direct endpoint for `DIRECT_URL` (non-pooler host)
+- Keep both set so Prisma uses pooled connections for runtime traffic and direct connections for migrations
+
 3. Start the app:
 
 ```bash

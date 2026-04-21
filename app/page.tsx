@@ -186,26 +186,51 @@ function ShowcaseImage({
   )
 }
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "EventSlot",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  url: "https://www.eventsslot.com",
-  description:
-    "EventSlot is an event registration platform with built-in waitlist management. Create events, share one link, and automatically manage registrations, confirmations and waitlists.",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "EventSlot",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description:
+      "EventSlot is an event registration platform built for organizers who run events with limited slots. Manage registrations, waitlists, and automatic confirmations.",
+    url: "https://www.eventsslot.com",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "KES",
+      description: "Free plan available",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      reviewCount: "12",
+    },
+    featureList: [
+      "Event registration management",
+      "Automatic waitlist system",
+      "QR code ticket generation",
+      "Confirmation tickets",
+      "Organizer dashboard",
+    ],
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    reviewCount: "120",
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "EventSlot",
+    alternateName: "EventSlot — Smart Event Registration",
+    url: "https://www.eventsslot.com",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: "https://www.eventsslot.com/search?q={search_term_string}",
+      },
+      "query-input": "required name=search_term_string",
+    },
   },
-}
+]
 
 export default function Home() {
   return (
@@ -275,9 +300,7 @@ export default function Home() {
               lineHeight: 1.1,
               margin: 0,
             }}>
-              Smart Event Registration<br />
-              Platform with Built-in<br />
-              <span style={{ color: LIME, fontStyle: "italic" }}>Waitlist.</span>
+              Smart Event Registration Platform with Built-in Waitlist
             </h1>
 
             {/* Subheading */}
@@ -290,8 +313,7 @@ export default function Home() {
               margin: 0,
               maxWidth: 480,
             }}>
-              The event registration system that replaces spreadsheets.
-              Set a capacity, share one link — your event waitlist system handles the rest automatically.
+              EventSlot is an event registration platform built for organizers who run events with limited slots. Create your event, share one link, and let registrations, waitlists, and automatic confirmations run themselves.
             </p>
 
             {/* Buttons */}
@@ -730,9 +752,17 @@ export default function Home() {
             <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED }}>
               © 2026 EventSlot · Built for event organizers
             </span>
-            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>
-              Made in Nairobi 🇰🇪
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Pricing</Link>
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>·</span>
+              <Link href="/privacy" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Privacy Policy</Link>
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>·</span>
+              <Link href="/terms" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Terms of Use</Link>
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>·</span>
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>
+                Made in Nairobi 🇰🇪
+              </span>
+            </div>
           </div>
         </div>
       </footer>

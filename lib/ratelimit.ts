@@ -1,22 +1,39 @@
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+// Simple in-memory rate limiter — no external dependencies.
+// Uses a sliding window counter per key stored in a Map.
+// Note: resets on server restart / cold starts. Sufficient for abuse prevention
+// at current scale. Replace with a persistent store if stricter limits are needed.
 
-export const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '1 m'),
-  analytics: true,
-})
+interface Window {
+  count: number
+  resetAt: number
+}
 
-// Stricter limit for account creation: 5 attempts per hour per IP
-export const signupRatelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '1 h'),
-  analytics: true,
-})
+const store = new Map<string, Window>()
 
-// Attendance self-lookup: 5 lookups per IP per 10 minutes
-export const attendanceLookupRatelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '10 m'),
-  analytics: true,
-})
+function makeRatelimit(maxRequests: number, windowMs: number) {
+  return {
+    limit: async (key: string) => {
+      const now = Date.now()
+      const entry = store.get(key)
+
+      if (!entry || now >= entry.resetAt) {
+        store.set(key, { count: 1, resetAt: now + windowMs })
+        return { success: true as const, limit: maxRequests, remaining: maxRequests - 1, reset: now + windowMs }
+      }
+
+      entry.count++
+      const remaining = Math.max(0, maxRequests - entry.count)
+      const success = entry.count <= maxRequests
+      return { success, limit: maxRequests, remaining, reset: entry.resetAt }
+    },
+  }
+}
+
+// 10 requests per minute
+export const ratelimit = makeRatelimit(10, 60_000)
+
+// 5 signup attempts per hour
+export const signupRatelimit = makeRatelimit(5, 60 * 60_000)
+
+// 5 attendance lookups per 10 minutes
+export const attendanceLookupRatelimit = makeRatelimit(5, 10 * 60_000)
