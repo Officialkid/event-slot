@@ -1,5 +1,24 @@
 # EventSlot — Changelog
 
+## [0.4.9] — April 21, 2026
+
+### Registration Reliability + Ticket Verification + CI Stability
+
+- Improved team invite reliability by routing invites through the shared email sender configuration so organizer invites consistently send with the configured verified sender.
+- Improved waitlist flow UX so attendees can provide a notification email after seeing the waitlist result, with inline validation and request-state feedback.
+- Improved organizer alerting for event demand milestones:
+  - Near-full alerts now trigger at 80% fill.
+  - Full-capacity alerts continue at 100%.
+  - Waitlist-join and waitlist-promotion organizer notifications were reinforced through the email path.
+- Added organizer ticket verification API: `POST /api/events/[slug]/verify-ticket`.
+  - Supports lookups by ticket code, QR-scanned code string, attendee email, or attendee name.
+  - Returns an explicit ambiguous-match response when a non-unique identity query matches multiple records.
+  - Enforces one-time check-in so an already checked-in ticket cannot be verified again.
+- Replaced organizer event dashboard check-in tab with functional verification workflow wired to the new verification API.
+- Build/CI stability hardening:
+  - Root layout privileged-account seeding is now skipped during CI and production build phase to avoid build-time Prisma connection failures.
+  - Removed conflicting `public/_next` artifact that breaks Next.js production build routing.
+
 ## [0.4.8] — April 21, 2026
 
 ### Event Creation + Registration Builder Improvements

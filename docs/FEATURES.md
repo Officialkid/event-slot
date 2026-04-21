@@ -99,6 +99,12 @@ promotes waitlisted registrations in FIFO order. Promoted attendees
 receive an email notification if they consented to transactional emails.  
 **API:** PATCH /api/events/[slug]/capacity
 
+### Organizer Ticket Verification (Check-in)
+**Where:** /dashboard/events/[slug] → Check-in tab  
+**Who:** Organizer or authorized team member  
+**What it does:** Verifies attendee tickets at entry by accepting a ticket code, QR-scan payload, attendee email, or attendee name. The flow blocks duplicate verification by enforcing one-time check-in and returning the existing check-in timestamp if already used. Ambiguous identity searches return a conflict response so staff can refine the lookup before check-in.  
+**API:** POST /api/events/[slug]/verify-ticket
+
 ### Registration Status Page
 **Where:** /registration/[registrationId]  
 **Who:** Attendee (link provided after registration)  
@@ -148,6 +154,10 @@ upgrade CTA. Quick actions grid.
 - Payment failure → notification created
 - Data expiry warning (10 days before Free plan deletion)
 - Organizer feedback request appears after event ends
+
+### Build-safe Privileged Account Seeding
+**Where:** app/layout.tsx, lib/seedAdmins.ts  
+**What it does:** Privileged-account seeding is now skipped during CI and production build phase to prevent build-time database connection failures while preserving runtime seeding behavior in non-build execution paths.
 
 ### Profile
 **Where:** /dashboard/profile  
