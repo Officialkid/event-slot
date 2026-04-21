@@ -17,6 +17,7 @@ export async function GET() {
     return NextResponse.json({ plan: user?.plan ?? 'free', creditBalance: user?.creditBalance ?? 0, isAdmin })
   } catch (err) {
     console.error('[me] GET error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // Return safe defaults when DB is unavailable (e.g. Neon free tier paused)
+    return NextResponse.json({ plan: 'free', creditBalance: 0, isAdmin: false })
   }
 }

@@ -65,11 +65,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     console.error("[notifications] GET error:", err)
-    const msg = err instanceof Error ? err.message : String(err)
-    // Return safe empty payload if the table is missing (e.g. migration not yet run)
-    if (msg.includes("does not exist") || msg.includes("relation") || msg.includes("P2021")) {
-      return NextResponse.json({ notifications: [], count: 0, pagination: { page: 1, limit: 50, total: 0, totalPages: 1 } })
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    // Return safe empty payload if DB is unavailable (e.g. Neon free tier paused) or table is missing
+    return NextResponse.json({ notifications: [], count: 0, pagination: { page: 1, limit: 50, total: 0, totalPages: 1 } })
   }
 }
