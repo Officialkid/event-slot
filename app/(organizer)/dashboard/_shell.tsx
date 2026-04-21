@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import CreditsBalance from "@/components/CreditsBalance"
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
+import { useTutorial } from "@/hooks/useTutorial"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -310,10 +312,19 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
       >
         {NAV_ITEMS.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
+          const tutorialTarget =
+            item.href === "/dashboard/events"
+              ? "my-events-nav"
+              : item.href === "/dashboard/notifications"
+                ? "notifications-nav"
+                : item.href === "/dashboard/profile"
+                  ? "profile-nav"
+                  : undefined
           return (
             <Link
               key={item.href}
               href={item.href}
+              data-tutorial={tutorialTarget}
               onClick={onNavClick}
               onMouseEnter={e => {
                 if (collapsed) {
@@ -554,6 +565,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const tutorial = useTutorial()
   const { data: session, status } = useSession()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -940,38 +952,63 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             {/* Empty spacer — desktop (keeps bell right-aligned) */}
             <div className="hidden md:block" />
 
-            {/* Notification bell */}
-            <Link
-              href="/dashboard/notifications"
-              aria-label="Notifications"
-              className="dash-icon-btn"
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                color: "rgba(240,237,230,0.55)",
-                textDecoration: "none",
-              }}
-            >
-              <IconBell size={18} />
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "#C8F55A",
-                  }}
-                />
-              )}
-            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+              <button
+                onClick={tutorial.restartTutorial}
+                aria-label="Restart dashboard tour"
+                className="dash-icon-btn"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  color: "rgba(240,237,230,0.55)",
+                  background: "transparent",
+                  border: "0.5px solid rgba(240,237,230,0.12)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "0.95rem",
+                  lineHeight: 1,
+                }}
+              >
+                ?
+              </button>
+
+              <Link
+                href="/dashboard/notifications"
+                aria-label="Notifications"
+                data-tutorial="notifications-nav"
+                className="dash-icon-btn"
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  color: "rgba(240,237,230,0.55)",
+                  textDecoration: "none",
+                }}
+              >
+                <IconBell size={18} />
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: "#C8F55A",
+                    }}
+                  />
+                )}
+              </Link>
+            </div>
           </header>
 
           {/* Page content */}
@@ -1011,6 +1048,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <Link
               key={item.href}
               href={item.href}
+              data-tutorial={
+                item.href === "/dashboard/events"
+                  ? "my-events-nav"
+                  : item.href === "/dashboard/notifications"
+                    ? "notifications-nav"
+                    : undefined
+              }
               aria-label={item.label}
               style={{
                 display: "flex",
@@ -1115,6 +1159,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     <Link
                       key={item.href}
                       href={item.href}
+                      data-tutorial={item.href === "/dashboard/profile" ? "profile-nav" : undefined}
                       aria-label={item.label}
                       onClick={() => setMoreOpen(false)}
                       className="more-sheet-item"
@@ -1242,6 +1287,19 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             )}
           </div>
         </>
+      )}
+
+      {tutorial.isActive && tutorial.currentStep && (
+        <TutorialOverlay
+          step={tutorial.currentStep}
+          currentStepIndex={tutorial.currentStepIndex}
+          totalSteps={tutorial.totalSteps}
+          targetRect={tutorial.targetRect}
+          onNext={tutorial.handleNext}
+          onBack={tutorial.handleBack}
+          onSkip={tutorial.handleSkip}
+          onAction={tutorial.handleAction}
+        />
       )}
     </>
   )

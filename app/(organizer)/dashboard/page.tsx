@@ -529,6 +529,7 @@ export default function DashboardOverviewPage() {
           </div>
           <Link
             href="/create"
+            data-tutorial="create-event-btn"
             style={{
               background: "#C8F55A",
               color: "#0A0A0A",
@@ -548,6 +549,7 @@ export default function DashboardOverviewPage() {
 
         {/* Stat cards */}
         <div
+          data-tutorial="dashboard-stats"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(2, 1fr)",

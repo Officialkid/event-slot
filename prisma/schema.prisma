@@ -68,10 +68,23 @@ model User {
   memberOf       TeamMember[] @relation("MemberOf")
   sessions       Session[]
   events         Event[]
+  onboarding     UserOnboarding?
   notifications  Notification[]
   creditTransactions CreditTransaction[]
   featureAccess      FeatureAccess[]
   organizerFeedback  OrganizerFeedback[]
+}
+
+model UserOnboarding {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedSteps    String[] @default([])
+  tutorialCompleted Boolean  @default(false)
+  tutorialSkipped   Boolean  @default(false)
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Account {

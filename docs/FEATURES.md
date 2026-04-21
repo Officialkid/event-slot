@@ -122,6 +122,13 @@ Each gets their own registration record.
 
 ## Organizer Dashboard
 
+### Interactive Onboarding Tutorial
+**Where:** Organizer dashboard shell (`/dashboard` and nested routes), profile settings restart control  
+**Who:** Newly created users who have not skipped or completed onboarding  
+**What it does:** Automatically launches a guided, multi-step dashboard tutorial with spotlighted UI targets, progress tracking, skip/complete controls, and contextual action routing. Tutorial progress is persisted per user and can be restarted from profile or from the dashboard help (`?`) button.  
+**Data model:** `UserOnboarding`  
+**API:** `GET /api/onboarding`, `PATCH /api/onboarding`
+
 ### Dashboard Home
 **Where:** /dashboard  
 **What it does:** Stat cards (total events, registrations, active events,

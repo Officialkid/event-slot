@@ -27,8 +27,13 @@ export async function POST(req: Request) {
     }
 
     const hashed = await bcrypt.hash(password, 12)
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: { name, email, password: hashed, consentSystemEmails: consentSystemEmails === true },
+      select: { id: true },
+    })
+
+    await prisma.userOnboarding.create({
+      data: { userId: newUser.id },
     })
 
     // Fire-and-forget welcome email — don't block the response

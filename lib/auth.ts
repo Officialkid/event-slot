@@ -62,4 +62,18 @@ export const authOptions = {
       return `${baseUrl}/dashboard`
     },
   },
+  events: {
+    async createUser({ user }: { user: { id?: string } }) {
+      if (!user.id) return
+      try {
+        await prisma.userOnboarding.upsert({
+          where: { userId: user.id },
+          update: {},
+          create: { userId: user.id },
+        })
+      } catch {
+        // non-critical
+      }
+    },
+  },
 }

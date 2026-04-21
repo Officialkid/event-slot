@@ -1,5 +1,22 @@
 # EventSlot — Changelog
 
+## [0.4.10] — April 21, 2026
+
+### Feature: Interactive Dashboard Onboarding Tour
+
+- Added `UserOnboarding` model and migration to persist tutorial progress per user (completed steps, skipped/completed flags, completion timestamp).
+- Added onboarding state API at `GET/PATCH /api/onboarding` with authenticated user guard.
+- Added onboarding bootstrapping for new users:
+  - Credentials signups now create a `UserOnboarding` row.
+  - OAuth-created users now get onboarding row creation via NextAuth `createUser` event.
+- Added reusable tutorial step config in `lib/tutorialSteps.ts`.
+- Added interactive tutorial system:
+  - `hooks/useTutorial.ts` for tour state, auto-start checks, progression, skip/complete actions, and restart.
+  - `components/tutorial/TutorialOverlay.tsx` with backdrop, spotlight mask, progress UI, and contextual actions.
+- Integrated tutorial overlay into organizer dashboard shell with a top-bar help trigger (`?`) to restart tour.
+- Added non-breaking `data-tutorial` markers to dashboard and event screens for guided targeting (stats, create event CTA, nav entries, registration link, waitlist, check-in section).
+- Added “Restart Dashboard Tour” control in profile settings that resets onboarding state and redirects to dashboard.
+
 ## [0.4.9] — April 21, 2026
 
 ### Registration Reliability + Ticket Verification + CI Stability

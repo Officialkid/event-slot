@@ -1688,7 +1688,7 @@ export default function EventDashboardPage() {
           </div>
 
           {/* Registration link row */}
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          <div data-tutorial="event-link" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 200px", display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
               <input
                 readOnly
@@ -1949,7 +1949,7 @@ export default function EventDashboardPage() {
 
         {/* ── Tab: Waitlist ─────────────────────────────────────────────── */}
         {activeTab === "waitlist" && (
-          <div>
+          <div data-tutorial="waitlist-section">
             {/* ── Duplicate Scanner panel ─────────────────────────────── */}
             <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -2406,7 +2406,7 @@ export default function EventDashboardPage() {
 
         {/* ── Tab: Check-in ─────────────────────────────────────────────── */}
         {activeTab === "checkin" && (
-          <div>
+          <div data-tutorial="confirm-attendance">
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
               Ticket Verification
             </h2>

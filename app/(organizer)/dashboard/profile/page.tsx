@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 interface ProfileData {
   name: string | null
@@ -229,6 +230,7 @@ function DeleteModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -742,6 +744,31 @@ export default function ProfilePage() {
         {/* ── Danger zone card ── */}
         <Card dangerBorder>
           <SectionHeading color="#FF6B6B">Danger zone</SectionHeading>
+          <button
+            onClick={async () => {
+              await fetch("/api/onboarding", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed: false, skipped: false, completedSteps: [] }),
+              }).catch(() => {})
+              router.push("/dashboard")
+            }}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "0.82rem",
+              color: "rgba(240,237,230,0.6)",
+              fontFamily: "var(--font-dm-sans)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.45rem",
+              marginBottom: "1rem",
+              padding: 0,
+            }}
+          >
+            <span>↺</span> Restart Dashboard Tour
+          </button>
           <p
             style={{
               margin: "0 0 1.25rem",
