@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
+import { useTutorial } from "@/hooks/useTutorial"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -776,10 +778,10 @@ function EventCard({
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function EmptyState({ tab }: { tab: TabKey }) {
+function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => void }) {
   const messages: Record<TabKey, { heading: string; body: string }> = {
     active: {
-      heading: "No active events",
+      heading: "No events yet",
       body: "Create your first event to get started.",
     },
     past: {
@@ -787,7 +789,7 @@ function EmptyState({ tab }: { tab: TabKey }) {
       body: "Events with a past deadline will appear here.",
     },
     archived: {
-      heading: "Nothing archived",
+      heading: "Nothing archived yet",
       body: "Archived events will appear here.",
     },
   }
@@ -804,38 +806,53 @@ function EmptyState({ tab }: { tab: TabKey }) {
         textAlign: "center",
       }}
     >
-      <p
-        style={{
-          fontFamily: "var(--font-instrument-serif)",
-          fontSize: "1.1rem",
-          color: "#F0EDE6",
-          marginBottom: "0.4rem",
-        }}
-      >
-        {heading}
-      </p>
       {tab === "active" ? (
-        <Link
-          href="/create"
-          style={{
-            display: "inline-block",
-            marginTop: "0.75rem",
-            background: "#C8F55A",
-            color: "#0A0A0A",
-            borderRadius: 8,
-            padding: "0.5rem 1.25rem",
-            fontSize: "0.82rem",
-            fontWeight: 600,
-            fontFamily: "var(--font-dm-sans)",
-            textDecoration: "none",
-          }}
-        >
-          Create new event
-        </Link>
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div style={{ fontSize: "3.2rem", marginBottom: "0.7rem" }}>EV</div>
+          <h2 style={{ margin: 0, color: "#F0EDE6", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>No events yet</h2>
+          <p style={{ color: "rgba(240,237,230,0.5)", fontSize: "0.84rem", margin: "0.65rem 0 1.1rem", maxWidth: 360, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+            Create your first event in under 2 minutes. Set a name, date, venue, and slot limit - then share the link.
+          </p>
+          <Link
+            href="/dashboard/events/new"
+            data-tutorial="create-event-btn"
+            style={{
+              display: "inline-block",
+              background: "#a3e635",
+              color: "#0A0A0A",
+              borderRadius: 12,
+              padding: "0.65rem 1.2rem",
+              fontSize: "0.82rem",
+              fontWeight: 700,
+              fontFamily: "var(--font-dm-sans)",
+              textDecoration: "none",
+            }}
+          >
+            Create Your First Event
+          </Link>
+          <button
+            onClick={onRestartTour}
+            style={{ marginTop: "0.85rem", background: "transparent", border: "none", fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+          >
+            Restart tutorial
+          </button>
+        </div>
       ) : (
-        <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
-          {body}
-        </p>
+        <>
+          <p
+            style={{
+              fontFamily: "var(--font-instrument-serif)",
+              fontSize: "1.1rem",
+              color: "#F0EDE6",
+              marginBottom: "0.4rem",
+            }}
+          >
+            {heading}
+          </p>
+          <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+            {body}
+          </p>
+        </>
       )}
     </div>
   )
@@ -848,8 +865,10 @@ export default function DashboardEventsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("active")
   const [origin, setOrigin] = useState("")
+  const { restartTutorial } = useTutorial()
 
   useEffect(() => {
+    markFeatureUsed("view_events")
     setOrigin(window.location.origin)
     fetch("/api/my-events")
       .then(r => r.json())
@@ -1013,7 +1032,7 @@ export default function DashboardEventsPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState tab={activeTab} />
+          <EmptyState tab={activeTab} onRestartTour={restartTutorial} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
             {filtered.map(event => (

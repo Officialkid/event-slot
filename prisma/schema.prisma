@@ -80,6 +80,7 @@ model UserOnboarding {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedSteps    String[] @default([])
+  usedFeatures      String[] @default([])
   tutorialCompleted Boolean  @default(false)
   tutorialSkipped   Boolean  @default(false)
   completedAt       DateTime?

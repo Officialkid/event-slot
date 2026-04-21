@@ -1934,16 +1934,32 @@ export default function EventDashboardPage() {
                 </span>
               </div>
             </div>
-            <RegTable
-              rows={confirmed}
-              questions={eventData.questions}
-              emptyText="No confirmed registrations yet"
-              token={token || eventData.dashboardToken}
-              onRemove={id => {
-                setConfirmed(prev => prev.filter(r => r.id !== id))
-                setEventData(prev => prev ? { ...prev, confirmedCount: Math.max(0, prev.confirmedCount - 1) } : null)
-              }}
-            />
+            {confirmed.length === 0 ? (
+              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>RG</div>
+                <p style={{ margin: "0 0 0.4rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.15rem", color: "#F0EDE6" }}>No registrations yet</p>
+                <p style={{ margin: "0 auto 0.95rem", maxWidth: 420, fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                  Share your registration link to start collecting attendees; new signups will appear here automatically.
+                </p>
+                <button
+                  onClick={handleCopy}
+                  style={{ background: "#a3e635", border: "none", borderRadius: 10, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Copy Registration Link
+                </button>
+              </div>
+            ) : (
+              <RegTable
+                rows={confirmed}
+                questions={eventData.questions}
+                emptyText="No confirmed registrations yet"
+                token={token || eventData.dashboardToken}
+                onRemove={id => {
+                  setConfirmed(prev => prev.filter(r => r.id !== id))
+                  setEventData(prev => prev ? { ...prev, confirmedCount: Math.max(0, prev.confirmedCount - 1) } : null)
+                }}
+              />
+            )}
           </div>
         )}
 

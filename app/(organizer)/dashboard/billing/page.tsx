@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import ComingSoon from "@/components/ui/ComingSoon"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
 interface BillingStatus {
   plan: string
@@ -133,6 +134,10 @@ export default function BillingPage() {
   }, [])
 
   useEffect(() => { fetchStatus() }, [fetchStatus])
+
+  useEffect(() => {
+    markFeatureUsed("billing")
+  }, [])
 
 
 

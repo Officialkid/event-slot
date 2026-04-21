@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from "react"
 import { formatDistanceToNow } from "date-fns"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
+import Link from "next/link"
 
 interface Notification {
   id: string
@@ -76,6 +78,7 @@ export default function NotificationsPage() {
   }, [])
 
   useEffect(() => {
+    markFeatureUsed("notifications")
     fetchNotifications()
   }, [fetchNotifications])
 
@@ -252,7 +255,33 @@ export default function NotificationsPage() {
             fontSize: "0.875rem",
           }}
         >
-          {filter === "unread" ? "No unread notifications." : "You are all caught up. No notifications yet."}
+          {filter === "unread" ? (
+            "No unread notifications."
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+              <div style={{ fontSize: "2.2rem" }}>N</div>
+              <p style={{ margin: 0, fontSize: "1rem", color: "#F0EDE6" }}>No notifications yet</p>
+              <p style={{ margin: 0, maxWidth: 360, color: "rgba(240,237,230,0.5)", lineHeight: 1.6 }}>
+                As your events receive registrations and waitlist updates, you will see actionable alerts here.
+              </p>
+              <Link
+                href="/dashboard/events/new"
+                style={{
+                  display: "inline-block",
+                  marginTop: "0.35rem",
+                  background: "#a3e635",
+                  color: "#0A0A0A",
+                  borderRadius: 10,
+                  padding: "0.55rem 1rem",
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  textDecoration: "none",
+                }}
+              >
+                Create Your First Event
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

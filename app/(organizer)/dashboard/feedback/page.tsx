@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const FG = "#F0EDE6"
@@ -288,7 +289,7 @@ function SubmitTab() {
 }
 
 // ─── Submissions tab ──────────────────────────────────────────────────────────
-function SubmissionsTab() {
+function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
   const [items, setItems] = useState<FeedbackItem[]>([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
@@ -321,7 +322,28 @@ function SubmissionsTab() {
   if (items.length === 0) {
     return (
       <div style={{ padding: "2.5rem 0", color: MUTED, fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", textAlign: "center" }}>
-        No submissions yet. Use the Submit tab to send your first feedback.
+        <div style={{ fontSize: "2.2rem", marginBottom: "0.65rem" }}>FB</div>
+        <p style={{ margin: "0 0 0.45rem", color: FG, fontSize: "1rem" }}>No feedback submitted yet</p>
+        <p style={{ margin: "0 auto 0.95rem", maxWidth: 380, lineHeight: 1.6, color: MUTED }}>
+          Share what is working or what could be better so EventSlot can keep improving for you.
+        </p>
+        <button
+          type="button"
+          onClick={onStartSubmit}
+          style={{
+            padding: "0.55rem 1rem",
+            borderRadius: 10,
+            border: "none",
+            background: LIME,
+            color: BG,
+            cursor: "pointer",
+            fontSize: "0.82rem",
+            fontWeight: 700,
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Send Feedback
+        </button>
       </div>
     )
   }
@@ -435,6 +457,10 @@ function paginationBtn(disabled: boolean): React.CSSProperties {
 export default function FeedbackPage() {
   const [tab, setTab] = useState<"submit" | "submissions">("submit")
 
+  useEffect(() => {
+    markFeatureUsed("feedback")
+  }, [])
+
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
       {/* Header */}
@@ -487,7 +513,7 @@ export default function FeedbackPage() {
       </div>
 
       {/* Tab content */}
-      {tab === "submit" ? <SubmitTab /> : <SubmissionsTab />}
+      {tab === "submit" ? <SubmitTab /> : <SubmissionsTab onStartSubmit={() => setTab("submit")} />}
     </div>
   )
 }

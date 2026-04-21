@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -76,6 +77,10 @@ export default function CreateEventPage() {
   const formRef = useRef<HTMLDivElement>(null)
 
   // Auto-fill organizer details from signed-in account
+  useEffect(() => {
+    markFeatureUsed("create_event")
+  }, [])
+
   useEffect(() => {
     if (session?.user?.name) {
       setOrganizerName(session.user.name)

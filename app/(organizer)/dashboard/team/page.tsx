@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -60,6 +61,7 @@ export default function TeamPage() {
 
   // Load plan info + members
   useEffect(() => {
+    markFeatureUsed("team")
     async function load() {
       try {
         const [meRes, membersRes] = await Promise.all([

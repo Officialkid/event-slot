@@ -8,6 +8,8 @@ type OnboardingPatchBody = {
   completed?: boolean
   skipped?: boolean
   completedSteps?: string[]
+  usedFeature?: string
+  usedFeatures?: string[]
 }
 
 export async function GET() {
@@ -23,6 +25,7 @@ export async function GET() {
       create: { userId: session.user.id },
       select: {
         completedSteps: true,
+        usedFeatures: true,
         tutorialCompleted: true,
         tutorialSkipped: true,
       },
@@ -48,6 +51,7 @@ export async function PATCH(req: Request) {
       create: { userId: session.user.id },
       select: {
         completedSteps: true,
+        usedFeatures: true,
       },
     })
 
@@ -70,10 +74,18 @@ export async function PATCH(req: Request) {
         ? false
         : undefined
 
+    const nextUsedFeatures =
+      Array.isArray(body.usedFeatures)
+        ? Array.from(new Set(body.usedFeatures.filter(Boolean)))
+        : body.usedFeature
+          ? Array.from(new Set([...existing.usedFeatures, body.usedFeature]))
+          : existing.usedFeatures
+
     const state = await prisma.userOnboarding.update({
       where: { userId: session.user.id },
       data: {
         completedSteps: nextSteps,
+        usedFeatures: nextUsedFeatures,
         ...(tutorialCompleted !== undefined ? { tutorialCompleted } : {}),
         ...(tutorialSkipped !== undefined ? { tutorialSkipped } : {}),
         ...(tutorialCompleted !== undefined
@@ -82,6 +94,7 @@ export async function PATCH(req: Request) {
       },
       select: {
         completedSteps: true,
+        usedFeatures: true,
         tutorialCompleted: true,
         tutorialSkipped: true,
       },

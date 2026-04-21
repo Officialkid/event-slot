@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import CreditsBalance from "@/components/CreditsBalance"
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
+import { HintDot } from "@/components/tutorial/HintDot"
 import { useTutorial } from "@/hooks/useTutorial"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -200,11 +201,12 @@ interface SidebarInnerProps {
   unreadCount: number
   userPlan: string
   creditBalance: number
+  usedFeatures: string[]
   onNavClick?: () => void
   collapsed?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, onNavClick, collapsed = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, usedFeatures, onNavClick, collapsed = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -348,7 +350,39 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               }}
             >
               {item.icon}
-              <span className="dash-nav-lbl" style={{ flex: 1 }}>{item.label}</span>
+              <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
+                {item.label}
+                {item.href === "/dashboard/events" && (
+                  <HintDot
+                    show={!usedFeatures.includes("view_events")}
+                    message="See all your events, manage registrations, and share your event link here."
+                  />
+                )}
+                {item.href === "/dashboard/notifications" && (
+                  <HintDot
+                    show={!usedFeatures.includes("notifications")}
+                    message="Stay updated when registrations, waitlist changes, and key activity happen."
+                  />
+                )}
+                {item.href === "/dashboard/billing" && (
+                  <HintDot
+                    show={!usedFeatures.includes("billing")}
+                    message="Manage plans, credits, and usage in one place."
+                  />
+                )}
+                {item.href === "/dashboard/profile" && (
+                  <HintDot
+                    show={!usedFeatures.includes("profile")}
+                    message="Complete your profile so attendees recognize your events."
+                  />
+                )}
+                {item.href === "/dashboard/feedback" && (
+                  <HintDot
+                    show={!usedFeatures.includes("feedback")}
+                    message="Send product feedback and track your previous submissions here."
+                  />
+                )}
+              </span>
               {item.href === "/dashboard/notifications" && unreadCount > 0 && (
                 <span
                   style={{
@@ -429,7 +463,13 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
               }}
             >
               <IconUsers />
-              <span className="dash-nav-lbl" style={{ flex: 1 }}>Team</span>
+              <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
+                Team
+                <HintDot
+                  show={!usedFeatures.includes("team")}
+                  message="Invite teammates and manage shared event access from here."
+                />
+              </span>
             </Link>
           )
         })()}
@@ -573,6 +613,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [userPlan, setUserPlan] = useState("free")
   const [creditBalance, setCreditBalance] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [usedFeatures, setUsedFeatures] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const moreSheetRef = useRef<HTMLDivElement>(null)
@@ -607,6 +648,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .catch(() => { /* ignore */ })
     }
   }, [status])
+
+  useEffect(() => {
+    if (status !== "authenticated") return
+    fetch("/api/onboarding")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (Array.isArray(d?.usedFeatures)) {
+          setUsedFeatures(d.usedFeatures)
+        }
+      })
+      .catch(() => {})
+  }, [pathname, status])
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -682,6 +735,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     unreadCount,
     userPlan,
     creditBalance,
+    usedFeatures,
   }
 
   if (status === "loading") {

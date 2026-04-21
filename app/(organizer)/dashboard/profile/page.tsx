@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
 interface ProfileData {
   name: string | null
@@ -258,6 +259,7 @@ export default function ProfilePage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
+    markFeatureUsed("profile")
     fetch("/api/profile")
       .then(r => r.json())
       .then((data: ProfileData) => {
