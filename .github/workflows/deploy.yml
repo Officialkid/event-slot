@@ -84,16 +84,64 @@ jobs:
           RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
-          if echo "$RAW_GCP_SA_KEY" | jq -e . >/dev/null 2>&1; then
-            CREDENTIALS_JSON="$RAW_GCP_SA_KEY"
-          else
-            DECODED="$(echo "$RAW_GCP_SA_KEY" | base64 -d 2>/dev/null || true)"
-            if [ -z "$DECODED" ] || ! echo "$DECODED" | jq -e . >/dev/null 2>&1; then
-              echo "GCP_SA_KEY must be valid JSON or base64-encoded JSON."
-              exit 1
+
+          validate_key_json() {
+            echo "$1" | jq -e 'type == "object" and has("client_email") and has("private_key")' >/dev/null 2>&1
+          }
+
+          normalize_candidate() {
+            local v="$1"
+            # Trim outer whitespace/newlines and strip accidental wrapping quotes.
+            v="$(echo "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
+            printf '%s' "$v"
+          }
+
+          try_extract_json() {
+            local candidate
+
+            candidate="$(normalize_candidate "$1")"
+            if validate_key_json "$candidate"; then
+              printf '%s' "$candidate"
+              return 0
             fi
-            CREDENTIALS_JSON="$DECODED"
+
+            # Handle JSON pasted as an escaped one-line string with \n and \".
+            local unescaped
+            unescaped="$(printf '%b' "${candidate//\\n/\n}" 2>/dev/null || true)"
+            if [ -n "$unescaped" ] && validate_key_json "$unescaped"; then
+              printf '%s' "$unescaped"
+              return 0
+            fi
+
+            # Handle standard base64 payload.
+            local decoded
+            decoded="$(printf '%s' "$candidate" | base64 -d 2>/dev/null || true)"
+            if [ -n "$decoded" ] && validate_key_json "$decoded"; then
+              printf '%s' "$decoded"
+              return 0
+            fi
+
+            # Handle URL-safe base64 payload.
+            local b64url
+            b64url="$(printf '%s' "$candidate" | tr '_-' '/+')"
+            case $(( ${#b64url} % 4 )) in
+              2) b64url="${b64url}==" ;;
+              3) b64url="${b64url}=" ;;
+            esac
+            decoded="$(printf '%s' "$b64url" | base64 -d 2>/dev/null || true)"
+            if [ -n "$decoded" ] && validate_key_json "$decoded"; then
+              printf '%s' "$decoded"
+              return 0
+            fi
+
+            return 1
+          }
+
+          if ! CREDENTIALS_JSON="$(try_extract_json "$RAW_GCP_SA_KEY")"; then
+            echo "GCP_SA_KEY could not be parsed. Supported formats: raw JSON, escaped JSON string, base64 JSON, base64url JSON."
+            exit 1
           fi
+
           echo "::add-mask::$CREDENTIALS_JSON"
           {
             echo "credentials_json<<EOF"
