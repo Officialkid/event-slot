@@ -1,6 +1,21 @@
 # EventSlot — Feature Reference
 
-_Last updated: April 20, 2026_
+_Last updated: April 21, 2026_
+
+---
+
+## PWA & Mobile App
+
+### Android TWA / Google Play Store Packaging
+**Where:** `public/.well-known/assetlinks.json`, `twa/twa-manifest.json`, `next.config.mjs`  
+**What it does:** Enables packaging EventSlot as a native Android APK via a Trusted Web Activity (TWA). The Digital Asset Links file verifies domain ownership to Android — without it, the app shows a browser bar. The `twa-manifest.json` is a pre-filled Bubblewrap config (package: `com.alphatech.eventslot`) that bypasses the interactive wizard.  
+**To build APK:** Install JDK 8+, Android SDK → `mkdir eventslot-android && cd eventslot-android` → copy `twa/twa-manifest.json` into it → `bubblewrap build`.  
+**Fingerprint:** After generating `eventslot-release.keystore`, run `keytool -list -v -keystore eventslot-release.keystore -alias eventslot`, copy the SHA256 fingerprint, and replace the placeholder in `public/.well-known/assetlinks.json`.
+
+### Progressive Web App (Google Play Store Ready)
+**Where:** `public/manifest.json`, `public/offline.html`, `public/icons/`, `app/layout.tsx`, `scripts/generate-icons.js`  
+**What it does:** Makes EventSlot a fully compliant PWA — installable on Android/iOS, packagable via PWABuilder/Bubblewrap for Google Play. Includes full Web App Manifest (8-size icon set, `start_url: /dashboard`, `display: standalone`), Apple Web App meta tags, offline fallback page, and service worker via `@ducanh2912/next-pwa`.  
+**Icon generation:** Run `node scripts/generate-icons.js` after replacing `public/icons/icon-source.png` with the final 512×512 logo.
 
 ---
 
@@ -48,6 +63,8 @@ Blank), which pre-fills the question set. Then fills title, description,
 capacity, deadline, event date, location, community link, cover image,
 and custom form questions. Capacity suggestion shown on first focus if
 organizer has 3+ completed past events.  
+**Organizer fields:** Organizer name is required; organizer email is optional.  
+**Custom questions:** Option-based questions now support both Multiple Choice and Checkboxes, with explicit option-by-option entry and a setting to allow single-select or multi-select for checkbox questions.  
 **API:** POST /api/events
 
 ### Confirm My Attendance (Self-Lookup)

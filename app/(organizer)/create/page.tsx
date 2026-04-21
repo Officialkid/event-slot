@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 
-type QuestionType = "text" | "email" | "phone" | "select"
+type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
 type Question = {
   id: string
@@ -15,6 +15,7 @@ type Question = {
   type: QuestionType
   required: boolean
   options: string[]
+  allowMultiple?: boolean
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
@@ -22,6 +23,7 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone Number" },
   { value: "select", label: "Multiple Choice" },
+  { value: "checkbox", label: "Checkboxes" },
 ]
 
 const defaultQuestion = (): Question => ({
@@ -31,6 +33,8 @@ const defaultQuestion = (): Question => ({
   required: true,
   options: [],
 })
+
+const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
 
 export default function CreateEventPage() {
   const { data: session, status } = useSession()
@@ -44,8 +48,10 @@ export default function CreateEventPage() {
   const [location, setLocation] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
+  const [organizerName, setOrganizerName] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
   const [questions, setQuestions] = useState([defaultQuestion()])
+  const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string } | null>(null)
@@ -69,8 +75,11 @@ export default function CreateEventPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
-  // Auto-fill organizer email from signed-in account
+  // Auto-fill organizer details from signed-in account
   useEffect(() => {
+    if (session?.user?.name) {
+      setOrganizerName(session.user.name)
+    }
     if (session?.user?.email) {
       setOrganizerEmail(session.user.email)
     }
@@ -121,6 +130,7 @@ export default function CreateEventPage() {
         type: q.type,
         required: q.required,
         options: q.options ?? [],
+        allowMultiple: q.allowMultiple ?? false,
       }))
     )
     setSelectedTemplateId(templateId)
@@ -165,26 +175,64 @@ export default function CreateEventPage() {
   const handleQuestionChange = (idx: number, field: keyof Question, value: string | boolean) => {
     setQuestions(qs =>
       qs.map((q, i) =>
-        i === idx ? { ...q, [field]: value, ...(field === "type" && value !== "select" ? { options: [] } : {}) } : q
+        i === idx
+          ? {
+              ...q,
+              [field]: value,
+              ...(field === "type" && typeof value === "string" && !typeUsesOptions(value as QuestionType)
+                ? { options: [], allowMultiple: false }
+                : {}),
+            }
+          : q
       )
     )
   }
 
-  const handleOptionChange = (idx: number, value: string) => {
+  const addOption = (idx: number) => {
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== idx) return q
+        const draft = optionDrafts[q.id]?.trim()
+        if (!draft) return q
+        if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
+        return { ...q, options: [...q.options, draft] }
+      })
+    )
+    const id = questions[idx]?.id
+    if (id) {
+      setOptionDrafts(prev => ({ ...prev, [id]: "" }))
+    }
+  }
+
+  const removeOption = (idx: number, optionIdx: number) => {
     setQuestions(qs =>
       qs.map((q, i) =>
-        i === idx ? { ...q, options: value.split(",").map(opt => opt.trim()).filter(Boolean) } : q
+        i === idx ? { ...q, options: q.options.filter((_, j) => j !== optionIdx) } : q
       )
     )
   }
 
-  const addQuestion = () => setQuestions(qs => [...qs, { id: uuidv4(), label: "", type: "text", required: false, options: [] }])
-  const removeQuestion = (idx: number) => setQuestions(qs => qs.length > 1 ? qs.filter((_, i) => i !== idx) : qs)
+  const addQuestion = () => {
+    const id = uuidv4()
+    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false }])
+    setOptionDrafts(prev => ({ ...prev, [id]: "" }))
+  }
+  const removeQuestion = (idx: number) =>
+    setQuestions(qs => {
+      if (qs.length <= 1) return qs
+      return qs.filter((_, i) => i !== idx)
+    })
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     setError("")
+    const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
+    if (invalidQuestion) {
+      setLoading(false)
+      setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+      return
+    }
     try {
       const res = await fetch("/api/events", {
         method: "POST",
@@ -202,10 +250,12 @@ export default function CreateEventPage() {
             id: q.id,
             label: q.label,
             type: q.type,
-            options: q.type === "select" ? q.options : undefined,
+            options: typeUsesOptions(q.type) ? q.options : undefined,
+            allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
             required: q.required,
           })),
-          organizerEmail,
+          organizerName,
+          organizerEmail: organizerEmail || undefined,
         }),
       })
       const data = await res.json()
@@ -527,12 +577,23 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Organizer Email <span className="text-[#C8F55A]">*</span>
+                    Organizer Name <span className="text-[#C8F55A]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    required
+                    value={organizerName}
+                    onChange={e => setOrganizerName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Organizer Email <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
                   </label>
                   <input
                     type="email"
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                    required
                     value={organizerEmail}
                     onChange={e => setOrganizerEmail(e.target.value)}
                   />
@@ -652,18 +713,68 @@ export default function CreateEventPage() {
                           ))}
                         </select>
                       </div>
-                      {q.type === "select" && (
+                      {typeUsesOptions(q.type) && (
                         <div>
                           <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                            Options (comma separated)
+                            Options
                           </label>
+                          <div className="mt-1 flex gap-2">
+                            <input
+                              type="text"
+                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                              placeholder="Add option"
+                              value={optionDrafts[q.id] ?? ""}
+                              onChange={e => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                              onKeyDown={e => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
+                                  addOption(idx)
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="rounded-[8px] border border-[rgba(200,245,90,0.35)] px-3 py-2 text-[0.8rem] text-[#C8F55A]"
+                              onClick={() => addOption(idx)}
+                            >
+                              Add
+                            </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {q.options.map((opt, optionIdx) => (
+                              <span
+                                key={`${q.id}-${opt}-${optionIdx}`}
+                                className="inline-flex items-center gap-2 rounded-full border border-[rgba(240,237,230,0.15)] px-3 py-1 text-[0.78rem] text-[#F0EDE6]"
+                              >
+                                {opt}
+                                <button
+                                  type="button"
+                                  className="text-[rgba(240,237,230,0.45)]"
+                                  onClick={() => removeOption(idx, optionIdx)}
+                                  aria-label={`Remove ${opt}`}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          {q.options.length === 0 && (
+                            <p className="mt-2 text-[0.75rem] text-[rgba(240,237,230,0.35)]">Add at least one option.</p>
+                          )}
+                        </div>
+                      )}
+                      {q.type === "checkbox" && (
+                        <div className="flex items-center gap-2">
                           <input
-                            type="text"
-                            className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                            value={q.options.join(", ")}
-                            onChange={e => handleOptionChange(idx, e.target.value)}
-                            required
+                            type="checkbox"
+                            id={`allow-multiple-${q.id}`}
+                            className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414] text-[#C8F55A] focus:ring-[#C8F55A]"
+                            checked={!!q.allowMultiple}
+                            onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                           />
+                          <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">
+                            Allow selecting multiple options
+                          </label>
                         </div>
                       )}
                       <div className="flex items-center gap-2">

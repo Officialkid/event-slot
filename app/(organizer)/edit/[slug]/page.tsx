@@ -6,7 +6,7 @@ import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
 import Image from "next/image"
 
-type QuestionType = "text" | "email" | "phone" | "select"
+type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
 type Question = {
   id: string
@@ -14,6 +14,7 @@ type Question = {
   type: QuestionType
   required: boolean
   options: string[]
+  allowMultiple?: boolean
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
@@ -21,7 +22,10 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone Number" },
   { value: "select", label: "Multiple Choice" },
+  { value: "checkbox", label: "Checkboxes" },
 ]
+
+const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
 
 function toDatetimeLocal(val: string | null | undefined): string {
   if (!val) return ""
@@ -51,6 +55,7 @@ export default function EditEventPage() {
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
+  const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
 
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
@@ -110,21 +115,48 @@ export default function EditEventPage() {
   function handleQuestionChange(idx: number, field: keyof Question, value: string | boolean) {
     setQuestions(qs =>
       qs.map((q, i) =>
-        i === idx ? { ...q, [field]: value, ...(field === "type" && value !== "select" ? { options: [] } : {}) } : q
+          i === idx
+            ? {
+                ...q,
+                [field]: value,
+                ...(field === "type" && typeof value === "string" && !typeUsesOptions(value as QuestionType)
+                  ? { options: [], allowMultiple: false }
+                  : {}),
+              }
+            : q
       )
     )
   }
 
-  function handleOptionChange(idx: number, value: string) {
+    function addOption(idx: number) {
     setQuestions(qs =>
-      qs.map((q, i) =>
-        i === idx ? { ...q, options: value.split(",").map(opt => opt.trim()).filter(Boolean) } : q
-      )
+        qs.map((q, i) => {
+          if (i !== idx) return q
+          const draft = optionDrafts[q.id]?.trim()
+          if (!draft) return q
+          if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
+          return { ...q, options: [...q.options, draft] }
+        })
     )
+      const id = questions[idx]?.id
+      if (id) {
+        setOptionDrafts(prev => ({ ...prev, [id]: "" }))
+      }
   }
 
-  const addQuestion = () =>
-    setQuestions(qs => [...qs, { id: uuidv4(), label: "", type: "text", required: false, options: [] }])
+    function removeOption(idx: number, optionIdx: number) {
+      setQuestions(qs =>
+        qs.map((q, i) =>
+          i === idx ? { ...q, options: q.options.filter((_, j) => j !== optionIdx) } : q
+        )
+      )
+    }
+
+  const addQuestion = () => {
+    const id = uuidv4()
+    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false }])
+    setOptionDrafts(prev => ({ ...prev, [id]: "" }))
+  }
 
   const removeQuestion = (idx: number) =>
     setQuestions(qs => qs.length > 1 ? qs.filter((_, i) => i !== idx) : qs)
@@ -133,6 +165,12 @@ export default function EditEventPage() {
     e.preventDefault()
     setSaving(true)
     setError("")
+    const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
+    if (invalidQuestion) {
+      setSaving(false)
+      setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+      return
+    }
     try {
       const res = await fetch(`/api/events/${slug}`, {
         method: "PATCH",
@@ -150,7 +188,8 @@ export default function EditEventPage() {
             id: q.id,
             label: q.label,
             type: q.type,
-            options: q.type === "select" ? q.options : undefined,
+            options: typeUsesOptions(q.type) ? q.options : undefined,
+            allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
             required: q.required,
           })),
         }),
@@ -380,18 +419,68 @@ export default function EditEventPage() {
                         ))}
                       </select>
                     </div>
-                    {q.type === "select" && (
+                    {typeUsesOptions(q.type) && (
                       <div>
                         <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                          Options (comma-separated)
+                          Options
                         </label>
+                        <div className="mt-1 flex gap-2">
+                          <input
+                            type="text"
+                            className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                            placeholder="Add option"
+                            value={optionDrafts[q.id] ?? ""}
+                            onChange={e => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                addOption(idx)
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="rounded-[8px] border border-[rgba(200,245,90,0.35)] px-3 py-2 text-[0.8rem] text-[#C8F55A]"
+                            onClick={() => addOption(idx)}
+                          >
+                            Add
+                          </button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {q.options.map((opt, optionIdx) => (
+                            <span
+                              key={`${q.id}-${opt}-${optionIdx}`}
+                              className="inline-flex items-center gap-2 rounded-full border border-[rgba(240,237,230,0.15)] px-3 py-1 text-[0.78rem] text-[#F0EDE6]"
+                            >
+                              {opt}
+                              <button
+                                type="button"
+                                className="text-[rgba(240,237,230,0.45)]"
+                                onClick={() => removeOption(idx, optionIdx)}
+                                aria-label={`Remove ${opt}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        {q.options.length === 0 && (
+                          <p className="mt-2 text-[0.75rem] text-[rgba(240,237,230,0.35)]">Add at least one option.</p>
+                        )}
+                      </div>
+                    )}
+                    {q.type === "checkbox" && (
+                      <div className="flex items-center gap-2">
                         <input
-                          type="text"
-                          required
-                          className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                          value={q.options.join(", ")}
-                          onChange={e => handleOptionChange(idx, e.target.value)}
+                          type="checkbox"
+                          id={`allow-multiple-${q.id}`}
+                          className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414]"
+                          checked={!!q.allowMultiple}
+                          onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                         />
+                        <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">
+                          Allow selecting multiple options
+                        </label>
                       </div>
                     )}
                     <div className="flex items-center gap-2">

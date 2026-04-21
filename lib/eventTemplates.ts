@@ -1,9 +1,10 @@
 export type TemplateQuestion = {
   id: string
   label: string
-  type: "text" | "email" | "phone" | "select"
+  type: "text" | "email" | "phone" | "select" | "checkbox"
   required: boolean
   options?: string[]
+  allowMultiple?: boolean
 }
 
 export type EventTemplate = {

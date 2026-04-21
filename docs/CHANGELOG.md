@@ -1,5 +1,40 @@
 # EventSlot — Changelog
 
+## [0.4.8] — April 21, 2026
+
+### Event Creation + Registration Builder Improvements
+
+- Updated event creation flow so Organizer Name is now required and Organizer Email is optional.
+- Added a safer create-event API path that avoids a 500 when a session contains a stale user id by validating organizer linkage before create.
+- Improved custom question builder UX for option-based questions:
+  - Added separate option entry with Add button (Google Forms style) instead of comma-only input.
+  - Added new Checkboxes question type.
+  - Added per-checkbox question setting to allow either single selection or multiple selections.
+- Added client and API validation to ensure option-based questions always include at least one option.
+- Added attendee and edit-registration support for checkbox answers with single/multi-select behavior.
+- Added a compatibility fallback at `public/_next/app-build-manifest.json` to prevent older service worker precache installs from failing on 404.
+
+## [0.4.7] — April 21, 2026
+
+### Feature: Android TWA (Trusted Web Activity) — Play Store Packaging
+
+- **`public/.well-known/assetlinks.json` created** — Digital Asset Links file for TWA verification. Replace `REPLACE_WITH_SHA256_FINGERPRINT` with the output of `keytool -list -v -keystore eventslot-release.keystore -alias eventslot` after the keystore is generated.
+- **`next.config.mjs` updated** — Added dedicated headers rule for `/.well-known/assetlinks.json`: forces `Content-Type: application/json`, `no-cache` and `Access-Control-Allow-Origin: *` so Android's asset link verification service can always read it without caching stale fingerprints.
+- **`twa/twa-manifest.json` created** — Pre-filled Bubblewrap config for `com.alphatech.eventslot`. Run `cd twa && bubblewrap build` (after placing this file in the Android project directory) to build the APK without going through the interactive wizard.
+- **`@bubblewrap/cli` installed globally** via `npm install -g @bubblewrap/cli`.
+
+## [0.4.6] — April 21, 2026
+
+### Feature: Full PWA Compliance (Google Play Store Ready)
+
+- **`public/manifest.json` updated** — Full PWA manifest with `start_url: /dashboard`, `scope: /`, `orientation: portrait`, `theme_color: #a3e635`, `background_color: #0a0a0a`, `categories`, `lang`, `screenshots`, and a complete 8-size icon set (`72×72` → `512×512`).
+- **`app/layout.tsx` metadata updated** — `themeColor` changed to `#a3e635`; `viewport` set with `userScalable: false` and `maximumScale: 1`; `apple-touch-icon` updated to `/icons/icon-192x192.png`.
+- **`public/offline.html` created** — Branded offline fallback page served when the user has no connection (dark background, lime `#a3e635` heading).
+- **`public/icons/` generated** — All 8 required PWA icon sizes created from `public/assets/logo-unfiltered.png` using `sharp`.
+- **`scripts/generate-icons.js` added** — Regenerates all icon sizes from `public/icons/icon-source.png` (or falls back to existing logo asset). Run with `node scripts/generate-icons.js`.
+- **`sharp` installed as devDependency** for icon generation.
+- **Service worker** already handled by `@ducanh2912/next-pwa` (no changes needed).
+
 ## [0.4.5] — April 20, 2026
 
 ### Platform: Security + Runtime Upgrade + Google Cloud Migration

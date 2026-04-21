@@ -127,6 +127,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
     }
 
+    for (const question of questions) {
+      const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
+      if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
+        return NextResponse.json({ success: false, error: `Question "${question?.label || 'Untitled'}" needs at least one option` }, { status: 400 })
+      }
+    }
+
     const updated = await prisma.event.update({
       where: { slug },
       data: {

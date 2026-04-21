@@ -19,6 +19,7 @@ type Question = {
   type: string
   options?: string[]
   required: boolean
+  allowMultiple?: boolean
 }
 
 type Registration = {
@@ -761,12 +762,33 @@ function ManualRegModal({
     setAttendees(a => { const next = [...a]; next[idx] = { ...next[idx], [qId]: val }; return next })
   }
 
+  const parseCheckboxValue = (raw: string | undefined): string[] => {
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string")
+    } catch {
+      return raw.split("|").map(v => v.trim()).filter(Boolean)
+    }
+    return []
+  }
+
+  const serializeCheckboxValue = (values: string[]): string => {
+    const uniqueSorted = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
+    return JSON.stringify(uniqueSorted)
+  }
+
   const handleSubmit = async () => {
     setError("")
     setDupWarning(null)
     for (let i = 0; i < attendees.length; i++) {
       for (const q of questions) {
-        if (q.required && !attendees[i][q.id]?.trim()) {
+        if (!q.required) continue
+        const answer = attendees[i][q.id] ?? ""
+        const hasValue = q.type === "checkbox"
+          ? parseCheckboxValue(answer).length > 0
+          : answer.trim().length > 0
+        if (!hasValue) {
           setError(`${attendees.length > 1 ? `Attendee ${i + 1}: ` : ""}"${q.label}" is required`)
           return
         }
@@ -904,6 +926,28 @@ function ManualRegModal({
                       <option value="">Select…</option>
                       {q.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
+                  ) : q.type === "checkbox" && q.options ? (
+                    <div style={{ ...inputStyle, display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.75rem" }}>
+                      {q.options.map(opt => {
+                        const selectedValues = parseCheckboxValue(form[q.id])
+                        const isChecked = selectedValues.includes(opt)
+                        return (
+                          <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={e => {
+                                const nextValues = e.target.checked
+                                  ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                                  : selectedValues.filter(value => value !== opt)
+                                handleChange(idx, q.id, serializeCheckboxValue(nextValues))
+                              }}
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
                   ) : q.type === "textarea" ? (
                     <textarea rows={3} value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={{ ...inputStyle, resize: "vertical" }} />
                   ) : (

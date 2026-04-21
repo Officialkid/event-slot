@@ -8,6 +8,7 @@ type EventQuestion = {
   type: string
   options?: string[]
   required: boolean
+  allowMultiple?: boolean
 }
 
 type EventProps = {
@@ -63,6 +64,23 @@ type BulkResult = {
 }
 
 type AttendeeAnswers = Record<string, string>
+
+function parseCheckboxValue(raw: string | undefined): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string")
+  } catch {
+    // Backward compatibility with older delimiter values.
+    return raw.split("|").map(v => v.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function serializeCheckboxValue(values: string[]): string {
+  const uniqueSorted = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
+  return JSON.stringify(uniqueSorted)
+}
 
 function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
   return Object.fromEntries(questions.map(q => [q.id, ""]))
@@ -131,7 +149,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     // Client-side required field validation
     for (let i = 0; i < attendees.length; i++) {
       for (const q of event.questions) {
-        if (q.required && !attendees[i][q.id]?.trim()) {
+        if (!q.required) continue
+        const answer = attendees[i][q.id] || ""
+        const hasValue = q.type === "checkbox"
+          ? parseCheckboxValue(answer).length > 0
+          : answer.trim().length > 0
+        if (!hasValue) {
           setError(`Please fill in "${q.label}"${attendees.length > 1 ? ` for attendee ${i + 1}` : ""}.`)
           return
         }
@@ -603,6 +626,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       </option>
                     ))}
                   </select>
+                )}
+                {q.type === "checkbox" && (
+                  <div className="mt-1 space-y-2 rounded-[8px] border border-[rgba(240,237,230,0.12)] bg-[#141414] px-3 py-3">
+                    {q.options?.map(opt => {
+                      const selectedValues = parseCheckboxValue(form[q.id])
+                      const isChecked = selectedValues.includes(opt)
+                      return (
+                        <label key={`${q.id}-${opt}`} className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-[#F0EDE6]">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const nextValues = e.target.checked
+                                ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                                : selectedValues.filter(value => value !== opt)
+                              handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
+                            }}
+                            className="h-4 w-4 rounded border border-[rgba(240,237,230,0.2)] bg-[#141414] text-[#C8F55A] focus:ring-[#C8F55A]"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      )
+                    })}
+                    {q.required && parseCheckboxValue(form[q.id]).length === 0 && (
+                      <p className="text-[0.72rem] text-[rgba(240,237,230,0.35)]">Select at least one option.</p>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

@@ -9,6 +9,7 @@ type Question = {
   type: string
   options?: string[]
   required: boolean
+  allowMultiple?: boolean
 }
 
 type Registration = {
@@ -22,6 +23,22 @@ type Registration = {
     status: string
     deadline: string | null
   }
+}
+
+function parseCheckboxValue(raw: string | undefined): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string")
+  } catch {
+    return raw.split("|").map(v => v.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function serializeCheckboxValue(values: string[]): string {
+  const uniqueSorted = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
+  return JSON.stringify(uniqueSorted)
 }
 
 export default function EditRegistrationPage() {
@@ -63,7 +80,12 @@ export default function EditRegistrationPage() {
 
     // Client-side required validation
     for (const q of registration.event.questions) {
-      if (q.required && !answers[q.id]?.trim()) {
+      if (!q.required) continue
+      const answer = answers[q.id] || ""
+      const hasValue = q.type === "checkbox"
+        ? parseCheckboxValue(answer).length > 0
+        : answer.trim().length > 0
+      if (!hasValue) {
         setError(`Please fill in "${q.label}".`)
         return
       }
@@ -185,6 +207,29 @@ export default function EditRegistrationPage() {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
+            ) : q.type === "checkbox" && q.options ? (
+              <div style={{ ...inputStyle, padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem", opacity: isClosed ? 0.5 : 1 }}>
+                {q.options.map(opt => {
+                  const selectedValues = parseCheckboxValue(answers[q.id])
+                  const isChecked = selectedValues.includes(opt)
+                  return (
+                    <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={isClosed}
+                        onChange={e => {
+                          const nextValues = e.target.checked
+                            ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                            : selectedValues.filter(value => value !== opt)
+                          setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(nextValues) }))
+                        }}
+                      />
+                      <span>{opt}</span>
+                    </label>
+                  )
+                })}
+              </div>
             ) : (
               <input
                 type={q.type === "email" ? "email" : q.type === "phone" ? "tel" : "text"}

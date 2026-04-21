@@ -20,28 +20,56 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     const body = await req.json()
-    const { title, description, capacity, deadline, eventDate, location, communityLink, imageUrl, questions, organizerEmail } = body
+    const { title, description, capacity, deadline, eventDate, location, communityLink, imageUrl, questions, organizerEmail, organizerName } = body
 
-    if (!title || !organizerEmail) {
-      return NextResponse.json({ success: false, error: 'Missing title or organizerEmail' }, { status: 400 })
+    const normalizedTitle = String(title ?? '').trim()
+    const normalizedOrganizerName = String(organizerName ?? '').trim()
+    const normalizedOrganizerEmail = String(organizerEmail ?? '').trim()
+
+    if (!normalizedTitle || !normalizedOrganizerName) {
+      return NextResponse.json({ success: false, error: 'Missing title or organizerName' }, { status: 400 })
     }
     if (!Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
     }
 
+    for (const question of questions) {
+      const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
+      if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
+        return NextResponse.json({ success: false, error: `Question "${question?.label || 'Untitled'}" needs at least one option` }, { status: 400 })
+      }
+    }
+
+    let organizerId: string | null = null
+    let organizerPlan = 'free'
+    let sessionEmail = session?.user?.email ?? ''
+
     // Plan limit: max active events
     if (session?.user?.id) {
       const organizer = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { plan: true },
+        select: { id: true, email: true, plan: true, name: true },
       })
-      const plan = organizer?.plan ?? 'free'
-      const limits = getPlanLimits(plan)
 
-      if (limits.maxActiveEvents !== Infinity) {
+      if (organizer) {
+        organizerId = organizer.id
+        organizerPlan = organizer.plan ?? 'free'
+        sessionEmail = organizer.email ?? sessionEmail
+
+        if ((organizer.name ?? '').trim() !== normalizedOrganizerName) {
+          await prisma.user.update({
+            where: { id: organizer.id },
+            data: { name: normalizedOrganizerName },
+          })
+        }
+      }
+
+      const limits = getPlanLimits(organizerPlan)
+
+      if (limits.maxActiveEvents !== Infinity && organizerId) {
         const activeEvents = await prisma.event.count({
           where: {
-            organizerId: session.user.id,
+            organizerId,
             archived: false,
             status: { not: 'closed' },
           },
@@ -59,12 +87,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const slug = generateSlug(title)
+    const slug = generateSlug(normalizedTitle)
     const dashboardToken = uuidv4()
+    const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
 
     const event = await prisma.event.create({
       data: {
-        title,
+        title: normalizedTitle,
         description,
         capacity,
         deadline: deadline ? new Date(deadline) : undefined,
@@ -73,10 +102,10 @@ export async function POST(req: NextRequest) {
         communityLink: communityLink || undefined,
         imageUrl: imageUrl || undefined,
         questions,
-        organizerEmail,
+        organizerEmail: eventOrganizerEmail,
         slug,
         dashboardToken,
-        organizerId: session?.user?.id ?? null,
+        organizerId,
       },
       select: {
         id: true,
