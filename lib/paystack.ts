@@ -8,7 +8,17 @@ export async function paystackFetch(path: string, options: RequestInit = {}) {
       ...(options.headers ?? {}),
     },
   })
-  return res.json()
+
+  const raw = await res.text()
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return {
+      status: false,
+      message: `Unexpected Paystack response (HTTP ${res.status})`,
+      raw,
+    }
+  }
 }
 
 export function getPlanFromPlanCode(planCode: string): string {

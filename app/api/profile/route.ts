@@ -68,15 +68,37 @@ export async function DELETE() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Delete all events owned by user — cascades their registrations
-    await prisma.event.deleteMany({ where: { organizerId: session.user.id } })
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, email: true },
+    })
 
-    // Delete the user — cascades accounts, sessions, notifications
-    await prisma.user.delete({ where: { id: session.user.id } })
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const eventOwnerFilters: Array<{ organizerId?: string; organizerEmail?: string }> = [{ organizerId: user.id }]
+    if (user.email) {
+      eventOwnerFilters.push({ organizerEmail: user.email })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.event.deleteMany({
+        where: {
+          OR: eventOwnerFilters,
+        },
+      })
+
+      // These relations are not guaranteed to cascade in every deployed schema.
+      await tx.organizerFeedback.deleteMany({ where: { organizerId: user.id } })
+      await tx.eventUnlock.deleteMany({ where: { userId: user.id } })
+
+      await tx.user.delete({ where: { id: user.id } })
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error("[profile] DELETE error:", err)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to delete account" }, { status: 500 })
   }
 }

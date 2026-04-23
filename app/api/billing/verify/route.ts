@@ -1,14 +1,19 @@
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
+
+function redirectTo(request: Request, path: string) {
+  const current = new URL(request.url)
+  return NextResponse.redirect(new URL(path, current.origin))
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const reference = searchParams.get('reference')
 
   if (!reference) {
-    redirect('/dashboard/billing?error=missing_reference')
+    return redirectTo(request, '/dashboard/billing?error=missing_reference')
   }
 
   try {
@@ -16,13 +21,13 @@ export async function GET(request: Request) {
 
     if (!data.status || data.data?.status !== 'success') {
       console.error('[billing/verify] Payment not successful:', data.message ?? data.data?.status)
-      redirect('/dashboard/billing?error=payment_failed')
+      return redirectTo(request, '/dashboard/billing?error=payment_failed')
     }
 
     const { userId, plan, billingCycle, type, creditAmount } = data.data.metadata ?? {}
 
     if (!userId) {
-      redirect('/dashboard/billing?error=invalid_metadata')
+      return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
     }
 
     if (type === 'credits') {
@@ -33,7 +38,7 @@ export async function GET(request: Request) {
         description: `Purchased ${amount} points`,
         reference,
       })
-      redirect('/dashboard/billing?credits=added')
+      return redirectTo(request, '/dashboard/billing?credits=added')
     } else {
       const planEndDate = new Date()
       if (billingCycle === 'annual') {
@@ -51,10 +56,10 @@ export async function GET(request: Request) {
           planStartDate: new Date(),
         },
       })
-      redirect(`/dashboard/billing?success=true&plan=${plan}`)
+      return redirectTo(request, `/dashboard/billing?success=true&plan=${plan}`)
     }
   } catch (err) {
     console.error('[billing/verify]', err)
-    redirect('/dashboard/billing?error=verification_failed')
+    return redirectTo(request, '/dashboard/billing?error=verification_failed')
   }
 }

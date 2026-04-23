@@ -24,10 +24,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
-      return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 })
+      return NextResponse.json({ error: 'Payment service not configured (missing PAYSTACK_SECRET_KEY)' }, { status: 503 })
+    }
+    if (!process.env.NEXTAUTH_URL) {
+      return NextResponse.json({ error: 'Payment callback is not configured (missing NEXTAUTH_URL)' }, { status: 503 })
     }
 
     const amount = PLAN_AMOUNTS[plan][billingCycle]
+    const callbackUrl = new URL('/api/billing/verify', process.env.NEXTAUTH_URL).toString()
 
     const data = await paystackFetch('/transaction/initialize', {
       method: 'POST',
@@ -35,7 +39,7 @@ export async function POST(req: NextRequest) {
         email: session.user.email,
         amount: amount * 100, // KES cents
         currency: 'KES',
-        callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
+        callback_url: callbackUrl,
         metadata: {
           userId: session.user.id,
           plan,
@@ -47,12 +51,12 @@ export async function POST(req: NextRequest) {
 
     if (!data.status) {
       console.error('[billing/checkout] Paystack error:', data.message)
-      return NextResponse.json({ error: data.message ?? 'Paystack error' }, { status: 500 })
+      return NextResponse.json({ error: data.message ?? 'Unable to initialize payment right now.' }, { status: 502 })
     }
 
     return NextResponse.json({ url: data.data.authorization_url })
   } catch (err) {
     console.error('[billing/checkout]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Unable to initialize payment right now.' }, { status: 502 })
   }
 }

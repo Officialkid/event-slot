@@ -134,10 +134,12 @@ function DeleteModal({
   onCancel,
   onConfirm,
   deleting,
+  error,
 }: {
   onCancel: () => void
   onConfirm: () => void
   deleting: boolean
+  error: string
 }) {
   return (
     <>
@@ -187,6 +189,18 @@ function DeleteModal({
           This will permanently delete your account, all your events, and all
           registration data. This cannot be undone.
         </p>
+        {error && (
+          <p
+            style={{
+              fontSize: "0.82rem",
+              color: "#FF6B6B",
+              fontFamily: "var(--font-dm-sans)",
+              margin: "0 0 1rem",
+            }}
+          >
+            {error}
+          </p>
+        )}
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
           <button
             onClick={onCancel}
@@ -257,6 +271,7 @@ export default function ProfilePage() {
   // Delete modal
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
     markFeatureUsed("profile")
@@ -392,12 +407,19 @@ export default function ProfilePage() {
 
   async function handleDeleteConfirm() {
     setDeleting(true)
+    setDeleteError("")
     try {
-      await fetch("/api/profile", { method: "DELETE" })
+      const res = await fetch("/api/profile", { method: "DELETE" })
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        setDeleteError(body?.error ?? "Failed to delete account. Please try again.")
+        setDeleting(false)
+        return
+      }
       await signOut({ callbackUrl: "/" })
     } catch {
+      setDeleteError("Failed to delete account. Please try again.")
       setDeleting(false)
-      setDeleteOpen(false)
     }
   }
 
@@ -783,7 +805,10 @@ export default function ProfilePage() {
             Permanently delete your account and all associated data.
           </p>
           <button
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              setDeleteError("")
+              setDeleteOpen(true)
+            }}
             className="prof-danger-btn"
             style={{
               background: "rgba(255,107,107,0.08)",
@@ -805,9 +830,13 @@ export default function ProfilePage() {
       {/* ── Delete modal ── */}
       {deleteOpen && (
         <DeleteModal
-          onCancel={() => setDeleteOpen(false)}
+          onCancel={() => {
+            setDeleteOpen(false)
+            setDeleteError("")
+          }}
           onConfirm={handleDeleteConfirm}
           deleting={deleting}
+          error={deleteError}
         />
       )}
     </>

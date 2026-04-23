@@ -1458,7 +1458,7 @@ export default function EventDashboardPage() {
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
     { key: "analytics", label: organizerPlan === 'free' ? "Analytics ⚡" : "Analytics" },
     { key: "feedback", label: organizerPlan !== 'business' ? "Feedback ✦" : "Feedback" },
-    { key: "checkin" as TabKey, label: "Check-in" },
+    { key: "checkin" as TabKey, label: "Verify Ticket" },
     { key: "settings", label: "Settings" },
   ]
 
