@@ -71,7 +71,12 @@ export default function BroadcastPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setResult({ ok: true, message: `Sent to ${data.sent} recipient${data.sent === 1 ? "" : "s"}.` })
+        const accepted = Number(data.accepted ?? 0)
+        const failed = Number(data.failed ?? 0)
+        const attempted = Number(data.attempted ?? accepted + failed)
+        const base = `Accepted by provider: ${accepted}/${attempted}.`
+        const failureNote = failed > 0 ? ` ${failed} recipient${failed === 1 ? "" : "s"} failed.` : ""
+        setResult({ ok: failed === 0, message: `${base}${failureNote}` })
         setSubject("")
         setBody("")
         setSelected(["all"])

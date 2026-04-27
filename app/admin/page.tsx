@@ -8,10 +8,62 @@ interface Stats {
   totalEvents: number
   totalRegistrations: number
   activeEvents: number
+  newUsersThisWeek: number
   newUsersThisMonth: number
   newEventsThisMonth: number
   plans: { free: number; pro: number; business: number }
   recentSignups: Array<{ id: string; name: string | null; email: string | null; plan: string; createdAt: string }>
+}
+
+function HeroSignupCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string
+  value: number | string
+  sub: string
+  accent: "primary" | "secondary"
+}) {
+  const isPrimary = accent === "primary"
+  return (
+    <div
+      style={{
+        background: "#111",
+        border: `0.5px solid ${isPrimary ? "rgba(200,245,90,0.35)" : "rgba(240,237,230,0.12)"}`,
+        borderRadius: 14,
+        padding: "1.5rem",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "0.72rem",
+          fontWeight: 600,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: isPrimary ? "rgba(200,245,90,0.9)" : "rgba(240,237,230,0.4)",
+          fontFamily: "var(--font-dm-sans)",
+          marginBottom: "0.5rem",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--font-instrument-serif)",
+          fontSize: "3rem",
+          color: isPrimary ? "#C8F55A" : "#F0EDE6",
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.42)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
+        {sub}
+      </div>
+    </div>
+  )
 }
 
 interface Revenue {
@@ -182,25 +234,44 @@ export default function AdminOverviewPage() {
         Platform-wide stats at a glance.
       </p>
 
-      {/* Row 1 — Core stats */}
+      {/* Row 1 — Signup priorities */}
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        style={{ marginBottom: "1.25rem" }}
+      >
+        <HeroSignupCard
+          label="Total Signups"
+          value={stats.totalUsers}
+          sub="all time"
+          accent="primary"
+        />
+        <HeroSignupCard
+          label="New Signups This Week"
+          value={stats.newUsersThisWeek}
+          sub="since Monday"
+          accent="secondary"
+        />
+      </div>
+
+      {/* Row 2 — Core stats */}
       <div
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
         style={{ marginBottom: "1.25rem" }}
       >
-        <StatCard label="Total Users" value={stats.totalUsers} />
         <StatCard label="Total Events" value={stats.totalEvents} sub="all time" />
         <StatCard label="Total Registrations" value={stats.totalRegistrations} sub="all time" />
         <StatCard label="Active Events" value={stats.activeEvents} sub="right now" />
+        <StatCard label="New Users" value={stats.newUsersThisMonth} sub="this month" />
       </div>
 
-      {/* Row 2 — Growth */}
+      {/* Row 3 — Growth */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        className="grid grid-cols-2 md:grid-cols-3 gap-4"
         style={{ marginBottom: "2.5rem" }}
       >
-        <StatCard label="New Users" value={stats.newUsersThisMonth} sub="this month" />
         <StatCard label="New Events" value={stats.newEventsThisMonth} sub="this month" />
-        <PlanBar plans={stats.plans} />
+        <StatCard label="Free Plan Users" value={stats.plans.free} sub="current" />
+        <StatCard label="Weekly Signup Pace" value={stats.newUsersThisWeek} sub="new this week" />
       </div>
 
       {/* Revenue section */}
@@ -335,6 +406,12 @@ export default function AdminOverviewPage() {
             </ResponsiveContainer>
           </div>
         </>
+      )}
+
+      {(stats.plans.pro > 0 || stats.plans.business > 0) && (
+        <div style={{ marginBottom: "2.5rem" }}>
+          <PlanBar plans={stats.plans} />
+        </div>
       )}
 
       {/* Recent signups */}

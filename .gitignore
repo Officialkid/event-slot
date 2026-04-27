@@ -37,3 +37,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local secrets and tooling artifacts
+twa/app/gcp-sa-key.json
+*.key.json
+gh_*_windows_amd64.zip
+/bin/

@@ -1,6 +1,6 @@
 # EventSlot — Feature Reference
 
-_Last updated: April 21, 2026_
+_Last updated: April 27, 2026_
 
 ---
 
@@ -121,6 +121,24 @@ Each gets their own registration record.
 ---
 
 ## Organizer Dashboard
+
+### Admin Overview (Signup Priority)
+**Where:** /admin  
+**Who:** Super admin (`SUPER_ADMIN_EMAIL`)  
+**What it does:** Surfaces signup momentum first with prominent `Total Signups` and `New Signups This Week` cards, followed by supporting platform stats. Weekly signups are computed from Monday 00:00 server time. Plan breakdown is de-emphasized and only displayed when Pro/Business plans are present.
+**API:** GET /api/admin/stats
+
+### Admin Broadcast Delivery Reporting
+**Where:** /admin/broadcast  
+**Who:** Super admin (`SUPER_ADMIN_EMAIL`)  
+**What it does:** Sends platform-wide broadcasts by plan segment and reports provider-accepted vs failed recipients (instead of showing all attempts as sent). Requires verified sender configuration via `RESEND_FROM`.
+**API:** POST /api/admin/broadcast, GET /api/admin/broadcast/count
+
+### Platform Health Email Signal
+**Where:** /admin/health  
+**Who:** Super admin (`SUPER_ADMIN_EMAIL`)  
+**What it does:** Displays database health, recent API errors, and provider-derived monthly accepted email count where available. Includes provider readiness state via `emailProviderConfigured`.
+**API:** GET /api/admin/health
 
 ### Interactive Onboarding Tutorial
 **Where:** Organizer dashboard shell (`/dashboard` and nested routes), profile settings restart control  

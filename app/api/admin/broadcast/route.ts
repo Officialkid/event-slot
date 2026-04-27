@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { Resend } from 'resend'
 
+const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ''
+
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -45,6 +47,13 @@ function buildBroadcastEmail(name: string | null | undefined, body: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!EMAIL_FROM) {
+      return NextResponse.json(
+        { error: 'Email sender is not configured. Set RESEND_FROM to a verified sender address.' },
+        { status: 400 }
+      )
+    }
+
     const resend = getResendClient()
 
     const session = await getServerSession(authOptions)
@@ -76,24 +85,53 @@ export async function POST(req: NextRequest) {
     const recipients = users.filter((u): u is typeof u & { email: string } => !!u.email)
 
     const batches = chunk(recipients, 50)
-    let sent = 0
+    let accepted = 0
+    let failed = 0
 
-    for (const batch of batches) {
-      await resend.batch.send(
+    for (let i = 0; i < batches.length; i += 1) {
+      const batch = batches[i]
+      const response = await resend.batch.send(
         batch.map(user => ({
-          from: 'EventSlot <noreply@eventsslot.com>',
+          from: EMAIL_FROM,
           to: user.email,
           subject: subject.trim(),
           html: buildBroadcastEmail(user.name, body.trim()),
         }))
       )
-      sent += batch.length
-      if (batches.indexOf(batch) < batches.length - 1) {
+
+      if (response.error) {
+        failed += batch.length
+        await prisma.errorLog.create({
+          data: {
+            route: '/api/admin/broadcast',
+            message: `Resend batch error: ${response.error.message ?? 'unknown error'} (batch size: ${batch.length})`,
+          },
+        })
+      } else {
+        const rawData = (response as unknown as { data?: unknown }).data
+        const responseData = Array.isArray(rawData)
+          ? (rawData as Array<{ id?: string; error?: unknown }>)
+          : Array.isArray((rawData as { data?: unknown })?.data)
+          ? ((rawData as { data: Array<{ id?: string; error?: unknown }> }).data)
+          : []
+        const acceptedInBatch = responseData.filter(item => item?.id && !item?.error).length
+        const fallbackAccepted = responseData.length === 0 ? batch.length : acceptedInBatch
+        accepted += fallbackAccepted
+        failed += Math.max(batch.length - fallbackAccepted, 0)
+      }
+
+      if (i < batches.length - 1) {
         await new Promise(r => setTimeout(r, 1000))
       }
     }
 
-    return NextResponse.json({ ok: true, sent })
+    return NextResponse.json({
+      ok: true,
+      attempted: recipients.length,
+      accepted,
+      failed,
+      sender: EMAIL_FROM,
+    })
   } catch (err) {
     console.error('[admin/broadcast] POST error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

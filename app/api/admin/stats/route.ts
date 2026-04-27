@@ -16,12 +16,18 @@ export async function GET() {
 
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfWeek = new Date(now)
+    const day = startOfWeek.getDay()
+    const diffToMonday = day === 0 ? 6 : day - 1
+    startOfWeek.setDate(startOfWeek.getDate() - diffToMonday)
+    startOfWeek.setHours(0, 0, 0, 0)
 
     const [
       totalUsers,
       totalEvents,
       totalRegistrations,
       activeEvents,
+      newUsersThisWeek,
       newUsersThisMonth,
       newEventsThisMonth,
       planBreakdown,
@@ -30,6 +36,7 @@ export async function GET() {
       prisma.event.count(),
       prisma.registration.count(),
       prisma.event.count({ where: { status: "active", archived: false, OR: [{ eventDate: null }, { eventDate: { gte: new Date() } }] } }),
+      prisma.user.count({ where: { createdAt: { gte: startOfWeek } } }),
       prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
       prisma.event.count({ where: { createdAt: { gte: startOfMonth } } }),
       prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),
@@ -51,6 +58,7 @@ export async function GET() {
       totalEvents,
       totalRegistrations,
       activeEvents,
+      newUsersThisWeek,
       newUsersThisMonth,
       newEventsThisMonth,
       plans,

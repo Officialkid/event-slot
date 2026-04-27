@@ -1,5 +1,24 @@
 # EventSlot — Changelog
 
+## [0.4.11] — April 27, 2026
+
+### Admin Dashboard: Signup-First Overview + Reliable Broadcast Health
+
+- Updated admin overview (`/admin`) to prioritize signup KPIs at the top:
+  - Added a prominent `Total Signups` hero card.
+  - Added `New Signups This Week` hero card.
+  - Added weekly signup metric support in `GET /api/admin/stats` (`newUsersThisWeek`, Monday-based week start).
+- Rebalanced overview layout so plan breakdown is no longer shown in the primary metric rows; it now renders only when Pro/Business users exist.
+- Fixed admin broadcast send reporting (`POST /api/admin/broadcast`):
+  - Replaced attempted-recipient counting with provider-accepted counting.
+  - API now returns `attempted`, `accepted`, and `failed`.
+  - Broadcast sender now requires `RESEND_FROM` to avoid silent misconfiguration.
+- Updated admin broadcast UI (`/admin/broadcast`) to display accepted/failed results instead of always reporting a generic "Sent" state.
+- Fixed platform health email metric (`GET /api/admin/health`):
+  - Removed misleading registration-based proxy count.
+  - Switched to provider-based monthly accepted-email count where available.
+  - Added `emailProviderConfigured` readiness signal.
+
 ## [0.4.10] — April 21, 2026
 
 ### Feature: Interactive Dashboard Onboarding Tour

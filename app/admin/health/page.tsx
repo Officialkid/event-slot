@@ -12,7 +12,8 @@ interface ErrorLog {
 interface HealthData {
   dbOk: boolean
   recentErrors: ErrorLog[]
-  emailsSentThisMonth: number
+  emailsAcceptedThisMonth: number | null
+  emailProviderConfigured: boolean
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
@@ -62,13 +63,13 @@ export default function AdminHealthPage() {
 
         <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
           <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
-            Emails sent this month
+            Emails accepted this month
           </div>
           <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
-            {data.emailsSentThisMonth}
+            {data.emailsAcceptedThisMonth ?? "—"}
           </div>
           <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
-            confirmed + consented
+            {data.emailProviderConfigured ? "from email provider" : "RESEND_API_KEY missing"}
           </div>
         </div>
 
