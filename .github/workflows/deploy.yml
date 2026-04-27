@@ -81,18 +81,37 @@ jobs:
         id: gcp-key
         shell: bash
         env:
+          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
           RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
 
-          if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
-            echo "GCP_SA_KEY is empty. Add a valid Google service account JSON key in repository secrets."
-            exit 1
+          validate_key_json() {
+            echo "$1" | jq -e 'type == "object" and has("client_email") and has("private_key") and .type == "service_account"' >/dev/null 2>&1
+          }
+
+          # Preferred deterministic format: base64-encoded service account JSON in GCP_SA_KEY_B64.
+          if [ -n "${GCP_SA_KEY_B64:-}" ]; then
+            B64_CLEAN="$(printf '%s' "$GCP_SA_KEY_B64" | tr -d '\r\n\t ')"
+            CREDENTIALS_JSON="$(printf '%s' "$B64_CLEAN" | base64 -d 2>/dev/null || true)"
+            if [ -z "$CREDENTIALS_JSON" ] || ! validate_key_json "$CREDENTIALS_JSON"; then
+              echo "GCP_SA_KEY_B64 is set but invalid. Save base64 output of the raw service-account JSON file."
+              exit 1
+            fi
+
+            echo "::add-mask::$CREDENTIALS_JSON"
+            {
+              echo "credentials_json<<EOF"
+              echo "$CREDENTIALS_JSON"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          validate_key_json() {
-            echo "$1" | jq -e 'type == "object" and has("client_email") and has("private_key")' >/dev/null 2>&1
-          }
+          if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
+            echo "No auth secret found. Set GCP_SA_KEY_B64 (preferred) or GCP_SA_KEY in repository secrets."
+            exit 1
+          fi
 
           normalize_candidate() {
             local v="$1"
@@ -211,7 +230,7 @@ jobs:
           CREDENTIALS_JSON="$(try_extract_json "$RAW_GCP_SA_KEY")" || true
 
           if [ -z "$CREDENTIALS_JSON" ]; then
-            echo "GCP_SA_KEY could not be parsed. Supported formats: raw JSON, escaped JSON string, base64 JSON, base64url JSON."
+            echo "GCP_SA_KEY could not be parsed. Use GCP_SA_KEY_B64 instead for deterministic parsing."
             exit 1
           fi
 
