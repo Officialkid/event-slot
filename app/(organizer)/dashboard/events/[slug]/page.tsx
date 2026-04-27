@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import UpgradePrompt from "@/app/components/UpgradePrompt"
 import { useToast } from "@/components/Toast"
+import CountdownTimer from "@/components/CountdownTimer"
 import ComingSoon from "@/components/ui/ComingSoon"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -1687,6 +1688,11 @@ export default function EventDashboardPage() {
                       {isEventPast(eventData) ? "Closed" : "Closes"} {formatDate(eventData.deadline)}
                     </span>
                   )}
+                </div>
+              )}
+              {eventData.deadline && (
+                <div style={{ marginTop: "0.75rem" }}>
+                  <CountdownTimer deadline={eventData.deadline} urgentMode={false} />
                 </div>
               )}
             </div>

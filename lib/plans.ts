@@ -1,6 +1,6 @@
 export const PLAN_LIMITS = {
   free: {
-    maxActiveEvents: 1,
+    maxActiveEvents: 5,
     maxRegistrationsPerEvent: Infinity,
     freeRegistrationsPerEvent: 100,
     dataRetentionDays: 30,

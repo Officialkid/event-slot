@@ -137,7 +137,7 @@ export default function ForUniversitiesPage() {
           Free for small campus events. Powerful when you scale.
         </h2>
         <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 2rem", lineHeight: 1.7 }}>
-          The free plan supports 1 active event and 100 registrations. Upgrade to Pro for unlimited events, AI reports, and full team management — ideal for student unions and university departments.
+          The free plan supports up to 5 active events and 100 registrations per event. Upgrade to Pro for unlimited events, AI reports, and full team management — ideal for student unions and university departments.
         </p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
           <SmartCTA style={{

@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import CountdownTimer from "@/components/CountdownTimer"
 
 type EventQuestion = {
   id: string
@@ -22,6 +23,7 @@ type EventProps = {
     organizerEmail: string
     organizerName?: string | null
     eventDate?: Date | null
+    deadline?: Date | string | null
     location?: string | null
     communityLink?: string | null
     imageUrl?: string | null
@@ -118,6 +120,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [waitlistEmailErrors, setWaitlistEmailErrors] = useState<Record<string, string>>({})
   // Base email inputs — always collected when event has no email question
   const [baseEmails, setBaseEmails] = useState<string[]>([""])
+  const [deadlineExpired, setDeadlineExpired] = useState(() => {
+    if (!event.deadline) return false
+    return new Date(event.deadline).getTime() <= Date.now()
+  })
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
 
@@ -146,6 +152,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     e.preventDefault()
     setError("")
     setConsentError("")
+
+    if (deadlineExpired) {
+      setError("Registration has closed.")
+      return
+    }
 
     // Client-side required field validation
     for (let i = 0; i < attendees.length; i++) {
@@ -496,6 +507,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             )}
           </div>
         )}
+        {event.deadline && (
+          <CountdownTimer
+            deadline={event.deadline}
+            urgentMode
+            onExpiredChange={setDeadlineExpired}
+          />
+        )}
         {typeof event.capacity === "number" && (
           <div style={{ marginTop: "0.75rem" }}>
             <div className="space-y-2">
@@ -757,10 +775,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       <button
         type="submit"
-        className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold ${loading ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A]'}`}
-        disabled={loading}
+        className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold ${(loading || deadlineExpired) ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A]'}`}
+        disabled={loading || deadlineExpired}
       >
-        {loading ? "Submitting..." : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
+        {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
       </button>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
       </form>

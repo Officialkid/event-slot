@@ -104,7 +104,7 @@ Set or update the organizer's username.
 ### POST /api/events
 Create a new event.  
 **Auth:** Required  
-**Plan check:** Free plan limited to 1 active event  
+**Plan check:** Free plan limited to 5 active events  
 **Body:** `{ title, description?, capacity?, deadline?, eventDate?, location?, communityLink?, questions[], organizerEmail }`  
 **Returns:** `{ success, event: { id, title, slug, dashboardToken } }`
 

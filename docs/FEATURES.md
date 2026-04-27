@@ -67,6 +67,11 @@ organizer has 3+ completed past events.
 **Custom questions:** Option-based questions now support both Multiple Choice and Checkboxes, with explicit option-by-option entry and a setting to allow single-select or multi-select for checkbox questions.  
 **API:** POST /api/events
 
+### Countdown Timer
+**Where:** /[eventSlug] registration page and /dashboard/events/[slug] organizer event header  
+**Who:** Attendees and organizers  
+**What it does:** Shows a live days/hours/minutes/seconds countdown to registration deadline. On attendee registration, the timer updates every second, changes color as urgency increases, and disables submission when the deadline is reached. On organizer dashboard, it is shown in calm mode for quick deadline visibility.
+
 ### Confirm My Attendance (Self-Lookup)
 **Where:** /[eventSlug] — "Already Registered?" panel beside the registration form  
 **Who:** Anyone (no account needed)  
@@ -408,7 +413,7 @@ All emails use dark-themed HTML with lime CTA buttons:
 
 | Feature | Free | Pro | Business | Credits |
 |---------|------|-----|----------|---------|
-| Active events | 1 | Unlimited | Unlimited | — |
+| Active events | 5 | Unlimited | Unlimited | — |
 | Registrations per event | 100 | 500 | Unlimited | — |
 | Waitlist | ✓ | ✓ | ✓ | — |
 | Custom form questions | ✓ | ✓ | ✓ | — |
@@ -433,6 +438,10 @@ All emails use dark-themed HTML with lime CTA buttons:
 ---
 
 ## DEPRECATED / REMOVED
+
+### Public Pricing Page (Coming Soon)
+**Where:** /pricing  
+**What it does:** Shows a "Coming soon" pricing status while subscriptions are being finalized, plus a future-capabilities grid that outlines what Free, Credits, Pro, and Business will enable so organizers can see the roadmap.
 
 _The following table captures old content removed from FEATURES.md:_
 

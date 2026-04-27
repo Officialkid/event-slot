@@ -37,7 +37,7 @@ const PLANS = [
     ctaHref: "/signup",
     highlight: false,
     features: [
-      "1 active event",
+      "Up to 5 active events",
       "Up to 100 registrations",
       "Unlimited waitlist",
       "Unlimited form questions",

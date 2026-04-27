@@ -83,7 +83,7 @@ to confirmed status and notified by email.
 ## Plan Tiers
 
 ### Free — KSH 0/month
-- 1 active event at a time
+- Up to 5 active events at a time
 - 100 free registrations per event
 - Unlimited waitlist
 - Unlimited form questions

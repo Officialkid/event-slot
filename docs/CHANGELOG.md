@@ -1,5 +1,21 @@
 # EventSlot — Changelog
 
+## [0.4.13] — April 27, 2026
+
+### Pricing Page Simplification + Free Plan Limit Increase
+
+- Replaced `/pricing` content with a dedicated "Coming soon" experience so unfinished pricing/subscription details are not shown publicly.
+- Added a future-capabilities grid on `/pricing` describing what Free, Credits, Pro, and Business will do, giving customers a clear picture of expected roadmap functionality.
+- Increased Free plan active event limit from `1` to `5` by updating `PLAN_LIMITS.free.maxActiveEvents` in `lib/plans.ts`.
+- Updated user-facing free-plan copy to reflect the new limit:
+  - Home page plan card now says "Up to 5 active events".
+  - Universities page free-plan summary now states up to 5 active events.
+  - API and system docs updated for the 5-event Free limit.
+
+## [0.4.12] — April 27, 2026
+
+- [April 27, 2026] | Countdown Timer | Live deadline countdown on registration page and organizer dashboard header.
+
 ## [0.4.11] — April 27, 2026
 
 ### Admin Dashboard: Signup-First Overview + Reliable Broadcast Health
