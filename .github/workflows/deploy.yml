@@ -98,6 +98,44 @@ jobs:
             local v="$1"
             # Trim outer whitespace/newlines and strip accidental wrapping quotes.
             v="$(echo "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
+
+            # Remove optional markdown code fences.
+            v="$(printf '%s' "$v" | sed -e '/^```[[:alnum:]_-]*$/d' -e '/^```$/d')"
+
+            # If accidental extra text is present, keep the widest JSON object slice.
+            if printf '%s' "$v" | grep -q '{' && printf '%s' "$v" | grep -q '}'; then
+              local json_slice
+              json_slice="$(printf '%s' "$v" | awk '
+                BEGIN { started=0 }
+                {
+                  if (!started) {
+                    p = index($0, "{")
+                    if (p > 0) {
+                      started = 1
+                      line = substr($0, p)
+                    }
+                  } else {
+                    line = $0
+                  }
+                  if (started) {
+                    out = out (out ? ORS : "") line
+                  }
+                }
+                END {
+                  if (out != "") {
+                    while (length(out) > 0 && substr(out, length(out), 1) != "}") {
+                      out = substr(out, 1, length(out)-1)
+                    }
+                    print out
+                  }
+                }
+              ')"
+
+              if [ -n "$json_slice" ]; then
+                v="$json_slice"
+              fi
+            fi
+
             printf '%s' "$v"
           }
 
