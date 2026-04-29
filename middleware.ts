@@ -2,7 +2,7 @@ import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
 export default withAuth(
-  function middleware(req) {
+  function middleware() {
     // User is authenticated at this point (withAuth guarantees it).
     // Admin routes need an extra check for SUPER_ADMIN_EMAIL — handled in
     // app/admin/layout.tsx which shows notFound() for non-admins, so we just

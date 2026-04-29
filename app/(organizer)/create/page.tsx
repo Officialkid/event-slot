@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
-import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"

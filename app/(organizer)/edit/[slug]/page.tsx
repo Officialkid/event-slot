@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
-import Image from "next/image"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
