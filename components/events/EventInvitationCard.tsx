@@ -110,7 +110,7 @@ export default function EventInvitationCard({
               alt={title}
               fill
               sizes="(max-width: 1040px) 100vw, 1040px"
-              style={{ objectFit: "cover", objectPosition: "center" }}
+              style={{ objectFit: "contain", objectPosition: "center top" }}
               priority
             />
           </div>

@@ -350,12 +350,13 @@ export default function EditEventPage() {
             </p>
 
             {imageUrl && (
-              <div className="mb-4 relative rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ height: 180 }}>
-                <Image src={imageUrl} alt="Event poster" fill style={{ objectFit: "cover" }} unoptimized />
+              <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="Event poster" style={{ width: "100%", height: "auto", maxHeight: "480px", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
                 <button
                   type="button"
                   onClick={() => setImageUrl("")}
-                  className="absolute top-2 right-2 rounded-full bg-[rgba(0,0,0,0.6)] px-2 py-1 text-[0.7rem] text-[rgba(240,237,230,0.7)] border border-[rgba(240,237,230,0.15)]"
+                  className="mt-2 rounded-full bg-[rgba(0,0,0,0.6)] px-2 py-1 text-[0.7rem] text-[rgba(240,237,230,0.7)] border border-[rgba(240,237,230,0.15)]"
                 >
                   Remove
                 </button>

@@ -467,12 +467,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       )}
       {!compactHeader && event.imageUrl && (
-        <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem', background: '#0A0A0A', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem', backgroundColor: '#0A0A0A', lineHeight: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={event.imageUrl}
             alt={event.title}
-            style={{ width: '100%', height: 'auto', maxHeight: '420px', objectFit: 'contain', objectPosition: 'center' }}
+            style={{ width: '100%', height: 'auto', maxHeight: '480px', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '12px' }}
           />
         </div>
       )}

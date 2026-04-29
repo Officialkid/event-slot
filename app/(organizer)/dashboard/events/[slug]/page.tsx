@@ -1635,12 +1635,12 @@ export default function EventDashboardPage() {
 
         {/* ── Cover image ──────────────────────────────────────────────── */}
         {eventData.imageUrl && (
-          <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem', background: '#0A0A0A', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={eventData.imageUrl}
               alt={eventData.title}
-              style={{ width: '100%', height: 'auto', maxHeight: '420px', objectFit: 'contain', objectPosition: 'center' }}
+              style={{ width: '100%', height: 'auto', maxHeight: '320px', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '10px' }}
             />
           </div>
         )}
