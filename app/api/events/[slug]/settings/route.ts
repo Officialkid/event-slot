@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { normalizeCommunityLink } from "@/lib/communityLink"
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -31,7 +32,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         description: description !== undefined ? (description?.trim() || null) : undefined,
         eventDate: eventDate !== undefined ? (eventDate ? new Date(eventDate) : null) : undefined,
         location: location !== undefined ? (location?.trim() || null) : undefined,
-        communityLink: communityLink !== undefined ? (communityLink?.trim() || null) : undefined,
+        communityLink: communityLink !== undefined ? normalizeCommunityLink(communityLink) : undefined,
         deadline: deadline !== undefined ? (deadline ? new Date(deadline) : null) : undefined,
       },
     })

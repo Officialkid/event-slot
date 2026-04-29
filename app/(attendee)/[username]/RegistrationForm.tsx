@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import CountdownTimer from "@/components/CountdownTimer"
+import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 
 type EventQuestion = {
   id: string
@@ -265,13 +266,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   // Success screen
   if (bulkResult) {
     const isSingle = bulkResult.results.length === 1
-    const communityLink = event.communityLink
-
-    const getCommunityLinkLabel = (url: string): string => {
-      if (url.includes("whatsapp") || url.includes("wa.me")) return "Join WhatsApp Group →"
-      if (url.includes("t.me") || url.includes("telegram")) return "Join Telegram Group →"
-      return url
-    }
+    const communityLink = normalizeCommunityLink(event.communityLink)
 
     return (
       <div className="mx-auto w-full max-w-[480px]">

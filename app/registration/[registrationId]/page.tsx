@@ -1,10 +1,5 @@
 import prisma from '@/lib/prisma'
-
-function getCommunityLinkLabel(url: string): string {
-  if (url.includes('whatsapp') || url.includes('wa.me')) return 'Join WhatsApp Group →'
-  if (url.includes('t.me') || url.includes('telegram')) return 'Join Telegram Group →'
-  return url
-}
+import { getCommunityLinkLabel, normalizeCommunityLink } from '@/lib/communityLink'
 
 export default async function RegistrationStatusPage(props: { params: Promise<{ registrationId: string }> }) {
   const params = await props.params;
@@ -108,12 +103,12 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
                   Join the community
                 </p>
                 <a
-                  href={event.communityLink}
+                  href={normalizeCommunityLink(event.communityLink) || event.communityLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: 'block', textAlign: 'center', borderRadius: 999, border: '1px solid rgba(200,245,90,0.4)', padding: '8px 16px', fontSize: '0.875rem', color: '#C8F55A', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
                 >
-                  {getCommunityLinkLabel(event.communityLink)}
+                  {getCommunityLinkLabel(normalizeCommunityLink(event.communityLink) || event.communityLink)}
                 </a>
               </div>
             )}

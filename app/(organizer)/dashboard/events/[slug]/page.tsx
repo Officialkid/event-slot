@@ -8,6 +8,7 @@ import UpgradePrompt from "@/app/components/UpgradePrompt"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ComingSoon from "@/components/ui/ComingSoon"
+import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -624,7 +625,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           description: description || null,
           eventDate: eventDate || null,
           location: location || null,
-          communityLink: communityLink || null,
+          communityLink: normalizeCommunityLink(communityLink),
           deadline: deadline || null,
         }),
       })
@@ -1944,7 +1945,7 @@ export default function EventDashboardPage() {
               <div style={{ background: "rgba(200,245,90,0.04)", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "0.875rem 1.125rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(200,245,90,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>Community link</div>
-                  <a href={eventData.communityLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", textDecoration: "none", wordBreak: "break-all" }}>{eventData.communityLink}</a>
+                  <a href={normalizeCommunityLink(eventData.communityLink) || eventData.communityLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", textDecoration: "none", wordBreak: "break-all" }}>{normalizeCommunityLink(eventData.communityLink) || eventData.communityLink}</a>
                 </div>
               </div>
             )}

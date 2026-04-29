@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getPlanLimits } from '@/lib/plans'
+import { normalizeCommunityLink } from '@/lib/communityLink'
 
 function generateSlug(title: string): string {
   const base = title
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
         deadline: deadline ? new Date(deadline) : undefined,
         eventDate: eventDate ? new Date(eventDate) : undefined,
         location: location || undefined,
-        communityLink: communityLink || undefined,
+        communityLink: normalizeCommunityLink(communityLink) || undefined,
         imageUrl: imageUrl || undefined,
         questions,
         organizerEmail: eventOrganizerEmail,
