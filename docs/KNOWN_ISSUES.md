@@ -95,6 +95,24 @@ _Legend: 🔴 Critical | 🟡 Important | 🟢 Minor | ✅ Resolved_
 
 ## Minor (Fix After Launch)
 
+### KI-019 — Image Cropping Bug on Event Covers
+**Status:** ✅ Resolved (April 2026)
+**Severity:** 🟢 Minor
+**Affected:** Registration/event header poster rendering
+**Resolution:** Poster containers now use contain-based rendering to show full image dimensions without cropping.
+
+### KI-020 — Countdown Timer Not Rendering
+**Status:** ✅ Resolved (April 2026)
+**Severity:** 🟢 Minor
+**Affected:** Public registration page countdown
+**Resolution:** Deadline prop is serialized server-to-client and timer render path is mounted for compact attendee header mode.
+
+### KI-021 — Duplicate Event Name on Registration Page
+**Status:** ✅ Resolved (April 2026)
+**Severity:** 🟢 Minor
+**Affected:** Public registration page header composition
+**Resolution:** Registration page now avoids repeated title/header blocks, keeping a single primary event title presentation.
+
 ### KI-011 — QR Code / Check-in Not Fully Implemented
 **Status:** Not started — `qrCode` and `checkedIn` fields exist on Registration model  
 **Severity:** 🟢 Minor  

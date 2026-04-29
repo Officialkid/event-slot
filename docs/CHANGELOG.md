@@ -1,5 +1,12 @@
 # EventSlot — Changelog
 
+## [0.4.14] — April 29, 2026
+
+- [April 2026] | Bug Fix | Event cover image now displays at full height (contain, not cover)
+- [April 2026] | Bug Fix | Countdown timer now correctly receives serialized deadline prop
+- [April 2026] | Bug Fix | Registration page — event title no longer duplicated
+- [April 2026] | UX Fix  | Description field now guides organizers away from repeating structured data
+
 ## [0.4.13] — April 27, 2026
 
 ### Pricing Page Simplification + Free Plan Limit Increase

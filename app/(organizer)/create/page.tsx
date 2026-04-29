@@ -415,10 +415,18 @@ export default function CreateEventPage() {
                   </label>
                   <textarea
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    placeholder="Briefly describe what this event is about. Date, time and location are already shown automatically - no need to repeat them here."
                     rows={3}
+                    maxLength={500}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                   />
+                  <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                    Tip: Date, time, and location are shown automatically from the fields above. Use this field to describe the event content only.
+                  </p>
+                  <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.35)", marginTop: "0.25rem" }}>
+                    {description.length} / 300 characters
+                  </p>
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">

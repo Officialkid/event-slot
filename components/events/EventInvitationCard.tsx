@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 
@@ -82,8 +85,15 @@ export default function EventInvitationCard({
   status,
   deadline,
 }: EventInvitationCardProps) {
+  const [expanded, setExpanded] = useState(false)
   const badge = getStatusBadge(status, capacity, confirmedCount, deadline ?? null)
   const gradient = pickGradient(title)
+  const isLongDescription = Boolean(description && description.length > 300)
+  const descriptionText = !description
+    ? ""
+    : isLongDescription && !expanded
+    ? `${description.slice(0, 300)}...`
+    : description
 
   const spotsLeft =
     capacity !== null && capacity !== undefined
@@ -309,14 +319,28 @@ export default function EventInvitationCard({
                 lineHeight: 1.65,
                 margin: 0,
                 maxWidth: 620,
-                display: "-webkit-box",
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
               }}
             >
-              {description}
+              {descriptionText}
             </p>
+            {isLongDescription && (
+              <button
+                type="button"
+                onClick={() => setExpanded(v => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#C8F55A",
+                  fontSize: "0.78rem",
+                  padding: "0.25rem 0",
+                  fontFamily: "var(--font-dm-sans)",
+                  marginTop: "0.35rem",
+                }}
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            )}
           </>
         )}
 
