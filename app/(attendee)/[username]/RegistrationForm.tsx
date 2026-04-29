@@ -23,12 +23,12 @@ type EventProps = {
     questions: EventQuestion[]
     organizerEmail: string
     organizerName?: string | null
-    eventDate?: Date | null
+    eventDate?: Date | string | null
     deadline?: Date | string | null
     location?: string | null
     communityLink?: string | null
     imageUrl?: string | null
-    createdAt: Date
+    createdAt: Date | string
   }
   showBranding?: boolean
   maxAttendees?: number
@@ -529,6 +529,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       {/* Divider */}
       {!compactHeader && <div style={{ margin: "1.5rem 0", borderTop: "0.5px solid rgba(240,237,230,0.08)" }} />}
+
+      {compactHeader && event.deadline && (
+        <CountdownTimer
+          deadline={event.deadline}
+          urgentMode
+          onExpiredChange={setDeadlineExpired}
+        />
+      )}
 
       <form onSubmit={handleSubmit} className="w-full rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-7 space-y-6">
         <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>

@@ -236,7 +236,14 @@ export default async function PublicProfilePage({
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-8 items-start">
             {/* Registration form */}
             <RegistrationForm
-              event={{ ...event, slug: username, questions: event.questions as EventQuestion[], organizerName: event.organizer?.name ?? null }}
+              event={{
+                ...event,
+                slug: username,
+                questions: event.questions as EventQuestion[],
+                organizerName: event.organizer?.name ?? null,
+                deadline: event.deadline ? event.deadline.toISOString() : null,
+                eventDate: event.eventDate ? event.eventDate.toISOString() : null,
+              }}
               showBranding={showBranding}
               maxAttendees={maxAttendees}
               compactHeader
