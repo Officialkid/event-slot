@@ -77,7 +77,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Check deploy credentials
+        id: deploy-ready
+        shell: bash
+        env:
+          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${GCP_SA_KEY_B64:-}" ] || [ -n "${RAW_GCP_SA_KEY:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Deployment credentials detected."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No deploy credentials found. Deploy steps will be skipped; tests already ran in test job."
+          fi
+
       - name: Normalize GCP service account secret
+        if: steps.deploy-ready.outputs.enabled == 'true'
         id: gcp-key
         shell: bash
         env:
@@ -242,14 +260,17 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
+        if: steps.deploy-ready.outputs.enabled == 'true'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ steps.gcp-key.outputs.credentials_json }}
 
       - name: Set up Cloud SDK
+        if: steps.deploy-ready.outputs.enabled == 'true'
         uses: google-github-actions/setup-gcloud@v3
 
       - name: Submit Cloud Build
+        if: steps.deploy-ready.outputs.enabled == 'true'
         run: |
           gcloud builds submit \
             --project="$PROJECT_ID" \
@@ -258,6 +279,7 @@ jobs:
             .
 
       - name: Verify deployment
+        if: steps.deploy-ready.outputs.enabled == 'true'
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://www.eventsslot.com)
           if [ "$STATUS" != "200" ]; then
@@ -265,3 +287,7 @@ jobs:
             exit 1
           fi
           echo "Deployment verified: HTTP $STATUS"
+
+      - name: Deploy skipped (credentials missing)
+        if: steps.deploy-ready.outputs.enabled != 'true'
+        run: echo "Skipping deploy. Set GCP_SA_KEY_B64 to enable Cloud Run deployment."

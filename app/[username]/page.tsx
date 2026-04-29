@@ -239,6 +239,7 @@ export default async function PublicProfilePage({
               event={{ ...event, slug: username, questions: event.questions as EventQuestion[], organizerName: event.organizer?.name ?? null }}
               showBranding={showBranding}
               maxAttendees={maxAttendees}
+              compactHeader
             />
 
             {/* Already Registered? lookup panel */}

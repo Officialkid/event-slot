@@ -32,6 +32,7 @@ type EventProps = {
   }
   showBranding?: boolean
   maxAttendees?: number
+  compactHeader?: boolean
 }
 
 function BrandingFooter() {
@@ -103,7 +104,7 @@ type PendingPayload = {
   consentMarketing: boolean
 }
 
-export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3 }: EventProps) {
+export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
@@ -465,7 +466,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           </div>
         </div>
       )}
-      {event.imageUrl && (
+      {!compactHeader && event.imageUrl && (
         <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem', background: '#0A0A0A', display: 'flex', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -476,7 +477,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       )}
       {/* Event header */}
-      <div style={{ marginBottom: "0.5rem" }}>
+      {!compactHeader && <div style={{ marginBottom: "0.5rem" }}>
         <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1.2, fontWeight: 400, marginBottom: "0.35rem" }}>
           {event.title}
         </h1>
@@ -524,10 +525,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Divider */}
-      <div style={{ margin: "1.5rem 0", borderTop: "0.5px solid rgba(240,237,230,0.08)" }} />
+      {!compactHeader && <div style={{ margin: "1.5rem 0", borderTop: "0.5px solid rgba(240,237,230,0.08)" }} />}
 
       <form onSubmit={handleSubmit} className="w-full rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-7 space-y-6">
         <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>

@@ -4,7 +4,12 @@ export function normalizeCommunityLink(input: unknown): string | null {
   const trimmed = input.trim().replace(/^['"]|['"]$/g, "")
   if (!trimmed) return null
 
+  // Never allow relative/internal app paths as community links.
+  if (trimmed.startsWith("/") || trimmed.startsWith("./") || trimmed.startsWith("../")) return null
+
   let candidate = trimmed
+    .replace(/^https\/\//i, "https://")
+    .replace(/^http\/\//i, "http://")
   const hasScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(candidate)
 
   if (!hasScheme) {
