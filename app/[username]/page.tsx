@@ -437,9 +437,11 @@ export default async function PublicProfilePage({
                     <div
                       style={{
                         width: "100%",
-                        height: 140,
+                        height: 180,
                         overflow: "hidden",
                         background: "#0A0A0A",
+                        display: "flex",
+                        justifyContent: "center",
                       }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -449,7 +451,8 @@ export default async function PublicProfilePage({
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
+                          objectFit: "contain",
+                          objectPosition: "center",
                         }}
                       />
                     </div>
