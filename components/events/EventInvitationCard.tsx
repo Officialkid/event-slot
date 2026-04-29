@@ -1,4 +1,5 @@
 import Image from "next/image"
+import CountdownTimer from "@/components/CountdownTimer"
 
 export type EventInvitationCardProps = {
   title: string
@@ -10,7 +11,7 @@ export type EventInvitationCardProps = {
   capacity?: number | null
   confirmedCount: number
   status: string
-  deadline?: Date | null
+  deadline?: Date | string | null
 }
 
 function formatEventDate(date: Date): string {
@@ -27,7 +28,7 @@ function getStatusBadge(
   status: string,
   capacity: number | null | undefined,
   confirmedCount: number,
-  deadline: Date | null | undefined
+  deadline: Date | string | null | undefined
 ): { label: string; bg: string; border: string; color: string } {
   const isClosed =
     status === "closed" ||
@@ -317,6 +318,13 @@ export default function EventInvitationCard({
               {description}
             </p>
           </>
+        )}
+
+        {/* Countdown */}
+        {deadline && badge.label !== "Registration Closed" && (
+          <div style={{ marginTop: "1rem", maxWidth: 420 }}>
+            <CountdownTimer deadline={deadline} urgentMode />
+          </div>
         )}
 
         {/* Footer: capacity pill */}
