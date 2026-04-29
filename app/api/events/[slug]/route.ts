@@ -67,7 +67,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         questions: event.questions,
         eventDate: event.eventDate,
         location: event.location,
-        communityLink: event.communityLink,
+        communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
         archived: event.archived,
         status: event.status,
         dashboardToken: event.dashboardToken,
