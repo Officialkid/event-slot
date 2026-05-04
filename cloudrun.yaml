@@ -48,7 +48,7 @@ spec:
             - name: NEXTAUTH_URL
               valueFrom:
                 secretKeyRef:
-                  name: NEXTAUTH_URL
+                  name: EVENTSLOT_NEXTAUTH_URL
                   key: latest
             - name: STRIPE_SECRET_KEY
               valueFrom:
@@ -58,12 +58,12 @@ spec:
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: GOOGLE_CLIENT_ID
+                  name: EVENTSLOT_GOOGLE_CLIENT_ID
                   key: latest
             - name: GOOGLE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: GOOGLE_CLIENT_SECRET
+                  name: EVENTSLOT_GOOGLE_CLIENT_SECRET
                   key: latest
             - name: RESEND_API_KEY
               valueFrom:

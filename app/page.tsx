@@ -131,11 +131,13 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "EventSlot",
+    alternateName: "Event Slot",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     description:
       "EventSlot is an event registration platform built for organizers who run events with limited slots. Manage registrations, waitlists, and automatic confirmations.",
     url: "https://www.eventsslot.com",
+    keywords: "eventslot, event slot, events slot, event registration platform, event waitlist system",
     offers: {
       "@type": "Offer",
       price: "0",
@@ -159,7 +161,7 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "EventSlot",
-    alternateName: "EventSlot — Smart Event Registration",
+    alternateName: "Event Slot",
     url: "https://www.eventsslot.com",
     potentialAction: {
       "@type": "SearchAction",

@@ -1,10 +1,13 @@
 export const defaultSEO = {
   siteName: 'EventSlot',
   siteUrl: 'https://www.eventsslot.com',
-  title: 'EventSlot – Event Registration & Waitlist Platform | Manage Events Easily',
+  title: 'EventSlot | Event Registration and Waitlist Platform',
   description:
-    'Create events, share one link, and fill slots automatically. EventSlot manages registrations and waitlists without spreadsheets or manual follow-ups.',
+    'Create events, share one link, and fill slots automatically. EventSlot (also searched as Event Slot) manages registrations and waitlists without spreadsheets or manual follow-ups.',
   keywords: [
+    'eventslot',
+    'event slot',
+    'events slot',
     'event registration platform',
     'event management system',
     'RSVP system online',
@@ -13,6 +16,9 @@ export const defaultSEO = {
     'manage event attendees',
     'event signup tool',
     'online event registration',
+    'free event registration platform',
+    'event registration app',
+    'event slot management',
     'event registration platform Kenya',
     'event management Nairobi',
   ],

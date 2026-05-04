@@ -5,7 +5,6 @@ import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
-import { Analytics } from "@vercel/analytics/next";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -21,18 +20,23 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.eventsslot.com"),
   title: {
-    default: "EventSlot — Smart Event Registration & Waitlist Platform",
-    template: "%s | EventSlot",
+    default: "EventSlot | Event Registration and Waitlist Platform",
+    template: "EventSlot | %s",
   },
   description:
-    "EventSlot is an event registration platform built for organizers who run events with limited slots. Create your event, share one link, and let EventSlot handle registrations, waitlists, and automatic confirmations — free.",
+    "EventSlot is an event registration platform built for organizers who run events with limited slots. Also searched as Event Slot, it helps you create events, share one link, and handle registrations, waitlists, and automatic confirmations — free.",
   keywords: [
+    "eventslot",
+    "event slot",
+    "events slot",
     "event registration platform",
     "event waitlist system",
     "event management tool",
     "RSVP system",
     "event booking system",
     "online event registration",
+    "free event registration platform",
+    "event registration app",
     "event registration Kenya",
     "event management Nairobi",
     "free event registration",
@@ -135,7 +139,6 @@ export default async function RootLayout({
           <Nav />
           {children}
           <Toast />
-          <Analytics />
         </Providers>
       </body>
     </html>
