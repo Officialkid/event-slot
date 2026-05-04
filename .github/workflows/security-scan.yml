@@ -12,6 +12,24 @@ on:
 
 jobs:
 
+  # ── Filesystem vulnerability scan ───────────────────────────────────
+  trivy-fs:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scan on repository
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
   # ── Dependency vulnerability audit ───────────────────────────────────
   npm-audit:
     name: NPM Dependency Audit
