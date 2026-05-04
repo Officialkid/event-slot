@@ -1,5 +1,46 @@
 # EventSlot — Changelog
 
+## [0.4.27] — May 4, 2026
+
+### Consultant-Grade AI Reports + Super Admin Report Ops
+
+- Reworked AI event report generation in `lib/generateAIReportContent.ts` to produce consultant-style structured analysis (target 600–1000 words) with sections for:
+  - event overview
+  - strengths
+  - weaknesses & risks
+  - audience profile
+  - registration behavior
+  - competitive positioning
+  - recommendations
+  - waitlist analysis
+  - overall score
+- Added robust deterministic fallback report generation (data-driven narrative) so report previews no longer show repeated "temporarily unavailable" section placeholders when an AI provider is unavailable.
+- Expanded Word report AI analysis page in `lib/generateEventReport.ts` to include all new strategic sections and overall score.
+- Restored reliable Word response streaming in event report route (`app/api/events/[slug]/report/route.ts`) using `Uint8Array` response bodies.
+
+### Super Admin Report Privileges
+
+- Added server-side super-admin bypass for event report payment gates in `app/api/events/[slug]/report/route.ts`:
+  - super admins can preview and download Word reports without consuming paid download balance
+  - super admins can access report generation without owner token constraints
+- Updated organizer event dashboard report UI to reflect super-admin free download state and display all expanded AI sections.
+
+### Super Admin “Generate Report by Link”
+
+- Added new endpoint `app/api/admin/generate-report/route.ts`:
+  - `POST` accepts `{ eventUrl }`, resolves slug from full URL or raw slug, validates active/published event access, and returns AI preview + download URL
+  - `GET` accepts `slug` and returns downloadable Word report for super admins
+- Added admin UI flow on `app/admin/page.tsx`:
+  - paste registration URL/slug
+  - generate report preview
+  - one-click Word download for sales demos and customer pitching
+
+### Onboarding Tour (Non-Blocking)
+
+- Removed forced action-route behavior from tutorial progression in `hooks/useTutorial.ts`.
+- Simplified tutorial control buttons in `components/tutorial/TutorialOverlay.tsx` to informational navigation (`Next`, `Back`, `Skip`, `Finish`) with no required in-app actions.
+- Updated tour copy in `lib/tutorialSteps.ts` to guidance-oriented wording instead of action-forcing prompts.
+
 ## [0.4.26] — May 4, 2026
 
 ### Event Poster 400 + Hydration Stability Hotfix

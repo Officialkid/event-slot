@@ -1,11 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
 import { TUTORIAL_STEPS } from "@/lib/tutorialSteps"
 
 export function useTutorial() {
-  const router = useRouter()
   const [isActive, setIsActive] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
@@ -134,19 +132,8 @@ export function useTutorial() {
     if (!currentStep) return
 
     await markStep(currentStep.id)
-
-    if (currentStep.actionRoute) {
-      if (currentStepIndex < filteredSteps.length - 1) {
-        setCurrentStepIndex(i => i + 1)
-      } else {
-        await handleComplete()
-      }
-      router.push(currentStep.actionRoute)
-      return
-    }
-
     await handleNext()
-  }, [currentStep, currentStepIndex, filteredSteps.length, handleComplete, handleNext, markStep, router])
+  }, [currentStep, handleNext, markStep])
 
   const restartTutorial = useCallback(() => {
     setSelectedSections(null)

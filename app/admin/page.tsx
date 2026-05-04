@@ -78,6 +78,32 @@ interface Revenue {
   creditsByMonth: Array<{ month: string; revenue: number }>
 }
 
+type LinkReportPreview = {
+  success: boolean
+  event: {
+    title: string
+    slug: string
+    confirmedCount: number
+    waitlistCount: number
+    capacity: number | null
+    eventDate: string | null
+    location: string | null
+  }
+  aiContent: {
+    eventOverview: string
+    executiveSummary: string
+    strengths: string
+    weaknessesAndRisks: string
+    audienceProfile: string
+    registrationBehaviour: string
+    competitivePositioning: string
+    recommendations: string
+    waitlistAnalysis: string
+    overallScore: string
+  }
+  downloadUrl: string
+}
+
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
   return (
     <div
@@ -145,6 +171,10 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [revenue, setRevenue] = useState<Revenue | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reportLinkInput, setReportLinkInput] = useState("")
+  const [generatingByLink, setGeneratingByLink] = useState(false)
+  const [linkReportError, setLinkReportError] = useState("")
+  const [linkReportPreview, setLinkReportPreview] = useState<LinkReportPreview | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -161,6 +191,31 @@ export default function AdminOverviewPage() {
     const anchor = document.createElement("a")
     anchor.href = url
     anchor.click()
+  }
+
+  const generateByLink = async () => {
+    if (!reportLinkInput.trim() || generatingByLink) return
+    setGeneratingByLink(true)
+    setLinkReportError("")
+    try {
+      const res = await fetch('/api/admin/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventUrl: reportLinkInput.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data?.success) {
+        setLinkReportPreview(null)
+        setLinkReportError(data?.error || 'Failed to generate report from that link.')
+        return
+      }
+      setLinkReportPreview(data)
+    } catch {
+      setLinkReportPreview(null)
+      setLinkReportError('Network error while generating report by link.')
+    } finally {
+      setGeneratingByLink(false)
+    }
   }
 
   if (loading) {
@@ -246,6 +301,116 @@ export default function AdminOverviewPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div
+        style={{
+          background: "#141414",
+          border: "0.5px solid rgba(240,237,230,0.08)",
+          borderRadius: "12px",
+          padding: "1.5rem",
+          marginBottom: "2rem",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.7rem",
+            color: "#C8F55A",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            marginBottom: "0.5rem",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Generate Report by Link
+        </p>
+        <h3
+          style={{
+            fontFamily: "var(--font-instrument-serif)",
+            fontSize: "1.3rem",
+            color: "#F0EDE6",
+            marginBottom: "0.75rem",
+            fontWeight: 400,
+          }}
+        >
+          Paste event registration URL or slug
+        </h3>
+        <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", marginBottom: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+          Use this for sales demos: paste a public active EventSlot link and generate an AI + Word report instantly.
+        </p>
+
+        <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            value={reportLinkInput}
+            onChange={e => setReportLinkInput(e.target.value)}
+            placeholder="https://www.eventsslot.com/eventslot-virtual-demo-session-e4hp or event slug"
+            style={{
+              flex: "1 1 420px",
+              minWidth: 280,
+              background: "#0A0A0A",
+              border: "0.5px solid rgba(240,237,230,0.15)",
+              borderRadius: 8,
+              padding: "0.6rem 0.875rem",
+              color: "#F0EDE6",
+              fontSize: "0.85rem",
+              fontFamily: "var(--font-dm-sans)",
+              outline: "none",
+            }}
+          />
+          <button
+            onClick={generateByLink}
+            disabled={generatingByLink || !reportLinkInput.trim()}
+            style={{
+              background: "#C8F55A",
+              color: "#0A0A0A",
+              border: "none",
+              borderRadius: "100px",
+              padding: "0.62rem 1.25rem",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: generatingByLink ? "not-allowed" : "pointer",
+              fontFamily: "var(--font-dm-sans)",
+              opacity: generatingByLink ? 0.7 : 1,
+            }}
+          >
+            {generatingByLink ? 'Generating…' : 'Generate'}
+          </button>
+        </div>
+
+        {linkReportError && (
+          <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
+            {linkReportError}
+          </p>
+        )}
+
+        {linkReportPreview && (
+          <div style={{ marginTop: "1rem", borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1rem" }}>
+            <p style={{ fontSize: "0.84rem", color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+              <strong style={{ color: "#F0EDE6" }}>{linkReportPreview.event.title}</strong>
+            </p>
+            <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+              Slug: {linkReportPreview.event.slug} · Confirmed: {linkReportPreview.event.confirmedCount} · Waitlist: {linkReportPreview.event.waitlistCount}
+            </p>
+
+            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <a
+                href={linkReportPreview.downloadUrl}
+                style={{
+                  textDecoration: 'none',
+                  background: '#C8F55A',
+                  color: '#0A0A0A',
+                  borderRadius: '100px',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-dm-sans)',
+                }}
+              >
+                ↓ Download Word
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Row 1 — Signup priorities */}

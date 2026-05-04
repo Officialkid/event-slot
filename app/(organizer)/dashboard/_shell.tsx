@@ -1329,7 +1329,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           onNext={tutorial.handleNext}
           onBack={tutorial.handleBack}
           onSkip={tutorial.handleSkip}
-          onAction={tutorial.handleAction}
         />
       )}
     </>

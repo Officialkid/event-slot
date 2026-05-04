@@ -122,12 +122,18 @@ type WaitlistEmailDiagnosticsSummary = {
 type ReportPreviewData = {
   success: boolean
   aiContent: {
+    eventOverview: string
     executiveSummary: string
+    strengths: string
+    weaknessesAndRisks: string
     audienceProfile: string
     registrationBehaviour: string
+    competitivePositioning: string
     recommendations: string
     waitlistAnalysis: string
+    overallScore: string
   }
+  isSuperAdmin?: boolean
   downloadsRemaining: number
 }
 
@@ -979,7 +985,7 @@ export default function EventDashboardPage() {
   const slug = params?.slug as string
   const token = searchParams?.get("token") || ""
   const router = useRouter()
-  useSession()
+  const { data: session } = useSession()
   const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -1019,6 +1025,7 @@ export default function EventDashboardPage() {
   const [showReportPaymentModal, setShowReportPaymentModal] = useState(false)
   const [downloadBalance, setDownloadBalance] = useState<number | null>(null)
   const [reportCreditBalance, setReportCreditBalance] = useState(0)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
   // CSV export
   const [csvExporting, setCsvExporting] = useState(false)
@@ -1089,6 +1096,10 @@ export default function EventDashboardPage() {
   useEffect(() => {
     fetch('/api/user/credits').then(r => r.ok ? r.json() : null).then(d => { if (d?.balance !== undefined) setReportCreditBalance(d.balance) }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => { if (d?.isAdmin) setIsSuperAdmin(true) }).catch(() => {})
+  }, [session?.user?.id])
 
   const regLink = origin && eventData ? `${origin}/${eventData.slug}` : ""
 
@@ -1267,6 +1278,7 @@ export default function EventDashboardPage() {
       const data = await res.json()
       if (!res.ok || !data?.success) return
       setReportData(data)
+      setIsSuperAdmin(Boolean(data.isSuperAdmin))
       setDownloadBalance(typeof data.downloadsRemaining === 'number' ? data.downloadsRemaining : 0)
     } catch {
       // Silent fail for now to match surrounding dashboard behavior.
@@ -1933,10 +1945,37 @@ export default function EventDashboardPage() {
                 }}>
                   <div style={{ marginBottom: "1rem" }}>
                     <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Event Overview
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.eventOverview}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
                       Executive Summary
                     </h3>
                     <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
                       {reportData.aiContent.executiveSummary}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Strengths
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.strengths}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Weaknesses & Risks
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.weaknessesAndRisks}
                     </p>
                   </div>
 
@@ -1960,10 +1999,37 @@ export default function EventDashboardPage() {
 
                   <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
                     <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Competitive Positioning
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.competitivePositioning}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Waitlist Analysis
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.waitlistAnalysis}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
                       Recommendations
                     </h3>
                     <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
                       {reportData.aiContent.recommendations}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Overall Score
+                    </h3>
+                    <p style={{ fontSize: "0.98rem", color: "#C8F55A", lineHeight: "1.7", margin: 0, fontWeight: 600 }}>
+                      {reportData.aiContent.overallScore}
                     </p>
                   </div>
 
@@ -1979,11 +2045,13 @@ export default function EventDashboardPage() {
                   }}>
                     <div>
                       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
-                        {downloadBalance !== null && downloadBalance > 0
+                        {isSuperAdmin
+                          ? 'Super admin: free Word download'
+                          : downloadBalance !== null && downloadBalance > 0
                           ? `${downloadBalance} download${downloadBalance !== 1 ? 's' : ''} remaining`
                           : 'Download as Word document'}
                       </p>
-                      {(downloadBalance === null || downloadBalance < 1) && (
+                      {!isSuperAdmin && (downloadBalance === null || downloadBalance < 1) && (
                         <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
                           From KSh 100
                         </p>

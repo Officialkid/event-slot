@@ -614,11 +614,16 @@ function waitlistPage(event: IEvent, waitlist: IRegistration[]): (Paragraph | Ta
 
 function aiAnalysisPage(ai: AIReportContent): (Paragraph | Table)[] {
   const sections: Array<{ title: string; content: string }> = [
+    { title: 'Event Overview', content: ai.eventOverview },
     { title: 'Executive Summary', content: ai.executiveSummary },
+    { title: 'Strengths', content: ai.strengths },
+    { title: 'Weaknesses & Risks', content: ai.weaknessesAndRisks },
     { title: 'Audience Profile', content: ai.audienceProfile },
     { title: 'Registration Behaviour', content: ai.registrationBehaviour },
+    { title: 'Competitive Positioning', content: ai.competitivePositioning },
     { title: 'Waitlist Analysis', content: ai.waitlistAnalysis },
     { title: 'Recommendations', content: ai.recommendations },
+    { title: 'Overall Score', content: ai.overallScore },
   ]
 
   const items: (Paragraph | Table)[] = [

@@ -13,7 +13,6 @@ type TutorialOverlayProps = {
   onNext: () => void
   onBack: () => void
   onSkip: () => void
-  onAction: () => void
 }
 
 function SpotlightMask({ rect }: { rect: DOMRect }) {
@@ -107,7 +106,6 @@ export function TutorialOverlay({
   onNext,
   onBack,
   onSkip,
-  onAction,
 }: TutorialOverlayProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [cardSize, setCardSize] = useState({ w: 360, h: 320 })
@@ -200,10 +198,10 @@ export function TutorialOverlay({
             )}
 
             <button
-              onClick={step.action ? onAction : onNext}
+              onClick={onNext}
               className="px-5 py-2 rounded-xl bg-[#a3e635] text-black font-semibold text-sm hover:bg-[#b5f542] transition-all"
             >
-              {step.action || (currentStepIndex + 1 === totalSteps ? "Finish" : "Next →")}
+              {currentStepIndex + 1 === totalSteps ? "Finish" : "Next →"}
             </button>
           </div>
         </div>

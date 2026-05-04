@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
 import { generateAIReportContent } from '@/lib/generateAIReportContent'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
+import { isAdminEmail } from '@/lib/isAdmin'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const theme = (req.nextUrl.searchParams.get('theme') ?? 'navy') as ReportTheme
 
     const session = await getServerSession(authOptions)
+    const isSuperAdmin = isAdminEmail(session?.user?.email)
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -31,7 +33,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
 
-    if (!isOwner && !hasValidToken) {
+    if (!isOwner && !hasValidToken && !isSuperAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -103,6 +105,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         aiContent,
         confirmed,
         waitlist,
+        isSuperAdmin,
         downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
       })
     }
@@ -115,40 +118,42 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         )
       }
 
-      const downloadRecord = await prisma.reportDownload.findUnique({
-        where: { userId: session.user.id },
-      })
+      if (!isSuperAdmin) {
+        const downloadRecord = await prisma.reportDownload.findUnique({
+          where: { userId: session.user.id },
+        })
 
-      if (!downloadRecord || downloadRecord.downloadsRemaining < 1) {
-        return NextResponse.json(
-          {
-            error: 'No downloads remaining',
-            code: 'PAYMENT_REQUIRED',
-            pricing: REPORT_DOWNLOAD_PRICING,
+        if (!downloadRecord || downloadRecord.downloadsRemaining < 1) {
+          return NextResponse.json(
+            {
+              error: 'No downloads remaining',
+              code: 'PAYMENT_REQUIRED',
+              pricing: REPORT_DOWNLOAD_PRICING,
+            },
+            { status: 402 }
+          )
+        }
+
+        const updated = await prisma.reportDownload.updateMany({
+          where: {
+            userId: session.user.id,
+            downloadsRemaining: { gte: 1 },
           },
-          { status: 402 }
-        )
-      }
-
-      const updated = await prisma.reportDownload.updateMany({
-        where: {
-          userId: session.user.id,
-          downloadsRemaining: { gte: 1 },
-        },
-        data: {
-          downloadsRemaining: { decrement: 1 },
-        },
-      })
-
-      if (updated.count < 1) {
-        return NextResponse.json(
-          {
-            error: 'No downloads remaining',
-            code: 'PAYMENT_REQUIRED',
-            pricing: REPORT_DOWNLOAD_PRICING,
+          data: {
+            downloadsRemaining: { decrement: 1 },
           },
-          { status: 402 }
-        )
+        })
+
+        if (updated.count < 1) {
+          return NextResponse.json(
+            {
+              error: 'No downloads remaining',
+              code: 'PAYMENT_REQUIRED',
+              pricing: REPORT_DOWNLOAD_PRICING,
+            },
+            { status: 402 }
+          )
+        }
       }
 
       const buffer = await generateEventReport({
@@ -159,7 +164,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         aiContent,
       })
 
-      return new Response(buffer as unknown as BodyInit, {
+      const reportBytes = new Uint8Array(buffer)
+
+      return new Response(reportBytes, {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

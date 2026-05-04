@@ -138,6 +138,21 @@ organizer has 3+ completed past events.
 **What it does:** Ensures event posters render reliably with graceful fallback UI when image URLs are missing, malformed, expired, or inaccessible. Prevents broken-image icons and keeps page layout intact by using a reusable fallback image component with single-fire error handling (no repeated error loops). Also improves title readability over poster backgrounds with stronger contrast treatment and reduces hydration mismatch risk on event date text.  
 **Infra note:** `next.config.mjs` includes Cloudflare R2 support in `images.remotePatterns` via wildcard `*.r2.dev`, explicit production host allowlisting, and dynamic `R2_PUBLIC_URL` hostname; CSP `img-src` and `connect-src` also include matching R2 origins.
 
+### Consultant-Grade AI Event Reports
+**Where:** `GET /api/events/[slug]/report?mode=preview|download`, organizer event dashboard report card (`/dashboard/events/[slug]`), report generation logic in `lib/generateAIReportContent.ts` and Word rendering in `lib/generateEventReport.ts`  
+**Who:** Organizers and super admins  
+**What it does:** Generates structured consultant-style event analysis using Claude with strategic sections including event overview, strengths, weaknesses/risks, audience profile, registration behavior, competitive positioning, waitlist analysis, actionable recommendations, and overall score. The same content is embedded in downloadable Word reports. Includes deterministic data-driven fallback sections when AI providers are unavailable.
+
+### Super Admin Free Report Download
+**Where:** `app/api/events/[slug]/report/route.ts`, organizer event dashboard report controls  
+**Who:** Super admins  
+**What it does:** Bypasses paid report-download gating for super admins server-side. Super admins can preview and download Word reports without consuming download bundles, while non-admin organizers retain standard payment-gated download behavior.
+
+### Super Admin Report by Link
+**Where:** Admin overview page (`/admin`), `app/api/admin/generate-report/route.ts`  
+**Who:** Super admins  
+**What it does:** Enables report generation by pasting a full EventSlot registration URL or raw slug. The system resolves the event, validates it is active/published, generates AI report content, and provides one-click Word download. Designed for sales demos and customer pitching workflows.
+
 ### Countdown Timer
 **Where:** /[eventSlug] registration page and /dashboard/events/[slug] organizer event header  
 **Who:** Attendees and organizers  
