@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
@@ -32,8 +33,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     // Validate access: session owner or valid dashboard token
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
 
-    if (!isOwner && !hasValidToken) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -61,6 +61,7 @@ type EventData = {
   status: string
   dashboardToken: string
   organizerPlan: string
+  canEdit?: boolean
   imageUrl?: string | null
 }
 
@@ -121,18 +122,9 @@ type WaitlistEmailDiagnosticsSummary = {
 
 type ReportPreviewData = {
   success: boolean
-  aiContent: {
-    eventOverview: string
-    executiveSummary: string
-    strengths: string
-    weaknessesAndRisks: string
-    audienceProfile: string
-    registrationBehaviour: string
-    competitivePositioning: string
-    recommendations: string
-    waitlistAnalysis: string
-    overallScore: string
-  }
+  reportReady?: boolean
+  generatedAt?: string
+  message?: string
   isSuperAdmin?: boolean
   downloadsRemaining: number
 }
@@ -1472,7 +1464,7 @@ export default function EventDashboardPage() {
     { key: "analytics", label: "Analytics" },
     { key: "feedback", label: "Feedback" },
     { key: "checkin" as TabKey, label: "Verify Ticket" },
-    { key: "settings", label: "Settings" },
+    ...(eventData.canEdit ? [{ key: "settings" as TabKey, label: "Settings" }] : []),
   ]
 
   const loadInsights = async (force = false) => {
@@ -1700,7 +1692,7 @@ export default function EventDashboardPage() {
 
         {/* ── Cover image ──────────────────────────────────────────────── */}
         {eventData.imageUrl && (
-          <div style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0, minHeight: 220 }}>
+          <div className="md:hidden" style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0, minHeight: 220 }}>
             <EventImageWithFallback
               src={eventData.imageUrl}
               alt={eventData.title}
@@ -1726,16 +1718,18 @@ export default function EventDashboardPage() {
                 </h1>
                 <StatusBadge event={eventData} />
                 {/* Pencil */}
-                <button
-                  onClick={() => setModal("rename")}
-                  title="Rename event"
-                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(240,237,230,0.3)", padding: "2px", display: "flex", alignItems: "center", borderRadius: 4, flexShrink: 0 }}
-                  className="pencil-btn"
-                >
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11.5 2.5a2.121 2.121 0 013 3L5 15H1.5l.5-3.5L11.5 2.5z" />
-                  </svg>
-                </button>
+                {eventData.canEdit && (
+                  <button
+                    onClick={() => setModal("rename")}
+                    title="Rename event"
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(240,237,230,0.3)", padding: "2px", display: "flex", alignItems: "center", borderRadius: 4, flexShrink: 0 }}
+                    className="pencil-btn"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11.5 2.5a2.121 2.121 0 013 3L5 15H1.5l.5-3.5L11.5 2.5z" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               {/* Meta: date, location, deadline */}
@@ -1785,15 +1779,17 @@ export default function EventDashboardPage() {
                 </svg>
                 {reportLoading ? "Generating…" : reportData ? "Report Ready" : "Generate Report"}
               </button>
-              <HeaderMenu
-                onEdit={() => router.push(`/edit/${slug}`)}
-                onRename={() => setModal("rename")}
-                onArchive={() => setModal("archive")}
-                onDelete={() => setModal("delete")}
-                onClose={handleClose}
-                archived={isEventArchived(eventData)}
-                closed={isEventClosed(eventData)}
-              />
+              {eventData.canEdit && (
+                <HeaderMenu
+                  onEdit={() => router.push(`/edit/${slug}`)}
+                  onRename={() => setModal("rename")}
+                  onArchive={() => setModal("archive")}
+                  onDelete={() => setModal("delete")}
+                  onClose={handleClose}
+                  archived={isEventArchived(eventData)}
+                  closed={isEventClosed(eventData)}
+                />
+              )}
             </div>
           </div>
 
@@ -1908,10 +1904,10 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
-                    ✦ AI Report
+                    ✦ Event Report
                   </div>
                   <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
-                    Generate and read in browser for free. Download Word requires a paid package.
+                    Generate report for this event. Downloading Word uses your report package (super admins are free).
                   </p>
                 </div>
                 {!reportData && (
@@ -1930,7 +1926,7 @@ export default function EventDashboardPage() {
                       fontFamily: "var(--font-dm-sans)",
                     }}
                   >
-                    {reportLoading ? 'Generating AI report...' : '✦ Generate AI Report'}
+                    {reportLoading ? 'Generating report...' : '✦ Generate Report'}
                   </button>
                 )}
               </div>
@@ -1943,95 +1939,9 @@ export default function EventDashboardPage() {
                   padding: "1.5rem",
                   marginTop: "1rem",
                 }}>
-                  <div style={{ marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Event Overview
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.eventOverview}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Executive Summary
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.executiveSummary}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Strengths
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.strengths}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Weaknesses & Risks
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.weaknessesAndRisks}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Audience Profile
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.audienceProfile}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Registration Behaviour
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.registrationBehaviour}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Competitive Positioning
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.competitivePositioning}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Waitlist Analysis
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.waitlistAnalysis}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Recommendations
-                    </h3>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
-                      {reportData.aiContent.recommendations}
-                    </p>
-                  </div>
-
-                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
-                      Overall Score
-                    </h3>
-                    <p style={{ fontSize: "0.98rem", color: "#C8F55A", lineHeight: "1.7", margin: 0, fontWeight: 600 }}>
-                      {reportData.aiContent.overallScore}
-                    </p>
-                  </div>
+                  <p style={{ marginTop: "0.9rem", marginBottom: 0, fontSize: "0.86rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
+                    The report has been prepared using your current registration data and is ready for Word export.
+                  </p>
 
                   <div style={{
                     borderTop: "0.5px solid rgba(240,237,230,0.08)",
@@ -2045,15 +1955,13 @@ export default function EventDashboardPage() {
                   }}>
                     <div>
                       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
-                        {isSuperAdmin
-                          ? 'Super admin: free Word download'
-                          : downloadBalance !== null && downloadBalance > 0
-                          ? `${downloadBalance} download${downloadBalance !== 1 ? 's' : ''} remaining`
-                          : 'Download as Word document'}
+                        {reportData.reportReady
+                          ? 'Your report document is ready to download.'
+                          : 'Preparing your report document...'}
                       </p>
                       {!isSuperAdmin && (downloadBalance === null || downloadBalance < 1) && (
                         <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
-                          From KSh 100
+                          Download pricing: 1 report = KSh 100, 3 reports = KSh 285
                         </p>
                       )}
                     </div>

@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/isAdmin'
-import { generateAIReportContent } from '@/lib/generateAIReportContent'
 import { generateEventReport, IRegistration } from '@/lib/generateEventReport'
 
 function extractSlugFromInput(input: string): string | null {
@@ -42,7 +41,6 @@ type PreparedReportData = {
   }
   confirmed: IRegistration[]
   waitlist: IRegistration[]
-  aiContent: Awaited<ReturnType<typeof generateAIReportContent>>
 }
 
 async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedReportData | null> {
@@ -72,6 +70,7 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
     .map(r => ({
       id: r.id,
       answers: r.answers as Array<{ questionId: string; value: string }>,
+      registrationNumber: r.registrationNumber,
       submittedAt: r.submittedAt.toISOString(),
       waitlistPosition: r.waitlistPosition,
     }))
@@ -82,6 +81,7 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
     .map(r => ({
       id: r.id,
       answers: r.answers as Array<{ questionId: string; value: string }>,
+      registrationNumber: r.registrationNumber,
       submittedAt: r.submittedAt.toISOString(),
       waitlistPosition: r.waitlistPosition,
     }))
@@ -104,14 +104,11 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
     })),
   }
 
-  const aiContent = await generateAIReportContent({ event: eventPayload, confirmed, waitlist })
-
   return {
     slug: event.slug,
     eventPayload,
     confirmed,
     waitlist,
-    aiContent,
   }
 }
 
@@ -147,7 +144,8 @@ export async function POST(req: NextRequest) {
         eventDate: prepared.eventPayload.eventDate,
         location: prepared.eventPayload.location,
       },
-      aiContent: prepared.aiContent,
+      reportReady: true,
+      message: 'Basic Word report is ready for download.',
       downloadUrl: `/api/admin/generate-report?slug=${encodeURIComponent(prepared.slug)}`,
     })
   } catch (error) {
@@ -180,7 +178,6 @@ export async function GET(req: NextRequest) {
       event: prepared.eventPayload,
       confirmed: prepared.confirmed,
       waitlist: prepared.waitlist,
-      aiContent: prepared.aiContent,
     })
 
     const reportBytes = new Uint8Array(buffer)

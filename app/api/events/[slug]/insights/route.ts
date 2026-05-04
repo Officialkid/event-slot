@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { generateInsightCards } from '@/lib/generateInsightCards'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -29,8 +30,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
 
-    if (!isOwner && !hasValidToken) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

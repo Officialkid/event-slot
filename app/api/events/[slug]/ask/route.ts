@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { askAI } from '@/lib/ai'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -34,7 +35,12 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
-    if (!isOwner && !hasValidToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
+    if (!isOwner && !hasValidToken && !hasTeamAccess) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     // Fetch registrations and view count
     const [registrations, viewCount] = await Promise.all([
@@ -114,8 +120,10 @@ Keep answers under 100 words. Be direct and practical.`
       maxTokens: 200,
     })
 
+    const fallbackAnswer = `Current snapshot: ${totalRegistrations} registrations from ${viewCount} views (${conversionRate}% conversion), with ${confirmedCount} confirmed and ${waitlistCount} on waitlist. Peak signup timing is ${regsByDow || 'not enough data yet'}. Share your registration link during your peak window and keep your first-screen value proposition clear to improve conversions.`
+
     return NextResponse.json({
-      answer: answer ?? 'AI is temporarily unavailable. Please try again shortly.',
+      answer: answer ?? fallbackAnswer,
     })
   } catch (err) {
     console.error('Ask error:', err)

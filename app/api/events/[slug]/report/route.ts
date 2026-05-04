@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
-import { generateAIReportContent } from '@/lib/generateAIReportContent'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { isAdminEmail } from '@/lib/isAdmin'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -32,8 +32,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     // Validate access
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
 
-    if (!isOwner && !hasValidToken && !isSuperAdmin) {
+    if (!isOwner && !hasValidToken && !isSuperAdmin && !hasTeamAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -48,6 +53,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       .map(r => ({
         id: r.id,
         answers: r.answers as Array<{ questionId: string; value: string }>,
+        registrationNumber: r.registrationNumber,
         submittedAt: r.submittedAt.toISOString(),
         waitlistPosition: r.waitlistPosition,
       }))
@@ -58,6 +64,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       .map(r => ({
         id: r.id,
         answers: r.answers as Array<{ questionId: string; value: string }>,
+        registrationNumber: r.registrationNumber,
         submittedAt: r.submittedAt.toISOString(),
         waitlistPosition: r.waitlistPosition,
       }))
@@ -80,8 +87,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         })),
       }
 
-    const aiContent = await generateAIReportContent({ event: eventPayload, confirmed, waitlist })
-
     if (mode === 'preview' || !mode) {
       const downloadBalance = session?.user?.id
         ? await prisma.reportDownload.findUnique({
@@ -102,9 +107,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           location: event.location,
           deadline: event.deadline?.toISOString() ?? null,
         },
-        aiContent,
-        confirmed,
-        waitlist,
+        reportReady: true,
+        generatedAt: new Date().toISOString(),
+        message: 'Report document is ready for download.',
         isSuperAdmin,
         downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
       })
@@ -161,7 +166,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         confirmed,
         waitlist,
         theme,
-        aiContent,
       })
 
       const reportBytes = new Uint8Array(buffer)

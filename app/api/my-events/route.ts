@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getEffectiveUserId } from '@/lib/getEffectiveUserId'
 import { eventListCache } from '@/lib/cache'
 
 export async function GET(req: Request) {
@@ -12,10 +11,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const effective = await getEffectiveUserId()
-    if (!effective) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const { userId, email } = effective
+    const userId = session.user.id
+    const email = session.user.email ?? null
 
     const { searchParams } = new URL(req.url)
     const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
@@ -34,10 +31,30 @@ export async function GET(req: Request) {
       }
     }
 
+    const memberships = await prisma.teamMember.findMany({
+      where: {
+        memberId: userId,
+        status: 'accepted',
+      },
+      select: {
+        ownerId: true,
+        _count: { select: { eventAccess: true } },
+        eventAccess: { select: { eventId: true } },
+      },
+    })
+
+    const ownerIdsWithGlobalAccess = memberships
+      .filter((m) => m._count.eventAccess === 0)
+      .map((m) => m.ownerId)
+
+    const explicitlyAssignedEventIds = memberships.flatMap((m) => m.eventAccess.map((ea) => ea.eventId))
+
     const where = {
       OR: [
         { organizerId: userId },
         ...(email ? [{ organizerEmail: email }] : []),
+        ...(ownerIdsWithGlobalAccess.length > 0 ? [{ organizerId: { in: ownerIdsWithGlobalAccess } }] : []),
+        ...(explicitlyAssignedEventIds.length > 0 ? [{ id: { in: explicitlyAssignedEventIds } }] : []),
       ],
     }
 

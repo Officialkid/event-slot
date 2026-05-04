@@ -318,7 +318,6 @@ export default function Home() {
               alt="EventSlot dashboard analytics view showing registrations, waitlist, and attendee data"
               width={1536}
               height={1024}
-              priority
               maxWidth={560}
             />
           </div>

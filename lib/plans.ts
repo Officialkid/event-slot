@@ -3,7 +3,7 @@ export const FEATURES_FREE = true
 
 export const REPORT_DOWNLOAD_PRICING = {
   single: { amount: 100, downloads: 1, label: 'Single download - KSh 100' },
-  bundle3: { amount: 300, downloads: 3, label: '3 downloads - KSh 300' },
+  bundle3: { amount: 285, downloads: 3, label: '3 downloads - KSh 285' },
   bundle6: { amount: 500, downloads: 6, label: '6 downloads - KSh 500' },
   bundle15: { amount: 1000, downloads: 15, label: '15 downloads - KSh 1,000' },
 }

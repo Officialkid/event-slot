@@ -89,18 +89,8 @@ type LinkReportPreview = {
     eventDate: string | null
     location: string | null
   }
-  aiContent: {
-    eventOverview: string
-    executiveSummary: string
-    strengths: string
-    weaknessesAndRisks: string
-    audienceProfile: string
-    registrationBehaviour: string
-    competitivePositioning: string
-    recommendations: string
-    waitlistAnalysis: string
-    overallScore: string
-  }
+  reportReady?: boolean
+  message?: string
   downloadUrl: string
 }
 

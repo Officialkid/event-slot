@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 type EventQuestion = { id: string; type: string; label: string }
 
@@ -69,8 +70,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const session = await getServerSession(authOptions)
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
 
-    if (!isOwner && !hasValidToken) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 

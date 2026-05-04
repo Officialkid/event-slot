@@ -11,13 +11,11 @@ import {
   BorderStyle,
   WidthType,
   ShadingType,
-  LevelFormat,
   PageNumber,
   Header,
   Footer,
 } from 'docx'
 import { format } from 'date-fns'
-import type { AIReportContent } from './generateAIReportContent'
 
 // ── Theme palette ─────────────────────────────────────────────────────────────
 
@@ -55,6 +53,7 @@ export interface IEvent {
 export interface IRegistration {
   id: string
   answers: Array<{ questionId: string; value: string }>
+  registrationNumber?: number | null
   submittedAt: string
   waitlistPosition?: number | null
 }
@@ -91,6 +90,58 @@ function fmtDateTime(iso: string): string {
 
 function todayStr(): string {
   return format(new Date(), 'dd MMM yyyy')
+}
+
+function normalizeText(value: string | null | undefined): string {
+  return (value ?? '').trim()
+}
+
+function findQuestionId(event: IEvent, opts: { type?: string; keywords?: string[] }): string | null {
+  const keywords = (opts.keywords ?? []).map((k) => k.toLowerCase())
+  const byType = opts.type
+    ? event.questions.find((q) => q.type.toLowerCase() === opts.type?.toLowerCase())
+    : undefined
+  if (byType) return byType.id
+
+  if (keywords.length > 0) {
+    const byLabel = event.questions.find((q) => {
+      const label = q.label.toLowerCase()
+      return keywords.some((k) => label.includes(k))
+    })
+    if (byLabel) return byLabel.id
+  }
+
+  return null
+}
+
+function answerByQuestionId(reg: IRegistration, questionId: string | null): string {
+  if (!questionId) return ''
+  return normalizeText(reg.answers.find((a) => a.questionId === questionId)?.value)
+}
+
+function getAttendeeName(reg: IRegistration, event: IEvent): string {
+  const id = findQuestionId(event, { type: 'text', keywords: ['full name', 'name'] })
+  const byName = answerByQuestionId(reg, id)
+  if (byName) return byName
+  const fallback = normalizeText(reg.answers[0]?.value)
+  return fallback || 'N/A'
+}
+
+function getAttendeePhone(reg: IRegistration, event: IEvent): string {
+  const id = findQuestionId(event, { type: 'phone', keywords: ['phone', 'mobile', 'tel'] })
+  return answerByQuestionId(reg, id) || 'N/A'
+}
+
+function getRegistrationNumberDisplay(reg: IRegistration, event: IEvent): string {
+  const id = findQuestionId(event, {
+    keywords: ['registration number', 'reg no', 'admission', 'student number', 'id number'],
+  })
+  const fromForm = answerByQuestionId(reg, id)
+  if (fromForm) return fromForm
+  if (reg.registrationNumber !== null && reg.registrationNumber !== undefined) {
+    return String(reg.registrationNumber)
+  }
+  return 'N/A'
 }
 
 // ── Header / Footer ───────────────────────────────────────────────────────────
@@ -155,7 +206,7 @@ function makeFooter(eventTitle: string): Footer {
 
 // ── Cover Page ────────────────────────────────────────────────────────────────
 
-function coverPage(event: IEvent, palette: { banner: string; accent: string; sub: string }, isAI = false): (Paragraph | Table)[] {
+function coverPage(event: IEvent, palette: { banner: string; accent: string; sub: string }): (Paragraph | Table)[] {
   const bannerFill = { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' }
   const dividerFill = { type: ShadingType.CLEAR, fill: palette.sub, color: 'auto' }
 
@@ -164,12 +215,6 @@ function coverPage(event: IEvent, palette: { banner: string; accent: string; sub
       children: [new TextRun({ text: 'Event Report', font: 'Arial', size: 24, color: palette.sub })],
     }),
   ]
-  if (isAI) {
-    subtitleChildren.push(new Paragraph({
-      children: [new TextRun({ text: '\u26A1 AI-Enhanced Report', font: 'Arial', size: 20, color: 'C8F55A', bold: true })],
-      spacing: { before: 40 },
-    }))
-  }
 
   // Full-width colored banner table (brand + title + subtitle)
   const bannerTable = new Table({
@@ -395,146 +440,64 @@ function summaryPage(event: IEvent): (Paragraph | Table)[] {
 
 // ── Registration Table ────────────────────────────────────────────────────────
 
-function registrationTable(
-  questions: IQuestion[],
-  registrations: IRegistration[],
-  showPosition: boolean
-): Table {
-  const numberColW = 500
-  const dateColW = 1500
-  const questionColsTotal = TABLE_WIDTH - numberColW - dateColW
-  const qCount = questions.length
-  const questionColW = qCount > 0 ? Math.floor(questionColsTotal / qCount) : questionColsTotal
-
-  // Recalculate to avoid rounding drift
-  const lastQColW = questionColsTotal - questionColW * (qCount - 1)
-
+function confirmedAttendeesTable(event: IEvent, registrations: IRegistration[]): Table {
+  const numberColW = 520
+  const nameColW = 1900
+  const regNoColW = 2100
+  const phoneColW = 1800
+  const dateColW = TABLE_WIDTH - (numberColW + nameColW + regNoColW + phoneColW)
   const headerShading = { type: ShadingType.CLEAR, fill: '1F3864', color: 'auto' }
 
-  const headerCells: TableCell[] = [
-    new TableCell({
-      width: { size: numberColW, type: WidthType.DXA },
-      margins: CELL_MARGINS,
-      shading: headerShading,
-      children: [
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: showPosition ? 'Position' : '#',
-              font: 'Arial',
-              size: 20,
-              bold: true,
-              color: 'FFFFFF',
-            }),
-          ],
-        }),
-      ],
-    }),
-    ...questions.map(
-      (q, i) =>
-        new TableCell({
-          width: {
-            size: i === questions.length - 1 ? lastQColW : questionColW,
-            type: WidthType.DXA,
-          },
-          margins: CELL_MARGINS,
-          shading: headerShading,
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({ text: q.label, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' }),
-              ],
-            }),
-          ],
-        })
-    ),
-    new TableCell({
-      width: { size: dateColW, type: WidthType.DXA },
-      margins: CELL_MARGINS,
-      shading: headerShading,
-      children: [
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Registered At', font: 'Arial', size: 20, bold: true, color: 'FFFFFF' }),
-          ],
-        }),
-      ],
-    }),
-  ]
+  const headerTitles = ['#', 'Name', 'Registration Number', 'Phone Number', 'Registered At']
+  const headerWidths = [numberColW, nameColW, regNoColW, phoneColW, dateColW]
 
-  const dataRows = registrations.map((reg, idx) => {
-    const isEven = idx % 2 === 1
-    const rowShading = isEven
+  const headerCells = headerTitles.map((title, i) =>
+    new TableCell({
+      width: { size: headerWidths[i], type: WidthType.DXA },
+      margins: CELL_MARGINS,
+      shading: headerShading,
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' })],
+        }),
+      ],
+    })
+  )
+
+  const rows = registrations.map((reg, idx) => {
+    const rowShading = idx % 2 === 1
       ? { type: ShadingType.CLEAR, fill: 'F5F5F5', color: 'auto' }
       : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' }
 
-    const positionValue = showPosition
-      ? String(reg.waitlistPosition ?? idx + 1)
-      : String(idx + 1)
+    const values = [
+      String(idx + 1),
+      getAttendeeName(reg, event),
+      getRegistrationNumberDisplay(reg, event),
+      getAttendeePhone(reg, event),
+      fmtDateTime(reg.submittedAt),
+    ]
 
     return new TableRow({
-      children: [
+      children: values.map((value, i) =>
         new TableCell({
-          width: { size: numberColW, type: WidthType.DXA },
+          width: { size: headerWidths[i], type: WidthType.DXA },
           margins: CELL_MARGINS,
           shading: rowShading,
           children: [
             new Paragraph({
-              children: [new TextRun({ text: positionValue, font: 'Arial', size: 20 })],
+              children: [new TextRun({ text: value || 'N/A', font: 'Arial', size: 20 })],
             }),
           ],
-        }),
-        ...questions.map(
-          (q, i) =>
-            new TableCell({
-              width: {
-                size: i === questions.length - 1 ? lastQColW : questionColW,
-                type: WidthType.DXA,
-              },
-              margins: CELL_MARGINS,
-              shading: rowShading,
-              children: [
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: reg.answers.find(a => a.questionId === q.id)?.value ?? '',
-                      font: 'Arial',
-                      size: 20,
-                    }),
-                  ],
-                }),
-              ],
-            })
-        ),
-        new TableCell({
-          width: { size: dateColW, type: WidthType.DXA },
-          margins: CELL_MARGINS,
-          shading: rowShading,
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: fmtDateTime(reg.submittedAt),
-                  font: 'Arial',
-                  size: 20,
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
+        })
+      ),
     })
   })
 
   return new Table({
     width: { size: TABLE_WIDTH, type: WidthType.DXA },
     borders: thinBorder(),
-    columnWidths: [
-      numberColW,
-      ...questions.map((_, i) => (i === questions.length - 1 ? lastQColW : questionColW)),
-      dateColW,
-    ],
-    rows: [new TableRow({ tableHeader: true, children: headerCells }), ...dataRows],
+    columnWidths: headerWidths,
+    rows: [new TableRow({ tableHeader: true, children: headerCells }), ...rows],
   })
 }
 
@@ -568,7 +531,7 @@ function confirmedPage(event: IEvent, confirmed: IRegistration[]): (Paragraph | 
       })
     )
   } else {
-    items.push(registrationTable(event.questions, confirmed, false))
+    items.push(confirmedAttendeesTable(event, confirmed))
   }
 
   items.push(new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }))
@@ -577,7 +540,7 @@ function confirmedPage(event: IEvent, confirmed: IRegistration[]): (Paragraph | 
 
 // ── Waitlist Page ─────────────────────────────────────────────────────────────
 
-function waitlistPage(event: IEvent, waitlist: IRegistration[]): (Paragraph | Table)[] {
+function waitlistPage(waitlist: IRegistration[]): (Paragraph | Table)[] {
   const items: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
@@ -603,65 +566,24 @@ function waitlistPage(event: IEvent, waitlist: IRegistration[]): (Paragraph | Ta
       })
     )
   } else {
-    items.push(registrationTable(event.questions, waitlist, true))
+    items.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `Current waitlist count: ${waitlist.length}`,
+            font: 'Arial',
+            size: 20,
+          }),
+        ],
+      })
+    )
   }
 
   items.push(new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }))
   return items
 }
 
-// ── AI Analysis Page ─────────────────────────────────────────────────────────
-
-function aiAnalysisPage(ai: AIReportContent): (Paragraph | Table)[] {
-  const sections: Array<{ title: string; content: string }> = [
-    { title: 'Event Overview', content: ai.eventOverview },
-    { title: 'Executive Summary', content: ai.executiveSummary },
-    { title: 'Strengths', content: ai.strengths },
-    { title: 'Weaknesses & Risks', content: ai.weaknessesAndRisks },
-    { title: 'Audience Profile', content: ai.audienceProfile },
-    { title: 'Registration Behaviour', content: ai.registrationBehaviour },
-    { title: 'Competitive Positioning', content: ai.competitivePositioning },
-    { title: 'Waitlist Analysis', content: ai.waitlistAnalysis },
-    { title: 'Recommendations', content: ai.recommendations },
-    { title: 'Overall Score', content: ai.overallScore },
-  ]
-
-  const items: (Paragraph | Table)[] = [
-    new Paragraph({
-      heading: HeadingLevel.HEADING_1,
-      children: [new TextRun({ text: 'AI Analysis', font: 'Arial', bold: true, size: 32 })],
-      spacing: { before: 0, after: 120 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Generated by EventSlot AI', font: 'Arial', size: 18, color: '888888', italics: true }),
-      ],
-      spacing: { after: 240 },
-    }),
-  ]
-
-  for (const { title, content } of sections) {
-    items.push(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_2,
-        children: [new TextRun({ text: title, font: 'Arial', bold: true, size: 28, color: '111111' })],
-        spacing: { before: 240, after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: content, font: 'Arial', size: 22, color: '333333' })],
-        spacing: { after: 200 },
-        indent: { left: 0 },
-      })
-    )
-  }
-
-  items.push(
-    new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true })
-  )
-  return items
-}
-
-function footerNotePage(isAI = false): Paragraph[] {
+function footerNotePage(): Paragraph[] {
   return [
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
@@ -670,9 +592,7 @@ function footerNotePage(isAI = false): Paragraph[] {
     new Paragraph({
       children: [
         new TextRun({
-          text: isAI
-            ? `This AI-enhanced report was generated by EventSlot on ${todayStr()}. AI analysis is based on registration data.`
-            : `This report was automatically generated by EventSlot on ${todayStr()}.`,
+          text: `This report was automatically generated by EventSlot on ${todayStr()}.`,
           font: 'Arial',
           size: 20,
         }),
@@ -707,32 +627,14 @@ export async function generateEventReport({
   confirmed,
   waitlist,
   theme = 'navy',
-  aiContent,
 }: {
   event: IEvent
   confirmed: IRegistration[]
   waitlist: IRegistration[]
   theme?: ReportTheme
-  aiContent?: AIReportContent
 }): Promise<Buffer> {
   const palette = THEMES[theme] ?? THEMES.navy
   const doc = new Document({
-    numbering: {
-      config: [
-        {
-          reference: 'bullet-list',
-          levels: [
-            {
-              level: 0,
-              format: LevelFormat.BULLET,
-              text: '-',
-              alignment: AlignmentType.LEFT,
-              style: { paragraph: { indent: { left: 720, hanging: 360 } } },
-            },
-          ],
-        },
-      ],
-    },
     styles: {
       default: {
         document: {
@@ -759,12 +661,11 @@ export async function generateEventReport({
         headers: { default: makeHeader(event.title) },
         footers: { default: makeFooter(event.title) },
         children: [
-          ...coverPage(event, palette, !!aiContent),
+          ...coverPage(event, palette),
           ...summaryPage(event),
-          ...(aiContent ? aiAnalysisPage(aiContent) : []),
           ...confirmedPage(event, confirmed),
-          ...waitlistPage(event, waitlist),
-          ...footerNotePage(!!aiContent),
+          ...waitlistPage(waitlist),
+          ...footerNotePage(),
         ],
       },
     ],

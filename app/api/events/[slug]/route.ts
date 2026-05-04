@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { normalizeCommunityLink } from '@/lib/communityLink'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -23,8 +24,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
+      userId: session.user.id,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
 
-    if (!isOwner && !hasValidToken) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
     }
 
@@ -73,6 +79,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
         imageUrl: event.imageUrl ?? null,
+        canEdit: isOwner,
       },
       confirmed,
       waitlist,
@@ -162,7 +169,6 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ slug: 
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    const token = req.nextUrl.searchParams.get('token')
     const { slug } = params
 
     const event = await prisma.event.findUnique({ where: { slug } })
@@ -170,10 +176,9 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ slug: 
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    const isOwner = session?.user?.id && event.organizerId === session.user.id
-    const hasToken = token && event.dashboardToken === token
+    const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
 
-    if (!isOwner && !hasToken) {
+    if (!isOwner) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
