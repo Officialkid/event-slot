@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
     }
 
     let organizerId: string | null = null
-    let organizerPlan = 'free'
     let sessionEmail = session?.user?.email ?? ''
 
     if (session?.user?.id) {
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
 
       if (organizer) {
         organizerId = organizer.id
-        organizerPlan = organizer.plan ?? 'free'
         sessionEmail = organizer.email ?? sessionEmail
 
         if ((organizer.name ?? '').trim() !== normalizedOrganizerName) {

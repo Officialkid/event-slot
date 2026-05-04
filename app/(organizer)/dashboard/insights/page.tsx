@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import ComingSoon from "@/components/ui/ComingSoon"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
@@ -32,7 +31,6 @@ export default function InsightsPage() {
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [upgradeRequired, setUpgradeRequired] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -40,7 +38,6 @@ export default function InsightsPage() {
     try {
       const res = await fetch("/api/insights")
       const json = await res.json()
-      if (res.status === 403 && json.upgradeRequired) { setUpgradeRequired(true); return }
       if (!res.ok) { setError(json.error || "Failed to load insights"); return }
       setData(json)
     } catch { setError("Unable to load insights.") }
@@ -48,12 +45,6 @@ export default function InsightsPage() {
   }
 
   useEffect(() => { load() }, [])
-
-  // ─── Upgrade wall ─────────────────────────────────────────────────────────
-
-  if (upgradeRequired) {
-    return <ComingSoon featureName="Insight Tracker" description="Cross-event audience insights are a Business plan feature. Discover patterns across all your events, repeat attendees, and demographic trends — once our payment system goes live." />
-  }
 
   // ─── Loading skeleton ─────────────────────────────────────────────────────
 

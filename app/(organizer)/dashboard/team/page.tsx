@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
-import Link from "next/link"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
+import { TEAM_MEMBER_LIMIT } from "@/lib/plans"
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -37,8 +37,7 @@ export default function TeamPage() {
 
   const [members, setMembers] = useState<TeamMemberRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlan, setUserPlan] = useState<string>("free")
-  const [maxMembers, setMaxMembers] = useState<number>(0)
+  const maxMembers = TEAM_MEMBER_LIMIT
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteError, setInviteError] = useState("")
   const [inviteSuccess, setInviteSuccess] = useState("")
@@ -64,18 +63,7 @@ export default function TeamPage() {
     markFeatureUsed("team")
     async function load() {
       try {
-        const [meRes, membersRes] = await Promise.all([
-          fetch("/api/me"),
-          fetch("/api/team/members"),
-        ])
-        if (meRes.ok) {
-          const me = await meRes.json()
-          const p = me.plan ?? "free"
-          setUserPlan(p)
-          setMaxMembers(
-            p === "business" ? 20 : p === "pro" ? 10 : 1
-          )
-        }
+        const membersRes = await fetch("/api/team/members")
         if (membersRes.ok) {
           const data = await membersRes.json()
           setMembers(data.members ?? [])
@@ -398,7 +386,7 @@ export default function TeamPage() {
           marginBottom: "0.75rem",
         }}
       >
-        {activeCount} of {maxMembers} team {maxMembers === 1 ? "member" : "members"}
+        {activeCount} of {maxMembers} team members
       </p>
 
       {/* Team usage progress bar */}

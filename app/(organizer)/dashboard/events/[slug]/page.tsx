@@ -1033,9 +1033,9 @@ export default function EventDashboardPage() {
   const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [insightsLocked, setInsightsLocked] = useState(false)
-  const [insightsRequiredCredits, setInsightsRequiredCredits] = useState(2)
+  const [insightsRequiredCredits] = useState(2)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
-  const [insightsEventId, setInsightsEventId] = useState<string | null>(null)
+  const [insightsEventId] = useState<string | null>(null)
   const [insightsUnlockLoading, setInsightsUnlockLoading] = useState(false)
 
   // AI Q&A

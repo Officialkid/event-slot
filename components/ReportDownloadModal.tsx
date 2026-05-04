@@ -21,7 +21,7 @@ export default function ReportDownloadModal({ onClose }: { onClose: () => void }
     })
     const data = await res.json()
     if (data.url) {
-      window.location.href = data.url
+      window.location.assign(data.url)
     } else {
       setLoading(null)
     }

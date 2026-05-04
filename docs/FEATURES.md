@@ -462,80 +462,24 @@ All emails use dark-themed HTML with lime CTA buttons:
 
 ## Feature Access Matrix
 
-| Feature | Free | Pro | Business | Credits |
-|---------|------|-----|----------|---------|
-| Active events | 5 | Unlimited | Unlimited | — |
-| Registrations per event | 100 | 500 | Unlimited | — |
-| Waitlist | ✓ | ✓ | ✓ | — |
-| Custom form questions | ✓ | ✓ | ✓ | — |
-| Bulk registration | 3 max | 20 max | Unlimited | — |
-| Team members | 1 | 10 | 20 | — |
-| Data retention | 30 days | Forever | Forever | — |
-| EventSlot watermark | Yes | No | No | 10 credits to remove |
-| CSV export | — | ✓ | ✓ | 15 credits base |
-| Standard report (Word doc) | ✓ | ✓ | ✓ | Free |
-| AI report | — | ✓ | ✓ | 50 credits |
-| Event analytics | — | ✓ | ✓ | 10 credits |
-| AI insight cards | — | ✓ | ✓ | 20 credits |
-| Duplicate events | — | ✓ | ✓ | 5 credits |
-| Custom thank you | — | ✓ | ✓ | 10 credits |
-| Team members | — | ✓ | ✓ | 10 credits/member |
-| Ask your data (Q&A) | — | — | ✓ | 60 credits/query |
-| Attendee feedback forms | — | — | ✓ | 30 credits |
-| Insights Tracker | — | — | ✓ | 50 credits |
-| Predictive capacity | — | ✓ | ✓ | 25 credits |
-| PAYG costs | Yes | Yes | No | — |
+| Feature | Availability |
+|---------|--------------|
+| Event creation and management | Free — no restrictions |
+| Registrations and waitlist automation | Free — no restrictions |
+| Analytics and insight tracker | Free — no restrictions |
+| AI insight cards and Q&A | Free — no restrictions |
+| CSV export and duplicate event | Free — no restrictions |
+| Team collaboration | Free — up to `TEAM_MEMBER_LIMIT` per workspace |
+| Report generation and browser preview | Free — no restrictions |
+| Report file download (DOCX) | Paid bundles only |
 
 ---
 
-## DEPRECATED / REMOVED
+## Deprecated / Removed
 
-### Public Pricing Page (Coming Soon)
-**Where:** /pricing  
-**What it does:** Shows a "Coming soon" pricing status while subscriptions are being finalized, plus a future-capabilities grid that outlines what Free, Credits, Pro, and Business will enable so organizers can see the roadmap.
-
-_The following table captures old content removed from FEATURES.md:_
-
-| Feature | Description | Plan | Route / Page |
-|---------|-------------|------|--------------|
-| Event creation | Organizers create events with title, description, capacity, deadline, custom questions | All | `POST /api/events` / `/create` |
-| Event registration | Attendees register via shareable link, answers custom questions | All | `POST /api/register` / `/[eventSlug]` |
-| Auto waitlist | When event is at capacity, new registrations go to a numbered waitlist | All | `POST /api/register` |
-| Waitlist promotion | When capacity increases, waitlisted attendees are confirmed and notified by email | All | `PATCH /api/events/[slug]/capacity` |
-| Organizer dashboard | Overview of events, registrations, stats | All | `/dashboard` |
-| Event management | View registrations, manage capacity, archive/close events | All | `/dashboard/[slug]` |
-| Event editing | Edit event title, description, capacity, deadline, questions | All | `PATCH /api/events/[slug]` / `/edit/[slug]` |
-| Event archiving | Archive completed events | All | `PATCH /api/events/[slug]/archive` |
-| Registration confirmation | Attendees see a confirmation page with their registration details | All | `/registration/[registrationId]` |
-| Registration editing | Attendees can edit their registration answers | All | `/registration/[registrationId]/edit` |
-| Notifications | In-app notifications for organizers (slot confirmed, data expiry, etc.) | All | `GET /api/notifications` / `/dashboard/notifications` |
-| User profile | Update name, email, profile photo, password | All | `GET/PATCH /api/profile` / `/dashboard/profile` |
-| Duplicate detection | Flags registrations from the same email | All | `GET /api/events/[slug]/duplicates` |
-| Event image upload | Upload a cover image for events (stored in R2) | All | `POST /api/upload` |
-| Event views tracking | Tracks how many times an event page is viewed | All | Auto-tracked in event registration page |
-| OG image generation | Dynamic OpenGraph images for event pages | All | `GET /api/og` |
-| Pay-as-you-go credits | Buy credits to unlock premium features one event at a time | Free, Pro | `/dashboard/billing` |
-| Registration overage | $1/100 registrations above free threshold, charged in credits | Free, Pro | `POST /api/register` |
-| CSV export | Export confirmed registrations as CSV with BOM encoding; Free plan requires one-time credit unlock via EventUnlock | Pro+ / PAYG | `GET /api/events/[slug]/export` |
-| Word report | Download registration report as Word doc (PAYG on Free, included on Pro/Business) | Pro+ / PAYG | `GET /api/events/[slug]/report` |
-| Analytics | View event analytics: views, conversion rate, registration trends | Pro+ / PAYG | `GET /api/events/[slug]/analytics` / `/dashboard/[slug]` |
-| Watermark removal | Remove EventSlot branding from event pages (PAYG on Free) | Pro+ / PAYG | `POST /api/billing/unlock` |
-| Event duplication | Duplicate an existing event with all settings | Pro+ | `POST /api/events/[slug]/duplicate` |
-| Team members | Invite co-managers who can manage events on behalf of the organizer | Pro (10), Business (20) | `POST /api/team/invite` / `/dashboard/team` |
-| Email reminders | Automated email reminders to registered attendees | Pro+ | via Resend |
-| Event insights tracker | Cross-event analytics and insights | Business | `GET /api/insights` / `/dashboard/insights` |
-| Attendee feedback forms | Automatically sends feedback request emails after events | Business | `GET /api/cron/send-feedback` |
-| Custom thank you page | Custom post-registration thank you (PAYG) | Business / PAYG | `POST /api/billing/unlock` |
-| Subscription billing | Monthly or annual Pro/Business plan via Paystack | Pro, Business | `POST /api/billing/checkout` / `/dashboard/billing` |
-| Billing management | View plan status, buy credits, cancel subscription, view transaction history | All | `/dashboard/billing` |
-| Data expiry (Free) | Free-plan event registrations auto-deleted 30 days after event deadline | Free | `GET /api/cron/expire-data` |
-| Organizer public profile | Public profile page at `/[username]` showing organizer's active events grid, slot bars, register CTA | All | `/[username]` |
-| Username setup | Onboarding page to choose a unique organizer username; required before accessing dashboard | All | `/setup-username` |
-| Event creation templates | 6 pre-built templates (meetup, corporate, workshop, conference, church, blank) pre-fill registration questions on event creation | All | `/create` |
-| Intelligent capacity suggestions | After 3+ completed events, the create form suggests a capacity based on historical fill rate and confirmed attendance | All | `/create` |
-| Welcome email | New organizer accounts receive a branded onboarding email after signup | All | auto |
-| Forgot / reset password | Full password reset flow: email link with 1-hour expiry, SHA-256 hashed token, bcrypt 12 on update | All | `/forgot-password`, `/reset-password` |
-| Admin panel | Super admin view of all users, events, messages, system health | Admin | `/admin` |
+### Legacy Plan-Gated Pricing Surfaces
+**Where:** `/pricing`, legacy plan-tier and credit-unlock references in old docs and routes  
+**Current status:** Replaced by open-access core product model. Only report-file download remains paid via bundle purchase.
 
 ---
 

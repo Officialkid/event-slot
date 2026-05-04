@@ -43,27 +43,33 @@ const OPEN_LIMITS = {
 }
 
 export function calculateOverageCost(
-  _registrationCount: number,
-  _freeThreshold: number
+  registrationCount: number,
+  freeThreshold: number
 ): number {
+  void registrationCount
+  void freeThreshold
   return 0
 }
 
-export function calculateCSVCost(_registrationCount: number): number {
+export function calculateCSVCost(registrationCount: number): number {
+  void registrationCount
   return 0
 }
 
-export function calculateReportCost(_registrationCount: number): number {
+export function calculateReportCost(registrationCount: number): number {
+  void registrationCount
   return 0
 }
 
-export function getPlanLimits(_plan: string) {
+export function getPlanLimits(plan: string) {
+  void plan
   return OPEN_LIMITS
 }
 
 export function canPerformAction(
-  _plan: string,
+  plan: string,
   action: keyof typeof OPEN_LIMITS
 ) {
+  void plan
   return OPEN_LIMITS[action]
 }
