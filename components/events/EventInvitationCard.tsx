@@ -126,50 +126,39 @@ export default function EventInvitationCard({
         marginBottom: "2rem",
       }}
     >
-      {/* ── Background layer ─────────────────────────────────────────── */}
-      {hasPoster ? (
-        <>
-          <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-            <Image
-              src={posterSrc}
-              alt={title}
-              fill
-              sizes="(max-width: 1040px) 100vw, 1040px"
-              style={{ objectFit: "contain", objectPosition: "center top" }}
-              onError={handlePosterError}
-            />
-          </div>
-          {/* Multi-stop overlay: heavy at bottom for legibility */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to bottom, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.72) 40%, rgba(10,10,10,0.92) 80%, #0A0A0A 100%)",
-              zIndex: 1,
-            }}
+      {/* ── Mobile poster (before content) ───────────────────────────── */}
+      {hasPoster && (
+        <div className="md:hidden" style={{ position: "relative", width: "100%", height: 220, backgroundColor: "#0A0A0A" }}>
+          <Image
+            src={posterSrc}
+            alt={title}
+            fill
+            sizes="100vw"
+            style={{ objectFit: "contain", objectPosition: "center" }}
+            onError={handlePosterError}
           />
-        </>
-      ) : (
+        </div>
+      )}
+
+      {/* ── Background layer ─────────────────────────────────────────── */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: gradient,
+          zIndex: 0,
+        }}
+      >
+        {/* Subtle noise / grain texture layer */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            background: gradient,
-            zIndex: 0,
+            background:
+              "radial-gradient(ellipse at 20% 30%, rgba(200,245,90,0.06) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(200,245,90,0.04) 0%, transparent 55%)",
           }}
-        >
-          {/* Subtle noise / grain texture layer */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "radial-gradient(ellipse at 20% 30%, rgba(200,245,90,0.06) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(200,245,90,0.04) 0%, transparent 55%)",
-            }}
-          />
-        </div>
-      )}
+        />
+      </div>
 
       {/* ── Decorative corner ornament (top-right) ───────────────────── */}
       <div
@@ -194,7 +183,7 @@ export default function EventInvitationCard({
           position: "relative",
           zIndex: 3,
           padding: "clamp(1.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem)",
-          minHeight: hasPoster ? 320 : 260,
+          minHeight: 260,
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -265,12 +254,8 @@ export default function EventInvitationCard({
             lineHeight: 1.15,
             letterSpacing: "-0.01em",
             fontFamily: "var(--font-instrument-serif, Georgia, serif)",
-            textShadow: hasPoster ? "0 2px 12px rgba(0,0,0,0.7)" : "none",
-            background: hasPoster ? "linear-gradient(to right, rgba(10,10,10,0.78), rgba(10,10,10,0.48))" : "transparent",
-            border: hasPoster ? "0.5px solid rgba(240,237,230,0.12)" : "none",
-            borderRadius: hasPoster ? 10 : 0,
-            padding: hasPoster ? "0.35rem 0.55rem" : 0,
-            maxWidth: "78%",
+            textShadow: "0 2px 12px rgba(0,0,0,0.45)",
+            maxWidth: "100%",
           }}
         >
           {title}
@@ -305,7 +290,7 @@ export default function EventInvitationCard({
           {location && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>📍</span>
-              <span style={{ fontSize: "0.88rem", color: "rgba(240,237,230,0.7)", fontWeight: 400 }}>
+              <span style={{ fontSize: "0.88rem", color: "rgba(240,237,230,0.82)", fontWeight: 400 }}>
                 {location}
               </span>
             </div>
@@ -335,7 +320,7 @@ export default function EventInvitationCard({
             <p
               style={{
                 fontSize: "0.88rem",
-                color: "rgba(240,237,230,0.6)",
+                color: "rgba(240,237,230,0.85)",
                 lineHeight: 1.65,
                 margin: 0,
                 maxWidth: 620,

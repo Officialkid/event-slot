@@ -253,7 +253,6 @@ export default async function PublicProfilePage({
               }}
               showBranding={showBranding}
               maxAttendees={maxAttendees}
-              compactHeader
             />
 
             {/* Already Registered? lookup panel */}

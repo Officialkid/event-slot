@@ -476,14 +476,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         />
       )}
 
-      <form onSubmit={handleSubmit} className="w-full rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-7 space-y-6">
-        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+      <form onSubmit={handleSubmit} className="w-full rounded-[12px] border border-[rgba(240,237,230,0.12)] bg-[#181818] p-7 space-y-6">
+        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.62)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
           Fill in your details
         </p>
 
         {/* Bulk prompt row */}
       <div className="flex items-center justify-between">
-        <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+        <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
           {attendees.length > 1 ? `Registering ${attendees.length} people` : "Registering 1 person"}
         </span>
         {canAddMore && (
@@ -522,7 +522,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
           {/* Attendee header */}
           <div className="flex items-center justify-between mb-3">
-            <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
+            <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.62)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
               Attendee {attendeeIndex + 1}
             </span>
             {attendeeIndex > 0 && (
@@ -550,13 +550,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             {/* System email field — always collected when organiser hasn't added an email question */}
             {!hasEmailQuestion && (
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.85)] tracking-[0.04em]">
                   Email address <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(for your ticket)</span>
                 </label>
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
                   value={baseEmails[attendeeIndex] ?? ""}
                   onChange={e => setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = e.target.value; return next })}
                 />
@@ -564,13 +564,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             )}
             {event.questions.map(q => (
               <div key={q.id}>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.85)] tracking-[0.04em]">
                   {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
                 </label>
                 {q.type === "text" && (
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -579,7 +579,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {q.type === "email" && (
                   <input
                     type="email"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -588,7 +588,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {q.type === "phone" && (
                   <input
                     type="tel"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -596,7 +596,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 )}
                 {q.type === "select" && (
                   <select
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}

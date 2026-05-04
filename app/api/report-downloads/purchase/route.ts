@@ -17,10 +17,23 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid bundle' }, { status: 400 })
     }
 
-    await prisma.user.findUnique({
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return Response.json({ error: 'Payments are temporarily unavailable. Missing PAYSTACK_SECRET_KEY.' }, { status: 503 })
+    }
+
+    if (!process.env.NEXTAUTH_URL) {
+      return Response.json({ error: 'Payments are temporarily unavailable. Missing NEXTAUTH_URL.' }, { status: 503 })
+    }
+
+    const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true },
+      select: { id: true, email: true },
     })
+
+    const checkoutEmail = session.user.email ?? user?.email
+    if (!checkoutEmail) {
+      return Response.json({ error: 'Your account is missing an email address for payment checkout.' }, { status: 400 })
+    }
 
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
@@ -29,7 +42,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: session.user.email,
+        email: checkoutEmail,
         amount: bundle.amount * 100,
         currency: 'KES',
         callback_url: `${process.env.NEXTAUTH_URL}/api/report-downloads/verify`,
@@ -43,13 +56,20 @@ export async function POST(request: Request) {
       }),
     })
 
-    const data = await response.json()
-    if (!data.status) {
-      return Response.json({ error: data.message }, { status: 500 })
+    const data = await response.json().catch(() => ({} as { status?: boolean; message?: string; data?: { authorization_url?: string } }))
+
+    if (!response.ok) {
+      const message = data?.message || 'Unable to initialize payment at the moment.'
+      return Response.json({ error: message }, { status: 502 })
     }
 
-    return Response.json({ url: data.data.authorization_url })
-  } catch {
+    if (!data.status) {
+      return Response.json({ error: data.message || 'Unable to initialize payment.' }, { status: 500 })
+    }
+
+    return Response.json({ url: data.data?.authorization_url })
+  } catch (error) {
+    console.error('[report-downloads/purchase]', error)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

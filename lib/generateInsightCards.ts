@@ -70,11 +70,28 @@ Generate 3 insight cards.`
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid response shape")
     return parsed.slice(0, 3)
   } catch {
+    const waitlistPressure = analytics.waitlistCount > 0 && analytics.confirmedCount > 0
+    const lowConversion = analytics.totalViews >= 20 && analytics.conversionRate < 10
+
     return [
       {
-        type: "info",
-        title: "AI currently unavailable",
-        body: "Insight generation is temporarily unavailable. Please try again shortly.",
+        type: analytics.conversionRate >= 20 ? "success" : "info",
+        title: analytics.conversionRate >= 20 ? "Strong conversion trend" : "Conversion baseline",
+        body: `You have ${analytics.totalRegistrations} registrations from ${analytics.totalViews} views (${analytics.conversionRate}% conversion).`,
+      },
+      {
+        type: waitlistPressure ? "warning" : "tip",
+        title: waitlistPressure ? "Waitlist pressure detected" : "Capacity headroom available",
+        body: waitlistPressure
+          ? `${analytics.waitlistCount} attendees are on the waitlist. Consider increasing capacity or adding a second session.`
+          : `Waitlist is currently low (${analytics.waitlistCount}). Keep promoting while the event is still open.`,
+      },
+      {
+        type: "tip",
+        title: lowConversion ? "Improve page conversion" : "Maintain momentum",
+        body: lowConversion
+          ? "Your view-to-registration conversion is low. Clarify value in the first screen and reduce optional form friction."
+          : "Keep traffic active around your peak registration windows to sustain current signup pace.",
       },
     ]
   }
