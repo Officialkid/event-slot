@@ -131,7 +131,9 @@ export async function GET(request: Request) {
     businessUsers: planCounts.business ?? 0,
   })
 
-  return new Response(buffer, {
+  const reportBytes = new Uint8Array(buffer)
+
+  return new Response(reportBytes, {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

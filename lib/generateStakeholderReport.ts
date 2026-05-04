@@ -179,7 +179,7 @@ Keep each recommendation to 2-3 sentences. Focus on growth, reliability, and use
                 spacing: { before: 160, after: 0 },
                 children: [
                   new TextRun({ text: "Confidential  ·  EventSlot  ·  www.eventsslot.com  ·  Page ", font: "Arial", size: 16, color: GREY }),
-                  PageNumber.CURRENT,
+                  new TextRun({ children: [PageNumber.CURRENT] }),
                 ],
               }),
             ],

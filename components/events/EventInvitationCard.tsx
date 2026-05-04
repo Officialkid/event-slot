@@ -91,7 +91,8 @@ export default function EventInvitationCard({
   const posterErrorHandledRef = useRef(false)
   const badge = getStatusBadge(status, capacity, confirmedCount, deadline ?? null)
   const gradient = pickGradient(title)
-  const hasPoster = Boolean(imageUrl) && !posterFailed
+  const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
+  const hasPoster = Boolean(posterSrc) && !posterFailed
   const isLongDescription = Boolean(description && description.length > 300)
   const descriptionText = !description
     ? ""
@@ -130,7 +131,7 @@ export default function EventInvitationCard({
         <>
           <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
             <Image
-              src={imageUrl}
+              src={posterSrc}
               alt={title}
               fill
               sizes="(max-width: 1040px) 100vw, 1040px"
