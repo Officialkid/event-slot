@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { Resend } from 'resend'
+import { isAdminEmail } from '@/lib/isAdmin'
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ''
 
@@ -12,10 +13,6 @@ function getResendClient() {
     throw new Error('RESEND_API_KEY is not configured')
   }
   return new Resend(apiKey)
-}
-
-function isSuperAdmin(email: string | null | undefined) {
-  return email && email === process.env.SUPER_ADMIN_EMAIL
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -57,7 +54,7 @@ export async function POST(req: NextRequest) {
     const resend = getResendClient()
 
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 

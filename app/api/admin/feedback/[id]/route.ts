@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isAdminEmail } from '@/lib/isAdmin'
 
 const VALID_STATUSES = ['read', 'resolved'] as const
 
@@ -9,7 +10,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email || session.user.email !== process.env.SUPER_ADMIN_EMAIL) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

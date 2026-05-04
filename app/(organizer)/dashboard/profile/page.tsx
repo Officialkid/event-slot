@@ -770,11 +770,18 @@ export default function ProfilePage() {
           <SectionHeading color="#FF6B6B">Danger zone</SectionHeading>
           <button
             onClick={async () => {
-              await fetch("/api/onboarding", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ completed: false, skipped: false, completedSteps: [] }),
-              }).catch(() => {})
+              await Promise.all([
+                fetch("/api/onboarding", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ completed: false, skipped: false, completedSteps: [] }),
+                }).catch(() => {}),
+                fetch("/api/user/onboarding", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "reset" }),
+                }).catch(() => {}),
+              ])
               router.push("/dashboard")
             }}
             style={{

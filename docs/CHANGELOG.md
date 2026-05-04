@@ -1,5 +1,92 @@
 # EventSlot — Changelog
 
+## [0.4.26] — May 4, 2026
+
+### Event Poster 400 + Hydration Stability Hotfix
+
+- Fixed production `/_next/image` 400 failures for event posters by hardening `images.remotePatterns` in `next.config.mjs` with:
+  - wildcard `*.r2.dev`
+  - explicit host `pub-08713a93a7a2437c89ead762d4588859.r2.dev`
+- Stabilized reusable poster rendering in `components/ui/EventImageWithFallback.tsx`:
+  - URL normalization/validation before rendering `next/image`
+  - single-fire `onError` handling to avoid repeated state flips
+- Reduced hydration mismatch risk in `components/events/EventInvitationCard.tsx` by making event date text hydration-safe (`suppressHydrationWarning` + mounted guard).
+- Removed eager poster preload behavior from the invitation hero image to reduce repeated preload warnings and wasted network work when a poster fails to load.
+
+## [0.4.25] — May 4, 2026
+
+### Event Image Reliability + Header Readability Fixes
+
+- Fixed broken/missing tab icon behavior by adding explicit favicon metadata entries in `app/layout.tsx`.
+- Improved event invitation title readability on poster backgrounds in `components/events/EventInvitationCard.tsx` by adding a dark contrast backing and stronger shadow treatment.
+- Fixed missing poster rendering on key event views by introducing resilient image fallback behavior:
+  - new reusable component `components/ui/EventImageWithFallback.tsx`
+  - applied to public event cards in `app/[username]/page.tsx`
+  - applied to organizer event cover in `app/(organizer)/dashboard/events/[slug]/page.tsx`
+- Hardened poster loading in `EventInvitationCard` by detecting load failures and automatically switching to gradient fallback instead of leaving a broken/blank image state.
+- Updated `next.config.mjs` to support Cloudflare R2 public image hosts more reliably:
+  - added `images.remotePatterns` including `*.r2.dev` and dynamic `R2_PUBLIC_URL` hostname
+  - expanded CSP `img-src` and `connect-src` with dynamic R2 public origin support
+
+## [0.4.24] — May 4, 2026
+
+### Onboarding Tour Fix (One-Time + Section Selector)
+
+- Added persistent onboarding flags on `User`:
+  - `onboardingCompleted`
+  - `onboardingSkipped`
+- Added migration `add_onboarding_state` and regenerated Prisma client.
+- Added new onboarding state endpoint `GET/PATCH /api/user/onboarding`:
+  - `PATCH` supports actions `complete` and `skip` for tutorial persistence.
+  - `GET` returns effective onboarding flags (with legacy `UserOnboarding` compatibility fallback).
+- Refactored tutorial trigger logic in `hooks/useTutorial.ts` to auto-start only when:
+  - `onboardingCompleted === false`
+  - `onboardingSkipped === false`
+- Updated tutorial complete/skip flow to persist through `/api/user/onboarding`.
+- Added section-aware tutorial filtering with manual start support.
+- Added new selector modal component `components/OnboardingTourSelector.tsx` with:
+  - multi-section selection
+  - select all / clear
+  - zero-selection validation
+- Updated dashboard shell sidebar to include `◎ Take a tour` above Terms/Privacy links and wired it to the selector modal.
+- Added tutorial targets for insights/team links to support section-specific tour routing.
+
+## [0.4.23] — May 4, 2026
+
+### Super Admin Stakeholder Report (DOCX)
+
+- Added stakeholder report document generator in `lib/generateStakeholderReport.ts` using `docx` with:
+  - executive summary and period-over-period comparison tables
+  - platform overview and top events by registrations
+  - system health summary (API errors, failed email signal)
+  - challenges/issues summary and AI-generated recommendations
+  - Word `.docx` output styled for stakeholder distribution
+- Added new protected admin API route `GET /api/admin/stakeholder-report?period=weekly|monthly|yearly`:
+  - super-admin-only access via `isAdminEmail`
+  - aggregates platform metrics, top events, plan mix, report-download revenue, and error logs
+  - returns downloadable Word report attachment
+- Updated `/admin` overview UI with a new `Stakeholder Reports` card to trigger one-click report downloads for:
+  - This Week
+  - This Month
+  - This Year
+
+## [0.4.22] — May 4, 2026
+
+### Event QR Code Generation
+
+- Added shared QR utilities in `lib/qrcode.ts` for:
+  - preview-friendly base64 QR generation (`generateEventQRCode`)
+  - print-ready PNG buffer generation (`generateEventQRCodeBuffer`)
+- Added new API route `GET /api/events/[slug]/qr` that returns a downloadable high-resolution PNG QR code (`1024x1024`) for event registration links.
+- Updated organizer event dashboard (`/dashboard/events/[slug]`) with:
+  - `QR Code` action beside registration link controls
+  - modal preview of QR code
+  - one-click high-res PNG download for poster/flyer usage
+- Updated event creation success experience (`/create`) with:
+  - registration link display and copy action
+  - `Get QR Code` action using the same preview + download flow
+  - direct `Continue to Dashboard` action
+
 ## [0.4.21] — May 4, 2026
 
 ### Plan Removal + Pricing Hidden

@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
+import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -990,6 +991,9 @@ export default function EventDashboardPage() {
   const [origin, setOrigin] = useState("")
   const [activeTab, setActiveTab] = useState<TabKey>("overview")
   const [copied, setCopied] = useState(false)
+  const [showQrModal, setShowQrModal] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [qrGenerating, setQrGenerating] = useState(false)
 
   // Modals
   const [modal, setModal] = useState<"rename" | "archive" | "delete" | null>(null)
@@ -1108,6 +1112,29 @@ export default function EventDashboardPage() {
       }
     }
     handleCopy()
+  }
+
+  const handleGenerateQR = async () => {
+    if (!eventData || !regLink) return
+    setQrGenerating(true)
+    try {
+      const QRCode = (await import("qrcode")).default
+      const dataUrl = await QRCode.toDataURL(regLink, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#0A0A0A", light: "#F0EDE6" },
+        errorCorrectionLevel: "H",
+      })
+      setQrDataUrl(dataUrl)
+      setShowQrModal(true)
+    } finally {
+      setQrGenerating(false)
+    }
+  }
+
+  const handleDownloadQR = () => {
+    if (!eventData) return
+    window.open(`/api/events/${eventData.slug}/qr`, "_blank")
   }
 
   const handleClose = async () => {
@@ -1562,6 +1589,90 @@ export default function EventDashboardPage() {
         <ReportDownloadModal onClose={() => setShowReportPaymentModal(false)} />
       )}
 
+      {showQrModal && qrDataUrl && (
+        <div
+          onClick={() => setShowQrModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1.5rem",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#141414",
+              border: "0.5px solid rgba(240,237,230,0.1)",
+              borderRadius: "16px",
+              padding: "2rem",
+              maxWidth: "360px",
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>
+                Event QR Code
+              </h3>
+              <button
+                onClick={() => setShowQrModal(false)}
+                style={{ background: "none", border: "none", color: "rgba(240,237,230,0.4)", fontSize: "1.2rem", cursor: "pointer" }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: "#F0EDE6",
+                borderRadius: "12px",
+                padding: "1rem",
+                marginBottom: "1rem",
+                display: "inline-block",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrDataUrl} alt="Event QR Code" style={{ width: "220px", height: "220px", display: "block" }} />
+            </div>
+
+            <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+              Scan to register for <strong style={{ color: "#F0EDE6" }}>{eventData.title}</strong>
+            </p>
+
+            <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
+              Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly.
+            </p>
+
+            <button
+              onClick={handleDownloadQR}
+              style={{
+                background: "#C8F55A",
+                color: "#0A0A0A",
+                border: "none",
+                borderRadius: "100px",
+                padding: "0.7rem 1.8rem",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                width: "100%",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              ↓ Download High-Res PNG
+            </button>
+
+            <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+              1024x1024px · Print-ready resolution
+            </p>
+          </div>
+        </div>
+      )}
+
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* ── Back breadcrumb ─────────────────────────────────────────── */}
         <Link
@@ -1577,12 +1688,17 @@ export default function EventDashboardPage() {
 
         {/* ── Cover image ──────────────────────────────────────────────── */}
         {eventData.imageUrl && (
-          <div style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+          <div style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0, minHeight: 220 }}>
+            <EventImageWithFallback
               src={eventData.imageUrl}
               alt={eventData.title}
-              style={{ width: '100%', height: 'auto', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '10px' }}
+              width={1200}
+              height={630}
+              objectFit="contain"
+              objectPosition="center top"
+              borderRadius={10}
+              fallbackText="Event poster could not be loaded"
+              containerStyle={{ minHeight: 220 }}
             />
           </div>
         )}
@@ -1693,6 +1809,27 @@ export default function EventDashboardPage() {
                 <path d="M5 7l6-3M5 9l6 3"/>
               </svg>
               Share
+            </button>
+            <button
+              onClick={() => void handleGenerateQR()}
+              disabled={qrGenerating}
+              style={{
+                background: "transparent",
+                border: "0.5px solid rgba(240,237,230,0.15)",
+                borderRadius: "100px",
+                padding: "0.5rem 1rem",
+                color: "rgba(240,237,230,0.6)",
+                fontSize: "0.82rem",
+                cursor: qrGenerating ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                fontFamily: "var(--font-dm-sans)",
+                whiteSpace: "nowrap",
+                opacity: qrGenerating ? 0.6 : 1,
+              }}
+            >
+              ▦ {qrGenerating ? "Generating..." : "QR Code"}
             </button>
           </div>
         </div>

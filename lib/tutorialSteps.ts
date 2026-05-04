@@ -1,5 +1,6 @@
 export type TutorialStep = {
   id: string
+  sectionId: string
   title: string
   description: string
   target: string
@@ -13,6 +14,7 @@ export type TutorialStep = {
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "welcome",
+    sectionId: "dashboard",
     title: "Welcome to EventSlot! 🎉",
     description: "You're now set up to manage events like a pro. Let us show you around in under 2 minutes.",
     target: "body",
@@ -23,6 +25,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "dashboard_overview",
+    sectionId: "dashboard",
     title: "Your Command Center",
     description: "This is your dashboard. At a glance you can see total events, registrations, waitlist count, and recent activity.",
     target: '[data-tutorial="dashboard-stats"]',
@@ -32,6 +35,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "create_event",
+    sectionId: "create",
     title: "Create Your First Event",
     description: "Click here to create an event. Give it a name, set a date, venue, and how many slots are available.",
     target: '[data-tutorial="create-event-btn"]',
@@ -43,6 +47,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "my_events",
+    sectionId: "dashboard_event",
     title: "Manage Your Events",
     description: "All your events live here. See who registered, who's on the waitlist, and manage everything from one place.",
     target: '[data-tutorial="my-events-nav"]',
@@ -52,6 +57,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "registration_link",
+    sectionId: "registration",
     title: "Share Your Registration Link",
     description: "Every event gets a unique link. Share it on WhatsApp, email, or anywhere — attendees register without creating an account.",
     target: '[data-tutorial="event-link"]',
@@ -61,6 +67,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "waitlist",
+    sectionId: "dashboard_event",
     title: "Automatic Waitlist Management",
     description: "When slots fill up, EventSlot automatically puts people on a waitlist. If someone cancels, the next person is confirmed automatically.",
     target: '[data-tutorial="waitlist-section"]',
@@ -70,6 +77,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "confirm_attendance",
+    sectionId: "registration",
     title: "Attendee Self-Check",
     description: "Attendees can confirm their attendance and download their QR ticket anytime — no login needed.",
     target: '[data-tutorial="confirm-attendance"]',
@@ -79,6 +87,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "notifications",
+    sectionId: "dashboard",
     title: "Stay in the Loop",
     description: "Notifications alert you when someone registers, joins the waitlist, or when a slot opens up.",
     target: '[data-tutorial="notifications-nav"]',
@@ -87,7 +96,44 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     spotlight: true,
   },
   {
+    id: "analytics_insights",
+    sectionId: "analytics",
+    title: "Analytics & AI Insights",
+    description: "Use Insights to understand attendance patterns, trends, and AI-generated recommendations for improving turnout.",
+    target: '[data-tutorial="insights-nav"]',
+    position: "right",
+    action: "Open Insights",
+    actionRoute: "/dashboard/insights",
+    icon: "📈",
+    spotlight: true,
+  },
+  {
+    id: "report_generation",
+    sectionId: "report",
+    title: "Generate Event Reports",
+    description: "Open an event to generate and download a stakeholder-ready report with metrics, findings, and recommendations.",
+    target: '[data-tutorial="my-events-nav"]',
+    position: "right",
+    action: "Go to Events",
+    actionRoute: "/dashboard/events",
+    icon: "📝",
+    spotlight: true,
+  },
+  {
+    id: "team_members",
+    sectionId: "team",
+    title: "Invite Team Members",
+    description: "Add collaborators so they can help manage events, attendee lists, and operations without sharing your account.",
+    target: '[data-tutorial="team-nav"]',
+    position: "right",
+    action: "Open Team",
+    actionRoute: "/dashboard/team",
+    icon: "👥",
+    spotlight: true,
+  },
+  {
     id: "profile",
+    sectionId: "dashboard",
     title: "Complete Your Profile",
     description: "Add your organization name and photo so attendees recognize your events. It builds trust.",
     target: '[data-tutorial="profile-nav"]',
@@ -99,6 +145,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     id: "complete",
+    sectionId: "dashboard",
     title: "You're All Set! 🚀",
     description: "That's everything you need to know. Create your first event and start filling slots. Your attendees are waiting.",
     target: "body",

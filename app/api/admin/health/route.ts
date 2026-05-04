@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { Resend } from "resend"
+import { isAdminEmail } from "@/lib/isAdmin"
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ""
 
@@ -43,14 +44,10 @@ async function getProviderAcceptedCountSince(startDate: Date): Promise<number | 
   }).length
 }
 
-function isSuperAdmin(email: string | null | undefined) {
-  return email && email === process.env.SUPER_ADMIN_EMAIL
-}
-
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { TUTORIAL_STEPS } from "@/lib/tutorialSteps"
 
@@ -10,16 +10,27 @@ export function useTutorial() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedSections, setSelectedSections] = useState<string[] | null>(null)
 
-  const currentStep = TUTORIAL_STEPS[currentStepIndex]
+  const filteredSteps = useMemo(() => {
+    if (!selectedSections || selectedSections.length === 0) {
+      return TUTORIAL_STEPS
+    }
+    const next = TUTORIAL_STEPS.filter(step => selectedSections.includes(step.sectionId))
+    return next.length > 0 ? next : TUTORIAL_STEPS
+  }, [selectedSections])
+
+  const currentStep = filteredSteps[currentStepIndex]
 
   useEffect(() => {
     async function checkOnboarding() {
       try {
-        const res = await fetch("/api/onboarding")
+        const res = await fetch("/api/user/onboarding")
         if (!res.ok) return
         const data = await res.json()
-        if (!data.tutorialCompleted && !data.tutorialSkipped) {
+        if (!data.onboardingCompleted && !data.onboardingSkipped) {
+          setSelectedSections(null)
+          setCurrentStepIndex(0)
           setTimeout(() => setIsActive(true), 1000)
         }
       } catch {
@@ -31,6 +42,12 @@ export function useTutorial() {
 
     checkOnboarding()
   }, [])
+
+  useEffect(() => {
+    if (!isActive) return
+    if (currentStep) return
+    setIsActive(false)
+  }, [currentStep, isActive])
 
   useEffect(() => {
     if (!isActive || !currentStep) return
@@ -66,23 +83,30 @@ export function useTutorial() {
   }, [])
 
   const handleComplete = useCallback(async () => {
-    await fetch("/api/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: true }),
-    }).catch(() => {})
+    await Promise.all([
+      fetch("/api/user/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete" }),
+      }).catch(() => {}),
+      fetch("/api/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true }),
+      }).catch(() => {}),
+    ])
     setIsActive(false)
   }, [])
 
   const handleNext = useCallback(async () => {
     if (!currentStep) return
     await markStep(currentStep.id)
-    if (currentStepIndex < TUTORIAL_STEPS.length - 1) {
+    if (currentStepIndex < filteredSteps.length - 1) {
       setCurrentStepIndex(i => i + 1)
     } else {
       await handleComplete()
     }
-  }, [currentStep, currentStepIndex, handleComplete, markStep])
+  }, [currentStep, currentStepIndex, filteredSteps.length, handleComplete, markStep])
 
   const handleBack = useCallback(() => {
     if (currentStepIndex > 0) {
@@ -91,11 +115,18 @@ export function useTutorial() {
   }, [currentStepIndex])
 
   const handleSkip = useCallback(async () => {
-    await fetch("/api/onboarding", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skipped: true }),
-    }).catch(() => {})
+    await Promise.all([
+      fetch("/api/user/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "skip" }),
+      }).catch(() => {}),
+      fetch("/api/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skipped: true }),
+      }).catch(() => {}),
+    ])
     setIsActive(false)
   }, [])
 
@@ -105,7 +136,7 @@ export function useTutorial() {
     await markStep(currentStep.id)
 
     if (currentStep.actionRoute) {
-      if (currentStepIndex < TUTORIAL_STEPS.length - 1) {
+      if (currentStepIndex < filteredSteps.length - 1) {
         setCurrentStepIndex(i => i + 1)
       } else {
         await handleComplete()
@@ -115,9 +146,16 @@ export function useTutorial() {
     }
 
     await handleNext()
-  }, [currentStep, currentStepIndex, handleComplete, handleNext, markStep, router])
+  }, [currentStep, currentStepIndex, filteredSteps.length, handleComplete, handleNext, markStep, router])
 
   const restartTutorial = useCallback(() => {
+    setSelectedSections(null)
+    setCurrentStepIndex(0)
+    setIsActive(true)
+  }, [])
+
+  const startTour = useCallback((sections: string[]) => {
+    setSelectedSections(sections)
     setCurrentStepIndex(0)
     setIsActive(true)
   }, [])
@@ -126,7 +164,7 @@ export function useTutorial() {
     isActive,
     currentStep,
     currentStepIndex,
-    totalSteps: TUTORIAL_STEPS.length,
+    totalSteps: filteredSteps.length,
     targetRect,
     isLoading,
     handleNext,
@@ -135,5 +173,6 @@ export function useTutorial() {
     handleComplete,
     handleAction,
     restartTutorial,
+    startTour,
   }
 }

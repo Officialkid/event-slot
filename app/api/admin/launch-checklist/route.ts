@@ -2,10 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-
-function isSuperAdmin(email: string | null | undefined) {
-  return email && email === process.env.SUPER_ADMIN_EMAIL
-}
+import { isAdminEmail } from "@/lib/isAdmin"
 
 const REQUIRED_ENV_VARS = [
   { key: "DATABASE_URL", label: "Database URL (Neon)" },
@@ -15,6 +12,7 @@ const REQUIRED_ENV_VARS = [
   { key: "GOOGLE_CLIENT_SECRET", label: "Google OAuth Client Secret" },
   { key: "RESEND_API_KEY", label: "Resend API Key" },
   { key: "SUPER_ADMIN_EMAIL", label: "Super Admin Email" },
+  { key: "SUPER_ADMIN_EMAIL_2", label: "Second Super Admin Email" },
   { key: "CRON_SECRET", label: "Cron Secret" },
   { key: "UPSTASH_REDIS_REST_URL", label: "Upstash Redis URL" },
   { key: "UPSTASH_REDIS_REST_TOKEN", label: "Upstash Redis Token" },
@@ -23,7 +21,7 @@ const REQUIRED_ENV_VARS = [
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -43,10 +41,13 @@ export async function GET() {
 
     // 3 — Admin user exists in DB
     let adminUserExists = false
-    if (dbOk && process.env.SUPER_ADMIN_EMAIL) {
+    const adminEmails = [process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(
+      (email): email is string => Boolean(email)
+    )
+    if (dbOk && adminEmails.length > 0) {
       try {
-        const admin = await prisma.user.findUnique({
-          where: { email: process.env.SUPER_ADMIN_EMAIL },
+        const admin = await prisma.user.findFirst({
+          where: { email: { in: adminEmails } },
           select: { id: true, plan: true },
         })
         adminUserExists = Boolean(admin)

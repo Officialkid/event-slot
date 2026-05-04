@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-
-function isSuperAdmin(email: string | null | undefined) {
-  return email && email === process.env.SUPER_ADMIN_EMAIL
-}
+import { isAdminEmail } from "@/lib/isAdmin"
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -39,13 +36,13 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
     // Prevent deleting the super admin account
     const target = await prisma.user.findUnique({ where: { id: params.id }, select: { email: true } })
-    if (target?.email === process.env.SUPER_ADMIN_EMAIL) {
+    if (isAdminEmail(target?.email)) {
       return NextResponse.json({ error: "Cannot delete super admin" }, { status: 400 })
     }
 

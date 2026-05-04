@@ -156,6 +156,13 @@ export default function AdminOverviewPage() {
     }).finally(() => setLoading(false))
   }, [])
 
+  const downloadReport = (period: "weekly" | "monthly" | "yearly") => {
+    const url = `/api/admin/stakeholder-report?period=${period}`
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.click()
+  }
+
   if (loading) {
     return <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>Loading…</div>
   }
@@ -177,6 +184,69 @@ export default function AdminOverviewPage() {
       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
         Platform-wide stats at a glance.
       </p>
+
+      <div
+        style={{
+          background: "#141414",
+          border: "0.5px solid rgba(240,237,230,0.08)",
+          borderRadius: "12px",
+          padding: "1.5rem",
+          marginBottom: "2rem",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "0.7rem",
+            color: "#C8F55A",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            marginBottom: "0.5rem",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Stakeholder Reports
+        </p>
+        <h3
+          style={{
+            fontFamily: "var(--font-instrument-serif)",
+            fontSize: "1.3rem",
+            color: "#F0EDE6",
+            marginBottom: "0.75rem",
+            fontWeight: 400,
+          }}
+        >
+          Generate Platform Report
+        </h3>
+        <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+          Download a complete Word document report for stakeholder meetings. Includes user growth, events, registrations,
+          system health, and AI recommendations.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          {[
+            { key: "weekly", label: "This Week" },
+            { key: "monthly", label: "This Month" },
+            { key: "yearly", label: "This Year" },
+          ].map(period => (
+            <button
+              key={period.key}
+              onClick={() => downloadReport(period.key as "weekly" | "monthly" | "yearly")}
+              style={{
+                background: period.key === "monthly" ? "#C8F55A" : "transparent",
+                color: period.key === "monthly" ? "#0A0A0A" : "rgba(240,237,230,0.6)",
+                border: period.key === "monthly" ? "none" : "0.5px solid rgba(240,237,230,0.15)",
+                borderRadius: "100px",
+                padding: "0.6rem 1.4rem",
+                fontSize: "0.875rem",
+                fontWeight: period.key === "monthly" ? 600 : 400,
+                cursor: "pointer",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              ↓ {period.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Row 1 — Signup priorities */}
       <div

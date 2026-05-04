@@ -282,7 +282,11 @@ export default function LaunchChecklistPage() {
         <Check
           ok={data.adminUserExists}
           label="Super admin account seeded"
-          note={process.env.SUPER_ADMIN_EMAIL ? `Expected: ${process.env.SUPER_ADMIN_EMAIL}` : "SUPER_ADMIN_EMAIL not set"}
+          note={
+            [process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(Boolean).length > 0
+              ? `Expected: ${[process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(Boolean).join(", ")}`
+              : "SUPER_ADMIN_EMAIL / SUPER_ADMIN_EMAIL_2 not set"
+          }
         />
         <Check
           ok={data.recentErrorCount === 0}

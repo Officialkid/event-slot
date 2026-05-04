@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
+import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 
 type EventQuestion = {
   id: string
@@ -454,20 +455,18 @@ export default async function PublicProfilePage({
                         overflow: "hidden",
                         backgroundColor: "#0A0A0A",
                         lineHeight: 0,
+                        minHeight: 180,
                       }}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <EventImageWithFallback
                         src={event.imageUrl}
                         alt={event.title}
-                        style={{
-                          width: "100%",
-                          height: "auto",
-                          maxHeight: "480px",
-                          objectFit: "contain",
-                          objectPosition: "center top",
-                          display: "block",
-                        }}
+                        width={900}
+                        height={500}
+                        objectFit="contain"
+                        objectPosition="center top"
+                        fallbackText="Event image unavailable"
+                        containerStyle={{ minHeight: 180 }}
                       />
                     </div>
                   )}

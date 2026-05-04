@@ -66,6 +66,11 @@ export default function CreateEventPage() {
     message: string
   } | null>(null)
   const [capacitySuggestionFetched, setCapacitySuggestionFetched] = useState(false)
+  const [origin, setOrigin] = useState("")
+  const [copiedSuccessLink, setCopiedSuccessLink] = useState(false)
+  const [showQrModal, setShowQrModal] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [qrGenerating, setQrGenerating] = useState(false)
   const [aiPrediction, setAiPrediction] = useState<{
     suggestedCapacity: number
     confidence: 'low' | 'medium' | 'high'
@@ -95,6 +100,10 @@ export default function CreateEventPage() {
       router.replace('/signin?callbackUrl=/create')
     }
   }, [status, router])
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   async function fetchCapacitySuggestion() {
     if (capacitySuggestionFetched) return
@@ -143,15 +152,41 @@ export default function CreateEventPage() {
     }, 50)
   }
 
-  // After creation, redirect to the event dashboard
-  useEffect(() => {
-    if (success && eventInfo) {
-      const timer = setTimeout(() => {
-        router.push(`/dashboard/events/${eventInfo.slug}`)
-      }, 1500)
-      return () => clearTimeout(timer)
+  const successRegistrationLink = eventInfo && origin ? `${origin}/${eventInfo.slug}` : ""
+
+  const handleCopySuccessLink = async () => {
+    if (!successRegistrationLink) return
+    try {
+      await navigator.clipboard.writeText(successRegistrationLink)
+      setCopiedSuccessLink(true)
+      setTimeout(() => setCopiedSuccessLink(false), 2000)
+    } catch {
+      // Ignore clipboard errors to match existing page behavior.
     }
-  }, [success, eventInfo, router])
+  }
+
+  const handleGenerateSuccessQR = async () => {
+    if (!eventInfo || !successRegistrationLink) return
+    setQrGenerating(true)
+    try {
+      const QRCode = (await import("qrcode")).default
+      const dataUrl = await QRCode.toDataURL(successRegistrationLink, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#0A0A0A", light: "#F0EDE6" },
+        errorCorrectionLevel: "H",
+      })
+      setQrDataUrl(dataUrl)
+      setShowQrModal(true)
+    } finally {
+      setQrGenerating(false)
+    }
+  }
+
+  const handleDownloadSuccessQR = () => {
+    if (!eventInfo) return
+    window.open(`/api/events/${eventInfo.slug}/qr`, "_blank")
+  }
 
   if (status === 'loading' || status === 'unauthenticated') {
     return null
@@ -281,6 +316,81 @@ export default function CreateEventPage() {
   return (
     <div className="px-4 py-12">
       <div className="mx-auto max-w-[640px] space-y-6">
+        {showQrModal && qrDataUrl && eventInfo && (
+          <div
+            onClick={() => setShowQrModal(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              background: "rgba(0,0,0,0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "1.5rem",
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: "#141414",
+                border: "0.5px solid rgba(240,237,230,0.1)",
+                borderRadius: "16px",
+                padding: "2rem",
+                maxWidth: "360px",
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+                <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>
+                  Event QR Code
+                </h3>
+                <button
+                  onClick={() => setShowQrModal(false)}
+                  style={{ background: "none", border: "none", color: "rgba(240,237,230,0.4)", fontSize: "1.2rem", cursor: "pointer" }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ background: "#F0EDE6", borderRadius: "12px", padding: "1rem", marginBottom: "1rem", display: "inline-block" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrDataUrl} alt="Event QR Code" style={{ width: "220px", height: "220px", display: "block" }} />
+              </div>
+
+              <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+                Scan to register for <strong style={{ color: "#F0EDE6" }}>{eventInfo.title}</strong>
+              </p>
+
+              <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
+                Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly.
+              </p>
+
+              <button
+                onClick={handleDownloadSuccessQR}
+                style={{
+                  background: "#C8F55A",
+                  color: "#0A0A0A",
+                  border: "none",
+                  borderRadius: "100px",
+                  padding: "0.7rem 1.8rem",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  width: "100%",
+                  fontFamily: "var(--font-dm-sans)",
+                }}
+              >
+                ↓ Download High-Res PNG
+              </button>
+
+              <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                1024x1024px · Print-ready resolution
+              </p>
+            </div>
+          </div>
+        )}
 
         <div>
           <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
@@ -845,12 +955,57 @@ export default function CreateEventPage() {
               Your event is live!
             </h2>
             <p className="text-[0.875rem] text-[rgba(240,237,230,0.45)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
-              Taking you to your event dashboard…
+              Share your registration link now or download a print-ready QR code.
             </p>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid rgba(200,245,90,0.2)", borderTopColor: "#C8F55A", animation: "spin 0.8s linear infinite" }} />
+
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+              <div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
+                <input
+                  readOnly
+                  value={successRegistrationLink}
+                  style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleCopySuccessLink()}
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "#C8F55A" : "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
+              >
+                {copiedSuccessLink ? "Copied!" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleGenerateSuccessQR()}
+                disabled={qrGenerating}
+                style={{
+                  background: "transparent",
+                  border: "0.5px solid rgba(240,237,230,0.15)",
+                  borderRadius: "100px",
+                  padding: "0.5rem 1rem",
+                  color: "rgba(240,237,230,0.6)",
+                  fontSize: "0.82rem",
+                  cursor: qrGenerating ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  whiteSpace: "nowrap",
+                  opacity: qrGenerating ? 0.6 : 1,
+                }}
+              >
+                ▦ {qrGenerating ? "Generating..." : "Get QR Code"}
+              </button>
             </div>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+            {eventInfo && (
+              <button
+                type="button"
+                onClick={() => router.push(`/dashboard/events/${eventInfo.slug}`)}
+                className="w-full rounded-full bg-[#C8F55A] px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+              >
+                Continue to Dashboard
+              </button>
+            )}
           </div>
         ) : null}
       </div>

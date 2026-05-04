@@ -1,22 +1,24 @@
 import { prisma } from './prisma'
 
-const PRIVILEGED_ACCOUNTS = [
-  {
-    email: 'danielmwaliliofficial@gmail.com',
-    name: 'Daniel Mwalili',
-    isAdmin: true,
-    plan: 'free',
-  },
-  {
-    email: 'danielmwalili1@gmail.com',
-    name: 'Daniel',
-    isAdmin: false,
-    plan: 'free',
-  },
-]
+function getPrivilegedAccounts() {
+  return [
+    {
+      email: process.env.SUPER_ADMIN_EMAIL,
+      name: 'Daniel Mwalili',
+      isAdmin: true,
+      plan: 'business',
+    },
+    {
+      email: process.env.SUPER_ADMIN_EMAIL_2,
+      name: 'EventSlot Admin',
+      isAdmin: true,
+      plan: 'business',
+    },
+  ].filter((account): account is { email: string; name: string; isAdmin: boolean; plan: 'business' } => Boolean(account.email))
+}
 
 export async function seedPrivilegedAccounts() {
-  for (const account of PRIVILEGED_ACCOUNTS) {
+  for (const account of getPrivilegedAccounts()) {
     await prisma.user.upsert({
       where: { email: account.email },
       update: { isAdmin: account.isAdmin, plan: account.plan },

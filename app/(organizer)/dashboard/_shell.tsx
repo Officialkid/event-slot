@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
 import { HintDot } from "@/components/tutorial/HintDot"
+import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { useTutorial } from "@/hooks/useTutorial"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -157,10 +158,11 @@ interface SidebarInnerProps {
   unreadCount: number
   usedFeatures: string[]
   onNavClick?: () => void
+  onOpenTourSelector?: () => void
   collapsed?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, collapsed = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -360,6 +362,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           return (
             <Link
               href="/dashboard/insights"
+              data-tutorial="insights-nav"
               onClick={onNavClick}
               onMouseEnter={e => {
                 if (collapsed) {
@@ -392,6 +395,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           return (
             <Link
               href="/dashboard/team"
+              data-tutorial="team-nav"
               onClick={onNavClick}
               onMouseEnter={e => {
                 if (collapsed) {
@@ -436,6 +440,27 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           flexShrink: 0,
         }}
       >
+        <button
+          onClick={onOpenTourSelector}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "0.6rem 1rem",
+            borderRadius: "8px",
+            background: "transparent",
+            border: "none",
+            color: "rgba(240,237,230,0.35)",
+            fontSize: "0.875rem",
+            cursor: "pointer",
+            width: "100%",
+            textAlign: "left",
+            fontFamily: "var(--font-dm-sans)",
+            marginBottom: "0.5rem",
+          }}
+        >
+          ◎ Take a tour
+        </button>
         <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: "0.625rem" }}>
           <a
             href="/terms"
@@ -527,6 +552,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [unreadCount, setUnreadCount] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [usedFeatures, setUsedFeatures] = useState<string[]>([])
+  const [showTourSelector, setShowTourSelector] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const moreSheetRef = useRef<HTMLDivElement>(null)
@@ -659,7 +685,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     initials,
     unreadCount,
     usedFeatures,
+    onOpenTourSelector: () => setShowTourSelector(true),
   }
+
+  const startTour = useCallback((sections: string[]) => {
+    setShowTourSelector(false)
+    tutorial.startTour(sections)
+  }, [tutorial])
 
   if (status === "loading") {
     return (
@@ -785,7 +817,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <IconX />
           </button>
         </div>
-        <SidebarInner {...sidebarProps} onNavClick={() => setDrawerOpen(false)} />
+        <SidebarInner
+          {...sidebarProps}
+          onNavClick={() => setDrawerOpen(false)}
+          onOpenTourSelector={() => {
+            setDrawerOpen(false)
+            setShowTourSelector(true)
+          }}
+        />
       </aside>
 
       {/* Page shell */}
@@ -1136,7 +1175,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     <Link
                       key={item.href}
                       href={item.href}
-                      data-tutorial={item.href === "/dashboard/profile" ? "profile-nav" : undefined}
+                      data-tutorial={
+                        item.href === "/dashboard/profile"
+                          ? "profile-nav"
+                          : item.href === "/dashboard/insights"
+                            ? "insights-nav"
+                            : item.href === "/dashboard/team"
+                              ? "team-nav"
+                              : undefined
+                      }
                       aria-label={item.label}
                       onClick={() => setMoreOpen(false)}
                       className="more-sheet-item"
@@ -1264,6 +1311,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             )}
           </div>
         </>
+      )}
+
+      {showTourSelector && (
+        <OnboardingTourSelector
+          onClose={() => setShowTourSelector(false)}
+          onStart={startTour}
+        />
       )}
 
       {tutorial.isActive && tutorial.currentStep && (

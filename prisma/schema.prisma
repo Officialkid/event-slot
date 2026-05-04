@@ -63,6 +63,8 @@ model User {
   resetToken               String?
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
+  onboardingCompleted      Boolean   @default(false)
+  onboardingSkipped        Boolean   @default(false)
   accounts       Account[]
   ownedTeam      TeamMember[] @relation("OwnedTeam")
   memberOf       TeamMember[] @relation("MemberOf")

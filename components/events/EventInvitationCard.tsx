@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 
@@ -85,9 +85,13 @@ export default function EventInvitationCard({
   status,
   deadline,
 }: EventInvitationCardProps) {
+  const [isMounted, setIsMounted] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [posterFailed, setPosterFailed] = useState(false)
+  const posterErrorHandledRef = useRef(false)
   const badge = getStatusBadge(status, capacity, confirmedCount, deadline ?? null)
   const gradient = pickGradient(title)
+  const hasPoster = Boolean(imageUrl) && !posterFailed
   const isLongDescription = Boolean(description && description.length > 300)
   const descriptionText = !description
     ? ""
@@ -99,6 +103,16 @@ export default function EventInvitationCard({
     capacity !== null && capacity !== undefined
       ? Math.max(0, capacity - confirmedCount)
       : null
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const handlePosterError = useCallback(() => {
+    if (posterErrorHandledRef.current) return
+    posterErrorHandledRef.current = true
+    setPosterFailed(true)
+  }, [])
 
   return (
     <div
@@ -112,7 +126,7 @@ export default function EventInvitationCard({
       }}
     >
       {/* ── Background layer ─────────────────────────────────────────── */}
-      {imageUrl ? (
+      {hasPoster ? (
         <>
           <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
             <Image
@@ -121,7 +135,7 @@ export default function EventInvitationCard({
               fill
               sizes="(max-width: 1040px) 100vw, 1040px"
               style={{ objectFit: "contain", objectPosition: "center top" }}
-              priority
+              onError={handlePosterError}
             />
           </div>
           {/* Multi-stop overlay: heavy at bottom for legibility */}
@@ -179,7 +193,7 @@ export default function EventInvitationCard({
           position: "relative",
           zIndex: 3,
           padding: "clamp(1.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem)",
-          minHeight: imageUrl ? 320 : 260,
+          minHeight: hasPoster ? 320 : 260,
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
@@ -250,7 +264,11 @@ export default function EventInvitationCard({
             lineHeight: 1.15,
             letterSpacing: "-0.01em",
             fontFamily: "var(--font-instrument-serif, Georgia, serif)",
-            textShadow: imageUrl ? "0 2px 12px rgba(0,0,0,0.6)" : "none",
+            textShadow: hasPoster ? "0 2px 12px rgba(0,0,0,0.7)" : "none",
+            background: hasPoster ? "linear-gradient(to right, rgba(10,10,10,0.78), rgba(10,10,10,0.48))" : "transparent",
+            border: hasPoster ? "0.5px solid rgba(240,237,230,0.12)" : "none",
+            borderRadius: hasPoster ? 10 : 0,
+            padding: hasPoster ? "0.35rem 0.55rem" : 0,
             maxWidth: "78%",
           }}
         >
@@ -276,8 +294,9 @@ export default function EventInvitationCard({
                   fontWeight: 500,
                   letterSpacing: "0.01em",
                 }}
+                suppressHydrationWarning
               >
-                {formatEventDate(eventDate)}
+                {isMounted ? formatEventDate(eventDate) : ""}
               </span>
             </div>
           )}

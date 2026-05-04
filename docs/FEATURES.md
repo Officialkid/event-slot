@@ -126,6 +126,18 @@ organizer has 3+ completed past events.
 **Custom questions:** Option-based questions now support both Multiple Choice and Checkboxes, with explicit option-by-option entry and a setting to allow single-select or multi-select for checkbox questions.  
 **API:** POST /api/events
 
+### Event QR Code Export
+**Where:** Organizer event dashboard (`/dashboard/events/[slug]`), create success state (`/create`), QR API (`/api/events/[slug]/qr`)  
+**Who:** Organizers  
+**What it does:** Generates a unique QR code for each event registration URL. Organizers can preview the QR in-app and download a high-resolution PNG (`1024x1024`) for posters, flyers, and social media creatives.  
+**API:** GET /api/events/[slug]/qr
+
+### Resilient Event Poster Rendering
+**Where:** Public event invitation card (`components/events/EventInvitationCard.tsx`), public organizer event cards (`/app/[username]/page.tsx`), organizer event detail cover (`/dashboard/events/[slug]`)  
+**Who:** Attendees and organizers  
+**What it does:** Ensures event posters render reliably with graceful fallback UI when image URLs are missing, malformed, expired, or inaccessible. Prevents broken-image icons and keeps page layout intact by using a reusable fallback image component with single-fire error handling (no repeated error loops). Also improves title readability over poster backgrounds with stronger contrast treatment and reduces hydration mismatch risk on event date text.  
+**Infra note:** `next.config.mjs` includes Cloudflare R2 support in `images.remotePatterns` via wildcard `*.r2.dev`, explicit production host allowlisting, and dynamic `R2_PUBLIC_URL` hostname; CSP `img-src` and `connect-src` also include matching R2 origins.
+
 ### Countdown Timer
 **Where:** /[eventSlug] registration page and /dashboard/events/[slug] organizer event header  
 **Who:** Attendees and organizers  
@@ -192,6 +204,12 @@ Each gets their own registration record.
 **What it does:** Surfaces signup momentum first with prominent `Total Signups` and `New Signups This Week` cards, followed by supporting platform stats. Weekly signups are computed from Monday 00:00 server time. Plan breakdown is de-emphasized and only displayed when Pro/Business plans are present.
 **API:** GET /api/admin/stats
 
+### Stakeholder Report Generator (Word Export)
+**Where:** /admin (overview), `lib/generateStakeholderReport.ts`  
+**Who:** Super admins (`SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_EMAIL_2`)  
+**What it does:** Generates a downloadable Word report for stakeholder meetings with platform overview, period comparison, top events, system health summary, challenge highlights from error logs, plan mix, and AI-generated recommendations. Supports weekly, monthly, and yearly report windows.
+**API:** GET /api/admin/stakeholder-report?period=weekly|monthly|yearly
+
 ### Admin Broadcast Delivery Reporting
 **Where:** /admin/broadcast  
 **Who:** Super admin (`SUPER_ADMIN_EMAIL`)  
@@ -210,6 +228,13 @@ Each gets their own registration record.
 **What it does:** Automatically launches a guided, multi-step dashboard tutorial with spotlighted UI targets, progress tracking, skip/complete controls, and contextual action routing. Tutorial progress is persisted per user and can be restarted from profile or from the dashboard help (`?`) button.  
 **Data model:** `UserOnboarding`  
 **API:** `GET /api/onboarding`, `PATCH /api/onboarding`
+
+### Onboarding Tour Selector + One-Time Trigger Control
+**Where:** Dashboard sidebar (`◎ Take a tour`), `components/OnboardingTourSelector.tsx`, `hooks/useTutorial.ts`  
+**Who:** Organizers  
+**What it does:** Prevents automatic tour replay after completion/skip and adds a section selector so users can run tours for specific areas only (dashboard, create flow, registration, event management, analytics, reports, team). Includes select-all/clear controls and validation when no section is selected.  
+**Data model:** `User.onboardingCompleted`, `User.onboardingSkipped` (with backward compatibility to `UserOnboarding`)  
+**API:** `GET /api/user/onboarding`, `PATCH /api/user/onboarding`
 
 ### Dashboard Home
 **Where:** /dashboard  
@@ -233,6 +258,8 @@ upgrade CTA. Quick actions grid.
 - **Analytics** — Charts, insight cards, Q&A (plan/credits gated)
 - **Settings** — Edit event description, date, location, deadline
 - **Feedback** — Attendee feedback inbox (Business plan only)
+
+**Header tools:** Includes registration link copy/share actions plus a QR Code action that opens a modal preview and supports high-res PNG download.
 
 ### Notifications
 **Where:** /dashboard/notifications  

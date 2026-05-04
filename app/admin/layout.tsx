@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { notFound } from "next/navigation"
+import { isAdminEmail } from "@/lib/isAdmin"
 import AdminSidebar from "./AdminSidebar"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
 
-  if (!session?.user?.email || session.user.email !== process.env.SUPER_ADMIN_EMAIL) {
+  if (!isAdminEmail(session?.user?.email)) {
     notFound()
   }
 

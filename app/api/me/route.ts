@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { isAdminEmail } from '@/lib/isAdmin'
 
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
       where: { id: session.user.id },
       select: { plan: true, creditBalance: true },
     })
-    const isAdmin = session.user.email === process.env.SUPER_ADMIN_EMAIL
+    const isAdmin = isAdminEmail(session.user.email)
     return NextResponse.json({ plan: user?.plan ?? 'free', creditBalance: user?.creditBalance ?? 0, isAdmin })
   } catch (err) {
     console.error('[me] GET error:', err)

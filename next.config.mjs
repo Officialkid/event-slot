@@ -1,5 +1,47 @@
 import withPWA, { runtimeCaching as defaultRuntimeCaching } from '@ducanh2912/next-pwa'
 
+const r2PublicUrl = process.env.R2_PUBLIC_URL
+let r2PublicHostname = null
+
+try {
+  if (r2PublicUrl) {
+    r2PublicHostname = new URL(r2PublicUrl).hostname
+  }
+} catch {
+  r2PublicHostname = null
+}
+
+const imageRemotePatterns = [
+  { protocol: 'https', hostname: '*.r2.dev', pathname: '/**' },
+  { protocol: 'https', hostname: 'pub-08713a93a7a2437c89ead762d4588859.r2.dev', pathname: '/**' },
+  { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
+]
+
+if (r2PublicHostname) {
+  imageRemotePatterns.push({ protocol: 'https', hostname: r2PublicHostname, pathname: '/**' })
+}
+
+const imgSrcList = [
+  "'self'",
+  'data:',
+  'blob:',
+  'https://*.r2.dev',
+  'https://lh3.googleusercontent.com',
+]
+
+const connectSrcList = [
+  "'self'",
+  'https://*.r2.dev',
+  'https://www.googleapis.com',
+  'https://oauth2.googleapis.com',
+  'https://accounts.google.com',
+]
+
+if (r2PublicHostname) {
+  imgSrcList.push(`https://${r2PublicHostname}`)
+  connectSrcList.push(`https://${r2PublicHostname}`)
+}
+
 const runtimeCaching = defaultRuntimeCaching.filter((entry) => {
   const cacheName = entry?.options?.cacheName
   // Prevent noisy navigation/cross-origin no-response errors in production.
@@ -23,6 +65,9 @@ const withPWAConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  images: {
+    remotePatterns: imageRemotePatterns,
+  },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
     NEXTAUTH_URL_INTERNAL:
@@ -93,9 +138,9 @@ const nextConfig = {
               // Fonts are self-hosted via next/font/google in /_next/static/media/
               "font-src 'self'",
               // R2 images, Google OAuth profile photos, data/blob URIs for upload previews
-              "img-src 'self' data: blob: https://*.r2.dev https://lh3.googleusercontent.com",
+              `img-src ${imgSrcList.join(' ')}`,
                      // App APIs are same-origin, with external fetches to R2 and selected Google endpoints
-                     "connect-src 'self' https://*.r2.dev https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com",
+                `connect-src ${connectSrcList.join(' ')}`,
               // No iframes loaded by this app
               "frame-src 'none'",
               "object-src 'none'",

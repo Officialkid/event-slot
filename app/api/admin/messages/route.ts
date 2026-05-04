@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-
-function isSuperAdmin(email: string | null | undefined) {
-  return email && email === process.env.SUPER_ADMIN_EMAIL
-}
+import { isAdminEmail } from "@/lib/isAdmin"
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -40,7 +37,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!isSuperAdmin(session?.user?.email)) {
+    if (!isAdminEmail(session?.user?.email)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
