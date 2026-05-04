@@ -1112,10 +1112,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <div style={{ padding: "0.25rem 0.75rem 0.25rem" }}>
                 {([
                   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
-                  { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: userPlan === "pro" || userPlan === "business" },
+                  { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
                   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: true },
                   { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
-                  { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: userPlan === "business" },
+                  { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: true },
                 ] as const).filter(i => i.show).map(item => {
                   const active = getIsActive(pathname, item.href, false)
                   return (
