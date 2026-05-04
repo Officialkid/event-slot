@@ -33,12 +33,12 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: DATABASE_URL
+                  name: EVENTSLOT_DATABASE_URL
                   key: latest
             - name: DIRECT_URL
               valueFrom:
                 secretKeyRef:
-                  name: DIRECT_URL
+                  name: EVENTSLOT_DIRECT_URL
                   key: latest
             - name: NEXTAUTH_SECRET
               valueFrom:

@@ -466,69 +466,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           </div>
         </div>
       )}
-      {!compactHeader && event.imageUrl && (
-        <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.5rem', backgroundColor: '#0A0A0A', lineHeight: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={event.imageUrl}
-            alt={event.title}
-            style={{ width: '100%', height: 'auto', maxHeight: '480px', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '12px' }}
-          />
-        </div>
-      )}
-      {/* Event header */}
-      {!compactHeader && <div style={{ marginBottom: "0.5rem" }}>
-        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1.2, fontWeight: 400, marginBottom: "0.35rem" }}>
-          {event.title}
-        </h1>
-        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", marginBottom: event.description ? "0.75rem" : "0.5rem" }}>
-          Organised by {event.organizerName || event.organizerEmail}
-        </p>
-        {event.description && (
-          <p style={{ fontWeight: 300, fontSize: "0.95rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.65, marginBottom: "0.75rem", maxWidth: 480 }}>
-            {event.description}
-          </p>
-        )}
-        {(event.eventDate || event.location) && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", marginBottom: "0.75rem" }}>
-            {event.eventDate && (
-              <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)" }}>
-                {new Date(event.eventDate).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {new Date(event.eventDate).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase()}
-              </p>
-            )}
-            {event.location && (
-              <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)" }}>
-                📍 {event.location}
-              </p>
-            )}
-          </div>
-        )}
-        {event.deadline && (
-          <CountdownTimer
-            deadline={event.deadline}
-            urgentMode
-            onExpiredChange={setDeadlineExpired}
-          />
-        )}
-        {typeof event.capacity === "number" && (
-          <div style={{ marginTop: "0.75rem" }}>
-            <div className="space-y-2">
-              <div className="h-1.5 overflow-hidden rounded-[8px] bg-[rgba(240,237,230,0.06)]">
-                <div className="h-full bg-[#C8F55A]" style={{ width: `${Math.min(100, Math.round((event.confirmedCount / event.capacity) * 100))}%` }} />
-              </div>
-              <div className="flex items-center justify-between text-[0.72rem] text-[rgba(240,237,230,0.45)]">
-                <span>{event.confirmedCount} of {event.capacity} confirmed</span>
-                <span className={`rounded-full px-3 py-1 text-[0.7rem] ${event.confirmedCount < event.capacity ? 'bg-[rgba(200,245,90,0.12)] text-[#C8F55A] border border-[rgba(200,245,90,0.3)]' : 'bg-[rgba(255,107,107,0.1)] text-[#FF6B6B] border border-[rgba(255,107,107,0.3)]'}`}>
-                  {event.confirmedCount < event.capacity ? `${event.capacity - event.confirmedCount} spots remaining` : 'Full'}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>}
-
-      {/* Divider */}
-      {!compactHeader && <div style={{ margin: "1.5rem 0", borderTop: "0.5px solid rgba(240,237,230,0.08)" }} />}
+      {/* Event details are rendered by EventInvitationCard on the parent page. */}
 
       {compactHeader && event.deadline && (
         <CountdownTimer

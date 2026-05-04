@@ -43,3 +43,7 @@ twa/app/gcp-sa-key.json
 *.key.json
 gh_*_windows_amd64.zip
 /bin/
+tmp_*.txt
+tmp_*.json
+eventslot_google_client_id.txt
+eventslot_google_client_secret.txt

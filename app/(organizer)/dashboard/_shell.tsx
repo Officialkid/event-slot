@@ -530,14 +530,28 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const moreSheetRef = useRef<HTMLDivElement>(null)
+  const unreadRequestInFlightRef = useRef(false)
 
   const fetchUnreadCount = useCallback(async () => {
+    if (unreadRequestInFlightRef.current) return
+    if (typeof navigator !== "undefined" && !navigator.onLine) return
+    if (typeof document !== "undefined" && document.hidden) return
+    unreadRequestInFlightRef.current = true
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
     try {
-      const res = await fetch("/api/notifications?unread=true")
+      const res = await fetch("/api/notifications?unread=true", {
+        cache: "no-store",
+        signal: controller.signal,
+      })
+      if (!res.ok) return
       const data = await res.json()
       if (typeof data.count === "number") setUnreadCount(data.count)
     } catch {
       // ignore
+    } finally {
+      clearTimeout(timeoutId)
+      unreadRequestInFlightRef.current = false
     }
   }, [])
 

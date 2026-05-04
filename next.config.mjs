@@ -1,4 +1,10 @@
-import withPWA from '@ducanh2912/next-pwa'
+import withPWA, { runtimeCaching as defaultRuntimeCaching } from '@ducanh2912/next-pwa'
+
+const runtimeCaching = defaultRuntimeCaching.filter((entry) => {
+  const cacheName = entry?.options?.cacheName
+  // Prevent noisy navigation/cross-origin no-response errors in production.
+  return !['start-url', 'pages', 'pages-rsc', 'pages-rsc-prefetch', 'cross-origin'].includes(cacheName)
+})
 
 const withPWAConfig = withPWA({
   dest: 'public',
@@ -6,6 +12,12 @@ const withPWAConfig = withPWA({
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   buildExcludes: [/app-build-manifest\.json$/],
+  fallbacks: {
+    document: '/offline.html',
+  },
+  workboxOptions: {
+    runtimeCaching,
+  },
 })
 
 /** @type {import('next').NextConfig} */
@@ -15,6 +27,16 @@ const nextConfig = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
     NEXTAUTH_URL_INTERNAL:
       process.env.NEXTAUTH_URL_INTERNAL || process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
+  },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'eventsslot.com' }],
+        destination: 'https://www.eventsslot.com/:path*',
+        permanent: true,
+      },
+    ]
   },
   async headers() {
     return [
@@ -72,8 +94,8 @@ const nextConfig = {
               "font-src 'self'",
               // R2 images, Google OAuth profile photos, data/blob URIs for upload previews
               "img-src 'self' data: blob: https://*.r2.dev https://lh3.googleusercontent.com",
-              // All API calls are relative; no external client-side fetches
-              "connect-src 'self'",
+                     // App APIs are same-origin, with external fetches to R2 and selected Google endpoints
+                     "connect-src 'self' https://*.r2.dev https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com",
               // No iframes loaded by this app
               "frame-src 'none'",
               "object-src 'none'",

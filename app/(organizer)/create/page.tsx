@@ -639,7 +639,7 @@ export default function CreateEventPage() {
               {imageUrl && (
                 <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Event poster preview" style={{ width: "100%", height: "auto", maxHeight: "480px", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
+                  <img src={imageUrl} alt="Event poster preview" style={{ width: "100%", height: "auto", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
                   <button
                     type="button"
                     onClick={() => setImageUrl("")}

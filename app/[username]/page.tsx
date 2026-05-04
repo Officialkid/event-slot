@@ -15,6 +15,12 @@ type EventQuestion = {
   required: boolean
 }
 
+function toIsoOrNull(value: unknown): string | null {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value as string)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 const RESERVED = [
   "dashboard", "create", "signin", "signup", "pricing", "admin",
   "setup-username", "api", "verify-email", "billing", "settings",
@@ -241,8 +247,8 @@ export default async function PublicProfilePage({
                 slug: username,
                 questions: event.questions as EventQuestion[],
                 organizerName: event.organizer?.name ?? null,
-                deadline: event.deadline ? event.deadline.toISOString() : null,
-                eventDate: event.eventDate ? event.eventDate.toISOString() : null,
+                deadline: toIsoOrNull(event.deadline),
+                eventDate: toIsoOrNull(event.eventDate),
               }}
               showBranding={showBranding}
               maxAttendees={maxAttendees}

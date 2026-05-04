@@ -1582,7 +1582,7 @@ export default function EventDashboardPage() {
             <img
               src={eventData.imageUrl}
               alt={eventData.title}
-              style={{ width: '100%', height: 'auto', maxHeight: '320px', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '10px' }}
+              style={{ width: '100%', height: 'auto', objectFit: 'contain', objectPosition: 'center top', display: 'block', borderRadius: '10px' }}
             />
           </div>
         )}
