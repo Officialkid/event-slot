@@ -82,7 +82,6 @@ jobs:
         shell: bash
         env:
           GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
-          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
 
@@ -100,7 +99,6 @@ jobs:
         shell: bash
         env:
           GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
-          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
 
@@ -258,6 +256,20 @@ jobs:
             echo "$CREDENTIALS_JSON"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Validate GCP_SA_KEY_B64
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        shell: bash
+        env:
+          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          [ -n "${GCP_SA_KEY_B64:-}" ] || { echo "Missing GCP_SA_KEY_B64"; exit 1; }
+          CLEAN="$(printf '%s' "$GCP_SA_KEY_B64" | tr -d '\r\n\t ')"
+          JSON="$(printf '%s' "$CLEAN" | base64 -d 2>/dev/null || true)"
+          [ -n "$JSON" ] || { echo "Base64 decode failed"; exit 1; }
+          printf '%s' "$JSON" | jq -e 'type == "object" and .type == "service_account" and has("client_email") and has("private_key")' >/dev/null
+          echo "GCP_SA_KEY_B64 validated."
 
       - name: Authenticate to Google Cloud
         if: steps.deploy-ready.outputs.enabled == 'true'
