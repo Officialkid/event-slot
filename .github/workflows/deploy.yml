@@ -135,123 +135,17 @@ jobs:
             exit 1
           fi
 
-          normalize_candidate() {
-            local v="$1"
+          # First try direct raw JSON (the normal format for GCP_SA_KEY).
+          RAW_TRIMMED="$(printf '%s' "$RAW_GCP_SA_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 
-            # Trim outer whitespace/newlines and strip accidental wrapping quotes.
-            v="$(echo "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+          if validate_key_json "$RAW_TRIMMED"; then
+            CREDENTIALS_JSON="$RAW_TRIMMED"
+          else
+            # Also accept a JSON string that wraps the service account object.
+            CREDENTIALS_JSON="$(printf '%s' "$RAW_TRIMMED" | jq -r 'fromjson? // empty' 2>/dev/null || true)"
+          fi
 
-            # Remove optional markdown code fences.
-            v="$(printf '%s' "$v" | sed -e '/^```[[:alnum:]_-]*$/d' -e '/^```$/d')"
-
-            # Handle secrets pasted as KEY=VALUE or export KEY=VALUE.
-            if [[ "$v" == *=* ]]; then
-              local k="${v%%=*}"
-              local r="${v#*=}"
-              k="$(printf '%s' "$k" | sed -E 's/^[[:space:]]*export[[:space:]]+//' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
-              if [[ "$k" == *GCP_SA_KEY ]]; then
-                r="$(printf '%s' "$r" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
-                v="$r"
-              fi
-            fi
-
-            # If extra text is present, keep widest JSON object slice.
-            if printf '%s' "$v" | grep -q '{' && printf '%s' "$v" | grep -q '}'; then
-              local json_slice
-              json_slice="$(printf '%s' "$v" | awk '
-                BEGIN { started=0 }
-                {
-                  if (!started) {
-                    p = index($0, "{")
-                    if (p > 0) {
-                      started = 1
-                      line = substr($0, p)
-                    }
-                  } else {
-                    line = $0
-                  }
-                  if (started) out = out (out ? ORS : "") line
-                }
-                END {
-                  if (out != "") {
-                    while (length(out) > 0 && substr(out, length(out), 1) != "}") out = substr(out, 1, length(out)-1)
-                    print out
-                  }
-                }
-              ')"
-              if [ -n "$json_slice" ]; then
-                v="$json_slice"
-              fi
-            fi
-
-            printf '%s' "$v"
-          }
-
-          try_extract_json() {
-            local candidate unescaped decoded b64compact b64url
-
-            try_json_forms() {
-              local c p pp
-
-              c="$1"
-              if [ -n "$c" ] && validate_key_json "$c"; then
-                printf '%s' "$c"
-                return 0
-              fi
-
-              p="$(printf '%s' "$c" | jq -r 'fromjson? // empty' 2>/dev/null || true)"
-              if [ -n "$p" ] && validate_key_json "$p"; then
-                printf '%s' "$p"
-                return 0
-              fi
-
-              pp="$(printf '%s' "$p" | jq -r 'fromjson? // empty' 2>/dev/null || true)"
-              if [ -n "$pp" ] && validate_key_json "$pp"; then
-                printf '%s' "$pp"
-                return 0
-              fi
-
-              return 1
-            }
-
-            candidate="$(normalize_candidate "$1")"
-
-            if decoded="$(try_json_forms "$candidate")"; then
-              printf '%s' "$decoded"
-              return 0
-            fi
-
-            unescaped="$(printf '%b' "${candidate//\\n/\n}" 2>/dev/null || true)"
-            if decoded="$(try_json_forms "$unescaped")"; then
-              printf '%s' "$decoded"
-              return 0
-            fi
-
-            b64compact="$(printf '%s' "$candidate" | tr -d '\r\n\t ' | tr -cd 'A-Za-z0-9+/=_-')"
-
-            decoded="$(printf '%s' "$b64compact" | base64 -d 2>/dev/null || true)"
-            if decoded="$(try_json_forms "$decoded")"; then
-              printf '%s' "$decoded"
-              return 0
-            fi
-
-            b64url="$(printf '%s' "$b64compact" | tr '_-' '/+')"
-            case $(( ${#b64url} % 4 )) in
-              2) b64url="${b64url}==" ;;
-              3) b64url="${b64url}=" ;;
-            esac
-            decoded="$(printf '%s' "$b64url" | base64 -d 2>/dev/null || true)"
-            if decoded="$(try_json_forms "$decoded")"; then
-              printf '%s' "$decoded"
-              return 0
-            fi
-
-            return 1
-          }
-
-          CREDENTIALS_JSON="$(try_extract_json "$RAW_GCP_SA_KEY")" || true
-
-          if [ -z "$CREDENTIALS_JSON" ]; then
+          if [ -z "${CREDENTIALS_JSON:-}" ] || ! validate_key_json "$CREDENTIALS_JSON"; then
             echo "GCP_SA_KEY could not be parsed. Use GCP_SA_KEY_B64 instead for deterministic parsing."
             exit 1
           fi
