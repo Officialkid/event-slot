@@ -82,6 +82,7 @@ jobs:
         shell: bash
         env:
           GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
 
@@ -99,6 +100,7 @@ jobs:
         shell: bash
         env:
           GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
         run: |
           set -euo pipefail
 
@@ -110,18 +112,22 @@ jobs:
           if [ -n "${GCP_SA_KEY_B64:-}" ]; then
             B64_CLEAN="$(printf '%s' "$GCP_SA_KEY_B64" | tr -d '\r\n\t ')"
             CREDENTIALS_JSON="$(printf '%s' "$B64_CLEAN" | base64 -d 2>/dev/null || true)"
-            if [ -z "$CREDENTIALS_JSON" ] || ! validate_key_json "$CREDENTIALS_JSON"; then
-              echo "GCP_SA_KEY_B64 is set but invalid. Save base64 output of the raw service-account JSON file."
-              exit 1
+            if [ -n "$CREDENTIALS_JSON" ] && validate_key_json "$CREDENTIALS_JSON"; then
+              echo "::add-mask::$CREDENTIALS_JSON"
+              {
+                echo "credentials_json<<EOF"
+                echo "$CREDENTIALS_JSON"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
             fi
 
-            echo "::add-mask::$CREDENTIALS_JSON"
-            {
-              echo "credentials_json<<EOF"
-              echo "$CREDENTIALS_JSON"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "GCP_SA_KEY_B64 is set but invalid."
+            if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
+              echo "Save base64 output of the raw service-account JSON file in GCP_SA_KEY_B64 or set GCP_SA_KEY."
+              exit 1
+            fi
+            echo "Falling back to GCP_SA_KEY secret."
           fi
 
           if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
@@ -257,19 +263,16 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Validate GCP_SA_KEY_B64
+      - name: Validate normalized GCP credentials
         if: steps.deploy-ready.outputs.enabled == 'true'
         shell: bash
         env:
-          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          CREDENTIALS_JSON: ${{ steps.gcp-key.outputs.credentials_json }}
         run: |
           set -euo pipefail
-          [ -n "${GCP_SA_KEY_B64:-}" ] || { echo "Missing GCP_SA_KEY_B64"; exit 1; }
-          CLEAN="$(printf '%s' "$GCP_SA_KEY_B64" | tr -d '\r\n\t ')"
-          JSON="$(printf '%s' "$CLEAN" | base64 -d 2>/dev/null || true)"
-          [ -n "$JSON" ] || { echo "Base64 decode failed"; exit 1; }
-          printf '%s' "$JSON" | jq -e 'type == "object" and .type == "service_account" and has("client_email") and has("private_key")' >/dev/null
-          echo "GCP_SA_KEY_B64 validated."
+          [ -n "${CREDENTIALS_JSON:-}" ] || { echo "Missing normalized credentials_json output"; exit 1; }
+          printf '%s' "$CREDENTIALS_JSON" | jq -e 'type == "object" and .type == "service_account" and has("client_email") and has("private_key")' >/dev/null
+          echo "Normalized GCP credentials validated."
 
       - name: Authenticate to Google Cloud
         if: steps.deploy-ready.outputs.enabled == 'true'
