@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (currentMembers >= TEAM_MEMBER_LIMIT) {
       return NextResponse.json({
         success: false,
-        error: `You can have up to ${TEAM_MEMBER_LIMIT} team member${TEAM_MEMBER_LIMIT === 1 ? '' : 's'}. Remove one to invite another.`,
+        error: `You can have up to ${TEAM_MEMBER_LIMIT} team members. Remove one to invite another.`,
       }, { status: 403 })
     }
 
