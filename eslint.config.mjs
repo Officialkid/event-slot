@@ -20,6 +20,7 @@ export default defineConfig([
     "coverage/**",
     "public/sw.js",
     "public/workbox-*.js",
+    "public/fallback-*.js",
     "twa/app/build/**",
   ]),
 ]);

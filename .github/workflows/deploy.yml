@@ -9,7 +9,6 @@ env:
   REGION: us-central1
   SERVICE: eventslot-web
   REPOSITORY: eventslot
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   test:
