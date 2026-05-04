@@ -11,6 +11,11 @@ const withPWAConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
+    NEXTAUTH_URL_INTERNAL:
+      process.env.NEXTAUTH_URL_INTERNAL || process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
+  },
   async headers() {
     return [
       {
