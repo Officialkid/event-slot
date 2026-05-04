@@ -1,6 +1,5 @@
 import crypto from 'crypto'
 import prisma from '@/lib/prisma'
-import { getPlanFromPlanCode, getBillingCycleFromPlanCode } from '@/lib/paystack'
 
 export async function POST(request: Request) {
   try {
@@ -29,13 +28,16 @@ export async function POST(request: Request) {
       await prisma.user.update({
         where: { id: userId },
         data: {
-          plan: getPlanFromPlanCode(plan.plan_code),
-          billingCycle: getBillingCycleFromPlanCode(plan.plan_code),
-          planEndDate: new Date(next_payment_date),
+          // Subscription plans are disabled; keep all users on free.
+          plan: 'free',
+          billingCycle: null,
+          planEndDate: null,
           paystackCustomerCode: customer.customer_code,
           paystackSubscriptionCode: subscription_code,
         },
       })
+      void plan
+      void next_payment_date
       break
     }
 

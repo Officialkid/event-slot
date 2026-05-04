@@ -1048,8 +1048,8 @@ export default function DashboardOverviewPage() {
                         <span style={{
                           fontSize: "0.62rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
                           padding: "0.15rem 0.4rem", borderRadius: 99,
-                          background: u.plan === "business" ? "rgba(127,119,221,0.18)" : u.plan === "pro" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.07)",
-                          color: u.plan === "business" ? "#9370DB" : u.plan === "pro" ? "#C8F55A" : "rgba(240,237,230,0.4)",
+                          background: "rgba(240,237,230,0.07)",
+                          color: "rgba(240,237,230,0.4)",
                           fontFamily: "var(--font-dm-sans)", flexShrink: 0,
                         }}>{u.plan}</span>
                       </div>

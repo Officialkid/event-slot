@@ -22,16 +22,7 @@ export async function paystackFetch(path: string, options: RequestInit = {}) {
 }
 
 export function getPlanFromPlanCode(planCode: string): string {
-  const proCodes = [
-    process.env.PAYSTACK_PRO_MONTHLY_PLAN_CODE,
-    process.env.PAYSTACK_PRO_ANNUAL_PLAN_CODE,
-  ]
-  const businessCodes = [
-    process.env.PAYSTACK_BUSINESS_MONTHLY_PLAN_CODE,
-    process.env.PAYSTACK_BUSINESS_ANNUAL_PLAN_CODE,
-  ]
-  if (proCodes.includes(planCode)) return 'pro'
-  if (businessCodes.includes(planCode)) return 'business'
+  void planCode
   return 'free'
 }
 

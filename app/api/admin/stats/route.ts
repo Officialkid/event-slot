@@ -48,7 +48,7 @@ export async function GET() {
       select: { id: true, name: true, email: true, plan: true, createdAt: true },
     })
 
-    const plans: Record<string, number> = { free: 0, pro: 0, business: 0 }
+    const plans: Record<string, number> = { free: 0 }
     for (const row of planBreakdown) {
       plans[row.plan] = row._count._all
     }

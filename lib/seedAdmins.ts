@@ -5,13 +5,13 @@ const PRIVILEGED_ACCOUNTS = [
     email: 'danielmwaliliofficial@gmail.com',
     name: 'Daniel Mwalili',
     isAdmin: true,
-    plan: 'business',
+    plan: 'free',
   },
   {
     email: 'danielmwalili1@gmail.com',
     name: 'Daniel',
     isAdmin: false,
-    plan: 'pro',
+    plan: 'free',
   },
 ]
 

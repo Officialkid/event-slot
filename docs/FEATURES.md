@@ -67,6 +67,14 @@ _Last updated: May 4, 2026_
 **Where:** Core organizer and attendee product surfaces (`/dashboard`, event dashboard tabs, team, insights, analytics, feedback) and related APIs  
 **What it does:** All core features are **Free — no restrictions**. Feature access checks that previously returned upgrade-required responses were removed from primary organizer flows.
 
+### Pricing Page Hidden
+**Where:** `/pricing` (`app/pricing/page.tsx`)  
+**What it does:** Public pricing page is intentionally hidden (returns 404/not-found) to avoid exposing deprecated subscription-tier content.
+
+### Subscription Plans Disabled
+**Where:** `POST /api/billing/checkout`, `POST /api/billing/webhook`, admin user plan controls  
+**What it does:** Pro/Business subscriptions are disabled. Accounts are normalized to `free`, and paid access is handled only through report-download bundles.
+
 ### Report Download Pricing
 **Where:** `lib/plans.ts`, `/dashboard/billing`  
 **What it does:** Report downloads are the only paid action. Packages are exposed through `REPORT_DOWNLOAD_PRICING` and displayed on the billing/downloads page.

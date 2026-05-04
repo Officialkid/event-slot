@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
         userId,
         type: 'data_expiry_warning',
         eventId: event.id,
-        message: `Data for "${event.title}" will be deleted in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}. Upgrade to Pro to keep your data permanently.`,
+        message: `Data for "${event.title}" will be deleted in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}.`,
       },
     })
 

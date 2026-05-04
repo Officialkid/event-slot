@@ -14,15 +14,10 @@ interface User {
 }
 
 function PlanBadge({ plan }: { plan: string }) {
-  const map: Record<string, { bg: string; color: string }> = {
-    free: { bg: "rgba(240,237,230,0.07)", color: "rgba(240,237,230,0.45)" },
-    pro: { bg: "rgba(200,245,90,0.12)", color: "#C8F55A" },
-    business: { bg: "rgba(200,245,90,0.2)", color: "#C8F55A" },
-  }
-  const s = map[plan] ?? map.free
+  void plan
   return (
-    <span style={{ fontSize: "0.65rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0.15rem 0.5rem", borderRadius: 100, background: s.bg, color: s.color, fontFamily: "var(--font-dm-sans)" }}>
-      {plan}
+    <span style={{ fontSize: "0.65rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0.15rem 0.5rem", borderRadius: 100, background: "rgba(240,237,230,0.07)", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+      free
     </span>
   )
 }
@@ -113,7 +108,7 @@ export default function AdminUsersPage() {
     fetchUsers()
   }
 
-  const planTabs = ["all", "free", "pro", "business"]
+  const planTabs = ["all", "free"]
 
   return (
     <div>
@@ -243,8 +238,8 @@ export default function AdminUsersPage() {
                       </button>
                       <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.07)", margin: "0.25rem 0" }} />
                       <div style={{ padding: "0.5rem 0.75rem" }}>
-                        <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.3)", marginBottom: "0.4rem", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>Change plan</div>
-                        {["free", "pro", "business"].map(p => (
+                        <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.3)", marginBottom: "0.4rem", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>Plan</div>
+                        {["free"].map(p => (
                           <button
                             key={p}
                             type="button"

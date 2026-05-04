@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
-import ComingSoon from "@/components/ui/ComingSoon"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
@@ -1427,13 +1426,12 @@ export default function EventDashboardPage() {
   const capacityDisplay = eventData.capacity === null ? "Unlimited" : eventData.capacity
   const slotsRemaining = eventData.capacity === null ? "Unlimited" : Math.max(0, eventData.capacity - eventData.confirmedCount)
   const hasRegistrations = confirmed.length + waitlist.length > 0
-  const organizerPlan = eventData?.organizerPlan ?? 'free'
   const tabs: { key: TabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "confirmed", label: `Confirmed (${confirmed.length})` },
     { key: "waitlist", label: `Waitlist (${waitlist.length})` },
-    { key: "analytics", label: organizerPlan === 'free' ? "Analytics ⚡" : "Analytics" },
-    { key: "feedback", label: organizerPlan !== 'business' ? "Feedback ✦" : "Feedback" },
+    { key: "analytics", label: "Analytics" },
+    { key: "feedback", label: "Feedback" },
     { key: "checkin" as TabKey, label: "Verify Ticket" },
     { key: "settings", label: "Settings" },
   ]
@@ -2191,7 +2189,7 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Event Analytics</h2>
-              {organizerPlan !== 'free' && !analyticsData && !analyticsLoading && !analyticsError && (
+              {!analyticsData && !analyticsLoading && !analyticsError && (
                 <button
                   onClick={loadAnalytics}
                   style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
@@ -2200,11 +2198,6 @@ export default function EventDashboardPage() {
                 </button>
               )}
             </div>
-
-            {/* Pro plan lock for free users */}
-            {organizerPlan === 'free' && (
-              <ComingSoon featureName="Event Analytics" description="Track views, registrations, conversion rates, and registration trends. Available on the Pro plan once our payment system goes live." />
-            )}
 
             {analyticsLoading && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
@@ -2232,7 +2225,7 @@ export default function EventDashboardPage() {
                         onClick={() => loadInsights(true)}
                         style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Regenerate{organizerPlan === 'free' ? ` (${insightsRequiredCredits} pts)` : ""}
+                        Regenerate ({insightsRequiredCredits} pts)
                       </button>
                     )}
                   </div>
@@ -2381,9 +2374,7 @@ export default function EventDashboardPage() {
                         disabled={qaLoading}
                         style={{ width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.65rem 0.875rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
                       />
-                      {organizerPlan !== "business" && (
-                        <p style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.3rem 0 0 0" }}>1 credit per question</p>
-                      )}
+                      <p style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.3rem 0 0 0" }}>1 credit per question</p>
                     </div>
                     <button
                       onClick={() => submitQuestion(qaInput)}
@@ -2442,7 +2433,7 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Attendee Feedback</h2>
-              {organizerPlan === 'business' && !feedbackData && !feedbackLoading && !feedbackError && (
+              {!feedbackData && !feedbackLoading && !feedbackError && (
                 <button
                   onClick={loadFeedback}
                   style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
@@ -2451,11 +2442,6 @@ export default function EventDashboardPage() {
                 </button>
               )}
             </div>
-
-            {/* Business plan lock for free/pro users */}
-            {organizerPlan !== 'business' && (
-              <ComingSoon featureName="Attendee Feedback" description="Collect post-event ratings and written feedback from your attendees. Available on the Business plan once our payment system goes live." />
-            )}
 
             {feedbackLoading && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

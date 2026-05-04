@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const body = await req.json()
     const data: Record<string, unknown> = {}
-    if (body.plan !== undefined) data.plan = body.plan
+    if (body.plan !== undefined) data.plan = 'free'
     if (body.suspended !== undefined) data.suspended = body.suspended
     if (body.name !== undefined) data.name = body.name || null
     if (body.email !== undefined && body.email) data.email = body.email

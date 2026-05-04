@@ -53,7 +53,7 @@ const WHY_POINTS = [
   { icon: "⚡", text: "Live in 3 minutes — no IT department approval needed" },
   { icon: "📋", text: "Custom registration questions for every event" },
   { icon: "🔄", text: "Automatic waitlist promotes attendees when slots open" },
-  { icon: "📊", text: "AI-generated post-event reports (Pro & Business)" },
+  { icon: "📊", text: "AI-generated post-event reports (paid per download bundle)" },
   { icon: "👥", text: "Team management: invite co-organisers with full access control" },
   { icon: "🌍", text: "Used across universities in Kenya, Nigeria, Uganda and beyond" },
   { icon: "📱", text: "Mobile-first — share via WhatsApp, X or Instagram in one tap" },

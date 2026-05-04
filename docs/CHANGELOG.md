@@ -1,5 +1,17 @@
 # EventSlot — Changelog
 
+## [0.4.21] — May 4, 2026
+
+### Plan Removal + Pricing Hidden
+
+- Hid public pricing by changing `/app/pricing/page.tsx` to return `notFound()`.
+- Removed `/pricing` from sitemap generation.
+- Fully disabled subscription-plan checkout by deprecating `POST /api/billing/checkout` with `410 ENDPOINT_DEPRECATED`.
+- Forced subscription webhook writes to keep users on `free` plan.
+- Removed remaining Pro/Business selectors from admin user management and broadcast targeting UI.
+- Removed Pro/Business gates from organizer event analytics and feedback tabs.
+- Reset all existing users with `plan IN ('pro','business')` to `free` and cleared billing-cycle/subscription fields.
+
 ## [0.4.20] — May 4, 2026
 
 ### Landing Page: Free Model Messaging

@@ -15,7 +15,6 @@ export async function GET() {
     }
 
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
     // Build last 12 month buckets
     const months: { start: Date; end: Date; label: string }[] = []
@@ -26,14 +25,7 @@ export async function GET() {
       months.push({ start: d, end, label })
     }
 
-    const [
-      purchaseTxs,
-      spendTxs,
-      proSubscribers,
-      businessSubscribers,
-      newPaidThisMonth,
-      churnedThisMonth,
-    ] = await Promise.all([
+    const [purchaseTxs, spendTxs] = await Promise.all([
       // All credit purchase transactions (positive amounts — top-ups)
       prisma.creditTransaction.findMany({
         where: { type: 'purchase' },
@@ -44,23 +36,12 @@ export async function GET() {
         where: { type: { not: 'purchase' } },
         select: { amount: true },
       }),
-      prisma.user.count({ where: { plan: 'pro' } }),
-      prisma.user.count({ where: { plan: 'business' } }),
-      // Users who upgraded to paid this month (planStartDate this month)
-      prisma.user.count({
-        where: {
-          plan: { in: ['pro', 'business'] },
-          planStartDate: { gte: startOfMonth },
-        },
-      }),
-      // Users who downgraded: plan = free but planEndDate this month (recently cancelled)
-      prisma.user.count({
-        where: {
-          plan: 'free',
-          planEndDate: { gte: startOfMonth, lt: now },
-        },
-      }),
     ])
+
+    const proSubscribers = 0
+    const businessSubscribers = 0
+    const newPaidThisMonth = 0
+    const churnedThisMonth = 0
 
     const totalCreditsPurchased = purchaseTxs.reduce((s, t) => s + t.amount, 0)
     const totalCreditsSpent = spendTxs.reduce((s, t) => s + Math.abs(t.amount), 0)

@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react"
 
-type PlanFilter = "all" | "free" | "pro" | "business"
+type PlanFilter = "all" | "free"
 
 const PLAN_OPTIONS: { key: PlanFilter; label: string }[] = [
   { key: "all", label: "All users" },
   { key: "free", label: "Free users" },
-  { key: "pro", label: "Pro users" },
-  { key: "business", label: "Business users" },
 ]
 
 function buildPreviewHtml(name: string, body: string) {
