@@ -469,19 +469,6 @@ export default function NotificationsPage() {
                       {notif.message}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.375rem", flexWrap: "wrap" }}>
-                      <a
-                        href="/pricing"
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          fontSize: "0.8rem",
-                          fontFamily: "var(--font-dm-sans)",
-                          fontWeight: 600,
-                          color: "#C8F55A",
-                          textDecoration: "none",
-                        }}
-                      >
-                        Upgrade to Pro →
-                      </a>
                       <span
                         style={{
                           fontSize: "0.72rem",

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getPlanLimits } from '@/lib/plans'
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,25 +10,18 @@ export async function GET(req: NextRequest) {
 
     const now = new Date()
 
-    // Find events that have passed, haven't had feedback sent, and belong to business-plan organizers
+    // Find events that have passed and have not been processed yet.
     const events = await prisma.event.findMany({
       where: {
         feedbackSent: false,
         status: 'active',
         eventDate: { lt: now },
       },
-      include: {
-        organizer: { select: { plan: true } },
-      },
     })
 
     let totalEvents = 0
 
     for (const event of events) {
-      const plan = event.organizer?.plan ?? 'free'
-      const limits = getPlanLimits(plan)
-      if (!limits.canSendFeedbackForm) continue
-
       // Feedback emails to attendees are disabled per privacy policy.
       // Attendees only receive waitlist-to-confirmed emails.
       // Still mark feedbackSent = true so this event is not reprocessed.

@@ -1,7 +1,7 @@
 # EventSlot — System Documentation
 
-_Last updated: April 15, 2026_
-_Version: 0.4.0_
+_Last updated: May 4, 2026_
+_Version: 0.4.20_
 _Status: Pre-launch_
 
 ---
@@ -22,7 +22,7 @@ to confirmed status and notified by email.
 
 - Production: https://www.eventsslot.com
 - Admin panel: https://www.eventsslot.com/admin
-- Pricing: https://www.eventsslot.com/pricing
+- Downloads: https://www.eventsslot.com/dashboard/billing
 - Documentation: internal /docs folder
 
 ---
@@ -40,7 +40,7 @@ to confirmed status and notified by email.
 | Email         | Resend                              |
 | Payments      | Paystack                            |
 | File Storage  | Cloudflare R2 (event/profile images)|
-| AI            | Anthropic Claude API (Sonnet)       |
+| AI            | Groq + OpenRouter + Claude fallback |
 | Rate Limiting | Upstash Redis                       |
 | Hosting       | Vercel                              |
 | PWA           | next-pwa                            |
@@ -54,16 +54,14 @@ to confirmed status and notified by email.
 - Opens registration link, fills form, submits
 - Receives confirmed or waitlist status
 - Notified by email if promoted from waitlist
-- Can submit post-event feedback (Business plan events only)
+- Can submit post-event feedback
 
 ### Organizer
 - Creates account (Google OAuth or email/password)
 - Requires username setup on first sign-in
 - Public profile page at `/[username]` showing their active events
 - Creates events, manages registrations, views analytics
-- Can be on Free, Pro, or Business plan
-- Can purchase credits for pay-as-you-go feature access
-- Can invite team members (plan dependent)
+- Can invite team members (up to platform safety cap)
 
 ### Team Member
 - Invited by organizer via email
@@ -80,59 +78,24 @@ to confirmed status and notified by email.
 
 ---
 
-## Plan Tiers
+## Access Model
 
-### Free — KSH 0/month
-- Up to 5 active events at a time
-- 100 free registrations per event
-- Unlimited waitlist
-- Unlimited form questions
-- Data deleted 30 days after event ends
-- 1 team member
-- EventSlot watermark on event pages
-- Standard Word report (pay-as-you-go unlock required)
-- Analytics pay-as-you-go (150 credits)
-- CSV export pay-as-you-go (15 credits base)
+### Core Product Access
+- All features are free.
+- There are no subscription plan gates for event creation, analytics, insights, tracker, feedback, CSV export, duplicate event, or team collaboration.
 
-### Pro — KSH 2,600/month or KSH 25,000/year
-- Unlimited active events
-- 500 free registrations per event
-- Data stored forever
-- Export attendees CSV (included)
-- Word report (included)
-- Event analytics (included)
-- AI insight cards
-- Duplicate events
-- 10 team members
-- Bulk registration up to 20
-- Remove EventSlot watermark (included)
-- Intelligent capacity suggestions
+### Report Download Pricing
+- Report generation and in-browser preview are free.
+- Report file download pricing:
+	- KSh 100 single download
+	- KSh 300 bundle of 3
+	- KSh 500 bundle of 6
+	- KSh 1,000 bundle of 15
 
-### Business — KSH 13,000/month or KSH 125,000/year
-- Everything in Pro
-- Unlimited registrations per event
-- 20 team members
-- Attendee feedback forms
-- Event Insights Tracker (cross-event demographics)
-- Natural language analytics Q&A
-- No pay-as-you-go costs (all features included at no extra cost)
-
-### Credits — Pay As You Go
-- Bundles: 100 credits = KSH 1,000 | 500 credits = KSH 4,500 | 1,000 credits = KSH 8,000
-- Standard report: Free
-- AI report (AI version): 50 credits per event
-- Event analytics: 10 credits per event
-- AI insight cards: 20 credits per event
-- Analytics Q&A: 60 credits per query
-- CSV export: 15 credits base + (confirmedCount / 100) × cost
-- Remove watermark: 10 credits per event
-- Custom thank you: 10 credits per event
-- Duplicate event: 5 credits per event
-- Team members: 10 credits per member/month
-- Insight Tracker: 50 credits
-- Feedback forms: 30 credits
-- Predictive capacity: 25 credits
-- Access records last 30 days per feature per event (EventUnlock)
+### AI Provider Order
+- Groq (primary)
+- OpenRouter (fallback)
+- Claude (reports only)
 
 ---
 
@@ -178,7 +141,9 @@ to confirmed status and notified by email.
 | PAYSTACK_BUSINESS_ANNUAL_PLAN_CODE  | Paystack plan code                |
 | UPSTASH_REDIS_REST_URL          | Rate limiting                         |
 | UPSTASH_REDIS_REST_TOKEN        | Rate limiting                         |
-| ANTHROPIC_API_KEY               | AI insight cards and analytics Q&A    |
+| GROQ_API_KEY                    | Primary AI provider                   |
+| OPENROUTER_API_KEY              | AI fallback provider                  |
+| ANTHROPIC_API_KEY               | Claude provider (reports only)        |
 | CRON_SECRET                     | Protect cron job endpoints            |
 | SUPER_ADMIN_EMAIL               | Admin panel access control            |
 | R2_ACCOUNT_ID                   | Cloudflare R2 file storage            |
@@ -193,19 +158,19 @@ to confirmed status and notified by email.
 
 | Job                       | Schedule    | Purpose                                       |
 |---------------------------|-------------|-----------------------------------------------|
-| /api/cron/send-feedback   | 9AM daily   | Send feedback emails after Business events end|
+| /api/cron/send-feedback   | 9AM daily   | Process feedback workflow for completed events |
 | /api/cron/expire-data     | 2AM daily   | Delete free user registration data after 30d  |
 
 ---
 
 ## Key Business Rules
 
-1. Waitlist is always unlimited regardless of plan
+1. Waitlist is always unlimited
 2. Confirmed count never exceeds capacity
 3. Capacity can only be increased via the dashboard
 4. Data expiry runs 30 days after event DEADLINE, not creation date
-5. Credits are non-refundable once spent
-6. EventUnlock records last 30 days from purchase per feature per event
+5. Report-download purchases are non-refundable once consumed
+6. Paid usage is limited to report file downloads
 7. Super admin access returns 404 to all non-admin users
 8. Transactional emails require consentTransactional = true
 9. Marketing emails require consentMarketing = true

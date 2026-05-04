@@ -26,66 +26,6 @@ const BORDER = "rgba(240,237,230,0.08)"
 const MUTED = "rgba(240,237,230,0.45)"
 const MUTED_LO = "rgba(240,237,230,0.25)"
 
-// ── Plan card data ─────────────────────────────────────────────────────────────
-const PLANS = [
-  {
-    name: "Free",
-    price: "Ksh 0",
-    period: "/ month",
-    tagline: "For occasional organizers",
-    cta: "Get started",
-    ctaHref: "/signup",
-    highlight: false,
-    features: [
-      "Up to 5 active events",
-      "Up to 100 registrations",
-      "Unlimited waitlist",
-      "Unlimited form questions",
-      "Waitlist automation",
-      "Community link",
-      "Email notifications",
-    ],
-  },
-  {
-    name: "Pro",
-    price: "Ksh 2,600",
-    period: "/ month",
-    tagline: "For active organizers",
-    cta: "Start Pro",
-    ctaHref: "/pricing",
-    highlight: true,
-    badge: "Most popular",
-    features: [
-      "Unlimited active events",
-      "500 registrations included",
-      "Data kept forever",
-      "CSV export & Word reports",
-      "AI insight cards",
-      "Duplicate events",
-      "Remove watermark",
-      "10 team members",
-    ],
-  },
-  {
-    name: "Business",
-    price: "Ksh 13,000",
-    period: "/ month",
-    tagline: "For teams & organizations",
-    cta: "Start Business",
-    ctaHref: "/pricing",
-    highlight: false,
-    features: [
-      "Everything in Pro",
-      "Unlimited registrations",
-      "AI reports & insight cards",
-      "Analytics & Q&A",
-      "Post-event feedback forms",
-      "Cross-event Insights Tracker",
-      "20 team members",
-    ],
-  },
-]
-
 const EVENT_TYPE_PILLS = [
   "Community Meetups",
   "Corporate Training",
@@ -313,12 +253,12 @@ export default function Home() {
               margin: 0,
               maxWidth: 480,
             }}>
-              EventSlot is an event registration platform built for organizers who run events with limited slots. Create your event, share one link, and let registrations, waitlists, and automatic confirmations run themselves.
+              Everything is free. Create your event, manage your waitlist, get AI-powered insights — no subscription needed. Pay only when you want to download your report.
             </p>
 
             {/* Buttons */}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              <SmartCTA style={{
+              <Link href="/signup" style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.4rem",
@@ -333,8 +273,8 @@ export default function Home() {
                 textDecoration: "none",
                 letterSpacing: "0.01em",
               }}>
-                Start for free
-              </SmartCTA>
+                Start for free — no credit card
+              </Link>
               <a href="#demo" style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -492,7 +432,7 @@ export default function Home() {
             Why EventSlot Is the Right Event Management Tool
           </h2>
           <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "1rem auto 0", maxWidth: 560, lineHeight: 1.7 }}>
-            No spreadsheets. No manual tracking. Automatic confirmations. Full-control dashboard for event organizers, universities, churches, and corporate teams.
+            Every core feature is available from day one. No locked tiers, no upgrade paths, and no subscription barriers.
           </p>
         </div>
 
@@ -530,8 +470,8 @@ export default function Home() {
               <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
                 AI reads your registration data and writes a narrative report — audience profile, registration patterns, recommendations. Not just a spreadsheet.
               </p>
-              <Link href="/pricing#ai-features" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
-                See all AI features →
+              <Link href="/dashboard/insights" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+                Open analytics →
               </Link>
             </div>
             <ShowcaseImage
@@ -553,100 +493,19 @@ export default function Home() {
               aspectRatio="4 / 5"
             />
             <div>
-              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: "1rem", fontWeight: 500 }}>Pricing model</p>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, marginBottom: "1rem", fontWeight: 500 }}>Everything included</p>
               <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 400, color: FG, margin: "0 0 1rem", lineHeight: 1.2 }}>
-                Free to start. Powerful when you grow.
+                Use the full platform with no subscription.
               </h3>
               <p style={{ fontFamily: "var(--font-dm-sans)", fontWeight: 300, fontSize: "0.95rem", color: MUTED, margin: "0 0 1.5rem", lineHeight: 1.7 }}>
-                Start for free. Buy credits for individual features when you need them. Or upgrade to Pro or Business for everything included — no per-feature costs.
+                Start for free and use the full product. The only paid action is report downloads.
               </p>
-              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
-                View pricing →
+              <Link href="/dashboard/billing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
+                View download options →
               </Link>
             </div>
           </div>
 
-        </div>
-      </section>
-
-      {/* ── PRICING PREVIEW ────────────────────────────────────────────────────── */}
-      <section style={{ background: "#0D0D0D", borderTop: "0.5px solid " + BORDER, borderBottom: "0.5px solid " + BORDER, padding: "6rem 1.5rem" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.72rem", letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED, fontWeight: 500, marginBottom: "0.75rem" }}>Pricing</p>
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 400, color: FG, margin: 0 }}>
-              Simple, transparent pricing
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem", marginBottom: "2.5rem" }} className="plan-grid">
-            {PLANS.map(plan => (
-              <div key={plan.name} style={{
-                background: SURFACE,
-                border: plan.highlight ? "0.5px solid rgba(200,245,90,0.3)" : "0.5px solid " + BORDER,
-                borderRadius: 16,
-                padding: "1.75rem",
-                position: "relative",
-              }}>
-                {"badge" in plan && plan.badge && (
-                  <div style={{
-                    position: "absolute",
-                    top: -12,
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "rgba(200,245,90,0.12)",
-                    border: "0.5px solid rgba(200,245,90,0.3)",
-                    borderRadius: 100,
-                    padding: "0.2rem 0.8rem",
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "0.65rem",
-                    fontWeight: 600,
-                    color: LIME,
-                    letterSpacing: "0.08em",
-                    whiteSpace: "nowrap",
-                  }}>
-                    {plan.badge}
-                  </div>
-                )}
-                <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.15rem", color: FG, marginBottom: "0.35rem" }}>{plan.name}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginBottom: "0.3rem" }}>
-                  <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: FG }}>{plan.price}</span>
-                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED }}>{plan.period}</span>
-                </div>
-                <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED, margin: "0 0 1.25rem" }}>{plan.tagline}</p>
-                <Link href={plan.ctaHref} style={{
-                  display: "block",
-                  textAlign: "center",
-                  padding: "0.6rem",
-                  borderRadius: 100,
-                  background: plan.highlight ? LIME : "transparent",
-                  color: plan.highlight ? BG : FG,
-                  border: plan.highlight ? "none" : "0.5px solid rgba(240,237,230,0.2)",
-                  fontFamily: "var(--font-dm-sans)",
-                  fontWeight: 600,
-                  fontSize: "0.82rem",
-                  textDecoration: "none",
-                  marginBottom: "1.25rem",
-                }}>
-                  {plan.cta}
-                </Link>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem", color: "rgba(240,237,230,0.7)", lineHeight: 1.45 }}>
-                      <span style={{ color: LIME, fontSize: "0.7rem", marginTop: "0.15rem", flexShrink: 0 }}>✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: "center" }}>
-            <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", color: LIME, textDecoration: "none", fontWeight: 500 }}>
-              See full pricing comparison →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -702,7 +561,7 @@ export default function Home() {
             <div>
               <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Product</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {[["Features", "/#demo"], ["Pricing", "/pricing"], ["How it works", "/#demo"]].map(([label, href]) => (
+                {[["Features", "/#demo"], ["How it works", "/#demo"], ["Get started", "/signup"]].map(([label, href]) => (
                   <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
                 ))}
               </div>
@@ -710,9 +569,9 @@ export default function Home() {
 
             {/* Plans */}
             <div>
-              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Plans</div>
+              <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Resources</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {[["Free", "/pricing"], ["Pro", "/pricing"], ["Business", "/pricing"], ["Credits", "/pricing"]].map(([label, href]) => (
+                {[["Downloads", "/dashboard/billing"], ["How it works", "/how-it-works"], ["Create event", "/create"]].map(([label, href]) => (
                   <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
                 ))}
               </div>
@@ -753,8 +612,6 @@ export default function Home() {
               © 2026 EventSlot · Built for event organizers
             </span>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-              <Link href="/pricing" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Pricing</Link>
-              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>·</span>
               <Link href="/privacy" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Privacy Policy</Link>
               <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO }}>·</span>
               <Link href="/terms" style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.78rem", color: MUTED_LO, textDecoration: "none" }}>Terms of Use</Link>
@@ -774,7 +631,6 @@ export default function Home() {
           .steps-grid { grid-template-columns: 1fr !important; }
           .step-arrow { display: none !important; }
           .feature-row { grid-template-columns: 1fr !important; }
-          .plan-grid { grid-template-columns: 1fr !important; }
           .footer-grid { grid-template-columns: 1fr 1fr !important; }
         }
         @media (max-width: 600px) {

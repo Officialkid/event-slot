@@ -9,7 +9,6 @@ import { useState, useRef, useEffect } from "react"
 const navItems = [
   { title: "Home", href: "/", sectionId: null },
   { title: "Features", href: "/#how-it-works", sectionId: "how-it-works" },
-  { title: "Pricing", href: "/pricing", sectionId: null },
   { title: "Get started", href: "/#get-started", sectionId: "get-started" },
 ]
 
@@ -70,7 +69,7 @@ export default function Nav() {
   if (isOrganizerRoute) return null
 
   function isActive(item: typeof navItems[number]) {
-    // Standalone page links (e.g. /pricing) — match by pathname
+    // Standalone page links match by pathname
     if (item.sectionId === null && item.href !== "/") return pathname === item.href
     if (pathname !== "/") return false
     if (item.sectionId === null) return activeSection === null

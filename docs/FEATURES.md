@@ -1,6 +1,6 @@
 # EventSlot — Feature Reference
 
-_Last updated: April 27, 2026_
+_Last updated: May 4, 2026_
 
 ---
 
@@ -37,18 +37,69 @@ _Last updated: April 27, 2026_
 
 ---
 
-## Premium Feature Gating
+## AI Provider Stack
 
-### ComingSoon Gates
-**Where:** Insights page, Analytics tab, Feedback tab, Billing (plan upgrades + credit purchases)  
-**Who:** Users whose plan lacks the required tier  
-**What it does:** Replaces the locked content section with the `<ComingSoon>` component — shows feature name, description, and an email opt-in form so users are notified when the feature launches.  
-**Gated features:**
-- **Insight Tracker** — Business plan; replaces upgrade wall on `/dashboard/insights`
-- **Event Analytics** — Pro plan; replaces blurred overlay in Analytics tab of event detail page
-- **Attendee Feedback** — Business plan; replaces blurred overlay in Feedback tab of event detail page
-- **Plan Upgrades** — All non-Business users; replaces plan upgrade cards on `/dashboard/billing`
-- **Credit Purchases** — All users; replaces credit bundle buy cards on `/dashboard/billing`
+### Unified AI Router
+**Where:** `lib/ai.ts`  
+**What it does:** Centralizes all LLM calls behind `askAI(...)` with task-based routing and provider fallback chains. Failures are logged to Prisma `ErrorLog` using route tags like `AI-qa`, `AI-insights`, and `AI-report`.
+
+### Groq Primary + OpenRouter Fallback
+**Where:** `lib/groq.ts`, `lib/openrouter.ts`  
+**What it does:** Uses Groq as the primary provider for non-report tasks (`insights`, `qa`, `capacity`, `tracker`) and falls back to OpenRouter when needed. Tasks use model mappings optimized for speed/cost profile.
+
+### Report Generation Priority
+**Where:** `lib/generateAIReportContent.ts`, `lib/ai.ts`  
+**What it does:** Report sections use `taskType: 'report'` with Claude as primary provider, then Groq, then OpenRouter fallback. If all providers fail, section-level fallback text is returned so report generation still completes.
+
+### AI Callsite Migrations
+**Where:** `app/api/events/[slug]/ask/route.ts`, `app/api/events/predict-capacity/route.ts`, `lib/generateInsightCards.ts`, `app/api/insights/route.ts`  
+**What it does:** Replaced direct Claude calls with task-routed `askAI` calls and added null-response handling for resilient API output.
+
+---
+
+## Access Model
+
+### Simplified Organizer Dashboard Workspace
+**Where:** `/dashboard` (`app/(organizer)/dashboard/page.tsx`)  
+**What it does:** Keeps the dashboard focused on operational event management (stats, attention items, upcoming events, recent activity, create-event action) and removes sales/upgrade discovery UI from the overview page.
+
+### Open Access Features
+**Where:** Core organizer and attendee product surfaces (`/dashboard`, event dashboard tabs, team, insights, analytics, feedback) and related APIs  
+**What it does:** All core features are **Free — no restrictions**. Feature access checks that previously returned upgrade-required responses were removed from primary organizer flows.
+
+### Report Download Pricing
+**Where:** `lib/plans.ts`, `/dashboard/billing`  
+**What it does:** Report downloads are the only paid action. Packages are exposed through `REPORT_DOWNLOAD_PRICING` and displayed on the billing/downloads page.
+
+### Free Report Preview + Paid Word Download
+**Where:** `GET /api/events/[slug]/report`, `/dashboard/events/[slug]` overview  
+**What it does:** Organizers can generate and read AI report content in the browser for free using `mode=preview`. Downloading a DOCX file uses `mode=download` and consumes one paid report download from the organizer balance.
+
+### Report Download Wallet + Transactions
+**Where:** `prisma/schema.prisma` (`ReportDownload`, `ReportDownloadTransaction`), `POST /api/billing/report-downloads`, `GET /api/billing/verify`  
+**What it does:** Tracks purchased report download bundles and remaining download count per user. Purchases are recorded per unique payment reference and balances are incremented after payment verification.
+
+### Dedicated Report Download Payment Endpoints
+**Where:** `POST /api/report-downloads/purchase`, `GET /api/report-downloads/verify`  
+**What it does:** Provides a report-specific purchase and verification flow that initializes Paystack transactions for report bundles and credits report download balances after successful verification.
+
+### Report Download Modal
+**Where:** `components/ReportDownloadModal.tsx`, `/dashboard/events/[slug]`  
+**What it does:** Shows report download bundle choices in a focused payment modal and redirects users to Paystack checkout for the selected package.
+
+### Team Member Safety Limit
+**Where:** `lib/plans.ts`, `POST /api/team/invite`  
+**What it does:** Team collaboration is open-access with a fixed anti-abuse cap of `10` team members per workspace.
+
+## Feature Availability
+
+### Core Product Features
+**Where:** Event creation, registration, waitlist, analytics, insights, tracker, feedback, exports, team, duplicate, predictive capacity  
+**What it does:** All core product capabilities are available as **Free — no restrictions**.
+
+### Paid Action Scope
+**Where:** Report download purchase/verify flow and report DOCX download action  
+**What it does:** Payment applies only when downloading report files. Report generation and in-browser preview remain free.
 
 ---
 

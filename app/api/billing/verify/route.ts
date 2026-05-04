@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
+import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 
 function redirectTo(request: Request, path: string) {
   const current = new URL(request.url)
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       return redirectTo(request, '/dashboard/billing?error=payment_failed')
     }
 
-    const { userId, plan, billingCycle, type, creditAmount } = data.data.metadata ?? {}
+    const { userId, plan, billingCycle, type, creditAmount, bundleKey } = data.data.metadata ?? {}
 
     if (!userId) {
       return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
@@ -39,6 +40,48 @@ export async function GET(request: Request) {
         reference,
       })
       return redirectTo(request, '/dashboard/billing?credits=added')
+    } else if (type === 'report_download') {
+      const bundle = bundleKey ? REPORT_DOWNLOAD_PRICING[bundleKey as keyof typeof REPORT_DOWNLOAD_PRICING] : null
+      if (!bundle) {
+        return redirectTo(request, '/dashboard/billing?error=invalid_bundle')
+      }
+
+      const existing = await prisma.reportDownloadTransaction.findUnique({
+        where: { reference },
+        select: { id: true },
+      })
+      if (existing) {
+        return redirectTo(request, '/dashboard/billing?downloads=added')
+      }
+
+      const amountKsh = Math.round(data.data.amount / 100)
+
+      await prisma.$transaction(async (tx) => {
+        await tx.reportDownloadTransaction.create({
+          data: {
+            userId,
+            bundleKey,
+            amountKsh,
+            downloads: bundle.downloads,
+            reference,
+          },
+        })
+
+        await tx.reportDownload.upsert({
+          where: { userId },
+          create: {
+            userId,
+            downloadsRemaining: bundle.downloads,
+            totalPurchased: bundle.downloads,
+          },
+          update: {
+            downloadsRemaining: { increment: bundle.downloads },
+            totalPurchased: { increment: bundle.downloads },
+          },
+        })
+      })
+
+      return redirectTo(request, '/dashboard/billing?downloads=added')
     } else {
       const planEndDate = new Date()
       if (billingCycle === 'annual') {

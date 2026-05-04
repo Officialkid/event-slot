@@ -4,10 +4,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
-import UpgradePrompt from "@/app/components/UpgradePrompt"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ComingSoon from "@/components/ui/ComingSoon"
+import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -117,6 +117,18 @@ type WaitlistEmailDiagnosticsSummary = {
   sent: number
   failed: number
   skippedNoEmail: number
+}
+
+type ReportPreviewData = {
+  success: boolean
+  aiContent: {
+    executiveSummary: string
+    audienceProfile: string
+    registrationBehaviour: string
+    recommendations: string
+    waitlistAnalysis: string
+  }
+  downloadsRemaining: number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -271,58 +283,6 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
         </div>
       </div>
     </>
-  )
-}
-
-const REPORT_THEMES = [
-  { id: 'navy',     label: 'Midnight Navy', color: '#1F3864' },
-  { id: 'forest',   label: 'Deep Forest',   color: '#1B4332' },
-  { id: 'wine',     label: 'Wine',          color: '#4A0E2E' },
-  { id: 'graphite', label: 'Graphite',      color: '#1C1C1C' },
-] as const
-
-function ReportOptionsModal({ onClose, onGenerate, downloading, plan, creditBalance }: { onClose: () => void; onGenerate: (theme: string) => void; downloading: boolean; plan: string; creditBalance: number }) {
-  const [selected, setSelected] = useState('navy')
-  const isAI = plan === 'pro' || plan === 'business' || creditBalance >= 50
-  const btnLabel = downloading ? "Generating…" : isAI
-    ? plan === 'free' ? `Download AI Report (50 pts)` : "Download AI Report"
-    : "Download Standard Report"
-  const subLabel = !downloading && plan === 'free' && isAI
-    ? `You have ${creditBalance} points`
-    : null
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={onClose}>
-      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 420, width: "90%" }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.35rem" }}>Download Report</h3>
-        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem" }}>Choose a cover style for your report</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          {REPORT_THEMES.map(t => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setSelected(t.id)}
-              style={{ background: t.color, border: selected === t.id ? "2px solid #C8F55A" : "2px solid transparent", borderRadius: 10, padding: "1.1rem 1rem", cursor: "pointer", textAlign: "left" }}
-            >
-              <div style={{ color: "#FFFFFF", fontWeight: 600, fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{t.label}</div>
-              <div style={{ height: 3, background: "rgba(255,255,255,0.25)", borderRadius: 2, marginBottom: "0.25rem" }} />
-              <div style={{ height: 3, width: "60%", background: "rgba(255,255,255,0.12)", borderRadius: 2 }} />
-            </button>
-          ))}
-        </div>
-        {isAI && (
-          <p style={{ fontSize: "0.75rem", color: "rgba(200,245,90,0.7)", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-            <span>⚡</span> AI-enhanced analysis will be included
-          </p>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.35rem" }}>
-          <div style={{ display: "flex", gap: "0.625rem" }}>
-            <button type="button" onClick={onClose} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-            <button type="button" onClick={() => onGenerate(selected)} disabled={downloading} style={{ padding: "0.55rem 1.5rem", borderRadius: 100, border: "none", background: downloading ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: downloading ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{btnLabel}</button>
-          </div>
-          {subLabel && <span style={{ fontSize: "0.72rem", color: "rgba(200,245,90,0.55)", fontFamily: "var(--font-dm-sans)" }}>{subLabel}</span>}
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -1050,9 +1010,11 @@ export default function EventDashboardPage() {
   const [removingDup, setRemovingDup] = useState<Set<string>>(new Set())
 
   // Report download
+  const [reportData, setReportData] = useState<ReportPreviewData | null>(null)
+  const [reportLoading, setReportLoading] = useState(false)
   const [downloadingReport, setDownloadingReport] = useState(false)
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
-  const [showReportOptions, setShowReportOptions] = useState(false)
+  const [showReportPaymentModal, setShowReportPaymentModal] = useState(false)
+  const [downloadBalance, setDownloadBalance] = useState<number | null>(null)
   const [reportCreditBalance, setReportCreditBalance] = useState(0)
 
   // CSV export
@@ -1066,7 +1028,6 @@ export default function EventDashboardPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState("")
-  const [showAnalyticsUpgrade, setShowAnalyticsUpgrade] = useState(false)
 
   // AI Insights
   const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
@@ -1087,7 +1048,6 @@ export default function EventDashboardPage() {
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackError, setFeedbackError] = useState("")
-  const [showFeedbackUpgrade, setShowFeedbackUpgrade] = useState(false)
 
   // Check-in
   const [ticketCodeInput, setTicketCodeInput] = useState("")
@@ -1269,35 +1229,45 @@ export default function EventDashboardPage() {
     }
   }
 
-  const handleDownloadReport = async (theme = 'navy') => {
-    if (!eventData) return
-    setDownloadingReport(true)
-    const reportUrl = `/api/events/${slug}/report?token=${encodeURIComponent(token || eventData.dashboardToken)}&theme=${encodeURIComponent(theme)}`
+  const generateReportPreview = async () => {
+    if (!eventData || reportLoading) return
+    setReportLoading(true)
     try {
-      let res = await fetch(reportUrl)
-      if (res.status === 403) {
-        const json = await res.json()
-        if (json.creditsRequired && json.eventId && reportCreditBalance >= json.creditsRequired) {
-          const unlockRes = await fetch('/api/features/unlock', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ feature: 'ai_report', eventId: json.eventId }),
-          })
-          const unlockData = await unlockRes.json()
-          if (!unlockRes.ok || !unlockData.success) {
-            router.push('/dashboard/billing')
-            return
-          }
-          res = await fetch(reportUrl)
-          if (!res.ok) return
-          showToast({ featureName: 'Event Report', creditsUsed: json.creditsRequired, creditsRemaining: unlockData.creditsRemaining })
-        } else {
-          router.push('/dashboard/billing')
-          return
-        }
-      } else if (!res.ok) {
+      const params = new URLSearchParams({
+        mode: 'preview',
+        token: token || eventData.dashboardToken,
+      })
+      const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
+      const data = await res.json()
+      if (!res.ok || !data?.success) return
+      setReportData(data)
+      setDownloadBalance(typeof data.downloadsRemaining === 'number' ? data.downloadsRemaining : 0)
+    } catch {
+      // Silent fail for now to match surrounding dashboard behavior.
+    } finally {
+      setReportLoading(false)
+    }
+  }
+
+  const downloadReport = async () => {
+    if (!eventData || downloadingReport) return
+    setDownloadingReport(true)
+    try {
+      const params = new URLSearchParams({
+        mode: 'download',
+        token: token || eventData.dashboardToken,
+      })
+      const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
+
+      if (res.status === 402) {
+        setShowReportPaymentModal(true)
         return
       }
+
+      if (!res.ok) {
+        return
+      }
+
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -1305,8 +1275,12 @@ export default function EventDashboardPage() {
       a.download = `event-report-${slug}.docx`
       a.click()
       URL.revokeObjectURL(url)
-    } catch { /* silent */ }
-    finally { setDownloadingReport(false) }
+      setDownloadBalance((prev) => (prev !== null ? Math.max(0, prev - 1) : prev))
+    } catch {
+      // Silent fail for now to match surrounding dashboard behavior.
+    } finally {
+      setDownloadingReport(false)
+    }
   }
 
   const keepDupReg = (regId: string) => {
@@ -1474,12 +1448,6 @@ export default function EventDashboardPage() {
       const qs = params.toString() ? `?${params.toString()}` : ''
       const res = await fetch(`/api/events/${slug}/insights${qs}`)
       const data = await res.json()
-      if (res.status === 403 && data.locked) {
-        setInsightsLocked(true)
-        setInsightsRequiredCredits(data.creditsRequired ?? 20)
-        setInsightsEventId(data.eventId ?? null)
-        return
-      }
       if (!res.ok) return
       setInsightsData(data.cards)
       setInsightsGeneratedAt(data.generatedAt ?? null)
@@ -1540,10 +1508,6 @@ export default function EventDashboardPage() {
     try {
       const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       const data = await res.json()
-      if (res.status === 403 && data.upgradeRequired) {
-        setShowAnalyticsUpgrade(true)
-        return
-      }
       if (!res.ok) { setAnalyticsError(data.error || "Failed to load analytics"); return }
       setAnalyticsData(data)
       loadInsights()
@@ -1558,10 +1522,6 @@ export default function EventDashboardPage() {
     try {
       const res = await fetch(`/api/events/${slug}/feedback${token ? `?token=${encodeURIComponent(token)}` : ""}`)
       const data = await res.json()
-      if (res.status === 403 && data.upgradeRequired) {
-        setShowFeedbackUpgrade(true)
-        return
-      }
       if (!res.ok) { setFeedbackError(data.error || "Failed to load feedback"); return }
       setFeedbackData(data)
     } catch { setFeedbackError("Unable to load feedback.") }
@@ -1600,24 +1560,8 @@ export default function EventDashboardPage() {
         />
       )}
 
-      {showUpgradePrompt && (
-        <UpgradePrompt feature="Event Reports" requiredPlan="pro" onClose={() => setShowUpgradePrompt(false)} />
-      )}
-
-      {showReportOptions && (
-        <ReportOptionsModal
-          downloading={downloadingReport}
-          plan={eventData?.organizerPlan ?? 'free'}
-          creditBalance={reportCreditBalance}
-          onClose={() => setShowReportOptions(false)}
-          onGenerate={theme => { setShowReportOptions(false); handleDownloadReport(theme) }}
-        />
-      )}
-      {showAnalyticsUpgrade && (
-        <UpgradePrompt feature="Event Analytics" requiredPlan="pro" onClose={() => setShowAnalyticsUpgrade(false)} />
-      )}
-      {showFeedbackUpgrade && (
-        <UpgradePrompt feature="Attendee Feedback" requiredPlan="business" onClose={() => setShowFeedbackUpgrade(false)} />
+      {showReportPaymentModal && (
+        <ReportDownloadModal onClose={() => setShowReportPaymentModal(false)} />
       )}
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -1702,18 +1646,18 @@ export default function EventDashboardPage() {
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
               <button
                 onClick={() => {
-                  const plan = eventData?.organizerPlan ?? 'free'
-                  if (plan === 'free' && reportCreditBalance < 50) { router.push('/dashboard/billing') } else { setShowReportOptions(true) }
+                  setActiveTab('overview')
+                  void generateReportPreview()
                 }}
-                disabled={downloadingReport}
-                title="Download event report"
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontWeight: 500, color: downloadingReport ? "rgba(240,237,230,0.3)" : "rgba(240,237,230,0.5)", cursor: downloadingReport ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", whiteSpace: "nowrap" }}
+                disabled={reportLoading}
+                title="Generate report preview"
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? "rgba(240,237,230,0.3)" : "rgba(240,237,230,0.5)", cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", whiteSpace: "nowrap" }}
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M8 2v8M5 7l3 3 3-3" />
                   <path d="M2 12h12" />
                 </svg>
-                {downloadingReport ? "Generating…" : "Report"}
+                {reportLoading ? "Generating…" : reportData ? "Report Ready" : "Generate Report"}
               </button>
               <HeaderMenu
                 onEdit={() => router.push(`/edit/${slug}`)}
@@ -1810,6 +1754,127 @@ export default function EventDashboardPage() {
                 </svg>
                 Register someone
               </button>
+            </div>
+
+            {/* Report preview + paid download */}
+            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
+                    ✦ AI Report
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
+                    Generate and read in browser for free. Download Word requires a paid package.
+                  </p>
+                </div>
+                {!reportData && (
+                  <button
+                    onClick={() => void generateReportPreview()}
+                    disabled={reportLoading}
+                    style={{
+                      background: reportLoading ? "rgba(200,245,90,0.3)" : "#C8F55A",
+                      color: "#0A0A0A",
+                      border: "none",
+                      borderRadius: "100px",
+                      padding: "0.65rem 1.6rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                      cursor: reportLoading ? "not-allowed" : "pointer",
+                      fontFamily: "var(--font-dm-sans)",
+                    }}
+                  >
+                    {reportLoading ? 'Generating AI report...' : '✦ Generate AI Report'}
+                  </button>
+                )}
+              </div>
+
+              {reportData && (
+                <div style={{
+                  background: "#141414",
+                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  borderRadius: "12px",
+                  padding: "1.5rem",
+                  marginTop: "1rem",
+                }}>
+                  <div style={{ marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Executive Summary
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.executiveSummary}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Audience Profile
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.audienceProfile}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Registration Behaviour
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.registrationBehaviour}
+                    </p>
+                  </div>
+
+                  <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)", paddingTop: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
+                    <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", color: "#F0EDE6", margin: "0 0 0.75rem" }}>
+                      Recommendations
+                    </h3>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", lineHeight: "1.7", margin: 0 }}>
+                      {reportData.aiContent.recommendations}
+                    </p>
+                  </div>
+
+                  <div style={{
+                    borderTop: "0.5px solid rgba(240,237,230,0.08)",
+                    paddingTop: "1rem",
+                    marginTop: "1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    flexWrap: "wrap",
+                  }}>
+                    <div>
+                      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                        {downloadBalance !== null && downloadBalance > 0
+                          ? `${downloadBalance} download${downloadBalance !== 1 ? 's' : ''} remaining`
+                          : 'Download as Word document'}
+                      </p>
+                      {(downloadBalance === null || downloadBalance < 1) && (
+                        <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
+                          From KSh 100
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => void downloadReport()}
+                      disabled={downloadingReport}
+                      style={{
+                        background: "#C8F55A",
+                        color: "#0A0A0A",
+                        border: "none",
+                        borderRadius: "100px",
+                        padding: "0.6rem 1.4rem",
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        cursor: downloadingReport ? "not-allowed" : "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                        opacity: downloadingReport ? 0.6 : 1,
+                      }}
+                    >
+                      {downloadingReport ? 'Preparing...' : '↓ Download Word'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Capacity panel */}

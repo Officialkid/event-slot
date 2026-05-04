@@ -1,4 +1,4 @@
-import { askClaude } from "./claude"
+import { askAI } from "./ai"
 
 export interface InsightCard {
   type: "success" | "warning" | "tip" | "info"
@@ -58,7 +58,13 @@ Analytics:
 Generate 3 insight cards.`
 
   try {
-    const raw = await askClaude({ system, prompt, maxTokens: 400 })
+    const raw = await askAI({
+      system,
+      prompt,
+      taskType: 'insights',
+      maxTokens: 400,
+    })
+    if (!raw) throw new Error('AI unavailable')
     const cleaned = raw.replace(/```json|```/g, "").trim()
     const parsed: InsightCard[] = JSON.parse(cleaned)
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid response shape")
@@ -67,8 +73,8 @@ Generate 3 insight cards.`
     return [
       {
         type: "info",
-        title: "Analytics overview ready",
-        body: `Your event has ${analytics.totalRegistrations} registrations from ${analytics.totalViews} views (${analytics.conversionRate}% conversion).`,
+        title: "AI currently unavailable",
+        body: "Insight generation is temporarily unavailable. Please try again shortly.",
       },
     ]
   }

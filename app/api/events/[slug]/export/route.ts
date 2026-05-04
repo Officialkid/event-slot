@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { hasFeatureAccess } from '@/lib/credits'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
@@ -36,20 +35,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     if (!isOwner && !hasValidToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const plan = event.organizer?.plan ?? 'free'
-    const userId = session?.user?.id ?? event.organizerId
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
-    const access = await hasFeatureAccess({ userId, feature: 'export_csv', eventId: event.id, plan })
-    if (!access.hasAccess) {
-      return NextResponse.json(
-        { error: 'CSV export requires a Pro/Business plan or a one-time credit unlock.', upgradeRequired: true, creditsRequired: access.cost, eventId: event.id },
-        { status: 403 }
-      )
     }
 
     // Fetch confirmed registrations

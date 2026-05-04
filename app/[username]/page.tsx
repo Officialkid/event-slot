@@ -331,10 +331,10 @@ export default async function PublicProfilePage({
           </p>
         </div>
 
-        {/* Follow button — coming soon */}
+        {/* Follow button */}
         <button
           disabled
-          title="Coming soon"
+          title="Follow"
           style={{
             background: "transparent",
             border: "0.5px solid rgba(240,237,230,0.15)",

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { CREDIT_COSTS, getUserCredits, spendCredits } from '@/lib/credits'
-import { askClaude } from '@/lib/claude'
+import { askAI } from '@/lib/ai'
 
 export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -36,30 +35,6 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
     if (!isOwner && !hasValidToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const plan = event.organizer?.plan ?? 'free'
-    const userId = session?.user?.id ?? event.organizerId
-
-    // Business: free. Pro/free with credits: spend 1. Free no credits: locked.
-    if (plan !== 'business') {
-      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      const credits = await getUserCredits(userId)
-      if (credits < CREDIT_COSTS.ask_your_data) {
-        return NextResponse.json(
-          { locked: true, requiredCredits: CREDIT_COSTS.ask_your_data, currentCredits: credits },
-          { status: 402 }
-        )
-      }
-      const spendResult = await spendCredits({
-        userId,
-        amount: CREDIT_COSTS.ask_your_data,
-        description: `AI Q&A for "${event.title}"`,
-        eventId: event.id,
-      })
-      if (!spendResult.success) {
-        return NextResponse.json({ error: spendResult.error ?? 'Insufficient credits' }, { status: 402 })
-      }
-    }
 
     // Fetch registrations and view count
     const [registrations, viewCount] = await Promise.all([
@@ -132,13 +107,16 @@ Answer questions clearly and specifically using the data provided.
 If the data does not support a confident answer, say so honestly.
 Keep answers under 100 words. Be direct and practical.`
 
-    const answer = await askClaude({
+    const answer = await askAI({
       system,
       prompt: `Event data:\n${context}\n\nOrganizer question: ${question}`,
+      taskType: 'qa',
       maxTokens: 200,
     })
 
-    return NextResponse.json({ answer })
+    return NextResponse.json({
+      answer: answer ?? 'AI is temporarily unavailable. Please try again shortly.',
+    })
   } catch (err) {
     console.error('Ask error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

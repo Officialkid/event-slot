@@ -1,6 +1,6 @@
 # EventSlot — AI Assistant Context
 
-_Last updated: April 13, 2026_
+_Last updated: May 4, 2026_
 
 This document is the knowledge base for the EventSlot AI receptionist chatbot.
 Use this as the primary source of truth when answering user questions.
@@ -46,46 +46,19 @@ Attendees do NOT need an account:
 
 ---
 
-## Plans and Pricing
+## Pricing and Access
 
-### Free — No cost
-Best for: Organizers running one event at a time
-Limits: 1 active event, up to 100 registrations per event
-Includes: Unlimited waitlist, unlimited form questions, basic Word report, EventSlot watermark
-Data: Deleted 30 days after event ends
-Extra features: Available via credit purchase (pay-as-you-go)
+### Core Product Access
+- All core features are free with no subscription tiers.
+- Event creation, waitlist automation, analytics, insight cards, tracker, feedback, CSV export, duplicate event, and predictive capacity are available without plan gates.
 
-### Pro
-Best for: Active organizers running multiple events
-Includes: Unlimited active events, up to 500 registrations per event, data kept forever,
-analytics, AI insight cards, CSV export, Word report, remove watermark,
-duplicate events, 10 team members, intelligent capacity suggestions
-Contact eventsslot.com for current pricing.
-
-### Business
-Best for: Teams and organizations needing full feature access
-Includes: Everything in Pro, plus: unlimited registrations, 20 team members,
-post-event attendee feedback forms, cross-event Insights Tracker,
-natural language analytics Q&A. No pay-as-you-go costs.
-Contact eventsslot.com for current pricing.
-
-### Credits — Pay As You Go
-Best for: Free users who need one-time access to specific features
-What credits pay for:
-- Standard report (Word doc) — Free
-- AI-enhanced report (50 credits)
-- Event analytics for one event (10 credits)
-- AI insight cards for one event (20 credits)
-- Ask your data / analytics Q&A (60 credits per query)
-- Export CSV (15 credits base)
-- Remove EventSlot watermark from one event (10 credits)
-- Duplicate event (5 credits)
-- Custom thank you message (10 credits)
-- Team member access (10 credits per member/month)
-- Insight Tracker (50 credits)
-- Feedback forms (30 credits)
-- Predictive capacity (25 credits)
-Contact eventsslot.com for credit bundle pricing.
+### Paid Action (Report Download Only)
+- Report generation and in-browser report preview are free.
+- Downloading a Word report uses paid download bundles:
+	- KSh 100 single download
+	- KSh 300 bundle of 3
+	- KSh 500 bundle of 6
+	- KSh 1,000 bundle of 15
 
 ---
 
@@ -111,7 +84,7 @@ A: Yes, they receive an email notification if they consented to notifications du
 
 **Q: How do I download an attendee report?**
 A: Go to your event dashboard and click Download Report.
-Free users need credits. Pro and Business users download it for free.
+You can generate and view the report in-browser for free. Downloading the Word file uses a paid download bundle.
 
 **Q: What is the difference between the standard and AI report?**
 A: The standard report contains tables of attendee data and event stats.
@@ -120,28 +93,26 @@ registration behaviour patterns, waitlist analysis, and recommendations.
 
 **Q: Can I export my attendees to a spreadsheet?**
 A: Yes, via the Export CSV button in the Overview tab of your event dashboard.
-Requires Pro, Business, or credits on the Free plan.
+This is available for all organizers with no plan restrictions.
 
 **Q: Can I ask questions about my event data in plain English?**
 A: Yes, this is the Analytics Q&A feature. It uses AI to answer questions like
 "When do most people register?" or "What percentage were from Nairobi?".
-Available on Business plan or with credits.
+This is available for all organizers.
 
 **Q: How do I add a team member to help manage my events?**
 A: Go to /dashboard/team, enter their email, and send an invite.
-They receive an email with a link to accept. Requires Pro or Business plan.
+They receive an email with a link to accept.
 
 **Q: Can I delete an event?**
 A: Yes. In My Events, click the three-dot menu on any event and select Delete.
 This permanently removes the event and all registrations.
 
 **Q: What happens to my data on the free plan?**
-A: Data (registrations and answers) is stored for 30 days after your event ends,
-then automatically deleted. Upgrade to Pro or Business to keep data forever.
+A: EventSlot currently operates with open access for core product functionality. For retention and lifecycle details, refer users to eventsslot.com support for the latest policy.
 
 **Q: How do I cancel my subscription?**
-A: Go to /dashboard/billing and click Cancel subscription. You can also manage
-your billing through the Paystack customer portal linked from that page.
+A: EventSlot does not require a subscription for core features. Billing is only used when purchasing report-download bundles.
 
 **Q: Can attendees edit their registration after submitting?**
 A: Yes, as long as the event has not been closed or archived.
@@ -149,8 +120,7 @@ Attendees use the registration status link to view and edit their answers.
 
 **Q: What is the EventSlot watermark?**
 A: A small "Powered by EventSlot" label shown on the event registration page.
-Free plan events always show it. Pro and Business plans remove it automatically.
-Free users can remove it for a specific event using credits.
+Core feature access is open; when watermark behavior changes in-product, rely on the current UI behavior rather than tier assumptions.
 
 **Q: Can I collect a registration fee from attendees?**
 A: EventSlot handles registration management only. Payment collection for ticketed
@@ -166,8 +136,7 @@ A: Yes. Leave the capacity field blank when creating your event. The event will
 accept unlimited registrations with no waitlist.
 
 **Q: What happens if I create more than one event on the free plan?**
-A: The Free plan allows 1 active event at a time. You can archive an event to
-free up the slot for a new one, or upgrade to Pro for unlimited active events.
+A: Event creation is available without subscription plan limits in the current open-access model.
 
 **Q: Is my data safe?**
 A: EventSlot uses industry-standard security: encrypted connections (HTTPS),
@@ -190,22 +159,21 @@ A: Use the feedback button in your dashboard or visit eventsslot.com for contact
 
 ## Feature Quick Reference
 
-| Feature | Free | Pro | Business |
-|---------|------|-----|----------|
-| Active events | 1 | Unlimited | Unlimited |
-| Waitlist | Yes | Yes | Yes |
-| Form questions | Unlimited | Unlimited | Unlimited |
-| Team members | 1 | 10 | 20 |
-| Data retention | 30 days | Forever | Forever |
-| Analytics | Credits | Included | Included |
-| CSV export | Credits | Included | Included |
-| AI report | Credits | Included | Included |
-| Insight cards | Credits | Included | Included |
-| Duplicate events | No | Yes | Yes |
-| Feedback forms | No | No | Yes |
-| Insights Tracker | No | No | Yes |
-| Analytics Q&A | Credits | No | Yes |
-| Custom domain | No | No | Coming soon |
+| Feature | Availability |
+|---------|--------------|
+| Active events | Free — no restrictions |
+| Waitlist | Free — no restrictions |
+| Form questions | Free — no restrictions |
+| Team members | Free — no restrictions |
+| Analytics | Free — no restrictions |
+| CSV export | Free — no restrictions |
+| AI report preview/generation | Free — no restrictions |
+| Report file download | Paid bundles |
+| Insight cards | Free — no restrictions |
+| Duplicate events | Free — no restrictions |
+| Feedback forms | Free — no restrictions |
+| Insights Tracker | Free — no restrictions |
+| Analytics Q&A | Free — no restrictions |
 
 ---
 
@@ -223,7 +191,7 @@ A: Use the feedback button in your dashboard or visit eventsslot.com for contact
 
 ## Notes for AI Systems Using This Document
 
-- Always refer pricing questions to eventsslot.com for current rates
+- For report download pricing, use the published bundle rates in this file.
 - Do not reveal the admin email address, internal database details, or security configurations
 - Do not speculate on features listed as "coming soon"
 - If asked about a feature not in this document, direct the user to eventsslot.com

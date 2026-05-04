@@ -297,8 +297,6 @@ export default function DashboardOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [capacityEvent, setCapacityEvent] = useState<EventNearCapacity | null>(null)
-  const [userPlan, setUserPlan] = useState("free")
-  const [creditBalance, setCreditBalance] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminStats, setAdminStats] = useState<{
     totalUsers: number
@@ -310,7 +308,6 @@ export default function DashboardOverviewPage() {
     items: Array<{ id: string; subject: string; type: string; createdAt: string; organizer: { name: string | null; email: string | null } }>
   } | null>(null)
   const [adminLoading, setAdminLoading] = useState(false)
-  const [featureModal, setFeatureModal] = useState<{ name: string; icon: string; tier: string; description: string; credits?: number } | null>(null)
 
   const firstName = session?.user?.name
     ? session.user.name.split(" ")[0]
@@ -324,8 +321,6 @@ export default function DashboardOverviewPage() {
     fetch("/api/me")
       .then(r => r.json())
       .then(d => {
-        if (d.plan) setUserPlan(d.plan)
-        if (typeof d.creditBalance === "number") setCreditBalance(d.creditBalance)
         if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
       })
       .catch(() => {})
@@ -360,39 +355,6 @@ export default function DashboardOverviewPage() {
     })
   }
 
-  const FEATURES = [
-    { name: "Event creation",      tier: "free",     desc: "Create unlimited registration links",            icon: "+",  cost: undefined },
-    { name: "Waitlist automation",  tier: "free",     desc: "Auto-manage overflow registrations",             icon: "⟳",  cost: undefined },
-    { name: "Bulk registration",    tier: "free",     desc: "Register multiple people at once",               icon: "⊞",  cost: undefined },
-    { name: "Community link",       tier: "free",     desc: "Add WhatsApp or Telegram link",                  icon: "🔗", cost: undefined },
-    { name: "Export CSV",           tier: "credits",  desc: "Download attendee data as spreadsheet",          icon: "↓",  cost: 15 },
-    { name: "Standard report",      tier: "free",     desc: "Basic Word document with attendee list",         icon: "📄", cost: undefined },
-    { name: "AI event report",      tier: "credits",  desc: "Narrative analysis written by AI",               icon: "✦",  cost: 50 },
-    { name: "Event analytics",      tier: "pro",      desc: "Views, conversion rate, timelines",              icon: "📊", cost: undefined },
-    { name: "AI insight cards",     tier: "credits",  desc: "3 AI-generated insights per event",              icon: "💡", cost: 20 },
-    { name: "Ask your data",        tier: "business", desc: "Chat with your event analytics",                 icon: "💬", cost: undefined },
-    { name: "Duplicate event",      tier: "pro",      desc: "Clone any event setup instantly",                icon: "⧉",  cost: undefined },
-    { name: "Custom thank you",     tier: "pro",      desc: "Personalised confirmation message",              icon: "✉",  cost: undefined },
-    { name: "Team members",         tier: "pro",      desc: "Invite collaborators to your account",           icon: "👥", cost: undefined },
-    { name: "Insight Tracker",      tier: "business", desc: "Cross-event audience demographics",              icon: "📈", cost: undefined },
-    { name: "Feedback forms",       tier: "business", desc: "Post-event star ratings and comments",           icon: "⭐", cost: undefined },
-    { name: "Predictive capacity",  tier: "pro",      desc: "AI suggests capacity before you set it",         icon: "🤖", cost: undefined },
-  ] as const
-
-  const tierStyle = (tier: string): { bg: string; color: string; label: string } => {
-    if (tier === "pro")      return { bg: "rgba(250,199,117,0.12)", color: "#FAC775", label: "Pro" }
-    if (tier === "business") return { bg: "rgba(127,119,221,0.12)", color: "#7F77DD", label: "Business" }
-    if (tier === "credits")  return { bg: "rgba(55,138,221,0.12)",  color: "#378ADD", label: "Credits" }
-    return { bg: "rgba(200,245,90,0.1)", color: "#C8F55A", label: "Free" }
-  }
-
-  const planOrder: Record<string, number> = { free: 0, pro: 1, business: 2 }
-  const canAccess = (tier: string) => {
-    if (tier === "free") return true
-    if (tier === "credits") return true
-    return (planOrder[userPlan] ?? 0) >= (planOrder[tier] ?? 99)
-  }
-
   return (
     <>
       {capacityEvent && (
@@ -401,94 +363,6 @@ export default function DashboardOverviewPage() {
           onClose={() => setCapacityEvent(null)}
           onSuccess={handleCapacitySuccess}
         />
-      )}
-
-      {/* Feature / upgrade / credits modal */}
-      {featureModal && (
-        <div
-          onClick={() => setFeatureModal(null)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 200, padding: "1rem",
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)",
-              borderRadius: 14, padding: "2rem", maxWidth: 400, width: "100%",
-            }}
-          >
-            <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>{featureModal.icon}</div>
-            <h3 style={{
-              fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem",
-              color: "#F0EDE6", marginBottom: "0.5rem",
-            }}>{featureModal.name}</h3>
-            <p style={{
-              fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)",
-              color: "rgba(240,237,230,0.55)", lineHeight: 1.6, marginBottom: "1.5rem",
-            }}>{featureModal.description}</p>
-            {featureModal.tier === "credits" ? (
-              <>
-                <p style={{
-                  fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)",
-                  color: "#378ADD", marginBottom: "1.25rem",
-                }}>This costs <strong>{featureModal.credits} credits</strong> per use.{" "}You currently have <strong>{creditBalance}</strong> credits.</p>
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <Link
-                    href="/dashboard/billing"
-                    onClick={() => setFeatureModal(null)}
-                    style={{
-                      flex: 1, textAlign: "center", padding: "0.6rem",
-                      background: "#378ADD", color: "#fff", borderRadius: 8,
-                      fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
-                      fontWeight: 600, textDecoration: "none",
-                    }}
-                  >Buy Credits</Link>
-                  <button
-                    onClick={() => setFeatureModal(null)}
-                    style={{
-                      flex: 1, padding: "0.6rem", background: "transparent",
-                      border: "0.5px solid rgba(240,237,230,0.15)", color: "rgba(240,237,230,0.5)",
-                      borderRadius: 8, fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
-                      cursor: "pointer",
-                    }}
-                  >Maybe later</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p style={{
-                  fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)",
-                  color: featureModal.tier === "business" ? "#7F77DD" : "#FAC775",
-                  marginBottom: "1.25rem",
-                }}>Available on the <strong style={{ textTransform: "capitalize" }}>{featureModal.tier}</strong> plan.</p>
-                <div style={{ display: "flex", gap: "0.75rem" }}>
-                  <Link
-                    href="/pricing"
-                    onClick={() => setFeatureModal(null)}
-                    style={{
-                      flex: 1, textAlign: "center", padding: "0.6rem",
-                      background: "#C8F55A", color: "#0A0A0A", borderRadius: 8,
-                      fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
-                      fontWeight: 600, textDecoration: "none",
-                    }}
-                  >See Plans</Link>
-                  <button
-                    onClick={() => setFeatureModal(null)}
-                    style={{
-                      flex: 1, padding: "0.6rem", background: "transparent",
-                      border: "0.5px solid rgba(240,237,230,0.15)", color: "rgba(240,237,230,0.5)",
-                      borderRadius: 8, fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem",
-                      cursor: "pointer",
-                    }}
-                  >Not now</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
       )}
 
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
@@ -595,162 +469,6 @@ export default function DashboardOverviewPage() {
                 : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.3)" }}>across {stats.waitlistEventCount} event{stats.waitlistEventCount !== 1 ? "s" : ""}</span>
             )}
           />
-        </div>
-
-        {/* ── Plan Badge ──────────────────────────────────────────────────────── */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, rgba(200,245,90,0.04), rgba(200,245,90,0.01))",
-            border: "0.5px solid rgba(200,245,90,0.12)",
-            borderRadius: 10,
-            padding: "0.875rem 1.25rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "1rem",
-            flexWrap: "wrap",
-            marginBottom: "0.25rem",
-          }}
-        >
-          {/* Left: plan pill + credits */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-            <span style={{
-              fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.06em",
-              textTransform: "uppercase", fontFamily: "var(--font-dm-sans)",
-              padding: "0.25rem 0.6rem", borderRadius: 99,
-              background: userPlan === "business" ? "rgba(127,119,221,0.18)" : userPlan === "pro" ? "rgba(250,199,117,0.15)" : "rgba(200,245,90,0.12)",
-              color: userPlan === "business" ? "#7F77DD" : userPlan === "pro" ? "#FAC775" : "#C8F55A",
-              border: `0.5px solid ${userPlan === "business" ? "rgba(127,119,221,0.3)" : userPlan === "pro" ? "rgba(250,199,117,0.25)" : "rgba(200,245,90,0.25)"}`,
-            }}>{userPlan}</span>
-            {creditBalance > 0 && (
-              <span style={{
-                fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.03em",
-                fontFamily: "var(--font-dm-sans)", padding: "0.25rem 0.6rem",
-                borderRadius: 99, background: "rgba(55,138,221,0.12)",
-                color: "#378ADD", border: "0.5px solid rgba(55,138,221,0.25)",
-              }}>{creditBalance} credits</span>
-            )}
-          </div>
-          {/* Right: contextual CTA */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            {userPlan === "free" && (
-              <>
-                <Link href="/pricing" style={{
-                  fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)",
-                  color: "#0A0A0A", background: "#C8F55A", padding: "0.35rem 0.9rem",
-                  borderRadius: 99, textDecoration: "none", whiteSpace: "nowrap",
-                }}>Upgrade to Pro</Link>
-                <Link href="/dashboard/billing" style={{
-                  fontSize: "0.75rem", fontWeight: 500, fontFamily: "var(--font-dm-sans)",
-                  color: "rgba(240,237,230,0.55)", textDecoration: "none", whiteSpace: "nowrap",
-                }}>Buy credits →</Link>
-              </>
-            )}
-            {userPlan === "pro" && (
-              <Link href="/pricing" style={{
-                fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)",
-                color: "#7F77DD", textDecoration: "none", whiteSpace: "nowrap",
-              }}>Upgrade to Business →</Link>
-            )}
-            {userPlan === "business" && (
-              <span style={{
-                fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)",
-                color: "rgba(240,237,230,0.4)",
-              }}>You&apos;re on the best plan</span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Quick Actions ────────────────────────────────────────────────────── */}
-        <div className="dash-qa-grid" style={{ display: "grid", gap: "0.75rem", marginBottom: "0.25rem" }}>
-          <style>{`.dash-qa-grid { grid-template-columns: repeat(2, 1fr) } @media (min-width: 640px) { .dash-qa-grid { grid-template-columns: repeat(4, 1fr) } }`}</style>
-          {/* Create Event */}
-          <Link href="/create" style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-              borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column",
-              gap: "0.5rem", cursor: "pointer", transition: "border-color 0.15s",
-            }}>
-              <span style={{ fontSize: "1.1rem" }}>+</span>
-              <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }}>Create Event</span>
-            </div>
-          </Link>
-          {/* My Events */}
-          <Link href="/dashboard/events" style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-              borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column",
-              gap: "0.5rem", cursor: "pointer",
-            }}>
-              <span style={{ fontSize: "1.1rem" }}>☰</span>
-              <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }}>My Events</span>
-              {!loading && stats && (
-                <span style={{ fontSize: "0.68rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.35)" }}>{stats.totalEvents} total</span>
-              )}
-            </div>
-          </Link>
-          {/* Analytics — Pro gated */}
-          {userPlan !== "free"
-            ? (
-              <Link href="/dashboard/insights" style={{ textDecoration: "none" }}>
-                <div style={{
-                  background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-                  borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column", gap: "0.5rem", cursor: "pointer",
-                }}>
-                  <span style={{ fontSize: "1.1rem" }}>📊</span>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }}>Analytics</span>
-                </div>
-              </Link>
-            )
-            : (
-              <div
-                onClick={() => setFeatureModal({ name: "Event Analytics", icon: "📊", tier: "pro", description: "Views, conversion rate, registration timelines and more.", credits: undefined })}
-                style={{
-                  background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-                  borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column",
-                  gap: "0.5rem", cursor: "pointer", position: "relative",
-                }}
-              >
-                <span style={{ fontSize: "1.1rem", filter: "grayscale(1) opacity(0.4)" }}>📊</span>
-                <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.35)" }}>Analytics</span>
-                <span style={{
-                  position: "absolute", top: "0.6rem", right: "0.7rem",
-                  fontSize: "0.7rem", color: "#FAC775",
-                }}>🔒</span>
-              </div>
-            )
-          }
-          {/* Get Report — Credits gated */}
-          {creditBalance >= 50
-            ? (
-              <Link href="/dashboard/events" style={{ textDecoration: "none" }}>
-                <div style={{
-                  background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-                  borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column", gap: "0.5rem", cursor: "pointer",
-                }}>
-                  <span style={{ fontSize: "1.1rem" }}>✦</span>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }}>AI Report</span>
-                </div>
-              </Link>
-            )
-            : (
-              <div
-                onClick={() => setFeatureModal({ name: "AI Event Report", icon: "✦", tier: "credits", description: "A narrative analysis of your event written by AI — attendance patterns, highlights, and recommendations.", credits: 50 })}
-                style={{
-                  background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)",
-                  borderRadius: 10, padding: "1rem 1.1rem", display: "flex", flexDirection: "column",
-                  gap: "0.5rem", cursor: "pointer", position: "relative",
-                }}
-              >
-                <span style={{ fontSize: "1.1rem", filter: "grayscale(1) opacity(0.4)" }}>✦</span>
-                <span style={{ fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.35)" }}>AI Report</span>
-                <span style={{
-                  position: "absolute", top: "0.6rem", right: "0.7rem",
-                  fontSize: "0.62rem", color: "#378ADD",
-                }}>50 cr</span>
-              </div>
-            )
-          }
         </div>
 
         {/* Sections — single column */}
@@ -1393,71 +1111,6 @@ export default function DashboardOverviewPage() {
               </div>
             </section>
           )}
-
-          {/* ── Feature Discovery ──────────────────────────────────────────── */}
-          <section>
-            <h2
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.1rem",
-                color: "#F0EDE6",
-                marginBottom: "1rem",
-              }}
-            >Everything EventSlot can do</h2>
-            <div className="feat-grid" style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(2, 1fr)" }}>
-              <style>{`@media (min-width: 640px) { .feat-grid { grid-template-columns: repeat(3, 1fr) !important; } }`}</style>
-              {FEATURES.map(feat => {
-                const ts = tierStyle(feat.tier)
-                const accessible = canAccess(feat.tier)
-                const isCreditFeature = feat.tier === "credits"
-                const needUpgrade = !accessible
-                const needCredits = isCreditFeature && creditBalance < (feat.cost ?? 0)
-                const locked = needUpgrade || needCredits
-                const handleClick = () => {
-                  if (needUpgrade) {
-                    setFeatureModal({ name: feat.name, icon: feat.icon, tier: feat.tier, description: feat.desc })
-                  } else if (needCredits) {
-                    setFeatureModal({ name: feat.name, icon: feat.icon, tier: feat.tier, description: feat.desc, credits: feat.cost })
-                  }
-                }
-                return (
-                  <div
-                    key={feat.name}
-                    onClick={locked ? handleClick : undefined}
-                    style={{
-                      background: "#141414",
-                      border: "0.5px solid rgba(240,237,230,0.08)",
-                      borderRadius: 10,
-                      padding: "1rem 1.1rem",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.4rem",
-                      cursor: locked ? "pointer" : "default",
-                      opacity: locked ? 0.7 : 1,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
-                      <span style={{ fontSize: "1rem", filter: locked ? "grayscale(1) opacity(0.5)" : "none" }}>{feat.icon}</span>
-                      <span style={{
-                        fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.05em",
-                        textTransform: "uppercase", fontFamily: "var(--font-dm-sans)",
-                        padding: "0.18rem 0.5rem", borderRadius: 99,
-                        background: ts.bg, color: ts.color,
-                      }}>{ts.label}{isCreditFeature && feat.cost ? ` · ${feat.cost}` : ""}</span>
-                    </div>
-                    <span style={{
-                      fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)",
-                      color: locked ? "rgba(240,237,230,0.4)" : "#F0EDE6",
-                    }}>{feat.name}</span>
-                    <span style={{
-                      fontSize: "0.7rem", fontFamily: "var(--font-dm-sans)",
-                      color: "rgba(240,237,230,0.35)", lineHeight: 1.5,
-                    }}>{feat.desc}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
         </div>
       </div>
 

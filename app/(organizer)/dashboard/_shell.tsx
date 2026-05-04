@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
-import CreditsBalance from "@/components/CreditsBalance"
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
 import { HintDot } from "@/components/tutorial/HintDot"
 import { useTutorial } from "@/hooks/useTutorial"
@@ -147,49 +146,6 @@ function getIsActive(pathname: string, href: string, exact: boolean): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
-// ─── Plan badge ───────────────────────────────────────────────────────────────
-
-function PlanBadge({ plan }: { plan: string }) {
-  const styleMap: Record<string, React.CSSProperties> = {
-    free: {
-      background: "rgba(240,237,230,0.06)",
-      border: "0.5px solid rgba(240,237,230,0.15)",
-      color: "rgba(240,237,230,0.55)",
-    },
-    pro: {
-      background: "rgba(200,245,90,0.1)",
-      border: "0.5px solid rgba(200,245,90,0.3)",
-      color: "#C8F55A",
-    },
-    business: {
-      background: "rgba(147,112,219,0.1)",
-      border: "0.5px solid rgba(147,112,219,0.3)",
-      color: "#9370DB",
-    },
-  }
-  const labelMap: Record<string, string> = {
-    free: "Free Plan",
-    pro: "Pro Plan",
-    business: "Business Plan",
-  }
-  return (
-    <span
-      style={{
-        ...(styleMap[plan] ?? styleMap.free),
-        borderRadius: 100,
-        fontSize: "0.7rem",
-        fontWeight: 500,
-        padding: "0.3rem 0.75rem",
-        display: "inline-block",
-        letterSpacing: "0.04em",
-        fontFamily: "var(--font-dm-sans)",
-      }}
-    >
-      {labelMap[plan] ?? "Free Plan"}
-    </span>
-  )
-}
-
 // ─── Sidebar inner content ────────────────────────────────────────────────────
 
 interface SidebarInnerProps {
@@ -199,14 +155,12 @@ interface SidebarInnerProps {
   image?: string | null
   initials: string
   unreadCount: number
-  userPlan: string
-  creditBalance: number
   usedFeatures: string[]
   onNavClick?: () => void
   collapsed?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, userPlan, creditBalance, usedFeatures, onNavClick, collapsed = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, collapsed = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -401,8 +355,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             </Link>
           )
         })}
-        {/* Insights — business plan only */}
-        {userPlan === "business" && (() => {
+        {(() => {
           const active = getIsActive(pathname, "/dashboard/insights", false)
           return (
             <Link
@@ -434,8 +387,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             </Link>
           )
         })()}
-        {/* Team — pro and business only */}
-        {(userPlan === "pro" || userPlan === "business") && (() => {
+        {(() => {
           const active = getIsActive(pathname, "/dashboard/team", false)
           return (
             <Link
@@ -484,43 +436,6 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
           flexShrink: 0,
         }}
       >
-        {/* Plan badge section */}
-        <div style={{ marginBottom: "0.875rem" }}>
-          <PlanBadge plan={userPlan} />
-          <div style={{ marginTop: "0.45rem" }}>
-            <CreditsBalance initialBalance={creditBalance} />
-          </div>
-          {userPlan === "free" && (
-            <Link
-              href="/pricing"
-              style={{
-                display: "inline-block",
-                marginTop: "0.45rem",
-                fontSize: "0.75rem",
-                color: "#C8F55A",
-                textDecoration: "none",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Upgrade
-            </Link>
-          )}
-          {userPlan === "pro" && (
-            <Link
-              href="/pricing#business"
-              style={{
-                display: "inline-block",
-                marginTop: "0.45rem",
-                fontSize: "0.75rem",
-                color: "#C8F55A",
-                textDecoration: "none",
-                fontFamily: "var(--font-dm-sans)",
-              }}
-            >
-              Upgrade to Business
-            </Link>
-          )}
-        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: "0.625rem" }}>
           <a
             href="/terms"
@@ -610,8 +525,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [userPlan, setUserPlan] = useState("free")
-  const [creditBalance, setCreditBalance] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [usedFeatures, setUsedFeatures] = useState<string[]>([])
   const [moreOpen, setMoreOpen] = useState(false)
@@ -641,8 +554,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       fetch("/api/me")
         .then(r => r.json())
         .then(d => {
-          if (d.plan) setUserPlan(d.plan)
-          if (typeof d.creditBalance === "number") setCreditBalance(d.creditBalance)
           if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
         })
         .catch(() => { /* ignore */ })
@@ -733,8 +644,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     image,
     initials,
     unreadCount,
-    userPlan,
-    creditBalance,
     usedFeatures,
   }
 

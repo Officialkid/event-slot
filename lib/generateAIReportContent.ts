@@ -1,4 +1,4 @@
-import { askClaude } from './claude'
+import { askAI } from './ai'
 import { IEvent, IRegistration } from './generateEventReport'
 
 export interface AIReportContent {
@@ -7,6 +7,19 @@ export interface AIReportContent {
   registrationBehaviour: string
   recommendations: string
   waitlistAnalysis: string
+}
+
+const FALLBACK_TEXT = 'AI report section is temporarily unavailable.'
+
+async function askReportSection(system: string, prompt: string, maxTokens: number): Promise<string> {
+  const response = await askAI({
+    system,
+    prompt,
+    taskType: 'report',
+    maxTokens,
+  })
+
+  return response?.trim() || FALLBACK_TEXT
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,31 +97,31 @@ Deadline: ${event.deadline ?? 'None'}`
 
   const [executiveSummary, audienceProfile, registrationBehaviour, recommendations, waitlistAnalysis] =
     await Promise.all([
-      askClaude({
-        system: sys,
-        prompt: `${eventContext}\n\nWrite a concise executive summary of this event's registration performance.`,
-        maxTokens: 200,
-      }),
-      askClaude({
-        system: sys,
-        prompt: `${eventContext}\n\nCustom question responses from confirmed registrants:\n${answersSummary}\n\nDescribe the audience profile based on registration data and responses.`,
-        maxTokens: 200,
-      }),
-      askClaude({
-        system: sys,
-        prompt: `${eventContext}\n\nRegistrations by day: ${dayEntries || 'N/A'}\nPeak registration day: ${peakDay}\n\nAnalyse the registration behaviour pattern and what it may indicate.`,
-        maxTokens: 200,
-      }),
-      askClaude({
-        system: sys,
-        prompt: `${eventContext}\n\nBased on this event's registration data, provide 2–3 actionable recommendations for the organiser to improve future events.`,
-        maxTokens: 200,
-      }),
-      askClaude({
-        system: sys,
-        prompt: `${eventContext}\n\nWaitlist size: ${event.waitlistCount}. ${event.waitlistCount > 0 ? `Waitlist registrations by day: ${Object.entries(groupByDay(waitlist)).map(([d, n]) => `${d}: ${n}`).join(', ') || 'N/A'}` : ''}\n\nAnalyse the waitlist situation and what it implies about demand for this event.`,
-        maxTokens: 150,
-      }),
+      askReportSection(
+        sys,
+        `${eventContext}\n\nWrite a concise executive summary of this event's registration performance.`,
+        200
+      ),
+      askReportSection(
+        sys,
+        `${eventContext}\n\nCustom question responses from confirmed registrants:\n${answersSummary}\n\nDescribe the audience profile based on registration data and responses.`,
+        200
+      ),
+      askReportSection(
+        sys,
+        `${eventContext}\n\nRegistrations by day: ${dayEntries || 'N/A'}\nPeak registration day: ${peakDay}\n\nAnalyse the registration behaviour pattern and what it may indicate.`,
+        200
+      ),
+      askReportSection(
+        sys,
+        `${eventContext}\n\nBased on this event's registration data, provide 2–3 actionable recommendations for the organiser to improve future events.`,
+        200
+      ),
+      askReportSection(
+        sys,
+        `${eventContext}\n\nWaitlist size: ${event.waitlistCount}. ${event.waitlistCount > 0 ? `Waitlist registrations by day: ${Object.entries(groupByDay(waitlist)).map(([d, n]) => `${d}: ${n}`).join(', ') || 'N/A'}` : ''}\n\nAnalyse the waitlist situation and what it implies about demand for this event.`,
+        150
+      ),
     ])
 
   return { executiveSummary, audienceProfile, registrationBehaviour, recommendations, waitlistAnalysis }

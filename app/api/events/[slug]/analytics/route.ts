@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getPlanLimits } from '@/lib/plans'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -25,15 +24,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     if (!isOwner && !hasValidToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const plan = event.organizer?.plan ?? 'free'
-    const limits = getPlanLimits(plan)
-    const hasUnlock = !!(session?.user?.id && (await prisma.eventUnlock.findFirst({
-      where: { eventId: event.id, userId: session.user.id, feature: 'analytics' },
-    })))
-    if (!limits.canViewAnalytics && !hasUnlock) {
-      return NextResponse.json({ error: 'Upgrade required', upgradeRequired: true }, { status: 403 })
     }
 
     // Fetch views and registrations

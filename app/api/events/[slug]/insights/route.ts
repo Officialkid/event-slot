@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { hasFeatureAccess } from '@/lib/credits'
 import { generateInsightCards } from '@/lib/generateInsightCards'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
@@ -33,20 +32,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     if (!isOwner && !hasValidToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const plan = event.organizer?.plan ?? 'free'
-    const userId = session?.user?.id ?? event.organizerId
-    if (!userId) {
-      return NextResponse.json({ error: 'Authentication required', upgradeRequired: true }, { status: 401 })
-    }
-
-    const access = await hasFeatureAccess({ userId, feature: 'ai_insights', eventId: event.id, plan })
-    if (!access.hasAccess) {
-      return NextResponse.json(
-        { locked: true, upgradeRequired: true, creditsRequired: access.cost, eventId: event.id },
-        { status: 403 }
-      )
     }
 
     // Return cached insights if fresh and not forced
@@ -132,6 +117,18 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         peakHour,
       }
     )
+
+    if (!cards?.length) {
+      return NextResponse.json({
+        cards: [
+          {
+            type: 'info',
+            title: 'AI currently unavailable',
+            body: 'Insight generation is temporarily unavailable. Please try again shortly.',
+          },
+        ],
+      })
+    }
 
     // Upsert EventInsight record
     const saved = await prisma.eventInsight.upsert({

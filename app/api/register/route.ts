@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from 'uuid'
 import prisma from '@/lib/prisma'
 import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
-import { getPlanLimits } from '@/lib/plans'
-import { spendCredits } from '@/lib/credits'
 import {
   sendOrganizerCapacity90Email,
   sendOrganizerCapacityFullEmail,
@@ -295,51 +293,6 @@ export async function POST(req: NextRequest) {
       } catch {
         // Notifications are non-critical; do not fail the registration
       }
-    }
-
-    // Pay-as-you-go overage check (non-blocking)
-    if (event.organizerId) {
-      try {
-        const confirmedResults = results.filter(r => r.status === 'confirmed')
-        if (confirmedResults.length > 0) {
-          const organizer = await prisma.user.findUnique({
-            where: { id: event.organizerId },
-            select: { id: true, plan: true },
-          })
-          if (organizer && organizer.plan !== 'business') {
-            const limits = getPlanLimits(organizer.plan)
-            const updatedEvent = await prisma.event.findUnique({
-              where: { id: event.id },
-              select: { confirmedCount: true },
-            })
-            const newCount = updatedEvent?.confirmedCount ?? 0
-            const threshold = limits.freeRegistrationsPerEvent as number
-
-            if (threshold !== Infinity && newCount > threshold) {
-              const overage = newCount - threshold
-              const isNewBlock = overage % 100 <= confirmedResults.length
-
-              if (isNewBlock) {
-                const result = await spendCredits({
-                  userId: organizer.id,
-                  amount: 1.00,
-                  description: `100 registrations overage for "${event.title}"`,
-                  eventId: event.id,
-                })
-
-                if (!result.success) {
-                  await createNotification({
-                    userId: organizer.id,
-                    type: 'credits_required',
-                    message: `Your event "${event.title}" has exceeded your free registration limit. Add credits to continue accepting registrations.`,
-                    eventId: event.id,
-                  })
-                }
-              }
-            }
-          }
-        }
-      } catch { /* non-critical */ }
     }
 
     return NextResponse.json({

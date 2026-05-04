@@ -2,24 +2,13 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getPlanLimits } from '@/lib/plans'
+import { askAI } from '@/lib/ai'
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { plan: true },
-    })
-
-    const plan = user?.plan ?? 'free'
-    const limits = getPlanLimits(plan)
-    if (!limits.canAccessInsightTracker) {
-      return NextResponse.json({ error: 'Upgrade required', upgradeRequired: true }, { status: 403 })
     }
 
     // Fetch all events + registrations for this organizer
@@ -123,6 +112,30 @@ export async function GET() {
     }
     const repeatAttendees = Array.from(emailCount.values()).filter(c => c >= 2).length
 
+    const trackerSystem = `You are an analytics assistant. Summarize cross-event registration trends in under 80 words.
+Keep it practical and avoid hype. Mention one strength and one thing to improve.`
+
+    const trackerPrompt = `Totals:
+- Events analysed: ${totalEventsAnalysed}
+- Respondents: ${totalRespondents}
+- Repeat attendees: ${repeatAttendees}
+
+Top question insights (up to 3):
+${questionInsights.slice(0, 3).map((q) => `${q.questionLabel}: ${q.topAnswers.slice(0, 3).map((a) => `${a.value} (${a.percentage}%)`).join(', ') || 'n/a'}`).join('\n') || 'No question insight data'}
+
+Registrations by day of week:
+${registrationsByDayOfWeek.map((d) => `${d.day}: ${d.count}`).join(', ')}
+
+Registrations by month:
+${registrationsByMonth.map((m) => `${m.month}: ${m.count}`).join(', ')}`
+
+    const aiSummary = await askAI({
+      system: trackerSystem,
+      prompt: trackerPrompt,
+      taskType: 'tracker',
+      maxTokens: 180,
+    })
+
     return NextResponse.json({
       totalEventsAnalysed,
       totalRespondents,
@@ -130,6 +143,7 @@ export async function GET() {
       registrationsByDayOfWeek,
       registrationsByMonth,
       repeatAttendees,
+      aiSummary,
     })
   } catch (err) {
     console.error('Insights error:', err)

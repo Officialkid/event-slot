@@ -1,103 +1,69 @@
-export const PLAN_LIMITS = {
-  free: {
-    maxActiveEvents: 5,
-    maxRegistrationsPerEvent: Infinity,
-    freeRegistrationsPerEvent: 100,
-    dataRetentionDays: 30,
-    maxTeamMembers: 1,
-    maxBulkRegistration: 3,
-    canExportCSV: false,
-    canDownloadReport: false,
-    canRemoveBranding: false,
-    canDuplicateEvent: false,
-    canViewAnalytics: false,
-    canAccessInsightTracker: false,
-    canSendFeedbackForm: false,
-    canUseCustomDomain: false,
-    payAsYouGo: true,
-  },
-  pro: {
-    maxActiveEvents: Infinity,
-    maxRegistrationsPerEvent: Infinity,
-    freeRegistrationsPerEvent: 500,
-    dataRetentionDays: Infinity,
-    maxTeamMembers: 10,
-    maxBulkRegistration: 20,
-    canExportCSV: true,
-    canDownloadReport: true,
-    canRemoveBranding: true,
-    canDuplicateEvent: true,
-    canViewAnalytics: true,
-    canAccessInsightTracker: false,
-    canSendFeedbackForm: false,
-    canUseCustomDomain: false,
-    payAsYouGo: true,
-  },
-  business: {
-    maxActiveEvents: Infinity,
-    maxRegistrationsPerEvent: Infinity,
-    freeRegistrationsPerEvent: Infinity,
-    dataRetentionDays: Infinity,
-    maxTeamMembers: 20,
-    maxBulkRegistration: 20,
-    canExportCSV: true,
-    canDownloadReport: true,
-    canRemoveBranding: true,
-    canDuplicateEvent: true,
-    canViewAnalytics: true,
-    canAccessInsightTracker: true,
-    canSendFeedbackForm: true,
-    canUseCustomDomain: true,
-    payAsYouGo: false,
-  },
+// All features are free. The only paid action is downloading a report.
+export const FEATURES_FREE = true
+
+export const REPORT_DOWNLOAD_PRICING = {
+  single: { amount: 100, downloads: 1, label: 'Single download - KSh 100' },
+  bundle3: { amount: 300, downloads: 3, label: '3 downloads - KSh 300' },
+  bundle6: { amount: 500, downloads: 6, label: '6 downloads - KSh 500' },
+  bundle15: { amount: 1000, downloads: 15, label: '15 downloads - KSh 1,000' },
 }
 
-// Pay as you go pricing — in POINTS (100 KSH = 10 points, so 1 point = 10 KSH)
-export const PAYG_PRICING = {
-  // Registration is FREE for all plans — no charge
-  registrationsPer100: 0,
+// Team member limits (generous but not unlimited to prevent abuse)
+export const TEAM_MEMBER_LIMIT = 10
 
-  // One-time per event unlocks (in points)
-  removeWatermark: 10,
-  csvExportBase: 15,
+// Backward-compatible pricing keys used by legacy unlock endpoints.
+export const PAYG_PRICING = {
+  registrationsPer100: 0,
+  removeWatermark: 0,
+  csvExportBase: 0,
   csvExportPer100: 0,
   wordReportBase: 0,
   wordReportPer100: 0,
-  analyticsUnlock: 10,
-  customThankYou: 10,
+  analyticsUnlock: 0,
+  customThankYou: 0,
   extraActiveEvent: 0,
 }
 
+const OPEN_LIMITS = {
+  maxActiveEvents: Infinity,
+  maxRegistrationsPerEvent: Infinity,
+  freeRegistrationsPerEvent: Infinity,
+  dataRetentionDays: Infinity,
+  maxTeamMembers: TEAM_MEMBER_LIMIT,
+  maxBulkRegistration: Infinity,
+  canExportCSV: true,
+  canDownloadReport: true,
+  canRemoveBranding: true,
+  canDuplicateEvent: true,
+  canViewAnalytics: true,
+  canAccessInsightTracker: true,
+  canSendFeedbackForm: true,
+  canUseCustomDomain: true,
+  payAsYouGo: false,
+}
+
 export function calculateOverageCost(
-  registrationCount: number,
-  freeThreshold: number
+  _registrationCount: number,
+  _freeThreshold: number
 ): number {
-  if (registrationCount <= freeThreshold) return 0
-  const overage = registrationCount - freeThreshold
-  const blocks = Math.ceil(overage / 100)
-  return blocks * PAYG_PRICING.registrationsPer100
+  return 0
 }
 
-export function calculateCSVCost(registrationCount: number): number {
-  const base = PAYG_PRICING.csvExportBase
-  const blocks = Math.ceil(registrationCount / 100)
-  return base + (blocks * PAYG_PRICING.csvExportPer100)
+export function calculateCSVCost(_registrationCount: number): number {
+  return 0
 }
 
-export function calculateReportCost(registrationCount: number): number {
-  const base = PAYG_PRICING.wordReportBase
-  const blocks = Math.ceil(registrationCount / 100)
-  return base + (blocks * PAYG_PRICING.wordReportPer100)
+export function calculateReportCost(_registrationCount: number): number {
+  return 0
 }
 
-export function getPlanLimits(plan: string) {
-  return PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] ?? PLAN_LIMITS.free
+export function getPlanLimits(_plan: string) {
+  return OPEN_LIMITS
 }
 
 export function canPerformAction(
-  plan: string,
-  action: keyof typeof PLAN_LIMITS.free
+  _plan: string,
+  action: keyof typeof OPEN_LIMITS
 ) {
-  const limits = getPlanLimits(plan)
-  return limits[action]
+  return OPEN_LIMITS[action]
 }

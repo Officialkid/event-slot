@@ -422,28 +422,22 @@ export default function TeamPage() {
         />
       </div>
 
-      {/* Free plan note */}
-      {userPlan === "free" && (
-        <div
-          style={{
-            background: "rgba(200,245,90,0.04)",
-            border: "0.5px solid rgba(200,245,90,0.12)",
-            borderRadius: 10,
-            padding: "0.875rem 1rem",
-            marginBottom: "1.75rem",
-            fontSize: "0.82rem",
-            color: "rgba(240,237,230,0.5)",
-            fontFamily: "var(--font-dm-sans)",
-            lineHeight: 1.55,
-          }}
-        >
-          Free plan includes 1 team member.{" "}
-          <Link href="/dashboard/billing" style={{ color: "#C8F55A", textDecoration: "none", fontWeight: 500 }}>
-            Upgrade to Pro
-          </Link>{" "}
-          for up to 10 members.
-        </div>
-      )}
+      {/* Team limit note */}
+      <div
+        style={{
+          background: "rgba(200,245,90,0.04)",
+          border: "0.5px solid rgba(200,245,90,0.12)",
+          borderRadius: 10,
+          padding: "0.875rem 1rem",
+          marginBottom: "1.75rem",
+          fontSize: "0.82rem",
+          color: "rgba(240,237,230,0.5)",
+          fontFamily: "var(--font-dm-sans)",
+          lineHeight: 1.55,
+        }}
+      >
+        Team workspaces support up to 10 members.
+      </div>
 
       {/* Current members */}
       {accepted.length > 0 && (
@@ -746,13 +740,7 @@ export default function TeamPage() {
         >
           {activeCount >= maxMembers ? (
             <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
-              You&apos;ve reached your team member limit ({maxMembers}).{" "}
-              {userPlan === "pro" ? (
-                <Link href="/dashboard/billing" style={{ color: "#C8F55A", textDecoration: "none" }}>Upgrade to Business</Link>
-              ) : (
-                <Link href="/dashboard/billing" style={{ color: "#C8F55A", textDecoration: "none" }}>Upgrade your plan</Link>
-              )}{" "}
-              to add more.
+              You&apos;ve reached your team member limit ({maxMembers}). Remove a member to invite another.
             </p>
           ) : (
             <form onSubmit={handleInvite} style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { askClaude } from '@/lib/claude'
+import { askAI } from '@/lib/ai'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,17 +20,6 @@ export async function POST(req: NextRequest) {
 
     const title = (body?.title ?? '').trim()
     if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
-
-    // Plan check — pro and business only
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { plan: true },
-    })
-    const plan = user?.plan ?? 'free'
-    if (plan !== 'pro' && plan !== 'business') {
-      // Avoid noisy 403s in the create flow for users without plan access.
-      return NextResponse.json({ prediction: null, reason: 'upgrade_required' })
-    }
 
     // Fetch organizer's previous non-archived events with registration data
     const previousEvents = await prisma.event.findMany({
@@ -72,7 +61,16 @@ New event title: ${title}
 New event description: ${body?.description ?? 'Not provided'}
 Predict the likely registration count.`
 
-    const raw = await askClaude({ system, prompt, maxTokens: 150 })
+    const raw = await askAI({
+      system,
+      prompt,
+      taskType: 'capacity',
+      maxTokens: 150,
+    })
+
+    if (!raw) {
+      return NextResponse.json({ prediction: null, reason: 'AI is temporarily unavailable' })
+    }
 
     let parsed: { suggestedCapacity: number; confidence: 'low' | 'medium' | 'high'; reasoning: string }
     try {

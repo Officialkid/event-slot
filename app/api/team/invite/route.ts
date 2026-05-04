@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getPlanLimits } from '@/lib/plans'
+import { TEAM_MEMBER_LIMIT } from '@/lib/plans'
 import { sendTeamInviteEmail } from '@/lib/email'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -30,18 +30,14 @@ export async function POST(req: NextRequest) {
       select: { plan: true, name: true, email: true },
     })
 
-    const plan = owner?.plan ?? 'free'
-    const limits = getPlanLimits(plan)
-
     const currentMembers = await prisma.teamMember.count({
       where: { ownerId: session.user.id, status: 'accepted' },
     })
 
-    if (currentMembers >= limits.maxTeamMembers) {
+    if (currentMembers >= TEAM_MEMBER_LIMIT) {
       return NextResponse.json({
         success: false,
-        error: `Your ${plan} plan supports up to ${limits.maxTeamMembers} team member${limits.maxTeamMembers === 1 ? '' : 's'}. Upgrade to add more.`,
-        upgradeRequired: true,
+        error: `You can have up to ${TEAM_MEMBER_LIMIT} team member${TEAM_MEMBER_LIMIT === 1 ? '' : 's'}. Remove one to invite another.`,
       }, { status: 403 })
     }
 

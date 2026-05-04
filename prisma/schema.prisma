@@ -73,6 +73,7 @@ model User {
   creditTransactions CreditTransaction[]
   featureAccess      FeatureAccess[]
   organizerFeedback  OrganizerFeedback[]
+  reportDownload     ReportDownload?
 }
 
 model UserOnboarding {
@@ -279,4 +280,24 @@ model FeatureInterest {
   createdAt   DateTime @default(now())
 
   @@unique([email, featureName])
+}
+
+model ReportDownload {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  downloadsRemaining Int      @default(0)
+  totalPurchased     Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ReportDownloadTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  bundleKey   String
+  amountKsh   Int
+  downloads   Int
+  reference   String   @unique
+  createdAt   DateTime @default(now())
 }

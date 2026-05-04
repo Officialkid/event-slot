@@ -1,5 +1,97 @@
 # EventSlot — Changelog
 
+## [0.4.20] — May 4, 2026
+
+### Landing Page: Free Model Messaging
+
+- Updated landing hero subheading to explicitly communicate the free model and paid report-download-only flow.
+- Updated primary landing CTA text to: `Start for free — no credit card` and linked it to `/signup`.
+- Removed landing pricing preview cards and remaining plan-tier references from `/app/page.tsx`.
+- Removed remaining pricing/upgrade language from feature marketing copy on the landing page.
+- Kept footer links free of pricing references.
+- Updated docs to reflect the free-access model and report-download pricing:
+  - `docs/FEATURES.md`
+  - `docs/SYSTEM.md`
+  - `docs/AI_CONTEXT.md`
+
+## [0.4.19] — May 4, 2026
+
+### Organizer Dashboard Simplification
+
+- Simplified `/dashboard` to a clean workspace-first layout.
+- Removed sales-oriented UI blocks from organizer dashboard overview:
+  - feature discovery grid
+  - quick actions promo block
+  - feature upgrade/credits modal logic
+  - plan and credits dependency state in dashboard overview
+- Preserved core operational sections:
+  - greeting + create event CTA
+  - stat cards (events, registrations, active, waitlist)
+  - needs attention
+  - upcoming events
+  - recent activity
+  - admin snapshot (for admin users)
+
+## [0.4.18] — May 4, 2026
+
+### Report Download Payment Flow (Dedicated Routes)
+
+- Added dedicated report-download purchase route: `POST /api/report-downloads/purchase`.
+- Added dedicated report-download verification route: `GET /api/report-downloads/verify`.
+- Added reusable payment UI component `components/ReportDownloadModal.tsx` with bundle options and Paystack redirect handling.
+- Updated event dashboard report flow to use the reusable `ReportDownloadModal` for paid Word download unlocks.
+- Preserved free report preview flow while separating report download payment concerns into report-specific API endpoints.
+
+## [0.4.17] — May 4, 2026
+
+### Report Flow: Free Preview, Paid Download
+
+- Added Prisma models for paid report download tracking:
+  - `ReportDownload` (per-user download balance)
+  - `ReportDownloadTransaction` (purchase ledger by payment reference)
+- Added relation on `User` to `ReportDownload` and applied migration `add-report-downloads`.
+- Refactored `GET /api/events/[slug]/report` into two modes:
+  - `mode=preview` returns AI report JSON for browser rendering (free)
+  - `mode=download` requires available report downloads and returns DOCX when balance exists
+- Added dedicated checkout endpoint `POST /api/billing/report-downloads` for report download bundles.
+- Extended `GET /api/billing/verify` to credit report download balances on successful `report_download` payments with idempotency via unique reference checks.
+- Reworked organizer event dashboard report UX (`/dashboard/events/[slug]`) to a two-stage flow:
+  - Generate AI report (free)
+  - Download Word (paid, with payment modal when balance is empty)
+
+## [0.4.16] — May 4, 2026
+
+### AI Provider Routing (Groq Primary)
+
+- Added new AI provider utilities:
+  - `lib/groq.ts` (task-based Groq models)
+  - `lib/openrouter.ts` (REST fallback)
+  - `lib/ai.ts` (unified task router + `errorLog` failure logging)
+- Installed `groq-sdk` and wired environment keys for local setup (`GROQ_API_KEY`, `OPENROUTER_API_KEY`).
+- Migrated AI call sites from direct Claude calls to `askAI` routing:
+  - `POST /api/events/[slug]/ask` (`qa` task)
+  - `POST /api/events/predict-capacity` (`capacity` task)
+  - `lib/generateAIReportContent.ts` (`report` task with Claude-first fallback chain)
+  - `lib/generateInsightCards.ts` (`insights` task)
+  - `GET /api/insights` (`tracker` task summary)
+- Added resilient null/failed-AI fallbacks in route responses and insight-card generation.
+
+## [0.4.15] — May 4, 2026
+
+### Open Access Rollout (No Plan Gates)
+
+- Replaced `/app/pricing/page.tsx` with a redirect to `/dashboard` and removed pricing links from landing/nav surfaces.
+- Rebuilt `/dashboard/billing` into a simple downloads-focused page that shows report download package pricing.
+- Removed plan and credit feature gates from key API routes (export, insights, ask, analytics, feedback, team invite, predict-capacity, and insight tracker).
+- Removed `UpgradePrompt` usage across dashboard flows and deleted `app/components/UpgradePrompt.tsx`.
+- Removed dashboard sidebar plan badge, sidebar upgrade CTAs, and sidebar credits balance display.
+- Removed dashboard home plan/credits banner and made quick actions available directly.
+- Updated `lib/plans.ts` to an open-access model with:
+  - `FEATURES_FREE = true`
+  - `REPORT_DOWNLOAD_PRICING` bundles
+  - `TEAM_MEMBER_LIMIT = 10`
+- Removed remaining plan enforcement in event creation limits, registration overage billing, and feedback cron gating.
+
 ## [0.4.14] — April 29, 2026
 
 - [April 2026] | Bug Fix | Event cover image now displays at full height (contain, not cover)

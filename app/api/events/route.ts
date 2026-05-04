@@ -3,7 +3,6 @@ import prisma from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getPlanLimits } from '@/lib/plans'
 import { normalizeCommunityLink } from '@/lib/communityLink'
 
 function generateSlug(title: string): string {
@@ -45,7 +44,6 @@ export async function POST(req: NextRequest) {
     let organizerPlan = 'free'
     let sessionEmail = session?.user?.email ?? ''
 
-    // Plan limit: max active events
     if (session?.user?.id) {
       const organizer = await prisma.user.findUnique({
         where: { id: session.user.id },
@@ -62,28 +60,6 @@ export async function POST(req: NextRequest) {
             where: { id: organizer.id },
             data: { name: normalizedOrganizerName },
           })
-        }
-      }
-
-      const limits = getPlanLimits(organizerPlan)
-
-      if (limits.maxActiveEvents !== Infinity && organizerId) {
-        const activeEvents = await prisma.event.count({
-          where: {
-            organizerId,
-            archived: false,
-            status: { not: 'closed' },
-          },
-        })
-        if (activeEvents >= limits.maxActiveEvents) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'You have reached the limit for active events on your plan.',
-              upgradeRequired: true,
-            },
-            { status: 403 }
-          )
         }
       }
     }
