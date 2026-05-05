@@ -50,11 +50,6 @@ spec:
                 secretKeyRef:
                   name: EVENTSLOT_NEXTAUTH_URL
                   key: latest
-            - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: STRIPE_SECRET_KEY
-                  key: latest
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -70,10 +65,35 @@ spec:
                 secretKeyRef:
                   name: RESEND_API_KEY
                   key: latest
-            - name: GEMINI_API_KEY
+            - name: GROQ_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: GEMINI_API_KEY
+                  name: GROQ_API_KEY
+                  key: latest
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: OPENROUTER_API_KEY
+                  key: latest
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ANTHROPIC_API_KEY
+                  key: latest
+            - name: UPSTASH_REDIS_REST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: UPSTASH_REDIS_REST_URL
+                  key: latest
+            - name: UPSTASH_REDIS_REST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: UPSTASH_REDIS_REST_TOKEN
+                  key: latest
+            - name: PAYSTACK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: PAYSTACK_SECRET_KEY
                   key: latest
             - name: CRON_SECRET
               valueFrom:
@@ -99,4 +119,19 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
+                  key: latest
+            - name: R2_PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_PUBLIC_URL
+                  key: latest
+            - name: SUPER_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: SUPER_ADMIN_EMAIL
+                  key: latest
+            - name: SUPER_ADMIN_EMAIL_2
+              valueFrom:
+                secretKeyRef:
+                  name: SUPER_ADMIN_EMAIL_2
                   key: latest
