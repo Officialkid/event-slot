@@ -16,12 +16,14 @@ import {
   Footer,
 } from 'docx'
 import { format } from 'date-fns'
+import { AIReportContent } from './generateAIReportContent'
 
 // ── Theme palette ─────────────────────────────────────────────────────────────
 
-export type ReportTheme = 'navy' | 'forest' | 'wine' | 'graphite'
+export type ReportTheme = 'eventslot' | 'navy' | 'forest' | 'wine' | 'graphite'
 
 const THEMES: Record<ReportTheme, { banner: string; accent: string; sub: string }> = {
+  eventslot:{ banner: '0A0A0A', accent: 'C8F55A', sub: '7AB648' },
   navy:     { banner: '1F3864', accent: 'FFFFFF', sub: 'B8CDE8' },
   forest:   { banner: '1B4332', accent: 'FFFFFF', sub: 'A8D5B8' },
   wine:     { banner: '4A0E2E', accent: 'FFFFFF', sub: 'E8B4CD' },
@@ -583,6 +585,139 @@ function waitlistPage(waitlist: IRegistration[]): (Paragraph | Table)[] {
   return items
 }
 
+function aiInsightsPage(
+  aiContent: AIReportContent,
+  palette: { banner: string; accent: string; sub: string }
+): (Paragraph | Table)[] {
+  const sectionRows: Array<{ title: string; text: string }> = [
+    { title: '1. Event Overview', text: aiContent.eventOverview },
+    { title: '2. Executive Summary', text: aiContent.executiveSummary },
+    { title: '3. Strengths', text: aiContent.strengths },
+    { title: '4. Weaknesses & Risks', text: aiContent.weaknessesAndRisks },
+    { title: '5. Audience Profile', text: aiContent.audienceProfile },
+    { title: '6. Registration Behaviour', text: aiContent.registrationBehaviour },
+    { title: '7. Competitive Positioning', text: aiContent.competitivePositioning },
+    { title: '8. Waitlist Analysis', text: aiContent.waitlistAnalysis },
+    { title: '9. Recommendations', text: aiContent.recommendations },
+  ]
+
+  const blocks: (Paragraph | Table)[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({ text: 'AI Strategic Intelligence', font: 'Arial', bold: true, size: 32, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Professional strategic narrative generated from live event registration and waitlist data.',
+          font: 'Arial',
+          size: 20,
+          color: '4A4A4A',
+        }),
+      ],
+      spacing: { after: 220 },
+    }),
+  ]
+
+  for (const section of sectionRows) {
+    const paragraphs = section.text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map(
+        (line) =>
+          new Paragraph({
+            children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '1F1F1F' })],
+            spacing: { after: 120 },
+          })
+      )
+
+    blocks.push(
+      new Table({
+        width: { size: TABLE_WIDTH, type: WidthType.DXA },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
+          bottom: { style: BorderStyle.SINGLE, size: 2, color: 'DFDFDF' },
+          left: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
+          right: { style: BorderStyle.SINGLE, size: 2, color: 'DFDFDF' },
+          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+        },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: TABLE_WIDTH, type: WidthType.DXA },
+                shading: { type: ShadingType.CLEAR, fill: '0F0F0F', color: 'auto' },
+                margins: { top: 130, bottom: 130, left: 220, right: 220 },
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: section.title, font: 'Arial', size: 21, bold: true, color: palette.accent })],
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: TABLE_WIDTH, type: WidthType.DXA },
+                margins: { top: 140, bottom: 140, left: 220, right: 220 },
+                children: paragraphs.length > 0
+                  ? paragraphs
+                  : [
+                      new Paragraph({
+                        children: [new TextRun({ text: 'No section content available.', font: 'Arial', size: 20, italics: true })],
+                      }),
+                    ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      spacer()
+    )
+  }
+
+  blocks.push(
+    new Table({
+      width: { size: TABLE_WIDTH, type: WidthType.DXA },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
+        bottom: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
+        left: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
+        right: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
+        insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+        insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              shading: { type: ShadingType.CLEAR, fill: '0A0A0A', color: 'auto' },
+              margins: { top: 180, bottom: 180, left: 220, right: 220 },
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: '10. Overall Score', font: 'Arial', size: 22, bold: true, color: palette.accent })],
+                }),
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: aiContent.overallScore, font: 'Arial', size: 26, bold: true, color: 'FFFFFF' })],
+                  spacing: { before: 80 },
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true })
+  )
+
+  return blocks
+}
+
 function footerNotePage(): Paragraph[] {
   return [
     new Paragraph({
@@ -626,14 +761,16 @@ export async function generateEventReport({
   event,
   confirmed,
   waitlist,
-  theme = 'navy',
+  aiContent,
+  theme = 'eventslot',
 }: {
   event: IEvent
   confirmed: IRegistration[]
   waitlist: IRegistration[]
+  aiContent?: AIReportContent
   theme?: ReportTheme
 }): Promise<Buffer> {
-  const palette = THEMES[theme] ?? THEMES.navy
+  const palette = THEMES[theme] ?? THEMES.eventslot
   const doc = new Document({
     styles: {
       default: {
@@ -663,6 +800,7 @@ export async function generateEventReport({
         children: [
           ...coverPage(event, palette),
           ...summaryPage(event),
+          ...(aiContent ? aiInsightsPage(aiContent, palette) : []),
           ...confirmedPage(event, confirmed),
           ...waitlistPage(waitlist),
           ...footerNotePage(),

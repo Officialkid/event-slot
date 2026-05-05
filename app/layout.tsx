@@ -4,17 +4,22 @@ import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
+import { DevToolsDetector } from "../components/DevToolsDetector";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500"],
   variable: "--font-dm-sans",
+  preload: false,
+  display: "swap",
 });
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-instrument-serif",
+  preload: false,
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -144,6 +149,7 @@ export default async function RootLayout({
           <Nav />
           {children}
           <Toast />
+          <DevToolsDetector />
         </Providers>
       </body>
     </html>

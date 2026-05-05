@@ -1,39 +1,105 @@
-// Simple in-memory rate limiter — no external dependencies.
-// Uses a sliding window counter per key stored in a Map.
-// Note: resets on server restart / cold starts. Sufficient for abuse prevention
-// at current scale. Replace with a persistent store if stricter limits are needed.
+/**
+ * lib/ratelimit.ts
+ *
+ * Distributed rate limiting backed by Upstash Redis when env vars are present,
+ * with an in-memory sliding-window fallback for local development.
+ *
+ * All exported limiters share the same `.limit(key)` API:
+ *   const { success } = await ratelimit.limit(ip)
+ *   if (!success) return 429
+ */
 
-interface Window {
-  count: number
-  resetAt: number
-}
+// ─── Upstash path ─────────────────────────────────────────────────────────────
 
-const store = new Map<string, Window>()
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
+const useUpstash = !!(upstashUrl && upstashToken)
 
-function makeRatelimit(maxRequests: number, windowMs: number) {
+type LimitResult = { success: boolean; limit: number; remaining: number; reset: number }
+type Limiter = { limit: (key: string) => Promise<LimitResult> }
+
+function makeUpstashLimiter(maxRequests: number, windowSeconds: number): Limiter {
+  // Dynamic import keeps the build from failing when env vars are absent
+  const limiterPromise = import('@upstash/ratelimit').then(({ Ratelimit }) =>
+    import('@upstash/redis').then(({ Redis }) => {
+      const redis = new Redis({ url: upstashUrl!, token: upstashToken! })
+      return new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(maxRequests, `${windowSeconds} s`),
+        analytics: false,
+      })
+    })
+  )
+
   return {
-    limit: async (key: string) => {
-      const now = Date.now()
-      const entry = store.get(key)
-
-      if (!entry || now >= entry.resetAt) {
-        store.set(key, { count: 1, resetAt: now + windowMs })
-        return { success: true as const, limit: maxRequests, remaining: maxRequests - 1, reset: now + windowMs }
+    limit: async (key: string): Promise<LimitResult> => {
+      try {
+        const rl = await limiterPromise
+        const result = await rl.limit(key)
+        return {
+          success: result.success,
+          limit: result.limit,
+          remaining: result.remaining,
+          reset: result.reset,
+        }
+      } catch {
+        // If Redis is unavailable, fail open (allow the request) to avoid blocking
+        // legitimate traffic. Log errors are intentionally silent here.
+        return { success: true, limit: maxRequests, remaining: maxRequests, reset: Date.now() + windowSeconds * 1000 }
       }
-
-      entry.count++
-      const remaining = Math.max(0, maxRequests - entry.count)
-      const success = entry.count <= maxRequests
-      return { success, limit: maxRequests, remaining, reset: entry.resetAt }
     },
   }
 }
 
-// 10 requests per minute
-export const ratelimit = makeRatelimit(10, 60_000)
+// ─── In-memory fallback ───────────────────────────────────────────────────────
 
-// 5 signup attempts per hour
-export const signupRatelimit = makeRatelimit(5, 60 * 60_000)
+interface MemWindow { count: number; resetAt: number }
+const memStore = new Map<string, MemWindow>()
 
-// 5 attendance lookups per 10 minutes
-export const attendanceLookupRatelimit = makeRatelimit(5, 10 * 60_000)
+function makeMemoryLimiter(maxRequests: number, windowMs: number): Limiter {
+  return {
+    limit: async (key: string): Promise<LimitResult> => {
+      const now = Date.now()
+      const entry = memStore.get(key)
+
+      if (!entry || now >= entry.resetAt) {
+        memStore.set(key, { count: 1, resetAt: now + windowMs })
+        return { success: true, limit: maxRequests, remaining: maxRequests - 1, reset: now + windowMs }
+      }
+
+      entry.count++
+      const remaining = Math.max(0, maxRequests - entry.count)
+      return { success: entry.count <= maxRequests, limit: maxRequests, remaining, reset: entry.resetAt }
+    },
+  }
+}
+
+function makeLimiter(maxRequests: number, windowSeconds: number): Limiter {
+  return useUpstash
+    ? makeUpstashLimiter(maxRequests, windowSeconds)
+    : makeMemoryLimiter(maxRequests, windowSeconds * 1000)
+}
+
+// ─── Exported limiters ────────────────────────────────────────────────────────
+
+/** General API: 20 req / min per IP */
+export const ratelimit = makeLimiter(20, 60)
+
+/** Signup: 5 attempts / hr per IP */
+export const signupRatelimit = makeLimiter(5, 3600)
+
+/** Login: 5 attempts / 10 min per IP */
+export const loginRatelimit = makeLimiter(5, 600)
+
+/** Attendance lookup: 5 req / 10 min per IP */
+export const attendanceLookupRatelimit = makeLimiter(5, 600)
+
+/** AI endpoints (ask, insights, predict-capacity): 10 req / min per user/IP */
+export const aiRatelimit = makeLimiter(10, 60)
+
+/** Report download: 5 req / min per user */
+export const reportDownloadRatelimit = makeLimiter(5, 60)
+
+/** Billing / payment initiation: 10 req / min per user */
+export const billingRatelimit = makeLimiter(10, 60)
+

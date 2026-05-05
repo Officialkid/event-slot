@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { generateInsightCards } from '@/lib/generateInsightCards'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { getAIProviderStatus } from '@/lib/ai'
+import { aiRatelimit } from '@/lib/ratelimit'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -15,6 +17,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const token = req.nextUrl.searchParams.get('token')
     const force = req.nextUrl.searchParams.get('force') === 'true'
     const session = await getServerSession(authOptions)
+
+    const rateLimitKey = session?.user?.id ?? (req.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim()
+    const { success: rlOk } = await aiRatelimit.limit(`insights:${rateLimitKey}`)
+    if (!rlOk) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -104,7 +112,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     // NOTE: credits are already spent via /api/features/unlock — no charge needed here
 
     // Generate insight cards
-    const cards = await generateInsightCards(
+    const generated = await generateInsightCards(
       {
         title: event.title,
         capacity: event.capacity,
@@ -124,28 +132,52 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       }
     )
 
-    if (!cards?.length) {
+    if (!generated.cards.length) {
+      return NextResponse.json(
+        {
+          error: 'Unable to generate insight cards right now.',
+          providerStatus: getAIProviderStatus(),
+          retryable: true,
+        },
+        { status: 503 }
+      )
+    }
+
+    if (generated.source === 'fallback') {
       return NextResponse.json({
-        cards: [
-          {
-            type: 'info',
-            title: 'AI currently unavailable',
-            body: 'Insight generation is temporarily unavailable. Please try again shortly.',
-          },
-        ],
+        cards: generated.cards,
+        generatedAt: new Date().toISOString(),
+        source: generated.source,
+        message: generated.message,
+        provider: generated.provider,
+        providerStatus: generated.providerStatus,
+        retryRecommended: generated.retryRecommended,
       })
     }
 
-    // Upsert EventInsight record
+    // Upsert EventInsight record only for AI-generated cards.
     const saved = await prisma.eventInsight.upsert({
       where: { eventId: event.id },
-      create: { eventId: event.id, cards: cards as unknown as Prisma.InputJsonValue, generatedAt: new Date() },
-      update: { cards: cards as unknown as Prisma.InputJsonValue, generatedAt: new Date() },
+      create: { eventId: event.id, cards: generated.cards as unknown as Prisma.InputJsonValue, generatedAt: new Date() },
+      update: { cards: generated.cards as unknown as Prisma.InputJsonValue, generatedAt: new Date() },
     })
 
-    return NextResponse.json({ cards: saved.cards, generatedAt: saved.generatedAt })
+    return NextResponse.json({
+      cards: saved.cards,
+      generatedAt: saved.generatedAt,
+      source: generated.source,
+      provider: generated.provider,
+      providerStatus: generated.providerStatus,
+    })
   } catch (err) {
     console.error('Insights error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'AI insights are temporarily unavailable. Please retry in a moment.',
+        retryable: true,
+        providerStatus: getAIProviderStatus(),
+      },
+      { status: 503 }
+    )
   }
 }

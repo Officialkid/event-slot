@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 import { CREDIT_BUNDLES } from '@/lib/credits'
+import { billingRatelimit } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,11 @@ export async function POST(req: NextRequest) {
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 503 })
+    }
+
+    const { success: rlOk } = await billingRatelimit.limit(`billing:${session.user.id}`)
+    if (!rlOk) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
     }
 
     const body = await req.json()

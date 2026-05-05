@@ -23,6 +23,16 @@ const withPWAConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+
+  // Explicitly disable source maps in production to prevent exposing readable
+  // source code in browser DevTools.
+  productionBrowserSourceMaps: false,
+
+  // Strip console.log / console.warn / console.debug in production builds.
+  // console.error is kept so server-side error logging still works.
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
+  },
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'https://www.eventsslot.com',
     NEXTAUTH_URL_INTERNAL:

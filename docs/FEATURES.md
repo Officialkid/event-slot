@@ -1,6 +1,34 @@
 # EventSlot — Feature Reference
 
-_Last updated: May 4, 2026_
+_Last updated: May 5, 2026_
+
+---
+
+## Security
+
+### Centralised Event Permission Helper
+**Where:** `lib/permissions.ts`  
+**What it does:** `resolveEventGrant(slug, session, token?)` resolves whether the caller is the event owner, a super-admin, an accepted team member, or a valid dashboard-token holder — all in one DB round-trip. Returns an `EventGrant` object; callers decide what level of access their route requires.
+
+### Collaborator (Team Member) Access Expansion
+**Where:** `app/api/events/[slug]/close`, `archive`, `capacity`, `duplicates`  
+**What it does:** Previously these endpoints were owner-only or token-only. They now accept session-based auth from the event owner, any super-admin, or accepted team members. Core-edit endpoints (settings, rename, edit form, PATCH mutations) remain strictly owner-only.
+
+### Backend Input Validation (Zod)
+**Where:** `lib/schemas/` (`event.schema.ts`, `team.schema.ts`, `registration.schema.ts`, `profile.schema.ts`)  
+**What it does:** Validates and sanitises all incoming request bodies before they reach business logic. Priority routes covered: event create, event settings, team invite, profile update, password change.
+
+### Distributed Rate Limiting (Upstash Redis)
+**Where:** `lib/ratelimit.ts`  
+**What it does:** Provides Redis-backed sliding-window rate limiters that persist across Cloud Run instances. Falls back to in-memory if Upstash env vars are absent (for local dev). Limiters: general (20/min), signup (5/hr), login (5/10 min), attendance lookup (5/10 min), AI endpoints (10/min), report downloads (5/min), billing (10/min). Env vars required: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+
+### Production Build Hardening
+**Where:** `next.config.mjs`  
+**What it does:** Explicitly disables browser source maps (`productionBrowserSourceMaps: false`). SWC compiler strips `console.log/warn/debug` in production builds while keeping `console.error` for server-side logging.
+
+### DevTools Detection Deterrent
+**Where:** `components/DevToolsDetector.tsx`, `app/layout.tsx`  
+**What it does:** Client-side only — shows a warning banner when the browser DevTools panel is detected (via viewport-size delta and debugger timing). Fires once per session; does not restrict any functionality. Added to the root layout as a passive deterrent.
 
 ---
 

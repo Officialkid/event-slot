@@ -1,6 +1,47 @@
 # EventSlot — Changelog
 
-## [0.4.27] — May 4, 2026
+## [0.4.28] — May 5, 2026
+
+### Security Hardening — Backend Protection, Input Validation, Distributed Rate Limiting
+
+#### Phase 1: Centralised Permissions + Collaborator Access Expansion
+- Added `lib/permissions.ts` with `resolveEventGrant()` helper — resolves owner/admin/team-member access for any event in a single call.
+- **Expanded collaborator (team member) access** to endpoints previously owner-only:
+  - `close/route.ts` — toggle open/closed (now allows admin + team member)
+  - `archive/route.ts` — archive event (now allows admin + team member)
+  - `capacity/route.ts` — update capacity (was token-only; now also accepts session auth for owner/admin/team member)
+  - `duplicates/route.ts` — view duplicate registrations (was token-only; now also accepts session auth)
+- Core-edit endpoints remain strictly owner-only: `settings`, `rename`, `edit`, PATCH mutations, `duplicate`.
+
+#### Phase 2: Input Validation with Zod
+- Installed `zod` (v4).
+- Created `lib/schemas/` with four schema files: `event.schema.ts`, `team.schema.ts`, `registration.schema.ts`, `profile.schema.ts`.
+- Applied `safeParse` validation to priority routes:
+  - `POST /api/events` — full event creation schema (title, questions, capacity, dates, etc.)
+  - `PATCH /api/events/[slug]/settings` — settings update schema
+  - `POST /api/team/invite` — email validation + normalisation
+  - `PATCH /api/profile` — name validation
+  - `PATCH /api/profile/password` — currentPassword + newPassword (min 8 chars)
+- All validation failures return `400 { error, details }`.
+
+#### Phase 3: Distributed Rate Limiting (Upstash Redis)
+- Rewrote `lib/ratelimit.ts` — now uses `@upstash/ratelimit` sliding-window limiters when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` env vars are set; falls back to in-memory if not (safe for local dev).
+- **New limiters added**: `loginRatelimit`, `aiRatelimit` (10/min), `reportDownloadRatelimit` (5/min), `billingRatelimit` (10/min).
+- Migrated `auth/[...nextauth]` credentials route from `rate-limiter-flexible` to new unified `loginRatelimit`.
+- Migrated `attendance/confirm` route to new `attendanceLookupRatelimit`.
+- Applied `aiRatelimit` to: `events/[slug]/ask`, `events/[slug]/insights`, `events/predict-capacity`.
+- Applied `reportDownloadRatelimit` to: `events/[slug]/report`.
+- Applied `billingRatelimit` to: `billing/credits`, `report-downloads/purchase`.
+
+#### Phase 4: Production Build Hardening
+- `next.config.mjs`: explicitly set `productionBrowserSourceMaps: false`.
+- `next.config.mjs`: added `compiler.removeConsole` — strips `console.log/warn/debug` from production builds; `console.error` retained for server-side error logging.
+
+#### Phase 5: DevTools Detection Deterrent
+- Created `components/DevToolsDetector.tsx` — client-side component that detects DevTools via viewport-size delta and debugger timing. Shows a non-blocking warning banner once per session.
+- Added `<DevToolsDetector />` to `app/layout.tsx`.
+
+
 
 ### Consultant-Grade AI Reports + Super Admin Report Ops
 

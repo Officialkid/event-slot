@@ -1,7 +1,12 @@
 import NextAuth from 'next-auth'
 import { NextRequest } from 'next/server'
 import { authOptions } from '@/lib/auth'
-import { loginRateLimiter, getClientIp } from '@/lib/rateLimiter'
+import { loginRatelimit } from '@/lib/ratelimit'
+
+function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for')
+  return forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1'
+}
 
 const handler = NextAuth(authOptions)
 
@@ -11,9 +16,8 @@ async function POST(req: NextRequest, context: { params: Promise<{ nextauth: str
   const segments = nextauth
   if (segments.join('/') === 'callback/credentials') {
     const ip = getClientIp(req)
-    try {
-      await loginRateLimiter.consume(ip)
-    } catch {
+    const { success } = await loginRatelimit.limit(ip)
+    if (!success) {
       return new Response(
         JSON.stringify({ error: 'Too many login attempts. Please try again in 10 minutes.' }),
         { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '600' } }

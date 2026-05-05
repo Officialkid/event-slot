@@ -7,6 +7,26 @@ declare module 'next-auth' {
       name?: string | null
       email?: string | null
       image?: string | null
+      isAdmin: boolean
+      username: string | null
+      onboardingCompleted: boolean
+      onboardingSkipped: boolean
+      suspended: boolean
     }
+  }
+
+  interface User {
+    id: string
+    isAdmin?: boolean
+    username?: string | null
+    suspended?: boolean
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string
+    isAdmin?: boolean
+    username?: string | null
   }
 }

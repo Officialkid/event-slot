@@ -3,9 +3,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
+import { generateAIReportContent } from '@/lib/generateAIReportContent'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { reportDownloadRatelimit } from '@/lib/ratelimit'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -13,10 +15,17 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const { slug } = params
     const mode = req.nextUrl.searchParams.get('mode')
     const token = req.nextUrl.searchParams.get('token')
-    const theme = (req.nextUrl.searchParams.get('theme') ?? 'navy') as ReportTheme
+    const theme = (req.nextUrl.searchParams.get('theme') ?? 'eventslot') as ReportTheme
 
     const session = await getServerSession(authOptions)
     const isSuperAdmin = isAdminEmail(session?.user?.email)
+
+    // Rate limit report downloads (per user or IP)
+    const rlKey = session?.user?.id ?? (req.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim()
+    const { success: rlOk } = await reportDownloadRatelimit.limit(`report:${rlKey}`)
+    if (!rlOk) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -109,7 +118,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         },
         reportReady: true,
         generatedAt: new Date().toISOString(),
-        message: 'Report document is ready for download.',
+        message: 'Your professional report is ready.',
         isSuperAdmin,
         downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
       })
@@ -161,10 +170,17 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         }
       }
 
+      const aiContent = await generateAIReportContent({
+        event: eventPayload,
+        confirmed,
+        waitlist,
+      })
+
       const buffer = await generateEventReport({
         event: eventPayload,
         confirmed,
         waitlist,
+        aiContent,
         theme,
       })
 

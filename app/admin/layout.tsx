@@ -7,7 +7,11 @@ import AdminSidebar from "./AdminSidebar"
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
 
-  if (!isAdminEmail(session?.user?.email)) {
+  // Grant access if env-var admin email matches OR if DB flagged isAdmin=true.
+  // Belt-and-suspenders: env var check works even if DB seed hasn't run yet;
+  // DB check works even if env var is misconfigured on a deployment platform.
+  const isAdmin = isAdminEmail(session?.user?.email) || session?.user?.isAdmin === true
+  if (!isAdmin) {
     notFound()
   }
 

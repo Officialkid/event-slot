@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { askAI } from '@/lib/ai'
+import { askAIWithMeta } from '@/lib/ai'
 
 export async function GET() {
   try {
@@ -129,12 +129,15 @@ ${registrationsByDayOfWeek.map((d) => `${d.day}: ${d.count}`).join(', ')}
 Registrations by month:
 ${registrationsByMonth.map((m) => `${m.month}: ${m.count}`).join(', ')}`
 
-    const aiSummary = await askAI({
+    const aiSummaryResult = await askAIWithMeta({
       system: trackerSystem,
       prompt: trackerPrompt,
       taskType: 'tracker',
       maxTokens: 180,
     })
+
+    const aiSummary = aiSummaryResult.content
+      ?? 'AI summary is temporarily unavailable. Core analytics remain available below.'
 
     return NextResponse.json({
       totalEventsAnalysed,
@@ -144,9 +147,13 @@ ${registrationsByMonth.map((m) => `${m.month}: ${m.count}`).join(', ')}`
       registrationsByMonth,
       repeatAttendees,
       aiSummary,
+      aiSummarySource: aiSummaryResult.content ? 'ai' : 'fallback',
+      aiProvider: aiSummaryResult.provider,
+      providerStatus: aiSummaryResult.providerStatus,
+      retryRecommended: aiSummaryResult.retryRecommended,
     })
   } catch (err) {
     console.error('Insights error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Unable to load insights right now. Please retry.' }, { status: 503 })
   }
 }

@@ -2,12 +2,18 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
+import { billingRatelimit } from '@/lib/ratelimit'
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return Response.json({ error: 'Sign in required' }, { status: 401 })
+    }
+
+    const { success: rlOk } = await billingRatelimit.limit(`rd-purchase:${session.user.id}`)
+    if (!rlOk) {
+      return Response.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
     }
 
     const { bundleKey } = await request.json()

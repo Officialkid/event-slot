@@ -129,6 +129,12 @@ type ReportPreviewData = {
   downloadsRemaining: number
 }
 
+const REPORT_PROGRESS_STEPS = [
+  'Reading registrations...',
+  'Analyzing trends...',
+  'Generating insights...',
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -977,7 +983,7 @@ export default function EventDashboardPage() {
   const slug = params?.slug as string
   const token = searchParams?.get("token") || ""
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -1013,6 +1019,8 @@ export default function EventDashboardPage() {
   // Report download
   const [reportData, setReportData] = useState<ReportPreviewData | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
+  const [reportLoadingText, setReportLoadingText] = useState('')
+  const [reportProgress, setReportProgress] = useState(0)
   const [downloadingReport, setDownloadingReport] = useState(false)
   const [showReportPaymentModal, setShowReportPaymentModal] = useState(false)
   const [downloadBalance, setDownloadBalance] = useState<number | null>(null)
@@ -1034,6 +1042,7 @@ export default function EventDashboardPage() {
   // AI Insights
   const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsError, setInsightsError] = useState("")
   const [insightsLocked, setInsightsLocked] = useState(false)
   const [insightsRequiredCredits] = useState(2)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
@@ -1064,6 +1073,12 @@ export default function EventDashboardPage() {
 
   const fetchDashboard = useCallback(async () => {
     if (!slug) return
+    if (!token && status === "loading") return
+    if (!token && status === "unauthenticated") {
+      router.replace(`/${slug}`)
+      return
+    }
+
     setLoading(true)
     setAccessDenied(false)
     setError("")
@@ -1071,7 +1086,10 @@ export default function EventDashboardPage() {
       const url = `/api/events/${slug}${token ? `?token=${encodeURIComponent(token)}` : ""}`
       const res = await fetch(url)
       const data = await res.json()
-      if (res.status === 401) { setAccessDenied(true); return }
+      if (res.status === 401) {
+        setAccessDenied(true)
+        return
+      }
       if (!res.ok || !data.success) { setError(data.error || "Unable to load dashboard"); return }
       setEventData(data.event)
       setConfirmed(data.confirmed)
@@ -1081,7 +1099,7 @@ export default function EventDashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [slug, token])
+  }, [slug, token, status, router])
 
   useEffect(() => { fetchDashboard() }, [fetchDashboard])
 
@@ -1260,26 +1278,41 @@ export default function EventDashboardPage() {
 
   const generateReportPreview = async () => {
     if (!eventData || reportLoading) return
+    let progressIndex = 0
+    setReportLoadingText(REPORT_PROGRESS_STEPS[0])
+    setReportProgress(12)
     setReportLoading(true)
+    const progressTimer = window.setInterval(() => {
+      progressIndex = Math.min(progressIndex + 1, REPORT_PROGRESS_STEPS.length - 1)
+      setReportLoadingText(REPORT_PROGRESS_STEPS[progressIndex])
+      setReportProgress((prev) => Math.min(prev + 11, 92))
+    }, 1100)
+
     try {
       const params = new URLSearchParams({
         mode: 'preview',
         token: token || eventData.dashboardToken,
       })
-      const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
+      const minWait = new Promise((resolve) => setTimeout(resolve, 3200))
+      const resPromise = fetch(`/api/events/${slug}/report?${params.toString()}`)
+      const [res] = await Promise.all([resPromise, minWait])
       const data = await res.json()
       if (!res.ok || !data?.success) return
+      setReportProgress(100)
       setReportData(data)
       setIsSuperAdmin(Boolean(data.isSuperAdmin))
       setDownloadBalance(typeof data.downloadsRemaining === 'number' ? data.downloadsRemaining : 0)
     } catch {
       // Silent fail for now to match surrounding dashboard behavior.
     } finally {
+      window.clearInterval(progressTimer)
+      setReportLoadingText('')
+      setReportProgress(0)
       setReportLoading(false)
     }
   }
 
-  const downloadReport = async () => {
+  const downloadReport = async (intent: 'download' | 'print' = 'download') => {
     if (!eventData || downloadingReport) return
     setDownloadingReport(true)
     try {
@@ -1305,6 +1338,7 @@ export default function EventDashboardPage() {
       a.download = `event-report-${slug}.docx`
       a.click()
       URL.revokeObjectURL(url)
+
       setDownloadBalance((prev) => (prev !== null ? Math.max(0, prev - 1) : prev))
     } catch {
       // Silent fail for now to match surrounding dashboard behavior.
@@ -1470,6 +1504,7 @@ export default function EventDashboardPage() {
   const loadInsights = async (force = false) => {
     if (!eventData || insightsLoading) return
     setInsightsLoading(true)
+    setInsightsError("")
     try {
       const params = new URLSearchParams()
       if (token) params.set('token', token)
@@ -1477,11 +1512,26 @@ export default function EventDashboardPage() {
       const qs = params.toString() ? `?${params.toString()}` : ''
       const res = await fetch(`/api/events/${slug}/insights${qs}`)
       const data = await res.json()
-      if (!res.ok) return
+      if (!res.ok) {
+        setInsightsError(data.error || 'Unable to load AI insights. Please retry.')
+        return
+      }
+
+      if (!Array.isArray(data.cards) || data.cards.length === 0) {
+        setInsightsData(null)
+        setInsightsError('No insight cards returned. Please regenerate.')
+        return
+      }
+
       setInsightsData(data.cards)
       setInsightsGeneratedAt(data.generatedAt ?? null)
       setInsightsLocked(false)
-    } catch {}
+      if (typeof data.message === 'string' && data.message.trim().length > 0) {
+        setInsightsError(data.message)
+      }
+    } catch {
+      setInsightsError('AI insights are currently unavailable due to a network issue. Please retry.')
+    }
     finally { setInsightsLoading(false) }
   }
 
@@ -1911,23 +1961,43 @@ export default function EventDashboardPage() {
                   </p>
                 </div>
                 {!reportData && (
-                  <button
-                    onClick={() => void generateReportPreview()}
-                    disabled={reportLoading}
-                    style={{
-                      background: reportLoading ? "rgba(200,245,90,0.3)" : "#C8F55A",
-                      color: "#0A0A0A",
-                      border: "none",
-                      borderRadius: "100px",
-                      padding: "0.65rem 1.6rem",
-                      fontSize: "0.875rem",
-                      fontWeight: 500,
-                      cursor: reportLoading ? "not-allowed" : "pointer",
-                      fontFamily: "var(--font-dm-sans)",
-                    }}
-                  >
-                    {reportLoading ? 'Generating report...' : '✦ Generate Report'}
-                  </button>
+                  <div style={{ minWidth: 280 }}>
+                    <button
+                      onClick={() => void generateReportPreview()}
+                      disabled={reportLoading}
+                      style={{
+                        background: reportLoading ? "rgba(200,245,90,0.3)" : "#C8F55A",
+                        color: "#0A0A0A",
+                        border: "none",
+                        borderRadius: "100px",
+                        padding: "0.65rem 1.6rem",
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        cursor: reportLoading ? "not-allowed" : "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                        width: '100%',
+                      }}
+                    >
+                      {reportLoading ? reportLoadingText || 'Generating insights...' : '✦ Generate Report'}
+                    </button>
+                    {reportLoading && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ height: 6, borderRadius: 999, background: 'rgba(240,237,230,0.12)', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${reportProgress}%`,
+                              background: 'linear-gradient(90deg, #7AB648 0%, #C8F55A 100%)',
+                              transition: 'width 300ms ease',
+                            }}
+                          />
+                        </div>
+                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'rgba(240,237,230,0.5)', fontFamily: 'var(--font-dm-sans)' }}>
+                          {Math.max(reportProgress, 5)}% complete
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -1940,7 +2010,7 @@ export default function EventDashboardPage() {
                   marginTop: "1rem",
                 }}>
                   <p style={{ marginTop: "0.9rem", marginBottom: 0, fontSize: "0.86rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
-                    The report has been prepared using your current registration data and is ready for Word export.
+                    {reportData.message || 'Your professional report is ready.'}
                   </p>
 
                   <div style={{
@@ -1956,7 +2026,7 @@ export default function EventDashboardPage() {
                     <div>
                       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
                         {reportData.reportReady
-                          ? 'Your report document is ready to download.'
+                          ? 'Download to access full insights.'
                           : 'Preparing your report document...'}
                       </p>
                       {!isSuperAdmin && (downloadBalance === null || downloadBalance < 1) && (
@@ -1966,7 +2036,7 @@ export default function EventDashboardPage() {
                       )}
                     </div>
                     <button
-                      onClick={() => void downloadReport()}
+                      onClick={() => void downloadReport('download')}
                       disabled={downloadingReport}
                       style={{
                         background: "#C8F55A",
@@ -1982,6 +2052,24 @@ export default function EventDashboardPage() {
                       }}
                     >
                       {downloadingReport ? 'Preparing...' : '↓ Download Word'}
+                    </button>
+                    <button
+                      onClick={() => void downloadReport('print')}
+                      disabled={downloadingReport}
+                      style={{
+                        background: 'transparent',
+                        color: '#C8F55A',
+                        border: '0.5px solid rgba(200,245,90,0.4)',
+                        borderRadius: '100px',
+                        padding: '0.6rem 1.2rem',
+                        fontSize: '0.84rem',
+                        fontWeight: 500,
+                        cursor: downloadingReport ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-dm-sans)',
+                        opacity: downloadingReport ? 0.6 : 1,
+                      }}
+                    >
+                      {downloadingReport ? 'Preparing...' : '🖨 Print / Save PDF'}
                     </button>
                   </div>
                 </div>
@@ -2367,6 +2455,20 @@ export default function EventDashboardPage() {
                   {insightsLoading && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
                       {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 8, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+                    </div>
+                  )}
+
+                  {insightsError && !insightsLoading && (
+                    <div style={{ background: "rgba(255,107,107,0.06)", border: "0.5px solid rgba(255,107,107,0.25)", borderRadius: 10, padding: "0.8rem 1rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap" }}>
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#FFB3B3", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                        {insightsError}
+                      </p>
+                      <button
+                        onClick={() => loadInsights(true)}
+                        style={{ background: "transparent", border: "0.5px solid rgba(255,179,179,0.35)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "#FFB3B3", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Retry
+                      </button>
                     </div>
                   )}
 

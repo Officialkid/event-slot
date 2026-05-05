@@ -47,13 +47,38 @@ export const authOptions = {
         })
         if (dbUser?.suspended) return false
       } catch {
-        // non-critical
+        // Never block sign-in due to a DB error
       }
       return true
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: {
+              id: true,
+              isAdmin: true,
+              username: true,
+              onboardingCompleted: true,
+              onboardingSkipped: true,
+              suspended: true,
+            },
+          })
+
+          if (user) {
+            session.user.isAdmin             = user.isAdmin             ?? false
+            session.user.username            = user.username            ?? null
+            session.user.onboardingCompleted = user.onboardingCompleted ?? false
+            session.user.onboardingSkipped   = user.onboardingSkipped   ?? false
+            session.user.suspended           = user.suspended           ?? false
+          }
+        } catch (error) {
+          // CRITICAL: never let session callback crash — return partial session
+          console.error('[NextAuth session callback error]', error)
+        }
       }
       return session
     },

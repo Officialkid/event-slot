@@ -3,6 +3,10 @@ import prisma from '@/lib/prisma'
 import { sendSlotConfirmedEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { isAdminEmail } from '@/lib/isAdmin'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 type EmailAttemptResult = {
   registrationId: string
@@ -18,13 +22,26 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     const body = await req.json()
     const { newCapacity, token } = body
 
+    const session = await getServerSession(authOptions)
+
     const event = await prisma.event.findUnique({ where: { slug } })
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    if (event.dashboardToken !== token) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
+    // Accept: valid dashboard token OR authenticated owner/admin/team-member
+    const hasValidToken = !!(token && event.dashboardToken === token)
+    const userId = session?.user?.id
+    const isOwner = !!(userId && event.organizerId === userId)
+    const isAdmin = isAdminEmail(session?.user?.email)
+    const isTeamMember = !hasValidToken && !isOwner && !isAdmin && !!(userId && await hasTeamEventAccess({
+      userId,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
+
+    if (!hasValidToken && !isOwner && !isAdmin && !isTeamMember) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     if (!Number.isInteger(newCapacity) || newCapacity <= 0) {

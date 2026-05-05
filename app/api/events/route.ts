@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { normalizeCommunityLink } from '@/lib/communityLink'
+import { createEventSchema } from '@/lib/schemas/event.schema'
 
 function generateSlug(title: string): string {
   const base = title
@@ -19,24 +20,31 @@ function generateSlug(title: string): string {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const body = await req.json()
-    const { title, description, capacity, deadline, eventDate, location, communityLink, imageUrl, questions, organizerEmail, organizerName } = body
-
-    const normalizedTitle = String(title ?? '').trim()
-    const normalizedOrganizerName = String(organizerName ?? '').trim()
-    const normalizedOrganizerEmail = String(organizerEmail ?? '').trim()
-
-    if (!normalizedTitle || !normalizedOrganizerName) {
-      return NextResponse.json({ success: false, error: 'Missing title or organizerName' }, { status: 400 })
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
     }
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
+
+    const parsed = createEventSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: parsed.error.flatten() },
+        { status: 400 }
+      )
     }
+
+    const { title, description, capacity, deadline, eventDate, location, communityLink, imageUrl, questions, organizerEmail, organizerName } = parsed.data
+
+    const normalizedTitle = title.trim()
+    const normalizedOrganizerName = organizerName.trim()
+    const normalizedOrganizerEmail = (organizerEmail ?? '').trim()
 
     for (const question of questions) {
-      const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
+      const usesOptions = question.type === 'select' || question.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
-        return NextResponse.json({ success: false, error: `Question "${question?.label || 'Untitled'}" needs at least one option` }, { status: 400 })
+        return NextResponse.json({ success: false, error: `Question "${question.label}" needs at least one option` }, { status: 400 })
       }
     }
 

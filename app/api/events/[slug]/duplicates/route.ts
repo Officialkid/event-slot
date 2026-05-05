@@ -1,22 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { isAdminEmail } from '@/lib/isAdmin'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')
+    const session = await getServerSession(authOptions)
 
     const event = await prisma.event.findUnique({
       where: { slug },
-      select: { id: true, dashboardToken: true },
+      select: { id: true, dashboardToken: true, organizerId: true },
     })
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    if (!token || token !== event.dashboardToken) {
+    const hasValidToken = !!(token && token === event.dashboardToken)
+    const userId = session?.user?.id
+    const isOwner = !!(userId && event.organizerId === userId)
+    const isAdmin = isAdminEmail(session?.user?.email)
+    const isTeamMember = !hasValidToken && !isOwner && !isAdmin && !!(userId && await hasTeamEventAccess({
+      userId,
+      organizerId: event.organizerId,
+      eventId: event.id,
+    }))
+
+    if (!hasValidToken && !isOwner && !isAdmin && !isTeamMember) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

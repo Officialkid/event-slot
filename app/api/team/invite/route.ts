@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { TEAM_MEMBER_LIMIT } from '@/lib/plans'
 import { sendTeamInviteEmail } from '@/lib/email'
 import { v4 as uuidv4 } from 'uuid'
+import { teamInviteSchema } from '@/lib/schemas/team.schema'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,12 +14,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { email } = await req.json()
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return NextResponse.json({ error: 'A valid email address is required' }, { status: 400 })
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const normalizedEmail = email.toLowerCase().trim()
+    const parsed = teamInviteSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 }
+      )
+    }
+
+    const normalizedEmail = parsed.data.email
 
     // Cannot invite yourself
     if (normalizedEmail === session.user.email?.toLowerCase()) {

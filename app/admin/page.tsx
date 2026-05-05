@@ -91,6 +91,18 @@ type LinkReportPreview = {
   }
   reportReady?: boolean
   message?: string
+  aiContent?: {
+    eventOverview: string
+    executiveSummary: string
+    strengths: string
+    weaknessesAndRisks: string
+    audienceProfile: string
+    registrationBehaviour: string
+    competitivePositioning: string
+    waitlistAnalysis: string
+    recommendations: string
+    overallScore: string
+  }
   downloadUrl: string
 }
 
@@ -381,6 +393,46 @@ export default function AdminOverviewPage() {
             <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
               Slug: {linkReportPreview.event.slug} · Confirmed: {linkReportPreview.event.confirmedCount} · Waitlist: {linkReportPreview.event.waitlistCount}
             </p>
+
+            {linkReportPreview.message && (
+              <p style={{ marginTop: "0.55rem", marginBottom: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                {linkReportPreview.message}
+              </p>
+            )}
+
+            {linkReportPreview.aiContent && (
+              <div style={{ marginTop: "0.8rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ background: "#0A0A0A", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 10, padding: "0.65rem 0.75rem" }}>
+                  <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>
+                    10. Overall Score
+                  </div>
+                  <div style={{ fontSize: "0.92rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                    {linkReportPreview.aiContent.overallScore}
+                  </div>
+                </div>
+
+                {[
+                  { title: "1. Event Overview", text: linkReportPreview.aiContent.eventOverview },
+                  { title: "2. Executive Summary", text: linkReportPreview.aiContent.executiveSummary },
+                  { title: "3. Strengths", text: linkReportPreview.aiContent.strengths },
+                  { title: "4. Weaknesses & Risks", text: linkReportPreview.aiContent.weaknessesAndRisks },
+                  { title: "5. Audience Profile", text: linkReportPreview.aiContent.audienceProfile },
+                  { title: "6. Registration Behaviour", text: linkReportPreview.aiContent.registrationBehaviour },
+                  { title: "7. Competitive Positioning", text: linkReportPreview.aiContent.competitivePositioning },
+                  { title: "8. Waitlist Analysis", text: linkReportPreview.aiContent.waitlistAnalysis },
+                  { title: "9. Recommendations", text: linkReportPreview.aiContent.recommendations },
+                ].map((item) => (
+                  <details key={item.title} style={{ border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, background: "#101010", padding: "0.45rem 0.65rem" }}>
+                    <summary style={{ cursor: "pointer", fontSize: "0.76rem", color: "rgba(200,245,90,0.88)", letterSpacing: "0.04em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+                      {item.title}
+                    </summary>
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "rgba(240,237,230,0.68)", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>
+                      {item.text}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            )}
 
             <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <a

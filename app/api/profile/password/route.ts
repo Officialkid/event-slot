@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { changePasswordSchema } from "@/lib/schemas/profile.schema"
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -11,22 +12,22 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { currentPassword, newPassword } = body as {
-      currentPassword?: string
-      newPassword?: string
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
-    }
-
-    if (newPassword.length < 8) {
+    const parsed = changePasswordSchema.safeParse(rawBody)
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "New password must be at least 8 characters" },
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
         { status: 400 }
       )
     }
+
+    const { currentPassword, newPassword } = parsed.data
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },

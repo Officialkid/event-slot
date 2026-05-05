@@ -22,6 +22,8 @@ type InsightsData = {
   registrationsByDayOfWeek: { day: string; count: number }[]
   registrationsByMonth: { month: string; count: number }[]
   repeatAttendees: number
+  aiSummary?: string | null
+  aiSummarySource?: "ai" | "fallback"
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -104,6 +106,27 @@ export default function InsightsPage() {
             Patterns across all your events.
           </p>
         </div>
+
+        {data.aiSummary && (
+          <div
+            style={{
+              background: data.aiSummarySource === "fallback" ? "rgba(255,168,0,0.06)" : "rgba(200,245,90,0.05)",
+              border: data.aiSummarySource === "fallback"
+                ? "0.5px solid rgba(255,168,0,0.25)"
+                : "0.5px solid rgba(200,245,90,0.2)",
+              borderRadius: 10,
+              padding: "0.9rem 1.1rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: data.aiSummarySource === "fallback" ? "rgba(255,168,0,0.85)" : "rgba(200,245,90,0.85)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
+              {data.aiSummarySource === "fallback" ? "AI Summary (Fallback)" : "AI Summary"}
+            </div>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+              {data.aiSummary}
+            </p>
+          </div>
+        )}
 
         {/* Top stat cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1.75rem" }} className="ins-stat-grid">

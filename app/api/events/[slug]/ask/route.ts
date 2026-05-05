@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { askAI } from '@/lib/ai'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { aiRatelimit } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -11,6 +12,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')
     const session = await getServerSession(authOptions)
+
+    // Rate limit by user id if authenticated, else by IP
+    const rateLimitKey = session?.user?.id ?? (req.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim()
+    const { success: rlOk } = await aiRatelimit.limit(`ask:${rateLimitKey}`)
+    if (!rlOk) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+    }
 
     let body: { question?: string }
     try {

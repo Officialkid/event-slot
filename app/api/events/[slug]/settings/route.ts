@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { normalizeCommunityLink } from "@/lib/communityLink"
+import { updateEventSettingsSchema } from "@/lib/schemas/event.schema"
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -23,8 +24,22 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { description, eventDate, location, communityLink, deadline } = body
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    }
+
+    const parsed = updateEventSettingsSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { description, eventDate, location, communityLink, deadline } = parsed.data
 
     await prisma.event.update({
       where: { slug },

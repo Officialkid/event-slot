@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { generateEventReport, IRegistration } from '@/lib/generateEventReport'
+import { generateAIReportContent } from '@/lib/generateAIReportContent'
 
 function extractSlugFromInput(input: string): string | null {
   const raw = input.trim()
@@ -133,6 +134,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const aiContent = await generateAIReportContent({
+      event: prepared.eventPayload,
+      confirmed: prepared.confirmed,
+      waitlist: prepared.waitlist,
+    })
+
     return NextResponse.json({
       success: true,
       event: {
@@ -145,7 +152,8 @@ export async function POST(req: NextRequest) {
         location: prepared.eventPayload.location,
       },
       reportReady: true,
-      message: 'Basic Word report is ready for download.',
+      aiContent,
+      message: 'Premium AI strategy report is ready for download.',
       downloadUrl: `/api/admin/generate-report?slug=${encodeURIComponent(prepared.slug)}`,
     })
   } catch (error) {
@@ -174,10 +182,18 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    const aiContent = await generateAIReportContent({
+      event: prepared.eventPayload,
+      confirmed: prepared.confirmed,
+      waitlist: prepared.waitlist,
+    })
+
     const buffer = await generateEventReport({
       event: prepared.eventPayload,
       confirmed: prepared.confirmed,
       waitlist: prepared.waitlist,
+      aiContent,
+      theme: 'eventslot',
     })
 
     const reportBytes = new Uint8Array(buffer)

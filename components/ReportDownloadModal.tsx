@@ -4,9 +4,7 @@ import { useState } from 'react'
 
 const BUNDLES = [
   { key: 'single', label: '1 download', price: 'KSh 100', highlight: false },
-  { key: 'bundle3', label: '3 downloads', price: 'KSh 300', highlight: true },
-  { key: 'bundle6', label: '6 downloads', price: 'KSh 500', highlight: false },
-  { key: 'bundle15', label: '15 downloads', price: 'KSh 1,000', highlight: false },
+  { key: 'bundle3', label: '3 downloads', price: 'KSh 285', highlight: true },
 ]
 
 export default function ReportDownloadModal({ onClose }: { onClose: () => void }) {

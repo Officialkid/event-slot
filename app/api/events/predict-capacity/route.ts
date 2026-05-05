@@ -3,12 +3,18 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { askAI } from '@/lib/ai'
+import { aiRatelimit } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ prediction: null, reason: 'Sign in required' })
+    }
+
+    const { success: rlOk } = await aiRatelimit.limit(`predict:${session.user.id}`)
+    if (!rlOk) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
     }
 
     let body: { title?: string; description?: string }

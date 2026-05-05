@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { updateProfileSchema } from "@/lib/schemas/profile.schema"
 
 export async function GET() {
   try {
@@ -38,15 +39,25 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { name } = body as { name?: string }
-
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    let rawBody: unknown
+    try {
+      rawBody = await req.json()
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
     }
 
-    if (name.trim().length > 100) {
-      return NextResponse.json({ error: "Name is too long" }, { status: 400 })
+    const parsed = updateProfileSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 }
+      )
+    }
+
+    const { name } = parsed.data
+
+    if (!name || name.trim().length === 0) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
     await prisma.user.update({
