@@ -50,11 +50,8 @@ spec:
                 secretKeyRef:
                   name: EVENTSLOT_NEXTAUTH_URL
                   key: latest
-            - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: STRIPE_SECRET_KEY
-                  key: latest
+            - name: NEXTAUTH_URL_INTERNAL
+              value: 'http://localhost:3000'
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -99,4 +96,14 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
+                  key: latest
+            - name: UPSTASH_REDIS_REST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: UPSTASH_REDIS_REST_URL
+                  key: latest
+            - name: UPSTASH_REDIS_REST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: UPSTASH_REDIS_REST_TOKEN
                   key: latest
