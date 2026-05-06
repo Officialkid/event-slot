@@ -1,18 +1,13 @@
 import { prisma } from './prisma'
+import { getConfiguredAdminEmails } from './isAdmin'
 
 function getPrivilegedAccounts() {
-  return [
-    {
-      email: process.env.SUPER_ADMIN_EMAIL,
-      name: 'Daniel Mwalili',
-      isAdmin: true,
-    },
-    {
-      email: process.env.SUPER_ADMIN_EMAIL_2,
-      name: 'EventSlot Admin',
-      isAdmin: true,
-    },
-  ].filter((account): account is { email: string; name: string; isAdmin: boolean } => Boolean(account.email))
+  const defaultNames = ['Daniel Mwalili', 'EventSlot Admin']
+  return getConfiguredAdminEmails().map((email, index) => ({
+    email,
+    name: defaultNames[index] ?? 'EventSlot Admin',
+    isAdmin: true,
+  }))
 }
 
 export async function seedPrivilegedAccounts() {

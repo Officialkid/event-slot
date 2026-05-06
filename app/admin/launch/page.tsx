@@ -13,6 +13,7 @@ interface ChecklistData {
   dbOk: boolean
   redisOk: boolean
   adminUserExists: boolean
+  expectedAdminEmails: string[]
   recentErrorCount: number
   userCount: number
   eventCount: number
@@ -283,9 +284,9 @@ export default function LaunchChecklistPage() {
           ok={data.adminUserExists}
           label="Super admin account seeded"
           note={
-            [process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(Boolean).length > 0
-              ? `Expected: ${[process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(Boolean).join(", ")}`
-              : "SUPER_ADMIN_EMAIL / SUPER_ADMIN_EMAIL_2 not set"
+            data.expectedAdminEmails.length > 0
+              ? `Expected: ${data.expectedAdminEmails.join(", ")}`
+              : "SUPER_ADMIN_EMAIL / SUPER_ADMIN_EMAIL_2 (or SUPER_ADMIN_EMAILS) not set"
           }
         />
         <Check

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { getConfiguredAdminEmails, isAdminEmail } from "@/lib/isAdmin"
 
 const REQUIRED_ENV_VARS = [
   { key: "DATABASE_URL", label: "Database URL (Neon)" },
@@ -25,6 +25,8 @@ export async function GET() {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
+    const adminEmails = getConfiguredAdminEmails()
+
     // 1 — Env var checks
     const envChecks = REQUIRED_ENV_VARS.map(({ key, label }) => ({
       label,
@@ -41,13 +43,14 @@ export async function GET() {
 
     // 3 — Admin user exists in DB
     let adminUserExists = false
-    const adminEmails = [process.env.SUPER_ADMIN_EMAIL, process.env.SUPER_ADMIN_EMAIL_2].filter(
-      (email): email is string => Boolean(email)
-    )
     if (dbOk && adminEmails.length > 0) {
       try {
         const admin = await prisma.user.findFirst({
-          where: { email: { in: adminEmails } },
+          where: {
+            OR: adminEmails.map((email) => ({
+              email: { equals: email, mode: "insensitive" },
+            })),
+          },
           select: { id: true, plan: true },
         })
         adminUserExists = Boolean(admin)
@@ -93,6 +96,7 @@ export async function GET() {
       dbOk,
       redisOk,
       adminUserExists,
+      expectedAdminEmails: adminEmails,
       recentErrorCount,
       userCount,
       eventCount,
