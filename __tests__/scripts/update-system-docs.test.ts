@@ -87,7 +87,7 @@ const TEST_ENV = {
 }
 
 const EXPECTED_ROW =
-  '| 2026-06-01T08:00:00Z | deadbeef | eventslot-web-00042-xyz | Test deploy |'
+  '| 2026-06-01T08:00:00Z | deadbee | eventslot-web-00042-xyz | Test deploy |'
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -102,7 +102,7 @@ describe('update-system-docs.mjs', () => {
   it('stamps the Last Updated line with deploy metadata', () => {
     const { output } = runUpdater(buildMinimalDoc(), TEST_ENV)
     expect(output).toContain(
-      '**Last Updated:** 2026-06-01T08:00:00Z — Commit: deadbeef — Revision: eventslot-web-00042-xyz'
+      '**Last Updated:** 2026-06-01T08:00:00Z — Commit: deadbee — Revision: eventslot-web-00042-xyz'
     )
   })
 
