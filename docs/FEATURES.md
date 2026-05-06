@@ -1,5 +1,9 @@
 # EventSlot — Feature Reference
 
+> Canonical source: `docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md`
+> 
+> Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
+
 _Last updated: May 5, 2026_
 
 ---

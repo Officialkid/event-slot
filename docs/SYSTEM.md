@@ -1,5 +1,9 @@
 # EventSlot — System Documentation
 
+> Canonical source: `docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md`
+> 
+> This file remains as a supporting summary. Update the canonical document first when product, schema, API, pricing, or infrastructure behavior changes.
+
 _Last updated: May 4, 2026_
 _Version: 0.4.20_
 _Status: Pre-launch_

@@ -1,5 +1,14 @@
 # EventSlot — Changelog
 
+## [0.4.29] — May 6, 2026
+
+### Canonical System Documentation + Deploy Metadata Automation
+
+- Added `docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md` as the canonical live system document for product, schema, API, pricing, auth, compliance, and infrastructure state.
+- Added `scripts/update-system-docs.mjs` to stamp deploy metadata into the canonical doc and prepend deploy-history rows to its auto-managed changelog block.
+- Updated `.github/workflows/deploy.yml` to run the documentation updater after successful Cloud Run deploy verification and commit the metadata change back to `main` with CI-skip protection.
+- Added canonical-source notices to `docs/SYSTEM.md`, `docs/FEATURES.md`, and `docs/API.md` so supporting docs no longer compete as parallel sources of truth.
+
 ## [0.4.28] — May 5, 2026
 
 ### Security Hardening — Backend Protection, Input Validation, Distributed Rate Limiting

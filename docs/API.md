@@ -1,5 +1,9 @@
 # EventSlot — API Reference
 
+> Canonical source: `docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md`
+> 
+> This file can keep endpoint-level detail, but the canonical document owns the live API surface summary.
+
 _Last updated: April 13, 2026_  
 _Base URL: https://www.eventsslot.com/api_  
 _Auth: NextAuth session cookie unless otherwise noted_

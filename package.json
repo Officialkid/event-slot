@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
+    "docs:update-system": "node scripts/update-system-docs.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
