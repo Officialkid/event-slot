@@ -97,13 +97,3 @@ spec:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
                   key: latest
-            - name: UPSTASH_REDIS_REST_URL
-              valueFrom:
-                secretKeyRef:
-                  name: UPSTASH_REDIS_REST_URL
-                  key: latest
-            - name: UPSTASH_REDIS_REST_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: UPSTASH_REDIS_REST_TOKEN
-                  key: latest
