@@ -38,16 +38,15 @@ export default function TeamPage() {
   const [members, setMembers] = useState<TeamMemberRecord[]>([])
   const [loading, setLoading] = useState(true)
   const maxMembers = TEAM_MEMBER_LIMIT
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteError, setInviteError] = useState("")
-  const [inviteSuccess, setInviteSuccess] = useState("")
+  const [inviteEmails, setInviteEmails] = useState(["", ""])
+  const [inviteErrors, setInviteErrors] = useState<string[]>([])
+  const [inviteResults, setInviteResults] = useState<Array<{email:string;ok:boolean;alreadyInvited?:boolean;emailFailed?:boolean;acceptUrl?:string;error?:string}>>([])
   const [inviting, setSending] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const [resendingId, setResendingId] = useState<string | null>(null)
   const [resendSuccess, setResendSuccess] = useState("")
   const [resendFailedUrls, setResendFailedUrls] = useState<Record<string, string>>({})
-  const [inviteAcceptUrl, setInviteAcceptUrl] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   // Event assignment modal
@@ -81,29 +80,24 @@ export default function TeamPage() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
-    setInviteError("")
-    setInviteSuccess("")
-    const email = inviteEmail.trim()
-    if (!email) return
+    setInviteErrors([])
+    setInviteResults([])
+    const emails = inviteEmails.map(e => e.trim()).filter(Boolean)
+    if (emails.length === 0) return
     setSending(true)
     try {
       const res = await fetch("/api/team/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ emails }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setInviteError(data.error ?? "Failed to send invite")
-        return
-      }
-      if (data.emailFailed) {
-        setInviteSuccess(`Invite created for ${email} — email delivery failed, share the link below.`)
-        setInviteAcceptUrl(data.acceptUrl ?? "")
+      if (!res.ok && !data.results) {
+        setInviteErrors([data.error ?? "Failed to send invites"])
       } else {
-        setInviteSuccess(`Invite sent to ${email}`)
+        setInviteResults(data.results ?? [])
+        setInviteEmails(["", ""])
       }
-      setInviteEmail("")
       // Refresh list
       const mr = await fetch("/api/team/members")
       if (mr.ok) {
@@ -731,99 +725,91 @@ export default function TeamPage() {
               You&apos;ve reached your team member limit ({maxMembers}). Remove a member to invite another.
             </p>
           ) : (
-            <form onSubmit={handleInvite} style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
-              <input
-                ref={emailRef}
-                type="email"
-                value={inviteEmail}
-                onChange={e => { setInviteEmail(e.target.value); setInviteError(""); setInviteSuccess(""); setInviteAcceptUrl("") }}
-                placeholder="teammate@example.com"
-                required
-                style={{
-                  flex: 1,
-                  minWidth: 200,
-                  background: "rgba(240,237,230,0.04)",
-                  border: "0.5px solid rgba(240,237,230,0.12)",
-                  borderRadius: 8,
-                  padding: "0.5625rem 0.875rem",
-                  color: "#F0EDE6",
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "0.875rem",
-                  outline: "none",
-                }}
-              />
-              <button
-                type="submit"
-                disabled={inviting}
-                style={{
-                  background: "#C8F55A",
-                  color: "#0A0A0A",
-                  fontFamily: "var(--font-dm-sans)",
-                  fontWeight: 600,
-                  fontSize: "0.875rem",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "0.5625rem 1.25rem",
-                  cursor: inviting ? "not-allowed" : "pointer",
-                  opacity: inviting ? 0.7 : 1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {inviting ? "Sendingâ€¦" : "Send invite"}
-              </button>
+              <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {inviteEmails.map((email, idx) => (
+                  <input
+                    key={idx}
+                    ref={idx === 0 ? emailRef : undefined}
+                    type="email"
+                    value={email}
+                    onChange={e => {
+                      const next = [...inviteEmails]
+                      next[idx] = e.target.value
+                      setInviteEmails(next)
+                      setInviteErrors([])
+                      setInviteResults([])
+                    }}
+                    placeholder={idx === 0 ? "teammate@example.com" : "second@example.com (optional)"}
+                    required={idx === 0}
+                    style={{
+                      background: "rgba(240,237,230,0.04)",
+                      border: "0.5px solid rgba(240,237,230,0.12)",
+                      borderRadius: 8,
+                      padding: "0.5625rem 0.875rem",
+                      color: "#F0EDE6",
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "0.875rem",
+                      outline: "none",
+                      width: "100%",
+                    }}
+                  />
+                ))}
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  style={{
+                    background: "#C8F55A",
+                    color: "#0A0A0A",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontWeight: 600,
+                    fontSize: "0.875rem",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "0.5625rem 1.25rem",
+                    cursor: inviting ? "not-allowed" : "pointer",
+                    opacity: inviting ? 0.7 : 1,
+                    alignSelf: "flex-end",
+                    marginTop: "0.125rem",
+                  }}
+                >
+                  {inviting ? "Sending…" : "Send invites"}
+                </button>
             </form>
           )}
-          {inviteError && (
-            <p style={{ marginTop: "0.625rem", fontSize: "0.8125rem", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
-              {inviteError}
-            </p>
-          )}
-          {inviteSuccess && (
-            <div style={{ marginTop: "0.625rem" }}>
-              <p style={{ fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: inviteAcceptUrl ? "0.5rem" : 0 }}>
-                {inviteSuccess}
+            {inviteErrors.length > 0 && (
+              <p style={{ marginTop: "0.625rem", fontSize: "0.8125rem", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
+                {inviteErrors[0]}
               </p>
-              {inviteAcceptUrl && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                  <span
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      fontSize: "0.75rem",
-                      color: "rgba(240,237,230,0.4)",
-                      fontFamily: "var(--font-dm-sans)",
-                      background: "rgba(240,237,230,0.04)",
-                      border: "0.5px solid rgba(240,237,230,0.08)",
-                      borderRadius: 6,
-                      padding: "0.375rem 0.625rem",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {inviteAcceptUrl}
-                  </span>
-                  <button
-                    onClick={() => copyToClipboard(inviteAcceptUrl, "invite")}
-                    style={{
-                      background: "#C8F55A",
-                      color: "#0A0A0A",
-                      fontFamily: "var(--font-dm-sans)",
-                      fontWeight: 600,
-                      fontSize: "0.75rem",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "0.375rem 0.875rem",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {copiedId === "invite" ? "Copied!" : "Copy link"}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {inviteResults.length > 0 && (
+              <div style={{ marginTop: "0.625rem", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                {inviteResults.map((r, idx) => (
+                  <div key={idx}>
+                    {r.ok ? (
+                      <div>
+                        <p style={{ fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: r.emailFailed ? "0.375rem" : 0 }}>
+                          {r.emailFailed ? `Invite created for ${r.email} — email failed, share the link:` : `Invite sent to ${r.email}`}
+                        </p>
+                        {r.emailFailed && r.acceptUrl && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 6, padding: "0.375rem 0.625rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {r.acceptUrl}
+                            </span>
+                            <button onClick={() => copyToClipboard(r.acceptUrl!, `invite-${idx}`)} style={{ background: "#C8F55A", color: "#0A0A0A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, fontSize: "0.75rem", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", cursor: "pointer", flexShrink: 0 }}>
+                              {copiedId === `invite-${idx}` ? "Copied!" : "Copy link"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: "0.8125rem", color: r.alreadyInvited ? "#FAC775" : "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
+                        {r.email}: {r.alreadyInvited ? "Already invited or a member" : (r.error ?? "Failed")}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
       </section>
     </div>

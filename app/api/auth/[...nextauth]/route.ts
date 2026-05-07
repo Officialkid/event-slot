@@ -27,4 +27,13 @@ async function POST(req: NextRequest, context: { params: Promise<{ nextauth: str
   return handler(req, context)
 }
 
-export { handler as GET, POST }
+async function GET(req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) {
+  try {
+    return await handler(req, context)
+  } catch (err) {
+    console.error('[NextAuth GET error]', err)
+    throw err
+  }
+}
+
+export { GET, POST }

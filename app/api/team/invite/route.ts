@@ -29,21 +29,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const normalizedEmail = parsed.data.email
+    const emails = parsed.data.emails
 
-    // Cannot invite yourself
-    if (normalizedEmail === session.user.email?.toLowerCase()) {
+    // Reject if any email is the inviter's own address
+    const selfEmail = session.user.email?.toLowerCase()
+    if (emails.some(e => e === selfEmail)) {
       return NextResponse.json({ error: 'You cannot invite yourself' }, { status: 400 })
     }
 
-    const owner = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { plan: true, name: true, email: true },
-    })
-
-    const currentMembers = await prisma.teamMember.count({
-      where: { ownerId: session.user.id, status: 'accepted' },
-    })
+    const [owner, currentMembers] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { plan: true, name: true, email: true },
+      }),
+      prisma.teamMember.count({
+        where: { ownerId: session.user.id, status: 'accepted' },
+      }),
+    ])
 
     if (currentMembers >= TEAM_MEMBER_LIMIT) {
       return NextResponse.json({
@@ -52,38 +54,53 @@ export async function POST(req: NextRequest) {
       }, { status: 403 })
     }
 
-    // Check if already invited
-    const existing = await prisma.teamMember.findFirst({
-      where: { ownerId: session.user.id, email: normalizedEmail, status: { in: ['pending', 'accepted'] } },
-    })
-    if (existing) {
-      return NextResponse.json({ error: 'This person has already been invited or is already a member' }, { status: 409 })
-    }
-
-    const inviteToken = uuidv4()
-
-    await prisma.teamMember.create({
-      data: {
-        ownerId: session.user.id,
-        email: normalizedEmail,
-        status: 'pending',
-        inviteToken,
-      },
-    })
-
     const inviterName = owner?.name || owner?.email || 'Someone'
     const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
-    const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
 
-    let emailFailed = false
-    try {
-      await sendTeamInviteEmail({ to: normalizedEmail, inviterName, inviteToken })
-    } catch (emailErr) {
-      console.error('[team/invite] email failed:', emailErr)
-      emailFailed = true
+    type InviteResult = {
+      email: string
+      ok: boolean
+      alreadyInvited?: boolean
+      emailFailed?: boolean
+      acceptUrl?: string
+      error?: string
     }
 
-    return NextResponse.json({ ok: true, emailFailed, acceptUrl }, { status: 201 })
+    const results: InviteResult[] = await Promise.all(
+      emails.map(async (email): Promise<InviteResult> => {
+        try {
+          const existing = await prisma.teamMember.findFirst({
+            where: { ownerId: session.user.id, email, status: { in: ['pending', 'accepted'] } },
+          })
+          if (existing) {
+            return { email, ok: false, alreadyInvited: true, error: 'Already invited or a member' }
+          }
+
+          const inviteToken = uuidv4()
+          await prisma.teamMember.create({
+            data: { ownerId: session.user.id, email, status: 'pending', inviteToken },
+          })
+
+          const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
+          let emailFailed = false
+          try {
+            await sendTeamInviteEmail({ to: email, inviterName, inviteToken })
+          } catch (emailErr) {
+            console.error('[team/invite] email failed:', emailErr)
+            emailFailed = true
+          }
+
+          return { email, ok: true, emailFailed, acceptUrl }
+        } catch (err) {
+          console.error('[team/invite] per-email error:', err)
+          return { email, ok: false, error: 'Internal error' }
+        }
+      })
+    )
+
+    const anyOk = results.some(r => r.ok)
+    const status = anyOk ? 201 : results.every(r => r.alreadyInvited) ? 409 : 500
+    return NextResponse.json({ results }, { status })
   } catch (err) {
     console.error('[team/invite]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

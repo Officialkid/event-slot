@@ -1,11 +1,16 @@
 import { z } from 'zod'
 
+const emailField = z
+  .string()
+  .email('A valid email address is required')
+  .max(254)
+  .transform((v) => v.toLowerCase().trim())
+
 export const teamInviteSchema = z.object({
-  email: z
-    .string({ error: 'A valid email address is required' })
-    .email('A valid email address is required')
-    .max(254)
-    .transform((v) => v.toLowerCase().trim()),
+  emails: z
+    .array(emailField)
+    .min(1, 'At least one email is required')
+    .max(2, 'You can invite up to 2 people at a time'),
 })
 
 export const updateMemberEventsSchema = z.object({
