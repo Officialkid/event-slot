@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 import { isAdminEmail } from "@/lib/isAdmin"
 import AdminSidebar from "./AdminSidebar"
 
@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const isAdmin = isAdminEmail(session?.user?.email)
   if (!isAdmin) {
-    notFound()
+    redirect('/signin?callbackUrl=/admin&reason=admin')
   }
 
   return (
