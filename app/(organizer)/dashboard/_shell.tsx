@@ -160,9 +160,10 @@ interface SidebarInnerProps {
   onNavClick?: () => void
   onOpenTourSelector?: () => void
   collapsed?: boolean
+  isAdmin?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -431,6 +432,46 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
         })()}
       </nav>
 
+      {/* Admin Panel — only visible to superadmin */}
+      {isAdmin && (
+        <div style={{ padding: "0 0.75rem 0.625rem" }}>
+          <div style={{ height: "0.5px", background: "rgba(200,245,90,0.15)", margin: "0 0.25rem 0.625rem" }} />
+          {(() => {
+            const active = getIsActive(pathname, "/admin", false)
+            return (
+              <Link
+                href="/admin"
+                onClick={onNavClick}
+                onMouseEnter={e => {
+                  if (collapsed) {
+                    const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                    setTooltip({ label: "Admin Panel", y: rect.top + rect.height / 2 })
+                  }
+                }}
+                onMouseLeave={() => setTooltip(null)}
+                className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "0.6rem 1rem",
+                  borderRadius: 8,
+                  fontSize: "0.875rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  textDecoration: "none",
+                  background: active ? "rgba(200,245,90,0.12)" : "rgba(200,245,90,0.05)",
+                  color: active ? "#C8F55A" : "rgba(200,245,90,0.65)",
+                  border: "0.5px solid rgba(200,245,90,0.18)",
+                }}
+              >
+                <IconAdmin />
+                <span className="dash-nav-lbl">Admin Panel</span>
+              </Link>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Bottom: links + sign out */}
       <div
         className="dash-bottom"
@@ -687,6 +728,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     usedFeatures,
     onOpenTourSelector: () => setShowTourSelector(true),
   }
+  sidebarProps.isAdmin = isAdmin
 
   const startTour = useCallback((sections: string[]) => {
     setShowTourSelector(false)
