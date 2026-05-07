@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Suspense, useEffect } from 'react'
-import { signIn, signOut, useSession } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -29,8 +29,6 @@ function SignInForm() {
     setError('')
     setLoading(true)
     try {
-      // Clears stale encrypted session cookies that can trigger intermittent OAuth callback errors.
-      await signOut({ redirect: false })
       await signIn('google', { callbackUrl: '/my-events' })
     } catch {
       setError('Google sign-in failed. Please try again.')
