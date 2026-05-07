@@ -72,12 +72,13 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
     return (
       <div
         style={{
-          background: "#141414",
-          border: "1px solid rgba(240,237,230,0.08)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+          border: "1px solid rgba(240,237,230,0.12)",
           borderRadius: 16,
           padding: "2rem 1.5rem",
           maxWidth: 480,
           margin: "0 auto",
+          backdropFilter: "blur(6px)",
         }}
       >
         {/* Header */}
@@ -140,13 +141,14 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
     return (
       <div
         style={{
-          background: "#141414",
-          border: "1px solid rgba(240,237,230,0.08)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+          border: "1px solid rgba(240,237,230,0.12)",
           borderRadius: 16,
           padding: "2rem 1.5rem",
           maxWidth: 480,
           margin: "0 auto",
           textAlign: "center",
+          backdropFilter: "blur(6px)",
         }}
       >
         <div
@@ -201,13 +203,14 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
     return (
       <div
         style={{
-          background: "#141414",
-          border: "1px solid rgba(240,237,230,0.08)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+          border: "1px solid rgba(240,237,230,0.12)",
           borderRadius: 16,
           padding: "2rem 1.5rem",
           maxWidth: 480,
           margin: "0 auto",
           textAlign: "center",
+          backdropFilter: "blur(6px)",
         }}
       >
         <div
@@ -261,13 +264,15 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
   return (
     <div
       style={{
-        background: "#141414",
-        border: "1px solid rgba(240,237,230,0.08)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+        border: "1px solid rgba(240,237,230,0.12)",
         borderRadius: 16,
         padding: "1.75rem 1.5rem",
         maxWidth: 480,
         margin: "0 auto",
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
+        boxShadow: "0 16px 36px rgba(0,0,0,0.25)",
+        backdropFilter: "blur(6px)",
       }}
     >
       <h2
@@ -303,10 +308,10 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
             placeholder="you@example.com"
             disabled={state.stage === "loading"}
             style={{
-              background: "rgba(240,237,230,0.04)",
-              border: "1px solid rgba(240,237,230,0.12)",
-              borderRadius: 8,
-              padding: "0.6rem 0.85rem",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(240,237,230,0.16)",
+              borderRadius: 10,
+              padding: "0.65rem 0.85rem",
               fontSize: "0.88rem",
               color: "#F0EDE6",
               outline: "none",
@@ -345,7 +350,7 @@ export default function ConfirmAttendance({ eventId }: { eventId: string }) {
             background: state.stage === "loading" || !email.trim() ? "rgba(200,245,90,0.35)" : "#C8F55A",
             color: "#0A0A0A",
             border: "none",
-            borderRadius: 8,
+            borderRadius: 999,
             padding: "0.65rem 1.25rem",
             fontSize: "0.88rem",
             fontWeight: 600,

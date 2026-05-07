@@ -222,8 +222,8 @@ export default async function PublicProfilePage({
     const showBranding = !event.organizer || event.organizer.plan === "free"
     const maxAttendees = 3
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-        <div className="mx-auto max-w-[1040px]">
+      <div className="min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10">
+        <div className="mx-auto max-w-[1120px]">
           {/* Invitation card */}
           <EventInvitationCard
             title={event.title}
@@ -239,24 +239,30 @@ export default async function PublicProfilePage({
           />
 
           {/* Form + lookup grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-8 items-start">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-7 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-8 items-start">
             {/* Registration form */}
-            <RegistrationForm
-              event={{
-                ...event,
-                slug: username,
-                questions: event.questions as EventQuestion[],
-                organizerName: event.organizer?.name ?? null,
-                deadline: toIsoOrNull(event.deadline),
-                eventDate: toIsoOrNull(event.eventDate),
-              }}
-              showBranding={showBranding}
-              maxAttendees={maxAttendees}
-              compactHeader
-            />
+            <section className="space-y-3">
+              <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Registration</p>
+              <RegistrationForm
+                event={{
+                  ...event,
+                  slug: username,
+                  questions: event.questions as EventQuestion[],
+                  organizerName: event.organizer?.name ?? null,
+                  deadline: toIsoOrNull(event.deadline),
+                  eventDate: toIsoOrNull(event.eventDate),
+                }}
+                showBranding={showBranding}
+                maxAttendees={maxAttendees}
+                compactHeader
+              />
+            </section>
 
             {/* Already Registered? lookup panel */}
-            <ConfirmAttendance eventId={event.id} />
+            <section className="space-y-3 lg:sticky lg:top-6">
+              <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Attendance Lookup</p>
+              <ConfirmAttendance eventId={event.id} />
+            </section>
           </div>
         </div>
       </div>

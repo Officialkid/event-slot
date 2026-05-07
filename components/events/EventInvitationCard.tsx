@@ -58,21 +58,6 @@ function getStatusBadge(
   }
 }
 
-/* Gradient fallback palette — cycles deterministically by title character sum */
-const GRADIENTS = [
-  "linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #0a0a0a 100%)",
-  "linear-gradient(135deg, #0a1628 0%, #0f3460 50%, #0a0a0a 100%)",
-  "linear-gradient(135deg, #0d1a0d 0%, #1a3a1a 50%, #0a0a0a 100%)",
-  "linear-gradient(135deg, #1a0a00 0%, #3d1a00 50%, #0a0a0a 100%)",
-  "linear-gradient(135deg, #1a001a 0%, #3d003d 50%, #0a0a0a 100%)",
-  "linear-gradient(135deg, #001a1a 0%, #003d3d 50%, #0a0a0a 100%)",
-]
-
-function pickGradient(title: string): string {
-  const sum = Array.from(title).reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return GRADIENTS[sum % GRADIENTS.length]
-}
-
 export default function EventInvitationCard({
   title,
   description,
@@ -90,7 +75,6 @@ export default function EventInvitationCard({
   const [posterFailed, setPosterFailed] = useState(false)
   const posterErrorHandledRef = useRef(false)
   const badge = getStatusBadge(status, capacity, confirmedCount, deadline ?? null)
-  const gradient = pickGradient(title)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
   const isLongDescription = Boolean(description && description.length > 300)
@@ -121,82 +105,49 @@ export default function EventInvitationCard({
         position: "relative",
         borderRadius: 20,
         overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        border: "1px solid rgba(240,237,230,0.1)",
+        background: "#0F141C",
+        boxShadow: "0 18px 48px rgba(0,0,0,0.35)",
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
-        marginBottom: "2rem",
+        marginBottom: "1.5rem",
       }}
     >
-      {/* ── Mobile poster (before content) ───────────────────────────── */}
       {hasPoster && (
-        <div className="md:hidden" style={{ position: "relative", width: "100%", height: 220, backgroundColor: "#0A0A0A" }}>
+        <div style={{ position: "relative", width: "100%", height: 220, backgroundColor: "#0A0A0A" }} className="sm:h-[280px] lg:h-[320px]">
           <Image
             src={posterSrc}
             alt={title}
             fill
             sizes="100vw"
-            style={{ objectFit: "contain", objectPosition: "center" }}
+            style={{ objectFit: "cover", objectPosition: "center" }}
             onError={handlePosterError}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "linear-gradient(180deg, rgba(10,10,10,0.08) 0%, rgba(10,10,10,0.72) 100%)",
+            }}
           />
         </div>
       )}
 
-      {/* ── Background layer ─────────────────────────────────────────── */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: gradient,
-          zIndex: 0,
-        }}
-      >
-        {/* Subtle noise / grain texture layer */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse at 20% 30%, rgba(200,245,90,0.06) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(200,245,90,0.04) 0%, transparent 55%)",
-          }}
-        />
-      </div>
-
-      {/* ── Decorative corner ornament (top-right) ───────────────────── */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          width: 220,
-          height: 220,
-          borderBottom: "1px solid rgba(200,245,90,0.08)",
-          borderLeft: "1px solid rgba(200,245,90,0.08)",
-          borderBottomLeftRadius: 220,
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* ── Content ──────────────────────────────────────────────────── */}
       <div
         style={{
           position: "relative",
           zIndex: 3,
-          padding: "clamp(1.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem)",
-          minHeight: 260,
+          padding: "clamp(1.2rem, 3vw, 2rem)",
+          minHeight: 220,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "flex-end",
-          gap: 0,
+          gap: "0.75rem",
+          background: hasPoster
+            ? "linear-gradient(180deg, rgba(15,20,28,0) 0%, rgba(15,20,28,0.92) 10%, rgba(15,20,28,0.97) 100%)"
+            : "linear-gradient(140deg, #101722 0%, #121b29 55%, #0D1117 100%)",
         }}
       >
-        {/* Top bar: EventSlot brand + status badge */}
         <div
           style={{
-            position: "absolute",
-            top: "clamp(1rem, 3vw, 1.75rem)",
-            left: "clamp(1.5rem, 4vw, 3rem)",
-            right: "clamp(1.5rem, 4vw, 3rem)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -207,7 +158,7 @@ export default function EventInvitationCard({
               fontSize: "0.62rem",
               letterSpacing: "0.16em",
               textTransform: "uppercase",
-              color: "rgba(200,245,90,0.7)",
+              color: "rgba(240,237,230,0.5)",
               fontWeight: 700,
             }}
           >
@@ -227,7 +178,7 @@ export default function EventInvitationCard({
               fontSize: "0.68rem",
               fontWeight: 600,
               color: badge.color,
-              letterSpacing: "0.04em",
+              letterSpacing: "0.03em",
             }}
           >
             <span
@@ -244,30 +195,26 @@ export default function EventInvitationCard({
           </span>
         </div>
 
-        {/* Event name */}
         <h1
           style={{
-            fontSize: "clamp(1.6rem, 4.5vw, 2.8rem)",
-            fontWeight: 600,
+            fontSize: "clamp(1.45rem, 4.2vw, 2.4rem)",
+            fontWeight: 500,
             color: "#F0EDE6",
-            margin: "0 0 1rem",
-            lineHeight: 1.15,
+            margin: 0,
+            lineHeight: 1.2,
             letterSpacing: "-0.01em",
             fontFamily: "var(--font-instrument-serif, Georgia, serif)",
-            textShadow: "0 2px 12px rgba(0,0,0,0.45)",
-            maxWidth: "100%",
+            maxWidth: 800,
           }}
         >
           {title}
         </h1>
 
-        {/* Meta row */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "0.45rem",
-            marginBottom: description ? "1.25rem" : "0",
+            gap: "0.4rem",
           }}
         >
           {eventDate && (
@@ -276,7 +223,7 @@ export default function EventInvitationCard({
               <span
                 style={{
                   fontSize: "0.88rem",
-                  color: "#F0EDE6",
+                  color: "rgba(240,237,230,0.88)",
                   fontWeight: 500,
                   letterSpacing: "0.01em",
                 }}
@@ -301,29 +248,27 @@ export default function EventInvitationCard({
               <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>✦</span>
               <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontWeight: 400 }}>
                 Hosted by{" "}
-                <span style={{ color: "rgba(240,237,230,0.75)", fontWeight: 500 }}>{organizerName}</span>
+                <span style={{ color: "rgba(240,237,230,0.8)", fontWeight: 500 }}>{organizerName}</span>
               </span>
             </div>
           )}
         </div>
 
-        {/* Description */}
         {description && (
           <>
             <div
               style={{
                 height: 1,
-                background: "rgba(240,237,230,0.1)",
-                margin: "0 0 1rem",
+                background: "rgba(240,237,230,0.12)",
               }}
             />
             <p
               style={{
                 fontSize: "0.88rem",
-                color: "rgba(240,237,230,0.85)",
-                lineHeight: 1.65,
+                color: "rgba(240,237,230,0.78)",
+                lineHeight: 1.72,
                 margin: 0,
-                maxWidth: 620,
+                maxWidth: 700,
               }}
             >
               {descriptionText}
@@ -340,7 +285,7 @@ export default function EventInvitationCard({
                   fontSize: "0.78rem",
                   padding: "0.25rem 0",
                   fontFamily: "var(--font-dm-sans)",
-                  marginTop: "0.35rem",
+                  marginTop: "0.1rem",
                 }}
               >
                 {expanded ? "Show less" : "Read more"}
@@ -349,22 +294,20 @@ export default function EventInvitationCard({
           </>
         )}
 
-        {/* Countdown */}
         {deadline && badge.label !== "Registration Closed" && (
           <div style={{ marginTop: "1rem", maxWidth: 420 }}>
             <CountdownTimer deadline={deadline} urgentMode />
           </div>
         )}
 
-        {/* Footer: capacity pill */}
         {spotsLeft !== null && badge.label !== "Registration Closed" && (
-          <div style={{ marginTop: "1.25rem" }}>
+          <div style={{ marginTop: "0.2rem" }}>
             <span
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                background: "rgba(240,237,230,0.07)",
-                border: "1px solid rgba(240,237,230,0.12)",
+                background: "rgba(240,237,230,0.06)",
+                border: "1px solid rgba(240,237,230,0.14)",
                 borderRadius: 999,
                 padding: "0.3rem 0.85rem",
                 fontSize: "0.72rem",

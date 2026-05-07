@@ -128,6 +128,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   })
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
+  const fieldClassName = "mt-1 w-full rounded-[10px] bg-[rgba(255,255,255,0.04)] border border-[rgba(240,237,230,0.16)] px-3 py-2.5 text-[#F0EDE6] text-[0.875rem] placeholder:text-[rgba(240,237,230,0.45)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none focus:ring-2 focus:ring-[rgba(200,245,90,0.15)]"
+  const subtleLabelClassName = "mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.82)] tracking-[0.04em]"
 
   const canAddMore = attendees.length < maxAttendees
 
@@ -412,7 +414,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }
 
   return (
-    <div className="mx-auto w-full max-w-[480px]">
+    <div className="mx-auto w-full max-w-[560px]">
       {/* Duplicate warning dialog */}
       {duplicateInfo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 99, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
@@ -476,13 +478,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         />
       )}
 
-      <form onSubmit={handleSubmit} className="w-full rounded-[12px] border border-[rgba(240,237,230,0.12)] bg-[#181818] p-7 space-y-6">
-        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.62)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          Fill in your details
+      <form onSubmit={handleSubmit} className="w-full rounded-[16px] border border-[rgba(240,237,230,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] p-5 sm:p-7 space-y-6 shadow-[0_16px_36px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          Registration form
         </p>
 
         {/* Bulk prompt row */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between rounded-[10px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5">
         <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
           {attendees.length > 1 ? `Registering ${attendees.length} people` : "Registering 1 person"}
         </span>
@@ -517,7 +519,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         <div key={attendeeIndex}>
           {/* Divider between attendees */}
           {attendeeIndex > 0 && (
-            <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.08)", margin: "1.25rem 0" }} />
+            <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.1)", margin: "1.25rem 0" }} />
           )}
 
           {/* Attendee header */}
@@ -550,13 +552,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             {/* System email field — always collected when organiser hasn't added an email question */}
             {!hasEmailQuestion && (
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.85)] tracking-[0.04em]">
+                <label className={subtleLabelClassName}>
                   Email address <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(for your ticket)</span>
                 </label>
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
+                  className={fieldClassName}
                   value={baseEmails[attendeeIndex] ?? ""}
                   onChange={e => setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = e.target.value; return next })}
                 />
@@ -564,13 +566,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             )}
             {event.questions.map(q => (
               <div key={q.id}>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.85)] tracking-[0.04em]">
+                <label className={subtleLabelClassName}>
                   {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
                 </label>
                 {q.type === "text" && (
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
+                    className={fieldClassName}
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -579,7 +581,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {q.type === "email" && (
                   <input
                     type="email"
-                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
+                    className={fieldClassName}
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -588,7 +590,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {q.type === "phone" && (
                   <input
                     type="tel"
-                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.55)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
+                    className={fieldClassName}
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -596,7 +598,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 )}
                 {q.type === "select" && (
                   <select
-                    className="mt-1 w-full rounded-[8px] bg-[#1F1F1F] border border-[rgba(240,237,230,0.24)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.62)] focus:outline-none"
+                    className={fieldClassName}
                     required={q.required}
                     value={form[q.id]}
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
@@ -610,7 +612,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   </select>
                 )}
                 {q.type === "checkbox" && (
-                  <div className="mt-1 space-y-2 rounded-[8px] border border-[rgba(240,237,230,0.12)] bg-[#141414] px-3 py-3">
+                  <div className="mt-1 space-y-2 rounded-[10px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-3 py-3">
                     {q.options?.map(opt => {
                       const selectedValues = parseCheckboxValue(form[q.id])
                       const isChecked = selectedValues.includes(opt)
@@ -717,7 +719,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       <button
         type="submit"
-        className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold ${(loading || deadlineExpired) ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A]'}`}
+        className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${(loading || deadlineExpired) ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
         disabled={loading || deadlineExpired}
       >
         {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
