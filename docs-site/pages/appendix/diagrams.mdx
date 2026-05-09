@@ -1,0 +1,80 @@
+# Architecture and Flow Diagrams
+
+This page visualizes the current EventSlot system topology and core runtime flows to support engineering, operations, and onboarding reviews.
+
+## 1) Full system architecture
+
+```mermaid
+graph TD
+  U[User] --> B[Browser or PWA]
+  B --> CR[Cloud Run]
+  CR --> NX[Next.js App Router]
+  NX --> API[Route Handlers app/api]
+  API --> PR[Prisma ORM]
+  PR --> NEON[Neon PostgreSQL]
+
+  API --> PAY[Paystack]
+  API --> RES[Resend]
+  API --> UPS[Upstash Redis]
+  API --> R2[Cloudflare R2]
+  API --> AI[Groq/OpenRouter/Anthropic]
+```
+
+## 2) Database ER diagram
+
+```mermaid
+erDiagram
+  USER ||--o{ EVENT : organizes
+  EVENT ||--o{ REGISTRATION : has
+  USER ||--o{ NOTIFICATION : receives
+  USER ||--o{ TEAMMEMBER : owns
+  TEAMMEMBER ||--o{ TEAMMEMBEREVENT : links
+  EVENT ||--o{ TEAMMEMBEREVENT : grants_access
+  USER ||--o| REPORTDOWNLOAD : wallet
+  USER ||--o{ REPORTDOWNLOADTRANSACTION : purchases
+```
+
+## 3) Registration flow diagram
+
+```mermaid
+flowchart TD
+  A[Attendee submits form] --> B[Validate request]
+  B --> C{Event open and before deadline?}
+  C -- No --> X[Return registration closed]
+  C -- Yes --> D{Capacity reached?}
+  D -- No --> E[Create confirmed registration]
+  D -- Yes --> F[Create waitlist registration]
+  E --> G[Increment confirmedCount]
+  F --> H[Increment waitlistCount and assign position]
+  G --> I[Return success payload]
+  H --> I
+```
+
+## 4) Waitlist promotion flow diagram
+
+```mermaid
+flowchart TD
+  A[Organizer increases capacity] --> B[Compute added slots]
+  B --> C[Fetch waitlist ordered by position ASC]
+  C --> D[Take min added slots and waitlist size]
+  D --> E[Update selected rows to confirmed]
+  E --> F[Adjust counters confirmed and waitlist]
+  F --> G[Send promotion emails]
+  G --> H[Log diagnostics]
+```
+
+## 5) GitHub Actions CI/CD pipeline diagram
+
+```mermaid
+flowchart TD
+  P[Push to main] --> T[Test job]
+  T --> L[Type check and lint]
+  L --> U[Unit tests]
+  U --> B[Build]
+  B --> D[Deploy job]
+  D --> I[Build Docker image]
+  I --> R[Push image]
+  R --> C[Deploy Cloud Run]
+  C --> V[Smoke test]
+  V --> S[Update system docs metadata]
+```

@@ -1,0 +1,64 @@
+﻿# Waitlist Automation
+
+> [!NOTE]
+> Waitlist assignment and promotion are active in production code paths.
+
+## How waitlist is triggered
+
+A registration is placed on waitlist when:
+
+- capacity is set, and
+- confirmedCount is already at or above capacity
+
+The registration is saved with:
+
+- status: waitlist
+- waitlistPosition: next queue number
+
+## FIFO promotion logic
+
+When organiser increases capacity, EventSlot promotes in ascending waitlistPosition.
+
+| Step | Action |
+|---|---|
+| 1 | Compute added slots from capacity change |
+| 2 | Select waitlist rows ordered by waitlistPosition asc |
+| 3 | Take up to min(addedSlots, waitlistCount) |
+| 4 | Update selected rows to confirmed |
+| 5 | Decrement waitlistCount and increment confirmedCount |
+
+## Attendee notifications on promotion
+
+After promotion, EventSlot attempts to send slot-confirmed email per promoted registrant and records email diagnostics for support.
+
+## Waitlist position display
+
+Attendees can see queue position via registration status surfaces that read waitlistPosition from their registration record.
+
+## Promotion pseudocode
+
+```text
+on capacity increase(newCapacity):
+  addedSlots = newCapacity - oldCapacity
+  if addedSlots <= 0: reject
+
+  queue = waitlist ordered by waitlistPosition asc
+  promote = first min(addedSlots, queue.length)
+
+  for each registration in promote:
+    set status = confirmed
+    clear waitlistPosition
+
+  confirmedCount += promote.length
+  waitlistCount  -= promote.length
+```
+
+## Edge cases
+
+### Multiple cancellations
+
+Cancellations free capacity pressure but direct cancellation flow and promotion flow are independent. Organisers can also increase capacity to trigger deterministic batch promotion.
+
+### Capacity reduction
+
+Current capacity endpoint enforces increase-only behavior. Reducing capacity is intentionally blocked by this route to avoid forced demotions.

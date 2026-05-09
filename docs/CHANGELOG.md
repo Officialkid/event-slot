@@ -1,5 +1,46 @@
 # EventSlot — Changelog
 
+## [0.4.32] — May 8, 2026
+
+### Documentation Website — Phase 4 Full Content Rewrite (Fact-Checked)
+
+- Rewrote core docs-site content pages across Product, Technical, Developer, Guides, Business, and Appendix sections to remove assumption-based claims and align with live implementation.
+- Updated product docs to reflect real waitlist/capacity behavior from route handlers and current free-core monetization model with paid report-download bundles.
+- Updated technical docs with current architecture and integrations (Cloud Run, Neon PostgreSQL, Prisma, NextAuth, Paystack, Upstash, Cloudflare R2), plus route-protection and rate-limit implementation details.
+- Updated developer docs for actual install/setup/env workflows and replaced Stripe-oriented assumptions with current Paystack-backed billing reality.
+- Added/updated Mermaid diagrams, API appendix references, expanded glossary, and historical changelog summary in docs-site appendix pages.
+- Corrected docs compatibility constraints for Nextra 3-era content structure and preserved build-safe MDX patterns.
+
+## [0.4.31] — May 8, 2026
+
+### Documentation Website — Phase 3 Homepage + Navigation Accuracy
+
+- Replaced `docs-site/pages/index.mdx` with a new docs landing page structure using Nextra `Cards` and direct links into Product, Developer, Appendix, and Guides sections.
+- Updated homepage section taxonomy and summary table to match the new docs information architecture (Product, Technical, Developer, Guides, Business, Appendix).
+- Removed assumption-based claims and aligned homepage platform facts to currently documented system state (pre-launch status, Paystack, Neon/PostgreSQL, Prisma, NextAuth, Cloud Run).
+- Preserved docs-site compatibility with Nextra 3 by keeping implementation within MDX and existing theme structure.
+
+## [0.4.30] — May 8, 2026
+
+### Official Documentation Portal (Next.js + Nextra)
+
+- Added a full standalone documentation website scaffold under `docs-site/`.
+- Implemented a production-ready Next.js 14 + Nextra 3 + TypeScript + Tailwind stack for docs deployment on Vercel.
+- Added branded dark-only docs theme aligned to EventSlot identity:
+  - near-black surfaces and accent lime visual system
+  - typography stack using Instrument Serif, DM Sans, and JetBrains Mono
+  - custom global styling for navigation, sidebar, code blocks, tables, and motion
+- Authored complete MDX documentation structure with sections for:
+  - Getting Started
+  - Platform
+  - API Reference
+  - Integrations
+  - Guides
+  - Security
+- Added API and operations content including quickstart, waitlist behavior, integration setup, launch checklist, and compliance guidance.
+- Added docs-site README and build scripts for local dev and production build.
+- Validated docs-site with successful production build output.
+
 ## [0.4.29] — May 6, 2026
 
 ### Canonical System Documentation + Deploy Metadata Automation

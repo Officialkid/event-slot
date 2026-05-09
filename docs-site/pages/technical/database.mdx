@@ -1,0 +1,363 @@
+﻿# Database Design
+
+> [!NOTE]
+> This page embeds the current live schema from prisma/schema.prisma to avoid documentation drift.
+
+## Full Prisma schema
+
+```prisma
+// Prisma schema file
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Event {
+  id               String    @id @default(cuid())
+  title            String
+  description      String?
+  slug             String    @unique
+  capacity         Int?
+  deadline         DateTime?
+  confirmedCount   Int       @default(0)
+  waitlistCount    Int       @default(0)
+  organizerEmail   String
+  dashboardToken   String    @unique
+  questions        Json
+  createdAt        DateTime  @default(now())
+  organizerId      String?
+  organizer        User?     @relation(fields: [organizerId], references: [id])
+  eventDate        DateTime?
+  location         String?
+  communityLink    String?
+  imageUrl         String?
+  archived         Boolean   @default(false)
+  status           String    @default("active")
+  feedbackSent     Boolean   @default(false)
+  reminderSent     Boolean   @default(false)
+  dataExpired      Boolean   @default(false)
+  registrations    Registration[]
+  views            EventView[]
+  feedback         AttendeeFeedback[]
+  unlocks          EventUnlock[]
+  insight          EventInsight?
+  teamAccess       TeamMemberEvent[]
+}
+
+model User {
+  id             String         @id @default(cuid())
+  name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?
+  createdAt      DateTime       @default(now())
+  plan           String         @default("free")
+  planStartDate  DateTime?
+  planEndDate    DateTime?
+  isAdmin        Boolean        @default(false)
+  billingCycle   String?
+  suspended      Boolean        @default(false)
+  paystackCustomerCode     String?  @unique
+  paystackSubscriptionCode String?  @unique
+  creditBalance            Float    @default(0)
+  username                 String?  @unique
+  resetToken               String?
+  resetTokenExpiry         DateTime?
+  consentSystemEmails      Boolean   @default(false)
+  onboardingCompleted      Boolean   @default(false)
+  onboardingSkipped        Boolean   @default(false)
+  accounts       Account[]
+  ownedTeam      TeamMember[] @relation("OwnedTeam")
+  memberOf       TeamMember[] @relation("MemberOf")
+  sessions       Session[]
+  events         Event[]
+  onboarding     UserOnboarding?
+  notifications  Notification[]
+  creditTransactions CreditTransaction[]
+  featureAccess      FeatureAccess[]
+  organizerFeedback  OrganizerFeedback[]
+  reportDownload     ReportDownload?
+}
+
+model UserOnboarding {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedSteps    String[] @default([])
+  usedFeatures      String[] @default([])
+  tutorialCompleted Boolean  @default(false)
+  tutorialSkipped   Boolean  @default(false)
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Registration {
+  id                    String    @id @default(cuid())
+  eventId               String
+  event                 Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers               Json
+  status                String
+  waitlistPosition      Int?
+  registrationNumber    Int?
+  submittedAt           DateTime  @default(now())
+  notified              Boolean   @default(false)
+  attendeeEmail         String?
+  consentTransactional  Boolean   @default(false)
+  consentMarketing      Boolean   @default(false)
+  isDuplicate           Boolean   @default(false)
+  checkedIn             Boolean   @default(false)
+  checkedInAt           DateTime?
+  qrCode                String?   @unique
+  confirmationCode      String?   @unique
+  source                String    @default("form")
+}
+
+model ErrorLog {
+  id        String   @id @default(cuid())
+  route     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  senderName  String?
+  senderEmail String?
+  eventId   String?
+  eventTitle String?
+  type      String   @default("organizer") // organizer | attendee
+  rating    Int?
+  body      String
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  eventId   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  description String
+  reference   String?
+  eventId     String?
+  createdAt   DateTime @default(now())
+}
+
+model EventUnlock {
+  id         String   @id @default(cuid())
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId     String
+  feature    String
+  unlockedAt DateTime @default(now())
+}
+
+model OrganizerFeedback {
+  id          String   @id @default(cuid())
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  type        String   // "complaint" | "compliment" | "suggestion" | "general"
+  subject     String
+  message     String
+  rating      Int?
+  status      String   @default("unread")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EventView {
+  id       String   @id @default(cuid())
+  eventId  String
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now())
+  source   String?
+}
+
+model AttendeeFeedback {
+  id             String   @id @default(cuid())
+  eventId        String
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrationId String   @unique
+  rating         Int
+  enjoyed        String?
+  improve        String?
+  complaint      String?
+  submittedAt    DateTime @default(now())
+}
+
+model TeamMember {
+  id          String            @id @default(cuid())
+  ownerId     String
+  owner       User              @relation("OwnedTeam", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberId    String?
+  member      User?             @relation("MemberOf", fields: [memberId], references: [id], onDelete: SetNull)
+  email       String
+  status      String            @default("pending")
+  inviteToken String            @unique
+  createdAt   DateTime          @default(now())
+  eventAccess TeamMemberEvent[]
+}
+
+model TeamMemberEvent {
+  id           String     @id @default(cuid())
+  teamMemberId String
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  eventId      String
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([teamMemberId, eventId])
+}
+
+model EventInsight {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cards       Json
+  generatedAt DateTime @default(now())
+}
+
+model FeatureAccess {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String?
+  feature   String
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
+
+model FeatureInterest {
+  id          String   @id @default(cuid())
+  email       String
+  featureName String
+  createdAt   DateTime @default(now())
+
+  @@unique([email, featureName])
+}
+
+model ReportDownload {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  downloadsRemaining Int      @default(0)
+  totalPurchased     Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ReportDownloadTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  bundleKey   String
+  amountKsh   Int
+  downloads   Int
+  reference   String   @unique
+  createdAt   DateTime @default(now())
+}
+
+```
+
+## Relationships and foreign keys
+
+Primary relational paths in the schema:
+
+- User.id -> Event.organizerId
+- Event.id -> Registration.eventId
+- User.id -> Notification.userId
+- TeamMember.id -> TeamMemberEvent.teamMemberId
+- Event.id -> TeamMemberEvent.eventId
+
+## Indexes and constraints
+
+The schema currently relies on strong uniqueness constraints and relation keys, including:
+
+- Event.slug unique
+- Event.dashboardToken unique
+- Registration.qrCode unique
+- Registration.confirmationCode unique
+- TeamMember.inviteToken unique
+- TeamMemberEvent unique(teamMemberId, eventId)
+- FeatureInterest unique(email, featureName)
+
+## Audit model note
+
+The prompt referenced AuditLog. In this repository, the operational audit/error model is ErrorLog.
+
+## Neon pooling and pgBouncer usage
+
+Runtime and migration URLs are split by design:
+
+- DATABASE_URL: pooled runtime connection
+- DIRECT_URL: direct migration connection
+
+## Migration workflow
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+## Seed data workflow
+
+```bash
+npx prisma db seed
+```
+
+If seed is not configured in your environment, add prisma.seed in package.json or run a custom script in scripts/.

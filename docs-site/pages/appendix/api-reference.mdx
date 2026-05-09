@@ -1,0 +1,207 @@
+# Full API Reference
+
+> [!NOTE]
+> EventSlot endpoints are served under /api/* route handlers in this repository.
+
+## Authentication headers
+
+### Session-based browser requests
+
+Session cookies are managed by NextAuth.
+
+### Token-style headers for service calls
+
+```http
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+## Error code envelope (recommended)
+
+Current routes vary, but recommended normalized shape is:
+
+```json
+{
+  "error": "Human readable message",
+  "code": "ERROR_CODE",
+  "statusCode": 400
+}
+```
+
+## Core endpoint catalog
+
+### Auth
+
+| Method | Path |
+|---|---|
+| GET/POST | /api/auth/[...nextauth] |
+| POST | /api/auth/signup |
+| POST | /api/auth/forgot-password |
+| POST | /api/auth/reset-password |
+
+### Profile and user
+
+| Method | Path |
+|---|---|
+| GET | /api/me |
+| GET/PATCH/DELETE | /api/profile |
+| PATCH | /api/profile/password |
+| POST | /api/profile/photo |
+| GET | /api/users/check-username |
+| PATCH | /api/users/username |
+| GET/PATCH | /api/user/onboarding |
+
+### Registration and attendee
+
+| Method | Path |
+|---|---|
+| POST | /api/register |
+| GET/PATCH | /api/registrations/[registrationId] |
+| POST | /api/attendance/confirm |
+
+### Events
+
+| Method | Path |
+|---|---|
+| POST | /api/events |
+| GET/PUT/DELETE | /api/events/[slug] |
+| PATCH | /api/events/[slug]/capacity |
+| PATCH | /api/events/[slug]/archive |
+| POST | /api/events/[slug]/close |
+| GET | /api/events/[slug]/analytics |
+| GET | /api/events/[slug]/insights |
+| POST | /api/events/[slug]/ask |
+| GET | /api/events/[slug]/report |
+| GET | /api/events/[slug]/export |
+| GET | /api/events/[slug]/feedback |
+| GET | /api/events/[slug]/duplicates |
+| POST | /api/events/[slug]/duplicate |
+| POST | /api/events/[slug]/rename |
+| GET | /api/events/[slug]/qr |
+| POST | /api/events/[slug]/claim |
+
+### Dashboard, notifications, team
+
+| Method | Path |
+|---|---|
+| GET | /api/dashboard/stats |
+| GET | /api/notifications |
+| PATCH | /api/notifications/read |
+| PATCH | /api/notifications/[id]/read |
+| GET | /api/team/members |
+| POST | /api/team/invite |
+| POST | /api/team/resend |
+| GET | /api/team/events |
+| GET/PATCH/DELETE | /api/team/[memberId] |
+
+### Billing and webhooks
+
+| Method | Path |
+|---|---|
+| POST | /api/report-downloads/purchase |
+| GET | /api/report-downloads/verify |
+| POST | /api/billing/webhook |
+| POST | /api/billing/checkout |
+| GET | /api/billing/verify |
+
+### Cron and admin
+
+| Method | Path |
+|---|---|
+| POST | /api/cron/send-feedback |
+| POST | /api/cron/event-reminder |
+| POST | /api/cron/expire-data |
+| GET/POST/PATCH/DELETE | /api/admin/* |
+
+## Request/response examples
+
+### Register attendee
+
+```http
+POST /api/register
+Content-Type: application/json
+
+{
+  "eventSlug": "my-event",
+  "attendees": [
+    {
+      "answers": [
+        { "questionId": "q_name", "value": "Alex" },
+        { "questionId": "q_email", "value": "alex@example.com" }
+      ]
+    }
+  ],
+  "consentTransactional": true,
+  "consentMarketing": false
+}
+```
+
+```json
+{
+  "success": true,
+  "results": [
+    {
+      "status": "confirmed",
+      "registrationId": "clx...",
+      "registrationNumber": 18,
+      "confirmationCode": "EVT-ABC123"
+    }
+  ],
+  "eventTitle": "Community Session"
+}
+```
+
+### Capacity increase and waitlist promotion
+
+```http
+PATCH /api/events/my-event/capacity
+Content-Type: application/json
+
+{
+  "newCapacity": 120,
+  "token": "dashboard-token-if-applicable"
+}
+```
+
+```json
+{
+  "success": true,
+  "promoted": 12,
+  "newConfirmedCount": 120,
+  "newWaitlistCount": 8,
+  "remainingSlots": 0,
+  "emailDiagnostics": {
+    "attempted": 12,
+    "sent": 10,
+    "failed": 1,
+    "skippedNoEmail": 1
+  }
+}
+```
+
+## Rate limit headers
+
+Rate limit implementations expose limit, remaining, and reset values internally. If you expose headers at gateway level, standard header names are recommended:
+
+- X-RateLimit-Limit
+- X-RateLimit-Remaining
+- X-RateLimit-Reset
+
+## Webhook payload example (Paystack)
+
+```json
+{
+  "event": "charge.success",
+  "data": {
+    "amount": 100000,
+    "reference": "ref_123",
+    "metadata": {
+      "type": "credits",
+      "userId": "clx..."
+    }
+  }
+}
+```
+
+> [!NOTE]
+> The active billing webhook provider in this repository is Paystack, not Stripe.

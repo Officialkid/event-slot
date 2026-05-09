@@ -1,0 +1,28 @@
+---
+title: Google Calendar
+description: Sync EventSlot events to Google Calendar for attendee and organizer visibility.
+---
+
+# Google Calendar
+
+Calendar sync helps attendees and staff stay aligned on schedule updates.
+
+## What Sync Includes
+
+- Event title and summary
+- Localized start and end times
+- Venue or meeting URL
+- Event detail deep link
+
+## Setup
+
+1. Create OAuth credentials in Google Cloud.
+2. Add authorized redirect URI from EventSlot settings.
+3. Enable Calendar API.
+4. Connect your organizer workspace.
+
+## Suggested Sync Strategy
+
+- Use one calendar per organizer workspace.
+- Prefix synced events with environment marker in staging.
+- Run a nightly consistency job for large event catalogs.

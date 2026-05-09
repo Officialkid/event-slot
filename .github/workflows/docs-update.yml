@@ -1,0 +1,33 @@
+name: Update Docs Changelog
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs-site/pages/appendix/changelog.mdx'
+      - '.github/workflows/docs-update.yml'
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepend changelog entry
+        run: |
+          DATE=$(date -u +"%B %d, %Y")
+          SHA="${{ github.sha }}"
+          MSG="${{ github.event.head_commit.message }}"
+          ENTRY="## Deploy — $DATE (${SHA:0:7})\n\n> $MSG\n\n---\n\n"
+          CONTENT=$(cat docs-site/pages/appendix/changelog.mdx)
+          echo -e "$ENTRY$CONTENT" > docs-site/pages/appendix/changelog.mdx
+
+      - name: Commit changelog update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs-site/pages/appendix/changelog.mdx
+          git diff --staged --quiet || git commit -m "docs: auto-update changelog on deploy [skip ci]"
+          git push

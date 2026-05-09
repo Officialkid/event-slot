@@ -1,0 +1,64 @@
+# Installation
+
+> [!NOTE]
+> EventSlot currently uses Paystack for billing flows in this repository. Stripe setup is not the active payment path.
+
+## Step-by-step installation
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create local env file:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Generate Prisma client:
+
+```bash
+npm run db:generate
+```
+
+4. Apply DB schema locally:
+
+```bash
+npm run db:push
+```
+
+5. Start app:
+
+```bash
+npm run dev
+```
+
+## Configure Google OAuth credentials
+
+1. Create OAuth credentials in Google Cloud Console.
+2. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local.
+3. Set NEXTAUTH_URL to your local app URL, usually http://localhost:3000.
+
+## Configure Paystack test keys
+
+Use PAYSTACK_SECRET_KEY in local env for billing route testing.
+
+## Verify app runs locally
+
+- open home page
+- create or sign in user
+- access dashboard
+- create an event
+- submit registration via event link
+
+## Common installation issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| NextAuth callback errors | NEXTAUTH_URL mismatch | Set NEXTAUTH_URL correctly |
+| Prisma connection error | DATABASE_URL invalid | Use Neon pooled URL |
+| Migration error | DIRECT_URL missing | Add direct Neon URL |
+| OAuth login fails | bad Google credentials | Re-check client ID/secret and callback domain |
+| Billing verify fails | missing Paystack secret | Set PAYSTACK_SECRET_KEY |

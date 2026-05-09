@@ -1,0 +1,78 @@
+# Frontend Architecture
+
+> [!NOTE]
+> The application runtime is currently Next.js 16 with App Router. This page references real folder structure in app/.
+
+## App Router architecture
+
+EventSlot uses App Router with route groups and feature folders under app/.
+
+## Route groups and layout hierarchy
+
+Current route groups in app/:
+
+- (auth)
+- (organizer)
+- (attendee)
+
+Additional top-level areas:
+
+- admin
+- api
+- [username]
+- marketing and policy pages (privacy, terms, how-it-works)
+
+```text
+app/
+  layout.tsx
+  page.tsx
+  (auth)/...
+  (organizer)/...
+  (attendee)/...
+  admin/...
+  api/...
+  [username]/...
+```
+
+> [!NOTE]
+> The prompt mentioned (dashboard) and (public) route groups. In this repository, equivalent concerns are handled primarily by (organizer) and top-level public routes.
+
+## Component architecture
+
+| Layer | Location | Purpose |
+|---|---|---|
+| Page-level routes | app/**/page.tsx | Route entry and data composition |
+| Shared feature components | components/ | Reusable UI, event tools, modals |
+| Route-local components | app/components and route folders | Context-specific presentation |
+| Utility logic | lib/ and hooks/ | API clients, business logic, helpers |
+
+## State management
+
+State strategy is pragmatic:
+
+- Server data via App Router fetch/render patterns
+- Local UI state via React hooks
+- API-backed mutations through route handlers
+- No global state library required for core flows
+
+## PWA setup
+
+PWA support includes manifest and service worker integration in the main app stack.
+
+Expected assets and behavior:
+
+- web app manifest in public/
+- installable shell behavior
+- offline support path integrated in app shell
+
+## Design tokens
+
+Global token definitions are in app/globals.css using CSS variables.
+
+Examples used across the UI:
+
+- --page-bg
+- --surface
+- --text-primary
+- --accent
+- --border

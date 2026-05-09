@@ -1,0 +1,32 @@
+---
+title: Events
+description: Build and manage event entities, capacities, and lifecycle states.
+---
+
+# Events
+
+Event entities are the operational core of EventSlot. Every registration, waitlist, and ticket record is anchored to an event.
+
+## Event Lifecycle
+
+| State | Description |
+| --- | --- |
+| Draft | Private setup state before publishing |
+| Published | Publicly visible for registration |
+| Closed | Registration is disabled |
+| Archived | Event remains accessible for reporting |
+
+## Event Configuration Areas
+
+- Identity: title, slug, host profile
+- Schedule: timezone-aware start and end windows
+- Capacity: slots, category limits, and overflow behavior
+- Registration policy: custom fields, limits, and eligibility checks
+- Communication: reminders, updates, and post-event follow-up
+
+## Operational Best Practices
+
+1. Keep slugs human-readable and stable.
+2. Use separate events for cohorts with different acceptance rules.
+3. Set close windows at least 30 minutes before check-in.
+4. Archive completed events to reduce dashboard noise.

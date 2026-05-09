@@ -1,0 +1,74 @@
+# System Architecture
+
+> [!NOTE]
+> This document reflects the live architecture in the repository: Next.js App Router on Cloud Run, Prisma, and Neon PostgreSQL.
+
+## Architecture diagram
+
+```text
+User
+  |
+  v
+Browser / PWA shell
+  |
+  v
+Cloud Run service (Next.js App Router)
+  |
+  +-- Route Handlers (app/api/*)
+  +-- NextAuth (Google + credentials)
+  +-- Server components and actions
+  |
+  v
+Prisma ORM
+  |
+  v
+Neon PostgreSQL
+
+External integrations:
+- Paystack (billing and webhook)
+- Resend (transactional email)
+- Upstash Redis (distributed rate limits)
+- Cloudflare R2 (asset storage)
+- Groq/OpenRouter/Anthropic (AI features)
+```
+
+## Request flow
+
+1. User interacts in browser or installed PWA shell.
+2. Request reaches Cloud Run-hosted Next.js runtime.
+3. Route handler validates auth/inputs and calls Prisma.
+4. Prisma executes query against Neon PostgreSQL.
+5. Response returns JSON or rendered UI.
+
+## Infrastructure choices and rationale
+
+| Decision | Current choice | Why |
+|---|---|---|
+| App hosting | Google Cloud Run | Container control, predictable runtime, native secret integration |
+| Database | Neon PostgreSQL | Managed serverless Postgres with pooling support |
+| ORM | Prisma | Type-safe models and migration tooling |
+| Auth | NextAuth v4 | OAuth + credentials in one stack |
+
+### Cloud Run vs Vercel
+
+This repo currently deploys production through Cloud Run workflows. Vercel references exist historically, but automated CI/CD is Cloud Run based.
+
+### Neon vs Supabase
+
+Neon is the active data platform in this repository. Supabase is not configured as the active runtime database.
+
+## CI/CD deployment path
+
+- GitHub Actions runs test, lint, and build checks.
+- Docker image is built and pushed to Artifact Registry.
+- Cloud Run deploy command applies image and secrets.
+- Post-deploy smoke test checks production URL.
+
+## Cold start strategy
+
+Current configs differ slightly by deploy path:
+
+- cloudbuild.yaml sets min-instances to 0
+- service-level overrides can be tuned by gcloud deploy updates
+
+If you need lower cold-start latency, set Cloud Run min instances to 1 during deploy.

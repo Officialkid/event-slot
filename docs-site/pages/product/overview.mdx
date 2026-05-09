@@ -1,0 +1,59 @@
+﻿# Platform Overview
+
+> [!NOTE]
+> This page documents the system as implemented in the current repository and canonical system docs. Where roadmap items are mentioned, they are marked clearly as planned.
+
+## What EventSlot is
+
+EventSlot is an event registration and waitlist platform for slot-limited events. Organisers create one event link, attendees register without creating an EventSlot account, and the system manages confirmed slots plus overflow waitlist automatically.
+
+## The problem EventSlot solves
+
+Many organisers still run registrations with spreadsheets and chat groups. That causes:
+
+- Overbooking when demand spikes
+- Slow manual follow-up for cancellations
+- Poor visibility into who is confirmed vs waitlisted
+- No reliable audit trail for communications and changes
+
+EventSlot replaces that with a structured workflow:
+
+1. Set event capacity
+2. Accept registrations until capacity is reached
+3. Place additional registrants on waitlist
+4. Promote automatically when slots open or capacity increases
+
+## Who EventSlot is built for
+
+| Segment | Typical use case |
+|---|---|
+| Campus organisations | Society events, bootcamps, chapter meetups |
+| Community groups | Volunteer sessions, nonprofit gatherings |
+| Churches and faith communities | Services, conferences, retreats |
+| Workshop organisers | Training cohorts and limited-seat classes |
+| SMEs | Internal workshops, partner demos, customer briefings |
+
+## How EventSlot differs from Google Forms and Eventbrite
+
+| Capability | EventSlot | Google Forms | Eventbrite |
+|---|---|---|---|
+| Native waitlist automation | Yes | No | Limited and workflow-dependent |
+| Real-time confirmed and waitlist counters | Yes | No | Partial |
+| Capacity-change auto-promotion | Yes | No | Not the core flow |
+| Organiser operations dashboard | Yes | No | Yes |
+| Africa-first payment path | Yes (Paystack) | No | Not local-first |
+| Core platform cost model | Free core + paid report downloads | Free forms only | Platform and ticketing fees |
+
+## Architecture summary
+
+EventSlot runs as a Next.js App Router application on Google Cloud Run, with Prisma as the data access layer to Neon PostgreSQL. Route handlers under app/api implement registration, capacity, billing, and admin operations. Supporting services include NextAuth for organiser authentication, Resend for transactional email, Paystack for billing flows, Upstash Redis for distributed rate limiting, and Cloudflare R2 for uploaded assets.
+
+## Freemium model overview
+
+EventSlot currently uses a free-core model:
+
+- Core platform features are open access
+- Paid usage is limited to report file downloads (bundle pricing in KSh)
+- Subscription tiers exist in legacy code paths but are currently disabled for active gating
+
+For current prices and download bundles, see the billing constants in lib/plans.ts.

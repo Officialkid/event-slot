@@ -1,0 +1,43 @@
+# Coding Standards
+
+> [!NOTE]
+> These standards are aligned with the current TypeScript/Next.js repository setup.
+
+## TypeScript rules
+
+- Strict mode is required.
+- Avoid any in production code.
+- Prefer typed request/response payloads and model-level types.
+
+## Component patterns
+
+- Functional components only.
+- Keep route-level data loading close to pages.
+- Move reusable logic into hooks or lib utilities.
+
+## Naming conventions
+
+| Type | Convention |
+|---|---|
+| Route folders | kebab-case route segments |
+| Component files | PascalCase.tsx |
+| Utility files | lower camel or domain-based names |
+| API route folders | descriptive domain names |
+
+## Styling rules
+
+- Tailwind utility classes are primary.
+- Prefer theme tokens and shared design variables.
+- Avoid ad-hoc inline styles unless there is a strong reason.
+
+## API response consistency
+
+Existing endpoints use success/error JSON patterns. New endpoints should move toward a consistent error envelope:
+
+```json
+{ "error": "Message", "code": "ERROR_CODE", "statusCode": 400 }
+```
+
+## Prisma write safety
+
+Use Prisma transactions for multi-step writes, especially where counters and status updates must stay consistent (registration and waitlist promotion flows).

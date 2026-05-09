@@ -24,6 +24,10 @@ const withPWAConfig = withPWA({
 const nextConfig = {
   output: 'standalone',
 
+  // Silence Turbopack warning: Next.js 16 enables Turbopack by default.
+  // This empty config signals we're intentionally using Turbopack with no custom rules.
+  turbopack: {},
+
   // Explicitly disable source maps in production to prevent exposing readable
   // source code in browser DevTools.
   productionBrowserSourceMaps: false,

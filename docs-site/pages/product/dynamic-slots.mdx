@@ -1,0 +1,53 @@
+﻿# Dynamic Slot Logic
+
+> [!NOTE]
+> Dynamic slot logic in EventSlot currently means automatic waitlist promotion after capacity increases.
+
+## What dynamic slot logic means here
+
+Dynamic slots are computed from event counters and capacity updates instead of manual per-user seat assignment.
+
+When organiser updates capacity upward, EventSlot automatically confirms eligible waitlisted attendees in FIFO order.
+
+## Mid-event capacity increase behavior
+
+The capacity endpoint applies three checks before promotion:
+
+1. Request is authorised
+2. newCapacity is valid integer > 0
+3. newCapacity is greater than current capacity
+
+If checks pass, promotion executes inside a transaction.
+
+## Promotion count formula
+
+For increase-only updates, available promotion budget is:
+
+```text
+promotions = min(addedSlots, currentWaitlistCount)
+```
+
+Requested simplified expression:
+
+```text
+newSlots = newCapacity - confirmedCount
+```
+
+In implementation, addedSlots is derived from old vs new capacity, then bounded by waitlistCount.
+
+## Example walkthrough
+
+| Metric | Before | After update |
+|---|---|---|
+| capacity | 100 | 120 |
+| confirmedCount | 100 | 120 (if enough waitlist entries) |
+| waitlistCount | 35 | 15 |
+| promoted | - | 20 |
+
+Flow:
+
+1. Organiser changes capacity to 120
+2. System computes addedSlots = 20
+3. First 20 waitlisted rows are promoted
+4. Counters are updated atomically
+5. Promotion emails are attempted and diagnostics logged

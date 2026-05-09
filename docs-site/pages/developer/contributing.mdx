@@ -1,0 +1,63 @@
+# Contribution Guide
+
+This guide describes how contributors should report issues, propose improvements, and submit production-ready pull requests.
+
+## Reporting a bug
+
+Open a GitHub issue and include:
+
+- clear title
+- reproducible steps
+- expected vs actual result
+- environment details (browser, device, role)
+- logs/screenshots when available
+
+## Proposing a feature
+
+Create a feature proposal issue with:
+
+- problem statement
+- user impact
+- proposed solution
+- rollout and migration notes
+
+## Submitting a pull request
+
+1. create branch from main
+2. implement focused change
+3. run local checks
+4. open PR with context and test notes
+
+Recommended checks before PR:
+
+```bash
+npm run type-check
+npm run lint
+npm test -- --ci
+npm run build
+```
+
+## Code review expectations
+
+Reviewers check:
+
+- correctness and regression risk
+- security and auth implications
+- data integrity and transaction safety
+- consistency with coding conventions
+- test coverage for new behavior
+
+## Acceptance vs rejection criteria
+
+Accepted contributions usually:
+
+- solve a clear product or reliability problem
+- include tests or evidence of safe behavior
+- follow repository conventions
+
+Common rejection reasons:
+
+- unscoped mega changes without review plan
+- undocumented breaking behavior
+- security or data-integrity regressions
+- style-only rewrites with no measurable value

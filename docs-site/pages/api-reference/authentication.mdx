@@ -1,0 +1,40 @@
+---
+title: Authentication
+description: Secure your API requests using EventSlot API keys and scoped permissions.
+---
+
+# Authentication
+
+EventSlot API access uses bearer tokens with workspace-level scopes.
+
+## Create an API Key
+
+1. Go to Organizer Settings.
+2. Open Developer Access.
+3. Create API key.
+4. Copy and store the secret once.
+
+## Use Bearer Token Authentication
+
+```bash
+curl https://api.eventslot.co/v1/events \
+  -H "Authorization: Bearer es_live_xxxxx" \
+  -H "Content-Type: application/json"
+```
+
+## Recommended Scope Model
+
+| Scope | Access |
+| --- | --- |
+| events.read | View event metadata |
+| events.write | Create and update events |
+| registrations.read | Access attendee records |
+| registrations.write | Create or edit registrations |
+| waitlist.manage | Promote or reorder waitlist entries |
+
+## Key Management Best Practices
+
+- Rotate keys every 90 days.
+- Use environment variables only.
+- Issue separate keys per service.
+- Revoke keys immediately on role changes.

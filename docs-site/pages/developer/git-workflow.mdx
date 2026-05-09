@@ -1,0 +1,46 @@
+# Git Workflow
+
+This workflow standardizes branch naming, commits, and pull request hygiene for safe collaboration.
+
+## Branch naming
+
+Use explicit prefixes:
+
+- feature/
+- fix/
+- chore/
+- docs/
+
+Examples:
+
+- feature/waitlist-email-diagnostics
+- fix/capacity-race-condition
+- chore/dependency-updates
+- docs/phase-4-technical-pages
+
+## Commit message format
+
+Follow Conventional Commits:
+
+```text
+feat(events): add promotion email diagnostics
+fix(auth): prevent suspended user sign-in
+docs(technical): refresh deployment guide
+```
+
+## Pull request process
+
+1. open PR against main
+2. add clear description of change and impact
+3. include screenshots for UI changes
+4. include test checklist and verification notes
+
+## Main branch protection behavior
+
+- Do not push directly to main.
+- Use PR review flow.
+- Ensure CI checks pass before merge.
+
+## CI on PR
+
+GitHub Actions validates type checks, linting, tests, and build quality on changes before deployment paths run.

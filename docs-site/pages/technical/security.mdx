@@ -1,0 +1,63 @@
+# Security
+
+> [!NOTE]
+> This page documents implemented security controls and identifies practical gaps for hardening.
+
+## Authentication security
+
+- NextAuth JWT session strategy
+- OAuth + credentials login
+- Suspended-user checks in auth callbacks
+- Middleware route protection for organiser/admin routes
+
+## Session and fixation controls
+
+- Session identity is derived server-side in NextAuth callbacks
+- Protected routes require valid token via withAuth middleware
+- Credentials auth compares bcrypt password hashes
+
+## CSRF considerations
+
+NextAuth includes built-in anti-CSRF mechanisms for auth flows. Route handlers should continue requiring explicit auth and avoid unsafe cross-site assumptions.
+
+## Input validation
+
+Input validation is applied at endpoint level with schema and guard checks. Priority routes use validation before writes. Continue expanding strict schema usage to all mutation handlers.
+
+## Webhook signature verification
+
+Paystack webhooks are verified with HMAC SHA-512 over raw request body:
+
+```ts
+const hash = crypto
+  .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
+  .update(body)
+  .digest('hex')
+```
+
+Request is rejected when hash does not match x-paystack-signature.
+
+## Rate limiting
+
+Distributed sliding-window limits are implemented with Upstash when configured, with in-memory fallback for local and development.
+
+## CORS
+
+There is no broad public CORS policy layer in this repo for core app routes. The primary access model is same-origin web app traffic plus controlled webhooks.
+
+## Environment variable security
+
+Secrets are injected through Cloud Run secret bindings in deploy workflow. Do not expose server secrets in client bundles.
+
+## Dependency scanning
+
+Security checks include npm audit workflows and CI checks. Keep dependency updates and overrides current for vulnerable transitive packages.
+
+## KDPA-aligned handling
+
+Implementation-aligned controls include:
+
+- explicit consent fields on registration records
+- privacy policy and data handling disclosures
+- cron-based data expiry paths
+- minimised attendee account requirement for registration journey

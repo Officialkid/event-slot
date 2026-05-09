@@ -1,0 +1,33 @@
+# Monetization Strategy
+
+> [!NOTE]
+> Current implementation is free-core. Paid usage is focused on report-download bundles via Paystack.
+
+## Current model
+
+EventSlot currently runs a freemium-style access model where core platform capabilities are open access.
+
+## Feature gate table
+
+| Capability | Free | Pro | Business |
+|---|---|---|---|
+| Event creation and registration workflows | Yes | Legacy flag only | Legacy flag only |
+| Waitlist automation | Yes | Legacy flag only | Legacy flag only |
+| Dashboard and analytics surfaces | Yes | Legacy flag only | Legacy flag only |
+| Report preview | Yes | Yes | Yes |
+| Report file download bundles | Paid add-on | Paid add-on | Paid add-on |
+
+> [!NOTE]
+> Pro and Business subscription logic exists in legacy data fields but active gating is paused in current product behavior.
+
+## Billing integration
+
+Current payment integration is Paystack for report-download purchases and webhook verification.
+
+## Future monetization paths (planned)
+
+- per-ticket transaction fees
+- analytics subscription bundles
+- enterprise white-label plans
+
+These are roadmap-level options, not active billing policy in current runtime.

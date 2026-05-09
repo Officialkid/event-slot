@@ -1,0 +1,40 @@
+---
+title: Waitlist Management
+description: Handle over-capacity demand with controlled, automated waitlist logic.
+---
+
+# Waitlist Management
+
+EventSlot's waitlist engine helps teams capture demand without overselling seats.
+
+## How It Works
+
+1. Registrations beyond capacity are assigned waitlist status.
+2. The engine ranks entries by configured policy.
+3. When a seat becomes available, candidate attendees are promoted.
+4. Promotion windows enforce claim deadlines.
+5. Expired claims trigger the next promotion.
+
+## Ranking Strategies
+
+- First-In-First-Out
+- Priority tags (sponsors, cohorts, internal lists)
+- Weighted hybrid strategy
+
+## Promotion Controls
+
+| Control | Effect |
+| --- | --- |
+| Claim timeout | How long a promoted attendee has to accept |
+| Auto-promote | Moves next attendee automatically |
+| Approval gate | Requires organizer approval before promotion |
+| Notification channel | Email, SMS partner, or both |
+
+## Failure Handling
+
+If a notification provider is degraded, EventSlot retries delivery and logs all attempts for manual fallback.
+
+## Related
+
+- [Notifications](./notifications)
+- [Launch Checklist](../guides/launch-checklist)

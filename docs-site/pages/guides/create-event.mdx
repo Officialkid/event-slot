@@ -1,0 +1,34 @@
+# Creating an Event
+
+This guide walks organisers through the event setup fields and operational choices that affect registration quality.
+
+## Field-by-field walkthrough
+
+| Field | Required | Purpose |
+|---|---|---|
+| title | Yes | attendee-facing event name |
+| description | No | context and instructions |
+| slug | Auto or derived | shareable route identifier |
+| deadline | No | registration cutoff |
+| capacity | No but recommended | confirmed registration limit |
+| questions | Yes for useful forms | attendee information collection |
+
+## Required vs optional
+
+At minimum, title and a usable question set are needed for meaningful registrations. Capacity is optional, but waitlist automation depends on capacity limits.
+
+## Capacity behavior
+
+When confirmedCount reaches capacity, new registrations are assigned waitlist status.
+
+## Paid vs free event note
+
+Current repository billing is focused on report-download purchases, not per-event ticket marketplace billing tiers.
+
+## Event slug and sharing
+
+Share your slug URL directly with attendees. This is the main acquisition channel for registrations.
+
+## Draft vs published behavior
+
+Operationally, organisers can stage event setup in dashboard workflows, then share only when ready. Route-level availability and status controls determine whether registration is open.

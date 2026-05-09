@@ -1,0 +1,63 @@
+﻿# Features
+
+> [!NOTE]
+> Feature status reflects the current repository implementation and canonical docs.
+
+## Feature matrix
+
+| Feature | Status | Description | How it works | Access model |
+|---|---|---|---|---|
+| Event creation | Live | Create public event pages with custom questions | POST /api/events and organiser UI | Free |
+| Capacity management | Live | Track confirmed seats and limits | confirmedCount vs capacity on Event | Free |
+| Waitlist automation | Live | Overflow registrations go to waitlist | status = waitlist with waitlistPosition | Free |
+| Dynamic slot promotion | Live | Promote waitlisted users after capacity increase | PATCH /api/events/[slug]/capacity | Free |
+| Organiser dashboard | Live | Operations view for events, stats, activity | /dashboard + /api/dashboard/stats | Free |
+| Real-time notifications | Live | In-app notifications for key events | Notification model + API endpoints | Free |
+| Analytics | Live | Event-level and dashboard-level metrics | /api/events/[slug]/analytics + dashboard stats | Free |
+| PWA support | Live | Installable web app shell and offline support | manifest + service worker integration | Free |
+| Payment integration | Live | Billing for report download bundles | Paystack checkout and verify flows | Paid only for report bundles |
+| KDPA-aligned controls | Live | Consent fields and data expiry workflows | consent flags + cron expiry + privacy docs | Free |
+| SMS and WhatsApp notifications | Coming soon | Non-email communication channels | Not yet implemented | N/A |
+| QR check-in workflow hardening | Coming soon | Expanded check-in operations | verify-ticket and check-in primitives exist | N/A |
+
+## Feature details
+
+### Event Creation
+
+Organisers create events with title, description, slug, optional deadline, optional capacity, and custom registration questions.
+
+### Capacity Management
+
+The Event model stores capacity, confirmedCount, and waitlistCount so organisers can track event pressure in one place.
+
+### Waitlist Automation
+
+When confirmedCount >= capacity, new registrations are inserted as status waitlist with incremental waitlistPosition.
+
+### Dynamic Slot Promotion
+
+When capacity increases, the system selects waitlisted registrations in ascending waitlistPosition and confirms up to added slots.
+
+### Organiser Dashboard
+
+Dashboard stats include total events, total registrations, active events, waitlist exposure, upcoming events, and recent activity.
+
+### Real-time Notifications
+
+Registration actions and capacity milestones create Notification records for organisers.
+
+### Analytics
+
+Analytics endpoints and EventView tracking provide conversion and activity metrics.
+
+### PWA
+
+The app ships with PWA capabilities for installability and offline-friendly behavior.
+
+### Payment Integration
+
+Paystack is used for report-download purchases and verification. Stripe is not the active billing provider in this repository.
+
+### KDPA-aligned controls
+
+Registration records include consentTransactional and consentMarketing flags. Data expiry and privacy pathways are implemented through scheduled routes and policy surfaces.

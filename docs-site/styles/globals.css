@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg:       #0A0A0A;
+  --color-surface:  #141414;
+  --color-elevated: #1E1E1E;
+  --color-border:   #2A2A2A;
+  --color-accent:   #C8F55A;
+  --color-text:     #FFFFFF;
+  --color-muted:    #A3A3A3;
+  --color-dim:      #525252;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'DM Sans', sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Instrument Serif', serif;
+}
+
+code, pre, kbd {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Nextra sidebar overrides */
+.nextra-sidebar-container {
+  background: var(--color-surface) !important;
+  border-right: 1px solid var(--color-border) !important;
+}
+
+/* Active nav item */
+.nextra-sidebar-container li a[aria-current="page"] {
+  color: var(--color-accent) !important;
+  background: rgba(200, 245, 90, 0.08) !important;
+}
+
+/* TOC active */
+.nextra-toc li a[aria-selected="true"] {
+  color: var(--color-accent) !important;
+}
+
+/* Sidebar links */
+.nextra-sidebar-container a {
+  color: var(--color-muted);
+}
+.nextra-sidebar-container a:hover {
+  color: var(--color-accent);
+}
+
+/* Content links */
+.nextra-content a {
+  color: var(--color-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.nextra-content a:hover {
+  color: #e4ff9f;
+}
+
+/* Blockquotes */
+.nextra-content blockquote {
+  border-left-color: var(--color-accent);
+  background: rgba(200, 245, 90, 0.06);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+/* Code blocks */
+.nextra-content pre {
+  border: 1px solid var(--color-border);
+  background: var(--color-elevated) !important;
+  border-radius: 0.9rem;
+}
+
+/* Tables */
+.nextra-content table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+.nextra-content th {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.nextra-content td,
+.nextra-content th {
+  border-bottom: 1px solid var(--color-border);
+}
+.nextra-content tr:last-child td {
+  border-bottom: none;
+}

@@ -1,0 +1,62 @@
+# Local Setup
+
+> [!NOTE]
+> This setup guide is based on scripts and dependencies in the current repository.
+
+## Prerequisites
+
+| Tool | Minimum | Why |
+|---|---|---|
+| Node.js | 20 LTS recommended | Matches CI and Next.js runtime expectations |
+| npm | Current with Node | Runs project scripts |
+| Git | Any modern version | Clone and branch workflow |
+| PostgreSQL client | Optional but recommended | Direct DB inspection and debugging |
+| Docker | Optional | Local DB workflows if you choose Dockerized Postgres |
+
+## Clone and install
+
+```bash
+git clone https://github.com/Officialkid/event-slot.git
+cd event-slot
+npm install
+```
+
+## Local development
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000.
+
+## Connect to Neon dev branch
+
+Use your Neon branch credentials in .env.local:
+
+- DATABASE_URL: pooled URL
+- DIRECT_URL: direct URL
+
+This mirrors the app/runtime + migration split used by Prisma in this repo.
+
+## Prisma migrations locally
+
+```bash
+npm run db:generate
+npm run db:push
+```
+
+If you are applying migration files specifically:
+
+```bash
+npm run db:migrate
+```
+
+## Seed data
+
+If seed is configured in your local environment:
+
+```bash
+npx prisma db seed
+```
+
+If not, create a lightweight seed script and register it under prisma.seed.

@@ -1,0 +1,75 @@
+# Glossary
+
+This glossary defines key EventSlot product, technical, and operational terms used throughout the documentation.
+
+## 1) Slot
+A confirmed capacity unit for an event. When slots are exhausted, new registrations are waitlisted.
+
+## 2) Waitlist
+Queue of registrants who could not be confirmed because capacity was full.
+
+## 3) Promotion
+Status transition from waitlist to confirmed when slots become available.
+
+## 4) Organiser
+Authenticated user who creates and manages events.
+
+## 5) Attendee
+Person who registers for an event; account is not always required.
+
+## 6) Registration
+A submitted attendee payload stored in the Registration model.
+
+## 7) Confirmation code
+Unique code generated for confirmed registration flows.
+
+## 8) Dashboard token
+Event-level token used for selected protected operations.
+
+## 9) Prisma
+Type-safe ORM used for data access and transactions.
+
+## 10) NextAuth
+Authentication framework handling OAuth, credentials, and sessions.
+
+## 11) Neon
+Managed PostgreSQL platform used by EventSlot.
+
+## 12) Cloud Run
+Container runtime hosting the production EventSlot service.
+
+## 13) CUID
+Collision-resistant identifier format used as primary IDs in schema models.
+
+## 14) JWT
+Session strategy used by NextAuth for authenticated user context.
+
+## 15) Freemium
+Access model where core features are free and selected usage is paid.
+
+## 16) Tier
+Commercial plan level. In current runtime, active gating is minimal and free-core remains primary.
+
+## 17) MRR
+Monthly recurring revenue metric used in business tracking.
+
+## 18) Churn
+Rate at which active paying or retained users stop using the product.
+
+## 19) Rate limiting
+Traffic control mechanism preventing abuse by capping request rates.
+
+## 20) pgBouncer
+Connection pooling layer used with Neon pooled URLs for runtime efficiency.
+
+## 21) Webhook
+Provider-to-app callback used for billing and event notifications.
+
+## 22) KDPA
+Kenya Data Protection Act context for consent and data handling requirements.
+
+## 23) EventView
+Model used to track page view analytics for events.
+
+## 24) Report download wallet
+Per-user balance model for paid report file downloads.

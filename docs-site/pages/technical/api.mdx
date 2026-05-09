@@ -1,0 +1,117 @@
+# API Reference (Technical)
+
+> [!NOTE]
+> EventSlot uses app/api route handlers directly (no /v1 API gateway prefix in this repository).
+
+## Error envelope
+
+Current handlers commonly return one of these forms:
+
+```json
+{ "success": false, "error": "Message" }
+```
+
+or
+
+```json
+{ "error": "Message" }
+```
+
+Recommended normalized format for future convergence:
+
+```json
+{ "error": "Message", "code": "ERROR_CODE", "statusCode": 400 }
+```
+
+## Domain endpoint groups
+
+### Public and attendee endpoints
+
+| Method | Path | Auth required |
+|---|---|---|
+| POST | /api/register | No |
+| GET/PATCH | /api/registrations/[registrationId] | Link-based access |
+| POST | /api/attendance/confirm | No |
+| GET/POST | /api/feedback | Mixed |
+| GET | /api/health | No |
+
+### Auth and profile
+
+| Method | Path | Auth required |
+|---|---|---|
+| GET/POST | /api/auth/[...nextauth] | Mixed |
+| POST | /api/auth/signup | No |
+| POST | /api/auth/forgot-password | No |
+| POST | /api/auth/reset-password | No |
+| GET | /api/me | Yes |
+| GET/PATCH/DELETE | /api/profile | Yes |
+| PATCH | /api/profile/password | Yes |
+| POST | /api/profile/photo | Yes |
+| GET | /api/users/check-username | No |
+| PATCH | /api/users/username | Yes |
+
+### Event operations
+
+| Method | Path | Auth required |
+|---|---|---|
+| POST | /api/events | Yes |
+| GET/PUT/DELETE | /api/events/[slug] | Mixed by operation |
+| PATCH | /api/events/[slug]/capacity | Token or owner/admin/team |
+| PATCH | /api/events/[slug]/archive | Owner/admin/team |
+| POST | /api/events/[slug]/close | Owner/admin/team |
+| GET | /api/events/[slug]/analytics | Owner scope |
+| GET | /api/events/[slug]/insights | Owner scope |
+| POST | /api/events/[slug]/ask | Owner scope |
+| GET | /api/events/[slug]/report | Owner scope |
+| GET | /api/events/[slug]/export | Owner scope |
+| GET | /api/events/[slug]/feedback | Owner scope |
+| GET | /api/events/[slug]/duplicates | Token or owner/admin/team |
+| POST | /api/events/[slug]/duplicate | Owner scope |
+| POST | /api/events/[slug]/rename | Owner scope |
+| GET | /api/events/[slug]/qr | Owner scope |
+| POST | /api/events/[slug]/claim | Mixed |
+
+### Dashboard and notifications
+
+| Method | Path | Auth required |
+|---|---|---|
+| GET | /api/dashboard/stats | Yes |
+| GET | /api/my-events | Yes |
+| GET | /api/notifications | Yes |
+| PATCH | /api/notifications/read | Yes |
+| PATCH | /api/notifications/[id]/read | Yes |
+
+### Team management
+
+| Method | Path | Auth required |
+|---|---|---|
+| GET | /api/team/members | Yes |
+| POST | /api/team/invite | Yes |
+| POST | /api/team/resend | Yes |
+| GET | /api/team/events | Yes |
+| GET/PATCH/DELETE | /api/team/[memberId] | Yes |
+| GET/PUT | /api/team/[memberId]/events | Yes |
+
+### Billing and webhooks
+
+| Method | Path | Auth required |
+|---|---|---|
+| POST | /api/report-downloads/purchase | Yes |
+| GET | /api/report-downloads/verify | Yes |
+| GET/POST | /api/billing/report-downloads | Yes |
+| POST | /api/billing/webhook | Webhook signature |
+| POST | /api/billing/checkout | Legacy billing path |
+| GET | /api/billing/verify | Billing verify path |
+
+### Cron and admin
+
+| Method | Path | Auth required |
+|---|---|---|
+| POST | /api/cron/send-feedback | Secret/cron context |
+| POST | /api/cron/event-reminder | Secret/cron context |
+| POST | /api/cron/expire-data | Secret/cron context |
+| GET/POST/PATCH/DELETE | /api/admin/* | Super admin |
+
+## Webhook note
+
+Active billing webhook provider is Paystack, using x-paystack-signature verification. Stripe webhook endpoints are not the active provider in current code.

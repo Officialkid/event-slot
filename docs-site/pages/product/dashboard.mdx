@@ -1,0 +1,63 @@
+﻿# Organiser Dashboard
+
+> [!NOTE]
+> Dashboard metrics are sourced from GET /api/dashboard/stats and event-level APIs.
+
+## Overview
+
+The organiser dashboard is the operations center for:
+
+- Event inventory
+- Registration pressure
+- Waitlist monitoring
+- Recent registration activity
+- Follow-up actions
+
+## Stats cards
+
+Current stats payload includes:
+
+| Card | Source field |
+|---|---|
+| Total Events | totalEvents |
+| Registrations | totalRegistrations |
+| Active Now | activeEvents |
+| On Waitlist | totalWaitlisted |
+
+Additional operational metrics include:
+
+- eventsThisMonth
+- registrationsThisMonth
+- registrationsLastMonth
+- conversionRate
+- eventsClosingThisWeek
+- waitlistEventCount
+
+## Upcoming events list
+
+The dashboard returns the next deadline-based events, sorted ascending by deadline, with title, slug, confirmedCount, and capacity.
+
+## Recent activity feed
+
+Recent registration records are transformed into a feed showing:
+
+- registrant display name (from answers payload)
+- event title and slug
+- submission timestamp
+
+## Attendee management
+
+From event surfaces, organisers can:
+
+- view registrations
+- inspect duplicates
+- export attendee CSV
+- perform manual registration operations
+- cancel/update individual registration records
+
+## Analytics: basic vs full
+
+| Level | What you get |
+|---|---|
+| Basic (dashboard) | aggregate cards and near-capacity signals |
+| Full (event-level) | event analytics endpoint, insights, AI Q&A, report preview/download |

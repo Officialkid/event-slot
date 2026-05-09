@@ -1,0 +1,61 @@
+# Environment Variables
+
+> [!NOTE]
+> Never commit .env.local. Keep secrets in local files and Cloud Run Secret Manager bindings.
+
+## Required and optional variables
+
+| Variable | Required | Purpose | Source |
+|---|---|---|---|
+| DATABASE_URL | Yes | Neon pooled runtime connection | Neon project dashboard |
+| DIRECT_URL | Yes | direct DB connection for migrations | Neon project dashboard |
+| NEXTAUTH_URL | Yes | public app URL used by auth callbacks | local/prod app URL |
+| NEXTAUTH_SECRET | Yes | NextAuth signing secret | generate securely |
+| GOOGLE_CLIENT_ID | Yes for Google auth | OAuth login | Google Cloud Console |
+| GOOGLE_CLIENT_SECRET | Yes for Google auth | OAuth login | Google Cloud Console |
+| RESEND_API_KEY | Yes for email flows | transactional email | Resend dashboard |
+| PAYSTACK_SECRET_KEY | Yes for billing/webhook | report download billing | Paystack dashboard |
+| UPSTASH_REDIS_REST_URL | Optional but recommended | distributed rate limiting | Upstash dashboard |
+| UPSTASH_REDIS_REST_TOKEN | Optional but recommended | distributed rate limiting | Upstash dashboard |
+| GROQ_API_KEY | Optional per AI feature usage | AI provider | Groq console |
+| OPENROUTER_API_KEY | Optional fallback | AI provider | OpenRouter console |
+| ANTHROPIC_API_KEY | Optional report provider | AI provider | Anthropic console |
+| CRON_SECRET | Yes for cron protection | secure cron routes | generated secret |
+| SUPER_ADMIN_EMAIL | Recommended | admin allowlist email | operator config |
+| SUPER_ADMIN_EMAIL_2 | Optional | second admin allowlist email | operator config |
+| R2_ACCOUNT_ID | Optional if using R2 | object storage | Cloudflare |
+| R2_ACCESS_KEY_ID | Optional if using R2 | object storage | Cloudflare |
+| R2_SECRET_ACCESS_KEY | Optional if using R2 | object storage | Cloudflare |
+| R2_BUCKET_NAME | Optional if using R2 | object storage | Cloudflare |
+| R2_PUBLIC_URL | Optional if using R2 | public asset base URL | Cloudflare |
+
+## Example .env.local
+
+```bash
+DATABASE_URL=postgresql://USER:PASSWORD@HOST-pooler.neon.tech/DB?sslmode=require
+DIRECT_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DB?sslmode=require
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=replace_with_long_random_secret
+GOOGLE_CLIENT_ID=replace_with_google_client_id
+GOOGLE_CLIENT_SECRET=replace_with_google_client_secret
+RESEND_API_KEY=replace_with_resend_key
+PAYSTACK_SECRET_KEY=replace_with_paystack_secret
+UPSTASH_REDIS_REST_URL=replace_with_upstash_url
+UPSTASH_REDIS_REST_TOKEN=replace_with_upstash_token
+GROQ_API_KEY=replace_with_groq_key
+OPENROUTER_API_KEY=replace_with_openrouter_key
+ANTHROPIC_API_KEY=replace_with_anthropic_key
+CRON_SECRET=replace_with_cron_secret
+SUPER_ADMIN_EMAIL=admin1@example.com
+SUPER_ADMIN_EMAIL_2=admin2@example.com
+R2_ACCOUNT_ID=replace_with_r2_account_id
+R2_ACCESS_KEY_ID=replace_with_r2_access_key
+R2_SECRET_ACCESS_KEY=replace_with_r2_secret
+R2_BUCKET_NAME=eventslot-assets
+R2_PUBLIC_URL=https://assets.example.com
+```
+
+## Keep .env out of git
+
+- Ensure .env.local is listed in .gitignore.
+- Never paste real secrets into issues, PRs, or docs.

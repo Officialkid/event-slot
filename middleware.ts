@@ -1,12 +1,19 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import { isAdminEmail } from '@/lib/isAdmin'
 
 export default withAuth(
-  function middleware() {
-    // User is authenticated at this point (withAuth guarantees it).
-    // Admin routes need an extra check for SUPER_ADMIN_EMAIL — handled in
-    // app/admin/layout.tsx which shows notFound() for non-admins, so we just
-    // let the request through here and let the layout enforce the role.
+  function middleware(req) {
+    const isAdminRoute = req.nextUrl.pathname.startsWith('/admin')
+    const token = req.nextauth.token
+
+    if (isAdminRoute) {
+      const isSuperAdmin = token?.role === 'SUPER_ADMIN' || isAdminEmail(token?.email)
+      if (!isSuperAdmin) {
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      }
+    }
+
     return NextResponse.next()
   },
   {

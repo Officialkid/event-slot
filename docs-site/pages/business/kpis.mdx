@@ -1,0 +1,29 @@
+# KPIs and Metrics
+
+This KPI set defines how EventSlot performance should be measured across product usage, retention, and monetization.
+
+## Core metrics
+
+| KPI | How measured | Baseline direction | Target direction |
+|---|---|---|---|
+| Events created | count of Event records | increasing | sustained monthly growth |
+| Registrations processed | count of Registration rows | increasing | stable growth with low failure |
+| Waitlist promotions | capacity promotion outcomes | event-dependent | faster conversion from waitlist |
+| Organiser retention | repeat organiser activity over time | tracked in dashboard behavior | improve cohort retention |
+| Upgrade rate | paid report-download purchase behavior | early-stage | improve bundle conversion |
+| MRR proxy | recurring paid usage from report bundles | early-stage | increase predictable revenue |
+
+## Measurement surfaces
+
+- /api/dashboard/stats aggregates organiser performance metrics
+- event-level analytics routes track operational activity
+- billing and report-download transaction tables track paid usage
+
+## Internal tracking approach
+
+Use a weekly operations dashboard that combines:
+
+- product usage counters
+- conversion from waitlist to confirmed
+- paid bundle purchase trends
+- churn and retention indicators by organiser cohort

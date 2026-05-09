@@ -4,11 +4,45 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 5, 2026_
+_Last updated: May 8, 2026_
 
 ---
 
 ## Security
+
+## Documentation Platform
+
+### Official EventSlot Documentation Website
+**Where:** `docs-site/`  
+**What it does:** Provides a standalone official documentation portal for EventSlot using Next.js 14, Nextra 3, TypeScript, and Tailwind CSS. Ships with MDX-based docs content, built-in full-text search, dark-only branded theme styling, and production-ready deployment support for Vercel.
+
+### Documentation Information Architecture
+**Where:** `docs-site/pages/`  
+**What it does:** Organizes documentation into professional SaaS-style sections including Getting Started, Platform, API Reference, Integrations, Guides, and Security. Includes operational guides (launch checklist, multi-campus rollout) and API usage documentation for implementation teams.
+
+### Documentation Theme and Design System
+**Where:** `docs-site/theme.config.tsx`, `docs-site/styles/globals.css`, `docs-site/tailwind.config.ts`  
+**What it does:** Implements EventSlot branded visual language (near-black surfaces with lime accent), custom typography stack (Instrument Serif, DM Sans, JetBrains Mono), and tailored UI treatments for sidebars, navigation, code blocks, tables, links, and content reveal animations.
+
+### Documentation Homepage (Phase 3)
+**Where:** `docs-site/pages/index.mdx`  
+**What it does:** Provides a structured docs landing page with Nextra card navigation and section-level orientation for Product, Technical, Developer, Guides, Business, and Appendix content.
+
+### Documentation Accuracy Guardrail
+**Where:** `docs-site/pages/index.mdx`  
+**What it does:** Homepage platform summary now reflects only currently documented implementation details (pre-launch status, Neon/PostgreSQL + Prisma data layer, Paystack payments, NextAuth auth, and Cloud Run deployment) and avoids assumption-based roadmap/location claims.
+
+### Phase 4 Fact-Checked Documentation Rewrite
+**Where:** `docs-site/pages/product/*.mdx`, `docs-site/pages/technical/*.mdx`, `docs-site/pages/developer/*.mdx`, `docs-site/pages/guides/*.mdx`, `docs-site/pages/business/*.mdx`, `docs-site/pages/appendix/*.mdx`  
+**What it does:** Replaces broad placeholder/assumption-oriented docs with implementation-accurate MDX content grounded in current route handlers, schema, auth, billing, deployment, and operations behavior.
+
+### Technical Appendix Diagrams (Mermaid)
+**Where:** `docs-site/pages/appendix/diagrams.mdx`  
+**What it does:** Adds mermaid-renderable architecture and flow diagrams for system topology, ER relationships, registration flow, waitlist promotion flow, and CI/CD pipeline flow.
+
+### Expanded API Appendix Reference
+**Where:** `docs-site/pages/appendix/api-reference.mdx`  
+**What it does:** Documents endpoint groups, auth expectations, request/response examples, webhook notes, and rate-limit header conventions aligned with app/api route structure.
 
 ### Centralised Event Permission Helper
 **Where:** `lib/permissions.ts`  

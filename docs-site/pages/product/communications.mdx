@@ -1,0 +1,39 @@
+﻿# Communication System
+
+> [!NOTE]
+> EventSlot currently uses email-first operational communication. SMS/WhatsApp are roadmap items.
+
+## Automatic communications sent today
+
+| Trigger | Audience | Channel | Current status |
+|---|---|---|---|
+| Registration confirmed | Attendee | Email | Live |
+| Waitlist joined | Organiser intelligence + attendee status flow | Email + in-app | Live |
+| Waitlist promoted | Attendee | Email | Live |
+| Event at 80% and full | Organiser | Email + in-app | Live |
+| Cancellation-related updates | Attendee and organiser paths | Email/in-app depending flow | Live |
+
+## Confirmation email on registration
+
+Confirmed registrations can generate a confirmation code and email workflows through the email utilities layer.
+
+## Waitlist notification email
+
+When waitlist starts for an event, organisers can receive first-waitlist email alerts if they enabled system email consent.
+
+## Promotion email when spot opens
+
+Capacity increase promotions call sendSlotConfirmedEmail for promoted waitlisted users and log per-recipient outcomes.
+
+## Cancellation confirmation
+
+Cancellation paths produce status changes and corresponding organiser/attendee operational signals in dashboard and notification channels.
+
+## Future integrations
+
+Planned channels:
+
+- SMS notifications
+- WhatsApp message delivery
+
+These are not yet implemented as first-class transport channels in the current codebase.

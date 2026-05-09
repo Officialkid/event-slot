@@ -171,6 +171,25 @@ jobs:
           printf '%s' "$CREDENTIALS_JSON" | jq -e 'type == "object" and .type == "service_account" and has("client_email") and has("private_key")' >/dev/null
           echo "Normalized GCP credentials validated."
 
+      - name: Verify credentials project matches deploy project
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        shell: bash
+        env:
+          CREDENTIALS_JSON: ${{ steps.gcp-key.outputs.credentials_json }}
+          EXPECTED_PROJECT_ID: ${{ env.PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          KEY_PROJECT_ID="$(printf '%s' "$CREDENTIALS_JSON" | jq -r '.project_id // empty')"
+          if [ -z "$KEY_PROJECT_ID" ]; then
+            echo "GCP key JSON does not include project_id."
+            exit 1
+          fi
+          if [ "$KEY_PROJECT_ID" != "$EXPECTED_PROJECT_ID" ]; then
+            echo "Refusing deploy: key project_id '$KEY_PROJECT_ID' does not match PROJECT_ID '$EXPECTED_PROJECT_ID'."
+            exit 1
+          fi
+          echo "Credentials project matches deploy project: $KEY_PROJECT_ID"
+
       - name: Authenticate to Google Cloud
         if: steps.deploy-ready.outputs.enabled == 'true'
         uses: google-github-actions/auth@v3

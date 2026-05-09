@@ -1,0 +1,35 @@
+---
+title: Paystack Payments
+description: Configure Paystack for paid event tickets and reliable reconciliation.
+---
+
+# Paystack Payments
+
+Use Paystack to collect ticket payments in supported currencies and complete registration only after successful settlement.
+
+## Setup Steps
+
+1. Create Paystack keys in your merchant dashboard.
+2. Add keys to EventSlot integration settings.
+3. Map product and ticket categories.
+4. Enable webhook verification.
+
+## Required Environment Variables
+
+```bash
+PAYSTACK_PUBLIC_KEY=pk_live_xxxxxxxxx
+PAYSTACK_SECRET_KEY=sk_live_xxxxxxxxx
+PAYSTACK_WEBHOOK_SECRET=whsec_xxxxxxxxx
+```
+
+## Recommended Webhook Events
+
+- `charge.success`
+- `charge.failed`
+- `transfer.success` (if applicable)
+
+## Operational Safeguards
+
+- Verify all webhooks by signature.
+- Reconcile asynchronous status updates.
+- Use idempotency keys for retried registration requests.

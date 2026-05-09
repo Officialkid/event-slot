@@ -1,0 +1,58 @@
+# Authentication
+
+> [!NOTE]
+> Authentication implementation is based on NextAuth v4 with Google OAuth and credentials provider.
+
+## NextAuth v4 configuration
+
+Configured in lib/auth.ts:
+
+- PrismaAdapter(prisma)
+- GoogleProvider (OAuth)
+- CredentialsProvider (email/password)
+- session strategy: jwt
+- custom sign-in page: /signin
+
+## Google OAuth flow
+
+1. User clicks Google sign-in.
+2. NextAuth redirects to Google consent screen.
+3. Google returns code to callback.
+4. NextAuth exchanges code, links account via Prisma adapter.
+5. Session token is created and browser session is established.
+
+## Session management
+
+Session strategy is JWT. The session callback enriches session.user with:
+
+- id
+- isAdmin
+- username
+- onboarding flags
+- suspended flag
+
+## Middleware route protection
+
+middleware.ts uses withAuth and authorizes only when token exists.
+
+Protected patterns include dashboard, create/edit, my-events, and admin routes.
+
+## Privileged account logic
+
+Admin email allowlist is in lib/isAdmin.ts and reads:
+
+- SUPER_ADMIN_EMAIL
+- SUPER_ADMIN_EMAIL_2
+
+isAdminEmail() normalizes and compares email values against this configured list.
+
+## Cookie and security flags
+
+NextAuth manages session cookies with secure defaults in production environments.
+
+For production hardening, ensure:
+
+- HttpOnly cookie behavior remains enabled
+- Secure cookies are enforced over HTTPS
+- SameSite policy is not relaxed unnecessarily
+- NEXTAUTH_URL and NEXTAUTH_SECRET are set correctly in Cloud Run secrets

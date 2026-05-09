@@ -1,0 +1,44 @@
+# Folder Structure
+
+This overview explains where core app code lives and where new features should be added in the repository.
+
+## Full tree overview
+
+```text
+event-slot/
+  app/                    Next.js App Router routes and layouts
+    (attendee)/           attendee-facing route group
+    (auth)/               auth pages and flows
+    (organizer)/          organiser dashboard route group
+    admin/                super-admin UI
+    api/                  route handlers (backend APIs)
+    [username]/           public organiser and event slug routes
+  components/             reusable UI components
+  hooks/                  custom React hooks
+  lib/                    server/client utilities and integrations
+  prisma/                 schema and migrations
+  public/                 static assets and PWA files
+  scripts/                utility and ops scripts
+  docs/                   canonical platform docs
+  docs-site/              external documentation website
+  middleware.ts           NextAuth route protection
+  cloudbuild.yaml         Cloud Build deployment config
+  Dockerfile              production container build
+```
+
+## Where to add new code
+
+| Need | Location |
+|---|---|
+| New UI page | app/&lt;route&gt;/page.tsx |
+| New API endpoint | app/api/&lt;domain&gt;/route.ts |
+| Shared component | components/&lt;FeatureName&gt;.tsx |
+| Shared helper | lib/&lt;name&gt;.ts |
+| Data model change | prisma/schema.prisma + migration |
+
+## Naming conventions
+
+- Route folders: kebab-case or route segment syntax
+- Components: PascalCase
+- Utility modules: camelCase or domainName.ts
+- API route folders: domain-oriented, singular where practical

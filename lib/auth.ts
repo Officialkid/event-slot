@@ -1,17 +1,25 @@
 import { Session } from 'next-auth'
 import { JWT } from 'next-auth/jwt'
+import type { Provider } from 'next-auth/providers/index'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { getConfiguredAdminEmails, isAdminEmail } from '@/lib/isAdmin'
 
-export const authOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
+const googleClientId = process.env.GOOGLE_CLIENT_ID
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
+const configuredAdminEmails = new Set(getConfiguredAdminEmails())
+
+const providers: Provider[] = []
+
+// Keep credentials auth available even if Google OAuth env vars are missing.
+if (googleClientId && googleClientSecret) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
@@ -20,31 +28,57 @@ export const authOptions = {
           response_type: 'code',
         },
       },
-    }),
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
-        if (!user || !user.password) return null
-        if (user.suspended) return null
-        const valid = await bcrypt.compare(credentials.password, user.password)
-        if (!valid) return null
-        return user
-      },
-    }),
-  ],
+    })
+  )
+} else {
+  console.warn('[NextAuth] Google OAuth is disabled: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not fully configured.')
+}
+
+providers.push(
+  CredentialsProvider({
+    name: 'credentials',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: 'Password', type: 'password' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) return null
+      const user = await prisma.user.findUnique({
+        where: { email: credentials.email },
+      })
+      if (!user || !user.password) return null
+      if (user.suspended) return null
+      const valid = await bcrypt.compare(credentials.password, user.password)
+      if (!valid) return null
+      return user
+    },
+  })
+)
+
+export const authOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers,
   session: { strategy: 'jwt' as const },
   pages: {
     signIn: '/signin',
   },
   callbacks: {
+    async jwt({ token, user }: { token: JWT; user?: { id: string; email?: string | null } }) {
+      if (user) {
+        token.id = user.id
+        token.email = user.email ?? token.email ?? null
+        token.role = isAdminEmail(user.email) ? 'SUPER_ADMIN' : 'ATTENDEE'
+        token.isAdmin = token.role === 'SUPER_ADMIN'
+        return token
+      }
+
+      if (!token.role && isAdminEmail(token.email)) {
+        token.role = 'SUPER_ADMIN'
+        token.isAdmin = true
+      }
+
+      return token
+    },
     async signIn({ user }: { user: { email?: string | null } }) {
       if (!user.email) return true
       try {
@@ -61,6 +95,9 @@ export const authOptions = {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
+        session.user.email = session.user.email ?? token.email ?? null
+        session.user.role = token.role ?? (isAdminEmail(session.user.email) ? 'SUPER_ADMIN' : 'ATTENDEE')
+        session.user.isAdmin = session.user.role === 'SUPER_ADMIN'
 
         try {
           const user = await prisma.user.findUnique({
@@ -76,11 +113,11 @@ export const authOptions = {
           })
 
           if (user) {
-            session.user.isAdmin             = user.isAdmin             ?? false
-            session.user.username            = user.username            ?? null
+            session.user.isAdmin = session.user.isAdmin || user.isAdmin || configuredAdminEmails.has((session.user.email ?? '').trim().toLowerCase())
+            session.user.username = user.username ?? null
             session.user.onboardingCompleted = user.onboardingCompleted ?? false
-            session.user.onboardingSkipped   = user.onboardingSkipped   ?? false
-            session.user.suspended           = user.suspended           ?? false
+            session.user.onboardingSkipped = user.onboardingSkipped ?? false
+            session.user.suspended = user.suspended ?? false
           }
         } catch (error) {
           // CRITICAL: never let session callback crash — return partial session

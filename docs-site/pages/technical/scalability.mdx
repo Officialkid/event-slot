@@ -1,0 +1,64 @@
+# Scalability
+
+> [!NOTE]
+> This section describes current scaling behavior and near-term bottlenecks from the existing Cloud Run + Neon setup.
+
+## Current scaling envelope
+
+Cloud Run deployment config supports up to 10 instances in current cloudbuild settings.
+
+| Resource | Current setting |
+|---|---|
+| Max instances | 10 |
+| CPU | 1 |
+| Memory | 1Gi |
+| Min instances | 0 in cloudbuild.yaml |
+
+## Database scalability
+
+Neon PostgreSQL is accessed through Prisma with pooled DATABASE_URL and direct DIRECT_URL for migrations.
+
+This split supports:
+
+- efficient runtime connection multiplexing
+- safer schema migration behavior
+
+## Caching strategy
+
+Current patterns include:
+
+- in-process cache for dashboard stats and selected reads
+- database aggregation for analytics counters
+- no dedicated distributed cache layer for general app data yet
+
+## What breaks first under load
+
+Likely first stress points:
+
+1. burst writes on registration and waitlist transitions
+2. DB connection pressure if pooling is misconfigured
+3. Cloud Run cold starts when min instances is 0
+
+## Mitigations
+
+- keep pgBouncer-backed pooled URL for runtime
+- tune hot endpoints with selective caching
+- increase Cloud Run min instances for lower startup latency
+- introduce queue-backed async fan-out for heavy side effects
+
+## 10,000 concurrent registration target
+
+To move toward 10,000 concurrent registrants safely:
+
+1. keep registration writes transaction-safe (already in place)
+2. add distributed cache or queue for non-critical side effects
+3. pre-warm service with min instances > 0
+4. load-test registration endpoints with realistic burst profiles
+
+## Future direction
+
+Redis-backed session or queue primitives are a natural next step for:
+
+- queueing heavy async jobs
+- distributed cache coordination
+- higher-throughput promotion pipelines

@@ -1,0 +1,43 @@
+---
+title: Platform Architecture
+description: Understand the EventSlot architecture for registration, waitlist, and operations.
+---
+
+# Platform Architecture
+
+EventSlot is built as a modular event operations platform with opinionated workflows for registration quality and attendance reliability.
+
+## Core Domains
+
+| Domain | Purpose |
+| --- | --- |
+| Events | Event definitions, schedules, and publishing |
+| Registrations | Attendee intake, profile data, consent, and status |
+| Waitlist | Overflow queueing, seat reclaim, and promotion |
+| Tickets | Payment lifecycle, issuance, and verification |
+| Notifications | Email and in-app communications |
+| Access Control | Organizer, staff, and admin permissions |
+
+## Runtime Flow
+
+1. Attendee submits registration.
+2. Rule engine evaluates eligibility and capacity.
+3. System assigns registration status.
+4. Notifications are sent for confirmation or waitlist placement.
+5. Seat changes trigger promotion and messaging automations.
+6. Check-in and attendance data feed post-event reporting.
+
+## Deployment Model
+
+EventSlot is designed for cloud deployment with isolated environments:
+
+- Development: rapid iteration and sandbox integrations
+- Staging: release candidates and QA validation
+- Production: resilient, monitored workloads with incident controls
+
+## Design Principles
+
+- Mobile-first experience for organizer and attendee journeys
+- Low-friction operations under traffic spikes
+- Security-first defaults and auditability
+- Configurable workflows without code for most organizer use cases

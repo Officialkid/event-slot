@@ -37,11 +37,28 @@ export default function SignUpPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Something went wrong.')
+        const errorMessages: Record<string, string> = {
+          USE_GOOGLE_AUTH:
+            'This email is already linked to Google Sign-In. Continue with Google, or use Forgot password to set a password for this account.',
+          EMAIL_EXISTS: 'An account with this email already exists. Please sign in or reset your password.',
+          MISSING_FIELDS: 'Name, email, and password are required.',
+          WEAK_PASSWORD: 'Password must be at least 8 characters.',
+        }
+        setError(errorMessages[data?.code] ?? data?.error ?? 'Something went wrong.')
         setLoading(false)
         return
       }
-      await signIn('credentials', { email, password, callbackUrl: '/my-events' })
+      const result = await signIn('credentials', { email, password, callbackUrl: '/my-events', redirect: false })
+      if (result?.error) {
+        setError('Account created, but automatic sign-in failed. Please sign in manually.')
+        setLoading(false)
+        return
+      }
+      if (result?.url) {
+        window.location.href = result.url
+        return
+      }
+      setLoading(false)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)

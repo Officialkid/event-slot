@@ -1,0 +1,29 @@
+# Managing Waitlists
+
+This guide covers how waitlist status is presented and how promotions are triggered in current workflows.
+
+## How waitlist appears to attendees
+
+Attendees are assigned waitlist status and queue position once capacity is full.
+
+## Organiser waitlist view
+
+Organisers monitor waitlist pressure through event and dashboard surfaces, including waitlist counts and near-capacity indicators.
+
+## Promote by increasing capacity
+
+Use capacity update controls to increase available slots. EventSlot auto-promotes in FIFO order.
+
+## Manual promotion support
+
+Current primary promotion path is capacity-driven auto-promotion. Custom manual selection workflows can be layered but are not the main implemented route.
+
+## Communication templates and signals
+
+EventSlot sends operational communications around promotion and status changes, with diagnostics logged for promotion email attempts.
+
+Sample promotion communication flow:
+
+1. attendee moved from waitlist to confirmed
+2. email attempt made if attendeeEmail is present
+3. organiser receives related notification signal

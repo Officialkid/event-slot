@@ -1,0 +1,62 @@
+---
+title: API Overview
+description: Understand EventSlot API conventions, versioning, and response contracts.
+---
+
+# API Overview
+
+EventSlot APIs are designed for predictable automation and secure integrations.
+
+## Versioning
+
+All endpoints are namespaced by major API version:
+
+```http
+/v1
+```
+
+Major versions include breaking changes. Minor enhancements are shipped without breaking existing contracts.
+
+## Request Conventions
+
+- JSON request and response bodies
+- UTF-8 encoding
+- RFC3339 timestamps
+- Cursor-based pagination for collections
+
+## Standard Response Shape
+
+```json
+{
+  "data": {},
+  "meta": {
+    "request_id": "req_2f8a6f9c",
+    "timestamp": "2026-05-08T10:15:34Z"
+  }
+}
+```
+
+## Error Shape
+
+```json
+{
+  "error": {
+    "type": "validation_error",
+    "code": "invalid_registration_window",
+    "message": "Registration close time must be after open time."
+  },
+  "meta": {
+    "request_id": "req_7ea2e980"
+  }
+}
+```
+
+## Idempotency
+
+Mutating endpoints support idempotency keys for retry safety.
+
+```http
+Idempotency-Key: 15a9a09e-e3d8-4aa0-b6f8-2aaf7f4f0ee1
+```
+
+Use unique keys per logical operation.

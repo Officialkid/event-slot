@@ -1,0 +1,31 @@
+# Managing Registrations
+
+This page explains how organisers monitor registrations, handle lifecycle updates, and export attendee records.
+
+## View all registrations
+
+Open event dashboard and navigate to attendee/registration views to inspect each submission.
+
+## Filter and search
+
+Use event-level tools to inspect recent submissions, duplicates, and registration status distributions.
+
+## Manually cancel a registration
+
+Organiser-side actions can update registration status when policy requires cancellation.
+
+## Export attendee list
+
+CSV export is available in event-level operations.
+
+> [!NOTE]
+> In current pricing logic, core platform features are open access. Report downloads remain the primary paid operation.
+
+## Automatic waitlist promotion trigger
+
+Promotion is triggered by capacity increase endpoint logic:
+
+1. increase capacity
+2. select oldest waitlist entries
+3. mark selected rows confirmed
+4. update counters atomically

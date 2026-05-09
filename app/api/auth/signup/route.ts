@@ -23,7 +23,27 @@ export async function POST(req: Request) {
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
-      return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 400 })
+      const googleAccount = await prisma.account.findFirst({
+        where: { userId: existing.id, provider: 'google' },
+      })
+
+      if (googleAccount) {
+        return NextResponse.json(
+          {
+            error: 'This email is already linked to Google Sign-In. Please continue with Google, or use Forgot password to set a password for this account.',
+            code: 'USE_GOOGLE_AUTH',
+          },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json(
+        {
+          error: 'An account with this email already exists. Please sign in or reset your password.',
+          code: 'EMAIL_EXISTS',
+        },
+        { status: 409 }
+      )
     }
 
     const hashed = await bcrypt.hash(password, 12)

@@ -1,0 +1,84 @@
+﻿# Capacity Management
+
+> [!NOTE]
+> Capacity behavior below is implemented in app/api/register/route.ts and app/api/events/[slug]/capacity/route.ts.
+
+## Real-time capacity tracking
+
+EventSlot tracks occupancy using Event fields:
+
+- capacity: organiser-defined maximum confirmed slots
+- confirmedCount: current confirmed registrations
+- waitlistCount: current waitlist size
+
+During registration, the API fetches a fresh event record and decides status:
+
+```ts
+if (freshEvent.capacity != null && freshEvent.confirmedCount >= freshEvent.capacity) {
+  status = 'waitlist'
+} else {
+  status = 'confirmed'
+}
+```
+
+## What happens when capacity is reached
+
+When confirmed slots are full:
+
+1. New registration is saved with status waitlist
+2. waitlistPosition is assigned from updated waitlistCount
+3. Organiser receives waitlist growth intelligence notifications
+
+## Editing capacity mid-event
+
+Organisers (or permitted collaborators/admin) can increase capacity using:
+
+- PATCH /api/events/[slug]/capacity
+
+Rules enforced:
+
+- newCapacity must be an integer > 0
+- newCapacity must be greater than current capacity
+- added slots are computed and used for auto-promotion
+
+## Database-level consistency and race condition prevention
+
+Registration writes and counter updates run inside Prisma transactions. Capacity promotion also runs inside a single transaction that:
+
+1. Selects eligible waitlist rows in order
+2. Updates their status to confirmed
+3. Updates event counters atomically
+
+This prevents partial updates across event and registration records.
+
+## Capacity check logic (implementation pattern)
+
+```ts
+const result = await prisma.$transaction(async tx => {
+  const waitlistToPromote = await tx.registration.findMany({
+    where: { eventId: event.id, status: 'waitlist' },
+    orderBy: { waitlistPosition: 'asc' },
+    take: Math.min(addedSlots, event.waitlistCount),
+  })
+
+  const promoted = waitlistToPromote.length
+
+  await Promise.all(
+    waitlistToPromote.map(item =>
+      tx.registration.update({
+        where: { id: item.id },
+        data: { status: 'confirmed', waitlistPosition: null },
+      })
+    )
+  )
+
+  return tx.event.update({
+    where: { id: event.id },
+    data: {
+      capacity: newCapacity,
+      confirmedCount: { increment: promoted },
+      waitlistCount: { increment: promoted * -1 },
+    },
+  })
+})
+```

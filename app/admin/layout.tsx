@@ -7,9 +7,13 @@ import AdminSidebar from "./AdminSidebar"
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
 
-  const isAdmin = isAdminEmail(session?.user?.email)
-  if (!isAdmin) {
+  if (!session) {
     redirect('/signin?callbackUrl=/admin&reason=admin')
+  }
+
+  const isAdmin = session.user.role === 'SUPER_ADMIN' || isAdminEmail(session?.user?.email)
+  if (!isAdmin) {
+    redirect('/unauthorized')
   }
 
   return (

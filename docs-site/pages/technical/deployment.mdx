@@ -1,0 +1,136 @@
+# Deployment
+
+> [!NOTE]
+> This page reflects the current repository deployment path to Google Cloud Run via GitHub Actions.
+
+## Full GitHub Actions workflow
+
+```yaml
+name: EventSlot CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: eventslot
+  REGION: us-central1
+  SERVICE: eventslot-web
+  REPOSITORY: eventslot
+
+jobs:
+  test:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    name: Tests & Code Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --ci --coverage
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+      - name: Build and push image
+        run: docker build -f Dockerfile -t IMAGE && docker push IMAGE
+      - name: Deploy to Cloud Run
+        run: gcloud run deploy ...
+      - name: Verify deployment
+        run: curl -I https://www.eventsslot.com
+      - name: Update canonical system documentation
+        run: node scripts/update-system-docs.mjs
+```
+
+> [!NOTE]
+> For exact current workflow, always reference .github/workflows/deploy.yml in the repository.
+
+## Docker and Cloud Run steps
+
+1. Build container image from Dockerfile.
+2. Push image to Artifact Registry.
+3. Deploy image to Cloud Run service eventslot-web.
+4. Inject secrets with --update-secrets.
+5. Verify service response post-deploy.
+
+## Environment variables and secrets
+
+Cloud Run deploy binds runtime secrets, including:
+
+- DATABASE_URL and DIRECT_URL
+- NEXTAUTH_SECRET and NEXTAUTH_URL
+- GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
+- PAYSTACK_SECRET_KEY
+- RESEND_API_KEY
+- GROQ_API_KEY, OPENROUTER_API_KEY, ANTHROPIC_API_KEY
+- CRON_SECRET
+- SUPER_ADMIN_EMAIL and SUPER_ADMIN_EMAIL_2
+
+## Rollback procedure
+
+Use Cloud Run revisions:
+
+1. list service revisions
+2. route traffic back to last known good revision
+3. verify health endpoint and critical flows
+
+## Staging vs production
+
+Current workflow is production-first on main branch. If you need staging, create separate Cloud Run service, env secrets, and branch-triggered workflow.
+
+## Post-deploy verification checklist
+
+- Home page returns 200
+- Auth sign-in works
+- Event creation works
+- Registration flow writes to DB
+- Billing purchase and webhook path healthy
+- Cron endpoints authenticated and reachable by scheduler
+
+## Common deployment issues and fixes
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| 502 on startup | app boot failure or missing env var | check Cloud Run logs and secret bindings |
+| Auth callback errors | NEXTAUTH_URL mismatch | align NEXTAUTH_URL with deployed domain |
+| DB connection failures | invalid DATABASE_URL or DIRECT_URL | verify Neon secrets and pooling host |
+| Webhook validation failures | wrong Paystack key or signature mismatch | confirm PAYSTACK_SECRET_KEY and raw body verification |
+
+### 502 debugging protocol
+
+1. inspect Cloud Run logs for startup exceptions
+2. validate required secrets exist and versions are current
+3. hit /api/health directly
+4. re-deploy previous known-good revision if needed

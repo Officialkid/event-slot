@@ -1,0 +1,90 @@
+# Backend Architecture
+
+> [!NOTE]
+> Backend logic is implemented in Next.js Route Handlers under app/api, with Prisma for persistence.
+
+## API route handlers
+
+All backend endpoints are implemented as route.ts files in app/api/**.
+
+Examples:
+
+- app/api/register/route.ts
+- app/api/events/[slug]/capacity/route.ts
+- app/api/billing/webhook/route.ts
+- app/api/admin/*
+
+## Server Actions
+
+EventSlot primarily uses route handlers for API operations. Server actions are not the dominant backend pattern in current implementation-critical paths.
+
+## Middleware route protection
+
+middleware.ts uses withAuth from NextAuth and protects:
+
+- /dashboard/*
+- /create
+- /my-events
+- /edit/*
+- /admin/*
+
+Unauthenticated access is redirected to /signin.
+
+## Error handling pattern
+
+Common response patterns:
+
+```ts
+return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+```
+
+and in some routes:
+
+```ts
+return NextResponse.json({ error: 'Failed to load stats' }, { status: 500 })
+```
+
+> [!NOTE]
+> Error envelope is not fully uniform across all handlers yet. Consolidation is a recommended hardening task.
+
+## Request and response format
+
+Most write routes:
+
+1. parse JSON body
+2. validate required fields
+3. authorise user or token
+4. execute Prisma transaction/query
+5. return JSON payload
+
+Typical success envelope:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Typical error envelope:
+
+```json
+{
+  "success": false,
+  "error": "Message"
+}
+```
+
+## Rate limiting implementation
+
+Rate limiters are defined in lib/ratelimit.ts:
+
+- ratelimit (20/min)
+- signupRatelimit (5/hr)
+- loginRatelimit (5/10 min)
+- attendanceLookupRatelimit (5/10 min)
+- aiRatelimit (10/min)
+- reportDownloadRatelimit (5/min)
+- billingRatelimit (10/min)
+
+When UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are present, rate limiting uses Upstash Redis sliding windows. Otherwise, in-memory fallback is used.
