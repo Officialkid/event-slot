@@ -270,8 +270,24 @@ jobs:
             echo "No documentation updates to commit."
             exit 0
           fi
+
           git commit -m "docs(auto): update deploy metadata [skip ci]"
-          git push
+
+          # Another workflow may push to main at the same time.
+          # Rebase and retry so this docs commit is not lost on non-fast-forward.
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin main; then
+              echo "Documentation metadata pushed successfully on attempt $attempt."
+              exit 0
+            fi
+
+            echo "Push attempt $attempt failed; retrying..."
+            git rebase --abort || true
+            sleep 2
+          done
+
+          echo "Failed to push documentation metadata after 3 attempts."
+          exit 1
 
       - name: Deploy skipped (credentials missing)
         if: steps.deploy-ready.outputs.enabled != 'true'
