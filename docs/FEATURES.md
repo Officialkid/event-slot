@@ -4,7 +4,7 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 8, 2026_
+_Last updated: May 10, 2026_
 
 ---
 
@@ -352,6 +352,21 @@ upgrade CTA. Quick actions grid.
 - Data expiry warning (10 days before Free plan deletion)
 - Organizer feedback request appears after event ends
 
+### Platform Notification Broadcasts (In-App)
+**Where:** `POST /api/admin/notify-all`, /dashboard/notifications  
+**Who:** Super admin sends; all signed-up users receive  
+**What it does:** Creates mandatory in-app announcements for every user, independent of marketing email consent. Platform broadcasts are stored as `NotificationType.PLATFORM` and displayed with a dedicated “Platform Update” badge in the notifications center.
+
+### Two-Way Communications Hub
+**Where:** `app/(organizer)/dashboard/feedback`, `app/comms`, `app/admin/comms`, `app/api/comms`, `app/api/admin/comms`  
+**Who:** Signed-in users submit feedback; super admins publish public announcements  
+**What it does:** Turns the legacy feedback page into a comms board with public announcements, private feedback submission, and user submission history. Admin announcements are shown publicly on the comms board and also pushed as platform notifications.
+
+### Weekly Digest Highlights
+**Where:** `app/api/cron/weekly-digest/route.ts`  
+**Who:** Weekly cron email to super admin  
+**What it does:** Adds a "what shipped this week" section to the digest by including recent public announcements alongside the weekly metrics summary.
+
 ### Build-safe Privileged Account Seeding
 **Where:** app/layout.tsx, lib/seedAdmins.ts  
 **What it does:** Privileged-account seeding is now skipped during CI and production build phase to prevent build-time database connection failures while preserving runtime seeding behavior in non-build execution paths.
@@ -633,6 +648,7 @@ All emails use dark-themed HTML with lime CTA buttons:
 | GET | `/api/notifications` | Yes | Any | List user notifications |
 | PATCH | `/api/notifications/[id]/read` | Yes | Any | Mark single notification as read |
 | PATCH | `/api/notifications/read` | Yes | Any | Mark all notifications as read |
+| POST | `/api/admin/notify-all` | Yes | Super Admin | Broadcast an in-app platform notification to all users |
 | POST | `/api/upload` | Yes | Any | Upload image to R2 object storage |
 | POST | `/api/team/invite` | Yes | Pro+ | Send team member invitation email |
 | GET | `/api/team/members` | Yes | Pro+ | List team members |
@@ -750,10 +766,11 @@ All emails use dark-themed HTML with lime CTA buttons:
 |-------|------|-------|
 | id | String (cuid) | Primary key |
 | userId | String | FK → User (cascade delete) |
-| type | String | e.g. "registration", "data_expiry_warning" |
+| type | NotificationType | `EVENT` or `PLATFORM` |
+| title | String | Notification heading |
 | message | String | |
-| eventId | String? | |
 | read | Boolean | default false |
+| link | String? | Optional deep link |
 | createdAt | DateTime | |
 
 ### TeamMember

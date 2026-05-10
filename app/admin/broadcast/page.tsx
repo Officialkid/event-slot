@@ -2,61 +2,39 @@
 
 import { useEffect, useState } from "react"
 
-type PlanFilter = "all" | "free"
-
-const PLAN_OPTIONS: { key: PlanFilter; label: string }[] = [
-  { key: "all", label: "All users" },
-  { key: "free", label: "Free users" },
-]
-
-function buildPreviewHtml(name: string, body: string) {
-  return `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6;border-radius:12px;">
-      <div style="color:#C8F55A;font-size:0.95rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
-      <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.65;margin:0;white-space:pre-wrap">${body.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>
-      <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.7rem">You received this message from EventSlot. © ${new Date().getFullYear()} EventSlot.</p>
-    </div>
-  `
-}
-
 export default function BroadcastPage() {
-  const [selected, setSelected] = useState<PlanFilter[]>(["all"])
   const [recipientCount, setRecipientCount] = useState<number | null>(null)
+  const [sampleRecipients, setSampleRecipients] = useState<Array<{ email: string; name: string | null }> | null>(null)
   const [countLoading, setCountLoading] = useState(false)
   const [subject, setSubject] = useState("")
-  const [body, setBody] = useState("")
+  const [html, setHtml] = useState("")
   const [showPreview, setShowPreview] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
 
-  function togglePlan(key: PlanFilter) {
-    if (key === "all") {
-      setSelected(["all"])
-      return
-    }
-    setSelected(prev => {
-      const withoutAll = prev.filter(p => p !== "all")
-      if (withoutAll.includes(key)) {
-        const next = withoutAll.filter(p => p !== key)
-        return next.length === 0 ? ["all"] : next
-      }
-      return [...withoutAll, key]
-    })
-  }
-
+  // Load recipient count and samples on mount
   useEffect(() => {
     let cancelled = false
     setCountLoading(true)
     setRecipientCount(null)
-    const params = new URLSearchParams({ plans: selected.join(",") })
-    fetch(`/api/admin/broadcast/count?${params}`)
+    fetch(`/api/admin/broadcast`)
       .then(r => r.json())
-      .then(d => { if (!cancelled) setRecipientCount(d.count ?? 0) })
-      .catch(() => { if (!cancelled) setRecipientCount(null) })
+      .then(d => {
+        if (!cancelled) {
+          setRecipientCount(d.recipientCount ?? 0)
+          setSampleRecipients(d.sampleRecipients ?? [])
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRecipientCount(null)
+          setSampleRecipients(null)
+        }
+      })
       .finally(() => { if (!cancelled) setCountLoading(false) })
     return () => { cancelled = true }
-  }, [selected])
+  }, [])
 
   async function handleSend() {
     setSending(true)
@@ -65,10 +43,10 @@ export default function BroadcastPage() {
       const res = await fetch("/api/admin/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plans: selected, subject, body }),
+        body: JSON.stringify({ subject, html }),
       })
       const data = await res.json()
-      if (res.ok) {
+      if (res.ok && data.ok) {
         const accepted = Number(data.accepted ?? 0)
         const failed = Number(data.failed ?? 0)
         const attempted = Number(data.attempted ?? accepted + failed)
@@ -76,8 +54,7 @@ export default function BroadcastPage() {
         const failureNote = failed > 0 ? ` ${failed} recipient${failed === 1 ? "" : "s"} failed.` : ""
         setResult({ ok: failed === 0, message: `${base}${failureNote}` })
         setSubject("")
-        setBody("")
-        setSelected(["all"])
+        setHtml("")
       } else {
         setResult({ ok: false, message: data.error ?? "Failed to send." })
       }
@@ -89,15 +66,13 @@ export default function BroadcastPage() {
     }
   }
 
-  const canSend = subject.trim().length > 0 && body.trim().length > 0 && !sending
+  const canSend = subject.trim().length > 0 && html.trim().length > 0 && !sending
 
   return (
     <div style={{ maxWidth: 680 }}>
       <style>{`
-        .bc-pill { transition: background 0.13s, border-color 0.13s, color 0.13s; }
-        .bc-pill:hover { opacity: 0.9; }
-        .bc-btn:hover:not(:disabled) { opacity: 0.85; }
         .bc-ghost:hover { background: rgba(240,237,230,0.06) !important; }
+        .bc-btn:hover:not(:disabled) { opacity: 0.85; }
       `}</style>
 
       <div style={{ marginBottom: "2rem" }}>
@@ -105,7 +80,7 @@ export default function BroadcastPage() {
           Email Broadcast
         </h1>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-          Send a message to a group of users.
+          Send emails to users who opted in for marketing messages.
         </p>
       </div>
 
@@ -130,7 +105,7 @@ export default function BroadcastPage() {
             onClick={() => setResult(null)}
             style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(240,237,230,0.3)", fontSize: "1rem", padding: 0, lineHeight: 1 }}
           >
-            ×
+            x
           </button>
         </div>
       )}
@@ -140,42 +115,29 @@ export default function BroadcastPage() {
         {/* Audience */}
         <section style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1rem" }}>
-            Audience
+            Recipients
           </h2>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.875rem" }}>
-            {PLAN_OPTIONS.map(opt => {
-              const active = selected.includes(opt.key)
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => togglePlan(opt.key)}
-                  className="bc-pill"
-                  style={{
-                    padding: "0.4rem 0.9rem",
-                    borderRadius: 100,
-                    border: active
-                      ? "0.5px solid rgba(200,245,90,0.5)"
-                      : "0.5px solid rgba(240,237,230,0.15)",
-                    background: active ? "rgba(200,245,90,0.12)" : "transparent",
-                    color: active ? "#C8F55A" : "rgba(240,237,230,0.5)",
-                    fontSize: "0.82rem",
-                    fontWeight: active ? 500 : 400,
-                    fontFamily: "var(--font-dm-sans)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
             {countLoading
-              ? "Counting recipients…"
+              ? "Loading recipient count..."
               : recipientCount === null
               ? "—"
-              : `Sending to ${recipientCount} user${recipientCount === 1 ? "" : "s"}`}
+              : `${recipientCount} user${recipientCount === 1 ? "" : "s"} opted in for marketing emails`}
           </p>
+          {sampleRecipients && sampleRecipients.length > 0 && (
+            <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "0.5px solid rgba(240,237,230,0.08)" }}>
+              <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Sample recipients
+              </p>
+              <ul style={{ margin: 0, padding: "0 0 0 1.25rem", listStyle: "none" }}>
+                {sampleRecipients.slice(0, 5).map((r, i) => (
+                  <li key={i} style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                    {r.name ? `${r.name} (${r.email})` : r.email}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         {/* Composer */}
@@ -192,7 +154,7 @@ export default function BroadcastPage() {
               type="text"
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              placeholder="Your subject line"
+              placeholder="Email subject line"
               style={{
                 width: "100%",
                 background: "#0A0A0A",
@@ -210,25 +172,25 @@ export default function BroadcastPage() {
 
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-              Message
+              HTML Content
             </label>
             <textarea
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              placeholder="Write your message here…"
-              rows={10}
+              value={html}
+              onChange={e => setHtml(e.target.value)}
+              placeholder="Paste your HTML email content here..."
+              rows={12}
               style={{
                 width: "100%",
                 background: "#0A0A0A",
                 border: "0.5px solid rgba(240,237,230,0.12)",
                 borderRadius: 8,
                 padding: "0.75rem 0.875rem",
-                fontSize: "0.875rem",
+                fontSize: "0.8rem",
                 color: "#F0EDE6",
-                fontFamily: "var(--font-dm-sans)",
+                fontFamily: "monospace",
                 outline: "none",
                 resize: "vertical",
-                lineHeight: 1.65,
+                lineHeight: 1.5,
                 boxSizing: "border-box",
               }}
             />
@@ -280,12 +242,12 @@ export default function BroadcastPage() {
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1rem" }}>
               Preview
             </h2>
-            <div style={{ background: "#0A0A0A", borderRadius: 10, padding: "1.5rem", border: "0.5px solid rgba(240,237,230,0.06)" }}>
-              <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
+            <div style={{ background: "#0A0A0A", borderRadius: 10, padding: "1.5rem", border: "0.5px solid rgba(240,237,230,0.06)", overflowX: "auto" }}>
+              <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>
                 <span style={{ color: "rgba(240,237,230,0.5)" }}>Subject:</span> {subject || <em style={{ opacity: 0.4 }}>No subject</em>}
               </div>
               <div
-                dangerouslySetInnerHTML={{ __html: buildPreviewHtml("there", body || "No message body yet.") }}
+                dangerouslySetInnerHTML={{ __html: html || "<p style='opacity:0.4'>No HTML content yet</p>" }}
               />
             </div>
           </section>
@@ -332,7 +294,7 @@ export default function BroadcastPage() {
             <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.5rem", lineHeight: 1.6 }}>
               You are about to send to{" "}
               <strong style={{ color: "rgba(240,237,230,0.8)" }}>
-                {recipientCount ?? "…"} user{recipientCount !== 1 ? "s" : ""}
+                {recipientCount ?? "..."} user{recipientCount !== 1 ? "s" : ""}
               </strong>
               . This cannot be undone.
             </p>
@@ -369,7 +331,7 @@ export default function BroadcastPage() {
                   opacity: sending ? 0.7 : 1,
                 }}
               >
-                {sending ? "Sending…" : "Confirm & send"}
+                {sending ? "Sending..." : "Confirm & send"}
               </button>
             </div>
           </div>

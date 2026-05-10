@@ -1,5 +1,28 @@
 # EventSlot — Changelog
 
+## [0.4.34] — May 10, 2026
+
+### Feature 5 — Two-Way Communications
+
+- Converted the dashboard feedback surface into a comms hub with public announcements, feedback submission, and user submission history.
+- Added public comms endpoints for user feedback and a super-admin announcement composer at `/api/comms` and `/api/admin/comms`.
+- Added a public `/comms` feed plus admin comms page so announcements can be published and reviewed in-app.
+- Migrated the legacy `Message` model to a comms-oriented schema with typed message categories and public announcement support.
+- Updated the admin messages inbox to use the new schema and focus on announcements and feedback instead of read/archive flags.
+- Enhanced the weekly digest to include recent public announcements so the email highlights what shipped during the week.
+- Updated feature documentation to reflect the comms flow and weekly digest changes.
+
+## [0.4.33] — May 10, 2026
+
+### Feature 4 — Platform Notification Broadcasts (In-App)
+
+- Added platform-wide in-app notification broadcast endpoint: `POST /api/admin/notify-all` for super admins.
+- Updated notification schema to support typed categories via `NotificationType` enum (`EVENT`, `PLATFORM`) and richer payload fields (`title`, `message`, optional `link`).
+- Refactored notification producers to use the new schema across registration, capacity updates, payment-failure events, expiry warnings, and feedback prompts.
+- Updated notifications API payload and organizer notifications UI to render both EVENT and PLATFORM notifications, including a distinct platform-update badge style.
+- Added audit logging for platform broadcasts with actor ID and recipient counts.
+- Added migration artifact `prisma/migrations/20260510170000_add_notification_model/migration.sql` for environments where direct migration execution is temporarily unavailable.
+
 ## [0.4.32] — May 8, 2026
 
 ### Documentation Website — Phase 4 Full Content Rewrite (Fact-Checked)

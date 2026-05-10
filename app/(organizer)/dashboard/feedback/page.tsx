@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
 const FG = "#F0EDE6"
 const BG = "#0A0A0A"
 const SURFACE = "#141414"
@@ -11,8 +10,9 @@ const LIME = "#C8F55A"
 const MUTED = "rgba(240,237,230,0.45)"
 const BORDER = "rgba(240,237,230,0.08)"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type FeedbackType = "complaint" | "compliment" | "suggestion" | "general"
+
+type TabKey = "announcements" | "submit" | "submissions"
 
 interface FeedbackItem {
   id: string
@@ -23,7 +23,13 @@ interface FeedbackItem {
   createdAt: string
 }
 
-// ─── Type config ──────────────────────────────────────────────────────────────
+interface AnnouncementItem {
+  id: string
+  subject: string
+  content: string
+  createdAt: string
+}
+
 const TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bg: string }> = {
   complaint: { label: "Complaint", color: "#FF6B6B", bg: "rgba(255,107,107,0.1)" },
   compliment: { label: "Compliment", color: "#4ADE80", bg: "rgba(74,222,128,0.1)" },
@@ -37,7 +43,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   resolved: { label: "Resolved", color: "#4ADE80", bg: "rgba(74,222,128,0.1)" },
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
 function TypeBadge({ type }: { type: string }) {
   const cfg = TYPE_CONFIG[type as FeedbackType] ?? TYPE_CONFIG.general
   return (
@@ -104,7 +109,70 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
   )
 }
 
-// ─── Submit tab ───────────────────────────────────────────────────────────────
+function AnnouncementsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
+  const [messages, setMessages] = useState<AnnouncementItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/comms")
+      .then(r => r.json())
+      .then(d => setMessages(d.messages ?? []))
+      .catch(() => setMessages([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return <div style={{ color: MUTED, fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>Loading announcements…</div>
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div style={{ padding: "2.5rem 0", color: MUTED, fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem", textAlign: "center" }}>
+        <div style={{ fontSize: "2.2rem", marginBottom: "0.65rem" }}>N</div>
+        <p style={{ margin: "0 0 0.45rem", color: FG, fontSize: "1rem" }}>No announcements yet</p>
+        <p style={{ margin: "0 auto 1rem", maxWidth: 380, lineHeight: 1.6, color: MUTED }}>
+          Public updates from the EventSlot team will appear here.
+        </p>
+        <button
+          type="button"
+          onClick={onStartSubmit}
+          style={{
+            padding: "0.55rem 1rem",
+            borderRadius: 10,
+            border: "none",
+            background: LIME,
+            color: BG,
+            cursor: "pointer",
+            fontSize: "0.82rem",
+            fontWeight: 700,
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Send feedback
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      {messages.map(message => (
+        <article key={message.id} style={{ background: SURFACE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "1rem 1.1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.45rem" }}>
+            <h3 style={{ margin: 0, fontSize: "0.96rem", color: FG, fontFamily: "var(--font-dm-sans)" }}>{message.subject}</h3>
+            <span style={{ fontSize: "0.72rem", color: MUTED, fontFamily: "var(--font-dm-sans)" }}>
+              {new Date(message.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
+          <p style={{ margin: 0, color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+            {message.content}
+          </p>
+        </article>
+      ))}
+    </div>
+  )
+}
+
 function SubmitTab() {
   const [type, setType] = useState<FeedbackType>("general")
   const [subject, setSubject] = useState("")
@@ -151,15 +219,7 @@ function SubmitTab() {
 
   if (success) {
     return (
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "1rem",
-        padding: "3rem 1.5rem",
-        textAlign: "center",
-      }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", padding: "3rem 1.5rem", textAlign: "center" }}>
         <div style={{ fontSize: "2.5rem" }}>✓</div>
         <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: FG, fontWeight: 400 }}>
           Feedback sent!
@@ -190,7 +250,6 @@ function SubmitTab() {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 560 }}>
-      {/* Type pills */}
       <div>
         <label style={labelStyle}>Feedback type</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.4rem" }}>
@@ -218,7 +277,6 @@ function SubmitTab() {
         </div>
       </div>
 
-      {/* Subject */}
       <div>
         <label style={labelStyle}>
           Subject
@@ -233,7 +291,6 @@ function SubmitTab() {
         />
       </div>
 
-      {/* Message */}
       <div>
         <label style={labelStyle}>
           Message
@@ -249,7 +306,6 @@ function SubmitTab() {
         />
       </div>
 
-      {/* Star rating (compliment / general only) */}
       {showRating && (
         <div>
           <label style={labelStyle}>Overall experience</label>
@@ -288,7 +344,6 @@ function SubmitTab() {
   )
 }
 
-// ─── Submissions tab ──────────────────────────────────────────────────────────
 function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
   const [items, setItems] = useState<FeedbackItem[]>([])
   const [total, setTotal] = useState(0)
@@ -312,11 +367,7 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
   useEffect(() => { fetchItems() }, [fetchItems])
 
   if (loading) {
-    return (
-      <div style={{ padding: "2rem 0", color: MUTED, fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
-        Loading submissions…
-      </div>
-    )
+    return <div style={{ padding: "2rem 0", color: MUTED, fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>Loading submissions…</div>
   }
 
   if (items.length === 0) {
@@ -342,7 +393,7 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
             fontFamily: "var(--font-dm-sans)",
           }}
         >
-          Send Feedback
+          Send feedback
         </button>
       </div>
     )
@@ -355,18 +406,7 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
         {items.map(item => (
-          <div
-            key={item.id}
-            style={{
-              background: SURFACE,
-              border: `0.5px solid ${BORDER}`,
-              borderRadius: 10,
-              padding: "0.875rem 1.125rem",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "0.75rem",
-            }}
-          >
+          <div key={item.id} style={{ background: SURFACE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "0.875rem 1.125rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
                 <TypeBadge type={item.type} />
@@ -390,23 +430,13 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
 
       {pages > 1 && (
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.25rem", alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            style={paginationBtn(page === 1)}
-          >
+          <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={paginationBtn(page === 1)}>
             ← Prev
           </button>
           <span style={{ fontSize: "0.78rem", color: MUTED, fontFamily: "var(--font-dm-sans)" }}>
             {page} / {pages}
           </span>
-          <button
-            type="button"
-            onClick={() => setPage(p => Math.min(pages, p + 1))}
-            disabled={page === pages}
-            style={paginationBtn(page === pages)}
-          >
+          <button type="button" onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages} style={paginationBtn(page === pages)}>
             Next →
           </button>
         </div>
@@ -415,7 +445,6 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
   )
 }
 
-// ─── Shared styles ────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
   display: "block",
   fontSize: "0.72rem",
@@ -453,9 +482,8 @@ function paginationBtn(disabled: boolean): React.CSSProperties {
   }
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function FeedbackPage() {
-  const [tab, setTab] = useState<"submit" | "submissions">("submit")
+  const [tab, setTab] = useState<TabKey>("announcements")
 
   useEffect(() => {
     markFeatureUsed("feedback")
@@ -463,57 +491,52 @@ export default function FeedbackPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{
-          fontFamily: "var(--font-instrument-serif)",
-          fontSize: "clamp(1.5rem, 3vw, 2rem)",
-          fontWeight: 400,
-          color: FG,
-          margin: 0,
-          marginBottom: "0.375rem",
-          lineHeight: 1.2,
-        }}>
-          Feedback
+      <div style={{ marginBottom: "1.5rem" }}>
+        <p style={{ margin: 0, fontSize: "0.72rem", color: MUTED, letterSpacing: "0.14em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+          Comms
+        </p>
+        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: FG, margin: "0.35rem 0 0.4rem" }}>
+          Public updates and feedback
         </h1>
-        <p style={{ fontSize: "0.875rem", color: MUTED, fontFamily: "var(--font-dm-sans)", margin: 0 }}>
-          Share compliments, complaints, or suggestions directly with the EventSlot team.
+        <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.65, color: MUTED, fontFamily: "var(--font-dm-sans)", maxWidth: 620 }}>
+          See platform announcements, send the team feedback, and track your own submissions in one place.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={{
-        display: "flex",
-        gap: 0,
-        borderBottom: `0.5px solid ${BORDER}`,
-        marginBottom: "1.75rem",
-      }}>
-        {([["submit", "Submit Feedback"], ["submissions", "My Submissions"]] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            style={{
-              padding: "0.6rem 1.25rem",
-              background: "none",
-              border: "none",
-              borderBottom: tab === key ? `2px solid ${LIME}` : "2px solid transparent",
-              color: tab === key ? FG : MUTED,
-              cursor: "pointer",
-              fontSize: "0.875rem",
-              fontFamily: "var(--font-dm-sans)",
-              fontWeight: tab === key ? 600 : 400,
-              transition: "color 0.15s, border-color 0.15s",
-              marginBottom: -1,
-            }}
-          >
-            {label}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        {([
+          { key: "announcements" as const, label: "Announcements" },
+          { key: "submit" as const, label: "Send feedback" },
+          { key: "submissions" as const, label: "My submissions" },
+        ]).map(item => {
+          const active = tab === item.key
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setTab(item.key)}
+              style={{
+                padding: "0.35rem 0.85rem",
+                borderRadius: 100,
+                border: `0.5px solid ${active ? "rgba(200,245,90,0.35)" : BORDER}`,
+                background: active ? "rgba(200,245,90,0.1)" : "transparent",
+                color: active ? LIME : MUTED,
+                fontSize: "0.8rem",
+                fontFamily: "var(--font-dm-sans)",
+                cursor: "pointer",
+              }}
+            >
+              {item.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Tab content */}
-      {tab === "submit" ? <SubmitTab /> : <SubmissionsTab onStartSubmit={() => setTab("submit")} />}
+      <section style={{ background: BG, border: `0.5px solid ${BORDER}`, borderRadius: 14, padding: "1.25rem" }}>
+        {tab === "announcements" ? <AnnouncementsTab onStartSubmit={() => setTab("submit")} /> : null}
+        {tab === "submit" ? <SubmitTab /> : null}
+        {tab === "submissions" ? <SubmissionsTab onStartSubmit={() => setTab("submit")} /> : null}
+      </section>
     </div>
   )
 }

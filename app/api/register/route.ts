@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Check deadline / closed status
-    if (event.status === 'closed') {
+    if (event.status === 'closed' || event.status === 'COMPLETED') {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
     if (event.deadline && new Date(event.deadline) < new Date()) {
@@ -209,9 +209,10 @@ export async function POST(req: NextRequest) {
           const suggestedIncrease = Math.min(waitlistCount, Math.round(event.capacity * 0.2))
           await createNotification({
             userId: event.organizerId,
-            type: 'waitlist_growing',
+            type: 'EVENT',
+            title: 'Waitlist Growing',
             message: `${waitlistCount} ${waitlistCount === 1 ? 'person is' : 'people are'} waiting for "${event.title}". Increasing capacity by ${suggestedIncrease} would confirm ${suggestedIncrease} of them immediately.`,
-            eventId: event.id,
+            link: `/dashboard/events/${event.slug}#capacity`,
           })
         }
 
@@ -243,7 +244,13 @@ export async function POST(req: NextRequest) {
           const msg = reg.status === 'confirmed'
             ? `${who} registered for "${event.title}" (#${reg.registrationNumber})`
             : `${who} joined the waitlist for "${event.title}" (waitlist #${reg.waitlistPosition})`
-          await createNotification({ userId: event.organizerId, type: 'registration', message: msg, eventId: event.id })
+          await createNotification({
+            userId: event.organizerId,
+            type: 'EVENT',
+            title: 'New Registration',
+            message: msg,
+            link: `/dashboard/events/${event.slug}`,
+          })
         }
       } catch { /* non-critical */ }
     }
@@ -262,9 +269,10 @@ export async function POST(req: NextRequest) {
           if (newFill >= 1.0 && oldFill < 1.0) {
             await createNotification({
               userId: event.organizerId,
-              type: "full",
+              type: "EVENT",
+              title: "Event Full",
               message: `Your event "${event.title}" is now full. ${updatedEvent.waitlistCount} ${updatedEvent.waitlistCount === 1 ? "person is" : "people are"} on the waitlist.`,
-              eventId: event.id,
+              link: `/dashboard/events/${event.slug}#capacity`,
             })
             if (organizer?.email && organizer.consentSystemEmails) {
               sendOrganizerCapacityFullEmail({
@@ -276,9 +284,10 @@ export async function POST(req: NextRequest) {
           } else if (newFill >= 0.8 && oldFill < 0.8) {
             await createNotification({
               userId: event.organizerId,
-              type: "info",
+              type: "EVENT",
+              title: "Capacity Alert",
               message: `Your event "${event.title}" is 80% full. Consider increasing capacity.`,
-              eventId: event.id,
+              link: `/dashboard/events/${event.slug}#capacity`,
             })
             if (organizer?.email && organizer.consentSystemEmails) {
               sendOrganizerCapacity90Email({

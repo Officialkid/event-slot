@@ -177,11 +177,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       }
     }
 
-    if (!consentTransactional) {
-      setConsentError("You must agree to receive event notifications to register.")
-      return
-    }
-
     setLoading(true)
     try {
       const attendeesPayload = attendees.map((form, i) => ({
@@ -646,13 +641,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       {/* Consent checkboxes */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.25rem" }}>
-        {/* Checkbox 1 — Required */}
+        {/* Checkbox 1 — Optional */}
         <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
           <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
             <input
               type="checkbox"
               checked={consentTransactional}
-              onChange={e => { setConsentTransactional(e.target.checked); if (e.target.checked) setConsentError("") }}
+              onChange={e => setConsentTransactional(e.target.checked)}
               style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
             />
             <span style={{
@@ -673,12 +668,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </span>
           </span>
           <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
-            I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Required)
+            I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Optional)
           </span>
         </label>
-        {consentError && (
-          <div style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "-0.25rem", paddingLeft: "1.6rem" }}>{consentError}</div>
-        )}
 
         {/* Checkbox 2 — Optional */}
         <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>

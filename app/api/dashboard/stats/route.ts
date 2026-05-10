@@ -143,8 +143,8 @@ export async function GET() {
           AND: [organizerFilter, { deadline: { lt: now } }],
         },
         select: {
-          id: true,
           title: true,
+          slug: true,
         },
       }).catch(() => []),
       prisma.registration.findMany({
@@ -191,23 +191,23 @@ export async function GET() {
       deadline: e.deadline!.toISOString(),
     }))
 
-    // Trigger feedback_request notifications for events whose deadline has passed (non-critical)
+    // Trigger feedback notifications for events whose deadline has passed (non-critical)
     if (expiredEvents.length > 0) {
       try {
-        const expiredEventIds = expiredEvents.map(e => e.id)
         const existingFeedbackNotifs = await prisma.notification.findMany({
-          where: { userId, type: "feedback_request", eventId: { in: expiredEventIds } },
-          select: { eventId: true },
+          where: { userId, type: "EVENT", title: "Feedback Request" },
+          select: { link: true },
         })
-        const alreadyNotified = new Set(existingFeedbackNotifs.map(n => n.eventId))
-        const needFeedback = expiredEvents.filter(e => !alreadyNotified.has(e.id))
+        const alreadyNotified = new Set(existingFeedbackNotifs.map(n => n.link).filter(Boolean))
+        const needFeedback = expiredEvents.filter(e => !alreadyNotified.has(`/dashboard/events/${e.slug}`))
         if (needFeedback.length > 0) {
           await prisma.notification.createMany({
             data: needFeedback.map(e => ({
               userId,
-              type: "feedback_request",
-              eventId: e.id,
+              type: "EVENT",
+              title: "Feedback Request",
               message: `How did ${e.title} go? Share your experience with EventSlot.`,
+              link: `/dashboard/events/${e.slug}`,
             })),
           })
         }

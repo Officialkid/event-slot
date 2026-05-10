@@ -51,8 +51,10 @@ export async function POST(request: Request) {
       await prisma.notification.create({
         data: {
           userId: user.id,
-          type: 'payment_failed',
+          type: 'EVENT',
+          title: 'Payment Failed',
           message: 'Your last payment failed. Please update your payment method to keep your plan active.',
+          link: '/dashboard/billing',
         },
       })
       break

@@ -96,7 +96,12 @@ export async function GET(req: NextRequest) {
 
     // Don't create a duplicate warning for the same event
     const existing = await prisma.notification.findFirst({
-      where: { userId, type: 'data_expiry_warning', eventId: event.id },
+      where: {
+        userId,
+        type: 'EVENT',
+        title: 'Data Expiry Warning',
+        link: `/dashboard/events/${event.slug}`,
+      },
     })
     if (existing) continue
 
@@ -108,9 +113,10 @@ export async function GET(req: NextRequest) {
     await prisma.notification.create({
       data: {
         userId,
-        type: 'data_expiry_warning',
-        eventId: event.id,
+        type: 'EVENT',
+        title: 'Data Expiry Warning',
         message: `Data for "${event.title}" will be deleted in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}.`,
+        link: `/dashboard/events/${event.slug}`,
       },
     })
 

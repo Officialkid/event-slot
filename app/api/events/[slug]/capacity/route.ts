@@ -168,9 +168,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       try {
         await createNotification({
           userId: event.organizerId,
-          type: "info",
+          type: "EVENT",
+          title: "Waitlist Promotion",
           message: `${result.promoted} ${result.promoted === 1 ? "person was" : "people were"} moved from the waitlist to confirmed for "${event.title}".`,
-          eventId: event.id,
+          link: `/dashboard/events/${slug}`,
         })
       } catch {
         // Non-critical

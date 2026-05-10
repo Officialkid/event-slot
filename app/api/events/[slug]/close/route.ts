@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { isAdminEmail } from "@/lib/isAdmin"
 import { hasTeamEventAccess } from "@/lib/eventAccess"
+import { markEventCompleted } from "@/lib/eventExpiry"
 
 export async function PATCH(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -32,14 +33,33 @@ export async function PATCH(_req: NextRequest, props: { params: Promise<{ slug: 
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const newStatus = event.status === "closed" ? "active" : "closed"
+    const isCurrentlyClosed = event.status === "closed" || event.status === "COMPLETED"
+    const isPastEvent =
+      (event.eventDate ? new Date(event.eventDate) < new Date() : false) ||
+      (event.deadline ? new Date(event.deadline) < new Date() : false)
+
+    if (isCurrentlyClosed) {
+      await prisma.event.update({
+        where: { slug },
+        data: {
+          status: "active",
+          expiresAt: null,
+        },
+      })
+      return NextResponse.json({ success: true, status: "active" })
+    }
+
+    if (isPastEvent) {
+      await markEventCompleted(event.id)
+      return NextResponse.json({ success: true, status: "COMPLETED" })
+    }
 
     await prisma.event.update({
       where: { slug },
-      data: { status: newStatus },
+      data: { status: "closed" },
     })
 
-    return NextResponse.json({ success: true, status: newStatus })
+    return NextResponse.json({ success: true, status: "closed" })
   } catch {
     return NextResponse.json({ error: "Failed to update event" }, { status: 500 })
   }

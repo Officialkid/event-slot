@@ -14,42 +14,37 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const filter = searchParams.get("filter") ?? "all"
 
+    const where =
+      filter === "feedback"
+        ? { type: "USER_FEEDBACK" as const }
+        : filter === "broadcast"
+          ? { type: "ADMIN_BROADCAST" as const }
+          : {}
+
     const messages = await prisma.message.findMany({
-      where: {
-        ...(filter === "unread" ? { read: false, archived: false } : {}),
-        ...(filter === "organizer" ? { type: "organizer" } : {}),
-        ...(filter === "attendee" ? { type: "attendee" } : {}),
-        ...(filter === "all" ? { archived: false } : {}),
-      },
+      where,
       orderBy: { createdAt: "desc" },
       take: 100,
     })
 
-    const unreadCount = await prisma.message.count({ where: { read: false, archived: false } })
+    const [totalCount, feedbackCount, broadcastCount] = await Promise.all([
+      prisma.message.count({ where }),
+      prisma.message.count({ where: { type: "USER_FEEDBACK" } }),
+      prisma.message.count({ where: { type: "ADMIN_BROADCAST" } }),
+    ])
 
-    return NextResponse.json({ messages, unreadCount })
+    return NextResponse.json({
+      messages,
+      totalCount,
+      feedbackCount,
+      broadcastCount,
+    })
   } catch (err) {
     console.error("[admin/messages] GET error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-export async function PATCH(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 })
-    }
-
-    const { id, read, archived } = await req.json()
-    const data: Record<string, boolean> = {}
-    if (read !== undefined) data.read = read
-    if (archived !== undefined) data.archived = archived
-
-    const updated = await prisma.message.update({ where: { id }, data })
-    return NextResponse.json({ message: updated })
-  } catch (err) {
-    console.error("[admin/messages] PATCH error:", err)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
+export async function PATCH() {
+  return NextResponse.json({ error: "Message state flags were removed" }, { status: 405 })
 }

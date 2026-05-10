@@ -338,3 +338,53 @@ export async function sendPasswordResetEmail({
   })
 }
 
+export async function sendExpiryWarningEmail({
+  to,
+  organizerName,
+  eventTitle,
+  expiresAt,
+}: {
+  to: string
+  organizerName: string
+  eventTitle: string
+  expiresAt: Date
+}) {
+  const daysLeft = Math.ceil(
+    (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  )
+  const expiryDateStr = expiresAt.toLocaleDateString('en-KE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+  const upgradeUrl = `${BASE_URL}/upgrade`
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `Your event data deletes in ${daysLeft} days - upgrade to keep it`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your event data expires soon</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Hi ${organizerName},</p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">
+          Your event <strong style="color:#F0EDE6">${eventTitle}</strong> has ended. As a Free plan user, your event data - registrations, attendee details, and analytics - will be permanently deleted in <strong style="color:#C8F55A">${daysLeft} days</strong>.
+        </p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
+          Upgrade to Pro to keep your data indefinitely, access full analytics, and unlock advanced features.
+        </p>
+        <a href="${upgradeUrl}"
+           style="display:inline-block;background:#C8F55A;color:#0A0A0A;
+                  text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;
+                  font-weight:600;font-size:0.9rem;margin-bottom:1.5rem">
+          Upgrade to Pro ->
+        </a>
+        <p style="color:rgba(240,237,230,0.5);font-size:0.85rem;line-height:1.5;margin:0;border-top:1px solid rgba(200,245,90,0.2);padding-top:1rem">
+          <strong style="color:#F0EDE6">Important:</strong> Your data will be deleted on <strong>${expiryDateStr}</strong>. This action cannot be undone. If you don't take action, you'll lose access to registrations, attendee information, and event analytics.
+        </p>
+      </div>
+    `,
+  })
+}
+

@@ -9,6 +9,7 @@ const navItems = [
   { label: "Events", href: "/admin/events" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Org Feedback", href: "/admin/feedback" },
+  { label: "Comms", href: "/admin/comms" },
   { label: "Broadcast", href: "/admin/broadcast" },
   { label: "Platform Health", href: "/admin/health" },
   { label: "Launch Checklist", href: "/admin/launch" },

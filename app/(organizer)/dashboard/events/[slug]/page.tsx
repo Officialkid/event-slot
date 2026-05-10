@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
+import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
@@ -59,6 +60,7 @@ type EventData = {
   communityLink: string | null
   archived: boolean
   status: string
+  expiresAt?: string | null
   dashboardToken: string
   organizerPlan: string
   canEdit?: boolean
@@ -165,7 +167,7 @@ function isEventPast(e: EventData): boolean {
 }
 
 function isEventClosed(e: EventData): boolean {
-  return e.status === "closed"
+  return e.status === "closed" || e.status === "COMPLETED"
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -175,6 +177,13 @@ function StatusBadge({ event }: { event: EventData }) {
     return (
       <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.08)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
         ARCHIVED
+      </span>
+    )
+  }
+  if (event.status === "COMPLETED") {
+    return (
+      <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(255,168,0,0.12)", color: "#FFA800", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
+        COMPLETED
       </span>
     )
   }
@@ -1843,6 +1852,11 @@ export default function EventDashboardPage() {
             </div>
           </div>
 
+          <EventExpiryBanner
+            expiresAt={eventData.expiresAt ? new Date(eventData.expiresAt) : null}
+            plan={eventData.organizerPlan}
+          />
+
           {/* Registration link row */}
           <div data-tutorial="event-link" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 200px", display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
@@ -1957,7 +1971,7 @@ export default function EventDashboardPage() {
                     ✦ Event Report
                   </div>
                   <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
-                    Generate report for this event. Downloading Word uses your report package (super admins are free).
+                    Generate report for this event. Downloading Word uses your report package.
                   </p>
                 </div>
                 {!reportData && (

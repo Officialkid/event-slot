@@ -1,0 +1,169 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+
+interface CommsMessage {
+  id: string
+  subject: string
+  content: string
+  createdAt: string
+}
+
+export default function AdminCommsPage() {
+  const [subject, setSubject] = useState("")
+  const [content, setContent] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [announcements, setAnnouncements] = useState<CommsMessage[]>([])
+
+  const snippet = useMemo(() => {
+    const trimmed = content.trim()
+    return trimmed.length > 120 ? `${trimmed.slice(0, 120).trim()}…` : trimmed
+  }, [content])
+
+  const fetchAnnouncements = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/comms")
+      const data = await res.json()
+      setAnnouncements(data.messages ?? [])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAnnouncements()
+  }, [])
+
+  const submit = async () => {
+    setError("")
+    setSuccess("")
+    if (!subject.trim() || !content.trim()) {
+      setError("Subject and content are required.")
+      return
+    }
+
+    setSending(true)
+    try {
+      const res = await fetch("/api/admin/comms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, content }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? "Failed to publish announcement.")
+        return
+      }
+      setSubject("")
+      setContent("")
+      setSuccess("Announcement published and notifications sent.")
+      await fetchAnnouncements()
+    } catch {
+      setError("Network error while publishing announcement.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 920 }}>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+          Comms
+        </h1>
+        <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
+          Post public announcements that appear on the comms board and as platform notifications.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "minmax(0, 1fr) 1fr" }}>
+        <section style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 14, padding: "1.25rem" }}>
+          <h2 style={{ margin: "0 0 1rem", color: "#F0EDE6", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+            New Announcement
+          </h2>
+
+          <label style={labelStyle}>Subject</label>
+          <input value={subject} onChange={e => setSubject(e.target.value)} style={inputStyle} placeholder="Maintenance update, feature launch, or important notice" />
+
+          <label style={{ ...labelStyle, marginTop: "0.9rem" }}>Content</label>
+          <textarea value={content} onChange={e => setContent(e.target.value)} rows={8} style={{ ...inputStyle, resize: "vertical", minHeight: 180 }} placeholder="Write the announcement content here..." />
+
+          <div style={{ marginTop: "0.9rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+            Preview snippet: {snippet || "No content yet"}
+          </div>
+
+          {error && <p style={{ color: "#FF6B6B", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
+          {success && <p style={{ color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>{success}</p>}
+
+          <button type="button" onClick={submit} disabled={sending} style={actionBtnStyle}>
+            {sending ? "Publishing..." : "Publish announcement"}
+          </button>
+        </section>
+
+        <section style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 14, padding: "1.25rem" }}>
+          <h2 style={{ margin: "0 0 1rem", color: "#F0EDE6", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+            Recent Public Notices
+          </h2>
+          {loading ? (
+            <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Loading…</div>
+          ) : announcements.length === 0 ? (
+            <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+              No announcements published yet.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {announcements.map(item => (
+                <article key={item.id} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.06)", borderRadius: 12, padding: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.45rem", flexWrap: "wrap" }}>
+                    <strong style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "0.95rem" }}>{item.subject}</strong>
+                    <span style={{ color: "rgba(240,237,230,0.3)", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>{new Date(item.createdAt).toLocaleDateString("en-GB")}</span>
+                  </div>
+                  <p style={{ margin: 0, color: "rgba(240,237,230,0.6)", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>{item.content}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  marginBottom: "0.35rem",
+  color: "rgba(240,237,230,0.35)",
+  fontSize: "0.72rem",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  fontFamily: "var(--font-dm-sans)",
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  borderRadius: 10,
+  border: "0.5px solid rgba(240,237,230,0.1)",
+  background: "#0A0A0A",
+  color: "#F0EDE6",
+  padding: "0.75rem 0.9rem",
+  fontFamily: "var(--font-dm-sans)",
+  fontSize: "0.875rem",
+  outline: "none",
+  boxSizing: "border-box",
+}
+
+const actionBtnStyle: React.CSSProperties = {
+  marginTop: "1rem",
+  padding: "0.7rem 1rem",
+  borderRadius: 10,
+  border: "none",
+  background: "#C8F55A",
+  color: "#0A0A0A",
+  fontFamily: "var(--font-dm-sans)",
+  fontWeight: 700,
+  cursor: "pointer",
+}

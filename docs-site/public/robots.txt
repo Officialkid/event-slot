@@ -1,0 +1,11 @@
+# Allow all crawlers to index EventSlot documentation
+User-agent: *
+Allow: /
+Disallow: /_next
+Disallow: /__nextjs_original-stack-frame
+
+# Sitemaps
+Sitemap: https://docs.eventsslot.com/sitemap.xml
+
+# Set crawl delay (milliseconds between requests)
+Crawl-delay: 1

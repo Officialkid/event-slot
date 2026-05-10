@@ -45,13 +45,38 @@ const config: DocsThemeConfig = {
   },
   head: (
     <>
+      <meta charSet="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta property="og:title" content="EventSlot Docs" />
+      <meta name="description" content="EventSlot Documentation - Complete guide to smart event registration, waitlist management, and organizer tools." />
+      <meta name="keywords" content="EventSlot, event management, registration, waitlist, organizer platform" />
+      <meta name="author" content="EventSlot Team" />
+      
+      {/* Open Graph */}
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://docs.eventsslot.com" />
+      <meta property="og:title" content="EventSlot Documentation" />
       <meta property="og:description" content="Smart event registration & waitlist management platform documentation." />
+      <meta property="og:site_name" content="EventSlot Docs" />
+      
+      {/* Twitter Card */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="EventSlot Documentation" />
+      <meta name="twitter:description" content="Smart event registration & waitlist management platform documentation." />
+      
+      {/* Canonical */}
+      <link rel="canonical" href="https://docs.eventsslot.com" />
+      
+      {/* Favicon */}
       <link rel="icon" href="/favicon.ico" />
+      <link rel="apple-touch-icon" href="/favicon.ico" />
+      
+      {/* Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+      
+      {/* Google Search Console verification (add your verification code) */}
+      {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> */}
     </>
   ),
   footer: {

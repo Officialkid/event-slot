@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { isAdminEmail } from '@/lib/isAdmin'
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ''
+const BATCH_SIZE = 50
+const BATCH_DELAY_MS = 500
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
@@ -21,25 +23,37 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-function buildBroadcastEmail(name: string | null | undefined, body: string) {
-  const greeting = name ? `Hi ${name},` : 'Hi there,'
-  const safeBody = body
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
 
-  return `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
-      <div style="color:#C8F55A;font-size:0.95rem;font-weight:600;margin-bottom:1.75rem">EventSlot</div>
-      <p style="color:rgba(240,237,230,0.75);font-size:0.95rem;font-weight:500;margin:0 0 1rem">${greeting}</p>
-      <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.65;margin:0">${safeBody}</p>
-      <p style="margin-top:2.5rem;color:rgba(240,237,230,0.25);font-size:0.7rem;border-top:0.5px solid rgba(240,237,230,0.07);padding-top:1rem">
-        You received this message because you have an EventSlot account.
-        © ${new Date().getFullYear()} EventSlot.
-      </p>
-    </div>
-  `
+    if (!isAdminEmail(session?.user?.email)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    // Get count of users who opted in for marketing emails
+    const recipientCount = await prisma.user.count({
+      where: { marketingConsent: true },
+    })
+
+    // Get sample recipients for preview
+    const sampleRecipients = await prisma.user.findMany({
+      where: { marketingConsent: true },
+      select: { email: true, name: true },
+      take: 5,
+    })
+
+    return NextResponse.json({
+      recipientCount,
+      sampleRecipients,
+    })
+  } catch (error) {
+    console.error('Error fetching broadcast preview:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch preview' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -58,68 +72,100 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const { plans, subject, body } = await req.json() as {
-      plans: string[]
+    const { subject, html } = await req.json() as {
       subject: string
-      body: string
+      html: string
     }
 
-    if (!subject?.trim() || !body?.trim()) {
-      return NextResponse.json({ error: 'Subject and body are required.' }, { status: 400 })
+    if (!subject?.trim() || !html?.trim()) {
+      return NextResponse.json({ error: 'Subject and HTML content are required.' }, { status: 400 })
     }
 
-    const isAll = plans.includes('all') || !plans.length
-
-    const users = await prisma.user.findMany({
-      where: {
-        email: { not: null },
-        suspended: false,
-        ...(isAll ? {} : { plan: { in: plans } }),
-      },
+    // Get all users who opted in for marketing emails
+    const recipients = await prisma.user.findMany({
+      where: { marketingConsent: true },
       select: { id: true, email: true, name: true },
     })
 
-    const recipients = users.filter((u): u is typeof u & { email: string } => !!u.email)
+    if (recipients.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        attempted: 0,
+        accepted: 0,
+        failed: 0,
+        message: 'No recipients to send to.',
+      })
+    }
 
-    const batches = chunk(recipients, 50)
+    const batches = chunk(recipients.filter((u): u is typeof u & { email: string } => !!u.email), BATCH_SIZE)
     let accepted = 0
     let failed = 0
 
     for (let i = 0; i < batches.length; i += 1) {
       const batch = batches[i]
-      const response = await resend.batch.send(
-        batch.map(user => ({
-          from: EMAIL_FROM,
-          to: user.email,
-          subject: subject.trim(),
-          html: buildBroadcastEmail(user.name, body.trim()),
-        }))
-      )
+      try {
+        const response = await resend.batch.send(
+          batch.map(user => ({
+            from: EMAIL_FROM,
+            to: user.email,
+            subject: subject.trim(),
+            html: html.trim(),
+            headers: {
+              'List-Unsubscribe': '<https://www.eventsslot.com/unsubscribe>',
+            },
+          }))
+        )
 
-      if (response.error) {
+        if (response.error) {
+          failed += batch.length
+          await prisma.errorLog.create({
+            data: {
+              route: '/api/admin/broadcast',
+              message: `Resend batch error: ${response.error.message ?? 'unknown error'} (batch size: ${batch.length})`,
+            },
+          })
+        } else {
+          const rawData = (response as unknown as { data?: unknown }).data
+          const responseData = Array.isArray(rawData)
+            ? (rawData as Array<{ id?: string; error?: unknown }>)
+            : Array.isArray((rawData as { data?: unknown })?.data)
+            ? ((rawData as { data: Array<{ id?: string; error?: unknown }> }).data)
+            : []
+          const acceptedInBatch = responseData.filter(item => item?.id && !item?.error).length
+          const fallbackAccepted = responseData.length === 0 ? batch.length : acceptedInBatch
+          accepted += fallbackAccepted
+          failed += Math.max(batch.length - fallbackAccepted, 0)
+        }
+      } catch (batchError) {
+        console.error('Error sending batch:', batchError)
         failed += batch.length
         await prisma.errorLog.create({
           data: {
             route: '/api/admin/broadcast',
-            message: `Resend batch error: ${response.error.message ?? 'unknown error'} (batch size: ${batch.length})`,
+            message: `Broadcast batch error: ${batchError instanceof Error ? batchError.message : 'unknown error'}`,
           },
         })
-      } else {
-        const rawData = (response as unknown as { data?: unknown }).data
-        const responseData = Array.isArray(rawData)
-          ? (rawData as Array<{ id?: string; error?: unknown }>)
-          : Array.isArray((rawData as { data?: unknown })?.data)
-          ? ((rawData as { data: Array<{ id?: string; error?: unknown }> }).data)
-          : []
-        const acceptedInBatch = responseData.filter(item => item?.id && !item?.error).length
-        const fallbackAccepted = responseData.length === 0 ? batch.length : acceptedInBatch
-        accepted += fallbackAccepted
-        failed += Math.max(batch.length - fallbackAccepted, 0)
       }
 
       if (i < batches.length - 1) {
-        await new Promise(r => setTimeout(r, 1000))
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
       }
+    }
+
+    // Log to audit log
+    if (session?.user?.id) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: 'BROADCAST_EMAIL',
+          metadata: {
+            subject,
+            recipientCount: recipients.length,
+            sent: accepted,
+            failed,
+          },
+        },
+      })
     }
 
     return NextResponse.json({

@@ -1,17 +1,20 @@
 import { prisma } from "@/lib/prisma"
+import type { NotificationType } from "@prisma/client"
 
 export async function createNotification({
   userId,
   type,
+  title,
   message,
-  eventId,
+  link,
 }: {
   userId: string
-  type: string
+  type?: NotificationType
+  title: string
   message: string
-  eventId?: string
+  link?: string
 }) {
   await prisma.notification.create({
-    data: { userId, type, message, eventId },
+    data: { userId, type: type ?? "EVENT", title, message, link },
   })
 }

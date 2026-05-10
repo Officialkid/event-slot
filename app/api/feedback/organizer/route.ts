@@ -35,13 +35,11 @@ export async function POST(req: NextRequest) {
 
     await prisma.message.create({
       data: {
-        senderName: session.user.name ?? null,
-        senderEmail: session.user.email ?? null,
-        eventId: eventId ?? null,
-        eventTitle: event?.title ?? null,
-        type: "organizer",
-        rating,
-        body: message.trim(),
+        type: "USER_FEEDBACK",
+        authorId: session.user.id,
+        subject: event?.title ? `Feedback on: ${event.title}` : "General feedback",
+        content: message.trim(),
+        isPublic: false,
       },
     })
 

@@ -8,11 +8,11 @@ import Link from "next/link"
 interface Notification {
   id: string
   type: string
+  title: string
   message: string
   read: boolean
   createdAt: string
-  eventId?: string | null
-  eventSlug?: string | null
+  link?: string | null
 }
 
 interface FeedbackState {
@@ -121,7 +121,6 @@ export default function NotificationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           notificationId: notif.id,
-          eventId: notif.eventId,
           rating: state.rating,
           message: state.message,
         }),
@@ -286,12 +285,12 @@ export default function NotificationsPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {displayed.map(notif => {
-            const isFeedbackRequest = notif.type === "feedback_request"
+            const isFeedbackRequest = notif.title === "Feedback Request"
             const fb = getFeedbackState(notif.id)
             const isUnread = !notif.read
             const borderColor = isUnread ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)"
             const bgColor = isUnread ? "rgba(200,245,90,0.04)" : "transparent"
-            const dotColor = notif.type === "full" ? "#FF6B6B" : "#C8F55A"
+            const dotColor = notif.type === "PLATFORM" ? "#C8F55A" : notif.title === "Event Full" ? "#FF6B6B" : "#C8F55A"
 
             if (isFeedbackRequest) {
               return (
@@ -321,6 +320,22 @@ export default function NotificationsPage() {
                       <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
                         {notif.message}
                       </p>
+                      {notif.link && (
+                        <a
+                          href={notif.link}
+                          style={{
+                            display: "inline-block",
+                            marginTop: "0.4rem",
+                            fontSize: "0.78rem",
+                            fontFamily: "var(--font-dm-sans)",
+                            fontWeight: 500,
+                            color: "#C8F55A",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Open event →
+                        </a>
+                      )}
                       <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                         {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                       </span>
@@ -359,7 +374,7 @@ export default function NotificationsPage() {
               )
             }
 
-            if (notif.type === "waitlist_growing") {
+            if (notif.title === "Waitlist Growing") {
               return (
                 <div
                   key={notif.id}
@@ -397,9 +412,9 @@ export default function NotificationsPage() {
                       {notif.message}
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.375rem", flexWrap: "wrap" }}>
-                      {notif.eventSlug && (
+                      {notif.link && (
                         <a
-                          href={`/dashboard/events/${notif.eventSlug}#capacity`}
+                          href={notif.link}
                           onClick={e => e.stopPropagation()}
                           style={{
                             fontSize: "0.78rem",
@@ -431,7 +446,7 @@ export default function NotificationsPage() {
               )
             }
 
-            if (notif.type === "data_expiry_warning") {
+            if (notif.title === "Data Expiry Warning") {
               return (
                 <div
                   key={notif.id}
@@ -485,7 +500,7 @@ export default function NotificationsPage() {
             }
 
             return (
-              <button
+              <div
                 key={notif.id}
                 onClick={() => !notif.read && markOneRead(notif.id)}
                 style={{
@@ -499,14 +514,52 @@ export default function NotificationsPage() {
               >
                 <span style={{ flexShrink: 0, marginTop: 4, width: 8, height: 8, borderRadius: "50%", background: dotColor, opacity: isUnread ? 1 : 0.35 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
+                  {notif.type === "PLATFORM" && (
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginBottom: "0.35rem",
+                        fontSize: "0.68rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        background: "rgba(200,245,90,0.2)",
+                        color: "#C8F55A",
+                        borderRadius: 999,
+                        padding: "0.15rem 0.5rem",
+                      }}
+                    >
+                      Platform Update
+                    </span>
+                  )}
+                  <p style={{ margin: "0 0 0.25rem", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.7)", fontWeight: 600, lineHeight: 1.4 }}>
+                    {notif.title}
+                  </p>
                   <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
                     {notif.message}
                   </p>
+                  {notif.link && (
+                    <a
+                      href={notif.link}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        display: "inline-block",
+                        marginTop: "0.4rem",
+                        fontSize: "0.78rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        fontWeight: 500,
+                        color: "#C8F55A",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Open →
+                    </a>
+                  )}
                   <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                     {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                   </span>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>

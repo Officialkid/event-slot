@@ -200,6 +200,64 @@ jobs:
         if: steps.deploy-ready.outputs.enabled == 'true'
         uses: google-github-actions/setup-gcloud@v3
 
+      - name: Validate OAuth secrets (no hidden characters)
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          validate_secret() {
+            local secret_name=$1
+            local secret_value=$(gcloud secrets versions access latest --secret="$secret_name" --project="$PROJECT_ID" 2>/dev/null || echo "")
+
+            if [ -z "$secret_value" ]; then
+              echo "❌ Error: Secret '$secret_name' not found in GCP Secret Manager."
+              return 1
+            fi
+
+            # Check for UTF-8 BOM (EF BB BF in hex)
+            if printf '%s' "$secret_value" | od -An -tx1 | grep -q 'ef bb bf'; then
+              echo "❌ Error: Secret '$secret_name' contains UTF-8 BOM (hidden bytes)."
+              return 1
+            fi
+
+            # Check for CRLF or LF at start/end
+            if printf '%s' "$secret_value" | grep -E '^\r|^\n|.\r$|.\n$' >/dev/null 2>&1; then
+              echo "❌ Error: Secret '$secret_name' contains line endings (CRLF/LF)."
+              return 1
+            fi
+
+            # Check for null bytes
+            if printf '%s' "$secret_value" | grep -q $'\x00'; then
+              echo "❌ Error: Secret '$secret_name' contains null bytes."
+              return 1
+            fi
+
+            # Check for leading/trailing whitespace
+            local trimmed=$(printf '%s' "$secret_value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            if [ "$secret_value" != "$trimmed" ]; then
+              echo "❌ Error: Secret '$secret_name' contains leading/trailing whitespace."
+              return 1
+            fi
+
+            echo "✓ Secret '$secret_name' validation passed (clean value)."
+            return 0
+          }
+
+          # Validate both OAuth secrets
+          all_valid=true
+          validate_secret "EVENTSLOT_GOOGLE_CLIENT_ID" || all_valid=false
+          validate_secret "EVENTSLOT_GOOGLE_CLIENT_SECRET" || all_valid=false
+
+          if [ "$all_valid" = false ]; then
+            echo ""
+            echo "OAuth secrets validation failed. Please fix corrupted secrets in GCP Secret Manager."
+            exit 1
+          fi
+
+          echo ""
+          echo "All OAuth secrets passed validation ✓"
+
       - name: Configure Artifact Registry auth
         if: steps.deploy-ready.outputs.enabled == 'true'
         run: |
@@ -288,6 +346,43 @@ jobs:
 
           echo "Failed to push documentation metadata after 3 attempts."
           exit 1
+
+      - name: Build and push docs-site image
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          DOCS_IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/eventslot-docs:${{ github.sha }}
+        run: |
+          docker build -f Dockerfile.docs -t "$DOCS_IMAGE_URI" .
+          docker push "$DOCS_IMAGE_URI"
+
+      - name: Deploy documentation site to Cloud Run
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          DOCS_IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/eventslot-docs:${{ github.sha }}
+          DOCS_SERVICE: eventslot-docs
+        run: |
+          gcloud run deploy "$DOCS_SERVICE" \
+            --project="$PROJECT_ID" \
+            --image="$DOCS_IMAGE_URI" \
+            --region="$REGION" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=3000 \
+            --set-env-vars=NEXT_TELEMETRY_DISABLED=1,NODE_ENV=production \
+            --min-instances=1 \
+            --max-instances=5
+
+      - name: Verify documentation deployment
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        run: |
+          DOCS_URL=$(gcloud run services describe eventslot-docs --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')
+          echo "Documentation site deployed at: $DOCS_URL"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DOCS_URL")
+          if [ "$STATUS" != "200" ]; then
+            echo "Docs smoke test failed: got HTTP $STATUS"
+            exit 1
+          fi
+          echo "Documentation deployment verified: HTTP $STATUS"
 
       - name: Deploy skipped (credentials missing)
         if: steps.deploy-ready.outputs.enabled != 'true'

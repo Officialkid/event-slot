@@ -30,8 +30,9 @@ export async function GET(req: NextRequest) {
           id: true,
           userId: true,
           type: true,
+          title: true,
           message: true,
-          eventId: true,
+          link: true,
           read: true,
           createdAt: true,
         },
@@ -42,20 +43,8 @@ export async function GET(req: NextRequest) {
       prisma.notification.count({ where: { userId: session.user.id } }),
     ])
 
-    // Resolve event slugs for notifications that have an eventId
-    const eventIds = Array.from(new Set(notifications.map(n => n.eventId).filter(Boolean) as string[]))
-    const events = eventIds.length > 0
-      ? await prisma.event.findMany({ where: { id: { in: eventIds } }, select: { id: true, slug: true } })
-      : []
-    const slugMap = Object.fromEntries(events.map(e => [e.id, e.slug]))
-
-    const mapped = notifications.map(n => ({
-      ...n,
-      eventSlug: n.eventId ? (slugMap[n.eventId] ?? null) : null,
-    }))
-
     return NextResponse.json({
-      notifications: mapped,
+      notifications,
       pagination: {
         page,
         limit,

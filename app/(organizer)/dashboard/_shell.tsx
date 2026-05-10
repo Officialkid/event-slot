@@ -139,7 +139,7 @@ const NAV_ITEMS = [
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
-  { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
+  { label: "Comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
 ] as const
 
 function getIsActive(pathname: string, href: string, exact: boolean): boolean {

@@ -76,6 +76,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
         archived: event.archived,
         status: event.status,
+        expiresAt: event.expiresAt,
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
         imageUrl: event.imageUrl ?? null,
