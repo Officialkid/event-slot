@@ -1,4 +1,4 @@
-export default {
+const meta = {
   monetization: 'Monetization Strategy',
   growth: 'Growth Loops',
   competitors: 'Competitor Analysis',
@@ -6,3 +6,5 @@ export default {
   kpis: 'KPIs & Metrics',
   expansion: 'Expansion Strategy',
 }
+
+export default meta

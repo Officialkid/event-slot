@@ -1,4 +1,4 @@
-export default {
+const meta = {
   architecture: 'System Architecture',
   frontend: 'Frontend Architecture',
   backend: 'Backend Architecture',
@@ -9,3 +9,5 @@ export default {
   scalability: 'Scalability',
   deployment: 'Deployment',
 }
+
+export default meta

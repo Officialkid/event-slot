@@ -1,4 +1,4 @@
-export default {
+const meta = {
   organiser: 'Organiser Guide',
   attendee: 'Attendee Guide',
   'create-event': 'Creating an Event',
@@ -6,3 +6,5 @@ export default {
   waitlists: 'Managing Waitlists',
   faq: 'FAQs',
 }
+
+export default meta

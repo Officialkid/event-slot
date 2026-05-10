@@ -1,4 +1,4 @@
-export default {
+const meta = {
   overview: 'Platform Overview',
   features: 'Features',
   capacity: 'Capacity Management',
@@ -8,3 +8,5 @@ export default {
   communications: 'Communication System',
   roadmap: 'Future Roadmap',
 }
+
+export default meta

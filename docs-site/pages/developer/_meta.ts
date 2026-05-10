@@ -1,4 +1,4 @@
-export default {
+const meta = {
   setup: 'Local Setup',
   installation: 'Installation',
   'env-vars': 'Environment Variables',
@@ -7,3 +7,5 @@ export default {
   'git-workflow': 'Git Workflow',
   contributing: 'Contribution Guide',
 }
+
+export default meta

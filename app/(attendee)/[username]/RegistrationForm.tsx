@@ -111,7 +111,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [error, setError] = useState("")
   const [consentTransactional, setConsentTransactional] = useState(false)
   const [consentMarketing, setConsentMarketing] = useState(false)
-  const [consentError, setConsentError] = useState("")
   // Duplicate detection
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateInfo | null>(null)
   const [pendingPayload, setPendingPayload] = useState<PendingPayload | null>(null)

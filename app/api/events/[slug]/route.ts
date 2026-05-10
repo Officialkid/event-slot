@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { normalizeCommunityLink } from '@/lib/communityLink'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { purgeUserCache } from '@/lib/cache'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -166,7 +167,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
   }
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
@@ -184,6 +185,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ slug: 
     }
 
     await prisma.event.delete({ where: { slug } })
+
+    // Purge cached event lists and dashboard stats so the deletion is reflected immediately
+    if (session?.user?.id) {
+      purgeUserCache(session.user.id, session.user.email ?? null)
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'

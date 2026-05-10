@@ -271,8 +271,9 @@ jobs:
           docker build -f Dockerfile -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run (no traffic)
         if: steps.deploy-ready.outputs.enabled == 'true'
+        id: cloud-run-deploy
         env:
           IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
         run: |
@@ -283,8 +284,71 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --port=3000 \
+            --no-traffic \
             --set-env-vars=NEXTAUTH_URL_INTERNAL=http://localhost:3000 \
             --update-secrets=DATABASE_URL=EVENTSLOT_DATABASE_URL:latest,DIRECT_URL=EVENTSLOT_DIRECT_URL:latest,NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest,NEXTAUTH_URL=EVENTSLOT_NEXTAUTH_URL:latest,GOOGLE_CLIENT_ID=EVENTSLOT_GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=EVENTSLOT_GOOGLE_CLIENT_SECRET:latest,RESEND_API_KEY=RESEND_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,CRON_SECRET=CRON_SECRET:latest,R2_ACCOUNT_ID=CLOUDFLARE_R2_ACCOUNT_ID:latest,R2_ACCESS_KEY_ID=CLOUDFLARE_R2_ACCESS_KEY_ID:latest,R2_SECRET_ACCESS_KEY=CLOUDFLARE_R2_SECRET_ACCESS_KEY:latest,R2_BUCKET_NAME=CLOUDFLARE_R2_BUCKET_NAME:latest,SUPER_ADMIN_EMAIL=SUPER_ADMIN_EMAIL:latest,SUPER_ADMIN_EMAIL_2=SUPER_ADMIN_EMAIL_2:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,R2_PUBLIC_URL=CLOUDFLARE_R2_PUBLIC_URL:latest
+
+          # Capture the new revision name for health check and traffic promotion
+          NEW_REVISION=$(gcloud run revisions list \
+            --service="$SERVICE" \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --format="value(name)" \
+            --limit=1)
+          echo "new_revision=$NEW_REVISION" >> "$GITHUB_OUTPUT"
+          echo "New revision deployed (no traffic): $NEW_REVISION"
+
+      - name: Health-check new revision before promoting traffic
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          NEW_REVISION: ${{ steps.cloud-run-deploy.outputs.new_revision }}
+        run: |
+          set -euo pipefail
+
+          # Get the URL of the specific new revision (Cloud Run serves revisions via a tagged URL)
+          REVISION_URL=$(gcloud run revisions describe "$NEW_REVISION" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format="value(status.url)" 2>/dev/null || true)
+
+          # Fall back to the service URL if revision URL isn't available (older gcloud versions)
+          if [ -z "$REVISION_URL" ]; then
+            REVISION_URL=$(gcloud run services describe "$SERVICE" \
+              --project="$PROJECT_ID" \
+              --region="$REGION" \
+              --format="value(status.url)")
+          fi
+
+          echo "Health-checking new revision at: $REVISION_URL/api/health"
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "x-cloud-run-revision: $NEW_REVISION" \
+              "$REVISION_URL/api/health" || echo "000")
+            echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed on attempt $ATTEMPT."
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Health check failed after $MAX_ATTEMPTS attempts. Traffic will NOT be promoted."
+          echo "Users continue on the previous working revision."
+          exit 1
+
+      - name: Promote traffic to new revision
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          NEW_REVISION: ${{ steps.cloud-run-deploy.outputs.new_revision }}
+        run: |
+          gcloud run services update-traffic "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --to-revisions="$NEW_REVISION=100"
+          echo "Traffic 100% promoted to $NEW_REVISION"
 
       - name: Verify deployment
         if: steps.deploy-ready.outputs.enabled == 'true'

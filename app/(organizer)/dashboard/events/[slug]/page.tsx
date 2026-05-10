@@ -1321,7 +1321,7 @@ export default function EventDashboardPage() {
     }
   }
 
-  const downloadReport = async (intent: 'download' | 'print' = 'download') => {
+  const downloadReport = async (_intent: 'download' | 'print' = 'download') => {
     if (!eventData || downloadingReport) return
     setDownloadingReport(true)
     try {

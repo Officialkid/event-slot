@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
+import type { NextApiRequest, NextApiResponse } from 'next'
 
 const BASE_URL = 'https://docs.eventsslot.com'
 
@@ -44,7 +45,7 @@ async function getAllPages(): Promise<Page[]> {
   return pages.sort((a, b) => a.path.localeCompare(b.path))
 }
 
-export default async function handler(req: any, res: any) {
+export default async function handler(_req: NextApiRequest, res: NextApiResponse<string>) {
   try {
     const pages = await getAllPages()
 
