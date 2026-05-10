@@ -77,6 +77,7 @@ model User {
   creditTransactions CreditTransaction[]
   featureAccess      FeatureAccess[]
   organizerFeedback  OrganizerFeedback[]
+  messages           Message[]
   reportDownload     ReportDownload?
 }
 
