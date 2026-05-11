@@ -120,7 +120,7 @@ export async function creditTokens(
 type TransactionType = "PURCHASE" | "DEBIT" | "REFUND" | "ADMIN_GRANT" | "BONUS" | "MONTHLY_VOICE"
 
 // ── Feature gate with super admin bypass ─────────────────
-export async function useFeature(
+export async function consumeFeature(
   userId: string,
   userEmail: string,
   feature: TokenFeature,

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 type SessionData = {
   id: string
@@ -21,9 +21,7 @@ export default function ConversationsPage() {
   const [flagged, setFlagged]     = useState(0)
   const [loading, setLoading]     = useState(true)
 
-  useEffect(() => { load() }, [filter]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     const res  = await fetch(`/api/admin/assistant-sessions?filter=${filter}`)
     const data = await res.json()
@@ -31,7 +29,9 @@ export default function ConversationsPage() {
     setTotal(data.total)
     setFlagged(data.flaggedCount)
     setLoading(false)
-  }
+  }, [filter])
+
+  useEffect(() => { load() }, [load])
 
   return (
     <div className="flex h-[calc(100vh-64px)]">

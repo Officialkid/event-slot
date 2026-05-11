@@ -3,11 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { EventReportData, generateEventReport, IRegistration, ReportTheme } from '@/lib/generateEventReport'
-import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { reportDownloadRatelimit } from '@/lib/ratelimit'
-import { useFeature, creditTokens } from '@/lib/tokens'
+import { consumeFeature, creditTokens } from '@/lib/tokens'
 import { PAYMENTS_ENABLED } from '@/lib/payments'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -244,7 +243,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       }
 
       // ── Token gate ──────────────────────────────────────
-      const access = await useFeature(
+      const access = await consumeFeature(
         session.user.id,
         session.user.email!,
         'DOCUMENT_GENERATION',
