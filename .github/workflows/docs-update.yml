@@ -18,7 +18,15 @@ jobs:
         run: |
           DATE=$(date -u +"%B %d, %Y")
           SHA="${{ github.sha }}"
-          MSG="${{ github.event.head_commit.message }}"
+          RAW_MSG="${{ github.event.head_commit.message }}"
+          MSG=$(printf '%s' "$RAW_MSG" \
+            | tr '\r\n' ' ' \
+            | sed -e 's/[[:space:]]\+/ /g' \
+                  -e 's/^ *//' \
+                  -e 's/ *$//' \
+                  -e 's/&/\\&amp;/g' \
+                  -e 's/</\\&lt;/g' \
+                  -e 's/>/\\&gt;/g')
           ENTRY="## Deploy — $DATE (${SHA:0:7})\n\n> $MSG\n\n---\n\n"
           CONTENT=$(cat docs-site/pages/appendix/changelog.mdx)
           echo -e "$ENTRY$CONTENT" > docs-site/pages/appendix/changelog.mdx
