@@ -6,9 +6,8 @@ import { checkVoiceAccess, recordVoiceUse } from "@/lib/voice-quota"
 import { PAYMENTS_ENABLED } from "@/lib/payments"
 import { rateLimit } from "@/lib/rate-limit"
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
 export async function POST(req: NextRequest) {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const session = await getServerSession(authOptions)
 
   // ── Per-IP transcription rate limit (30/hr) ───────────
