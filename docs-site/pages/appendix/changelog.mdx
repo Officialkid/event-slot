@@ -1,3 +1,18 @@
+## Deploy — May 11, 2026 (2eaea67)
+
+> chore: remove all Vercel dependencies and fix OAuth secrets
+
+- Swap @vercel/og for next/og (built into Next.js), change runtime to nodejs
+- Uninstall @vercel/analytics and @vercel/og from main app (17 packages)
+- Delete docs-site/vercel.json (project is deployed via Cloud Run/Docker)
+- Update docs-site/README.md: Docker/Cloud Run deployment instructions
+- Update docs/SYSTEM.md: Hosting row changed to Google Cloud Run
+- Remove 'Cloud Run vs Vercel' section from architecture.mdx
+- Regenerate docs-site/package-lock.json (removes stale @vercel entries)
+- Add clean-oauth-secrets.ps1: re-uploaded GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to GCP Secret Manager without null bytes
+
+---
+
 ## Deploy — May 11, 2026 (2a88d5a)
 
 > feat: implement fixes 1-4 (docs SEO, report copy, R2 images, ticket toggle & lookup)
