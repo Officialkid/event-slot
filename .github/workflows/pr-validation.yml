@@ -99,7 +99,7 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
 
   # ── Full build check on PR ────────────────────────────────────────────
   build-check:
@@ -122,7 +122,7 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
 
       - name: Type check
         run: npx tsc --noEmit

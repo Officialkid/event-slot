@@ -80,7 +80,6 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
         # Gitleaks checks for accidentally committed:
         # - API keys (Paystack, Anthropic, Resend, etc.)
         # - Private keys and certificates
