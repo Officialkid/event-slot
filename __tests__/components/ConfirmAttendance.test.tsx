@@ -11,15 +11,15 @@ describe('ConfirmAttendance', () => {
   })
 
   it('renders the form', () => {
-    render(<ConfirmAttendance eventId="test-event" />)
-    expect(screen.getByText('Already Registered?')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /find my registration/i })).toBeInTheDocument()
+    render(<ConfirmAttendance eventSlug="test-event" />)
+    expect(screen.getByText('Check your registration')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/your name or email/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument()
   })
 
   it('does not submit when email is empty', async () => {
-    render(<ConfirmAttendance eventId="test-event" />)
-    const submitBtn = screen.getByRole('button', { name: /find my registration/i })
+    render(<ConfirmAttendance eventSlug="test-event" />)
+    const submitBtn = screen.getByRole('button', { name: /search/i })
 
     expect(submitBtn).toBeDisabled()
     fireEvent.click(submitBtn)

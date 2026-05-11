@@ -261,7 +261,7 @@ export default async function PublicProfilePage({
             {/* Already Registered? lookup panel */}
             <section className="space-y-3 lg:sticky lg:top-6">
               <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Attendance Lookup</p>
-              <ConfirmAttendance eventId={event.id} />
+              <ConfirmAttendance eventSlug={username} />
             </section>
           </div>
         </div>

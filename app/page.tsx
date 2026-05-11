@@ -572,8 +572,8 @@ export default function Home() {
             <div>
               <div style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED_LO, marginBottom: "1rem" }}>Resources</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {[["Downloads", "/dashboard/billing"], ["How it works", "/how-it-works"], ["Create event", "/create"]].map(([label, href]) => (
-                  <Link key={label} href={href} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
+                {[["Downloads", "/dashboard/billing", false], ["How it works", "/how-it-works", false], ["Create event", "/create", false], ["Documentation", "https://docs.eventsslot.com", true]].map(([label, href, external]) => (
+                  <Link key={String(label)} href={String(href)} target={external ? "_blank" : undefined} rel={external ? "noopener" : undefined} style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", color: MUTED, textDecoration: "none" }}>{label}</Link>
                 ))}
               </div>
             </div>

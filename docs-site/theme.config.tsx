@@ -47,28 +47,32 @@ const config: DocsThemeConfig = {
     <>
       <meta charSet="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta name="description" content="EventSlot Documentation - Complete guide to smart event registration, waitlist management, and organizer tools." />
-      <meta name="keywords" content="EventSlot, event management, registration, waitlist, organizer platform" />
+      <title>EventSlot Docs - Smart Event Registration &amp; Waitlist Management</title>
+      <meta name="description" content="Official documentation for EventSlot - the smart event registration and waitlist management platform built for Africa. Learn how to create events, manage waitlists, and grow your organiser community." />
+      <meta name="keywords" content="event registration Kenya, waitlist management, EventSlot, event platform Africa" />
+      <meta name="robots" content="index, follow" />
       <meta name="author" content="EventSlot Team" />
       
       {/* Open Graph */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://docs.eventsslot.com" />
-      <meta property="og:title" content="EventSlot Documentation" />
-      <meta property="og:description" content="Smart event registration & waitlist management platform documentation." />
-      <meta property="og:site_name" content="EventSlot Docs" />
+      <meta property="og:title" content="EventSlot Docs - Smart Event Registration Platform" />
+      <meta property="og:description" content="Everything you need to create events, manage waitlists, and grow with EventSlot." />
+      <meta property="og:image" content="https://www.eventsslot.com/og-image.png" />
+      <meta property="og:site_name" content="EventSlot" />
       
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="EventSlot Documentation" />
-      <meta name="twitter:description" content="Smart event registration & waitlist management platform documentation." />
+      <meta name="twitter:title" content="EventSlot Docs" />
+      <meta name="twitter:description" content="Official documentation for EventSlot - smart event registration for Africa." />
+      <meta name="twitter:image" content="https://www.eventsslot.com/og-image.png" />
       
       {/* Canonical */}
       <link rel="canonical" href="https://docs.eventsslot.com" />
       
       {/* Favicon */}
       <link rel="icon" href="/favicon.ico" />
-      <link rel="apple-touch-icon" href="/favicon.ico" />
+      <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       
       {/* Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />

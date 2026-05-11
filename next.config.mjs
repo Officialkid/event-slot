@@ -20,9 +20,32 @@ const withPWAConfig = withPWA({
   },
 })
 
+let r2ImageHostname = 'pub-08713a93a7a2437c89ead762d4588859.r2.dev'
+try {
+  if (process.env.R2_PUBLIC_URL) {
+    r2ImageHostname = new URL(process.env.R2_PUBLIC_URL).hostname
+  }
+} catch {
+  // Fall back to the known production R2 public hostname.
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: r2ImageHostname,
+        port: '',
+        pathname: '/events/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+  },
 
   // Silence Turbopack warning: Next.js 16 enables Turbopack by default.
   // This empty config signals we're intentionally using Turbopack with no custom rules.

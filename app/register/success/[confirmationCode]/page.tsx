@@ -42,6 +42,7 @@ export default async function TicketSuccessPage({
           eventDate: true,
           location: true,
           questions: true,
+          ticketsEnabled: true,
         },
       },
     },
@@ -138,9 +139,32 @@ export default async function TicketSuccessPage({
       </div>
 
       {/* Ticket */}
-      <div style={{ width: "100%", maxWidth: 660 }}>
-        <ConfirmationTicket ticket={ticket} />
-      </div>
+      {event.ticketsEnabled ? (
+        <div style={{ width: "100%", maxWidth: 660 }}>
+          <ConfirmationTicket ticket={ticket} />
+        </div>
+      ) : (
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 660,
+            border: "0.5px solid rgba(240,237,230,0.1)",
+            borderRadius: 12,
+            padding: "1rem 1.1rem",
+            background: "#141414",
+          }}
+        >
+          <p style={{ margin: 0, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem", fontWeight: 600 }}>
+            Registration confirmed
+          </p>
+          <p style={{ margin: "0.45rem 0 0", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem" }}>
+            Confirmation #{confirmationCode}
+          </p>
+          <p style={{ margin: "0.6rem 0 0", color: "rgba(240,237,230,0.38)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>
+            Tickets are currently disabled for this event. Keep your confirmation code for check-in.
+          </p>
+        </div>
+      )}
     </main>
   )
 }

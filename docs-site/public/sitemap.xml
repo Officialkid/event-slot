@@ -1,1 +1,4 @@
-/* This is a placeholder. The dynamic sitemap is generated via the /pages/sitemap.xml.ts route. */
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<sitemap><loc>https://docs.eventsslot.com/sitemap-0.xml</loc></sitemap>
+</sitemapindex>

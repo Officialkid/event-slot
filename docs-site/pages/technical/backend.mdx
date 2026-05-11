@@ -1,3 +1,8 @@
+﻿---
+title: Backend - EventSlot Docs
+description: Official EventSlot documentation for Backend.
+---
+
 # Backend Architecture
 
 > [!NOTE]
@@ -88,3 +93,4 @@ Rate limiters are defined in lib/ratelimit.ts:
 - billingRatelimit (10/min)
 
 When UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are present, rate limiting uses Upstash Redis sliding windows. Otherwise, in-memory fallback is used.
+

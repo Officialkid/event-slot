@@ -9,6 +9,7 @@ import CountdownTimer from "@/components/CountdownTimer"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
+import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -47,6 +48,7 @@ type DupReg = {
 }
 
 type EventData = {
+  id: string
   title: string
   description: string | null
   capacity: number | null
@@ -60,6 +62,7 @@ type EventData = {
   communityLink: string | null
   archived: boolean
   status: string
+  ticketsEnabled: boolean
   expiresAt?: string | null
   dashboardToken: string
   organizerPlan: string
@@ -1122,6 +1125,17 @@ export default function EventDashboardPage() {
 
   const regLink = origin && eventData ? `${origin}/${eventData.slug}` : ""
 
+  const reportDescription = (() => {
+    if (isSuperAdmin) return "Generate report for this event. Free for super admins."
+
+    const normalizedPlan = (eventData?.organizerPlan ?? "").toLowerCase()
+    if (normalizedPlan === "pro" || normalizedPlan === "business") {
+      return "Generate report for this event. Included in your plan."
+    }
+
+    return "Generate report for this event. Downloading Word uses your report package."
+  })()
+
   const handleCopy = async () => {
     if (!regLink) return
     try { await navigator.clipboard.writeText(regLink); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
@@ -1963,6 +1977,15 @@ export default function EventDashboardPage() {
               </button>
             </div>
 
+            <TicketSettingsCard
+              eventId={eventData.id}
+              initialEnabled={eventData.ticketsEnabled}
+              registrationCount={eventData.confirmedCount}
+              onUpdated={(enabled) => {
+                setEventData((prev) => (prev ? { ...prev, ticketsEnabled: enabled } : prev))
+              }}
+            />
+
             {/* Report preview + paid download */}
             <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -1971,7 +1994,7 @@ export default function EventDashboardPage() {
                     ✦ Event Report
                   </div>
                   <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
-                    Generate report for this event. Downloading Word uses your report package.
+                    {reportDescription}
                   </p>
                 </div>
                 {!reportData && (

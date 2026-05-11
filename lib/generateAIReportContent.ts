@@ -1,5 +1,6 @@
 import { askAI } from './ai'
 import { IEvent, IRegistration } from './generateEventReport'
+import { format } from 'date-fns'
 
 export interface AIReportContent {
   eventOverview: string
@@ -45,9 +46,71 @@ function getPeakDay(regs: IRegistration[]): string {
   return entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
 }
 
+function getPeakDayWithCount(regs: IRegistration[]): { date: string; count: number } {
+  const byDay = groupByDay(regs)
+  const entries = Object.entries(byDay)
+  if (!entries.length) return { date: 'N/A', count: 0 }
+  const [date, count] = entries.reduce((a, b) => (b[1] > a[1] ? b : a))
+  return { date, count }
+}
+
 function safeRate(numerator: number, denominator: number): string {
   if (denominator <= 0) return 'N/A'
   return `${((numerator / denominator) * 100).toFixed(1)}%`
+}
+
+function formatIsoDate(iso: string | null | undefined, fallback = 'Not specified'): string {
+  if (!iso) return fallback
+  try {
+    return format(new Date(iso), 'd MMMM yyyy')
+  } catch {
+    return fallback
+  }
+}
+
+function inferEventType(event: IEvent): 'virtual' | 'in-person' {
+  const location = (event.location ?? '').toLowerCase()
+  if (location.includes('online') || location.includes('virtual') || location.includes('zoom')) {
+    return 'virtual'
+  }
+  return 'in-person'
+}
+
+function buildWaitlistInsight(confirmedCount: number, waitlistCount: number, capacity: number | null): string {
+  if (!capacity || capacity <= 0) {
+    return 'No waitlist was generated. Capacity was not configured, so overflow demand could not be measured through waitlist behavior.'
+  }
+  const safeConfirmed = Math.max(0, Math.min(confirmedCount, capacity))
+  const fillRate = Math.round((safeConfirmed / capacity) * 100)
+
+  if (waitlistCount > 0) {
+    return `Waitlist demand is active with ${waitlistCount} people queued, confirming demand beyond available slots.`
+  }
+  if (fillRate < 50) {
+    return `No waitlist formed because demand remained below capacity, with ${capacity - safeConfirmed} slots unfilled.`
+  }
+  if (fillRate < 90) {
+    return 'No waitlist formed because the event did not cross the overflow threshold typically seen above 85-90% fill.'
+  }
+  return 'No waitlist formed despite near-full capacity, indicating overflow demand was not captured early enough in the registration cycle.'
+}
+
+function enforceThreeRecommendations(text: string): string {
+  const compact = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const numbered = compact.filter((line) => /^\d+[.):-]?\s+/.test(line))
+  const candidates = (numbered.length >= 3 ? numbered : compact).slice(0, 3)
+
+  if (candidates.length === 0) {
+    return '1. Within 7 days: Launch registration 14 days earlier to expand the high-intent capture window and increase confirmed attendance by at least 15%.\n2. Within 3 days before deadline: run a targeted reminder burst across your strongest channel to lift late-stage conversion by at least 10%.\n3. Within 48 hours post-event: publish outcomes and open early interest for the next edition to accelerate the next registration cycle.'
+  }
+
+  return candidates
+    .map((item, index) => item.replace(/^\d+[.):-]?\s+/, `${index + 1}. `))
+    .join('\n')
 }
 
 function countQuestionCoverage(regs: IRegistration[], questions: IEvent['questions']): number {
@@ -98,20 +161,22 @@ function buildFallbackReport({
   const capacity = event.capacity ?? null
   const capacityUtilization = capacity && capacity > 0 ? safeRate(confirmed.length, capacity) : 'N/A'
   const waitlistRate = totalRegs > 0 ? safeRate(waitlist.length, totalRegs) : '0.0%'
-  const peakDay = getPeakDay([...confirmed, ...waitlist])
+  const peakDay = getPeakDayWithCount([...confirmed, ...waitlist])
   const questionCoverage = countQuestionCoverage(confirmed, event.questions)
+  const eventType = inferEventType(event)
+  const waitlistInsight = buildWaitlistInsight(confirmed.length, waitlist.length, capacity)
 
   return {
-    eventOverview: `"${event.title}" is structured as a ${event.location ? `${event.location}-based` : 'location-flexible'} event with ${capacity ?? 'flexible'} available capacity and a registration deadline of ${event.deadline ?? 'not explicitly set'}. The current dataset indicates ${confirmed.length} confirmed attendees and ${waitlist.length} waitlisted attendees, which implies active demand around the offer positioning. The primary objective appears to be lead capture and conversion into confirmed attendance within a fixed registration window.`,
-    executiveSummary: `The event shows early traction with ${totalRegs} total registrations and a capacity utilization of ${capacityUtilization}. Demand pressure is ${waitlist.length > 0 ? `visible through a waitlist rate of ${waitlistRate}` : 'currently manageable with low waitlist pressure'}, suggesting reasonable fit between proposition and audience intent. To improve performance before event day, focus should shift to conversion optimization on the registration journey, stronger value communication above the fold, and clearer urgency framing around the closing window.`,
-    strengths: `The event has a clear intent signal: people are registering, and ${waitlist.length > 0 ? 'some are willing to queue' : 'drop-off appears controlled'}. Operationally, the registration structure supports data capture and attendee tracking, which improves follow-up and post-event analysis. The setup already includes core mechanics needed for growth testing: deadline-based urgency, capacity control, and organizer-level distribution via shareable link.`,
-    weaknessesAndRisks: `Primary risk is conversion leakage between page views and completed registrations, especially if event value is not communicated within the first scroll. Secondary risk is fulfillment mismatch: ${waitlist.length > 0 ? 'a growing waitlist could reduce attendee trust if promotions are delayed' : 'a low-pressure waitlist may indicate under-leveraged demand rather than true scarcity'}. There is also messaging risk if event differentiation versus alternatives is not explicit in headline and description copy.`,
-    audienceProfile: `Audience signal quality is ${questionCoverage}% based on answer completeness across custom fields. Current registrant behavior suggests practical intent rather than passive curiosity, with users moving through required fields and committing to submission. The audience appears likely to respond to clear outcomes, operational use cases, and proof of execution quality, so messaging should prioritize concrete attendee benefits over generic platform claims.`,
-    registrationBehaviour: `Registration momentum peaks around ${peakDay !== 'N/A' ? peakDay : 'the latest observed registration window'}, indicating clustered decision timing. This pattern typically suggests that reminder timing and social proof can materially affect final conversion in the last 24-72 hours before deadline. Operationally, this is a favorable pattern for targeted nudges: organizer reminders, scarcity updates, and concise value-led follow-up should raise confirmed attendance without major acquisition spend.`,
-    competitivePositioning: `In a crowded events landscape, this event is strongest when positioned as execution-focused rather than informationally generic. Relative advantage is operational clarity: structured registration, controlled capacity, and measurable attendee pipeline. To outperform comparable events, messaging should explicitly communicate outcomes attendees will achieve and why this specific session is a better use of time than alternative webinars, meetups, or self-study options.`,
-    recommendations: `First, rewrite the top section to state one sharp promise, one concrete outcome, and one urgency trigger in the opening view. Second, run a short conversion sprint: simplify optional inputs, tighten section hierarchy, and add social proof or expected value statements near the CTA. Third, if waitlist grows, create a rapid promotion protocol (within hours, not days) and communicate expected response windows. Fourth, add a post-registration nurture sequence with calendar reminder + one high-value pre-read to reduce no-show risk and increase perceived professionalism.`,
-    waitlistAnalysis: `Waitlist pressure currently sits at ${waitlistRate}. ${waitlist.length > 0 ? 'This is a positive demand indicator, but only if promotion handling is fast and transparent.' : 'Even without a large waitlist, monitoring this metric remains useful for dynamic capacity decisions and demand forecasting.'} If conversion from waitlist to confirmed is delayed, demand intent can decay quickly, so the organizer should define an explicit waitlist promotion cadence and communication SLA.`,
-    overallScore: `7.5/10 — The event has solid structural foundations and meaningful demand indicators, but conversion storytelling and pre-event optimization still offer clear upside.`,
+    eventOverview: `${event.title} is an ${eventType} event scheduled for ${formatIsoDate(event.eventDate)} in ${event.location ?? 'an unspecified location'}. The event is configured with ${capacity ?? 'no fixed'} capacity and currently has ${totalRegs} registrations, including ${confirmed.length} confirmed and ${waitlist.length} waitlisted. Registration opened on ${formatIsoDate(event.createdAt)} and closes on ${formatIsoDate(event.deadline, 'no fixed close date')}.`,
+    executiveSummary: `${event.title} generated ${totalRegs} registrations with ${capacityUtilization} capacity utilisation and ${waitlistRate} waitlist pressure. The strongest signal is ${peakDay.date !== 'N/A' ? `${peakDay.date} as the peak day with ${peakDay.count} registrations` : 'insufficient day-level registration volume for a clear peak pattern'}, which shows demand concentration in a narrow window. The next operational lever is tightening campaign timing around the peak window while increasing early-window acquisition.`,
+    strengths: `1. Demand conversion is proven with ${confirmed.length} confirmed attendees from ${totalRegs} total registrations.\n2. Capacity management is measurable at ${capacityUtilization}, enabling concrete optimisation decisions for the next edition.\n3. Data capture quality is ${questionCoverage}% across custom fields, supporting usable attendee insight for targeting and follow-up.`,
+    weaknessesAndRisks: `1. Registration concentration on the peak window increases volatility in final turnout; fix this by scheduling two staged demand pushes 7 days and 2 days before close.\n2. ${waitlist.length === 0 ? 'No waitlist was generated, so overflow demand is not being captured; fix this by calibrating capacity closer to observed demand and opening earlier.' : `Waitlist volume of ${waitlist.length} requires fast promotion cadence to protect trust; fix this by setting a 24-hour promotion SLA for released slots.`}\n3. Response coverage at ${questionCoverage}% leaves profiling gaps; fix this by making one high-value segmentation question required in the next registration form.`,
+    audienceProfile: `The attendee dataset shows ${questionCoverage}% completion on custom responses, indicating ${questionCoverage >= 70 ? 'strong' : 'partial'} profile visibility for this audience. Registrants committed through required fields and completed registration in measurable volume (${totalRegs} submissions), confirming active intent rather than passive browsing. Audience messaging should prioritise concrete outcomes and execution details because this cohort is responding to specific value, not generic event branding.`,
+    registrationBehaviour: `Registration activity peaked on ${peakDay.date} with ${peakDay.count} registrations, confirming that demand clustered around a specific campaign or reminder moment. The timeline shows a compressed conversion pattern rather than evenly distributed daily intake, which concentrates risk near the close window. For the next edition, deploy structured reminders before and during the peak window to spread conversions and reduce end-window dependence.`,
+    competitivePositioning: `This event demonstrates market relevance by converting ${totalRegs} registrations within one cycle in a competitive environment. The combination of ${capacityUtilization} utilisation and ${waitlist.length} waitlisted attendees positions the offer as credible but still optimisable against alternatives. Competitive advantage will increase by sharpening positioning around one explicit attendee outcome and publishing proof of delivery from this edition within 72 hours post-event.`,
+    recommendations: `1. Within 7 days: move registration open earlier by at least 10-14 days to extend the demand-capture window and lift confirmed turnout by 15-20%.\n2. Within the next event cycle: schedule a fixed 3-touch campaign (launch, midpoint, final 48 hours) to reduce peak-day concentration and stabilise daily conversions.\n3. Within 48 hours after this event: publish outcomes and open early interest for the next edition to seed repeat demand and improve first-week registrations.`,
+    waitlistAnalysis: `${waitlistInsight} Current waitlist count is ${waitlist.length} with overall waitlist rate at ${waitlistRate}. The next cycle should formalise overflow handling with clear promotion timing and transparent communication to preserve conversion intent from queued attendees.`,
+    overallScore: `Score computed from attendance quality, registration distribution, waitlist behaviour, and setup quality.`,
   }
 }
 
@@ -150,23 +215,40 @@ export async function generateAIReportContent({
   confirmed: IRegistration[]
   waitlist: IRegistration[]
 }): Promise<AIReportContent> {
-  const sys = `You are Claude acting as a senior event strategy consultant.
-Produce a detailed, honest, commercially-minded report that reads like advisory work prepared for a paying client.
-Avoid generic filler. Use the provided evidence only and acknowledge uncertainty when data is missing.
-Target total output length: 600-1000 words across sections.
-Return ONLY valid JSON with the exact keys requested.`
+  const eventType = inferEventType(event)
+  const sys = `You are generating the AI Strategic Intelligence section of an EventSlot event report for the organiser and stakeholders reviewing this event.
 
-  const eventContext = `Event: "${event.title}"
-Date: ${event.eventDate ?? 'TBD'}
-Location: ${event.location ?? 'TBD'}
-Capacity: ${event.capacity ?? 'Unlimited'}
-Confirmed: ${event.confirmedCount}
-Waitlist: ${event.waitlistCount}
-Registrations opened: ${event.createdAt.slice(0, 10)}
-Deadline: ${event.deadline ?? 'None'}`
+EventSlot is a smart event registration and waitlist management platform launched in Kenya in April 2026.
+
+Rules for every section:
+1. Reference actual numbers from the data provided and avoid generalities.
+2. Do not use weak phrasing like "may suggest" or "could indicate".
+3. Pair every weakness with a specific actionable fix.
+4. Every recommendation must include a clear timeframe.
+5. Keep the tone professional, direct, and consultant-like.
+6. Section 10 must justify the score using the provided rubric context.
+
+Output requirements:
+- Return ONLY valid JSON.
+- Use exactly the required keys.
+- Recommendations must be exactly 3 actionable items with timeframe and expected outcome.
+- No markdown tables, no bullet symbols; plain text with newline-separated items when needed.`
+
+  const eventContext = `Event data:
+- Event title: ${event.title}
+- Event type: ${eventType}
+- Date: ${formatIsoDate(event.eventDate)}
+- Location: ${event.location ?? 'Not specified'}
+- Capacity: ${event.capacity ?? 'Unlimited'}
+- Total registrations: ${event.confirmedCount + event.waitlistCount}
+- Confirmed: ${event.confirmedCount}
+- Waitlisted: ${event.waitlistCount}
+- Fill rate: ${event.capacity && event.capacity > 0 ? Math.round((event.confirmedCount / event.capacity) * 100) : 0}%
+- Registration open date: ${formatIsoDate(event.createdAt)}
+- Registration close date: ${formatIsoDate(event.deadline, 'Not specified')}`
 
   const allRegs = [...confirmed, ...waitlist]
-  const peakDay = getPeakDay(allRegs)
+  const peakDay = getPeakDayWithCount(allRegs)
   const byDay = groupByDay(allRegs)
   const dayEntries = Object.entries(byDay)
     .sort((a, b) => a[0].localeCompare(b[0]))
@@ -176,15 +258,18 @@ Deadline: ${event.deadline ?? 'None'}`
   const capacityUtilization = event.capacity && event.capacity > 0 ? safeRate(event.confirmedCount, event.capacity) : 'N/A'
   const waitlistRate = allRegs.length > 0 ? safeRate(waitlist.length, allRegs.length) : '0.0%'
   const questionCoverage = countQuestionCoverage(confirmed, event.questions)
+  const peakPercent = allRegs.length > 0 ? Math.round((peakDay.count / allRegs.length) * 100) : 0
+  const waitlistInsight = buildWaitlistInsight(confirmed.length, waitlist.length, event.capacity)
 
   const prompt = `${eventContext}
 
-Derived metrics:
-- Total registrations: ${allRegs.length}
-- Capacity utilization: ${capacityUtilization}
+Timeline and audience context:
+- Daily registration counts: ${dayEntries || 'N/A'}
+- Peak registration day: ${peakDay.date} (${peakDay.count} registrations)
+- Peak-day concentration: ${peakPercent}% of total registrations
+- Capacity utilisation: ${capacityUtilization}
 - Waitlist rate: ${waitlistRate}
-- Peak registration day: ${peakDay}
-- Registration timeline: ${dayEntries || 'N/A'}
+- Waitlist section logic context: ${waitlistInsight}
 - Custom-question response coverage: ${questionCoverage}%
 
 Registrant answer intelligence:
@@ -201,22 +286,22 @@ Return JSON exactly in this shape:
   "competitivePositioning": "...",
   "recommendations": "...",
   "waitlistAnalysis": "...",
-  "overallScore": "X/10 — justification"
+  "overallScore": "X/10 - concise rationale"
 }
 
-Section guidance:
-- eventOverview: define event intent, audience, and setup quality.
-- executiveSummary: high-level performance diagnosis.
-- strengths: what is working and why.
-- weaknessesAndRisks: critical risks, warning signals, failure points.
-- audienceProfile: who registered and behavior signals from available data.
-- registrationBehaviour: funnel/timing patterns and likely causes.
-- competitivePositioning: differentiation versus similar events.
-- recommendations: specific operator actions to increase attendance/revenue.
-- waitlistAnalysis: demand quality and what to do next.
-- overallScore: numeric score with rationale.
+Section guidance (must follow this exact 10-section intent):
+1) eventOverview: factual summary in maximum 3 sentences.
+2) executiveSummary: what happened, key number, one insight.
+3) strengths: 2-4 strengths with data support.
+4) weaknessesAndRisks: direct risks and each risk paired with a fix.
+5) audienceProfile: infer from responses and registration behavior.
+6) registrationBehaviour: timeline pattern, peak explanation, and implication.
+7) competitivePositioning: what this event says about market demand and positioning.
+8) waitlistAnalysis: analyze even when waitlist is zero using waitlist logic context.
+9) recommendations: exactly 3 recommendations, each with timeframe and expected outcome.
+10) overallScore: provide X/10 and short rationale aligned to attendance, distribution, waitlist, and setup quality.
 
-Write with consultant tone. No markdown. No bullet lists. Keep it precise and evidence-linked.`
+Write with consultant tone. Keep statements data-anchored and direct.`
 
   try {
     const raw = await askAI({
@@ -234,6 +319,8 @@ Write with consultant tone. No markdown. No bullet lists. Keep it precise and ev
     if (!parsed) {
       return buildFallbackReport({ event, confirmed, waitlist })
     }
+
+    parsed.recommendations = enforceThreeRecommendations(parsed.recommendations)
 
     return parsed
   } catch {

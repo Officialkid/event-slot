@@ -12,6 +12,13 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 const configuredAdminEmails = new Set(getConfiguredAdminEmails())
 
+function normalizeTier(plan: string | null | undefined): 'FREE' | 'PRO' | 'BUSINESS' {
+  const value = (plan ?? 'free').toLowerCase()
+  if (value === 'pro') return 'PRO'
+  if (value === 'business') return 'BUSINESS'
+  return 'FREE'
+}
+
 const providers: Provider[] = []
 
 // Keep credentials auth available even if Google OAuth env vars are missing.
@@ -69,12 +76,35 @@ export const authOptions = {
         token.email = user.email ?? token.email ?? null
         token.role = isAdminEmail(user.email) ? 'SUPER_ADMIN' : 'ATTENDEE'
         token.isAdmin = token.role === 'SUPER_ADMIN'
+
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { plan: true },
+          })
+          token.tier = normalizeTier(dbUser?.plan)
+        } catch {
+          token.tier = token.tier ?? 'FREE'
+        }
+
         return token
       }
 
       if (!token.role && isAdminEmail(token.email)) {
         token.role = 'SUPER_ADMIN'
         token.isAdmin = true
+      }
+
+      if (!token.tier && token.sub) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { plan: true },
+          })
+          token.tier = normalizeTier(dbUser?.plan)
+        } catch {
+          token.tier = 'FREE'
+        }
       }
 
       return token
@@ -98,6 +128,7 @@ export const authOptions = {
         session.user.email = session.user.email ?? token.email ?? null
         session.user.role = token.role ?? (isAdminEmail(session.user.email) ? 'SUPER_ADMIN' : 'ATTENDEE')
         session.user.isAdmin = session.user.role === 'SUPER_ADMIN'
+        session.user.tier = token.tier ?? 'FREE'
 
         try {
           const user = await prisma.user.findUnique({
@@ -109,6 +140,7 @@ export const authOptions = {
               onboardingCompleted: true,
               onboardingSkipped: true,
               suspended: true,
+              plan: true,
             },
           })
 
@@ -118,6 +150,7 @@ export const authOptions = {
             session.user.onboardingCompleted = user.onboardingCompleted ?? false
             session.user.onboardingSkipped = user.onboardingSkipped ?? false
             session.user.suspended = user.suspended ?? false
+            session.user.tier = normalizeTier(user.plan)
           }
         } catch (error) {
           // CRITICAL: never let session callback crash — return partial session

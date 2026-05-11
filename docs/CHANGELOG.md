@@ -1,5 +1,217 @@
 # EventSlot — Changelog
 
+## [0.4.48] — May 11, 2026
+
+### Fix 4 — Ticket Toggle + Confirmation Lookup
+
+- Added per-event ticket control via `ticketsEnabled` on `Event` in `prisma/schema.prisma` with migration `20260511123000_add_tickets_enabled_to_event`.
+- Added organizer API toggle endpoint `PATCH /api/organizer/events/[id]/tickets` to enable/disable ticket downloads per event.
+- Added organizer dashboard UI card for ticket settings in `components/tickets/TicketSettingsCard.tsx` and integrated it into `app/(organizer)/dashboard/events/[slug]/page.tsx`.
+- Added public confirmation lookup endpoint `GET /api/events/[slug]/lookup?q=` supporting name/email lookup and status responses for confirmed, waitlisted, and not-registered states.
+- Reworked public lookup UI in `components/attendance/ConfirmAttendance.tsx` to show:
+  - confirmed with ticket download button when tickets are enabled
+  - confirmed with confirmation number only when tickets are disabled
+  - waitlisted position
+  - not-found guidance
+- Added server-side PDF ticket generation path:
+  - `lib/ticket.tsx` using `@react-pdf/renderer` and QR generation
+  - `GET /api/tickets/[confirmationCode]` with permission checks:
+    - `403` when event tickets are disabled
+    - `403` when registration is not confirmed
+- Updated registration success page `app/register/success/[confirmationCode]/page.tsx` to hide ticket rendering when event ticket downloads are disabled.
+- Updated legacy attendance confirmation API `app/api/attendance/confirm/route.ts` to respect `ticketsEnabled`.
+- Updated session typing/auth callbacks to expose `tier` (`FREE | PRO | BUSINESS`) in JWT/session for client-side plan-aware UX.
+
+## [0.4.47] — May 11, 2026
+
+### Fix 3 — Cloudflare R2 Image 400 Error
+
+- Added Next.js image remote whitelist in `next.config.mjs` for Cloudflare R2 public event images and Google profile images:
+  - `https://<r2-host>/events/**`
+  - `https://lh3.googleusercontent.com`
+- Made the R2 image hostname config resilient by deriving it from `R2_PUBLIC_URL` when available, with a safe production fallback hostname.
+- Hardened image upload response URL generation in `app/api/upload/route.ts` to normalize `R2_PUBLIC_URL` and avoid malformed/double-slash output URLs.
+- Hardened image rendering normalization in `components/ui/EventImageWithFallback.tsx` to recover from accidentally percent-encoded full URLs and collapse duplicate path slashes.
+
+## [0.4.46] — May 11, 2026
+
+### Fix 2 — Report UI Text by Role/Plan
+
+- Updated the event dashboard report card copy in `app/(organizer)/dashboard/events/[slug]/page.tsx` to show role/plan-specific messaging instead of a single static line.
+- Added conditional report description behavior:
+  - super admins: `Generate report for this event. Free for super admins.`
+  - pro/business plans: `Generate report for this event. Included in your plan.`
+  - free/default plans: `Generate report for this event. Downloading Word uses your report package.`
+- Removed exposure of super-admin-free wording for non-admin users.
+
+## [0.4.45] — May 11, 2026
+
+### Fix 1 — Documentation Site SEO Discoverability
+
+- Upgraded global docs SEO metadata in `docs-site/theme.config.tsx` with stronger primary title/description, robots directives, canonical URL, Open Graph image metadata, and Twitter card fields.
+- Added sitemap automation for docs build:
+  - created `docs-site/next-sitemap.config.js`
+  - updated `docs-site/package.json` with `postbuild` sitemap generation
+  - installed `next-sitemap` in docs-site dependencies
+- Simplified and aligned crawler policy in `docs-site/public/robots.txt` with sitemap reference.
+- Added cross-domain discoverability signal by linking `Documentation` (`https://docs.eventsslot.com`) from main-site footer resources in `app/page.tsx`.
+- Completed per-page SEO metadata coverage by inserting frontmatter (`title` and `description`) on MDX pages under `docs-site/pages` that were missing it.
+
+## [0.4.44] — May 11, 2026
+
+### Per-Event Report Redesign — Final Contract Alignment
+
+- Refactored event report generation entrypoint in `lib/generateEventReport.ts` to accept a single `EventReportData` object contract.
+- Added explicit `EventReportData` interface with event metadata, metrics, attendees, waitlist, pre-computed timeline fields, and optional custom response context.
+- Updated both report download routes to construct and pass `EventReportData`:
+  - `app/api/admin/generate-report/route.ts`
+  - `app/api/events/[slug]/report/route.ts`
+- Updated report header/footer contract:
+  - running header now renders event title only
+  - footer now renders `EventSlot · Confidential · {Event Title} · Page X of Y` with lime top border
+- Added confidentiality notice on the cover page.
+- Wired summary timeline rendering to consume precomputed `dailyRegistrationCounts` with fallback behavior.
+- Preserved completed section redesigns (snapshot, timeline, capacity, attendee roster, waitlist commentary, AI scoring rubric, post-event action items) under the new generation signature.
+
+## [0.4.43] — May 11, 2026
+
+### Per-Event Report Redesign — Section 8 (Post-Event Action Items)
+
+- Added a new forward-looking `Recommended Next Steps` section to `admin-event-report-{event-slug}.docx` in `lib/generateEventReport.ts`.
+- Implemented auto-generated post-event action logic derived from event performance signals:
+  - mandatory attendee follow-up action
+  - low-fill capacity recalibration actions
+  - high-fill growth planning actions
+  - peak-day concentration campaign-distribution action
+  - waitlist/fill-rate-based scarcity and demand-shaping actions
+- Added a structured action table with columns:
+  - Priority
+  - Action
+  - Owner
+  - Timeframe
+- Added priority rendering with visual severity labels and ensured at least one low-priority platform-maintenance action is always present.
+
+## [0.4.42] — May 11, 2026
+
+### Per-Event Report Redesign — Section 7 (AI Strategic Intelligence Reformed)
+
+- Reworked AI generation rules in `lib/generateAIReportContent.ts` to enforce a stricter consultant-style debrief format across all 10 sections.
+- Updated AI system prompt and section guidance to require:
+  - direct number-linked statements
+  - no weak hedging language
+  - actionable fixes for every weakness
+  - exactly 3 recommendations with timeframe and expected outcome
+- Added richer event context payload to AI generation, including event type inference, formatted registration window dates, daily counts, peak-day concentration, and waitlist logic context.
+- Added post-processing guard to constrain recommendations output to exactly 3 items.
+- Replaced the old unexplained Section 10 score rendering in `lib/generateEventReport.ts` with a visible rubric-based breakdown table:
+  - Attendance Rate
+  - Registration Distribution
+  - Waitlist Generation
+  - Setup Quality
+  - computed overall score (`X/10`) with accompanying rationale text.
+- Preserved the existing 10-section AI structure while upgrading content quality and scoring transparency.
+
+## [0.4.41] — May 11, 2026
+
+### Per-Event Report Redesign — Section 6 (Waitlist Report)
+
+- Reworked empty-waitlist behavior in `lib/generateEventReport.ts` from static `Waitlist is empty.` text to strategic commentary.
+- Added fill-rate aware narrative branches for empty waitlist scenarios:
+  - low utilisation (<50%) with scarcity/capacity recalibration recommendation
+  - healthy but not full utilisation (50-89%) with activation-threshold guidance
+  - near-full utilisation (>=90%) with early-open recommendation to capture overflow
+- Added no-capacity fallback commentary when the event has no fixed capacity configured.
+- Preserved existing non-empty waitlist flow and section placement in the report.
+
+## [0.4.40] — May 11, 2026
+
+### Per-Event Report Redesign — Section 5 (Attendee Roster)
+
+- Updated attendee roster rendering in `lib/generateEventReport.ts` to keep numbered rows and cleaner registration-day formatting (`dd MMM yyyy`).
+- Added dynamic phone-column visibility using a 30% completeness threshold:
+  - phone column is shown only when at least 30% of attendees have a non-empty phone value
+  - when shown, missing values are rendered as `Not provided`
+  - when below threshold, the phone column is removed entirely from the roster table
+- Added a persistent KDPA-aligned data protection notice below the attendee roster section with visual emphasis styling.
+
+## [0.4.39] — May 11, 2026
+
+### Per-Event Report Redesign — Section 4 (Capacity & Fill Rate)
+
+- Added a dedicated `Capacity & Fill Rate` block to per-event reports in `lib/generateEventReport.ts`.
+- Implemented a horizontal stacked capacity utilisation chart (confirmed vs available) with:
+  - filled lime segment (`#C8F55A`)
+  - remaining light grey segment (`#EEEEEE`)
+  - title format: `Capacity Utilisation - {fillRate}% Filled`
+- Added summary labels beneath the chart:
+  - `{confirmed} of {capacity} slots filled ({fillRate}%)`
+  - aligned capacity line (`{confirmed} confirmed` vs `{capacity} capacity`)
+- Added fill-rate-aware commentary logic for high, healthy, and low utilisation scenarios with concrete next-edition capacity recommendations.
+- Added no-capacity fallback messaging and commentary when event capacity is not configured.
+
+## [0.4.38] — May 11, 2026
+
+### Per-Event Report Redesign — Section 3 (Registration Timeline)
+
+- Added daily registration timeline processing for per-event reports, including zero-activity days across the full registration window.
+- Implemented a new `Daily Registration Activity` bar chart in `lib/generateEventReport.ts` using QuickChart with:
+  - lime bars (`#C8F55A`) and peak-day highlight treatment
+  - peak annotation label (`Peak — {count} registrations`)
+  - dotted vertical markers for registration open and registration close dates
+- Replaced the plain timeline summary paragraph with AI-generated timeline analysis using the requested 3-sentence rule set and prompt constraints.
+- Added deterministic fallback timeline analysis when AI output is unavailable.
+
+## [0.4.37] — May 11, 2026
+
+### Per-Event Report Redesign — Section 2 (Event Snapshot)
+
+- Added a new visual 5-stat Event Snapshot row to the per-event admin report in `lib/generateEventReport.ts`.
+- Replaced the former summary metrics grid with stat cards for:
+  - Total Registrations
+  - Confirmed
+  - On Waitlist
+  - Capacity
+  - Fill Rate status
+- Implemented explicit fill-rate status mapping for the final card:
+  - `>=90%` green (`Near Capacity`)
+  - `>=60%` lime (`Healthy`)
+  - `>=30%` amber (`Moderate`)
+  - `<30%` red (`Low - Review Strategy`)
+- Added resilient handling for unlimited/no-capacity events by showing `N/A` fill rate with a neutral fallback card.
+
+## [0.4.36] — May 11, 2026
+
+### Per-Event Report Redesign — Section 1 (Cover / Event Header)
+
+- Reworked `admin-event-report-{event-slug}.docx` cover/header layout to remove duplicated branding and produce a clean Event Intelligence cover structure.
+- Added new cover header flow in `lib/generateEventReport.ts`:
+  - `Event` + `Slot` brand text lockup
+  - lime divider rule
+  - event title (single clean header)
+  - `EVENT INTELLIGENCE REPORT` label
+  - metadata table (Organiser, Event Date, Location, Registration Deadline, Report Generated)
+- Updated first-page behavior to suppress default running header on the cover page (`titlePage` + empty first header), preventing the historical `EventSlot EventSlot ...` duplication.
+- Standardized deadline display in metadata table with explicit `EAT` suffix formatting.
+
+## [0.4.35] — May 11, 2026
+
+### Stakeholder Report Redesign — Sections 7 and 8 Completion
+
+- Completed stakeholder report implementation for **Section 8** with:
+  - monthly **Next Period Targets** rendered as a table (Metric, Current, Target, How)
+  - yearly **Year-Ahead Outlook** rendered as a 2-paragraph investor narrative generated with strict prompt rules
+- Upgraded footer styling in stakeholder DOCX to include a lime `#C8F55A` top border rule and consistent `Page X of Y` formatting.
+- Finalized AI strategic recommendations output format for **Section 7**:
+  - exactly 4 recommendations
+  - numbered format with bold titles and specific, time-bound actions
+  - EventSlot-stage-specific constraints enforced in prompt design
+- Added a snapshot-style section-order regression test for stakeholder report structure:
+  - `__tests__/lib/generateStakeholderReport.sectionOrder.test.ts`
+- Added explicit User Growth chart launch annotation and retained Cloud Run-safe remote chart rendering.
+- Tuned Pro eligibility logic for conversion pipeline to configurable threshold via env var:
+  - `REPORT_PRO_ELIGIBILITY_MIN_REGISTRATIONS` (default `30`)
+- Standardized report date references to **15 April 2026** as EventSlot live date across narrative prompts and report context.
+
 ## [0.4.34] — May 10, 2026
 
 ### Feature 5 — Two-Way Communications

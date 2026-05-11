@@ -154,7 +154,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
-    setConsentError("")
 
     if (deadlineExpired) {
       setError("Registration has closed.")

@@ -80,5 +80,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'R2_PUBLIC_URL not configured' }, { status: 500 })
   }
 
-  return NextResponse.json({ url: `${publicUrl}/${key}` })
+  let normalizedPublicUrl: string
+  try {
+    normalizedPublicUrl = new URL(publicUrl).toString().replace(/\/+$/, '')
+  } catch {
+    return NextResponse.json({ error: 'R2_PUBLIC_URL is invalid' }, { status: 500 })
+  }
+
+  return NextResponse.json({ url: `${normalizedPublicUrl}/${key}` })
 }

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   // Fetch the event to ensure it exists
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { id: true, title: true, eventDate: true, location: true, questions: true },
+    select: { id: true, title: true, eventDate: true, location: true, questions: true, ticketsEnabled: true },
   })
   if (!event) {
     return NextResponse.json({ error: 'Event not found.' }, { status: 404 })
@@ -129,15 +129,18 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     found: true,
     status: 'confirmed',
-    ticket: {
-      confirmationCode: registration.confirmationCode,
-      eventTitle: event.title,
-      eventDate,
-      eventLocation: event.location,
-      attendeeName,
-      attendeeEmail,
-      attendeePhone: attendeePhone ?? null,
-      verifyUrl: `${BASE_URL}/verify/${registration.confirmationCode}`,
-    },
+    canDownloadTicket: event.ticketsEnabled,
+    ticket: event.ticketsEnabled
+      ? {
+          confirmationCode: registration.confirmationCode,
+          eventTitle: event.title,
+          eventDate,
+          eventLocation: event.location,
+          attendeeName,
+          attendeeEmail,
+          attendeePhone: attendeePhone ?? null,
+          verifyUrl: `${BASE_URL}/verify/${registration.confirmationCode}`,
+        }
+      : null,
   })
 }

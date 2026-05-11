@@ -6,6 +6,103 @@ import { generateStakeholderReport } from "@/lib/generateStakeholderReport"
 
 type ReportPeriod = "weekly" | "monthly" | "yearly"
 
+type TrendBuckets = {
+  labels: string[]
+  starts: Date[]
+  ends: Date[]
+}
+
+type MonthlySnapshot = {
+  month: string
+  totalUsers: number
+  registrations: number
+}
+
+const FIRST_PLATFORM_ACTIVITY_AT = new Date("2026-04-15T00:00:00.000Z")
+const PRO_ELIGIBILITY_MIN_REGISTRATIONS = Number.parseInt(process.env.REPORT_PRO_ELIGIBILITY_MIN_REGISTRATIONS ?? "30", 10)
+
+function getMonthlyWeekBuckets(periodStart: Date): TrendBuckets {
+  const labels: string[] = []
+  const starts: Date[] = []
+  const ends: Date[] = []
+
+  const nextMonth = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1)
+  let cursor = new Date(periodStart)
+  let weekIndex = 1
+
+  while (cursor < nextMonth) {
+    const start = new Date(cursor)
+    const end = new Date(cursor)
+    end.setDate(end.getDate() + 7)
+    if (end > nextMonth) end.setTime(nextMonth.getTime())
+
+    labels.push(`Week ${weekIndex}`)
+    starts.push(start)
+    ends.push(end)
+
+    cursor = end
+    weekIndex += 1
+  }
+
+  return { labels, starts, ends }
+}
+
+function getYearlyMonthBuckets(year: number): TrendBuckets {
+  const labels: string[] = []
+  const starts: Date[] = []
+  const ends: Date[] = []
+
+  for (let month = 0; month < 12; month += 1) {
+    labels.push(new Date(year, month, 1).toLocaleDateString("en-GB", { month: "short" }))
+    starts.push(new Date(year, month, 1))
+    ends.push(new Date(year, month + 1, 1))
+  }
+
+  return { labels, starts, ends }
+}
+
+function countByBuckets(dates: Date[], buckets: TrendBuckets): number[] {
+  return buckets.starts.map((start, index) => {
+    const end = buckets.ends[index]
+    let count = 0
+    for (const date of dates) {
+      if (date >= start && date < end) {
+        count += 1
+      }
+    }
+    return count
+  })
+}
+
+function buildMonthlySnapshotsSinceLaunch(
+  userDates: Date[],
+  registrationDates: Date[],
+  launchDate: Date,
+  asOfDate: Date,
+): MonthlySnapshot[] {
+  const snapshots: MonthlySnapshot[] = []
+  const monthCursor = new Date(launchDate.getFullYear(), launchDate.getMonth(), 1)
+  const lastMonth = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), 1)
+
+  while (monthCursor <= lastMonth) {
+    const monthStart = new Date(monthCursor)
+    const monthEnd = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1)
+
+    const totalUsers = userDates.filter(date => date < monthEnd).length
+    const registrations = registrationDates.filter(date => date >= monthStart && date < monthEnd).length
+
+    snapshots.push({
+      month: monthStart.toLocaleDateString("en-GB", { month: "short", year: "numeric" }),
+      totalUsers,
+      registrations,
+    })
+
+    monthCursor.setMonth(monthCursor.getMonth() + 1)
+  }
+
+  return snapshots
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   if (!isAdminEmail(session?.user?.email)) {
@@ -42,6 +139,12 @@ export async function GET(request: Request) {
     periodLabel = String(now.getFullYear())
   }
 
+  const trendBuckets =
+    period === "yearly" ? getYearlyMonthBuckets(now.getFullYear()) : getMonthlyWeekBuckets(periodStart)
+
+  const trendStart = trendBuckets.starts[0] ?? periodStart
+  const trendEnd = trendBuckets.ends[trendBuckets.ends.length - 1] ?? now
+
   const [
     totalUsers,
     newUsers,
@@ -57,6 +160,12 @@ export async function GET(request: Request) {
     transactions,
     topEvents,
     userPlans,
+    usersForTrend,
+    eventsForTrend,
+    registrationsForTrend,
+    usersSinceLaunch,
+    registrationsSinceLaunch,
+    allEventsForPipeline,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { createdAt: { gte: periodStart } } }),
@@ -83,6 +192,36 @@ export async function GET(request: Request) {
       include: { organizer: { select: { name: true, email: true } } },
     }),
     prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: trendStart, lt: trendEnd } },
+      select: { createdAt: true },
+    }),
+    prisma.event.findMany({
+      where: { createdAt: { gte: trendStart, lt: trendEnd } },
+      select: { createdAt: true },
+    }),
+    prisma.registration.findMany({
+      where: { submittedAt: { gte: trendStart, lt: trendEnd } },
+      select: { submittedAt: true },
+    }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
+      select: { createdAt: true },
+    }),
+    prisma.registration.findMany({
+      where: { submittedAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
+      select: { submittedAt: true },
+    }),
+    prisma.event.findMany({
+      select: {
+        organizerId: true,
+        organizerEmail: true,
+        confirmedCount: true,
+        deadline: true,
+        status: true,
+        archived: true,
+      },
+    }),
   ])
 
   const errorMap: Record<string, { count: number; message: string }> = {}
@@ -100,6 +239,40 @@ export async function GET(request: Request) {
 
   const revenueKsh = transactions.reduce((sum, transaction) => sum + transaction.amountKsh, 0)
   const planCounts = Object.fromEntries(userPlans.map(plan => [plan.plan, plan._count._all]))
+  const userTrend = countByBuckets(usersForTrend.map(item => item.createdAt), trendBuckets)
+  const eventTrend = countByBuckets(eventsForTrend.map(item => item.createdAt), trendBuckets)
+  const registrationTrend = countByBuckets(registrationsForTrend.map(item => item.submittedAt), trendBuckets)
+  const monthlySnapshots = buildMonthlySnapshotsSinceLaunch(
+    usersSinceLaunch.map(item => item.createdAt),
+    registrationsSinceLaunch.map(item => item.submittedAt),
+    FIRST_PLATFORM_ACTIVITY_AT,
+    now,
+  )
+
+  const createdEventOrganizerKeys = new Set<string>()
+  const completedEventOrganizerKeys = new Set<string>()
+  const eligibleForProOrganizerKeys = new Set<string>()
+
+  for (const event of allEventsForPipeline) {
+    const organizerKey = event.organizerId ?? event.organizerEmail
+    if (!organizerKey) continue
+
+    createdEventOrganizerKeys.add(organizerKey)
+
+    const isCompleted =
+      event.archived ||
+      event.status.toLowerCase() === "completed" ||
+      event.status.toLowerCase() === "closed" ||
+      (event.deadline ? event.deadline < now : false)
+
+    if (isCompleted) {
+      completedEventOrganizerKeys.add(organizerKey)
+    }
+
+    if (event.confirmedCount >= PRO_ELIGIBILITY_MIN_REGISTRATIONS || isCompleted) {
+      eligibleForProOrganizerKeys.add(organizerKey)
+    }
+  }
 
   const buffer = await generateStakeholderReport({
     period,
@@ -122,13 +295,27 @@ export async function GET(request: Request) {
       registrations: event.confirmedCount,
       capacity: event.capacity,
       organizer: event.organizer?.name ?? event.organizer?.email ?? "Unknown",
+      status: event.status,
+      archived: event.archived,
+      deadline: event.deadline,
     })),
     errorCount: errorLogs.length,
     topErrors,
     failedEmailCount: errorLogs.filter(error => error.route.toLowerCase().includes("email") || error.message.toLowerCase().includes("email")).length,
+    emailsSent: null,
+    uptimePercentage: null,
     freeUsers: planCounts.free ?? 0,
     proUsers: planCounts.pro ?? 0,
     businessUsers: planCounts.business ?? 0,
+    firstPlatformActivityAt: FIRST_PLATFORM_ACTIVITY_AT,
+    growthLabels: trendBuckets.labels,
+    usersTrend: userTrend,
+    eventsTrend: eventTrend,
+    registrationsTrend: registrationTrend,
+    monthlySnapshots,
+    createdEventOrganizers: createdEventOrganizerKeys.size,
+    completedEventOrganizers: completedEventOrganizerKeys.size,
+    eligibleForProOrganizers: eligibleForProOrganizerKeys.size,
   })
 
   const reportBytes = new Uint8Array(buffer)

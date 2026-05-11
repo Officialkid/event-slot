@@ -64,6 +64,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     return NextResponse.json({
       success: true,
       event: {
+        id: event.id,
         title: event.title,
         description: event.description,
         capacity: event.capacity,
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
         archived: event.archived,
         status: event.status,
+        ticketsEnabled: event.ticketsEnabled,
         expiresAt: event.expiresAt,
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',

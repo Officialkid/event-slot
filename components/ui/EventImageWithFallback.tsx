@@ -45,8 +45,21 @@ export default function EventImageWithFallback({
   const normalizedSrc = useMemo(() => {
     const raw = (src ?? "").trim()
     if (!raw) return null
+
+    let candidate = raw
+    // Recover from accidentally encoded full URLs such as https%3A%2F%2F...
+    if (!/^https?:\/\//i.test(candidate) && /%2f|%3a/i.test(candidate)) {
+      try {
+        candidate = decodeURIComponent(candidate)
+      } catch {
+        candidate = raw
+      }
+    }
+
     try {
-      return new URL(raw).toString()
+      const url = new URL(candidate)
+      url.pathname = url.pathname.replace(/\/{2,}/g, "/")
+      return url.toString()
     } catch {
       return null
     }
