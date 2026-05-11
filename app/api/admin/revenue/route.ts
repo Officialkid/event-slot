@@ -12,6 +12,8 @@ export async function GET() {
     }
 
     const now = new Date()
+    const monthStart     = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
     // Build last 12 month buckets
     const months: { start: Date; end: Date; label: string }[] = []
@@ -22,7 +24,18 @@ export async function GET() {
       months.push({ start: d, end, label })
     }
 
-    const [purchaseTxs, spendTxs] = await Promise.all([
+    const [purchaseTxs, spendTxs,
+      totalTokensPurchasedAgg,
+      tokensThisMonthAgg,
+      tokensLastMonthAgg,
+      tokensOnDocumentsAgg,
+      tokensOnVoiceAgg,
+      totalTokensSpentAgg,
+      totalTokensHeldAgg,
+      monthlyTokenPurchases,
+      uniqueBuyers,
+    ] = await Promise.all([
+      // ── Existing credits data ────────────────────────────
       // All credit purchase transactions (positive amounts — top-ups)
       prisma.creditTransaction.findMany({
         where: { type: 'purchase' },
@@ -32,6 +45,48 @@ export async function GET() {
       prisma.creditTransaction.findMany({
         where: { type: { not: 'purchase' } },
         select: { amount: true },
+      }),
+
+      // ── Token economy data ───────────────────────────────
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'PURCHASE' },
+        _sum: { amount: true },
+      }),
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'PURCHASE', createdAt: { gte: monthStart } },
+        _sum: { amount: true },
+      }),
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'PURCHASE', createdAt: { gte: lastMonthStart, lt: monthStart } },
+        _sum: { amount: true },
+      }),
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'DEBIT', description: { contains: 'Document' } },
+        _sum: { amount: true },
+      }),
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'DEBIT', description: { contains: 'Voice' } },
+        _sum: { amount: true },
+      }),
+      prisma.tokenTransaction.aggregate({
+        where: { type: 'DEBIT' },
+        _sum: { amount: true },
+      }),
+      prisma.tokenBalance.aggregate({ _sum: { balance: true } }),
+      prisma.$queryRaw<{ month: string; tokens: number; ksh: number }[]>`
+        SELECT
+          TO_CHAR(DATE_TRUNC('month', "createdAt"), 'Mon YYYY') AS month,
+          SUM(amount)::int AS tokens,
+          (SUM(amount) * 5)::int AS ksh
+        FROM "TokenTransaction"
+        WHERE type = 'PURCHASE'
+          AND "createdAt" >= NOW() - INTERVAL '12 months'
+        GROUP BY DATE_TRUNC('month', "createdAt")
+        ORDER BY DATE_TRUNC('month', "createdAt") ASC
+      `,
+      prisma.tokenTransaction.groupBy({
+        by: ['userId'],
+        where: { type: 'PURCHASE' },
       }),
     ])
 
@@ -54,7 +109,18 @@ export async function GET() {
       return { month: label, revenue }
     })
 
+    // ── Token economy calculations ───────────────────────
+    const totalPurchasedTokens  = totalTokensPurchasedAgg._sum.amount ?? 0
+    const totalRevenueKsh        = totalPurchasedTokens * 5
+    const thisMonthKsh           = (tokensThisMonthAgg._sum.amount ?? 0) * 5
+    const lastMonthKsh           = (tokensLastMonthAgg._sum.amount ?? 0) * 5
+
+    const revenueChangePercent = lastMonthKsh > 0
+      ? ((thisMonthKsh - lastMonthKsh) / lastMonthKsh * 100).toFixed(1)
+      : thisMonthKsh > 0 ? '+100' : '0'
+
     return NextResponse.json({
+      // Existing credit revenue
       totalCreditsPurchased,
       totalCreditsSpent,
       creditRevenueTotal,
@@ -64,6 +130,19 @@ export async function GET() {
       newPaidThisMonth,
       churnedThisMonth,
       creditsByMonth: revenueByMonth,
+
+      // Token economy
+      totalRevenueKsh,
+      thisMonthKsh,
+      lastMonthKsh,
+      revenueChangePercent,
+      totalTokensPurchased: totalPurchasedTokens,
+      totalTokensSpent: Math.abs(totalTokensSpentAgg._sum.amount ?? 0),
+      totalTokensHeld: totalTokensHeldAgg._sum.balance ?? 0,
+      tokensOnDocuments: Math.abs(tokensOnDocumentsAgg._sum.amount ?? 0),
+      tokensOnVoice: Math.abs(tokensOnVoiceAgg._sum.amount ?? 0),
+      uniqueBuyerCount: uniqueBuyers.length,
+      monthlyPurchases: monthlyTokenPurchases,
     })
   } catch (err) {
     console.error('[admin/revenue] GET error:', err)

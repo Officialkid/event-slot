@@ -22,7 +22,8 @@ description: Official EventSlot documentation for Env vars.
 | PAYSTACK_SECRET_KEY | Yes for billing/webhook | report download billing | Paystack dashboard |
 | UPSTASH_REDIS_REST_URL | Optional but recommended | distributed rate limiting | Upstash dashboard |
 | UPSTASH_REDIS_REST_TOKEN | Optional but recommended | distributed rate limiting | Upstash dashboard |
-| GROQ_API_KEY | Optional per AI feature usage | AI provider | Groq console |
+| GROQ_API_KEY | Yes for customer assistant + event Q&A | AI provider | Groq console |
+| OPENAI_API_KEY | Yes for voice transcription (Whisper) | voice assistant | OpenAI platform |
 | OPENROUTER_API_KEY | Optional fallback | AI provider | OpenRouter console |
 | ANTHROPIC_API_KEY | Optional report provider | AI provider | Anthropic console |
 | CRON_SECRET | Yes for cron protection | secure cron routes | generated secret |
@@ -48,6 +49,7 @@ PAYSTACK_SECRET_KEY=replace_with_paystack_secret
 UPSTASH_REDIS_REST_URL=replace_with_upstash_url
 UPSTASH_REDIS_REST_TOKEN=replace_with_upstash_token
 GROQ_API_KEY=replace_with_groq_key
+OPENAI_API_KEY=replace_with_openai_key
 OPENROUTER_API_KEY=replace_with_openrouter_key
 ANTHROPIC_API_KEY=replace_with_anthropic_key
 CRON_SECRET=replace_with_cron_secret

@@ -80,6 +80,9 @@ model User {
   organizerFeedback  OrganizerFeedback[]
   messages           Message[]
   reportDownload     ReportDownload?
+  tokenBalance       TokenBalance?
+  tokenTransactions  TokenTransaction[]
+  voiceQuota         VoiceQuota?
 }
 
 model UserOnboarding {
@@ -322,4 +325,93 @@ model AuditLog {
   action    String
   metadata  Json?
   createdAt DateTime @default(now())
+}
+
+model AssistantSession {
+  id            String             @id @default(cuid())
+  ipHash        String
+  userAgent     String?
+  channel       SessionChannel     @default(TEXT)
+  status        SessionStatus      @default(ACTIVE)
+  flagged       Boolean            @default(false)
+  flagReason    String?
+  messageCount  Int                @default(0)
+  offTopicCount Int                @default(0)
+  startedAt     DateTime           @default(now())
+  endedAt       DateTime?
+  messages      AssistantMessage[]
+}
+
+model AssistantMessage {
+  id        String           @id @default(cuid())
+  sessionId String
+  session   AssistantSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      MessageRole
+  content   String           @db.Text
+  isVoice   Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+enum SessionChannel {
+  TEXT
+  VOICE
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+  FLAGGED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+model TokenBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model TokenTransaction {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          TransactionType
+  amount        Int
+  balanceBefore Int
+  balanceAfter  Int
+  description   String
+  referenceId   String?
+  createdAt     DateTime        @default(now())
+}
+
+model VoiceQuota {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usedThisMonth Int      @default(0)
+  resetAt       DateTime
+  updatedAt     DateTime @updatedAt
+}
+
+model RateLimitLog {
+  id        String   @id @default(cuid())
+  key       String
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+enum TransactionType {
+  PURCHASE
+  DEBIT
+  REFUND
+  ADMIN_GRANT
+  BONUS
+  MONTHLY_VOICE
 }

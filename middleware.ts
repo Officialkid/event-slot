@@ -4,21 +4,40 @@ import { isAdminEmail } from '@/lib/isAdmin'
 
 export default withAuth(
   function middleware(req) {
-    const isAdminRoute = req.nextUrl.pathname.startsWith('/admin')
     const token = req.nextauth.token
+    const res   = NextResponse.next()
 
-    if (isAdminRoute) {
-      const isSuperAdmin = token?.role === 'SUPER_ADMIN' || isAdminEmail(token?.email)
-      if (!isSuperAdmin) {
-        return NextResponse.redirect(new URL('/unauthorized', req.url))
-      }
+    // ── Security headers on every response ───────────────
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('X-Frame-Options', 'DENY')
+    res.headers.set('X-XSS-Protection', '1; mode=block')
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    res.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()')
+    res.headers.set('Content-Security-Policy', [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
+      "font-src 'self' fonts.gstatic.com",
+      "img-src 'self' data: blob: *.r2.dev lh3.googleusercontent.com",
+      "connect-src 'self' *.groq.com *.openai.com",
+      "media-src 'self' blob:",
+      "frame-ancestors 'none'",
+    ].join('; '))
+
+    // ── Route protection ──────────────────────────────────
+    const isSuperAdmin = token?.role === 'SUPER_ADMIN' || isAdminEmail(token?.email)
+
+    if (req.nextUrl.pathname.startsWith('/admin') && !isSuperAdmin) {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+    if (req.nextUrl.pathname.startsWith('/api/admin') && !isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    return NextResponse.next()
+    return res
   },
   {
     callbacks: {
-      // Return true to allow the request; false redirects to the login page.
       authorized: ({ token }) => !!token,
     },
     pages: {
@@ -29,14 +48,16 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    // Authenticated organizer sections
     '/dashboard/:path*',
     '/my-events',
     '/create',
     '/edit/:path*',
-    // Admin
     '/admin/:path*',
-    // Scanned paths — none currently exist but protected preemptively
+    '/tokens/:path*',
+    '/api/organizer/:path*',
+    '/api/admin/:path*',
+    '/api/user/:path*',
+    '/api/assistant/:path*',
     '/preview/:path*',
     '/render/:path*',
     '/template/:path*',

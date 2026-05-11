@@ -1,8 +1,18 @@
 import Groq from 'groq-sdk'
 
-const groq = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
-  : null
+if (!process.env.GROQ_API_KEY) {
+  console.warn('[EventSlot] GROQ_API_KEY not set — AI assistant disabled')
+}
+
+export const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY ?? '',
+})
+
+// Llama 3.1 8B — fast, free, excellent for support use cases
+export const ASSISTANT_MODEL = 'llama-3.1-8b-instant'
+
+// Keep internal client reference for askGroq helper (null-safe legacy usage)
+const _groq = process.env.GROQ_API_KEY ? groq : null
 
 type AITaskType = 'insights' | 'qa' | 'capacity' | 'tracker' | 'report'
 
@@ -29,11 +39,11 @@ export async function askGroq({
   taskType: AITaskType
   maxTokens?: number
 }): Promise<string> {
-  if (!groq) {
+  if (!_groq) {
     throw new Error('GROQ_API_KEY is not configured')
   }
 
-  const completion = await groq.chat.completions.create({
+  const completion = await _groq.chat.completions.create({
     model: getGroqModelByTask(taskType),
     temperature: 0.3,
     max_tokens: maxTokens,

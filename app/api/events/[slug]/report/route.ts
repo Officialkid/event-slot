@@ -7,6 +7,9 @@ import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { reportDownloadRatelimit } from '@/lib/ratelimit'
+import { useFeature, creditTokens } from '@/lib/tokens'
+import { PAYMENTS_ENABLED } from '@/lib/payments'
+import { rateLimit } from '@/lib/rate-limit'
 
 function extractDisplayNameFromEmail(email: string): string {
   const local = email.split('@')[0] || 'Organiser'
@@ -234,46 +237,54 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         )
       }
 
-      if (!isSuperAdmin) {
-        const downloadRecord = await prisma.reportDownload.findUnique({
-          where: { userId: session.user.id },
-        })
+      // ── Per-user document generation rate limit (10/hr) ─
+      const docRl = await rateLimit(session.user.id, 'DOCUMENT_GENERATION', 10, 60)
+      if (!docRl.allowed) {
+        return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 })
+      }
 
-        if (!downloadRecord || downloadRecord.downloadsRemaining < 1) {
-          return NextResponse.json(
-            {
-              error: 'No downloads remaining',
-              code: 'PAYMENT_REQUIRED',
-              pricing: REPORT_DOWNLOAD_PRICING,
-            },
-            { status: 402 }
-          )
-        }
+      // ── Token gate ──────────────────────────────────────
+      const access = await useFeature(
+        session.user.id,
+        session.user.email!,
+        'DOCUMENT_GENERATION',
+        `Document report — event ${slug}`,
+        slug
+      )
 
-        const updated = await prisma.reportDownload.updateMany({
-          where: {
-            userId: session.user.id,
-            downloadsRemaining: { gte: 1 },
-          },
-          data: {
-            downloadsRemaining: { decrement: 1 },
-          },
-        })
-
-        if (updated.count < 1) {
-          return NextResponse.json(
-            {
-              error: 'No downloads remaining',
-              code: 'PAYMENT_REQUIRED',
-              pricing: REPORT_DOWNLOAD_PRICING,
-            },
-            { status: 402 }
-          )
-        }
+      if (!access.allowed) {
+        return NextResponse.json({
+          error: 'INSUFFICIENT_TOKENS',
+          message: PAYMENTS_ENABLED
+            ? `Generating a report costs 20 tokens (KSh 100). Your current balance is ${
+                access.newBalance ?? 0
+              } tokens. Purchase tokens to continue.`
+            : `Generating a report costs 20 tokens (KSh 100). Your current balance is ${
+                access.newBalance ?? 0
+              } tokens. Token purchases are coming very soon!`,
+          required: 20,
+          currentBalance: access.newBalance ?? 0,
+          paymentsEnabled: PAYMENTS_ENABLED,
+        }, { status: 402 })
       }
 
       const reportData = buildEventReportData(eventPayload, confirmed, waitlist, theme)
-      const buffer = await generateEventReport(reportData)
+      let buffer: Buffer | ArrayBuffer
+      try {
+        buffer = await generateEventReport(reportData)
+      } catch (genErr) {
+        // Refund tokens if generation fails
+        if (!isSuperAdmin) {
+          await creditTokens(
+            session.user.id,
+            20,
+            'REFUND',
+            `Report generation failed — event ${slug}`,
+            slug
+          )
+        }
+        throw genErr
+      }
 
       const reportBytes = new Uint8Array(buffer)
 

@@ -5,7 +5,8 @@ import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
-import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
+import { seedPrivilegedAccounts } from "@/lib/seedAdmins"
+import { AssistantWidget } from "../components/AssistantWidget";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -150,6 +151,7 @@ export default async function RootLayout({
           {children}
           <Toast />
           <DevToolsDetector />
+          <AssistantWidget />
         </Providers>
       </body>
     </html>
