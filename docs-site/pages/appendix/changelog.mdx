@@ -1,3 +1,9 @@
+## Deploy — May 11, 2026 (3bad1ba)
+
+> feat(md2): token economy, AI assistant, security hardening - Token economy: lib/tokens.ts, lib/voice-quota.ts, lib/payments.ts - Voice quota system with monthly reset cron - Document generation token gate on report download - Paystack webhook (hard-gated behind PAYMENTS_ENABLED) - Token top-up page (Coming Soon state) - Super admin revenue dashboard with token economy metrics - AI assistant widget + chat/transcribe API routes - Admin conversations page + session management - Rate limiting (DB-backed): chat 60/hr, transcribe 30/hr, reports 10/hr - Security headers in middleware (CSP, X-Frame-Options, etc.) - Expanded middleware route protection - Admin sidebar: added Documentation link - Prisma schema: TokenBalance, TokenTransaction, VoiceQuota, RateLimitLog
+
+---
+
 ## Deploy — May 11, 2026 (1c31a35)
 
 > fix(ci): use dummy env vars in PR build check to remove secret dependency
