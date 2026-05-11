@@ -119,6 +119,9 @@ jobs:
     name: Outdated Dependencies Report
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
+    permissions:
+      contents: read
+      issues: write
     # Only runs on weekly schedule — not on every push
 
     steps:

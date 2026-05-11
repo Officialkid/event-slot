@@ -1,0 +1,12 @@
+title = "EventSlot gitleaks config"
+
+[extend]
+useDefault = true
+
+# Allowlist only specific, known false positives from historical commits.
+[[allowlists]]
+description = "Known false positives in docs/workflow history"
+fingerprints = [
+  "6fa13755350ce72b5c279ad0c7a0af74c3a6da63:docs-site/pages/api-reference/overview.mdx:generic-api-key:59",
+  "870cee58064af016b5b41dbc75aa1f38c15908aa:.github/workflows/deploy.yml:generic-api-key:10",
+]
