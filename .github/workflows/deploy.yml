@@ -208,38 +208,59 @@ jobs:
 
           validate_secret() {
             local secret_name=$1
-            local secret_value=$(gcloud secrets versions access latest --secret="$secret_name" --project="$PROJECT_ID" 2>/dev/null || echo "")
+            local tmpfile
+            tmpfile=$(mktemp)
 
-            if [ -z "$secret_value" ]; then
+            # Use --out-file to get raw binary bytes — avoids bash stripping null bytes via $()
+            if ! gcloud secrets versions access latest \
+                --secret="$secret_name" \
+                --project="$PROJECT_ID" \
+                --out-file="$tmpfile" 2>/dev/null; then
               echo "❌ Error: Secret '$secret_name' not found in GCP Secret Manager."
+              rm -f "$tmpfile"
               return 1
             fi
 
-            # Check for UTF-8 BOM (EF BB BF in hex)
-            if printf '%s' "$secret_value" | od -An -tx1 | grep -q 'ef bb bf'; then
-              echo "❌ Error: Secret '$secret_name' contains UTF-8 BOM (hidden bytes)."
+            if [ ! -s "$tmpfile" ]; then
+              echo "❌ Error: Secret '$secret_name' is empty."
+              rm -f "$tmpfile"
               return 1
             fi
 
-            # Check for CRLF or LF at start/end
-            if printf '%s' "$secret_value" | grep -E '^\r|^\n|.\r$|.\n$' >/dev/null 2>&1; then
-              echo "❌ Error: Secret '$secret_name' contains line endings (CRLF/LF)."
-              return 1
-            fi
+            local hex_dump
+            hex_dump=$(od -An -tx1 "$tmpfile" | tr -d ' \n')
 
-            # Check for null bytes
-            if printf '%s' "$secret_value" | grep -q $'\x00'; then
+            # Check for null bytes (00 in hex dump)
+            if echo "$hex_dump" | grep -qE '(^|[0-9a-f]{2})00'; then
               echo "❌ Error: Secret '$secret_name' contains null bytes."
+              rm -f "$tmpfile"
               return 1
             fi
 
-            # Check for leading/trailing whitespace
-            local trimmed=$(printf '%s' "$secret_value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-            if [ "$secret_value" != "$trimmed" ]; then
-              echo "❌ Error: Secret '$secret_name' contains leading/trailing whitespace."
+            # Check for UTF-8 BOM (starts with efbbbf)
+            if echo "$hex_dump" | grep -q '^efbbbf'; then
+              echo "❌ Error: Secret '$secret_name' contains UTF-8 BOM."
+              rm -f "$tmpfile"
               return 1
             fi
 
+            # Check first byte for leading whitespace or line endings (20=space, 09=tab, 0a=LF, 0d=CR)
+            local first_byte="${hex_dump:0:2}"
+            if [[ "$first_byte" =~ ^(20|09|0a|0d)$ ]]; then
+              echo "❌ Error: Secret '$secret_name' has leading whitespace or line ending."
+              rm -f "$tmpfile"
+              return 1
+            fi
+
+            # Check last byte for trailing whitespace or line endings
+            local last_byte="${hex_dump: -2}"
+            if [[ "$last_byte" =~ ^(20|09|0a|0d)$ ]]; then
+              echo "❌ Error: Secret '$secret_name' has trailing whitespace or line ending."
+              rm -f "$tmpfile"
+              return 1
+            fi
+
+            rm -f "$tmpfile"
             echo "✓ Secret '$secret_name' validation passed (clean value)."
             return 0
           }
