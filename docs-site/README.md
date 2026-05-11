@@ -44,9 +44,10 @@ Current variables:
 
 ## Deployment
 
-Deploy on Vercel with the root directory set to `docs-site`.
+Built and deployed via Docker using `Dockerfile.docs` at the repo root. The image is pushed to Google Artifact Registry and served on Google Cloud Run.
 
-Recommended domains:
+```bash
+docker build -f Dockerfile.docs -t eventslot-docs .
+```
 
-- `docs.eventslot.com`
-- `eventslot-docs.vercel.app`
+Custom domain: `docs.eventsslot.com`

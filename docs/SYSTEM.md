@@ -46,7 +46,7 @@ to confirmed status and notified by email.
 | File Storage  | Cloudflare R2 (event/profile images)|
 | AI            | Groq + OpenRouter + Claude fallback |
 | Rate Limiting | Upstash Redis                       |
-| Hosting       | Vercel                              |
+| Hosting       | Google Cloud Run                    |
 | PWA           | next-pwa                            |
 
 ---
