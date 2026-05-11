@@ -13,7 +13,7 @@ bytes, and 'grep -q $''' which is always true because the C runtime
 treats the null byte as end-of-string (empty pattern matches everything).
 
 New approach:
-- gcloud secrets versions access --out-file=<tmpfile> for raw binary output
+- gcloud secrets versions access --out-file=&lt;tmpfile&gt; for raw binary output
 - od -An -tx1 produces a clean hex dump with no bash string handling
 - All checks (null bytes, BOM, leading/trailing whitespace) operate on hex
   strings, not raw bytes, so they work correctly in all cases
