@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -31,10 +32,16 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const isOwner = event.organizerId === session.user.id
+  const userId = session.user.id
+  const isOwner = event.organizerId === userId
   const isSuperAdmin = session.user.role === 'SUPER_ADMIN' || session.user.isAdmin
+  const isTeamMember = !isOwner && !isSuperAdmin && !!(event.organizerId && await hasTeamEventAccess({
+    userId,
+    organizerId: event.organizerId,
+    eventId: event.id,
+  }))
 
-  if (!isOwner && !isSuperAdmin) {
+  if (!isOwner && !isSuperAdmin && !isTeamMember) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
