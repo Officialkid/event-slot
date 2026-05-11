@@ -1,8 +1,11 @@
+import fs from "fs"
+import path from "path"
 import {
   AlignmentType,
   BorderStyle,
   Document,
   Footer,
+  Header,
   HeadingLevel,
   ImageRun,
   Packer,
@@ -1434,13 +1437,26 @@ function buildCoverPage(data: StakeholderReportData): Paragraph[] {
   const reportType = reportTypeLabel(data.period)
   const period = displayPeriodLabel(data)
 
+  let logoData: Buffer | null = null
+  try {
+    logoData = fs.readFileSync(path.join(process.cwd(), "public", "assets", "logo.png"))
+  } catch { /* logo optional */ }
+
   return [
+    ...(logoData
+      ? [new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { before: 600, after: 160 },
+          children: [new ImageRun({ type: "png", data: logoData, transformation: { width: 52, height: 52 } })],
+        })]
+      : [new Paragraph({ spacing: { before: 600, after: 160 }, children: [] })]
+    ),
     new Paragraph({
       children: [
-        new TextRun({ text: "Event", bold: true, size: 52, color: "FFFFFF" }),
+        new TextRun({ text: "Event", bold: true, size: 52, color: "000000" }),
         new TextRun({ text: "Slot", bold: true, size: 52, color: LIME }),
       ],
-      spacing: { before: 600, after: 120 },
+      spacing: { before: 0, after: 120 },
     }),
     new Paragraph({
       children: [new TextRun({ text: reportType.toUpperCase(), bold: true, size: 32, color: DARK })],
@@ -1583,6 +1599,27 @@ Format exactly as:
             size: { width: 12240, height: 15840 },
             margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 },
           },
+        },
+        headers: {
+          default: (() => {
+            let logoHdr: Buffer | null = null
+            try { logoHdr = fs.readFileSync(path.join(process.cwd(), "public", "assets", "logo.png")) } catch { /* optional */ }
+            return new Header({
+              children: [
+                new Paragraph({
+                  border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: LIME, space: 4 } },
+                  spacing: { before: 0, after: 80 },
+                  alignment: AlignmentType.LEFT,
+                  children: [
+                    ...(logoHdr ? [new ImageRun({ type: "png", data: logoHdr, transformation: { width: 28, height: 28 } })] : []),
+                    new TextRun({ text: logoHdr ? "  " : "", font: "Arial", size: 18 }),
+                    new TextRun({ text: "Event", bold: true, size: 22, color: "000000", font: "Arial" }),
+                    new TextRun({ text: "Slot", bold: true, size: 22, color: LIME, font: "Arial" }),
+                  ],
+                }),
+              ],
+            })
+          })(),
         },
         footers: {
           default: new Footer({
