@@ -140,24 +140,24 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
-          PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          NEXTAUTH_URL: https://www.eventsslot.com
+          NEXTAUTH_SECRET: ci-build-secret
+          GOOGLE_CLIENT_ID: ci-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-google-client-secret
+          RESEND_API_KEY: ci-resend-api-key
+          PAYSTACK_SECRET_KEY: ci-paystack-secret-key
+          PAYSTACK_PUBLIC_KEY: ci-paystack-public-key
+          ANTHROPIC_API_KEY: ci-anthropic-api-key
+          UPSTASH_REDIS_REST_URL: https://ci-upstash.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: ci-upstash-token
+          SUPER_ADMIN_EMAIL: ci@eventsslot.com
+          R2_ACCOUNT_ID: ci-r2-account-id
+          R2_ACCESS_KEY_ID: ci-r2-access-key-id
+          R2_SECRET_ACCESS_KEY: ci-r2-secret-access-key
+          R2_BUCKET_NAME: ci-bucket
+          R2_PUBLIC_URL: https://ci-r2.example.com
+          CRON_SECRET: ci-cron-secret
 
       - name: Comment build result on PR
         if: always()
