@@ -21,10 +21,9 @@ export function DevToolsDetector() {
   const [visible, setVisible] = useState(false)
   const firedRef = useRef(false)
 
-  if (status === 'authenticated') return null
-
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (status === 'authenticated') return
 
     function detect(): boolean {
       // Method 1: viewport size shrinks when DevTools dock to the side/bottom
@@ -32,13 +31,6 @@ export function DevToolsDetector() {
       const widthDelta = window.screen.width - window.innerWidth
       const heightDelta = window.screen.height - window.innerHeight
       if (widthDelta > threshold || heightDelta > threshold) return true
-
-      // Method 2: debugger timing — takes >10 ms only when paused in DevTools
-      const start = performance.now()
-      // eslint-disable-next-line no-debugger
-      debugger
-      const elapsed = performance.now() - start
-      if (elapsed > 10) return true
 
       return false
     }
@@ -56,9 +48,9 @@ export function DevToolsDetector() {
     check()
 
     return () => clearInterval(interval)
-  }, [])
+  }, [status])
 
-  if (!visible) return null
+  if (status === 'authenticated' || !visible) return null
 
   return (
     <div

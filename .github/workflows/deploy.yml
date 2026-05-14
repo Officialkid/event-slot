@@ -404,28 +404,38 @@ jobs:
       - name: Commit documentation metadata
         if: steps.deploy-ready.outputs.enabled == 'true'
         shell: bash
+        env:
+          DOC_UPDATED_AT: ${{ steps.deploy-meta.outputs.date }}
+          DOC_COMMIT_SHA: ${{ github.sha }}
+          DOC_CLOUD_RUN_REVISION: ${{ steps.deploy-meta.outputs.revision }}
+          DOC_CHANGE_DESCRIPTION: Auto-deploy metadata update
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md
-          if git diff --cached --quiet; then
-            echo "No documentation updates to commit."
-            exit 0
-          fi
-
-          git commit -m "docs(auto): update deploy metadata [skip ci]"
 
           # Another workflow may push to main at the same time.
-          # Rebase and retry so this docs commit is not lost on non-fast-forward.
+          # Regenerate metadata on top of latest origin/main each attempt to avoid rebase conflicts.
           for attempt in 1 2 3; do
-            if git pull --rebase origin main && git push origin main; then
+            git fetch origin main
+            git checkout -B main origin/main
+
+            node scripts/update-system-docs.mjs
+            git add docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md
+
+            if git diff --cached --quiet; then
+              echo "No documentation updates to commit."
+              exit 0
+            fi
+
+            git commit -m "docs(auto): update deploy metadata [skip ci]"
+
+            if git push origin HEAD:main; then
               echo "Documentation metadata pushed successfully on attempt $attempt."
               exit 0
             fi
 
             echo "Push attempt $attempt failed; retrying..."
-            git rebase --abort || true
             sleep 2
           done
 

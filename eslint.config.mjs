@@ -15,6 +15,11 @@ export default defineConfig([
   },
   globalIgnores([
     ".next/**",
+    "**/.next/**",
+    "docs-site/.next/**",
+    "**/docs-site/.next/**",
+    "docs-site/out/**",
+    "**/docs-site/out/**",
     "out/**",
     "build/**",
     "coverage/**",

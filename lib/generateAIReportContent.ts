@@ -39,13 +39,6 @@ function groupByDay(regs: IRegistration[]): Record<string, number> {
   return counts
 }
 
-function getPeakDay(regs: IRegistration[]): string {
-  const byDay = groupByDay(regs)
-  const entries = Object.entries(byDay)
-  if (!entries.length) return 'N/A'
-  return entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0]
-}
-
 function getPeakDayWithCount(regs: IRegistration[]): { date: string; count: number } {
   const byDay = groupByDay(regs)
   const entries = Object.entries(byDay)

@@ -338,10 +338,29 @@ model AssistantSession {
   flagged       Boolean            @default(false)
   flagReason    String?
   messageCount  Int                @default(0)
+  imageCount    Int                @default(0)
   offTopicCount Int                @default(0)
   startedAt     DateTime           @default(now())
   endedAt       DateTime?
   messages      AssistantMessage[]
+}
+
+model ChatQuota {
+  id          String   @id @default(cuid())
+  identifier  String   @unique
+  creditsUsed Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AssistantFeedback {
+  id         String   @id @default(cuid())
+  identifier String
+  rating     Int
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
 }
 
 model AssistantMessage {

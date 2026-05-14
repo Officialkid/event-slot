@@ -74,11 +74,6 @@ const config: DocsThemeConfig = {
       <link rel="icon" href="/favicon.ico" />
       <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       
-      {/* Fonts */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-      
       {/* Google Search Console verification (add your verification code) */}
       {/* <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> */}
     </>

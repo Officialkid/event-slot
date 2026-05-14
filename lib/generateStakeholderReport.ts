@@ -113,16 +113,6 @@ export interface StakeholderReportData {
   eligibleForProOrganizers?: number
 }
 
-function pctValue(current: number, previous: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0
-  return ((current - previous) / previous) * 100
-}
-
-function pct(current: number, previous: number): string {
-  const value = pctValue(current, previous)
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`
-}
-
 function currency(value: number): string {
   return `KSh ${value.toLocaleString()}`
 }
@@ -268,26 +258,6 @@ function buildSystemHealthSummaryParagraph(data: StakeholderReportData, assessme
   }
 
   return `Error activity is concentrated in non-core areas and appears manageable with targeted fixes rather than broad architecture changes. Current reliability posture supports ongoing growth operations while remediation actions are queued for the next execution cycle. Core platform reliability: ${assessment.coreReliabilityStatus}`
-}
-
-function buildExecutiveNarrative(data: StakeholderReportData): string {
-  const usersDelta = pctValue(data.newUsers, data.prevNewUsers)
-  const eventsDelta = pctValue(data.newEvents, data.prevNewEvents)
-  const registrationsDelta = pctValue(data.newRegistrations, data.prevNewRegistrations)
-  const launch = isLaunchPhase(data)
-  const age = platformAgeDays(data)
-
-  const growthContext =
-    launch && (usersDelta < 0 || eventsDelta < 0 || registrationsDelta < 0)
-      ? `Some period-over-period percentages appear negative due to natural early-stage baseline effects while EventSlot is only ${age} days from first recorded activity.`
-      : `Growth indicators remain directionally aligned with EventSlot's current adoption trajectory.`
-
-  const revenueContext =
-    data.revenueKsh === 0
-      ? "Revenue remains at KSh 0 by design during the intentional free-beta phase focused on adoption, onboarding quality, and retention signal collection."
-      : `Revenue reached ${currency(data.revenueKsh)}, indicating early monetisation conversion from report download activity.`
-
-  return `EventSlot closed ${displayPeriodLabel(data)} with ${data.newUsers.toLocaleString()} new users, ${data.newEvents.toLocaleString()} new events, and ${data.newRegistrations.toLocaleString()} new registrations. ${growthContext} ${revenueContext}`
 }
 
 function buildYearInReviewNarrative(data: StakeholderReportData): string {
@@ -1493,7 +1463,6 @@ function buildCoverPage(data: StakeholderReportData): Paragraph[] {
 }
 
 export async function generateStakeholderReport(data: StakeholderReportData): Promise<Buffer> {
-  const launch = isLaunchPhase(data)
   const executiveSummaryParagraphs = await generateExecutiveSummaryParagraphs(data)
   const monetisationNarrative = await generateMonetisationNarrative(data)
   const yearAheadOutlookParagraphs = await generateYearAheadOutlookParagraphs(data)

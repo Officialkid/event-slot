@@ -15,7 +15,7 @@ export const createEventSchema = z.object({
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
-  communityLink: z.string().url().max(500).optional().nullable().or(z.literal('')),
+  communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
   imageUrl: z.string().url().max(1000).optional().nullable(),
   questions: z.array(questionSchema).min(1, 'At least one question is required').max(30),
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
@@ -26,7 +26,7 @@ export const updateEventSettingsSchema = z.object({
   description: z.string().max(5000).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
-  communityLink: z.string().url().max(500).optional().nullable().or(z.literal('')),
+  communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
 })
 

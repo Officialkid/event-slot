@@ -725,7 +725,8 @@ export default function CreateEventPage() {
                     Community link (optional)
                   </label>
                   <input
-                    type="url"
+                    type="text"
+                    inputMode="url"
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     placeholder="e.g. WhatsApp group, Telegram, website"
                     value={communityLink}

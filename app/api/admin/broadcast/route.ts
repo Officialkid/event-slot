@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -23,7 +23,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
 

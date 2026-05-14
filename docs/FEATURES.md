@@ -4,7 +4,7 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 10, 2026_
+_Last updated: May 15, 2026_
 
 ---
 
@@ -68,6 +68,14 @@ _Last updated: May 10, 2026_
 **Where:** `components/DevToolsDetector.tsx`, `app/layout.tsx`  
 **What it does:** Client-side only — shows a warning banner when the browser DevTools panel is detected (via viewport-size delta and debugger timing). Fires once per session; does not restrict any functionality. Added to the root layout as a passive deterrent.
 
+### Confirmed Registrations Export Format Selector (CSV + Word)
+**Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Lets organizers choose export format before download (`CSV` or `Word (.docx)`) from the event dashboard export panel, while preserving existing export permission/unlock behavior.
+
+### Confirmed Registrations Word Document Export
+**Where:** `app/api/events/[slug]/export/route.ts`  
+**What it does:** Extends registrations export endpoint with Word output (`format=word`) that generates a document containing a branded attendee table, registration summary line, registration-day formatting, and a data-protection notice.
+
 ---
 
 ## PWA & Mobile App
@@ -120,6 +128,58 @@ _Last updated: May 10, 2026_
 ### AI Callsite Migrations
 **Where:** `app/api/events/[slug]/ask/route.ts`, `app/api/events/predict-capacity/route.ts`, `lib/generateInsightCards.ts`, `app/api/insights/route.ts`  
 **What it does:** Replaced direct Claude calls with task-routed `askAI` calls and added null-response handling for resilient API output.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 1 Data Foundation
+**Where:** `prisma/schema.prisma` (`ChatQuota`, `AssistantFeedback`, `AssistantSession.imageCount`)  
+**What it does:** Adds persistent assistant usage and feedback primitives for the upgraded assistant experience. `ChatQuota` enables rolling-window credit accounting by identifier (logged-in user or IP hash), `AssistantFeedback` stores daily anonymous 1-5 star feedback with optional comments after limit-hit flows, and `imageCount` on assistant sessions tracks image uploads for multi-credit usage logic.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 2.1 Quota Service
+**Where:** `lib/chat-quota.ts`  
+**What it does:** Adds the server-side rolling 5-hour quota engine for assistant usage. Applies 20-credit window policy, charges 1 credit for text and 3 credits per image, enforces exact reset timing by window start, supports status checks without consumption, and bypasses quota enforcement for super-admin identities.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 4.1 Message API Image Support
+**Where:** `app/api/assistant/message/route.ts`  
+**What it does:** Extends assistant messaging to accept multipart submissions with optional screenshots/images, validates image type and max 4MB size, supports up to 3 images per message, routes image requests to a vision-capable Groq model, and applies rolling quota credits (1 text + 3 per image) with reset-time responses and daily feedback-trigger flags on quota exhaustion.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 4.2 Upload Pre-Validation API
+**Where:** `app/api/assistant/upload/route.ts`  
+**What it does:** Adds a dedicated assistant upload validation endpoint that checks image MIME type and per-file max size before sending messages, returning deterministic validation errors for unsupported formats and oversized files.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 5.1 Feedback Submit API
+**Where:** `app/api/assistant/feedback/route.ts`  
+**What it does:** Adds a dedicated endpoint for assistant rating submission (1-5 stars) with optional comments (max 200 chars), supports anonymous identifiers for logged-out users via hashed IP, and enforces one feedback submission per user/identifier per day.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 5.2 Admin Feedback Analytics
+**Where:** `app/api/admin/feedback/route.ts`  
+**What it does:** Extends the admin feedback API with assistant feedback analytics including total responses, average rating, star distribution, and recent comment stream, while preserving existing organizer feedback list and pagination payloads.
+
+### Assistant Intelligence Upgrade (MD 3) — Phase 6 Frontend Widget
+**Where:** `components/AssistantWidget.tsx`  
+**What it does:** Upgrades the assistant launcher into a full interactive support widget with channel selection (text/voice), screenshot upload previews, multipart image message sending, credit/quota awareness, quota lock messaging, session lifecycle controls, voice transcription flow integration, and in-widget rating prompt submission.
+
+### Assistant Intelligence Upgrade (MD 3) — Shared Assistant Experience
+**Where:** `components/assistant/AssistantExperience.tsx`, `components/AssistantWidget.tsx`, `app/(organizer)/dashboard/assistant/page.tsx`  
+**What it does:** Unifies assistant behavior across popup widget and dedicated dashboard assistant page by using one shared UI/interaction component for session start, image attachments, quota handling, feedback prompts, and voice flow.
+
+### Assistant E2E UI Regression Coverage
+**Where:** `e2e/assistant-widget.spec.ts`  
+**What it does:** Adds browser-level UI checks (with mocked assistant API responses) for screenshot attachment previews, quota-exceeded state rendering, and feedback prompt submission.
+
+### Dashboard Mobile Navigation Balance Refresh
+**Where:** `app/(organizer)/dashboard/_shell.tsx`  
+**What it does:** Updates the dashboard mobile bottom tab bar to a full-width, evenly balanced navigation style aligned with organizer mobile navigation patterns, improving visual symmetry and tap consistency.
+
+### Assistant Launcher Route-Aware Rendering
+**Where:** `components/AssistantWidget.tsx`  
+**What it does:** Hides the floating assistant launcher on dashboard routes where assistant access is already available through dashboard navigation, preventing overlap with the mobile tab bar.
+
+### Assistant Mobile Viewport Fit
+**Where:** `app/(organizer)/dashboard/assistant/page.tsx`  
+**What it does:** Adjusts assistant page viewport sizing on mobile to reduce clipping and improve responsive layout behavior when combined with sticky header and bottom navigation.
+
+### CI Deploy Metadata Push Conflict Guard
+**Where:** `.github/workflows/deploy.yml`  
+**What it does:** Replaces rebase-based docs metadata retries with a regenerate-on-latest strategy, reducing merge conflict failures when concurrent commits update `docs/EVENTSLOT_SYSTEM_DOCUMENTATION.md`.
 
 ---
 

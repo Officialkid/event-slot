@@ -1045,6 +1045,7 @@ export default function EventDashboardPage() {
   const [csvEventId, setCsvEventId] = useState<string | null>(null)
   const [csvUnlockLoading, setCsvUnlockLoading] = useState(false)
   const [csvError, setCsvError] = useState("")
+  const [exportFormat, setExportFormat] = useState<'csv' | 'word'>('csv')
 
   // Analytics
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -1335,7 +1336,7 @@ export default function EventDashboardPage() {
     }
   }
 
-  const downloadReport = async (_intent: 'download' | 'print' = 'download') => {
+  const downloadReport = async () => {
     if (!eventData || downloadingReport) return
     setDownloadingReport(true)
     try {
@@ -1381,13 +1382,17 @@ export default function EventDashboardPage() {
     })
   }
 
-  const handleExportCSV = async () => {
+  const handleExportData = async () => {
     if (!eventData) return
     setCsvExporting(true)
     setCsvError("")
     setCsvCost(null)
     try {
-      const res = await fetch(`/api/events/${slug}/export${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+      const params = new URLSearchParams({ format: exportFormat })
+      if (token) {
+        params.set('token', token)
+      }
+      const res = await fetch(`/api/events/${slug}/export?${params.toString()}`)
       if (res.status === 403) {
         const data = await res.json()
         setCsvCost(data.creditsRequired ?? null)
@@ -1403,11 +1408,11 @@ export default function EventDashboardPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `registrations-${slug}.csv`
+      a.download = `registrations-${slug}.${exportFormat === 'word' ? 'docx' : 'csv'}`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
-      setCsvError("Unable to export CSV.")
+      setCsvError("Unable to export registrations.")
     } finally {
       setCsvExporting(false)
     }
@@ -1434,8 +1439,8 @@ export default function EventDashboardPage() {
       }
       setCsvCost(null)
       setCsvEventId(null)
-      showToast({ featureName: "CSV Export", creditsUsed: 15, creditsRemaining: data.creditsRemaining })
-      await handleExportCSV()
+      showToast({ featureName: "Registration Export", creditsUsed: 15, creditsRemaining: data.creditsRemaining })
+      await handleExportData()
     } catch {
       setCsvError("Unable to complete purchase.")
     } finally {
@@ -2073,7 +2078,7 @@ export default function EventDashboardPage() {
                       )}
                     </div>
                     <button
-                      onClick={() => void downloadReport('download')}
+                      onClick={() => void downloadReport()}
                       disabled={downloadingReport}
                       style={{
                         background: "#C8F55A",
@@ -2091,7 +2096,7 @@ export default function EventDashboardPage() {
                       {downloadingReport ? 'Preparing...' : '↓ Download Word'}
                     </button>
                     <button
-                      onClick={() => void downloadReport('print')}
+                      onClick={() => void downloadReport()}
                       disabled={downloadingReport}
                       style={{
                         background: 'transparent',
@@ -2142,21 +2147,31 @@ export default function EventDashboardPage() {
               {capacityError && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{capacityError}</p>}
             </div>
 
-            {/* Export CSV */}
+            {/* Export Registrations */}
             <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Export Registrations</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Download all confirmed registrations as a CSV file</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Choose CSV or Word and download all confirmed registrations</div>
                 </div>
                 {csvCost === null && (
-                  <button
-                    onClick={handleExportCSV}
-                    disabled={csvExporting || confirmed.length === 0}
-                    style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
-                  >
-                    {csvExporting ? "Exporting…" : "Export CSV"}
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <select
+                      value={exportFormat}
+                      onChange={(e) => setExportFormat(e.target.value === 'word' ? 'word' : 'csv')}
+                      style={{ background: '#0A0A0A', border: '0.5px solid rgba(240,237,230,0.15)', borderRadius: 8, padding: '0.48rem 0.6rem', color: 'rgba(240,237,230,0.7)', fontSize: '0.78rem', fontFamily: 'var(--font-dm-sans)' }}
+                    >
+                      <option value="csv">CSV</option>
+                      <option value="word">Word (.docx)</option>
+                    </select>
+                    <button
+                      onClick={handleExportData}
+                      disabled={csvExporting || confirmed.length === 0}
+                      style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
+                    >
+                      {csvExporting ? "Exporting…" : `Export ${exportFormat === 'word' ? 'Word' : 'CSV'}`}
+                    </button>
+                  </div>
                 )}
               </div>
               {csvCost !== null && (

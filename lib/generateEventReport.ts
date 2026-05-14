@@ -123,15 +123,6 @@ function spacer(): Paragraph {
   return new Paragraph({ text: '' })
 }
 
-function fmt(iso: string | null | undefined, def = 'Not specified'): string {
-  if (!iso) return def
-  try { return format(new Date(iso), 'dd MMM yyyy') } catch { return def }
-}
-
-function fmtDateTime(iso: string): string {
-  try { return format(new Date(iso), 'dd MMM yyyy HH:mm') } catch { return iso }
-}
-
 function fmtDay(iso: string): string {
   try { return format(new Date(iso), 'dd MMM yyyy') } catch { return iso }
 }

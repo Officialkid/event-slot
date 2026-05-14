@@ -1,5 +1,115 @@
 # EventSlot — Changelog
 
+## [0.4.54] — May 15, 2026
+
+### Registrations Export Upgrade (CSV + Word) + Lint Stability
+
+- Upgraded registrations export API in `app/api/events/[slug]/export/route.ts` to support `format=csv|word`.
+- Added Word (`.docx`) attendee export output with:
+  - title + registration count summary
+  - structured attendee table matching export data columns
+  - registration day formatting
+  - privacy notice block for personal data handling
+- Updated organizer dashboard event page `app/(organizer)/dashboard/events/[slug]/page.tsx` export panel to let users choose CSV or Word before download.
+- Kept existing export authorization/unlock flow intact while extending output format choice.
+- Resolved CI lint blockers by fixing hook-order/type issues and unused variables in:
+  - `components/DevToolsDetector.tsx`
+  - `app/api/assistant/message/route.ts`
+  - `app/api/admin/broadcast/route.ts`
+  - `app/api/assistant/my-sessions/route.ts`
+  - `lib/generateAIReportContent.ts`
+  - `lib/generateEventReport.ts`
+  - `lib/generateStakeholderReport.ts`
+  - `lib/ticket.tsx`
+- Hardened lint ignores for generated docs artifacts in `eslint.config.mjs` (`docs-site/.next/**`, `docs-site/out/**`) so CI lint focuses on source files.
+
+## [0.4.53] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 6 Continuation (Shared Page + E2E)
+
+- Extracted a shared assistant UI engine into `components/assistant/AssistantExperience.tsx` so widget and full assistant page use the same behavior.
+- Refactored `components/AssistantWidget.tsx` into a launcher wrapper that mounts the shared assistant experience in popup mode while preserving EventSlot brand colors.
+- Replaced `app/(organizer)/dashboard/assistant/page.tsx` with a dedicated full-page rendering of the same shared assistant experience for consistent UX across entry points.
+- Added Playwright coverage in `e2e/assistant-widget.spec.ts` for:
+  - image attachment preview flow
+  - quota-exceeded response handling
+  - feedback prompt rendering and submission path
+
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 6 (Frontend Widget Upgrade)
+
+- Replaced `components/AssistantWidget.tsx` with a full in-page assistant widget experience including:
+  - text and voice session channel selection
+  - multipart screenshot/image send support with local previews
+  - quota-aware messaging with credits remaining indicator and low-credit color states
+  - quota-exceeded lock state with reset countdown messaging
+  - post-limit rating flow integration with assistant feedback submission
+  - voice recording, transcription handoff, and voice message tagging
+  - session end and start-new-conversation controls
+- Preserved EventSlot brand styling in the launcher and widget UI using the existing lime/black palette.
+- Added responsive widget sizing behavior for smaller mobile viewports to prevent overflow clipping.
+
+## [0.4.52] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 5 (Feedback API)
+
+- Added assistant feedback submit endpoint `POST /api/assistant/feedback` in `app/api/assistant/feedback/route.ts`.
+- Implemented feedback validation rules: rating must be 1-5 and optional comment max length is 200 characters.
+- Implemented daily idempotency for feedback submissions using `(identifier, createdAt >= today)` checks to allow one rating per day.
+- Added anonymous identifier fallback using hashed request IP when user session is not available.
+- Extended existing admin feedback endpoint `GET /api/admin/feedback` in `app/api/admin/feedback/route.ts` to include assistant feedback analytics:
+  - total feedback count
+  - average rating
+  - rating distribution (1-5)
+  - latest comment entries (up to 20)
+- Preserved existing organizer feedback list/pagination response fields to avoid breaking current admin feedback screens.
+
+## [0.4.51] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 4 (Image Upload Support)
+
+- Upgraded `POST /api/assistant/message` in `app/api/assistant/message/route.ts` to support multipart form submissions with up to 3 images per message (max 4MB each).
+- Added image validation and in-request base64 conversion for vision analysis payloads.
+- Added rolling quota consumption to assistant messages using `consumeCredits(identifier, userEmail, imageCount)` from `lib/chat-quota.ts`.
+- Added quota-exceeded response payload with reset timing, wait minutes, remaining credits, and daily feedback trigger flag (`showFeedback`).
+- Added daily feedback gate helper (`shouldShowFeedback`) backed by `AssistantFeedback` records.
+- Added Groq model routing for image-aware messages (`llama-3.2-11b-vision-preview`) with text-model fallback behavior and graceful user messaging.
+- Added standalone assistant image pre-validation endpoint `POST /api/assistant/upload` at `app/api/assistant/upload/route.ts` for allowed type and size checks before send.
+- Preserved backward compatibility for existing text-only assistant clients by supporting JSON body payloads when multipart data is not used.
+
+## [0.4.50] — May 15, 2026
+
+### Mobile UX + Deploy Conflict Fixes
+
+- Fixed create/edit flow false `Invalid URL` friction for optional community links by removing browser-level URL input enforcement and allowing server-side normalization.
+- Updated event schema validation for `communityLink` to accept plain input text (still normalized server-side via `normalizeCommunityLink`) to prevent user-facing invalid URL interruptions.
+- Reworked dashboard mobile bottom navigation in `app/(organizer)/dashboard/_shell.tsx` to a full-width balanced bar matching organizer mobile nav styling patterns.
+- Hid floating assistant launcher on dashboard routes in `components/AssistantWidget.tsx` to avoid overlap/conflict with dashboard mobile tab navigation.
+- Improved assistant page mobile viewport behavior in `app/(organizer)/dashboard/assistant/page.tsx` to reduce clipped layout and improve responsiveness.
+- Hardened deploy workflow docs metadata push logic in `.github/workflows/deploy.yml` to avoid repeated rebase conflict loops by regenerating docs on top of latest `origin/main` before each retry.
+
+## [0.4.49] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 1 (Database)
+
+- Added `ChatQuota` model in `prisma/schema.prisma` to support rolling 5-hour assistant credit windows (`identifier`, `creditsUsed`, `windowStart`, `updatedAt`).
+- Added `AssistantFeedback` model in `prisma/schema.prisma` for daily assistant limit-hit feedback capture (`identifier`, `rating`, optional `comment`, `createdAt`) with index on `(identifier, createdAt)`.
+- Extended `AssistantSession` with `imageCount` in `prisma/schema.prisma` to track per-session image uploads for assistant usage accounting.
+- Generated updated Prisma client from the new schema using `npx prisma generate`.
+- Migration command `npx prisma migrate dev --name add_chat_quota_and_feedback` was prepared but not applied because Prisma detected schema drift and required a destructive reset confirmation.
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 2.1 (Quota Service)
+
+- Added rolling-window quota service in `lib/chat-quota.ts`.
+- Implemented `consumeCredits(identifier, userEmail, imageCount)` with the required credit policy:
+  - 5-hour rolling window
+  - 20 credits maximum per window
+  - text cost = 1 credit
+  - image cost = 3 credits each
+- Implemented super-admin bypass using `isSuperAdmin(...)` with unlimited access behavior.
+- Implemented `getQuotaStatus(identifier, userEmail)` to read current credits/reset state without consuming quota.
+- Exported quota constants for downstream assistant route/UI wiring (`MAX_CREDITS`, `TEXT_CREDIT_COST`, `IMAGE_CREDIT_COST`, `WINDOW_HOURS`, `WINDOW_MS`).
+
 ## [0.4.48] — May 11, 2026
 
 ### Fix 4 — Ticket Toggle + Confirmation Lookup

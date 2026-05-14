@@ -1094,18 +1094,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         className="flex md:hidden"
         style={{
           position: "fixed",
-          bottom: "0.5rem",
-          left: "0.75rem",
-          right: "0.75rem",
+          bottom: 0,
+          left: 0,
+          right: 0,
           background: "#0D0D0D",
-          borderTop: "none",
-          border: "0.5px solid rgba(240,237,230,0.1)",
-          borderRadius: "1.25rem",
-          justifyContent: "space-around",
-          padding: "0.6rem 0",
-          paddingBottom: "calc(0.6rem + env(safe-area-inset-bottom))",
+          borderTop: "0.5px solid rgba(240,237,230,0.08)",
+          justifyContent: "space-evenly",
+          padding: "0.5rem 0",
+          paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
           zIndex: 50,
-          boxShadow: "0 -4px 24px rgba(0,0,0,0.4)",
+          boxShadow: "0 -6px 20px rgba(0,0,0,0.32)",
         }}
       >
         {([

@@ -163,6 +163,8 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
           </View>
 
           <View style={styles.right}>
+            {/* jsx-a11y/alt-text applies to DOM img elements; this is react-pdf's Image component. */}
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={qrDataUrl} style={styles.qrCode} />
             <Text style={styles.qrLabel}>Scan to verify entry</Text>
           </View>

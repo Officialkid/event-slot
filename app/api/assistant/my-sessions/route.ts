@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 // GET /api/assistant/my-sessions — list the current user's chat sessions
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const authSession = await getServerSession(authOptions)
   if (!authSession?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
