@@ -30,6 +30,8 @@ spec:
               value: production
             - name: NEXT_TELEMETRY_DISABLED
               value: '1'
+            - name: RUN_DB_MIGRATIONS
+              value: 'true'
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
