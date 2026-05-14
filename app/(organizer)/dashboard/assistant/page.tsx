@@ -106,7 +106,7 @@ export default function AssistantPage() {
           ? (content.slice(0, 40).trim() || "New chat")
           : s.label
         if (label !== s.label) {
-          fetch(/api/assistant/session/, {
+          fetch(`/api/assistant/session/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ label }),
@@ -161,7 +161,7 @@ export default function AssistantPage() {
   async function endSession() {
     if (!activeSession) return
     const sid = activeSession.id
-    const res = await fetch(/api/assistant/session//end, { method: "POST" })
+    const res = await fetch(`/api/assistant/session/${sid}/end`, { method: "POST" })
     const data = await res.json()
     addMessage(sid, "assistant", data.message)
     updateSession(sid, { ended: true })
@@ -169,7 +169,7 @@ export default function AssistantPage() {
 
   async function deleteSession(id: string) {
     setMenuId(null)
-    await fetch(/api/assistant/session/, { method: "DELETE" })
+    await fetch(`/api/assistant/session/${id}`, { method: "DELETE" })
     setSessions(prev => prev.filter(s => s.id !== id))
     if (activeId === id) setActiveId(null)
   }
@@ -184,7 +184,7 @@ export default function AssistantPage() {
     const label = renameValue.trim().slice(0, 80) || "New chat"
     setRenamingId(null)
     updateSession(id, { label })
-    await fetch(/api/assistant/session/, {
+    await fetch(`/api/assistant/session/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ label }),
@@ -248,7 +248,7 @@ export default function AssistantPage() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative top-0 left-0 h-full z-40 w-72 flex flex-col bg-[#111111] border-r border-[rgba(240,237,230,0.07)] transition-transform duration-300 `}>
+      <aside className={`fixed md:relative top-0 left-0 h-full z-40 w-72 flex flex-col bg-[#111111] border-r border-[rgba(240,237,230,0.07)] transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="flex items-center justify-between p-4 border-b border-[rgba(240,237,230,0.07)]">
           <span className="text-sm font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-dm-sans)" }}>
             Event<span className="text-[#C8F55A]">Slot</span> Assistant
@@ -295,7 +295,7 @@ export default function AssistantPage() {
                 ) : (
                   <button
                     onClick={() => { setActiveId(s.id); setSidebarOpen(false) }}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors pr-8 `}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors pr-8 ${s.id === activeId ? "bg-[rgba(200,245,90,0.08)] text-[#C8F55A]" : "text-[rgba(240,237,230,0.55)] hover:bg-[rgba(240,237,230,0.05)] hover:text-[#F0EDE6]"}`}
                     style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     <span className="block truncate">{s.label || "New chat"}</span>
@@ -392,12 +392,12 @@ export default function AssistantPage() {
           <>
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
               {activeSession.messages.map((msg, i) => (
-                <div key={i} className={`flex `}>
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   {msg.role === "assistant" && (
                     <div className="w-7 h-7 rounded-full bg-[#C8F55A] flex items-center justify-center text-xs font-bold text-black mr-2 mt-1 flex-shrink-0">E</div>
                   )}
                   <div
-                    className={`max-w-[75%] sm:max-w-[65%] rounded-2xl px-4 py-3 text-sm leading-relaxed `}
+                    className={`max-w-[75%] sm:max-w-[65%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === "user" ? "bg-[#C8F55A] text-black rounded-br-sm" : "bg-[#1A1A1A] text-[#E5E5E5] rounded-bl-sm border border-[rgba(240,237,230,0.06)]"}`}
                     style={{ fontFamily: "var(--font-dm-sans)" }}
                   >
                     {msg.isVoice && <span className="block text-xs opacity-50 mb-1">Voice message</span>}
@@ -413,7 +413,7 @@ export default function AssistantPage() {
                       <span className="text-xs text-[rgba(240,237,230,0.3)] animate-pulse">Transcribing...</span>
                     ) : (
                       <div className="flex gap-1.5 items-center h-4">
-                        {[0,1,2].map(j => <div key={j} className={`w-1.5 h-1.5 rounded-full bg-[rgba(240,237,230,0.3)] animate-bounce`} style={{ animationDelay: ${j * 0.15}s }} />)}
+                        {[0,1,2].map(j => <div key={j} className="w-1.5 h-1.5 rounded-full bg-[rgba(240,237,230,0.3)] animate-bounce" style={{ animationDelay: `${j * 0.15}s` }} />)}
                       </div>
                     )}
                   </div>
@@ -449,7 +449,7 @@ export default function AssistantPage() {
                     onClick={recording ? stopAndSend : startRecording}
                     disabled={loading || transcribing}
                     title={recording ? "Stop and send" : "Start voice recording"}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all self-end mb-0.5  disabled:opacity-40`}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all self-end mb-0.5 ${recording ? "bg-red-500 animate-pulse" : "bg-[#1E1E1E] hover:bg-[#2A2A2A] border border-[rgba(240,237,230,0.1)]"} disabled:opacity-40`}
                   >
                     {recording ? (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
@@ -476,7 +476,7 @@ export default function AssistantPage() {
                   <button
                     onClick={() => { if (recording) { stopAndSend(); return } sendMessage(input) }}
                     disabled={(!input.trim() && !recording) || loading || transcribing}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-colors self-end mb-0.5 `}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 hover:opacity-90 transition-colors self-end mb-0.5 ${recording ? "bg-red-500 text-white" : "bg-[#C8F55A] text-black disabled:opacity-30 disabled:cursor-not-allowed"}`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
