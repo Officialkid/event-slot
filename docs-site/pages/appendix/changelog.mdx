@@ -1,3 +1,9 @@
+## Deploy — May 14, 2026 (f10bc07)
+
+> fix: add idempotent migration for token economy and assistant sessions Applies changes from loose SQL files (add_token_economy.sql, manual_assistant_sessions.sql) that were never tracked by Prisma. Fixes production 500 errors: - Message.authorId does not exist (admin/comms POST) - Message.authorId does not exist (comms page findMany) Migration is fully idempotent - safe to run on DBs where some or all changes were already applied manually.
+
+---
+
 ## Deploy — May 11, 2026 (3a6f26c)
 
 > fix(docker): upgrade to node:22-alpine and npm ci --legacy-peer-deps
