@@ -63,8 +63,12 @@ export async function POST(req: NextRequest) {
 
   // ── Transcribe ────────────────────────────────────────
   try {
+    // Re-wrap the blob with an explicit filename and MIME type so Whisper accepts it
+    const audioBlob = new Blob([await audioFile.arrayBuffer()], { type: "audio/webm" })
+    const audioWithName = new File([audioBlob], "voice.webm", { type: "audio/webm" })
+
     const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
+      file: audioWithName,
       model: "whisper-1",
       language: "en",
       prompt: "EventSlot event registration waitlist organiser attendee Kenya Nairobi tokens",
@@ -82,9 +86,10 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    console.error("[EventSlot] Whisper error:", error)
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error("[EventSlot] Whisper error:", msg)
     return NextResponse.json(
-      { error: "Transcription failed. Please type your message instead." },
+      { error: "Transcription failed. Please type your message instead.", detail: msg },
       { status: 500 }
     )
   }
