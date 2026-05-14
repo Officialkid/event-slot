@@ -1,3 +1,9 @@
+## Deploy — May 14, 2026 (d243999)
+
+> fix: enable RUN_DB_MIGRATIONS=true in Cloud Run to apply pending migrations
+
+---
+
 ## Deploy — May 14, 2026 (f10bc07)
 
 > fix: add idempotent migration for token economy and assistant sessions Applies changes from loose SQL files (add_token_economy.sql, manual_assistant_sessions.sql) that were never tracked by Prisma. Fixes production 500 errors: - Message.authorId does not exist (admin/comms POST) - Message.authorId does not exist (comms page findMany) Migration is fully idempotent - safe to run on DBs where some or all changes were already applied manually.
