@@ -7,6 +7,19 @@ import { PAYMENTS_ENABLED } from "@/lib/payments"
 import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handleTranscribe(req)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("[EventSlot] Transcribe unhandled error:", msg)
+    return NextResponse.json(
+      { error: "Transcription failed.", detail: msg },
+      { status: 500 }
+    )
+  }
+}
+
+async function handleTranscribe(req: NextRequest) {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const session = await getServerSession(authOptions)
 

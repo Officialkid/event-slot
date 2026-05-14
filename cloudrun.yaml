@@ -99,3 +99,8 @@ spec:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
                   key: latest
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: OPENAI_API_KEY
+                  key: latest
