@@ -151,11 +151,11 @@ export default function AssistantPage() {
       recorder.start()
       setRecording(true)
     } catch {
-      addMessage(activeSession.id, "assistant", "Microphone access was denied. Please type your question instead.")
+      addMessage(activeSession.id, "assistant", "Microphone access was denied. Please check your browser permissions.")
     }
   }
 
-  function stopRecording() {
+  function stopAndSend() {
     mediaRecorderRef.current?.stop()
     setRecording(false)
   }
@@ -193,7 +193,7 @@ export default function AssistantPage() {
   const showChannelPicker = noSession || !sessions.length
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] overflow-hidden bg-[#0A0A0A] relative">
+    <div className="flex bg-[#0A0A0A] relative overflow-hidden" style={{ height: "calc(100dvh - 4rem - 4.5rem)" }}>
 
       {/* Sidebar overlay on mobile */}
       {sidebarOpen && (
@@ -274,7 +274,7 @@ export default function AssistantPage() {
       </aside>
 
       {/* Main chat area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         {/* Top bar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,237,230,0.07)] bg-[#0A0A0A]">
@@ -426,23 +426,48 @@ export default function AssistantPage() {
 
             {/* Input area */}
             {!activeSession.ended && (
-              <div className="px-4 pb-4">
+              <div className="px-4 pb-3">
+                {/* Recording indicator */}
+                {recording && (
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                    <span className="text-xs text-red-400" style={{ fontFamily: "var(--font-dm-sans)" }}>Recording… press send when done</span>
+                  </div>
+                )}
+                {transcribing && (
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <span className="text-xs text-[rgba(240,237,230,0.4)] animate-pulse" style={{ fontFamily: "var(--font-dm-sans)" }}>Transcribing audio…</span>
+                  </div>
+                )}
                 <div className="flex gap-2 items-end bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-2xl px-3 py-2">
-                  {activeSession.channel === "voice" && (
-                    <button
-                      onMouseDown={startRecording}
-                      onMouseUp={stopRecording}
-                      onTouchStart={startRecording}
-                      onTouchEnd={stopRecording}
-                      disabled={loading || transcribing}
-                      title="Hold to record"
-                      className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all self-end mb-0.5
-                        ${recording ? "bg-red-500 scale-110 animate-pulse" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"}
-                        disabled:opacity-50`}
-                    >
-                      🎙️
-                    </button>
-                  )}
+                  {/* Mic button — always visible, click to start/stop recording */}
+                  <button
+                    onClick={recording ? stopAndSend : startRecording}
+                    disabled={loading || transcribing || activeSession.ended}
+                    title={recording ? "Stop and send" : "Start voice recording"}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all self-end mb-0.5
+                      ${
+                        recording
+                          ? "bg-red-500 animate-pulse"
+                          : "bg-[#1E1E1E] hover:bg-[#2A2A2A] border border-[rgba(240,237,230,0.1)]"
+                      } disabled:opacity-40`}
+                  >
+                    {recording ? (
+                      /* Stop icon */
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                        <rect x="4" y="4" width="16" height="16" rx="2"/>
+                      </svg>
+                    ) : (
+                      /* Mic icon */
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[rgba(240,237,230,0.6)]">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                      </svg>
+                    )}
+                  </button>
+
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -453,12 +478,8 @@ export default function AssistantPage() {
                         sendMessage(input)
                       }
                     }}
-                    disabled={loading || transcribing}
-                    placeholder={
-                      activeSession.channel === "voice"
-                        ? "Hold 🎙️ to record, or type here…"
-                        : "Message EventSlot Assistant…"
-                    }
+                    disabled={loading || transcribing || recording}
+                    placeholder={recording ? "" : "Message EventSlot Assistant…"}
                     rows={1}
                     className="flex-1 bg-transparent text-[#F0EDE6] text-sm
                                placeholder:text-[rgba(240,237,230,0.25)]
@@ -466,24 +487,27 @@ export default function AssistantPage() {
                                disabled:opacity-50"
                     style={{ fontFamily: "var(--font-dm-sans)", lineHeight: "1.5" }}
                   />
+
+                  {/* Send button — when recording, acts as stop+send */}
                   <button
-                    onClick={() => sendMessage(input)}
-                    disabled={!input.trim() || loading || transcribing}
-                    className="w-9 h-9 rounded-xl bg-[#C8F55A] text-black
-                               flex items-center justify-center flex-shrink-0
-                               hover:bg-[#b8e040] transition-colors self-end mb-0.5
-                               disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      if (recording) { stopAndSend(); return }
+                      sendMessage(input)
+                    }}
+                    disabled={(!input.trim() && !recording) || loading || transcribing}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                      hover:opacity-90 transition-colors self-end mb-0.5
+                      ${
+                        recording
+                          ? "bg-red-500 text-white"
+                          : "bg-[#C8F55A] text-black disabled:opacity-30 disabled:cursor-not-allowed"
+                      }`}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
                     </svg>
                   </button>
                 </div>
-                {activeSession.channel === "voice" && recording && (
-                  <p className="text-red-400 text-xs text-center mt-2 animate-pulse">
-                    Recording… release to send
-                  </p>
-                )}
               </div>
             )}
           </>
