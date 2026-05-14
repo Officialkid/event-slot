@@ -15,10 +15,15 @@ type AssistantContentPart =
   | { type: "image_url"; image_url: { url: string } }
   | { type: "text"; text: string }
 
-type AssistantChatMessage = {
-  role: "system" | "user" | "assistant"
-  content: string | AssistantContentPart[]
-}
+type AssistantChatMessage =
+  | {
+      role: "user"
+      content: string | AssistantContentPart[]
+    }
+  | {
+      role: "assistant"
+      content: string
+    }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)

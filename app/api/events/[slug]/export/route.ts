@@ -203,8 +203,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         questions,
         registrations,
       })
+      const docBytes = new Uint8Array(docBuffer)
 
-      return new Response(docBuffer, {
+      return new Response(docBytes, {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'Content-Disposition': `attachment; filename="registrations-${slug}.docx"`,
