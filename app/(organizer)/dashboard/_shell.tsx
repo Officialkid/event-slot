@@ -113,6 +113,14 @@ function IconMore() {
   )
 }
 
+function IconChat() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+}
+
 function IconLogOut() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -137,6 +145,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { label: "My Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+  { label: "Assistant", href: "/dashboard/assistant", icon: <IconChat />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
   { label: "Comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
@@ -1115,11 +1124,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               }
               aria-label={item.label}
               style={{
+                flex: 1,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 3,
-                padding: "0.3rem 1rem",
+                padding: "0.3rem 0",
                 color: active ? "#C8F55A" : "rgba(240,237,230,0.35)",
                 textDecoration: "none",
                 position: "relative",
@@ -1148,11 +1159,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           aria-label="More options"
           onClick={() => setMoreOpen(true)}
           style={{
+            flex: 1,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
             gap: 3,
-            padding: "0.3rem 1rem",
+            padding: "0.3rem 0",
             color: moreOpen ? "#C8F55A" : "rgba(240,237,230,0.35)",
             background: "transparent",
             border: "none",

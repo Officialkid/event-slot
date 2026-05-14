@@ -9,9 +9,9 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
 
 function getR2Client() {
-  const accountId = process.env.R2_ACCOUNT_ID
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
+  const accountId = process.env.R2_ACCOUNT_ID?.trim()
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim()
   if (!accountId || !accessKeyId || !secretAccessKey) {
     throw new Error('R2 environment variables not configured')
   }
