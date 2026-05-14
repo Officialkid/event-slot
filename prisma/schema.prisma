@@ -330,6 +330,8 @@ model AuditLog {
 model AssistantSession {
   id            String             @id @default(cuid())
   ipHash        String
+  userId        String?
+  label         String?
   userAgent     String?
   channel       SessionChannel     @default(TEXT)
   status        SessionStatus      @default(ACTIVE)

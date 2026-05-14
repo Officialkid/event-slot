@@ -8,6 +8,8 @@ import { DAILY_SESSION_LIMIT } from '@/lib/assistant-context'
 
 // POST /api/assistant/session — start a new session
 export async function POST(req: NextRequest) {
+  const authSession = await getServerSession(authOptions)
+
   const ip =
     req.headers.get('x-forwarded-for') ??
     req.headers.get('x-real-ip') ??
@@ -36,11 +38,16 @@ export async function POST(req: NextRequest) {
 
   const channel = req.headers.get('x-channel') === 'voice' ? 'VOICE' : 'TEXT'
 
-  const session = await prisma.assistantSession.create({
-    data: { ipHash, userAgent: req.headers.get('user-agent'), channel },
+  const newSession = await prisma.assistantSession.create({
+    data: {
+      ipHash,
+      userId: authSession?.user?.id ?? null,
+      userAgent: req.headers.get('user-agent'),
+      channel,
+    },
   })
 
-  return NextResponse.json({ sessionId: session.id })
+  return NextResponse.json({ sessionId: newSession.id })
 }
 
 // GET /api/assistant/session — admin: list all sessions (conversations inbox)

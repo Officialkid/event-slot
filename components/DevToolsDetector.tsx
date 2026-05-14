@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 /**
  * DevToolsDetector
@@ -16,8 +17,11 @@ import { useEffect, useRef, useState } from 'react'
  *     causes measurable time dilation when DevTools are paused on breakpoints.
  */
 export function DevToolsDetector() {
+  const { status } = useSession()
   const [visible, setVisible] = useState(false)
   const firedRef = useRef(false)
+
+  if (status === 'authenticated') return null
 
   useEffect(() => {
     if (typeof window === 'undefined') return
