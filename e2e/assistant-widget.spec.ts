@@ -34,7 +34,6 @@ test('assistant widget handles image attach + quota exceeded + feedback prompt',
   await page.goto('/')
 
   await page.getByLabel('Toggle EventSlot Assistant').click()
-  await page.getByRole('button', { name: 'Send a Message' }).click()
 
   const png1x1 = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5e2nQAAAAASUVORK5CYII=',

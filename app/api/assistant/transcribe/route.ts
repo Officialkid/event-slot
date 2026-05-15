@@ -20,6 +20,16 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleTranscribe(req: NextRequest) {
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      {
+        error: "TRANSCRIBE_NOT_CONFIGURED",
+        message: "Voice transcription is temporarily unavailable. Please type your message instead.",
+      },
+      { status: 503 }
+    )
+  }
+
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const session = await getServerSession(authOptions)
 

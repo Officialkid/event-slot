@@ -801,6 +801,90 @@ function capacityChartBlock(chartBuffer: Buffer | null): Paragraph[] {
   ]
 }
 
+function buildDemandMixConfig(confirmed: number, waitlist: number): object {
+  const total = Math.max(1, confirmed + waitlist)
+  const confirmedRate = Math.round((confirmed / total) * 100)
+  const waitlistRate = Math.max(0, 100 - confirmedRate)
+
+  return {
+    type: 'doughnut',
+    data: {
+      labels: ['Confirmed', 'Waitlist'],
+      datasets: [
+        {
+          data: [confirmed, waitlist],
+          backgroundColor: ['#C8F55A', '#1F3864'],
+          borderColor: ['#FFFFFF', '#FFFFFF'],
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      cutout: '62%',
+      plugins: {
+        title: {
+          display: true,
+          text: `Demand Composition - ${confirmedRate}% confirmed, ${waitlistRate}% waitlist`,
+          font: { size: 13, weight: 'bold' },
+          color: '#000',
+        },
+        legend: {
+          position: 'bottom',
+          labels: { color: '#333' },
+        },
+      },
+    },
+  }
+}
+
+async function buildDemandMixChart(
+  confirmed: number,
+  waitlist: number,
+): Promise<{ chartBuffer: Buffer | null; commentary: string }> {
+  const total = Math.max(1, confirmed + waitlist)
+  const confirmedRate = Math.round((confirmed / total) * 100)
+  const waitlistRate = Math.round((waitlist / total) * 100)
+  const chartBuffer = await renderChartBuffer(buildDemandMixConfig(confirmed, waitlist), 900, 360)
+
+  const commentary =
+    waitlist > 0
+      ? `Demand composition shows ${confirmed} confirmed attendees and ${waitlist} waitlisted prospects (${waitlistRate}% overflow pressure). This indicates demand exceeded available delivery slots during the registration cycle and validates stronger urgency messaging and structured promotion rules for released seats.`
+      : `Demand composition is concentrated in confirmed registrations (${confirmedRate}% confirmed, ${waitlistRate}% waitlist), with no overflow queue captured. This suggests the cycle converted active demand but did not push beyond capacity constraints strongly enough to create queue pressure.`
+
+  return { chartBuffer, commentary }
+}
+
+function demandMixChartBlock(chartBuffer: Buffer | null): Paragraph[] {
+  if (!chartBuffer) {
+    return [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'Demand Composition chart could not be rendered for this run.',
+            font: 'Arial',
+            size: 20,
+            color: '777777',
+          }),
+        ],
+      }),
+    ]
+  }
+
+  return [
+    new Paragraph({
+      children: [
+        new ImageRun({
+          type: 'png',
+          data: chartBuffer,
+          transformation: { width: 680, height: 272 },
+        }),
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 90 },
+    }),
+  ]
+}
+
 // ── Summary Page ──────────────────────────────────────────────────────────────
 
 async function summaryPage(
@@ -822,6 +906,10 @@ async function summaryPage(
     label: capacityLabel,
     commentary: capacityCommentary,
   } = await buildCapacityUtilisationChart(event.confirmedCount, event.capacity)
+  const { chartBuffer: demandMixChart, commentary: demandMixCommentary } = await buildDemandMixChart(
+    event.confirmedCount,
+    event.waitlistCount,
+  )
 
   return [
     new Paragraph({
@@ -885,9 +973,27 @@ async function summaryPage(
       : []),
     new Paragraph({
       children: [new TextRun({ text: capacityCommentary, font: 'Arial', size: 20 })],
-      spacing: { after: 240 },
+      spacing: { after: 120 },
     }),
-    new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: 'Demand Mix Analytics', font: 'Arial', bold: true, size: 28 })],
+    }),
+    ...demandMixChartBlock(demandMixChart),
+    new Paragraph({
+      children: [new TextRun({ text: demandMixCommentary, font: 'Arial', size: 20 })],
+      spacing: { after: 90 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Analytical implication: conversion throughput is currently ${event.confirmedCount} confirmed out of ${event.confirmedCount + event.waitlistCount} total demand signals. For the next cycle, align capacity strategy and campaign cadence to improve both early conversion depth and overflow capture quality.`,
+          font: 'Arial',
+          size: 20,
+        }),
+      ],
+      spacing: { after: 160 },
+    }),
   ]
 }
 
@@ -1012,8 +1118,6 @@ function confirmedPage(event: IEvent, confirmed: IRegistration[]): (Paragraph | 
   }
 
   items.push(buildKdpaNotice())
-
-  items.push(new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }))
   return items
 }
 
@@ -1083,8 +1187,6 @@ function waitlistPage(event: IEvent, waitlist: IRegistration[]): (Paragraph | Ta
       })
     )
   }
-
-  items.push(new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }))
   return items
 }
 
@@ -1219,7 +1321,6 @@ function buildPostEventActionsSection(data: EventReportData): (Paragraph | Table
       spacing: { after: 140 },
     }),
     table,
-    new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }),
   ]
 }
 
@@ -1361,7 +1462,7 @@ function aiInsightsPage(
         (line) =>
           new Paragraph({
             children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '1F1F1F' })],
-            spacing: { after: 120 },
+            spacing: { after: 80 },
           })
       )
 
@@ -1395,7 +1496,7 @@ function aiInsightsPage(
             children: [
               new TableCell({
                 width: { size: TABLE_WIDTH, type: WidthType.DXA },
-                margins: { top: 140, bottom: 140, left: 220, right: 220 },
+                margins: { top: 100, bottom: 100, left: 220, right: 220 },
                 children: paragraphs.length > 0
                   ? paragraphs
                   : [
@@ -1457,9 +1558,8 @@ function aiInsightsPage(
           color: '333333',
         }),
       ],
-      spacing: { after: 200 },
+      spacing: { after: 140 },
     }),
-    new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true })
   )
 
   return blocks
@@ -1563,11 +1663,11 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
         },
         heading1: {
           run: { font: 'Arial', bold: true, size: 32 },
-          paragraph: { spacing: { before: 240, after: 240 }, outlineLevel: 0 },
+          paragraph: { spacing: { before: 140, after: 120 }, outlineLevel: 0 },
         },
         heading2: {
           run: { font: 'Arial', bold: true, size: 28 },
-          paragraph: { spacing: { before: 180, after: 180 }, outlineLevel: 1 },
+          paragraph: { spacing: { before: 120, after: 110 }, outlineLevel: 1 },
         },
       },
     },

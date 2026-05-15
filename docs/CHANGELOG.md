@@ -1,5 +1,25 @@
 # EventSlot — Changelog
 
+## [0.4.55] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 7 (Admin Feedback Dashboard)
+
+- Replaced super-admin feedback view in `app/admin/feedback/page.tsx` with an assistant feedback analytics dashboard.
+- Added assistant feedback KPI cards for:
+  - average rating
+  - total ratings
+  - rating distribution bars
+- Added recent assistant comments list with star rendering and Kenya locale date formatting.
+- Wired the page to `GET /api/admin/feedback` and added response-shape compatibility parsing for nested `assistantFeedback` payloads.
+
+### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 8 (Review-Only Documentation)
+
+- Documented future model-selection architecture as planning notes only (no runtime implementation changes).
+- Captured current model routing baseline:
+  - text: `llama-3.1-8b-instant`
+  - image: `llama-3.2-11b-vision-preview`
+- Captured proposed future selectable models and rollout constraints, including explicit hold on Hugging Face production usage until reliability is validated.
+
 ## [0.4.54] — May 15, 2026
 
 ### Registrations Export Upgrade (CSV + Word) + Lint Stability

@@ -15,6 +15,39 @@ export interface AIReportContent {
   overallScore: string
 }
 
+function wordCount(text: string): number {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
+}
+
+function ensureTwoParagraphDepth(text: string, supplement: string): string {
+  const normalized = text.trim()
+  const paragraphs = normalized
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+
+  if (paragraphs.length >= 2 && wordCount(normalized) >= 90) {
+    return normalized
+  }
+
+  if (paragraphs.length >= 2 && wordCount(normalized) < 90) {
+    return `${normalized}\n\n${supplement}`
+  }
+
+  if (paragraphs.length === 1 && wordCount(paragraphs[0]) >= 120) {
+    const sentences = paragraphs[0].split(/(?<=[.!?])\s+/).filter(Boolean)
+    if (sentences.length >= 4) {
+      const midpoint = Math.ceil(sentences.length / 2)
+      return `${sentences.slice(0, midpoint).join(' ')}\n\n${sentences.slice(midpoint).join(' ')}`
+    }
+  }
+
+  return `${normalized}\n\n${supplement}`
+}
+
 type ParsedAIReport = {
   eventOverview: string
   executiveSummary: string
@@ -220,6 +253,8 @@ Rules for every section:
 4. Every recommendation must include a clear timeframe.
 5. Keep the tone professional, direct, and consultant-like.
 6. Section 10 must justify the score using the provided rubric context.
+7. Sections 1-8 must each be at least two paragraphs with specific metrics and operational implications.
+8. Do not leave sections shallow; each section should be thorough, precise, and decision-ready.
 
 Output requirements:
 - Return ONLY valid JSON.
@@ -253,6 +288,18 @@ Output requirements:
   const questionCoverage = countQuestionCoverage(confirmed, event.questions)
   const peakPercent = allRegs.length > 0 ? Math.round((peakDay.count / allRegs.length) * 100) : 0
   const waitlistInsight = buildWaitlistInsight(confirmed.length, waitlist.length, event.capacity)
+
+  const sectionSupplements = {
+    eventOverview: `Operational context: ${event.title} has ${allRegs.length} total registrations (${confirmed.length} confirmed, ${waitlist.length} waitlisted) with ${capacityUtilization} utilisation and ${waitlistRate} waitlist pressure as of this report date.`,
+    executiveSummary: `Execution implication: concentration at ${peakPercent}% on the peak day requires earlier campaign sequencing and a controlled reminder cadence to reduce last-minute conversion volatility.`,
+    strengths: `Commercial implication: the current conversion profile supports stronger sponsor confidence and gives a measurable baseline for improving next-cycle conversion efficiency and attendee quality.`,
+    weaknessesAndRisks: `Risk control: assign accountable owners for each weakness, track intervention timelines weekly, and monitor movement against fill rate, waitlist pressure, and response-quality KPIs.`,
+    audienceProfile: `Audience strategy: convert this profile into targeted messaging segments so each campaign speaks to concrete attendee outcomes, not generic event promotion.`,
+    registrationBehaviour: `Timeline strategy: use the first half of the window for demand seeding, then switch to urgency conversion messaging near deadline to improve distribution and reduce single-day dependency.`,
+    competitivePositioning: `Market execution: publish evidence of attendee outcomes and event delivery quality quickly after the event to compound trust and improve next-cycle acquisition efficiency.`,
+    waitlistAnalysis: `Operational next step: set explicit overflow handling rules, promotion SLAs for released slots, and communication standards to protect conversion intent among waitlisted prospects.`,
+    overallScore: `Score rationale: this score reflects measurable attendance quality, registration distribution resilience, overflow demand capture, and event setup completeness.`
+  }
 
   const prompt = `${eventContext}
 
@@ -312,6 +359,16 @@ Write with consultant tone. Keep statements data-anchored and direct.`
     if (!parsed) {
       return buildFallbackReport({ event, confirmed, waitlist })
     }
+
+    parsed.eventOverview = ensureTwoParagraphDepth(parsed.eventOverview, sectionSupplements.eventOverview)
+    parsed.executiveSummary = ensureTwoParagraphDepth(parsed.executiveSummary, sectionSupplements.executiveSummary)
+    parsed.strengths = ensureTwoParagraphDepth(parsed.strengths, sectionSupplements.strengths)
+    parsed.weaknessesAndRisks = ensureTwoParagraphDepth(parsed.weaknessesAndRisks, sectionSupplements.weaknessesAndRisks)
+    parsed.audienceProfile = ensureTwoParagraphDepth(parsed.audienceProfile, sectionSupplements.audienceProfile)
+    parsed.registrationBehaviour = ensureTwoParagraphDepth(parsed.registrationBehaviour, sectionSupplements.registrationBehaviour)
+    parsed.competitivePositioning = ensureTwoParagraphDepth(parsed.competitivePositioning, sectionSupplements.competitivePositioning)
+    parsed.waitlistAnalysis = ensureTwoParagraphDepth(parsed.waitlistAnalysis, sectionSupplements.waitlistAnalysis)
+    parsed.overallScore = ensureTwoParagraphDepth(parsed.overallScore, sectionSupplements.overallScore)
 
     parsed.recommendations = enforceThreeRecommendations(parsed.recommendations)
 

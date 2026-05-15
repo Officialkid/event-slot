@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 
 type AssistantExperienceProps = {
   fullPage?: boolean
@@ -16,7 +16,6 @@ type Message = {
 }
 
 export function AssistantExperience({ fullPage = false, onClose }: AssistantExperienceProps) {
-  const [channel, setChannel] = useState<"text" | "voice" | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -43,6 +42,16 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
 
+  async function parseJsonSafely(res: Response): Promise<Record<string, unknown>> {
+    const bodyText = await res.text()
+    if (!bodyText) return {}
+    try {
+      return JSON.parse(bodyText) as Record<string, unknown>
+    } catch {
+      return {}
+    }
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
@@ -51,28 +60,43 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     setMessages((prev) => [...prev, { role, content, timestamp: new Date(), images, isVoice }])
   }
 
-  async function startSession(selectedChannel: "text" | "voice") {
-    setChannel(selectedChannel)
+  const startSession = useCallback(async (selectedChannel: "text" | "voice") => {
+    if (sessionId || loading) return
     setLoading(true)
     setError(null)
+    try {
+      const res = await fetch("/api/assistant/session", {
+        method: "POST",
+        headers: { "x-channel": selectedChannel },
+      })
 
-    const res = await fetch("/api/assistant/session", {
-      method: "POST",
-      headers: { "x-channel": selectedChannel },
-    })
-    const data = await res.json()
+      const data = await parseJsonSafely(res)
 
-    if (res.status === 429) {
-      setError(data.message)
-      setSessionEnded(true)
+      if (res.status === 429) {
+        setError(typeof data.message === "string" ? data.message : "Daily assistant session limit reached.")
+        setSessionEnded(true)
+        return
+      }
+
+      if (!res.ok || typeof data.sessionId !== "string") {
+        setError(typeof data.message === "string" ? data.message : "Unable to start assistant right now. Please try again shortly.")
+        return
+      }
+
+      setSessionId(data.sessionId)
+      addMessage("assistant", "Hi! Welcome to EventSlot support. How can I help you today?")
+    } catch {
+      setError("Unable to start assistant right now. Please try again shortly.")
+    } finally {
       setLoading(false)
-      return
     }
+  }, [loading, sessionId])
 
-    setSessionId(data.sessionId)
-    addMessage("assistant", "Hi! Welcome to EventSlot support. How can I help you today?")
-    setLoading(false)
-  }
+  useEffect(() => {
+    if (!sessionId && !sessionEnded) {
+      void startSession("text")
+    }
+  }, [sessionId, sessionEnded, startSession])
 
   async function sendMessage(text: string, isVoice = false) {
     if ((!text.trim() && pendingImages.length === 0) || !sessionId || sessionEnded || loading) return
@@ -90,31 +114,50 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     setImagePreviews([])
     setLoading(true)
 
-    const res = await fetch("/api/assistant/message", { method: "POST", body: form })
-    const data = await res.json()
+    try {
+      const res = await fetch("/api/assistant/message", { method: "POST", body: form })
+      const data = await parseJsonSafely(res)
 
-    if (data.creditsRemaining !== undefined) setCreditsRemaining(data.creditsRemaining)
+      if (typeof data.creditsRemaining === "number") setCreditsRemaining(data.creditsRemaining)
 
-    if (res.status === 429) {
-      setQuotaExceeded(true)
-      setWaitMinutes(data.waitMinutes ?? 0)
-      addMessage("assistant", data.reply)
-      if (data.showFeedback) setShowFeedback(true)
+      if (res.status === 429) {
+        setQuotaExceeded(true)
+        setWaitMinutes(typeof data.waitMinutes === "number" ? data.waitMinutes : 0)
+        addMessage("assistant", typeof data.reply === "string" ? data.reply : "You have reached your limit for now.")
+        if (data.showFeedback === true) setShowFeedback(true)
+        return
+      }
+
+      if (!res.ok) {
+        addMessage("assistant", typeof data.error === "string" ? data.error : "I'm having trouble responding right now. Please try again shortly.")
+        return
+      }
+
+      addMessage("assistant", typeof data.reply === "string" ? data.reply : "I had trouble processing that. Please try again.")
+      if (data.sessionEnded === true) setSessionEnded(true)
+    } catch {
+      addMessage("assistant", "I'm having trouble responding right now. Please try again shortly.")
+    } finally {
       setLoading(false)
-      return
     }
-
-    addMessage("assistant", data.reply)
-    if (data.sessionEnded) setSessionEnded(true)
-    setLoading(false)
   }
 
   async function endSession() {
     if (!sessionId) return
-    const res = await fetch(`/api/assistant/session/${sessionId}/end`, { method: "POST" })
-    const data = await res.json()
-    addMessage("assistant", data.message)
-    setSessionEnded(true)
+    try {
+      const res = await fetch(`/api/assistant/session/${sessionId}/end`, { method: "POST" })
+      const data = await parseJsonSafely(res)
+      addMessage(
+        "assistant",
+        typeof data.message === "string"
+          ? data.message
+          : "Thank you for contacting EventSlot. This session has ended."
+      )
+      setSessionEnded(true)
+    } catch {
+      addMessage("assistant", "Unable to end session cleanly right now. You can start a new chat.")
+      setSessionEnded(true)
+    }
   }
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -179,32 +222,42 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     form.append("audio", blob, "voice.webm")
     form.append("sessionId", sessionId ?? "")
 
-    const res = await fetch("/api/assistant/transcribe", { method: "POST", body: form })
-    if (!res.ok) {
-      const data = await res.json()
-      addMessage("assistant", data.message ?? "Couldn't process that voice message. Please type instead.")
+    try {
+      const res = await fetch("/api/assistant/transcribe", { method: "POST", body: form })
+      const data = await parseJsonSafely(res)
+
+      if (!res.ok) {
+        addMessage("assistant", typeof data.message === "string" ? data.message : "Couldn't process that voice message. Please type instead.")
+        return
+      }
+
+      const text = typeof data.text === "string" ? data.text : ""
+      if (!text.trim()) {
+        addMessage("assistant", "Couldn't process that voice message. Please type instead.")
+        return
+      }
+
+      await sendMessage(text, true)
+    } finally {
       setTranscribing(false)
-      return
     }
-    const { text } = await res.json()
-    setTranscribing(false)
-    await sendMessage(text, true)
   }
 
   async function submitFeedback() {
     if (feedbackRating === 0) return
-
-    await fetch("/api/assistant/feedback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating: feedbackRating, comment: feedbackComment }),
-    })
-
-    setFeedbackSubmitted(true)
+    try {
+      await fetch("/api/assistant/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: feedbackRating, comment: feedbackComment }),
+      })
+      setFeedbackSubmitted(true)
+    } catch {
+      addMessage("assistant", "Feedback service is temporarily unavailable. Please try again shortly.")
+    }
   }
 
   function reset() {
-    setChannel(null)
     setSessionId(null)
     setMessages([])
     setInput("")
@@ -262,35 +315,20 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         </div>
       </div>
 
-      {!channel && (
+      {!sessionId && error ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
-          {error ? (
-            <p className="text-[#EF4444] text-sm text-center">{error}</p>
-          ) : (
-            <>
-              <p className="text-[#A3A3A3] text-sm text-center mb-2">How would you like to connect?</p>
-              <button
-                onClick={() => startSession("text")}
-                className="w-full bg-[#C8F55A] text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-[#b8e040] transition-colors"
-              >
-                Send a Message
-              </button>
-              <button
-                onClick={() => startSession("voice")}
-                className="w-full border border-[#2A2A2A] text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 hover:border-[#C8F55A] hover:text-[#C8F55A] transition-colors"
-              >
-                Use Voice
-              </button>
-              <div className="text-[#525252] text-xs text-center space-y-1">
-                <p>20 message credits per 5-hour window</p>
-                <p>Screenshots welcome - 5 free voice/month</p>
-              </div>
-            </>
-          )}
+          <p className="text-[#EF4444] text-sm text-center">{error}</p>
+          <button
+            onClick={() => {
+              setSessionEnded(false)
+              setError(null)
+            }}
+            className="w-full border border-[#2A2A2A] text-white font-medium py-3 rounded-xl hover:border-[#C8F55A] hover:text-[#C8F55A] transition-colors"
+          >
+            Retry
+          </button>
         </div>
-      )}
-
-      {channel && (
+      ) : (
         <>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg, i) => (
@@ -313,7 +351,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
               </div>
             ))}
 
-            {(loading || transcribing) && (
+            {(loading || transcribing) && sessionId && (
               <div className="flex justify-start">
                 <div className="bg-[#1E1E1E] rounded-2xl rounded-bl-sm px-4 py-3">
                   {transcribing ? (
@@ -410,19 +448,17 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
 
-                {channel === "voice" && (
-                  <button
-                    onMouseDown={startRecording}
-                    onMouseUp={stopRecording}
-                    onMouseLeave={stopRecording}
-                    onTouchStart={startRecording}
-                    onTouchEnd={stopRecording}
-                    disabled={loading || transcribing}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-sm ${recording ? "bg-red-500 scale-110 animate-pulse" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"} disabled:opacity-50`}
-                  >
-                    🎙️
-                  </button>
-                )}
+                <button
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                  disabled={loading || transcribing || !sessionId}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-sm ${recording ? "bg-red-500 scale-110 animate-pulse" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"} disabled:opacity-50`}
+                >
+                  🎙️
+                </button>
 
                 <textarea
                   value={input}
@@ -433,7 +469,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                       void sendMessage(input)
                     }
                   }}
-                  disabled={loading || transcribing}
+                  disabled={loading || transcribing || !sessionId}
                   placeholder={pendingImages.length > 0 ? "Add a message about this screenshot..." : "Type or attach a screenshot..."}
                   rows={1}
                   className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] resize-none transition-colors disabled:opacity-50"
@@ -441,7 +477,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
 
                 <button
                   onClick={() => void sendMessage(input)}
-                  disabled={(!input.trim() && pendingImages.length === 0) || loading || transcribing}
+                  disabled={(!input.trim() && pendingImages.length === 0) || loading || transcribing || !sessionId}
                   className="w-9 h-9 rounded-full bg-[#C8F55A] text-black flex items-center justify-center flex-shrink-0 hover:bg-[#b8e040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
                 >
                   ↑

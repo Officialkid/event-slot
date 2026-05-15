@@ -76,6 +76,14 @@ _Last updated: May 15, 2026_
 **Where:** `app/api/events/[slug]/export/route.ts`  
 **What it does:** Extends registrations export endpoint with Word output (`format=word`) that generates a document containing a branded attendee table, registration summary line, registration-day formatting, and a data-protection notice.
 
+### Super Admin Assistant Feedback Dashboard
+**Where:** `app/admin/feedback/page.tsx`  
+**What it does:** Provides a dedicated super-admin analytics view for assistant feedback, including average rating, total submissions, per-star distribution bars, and recent user comments submitted from assistant quota-limit prompts.
+
+### Assistant Model Selection Architecture (Review-Only)
+**Where:** Planning notes (no runtime implementation yet)  
+**What it does:** Documents future model-selection approach for assistant responses, including default Groq model routing, candidate selectable models, and decision gates (user eligibility, credit pricing, and Hugging Face reliability hold).
+
 ---
 
 ## PWA & Mobile App
