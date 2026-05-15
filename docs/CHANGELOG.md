@@ -1,5 +1,29 @@
 # EventSlot — Changelog
 
+## [0.4.58] — May 15, 2026
+
+### EventSlot Assistant Intelligence Upgrade (MD 4) — Memory + Live Insights + Docs Grounding + Swahili
+
+- Added persistent assistant memory models in `prisma/schema.prisma`:
+  - `UserMemoryPreference` (opt-in memory toggle, default OFF)
+  - `UserMemory` (rolling summary + structured key facts)
+- Added migration `prisma/migrations/20260515000100_add_memory_and_preferences/migration.sql` for the new memory tables and FKs.
+- Added memory preference API in `app/api/assistant/memory/route.ts`:
+  - `GET` returns current memory availability/status for signed-in users
+  - `PUT` updates memory ON/OFF preference
+- Added MD4 assistant context utilities in `lib/assistant-md4.ts`:
+  - docs retrieval (RAG-style snippet grounding from internal docs)
+  - live owned-event insight extraction (registrations, fill rate, waitlist, timing pattern, proactive tips)
+  - Swahili detection helper
+  - memory preference resolve/read/update helpers
+- Upgraded `POST /api/assistant/message` in `app/api/assistant/message/route.ts` to:
+  - respect memory toggle (`memoryEnabled`)
+  - enrich system context with owned-event data only
+  - include docs-grounded context snippets for factual answers
+  - auto-switch response guidance to Swahili when Swahili is detected
+  - persist rolling user memory after replies when memory is enabled
+- Updated assistant UI in `components/assistant/AssistantExperience.tsx` with a signed-in Memory ON/OFF toggle and request wiring to the new memory API.
+
 ## [0.4.57] — May 15, 2026
 
 ### Registrations Export UX + Document Layout Fixes

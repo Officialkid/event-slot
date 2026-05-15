@@ -8,6 +8,30 @@ _Last updated: May 15, 2026_
 
 ---
 
+## AI Assistant Intelligence (MD 4)
+
+### Assistant Memory Toggle (Opt-In)
+**Where:** `app/api/assistant/memory/route.ts`, `components/assistant/AssistantExperience.tsx`, `prisma/schema.prisma`  
+**What it does:** Adds a signed-in memory preference (`OFF` by default) so users explicitly control whether assistant memory is stored. UI exposes Memory ON/OFF, and backend persists preference in `UserMemoryPreference`.
+
+### Rolling User Conversation Memory
+**Where:** `lib/assistant-md4.ts`, `prisma/schema.prisma`, `app/api/assistant/message/route.ts`  
+**What it does:** When memory is enabled, assistant updates a rolling summary and key facts in `UserMemory` after replies. Memory is used as private context in future sessions to improve continuity.
+
+### Live Owned-Event Insights in Assistant
+**Where:** `lib/assistant-md4.ts`, `app/api/assistant/message/route.ts`  
+**What it does:** Assistant can use organiser-owned event snapshots (confirmed count, waitlist, fill rate, deadline timing pattern, proactive tips) as conversational context. Context is explicitly limited to the current user's own events.
+
+### Documentation Grounding (RAG-Style Snippets)
+**Where:** `lib/assistant-md4.ts`, `app/api/assistant/message/route.ts`, `docs/AI_CONTEXT.md`, `docs/FEATURES.md`, `docs/API.md`  
+**What it does:** Retrieves top relevant snippets from internal documentation and injects them into assistant context to reduce hallucinations and improve consistency with product docs.
+
+### Swahili-Aware Assistant Responses
+**Where:** `lib/assistant-md4.ts`, `app/api/assistant/message/route.ts`  
+**What it does:** Detects Swahili in user input and instructs assistant to respond in Swahili unless the user switches language.
+
+---
+
 ## Security
 
 ### Admin Conversations API Resilience

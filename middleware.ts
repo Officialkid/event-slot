@@ -38,7 +38,13 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ req, token }) => {
+        // For API routes, let handlers enforce auth and return JSON errors.
+        if (req.nextUrl.pathname.startsWith('/api/')) {
+          return true
+        }
+        return !!token
+      },
     },
     pages: {
       signIn: '/signin',

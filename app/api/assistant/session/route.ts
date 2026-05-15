@@ -11,6 +11,12 @@ import { Prisma } from '@prisma/client'
 export async function POST(req: NextRequest) {
   try {
     const authSession = await getServerSession(authOptions)
+    if (!authSession?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Please sign in to use the assistant.' },
+        { status: 401 }
+      )
+    }
 
     const ip =
       req.headers.get('x-forwarded-for') ??
@@ -40,26 +46,44 @@ export async function POST(req: NextRequest) {
 
     const channel = req.headers.get('x-channel') === 'voice' ? 'VOICE' : 'TEXT'
 
+    const userAgent = req.headers.get('user-agent')
+
     let newSession
     try {
       newSession = await prisma.assistantSession.create({
         data: {
           ipHash,
-          userId: authSession?.user?.id ?? null,
-          userAgent: req.headers.get('user-agent'),
+          userId: authSession.user.id,
+          userAgent,
           channel,
         },
       })
     } catch (error) {
-      // Backward-compatible fallback for databases missing the userId column.
+      // Backward-compatible fallback for databases missing newly added columns.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-        newSession = await prisma.assistantSession.create({
-          data: {
-            ipHash,
-            userAgent: req.headers.get('user-agent'),
-            channel,
-          },
-        })
+        try {
+          newSession = await prisma.assistantSession.create({
+            data: {
+              ipHash,
+              userId: authSession.user.id,
+              userAgent,
+            },
+          })
+        } catch (fallbackError) {
+          if (
+            fallbackError instanceof Prisma.PrismaClientKnownRequestError &&
+            fallbackError.code === 'P2022'
+          ) {
+            newSession = await prisma.assistantSession.create({
+              data: {
+                ipHash,
+                userAgent,
+              },
+            })
+          } else {
+            throw fallbackError
+          }
+        }
       } else {
         throw error
       }

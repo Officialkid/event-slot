@@ -7,6 +7,8 @@ import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins"
 import { AssistantWidget } from "../components/AssistantWidget";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -135,6 +137,8 @@ export default async function RootLayout({
     }
   }
 
+  const authSession = await getServerSession(authOptions)
+
   return (
     <html
       lang="en"
@@ -151,7 +155,7 @@ export default async function RootLayout({
           {children}
           <Toast />
           <DevToolsDetector />
-          <AssistantWidget />
+          {authSession?.user?.id ? <AssistantWidget /> : null}
         </Providers>
       </body>
     </html>

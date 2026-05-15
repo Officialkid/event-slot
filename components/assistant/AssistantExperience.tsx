@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useRef, useEffect, useCallback } from "react"
 
 type AssistantExperienceProps = {
@@ -36,6 +37,10 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   const [feedbackRating, setFeedbackRating] = useState(0)
   const [feedbackComment, setFeedbackComment] = useState("")
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  const [sessionStartAttempted, setSessionStartAttempted] = useState(false)
+  const [memoryAvailable, setMemoryAvailable] = useState(false)
+  const [memoryEnabled, setMemoryEnabled] = useState(false)
+  const [memoryBusy, setMemoryBusy] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -55,6 +60,65 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMemoryPreference() {
+      try {
+        const res = await fetch("/api/assistant/memory")
+        const data = await parseJsonSafely(res)
+        if (cancelled) return
+
+        if (res.ok && data.available === true) {
+          setMemoryAvailable(true)
+          setMemoryEnabled(data.memoryEnabled === true)
+          return
+        }
+
+        setMemoryAvailable(false)
+        setMemoryEnabled(false)
+      } catch {
+        if (!cancelled) {
+          setMemoryAvailable(false)
+          setMemoryEnabled(false)
+        }
+      }
+    }
+
+    void loadMemoryPreference()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function toggleMemory() {
+    if (!memoryAvailable || memoryBusy) return
+
+    const next = !memoryEnabled
+    setMemoryBusy(true)
+
+    try {
+      const res = await fetch("/api/assistant/memory", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memoryEnabled: next }),
+      })
+      const data = await parseJsonSafely(res)
+
+      if (!res.ok) {
+        addMessage("assistant", "Unable to update memory preference right now. Please try again shortly.")
+        return
+      }
+
+      setMemoryEnabled(data.memoryEnabled === true)
+    } catch {
+      addMessage("assistant", "Unable to update memory preference right now. Please try again shortly.")
+    } finally {
+      setMemoryBusy(false)
+    }
+  }
 
   function addMessage(role: "user" | "assistant", content: string, images?: string[], isVoice = false) {
     setMessages((prev) => [...prev, { role, content, timestamp: new Date(), images, isVoice }])
@@ -78,6 +142,12 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         return
       }
 
+      if (res.status === 401) {
+        setError("Please sign in to use the EventSlot assistant.")
+        setSessionEnded(true)
+        return
+      }
+
       if (!res.ok || typeof data.sessionId !== "string") {
         setError(typeof data.message === "string" ? data.message : "Unable to start assistant right now. Please try again shortly.")
         return
@@ -93,10 +163,11 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   }, [loading, sessionId])
 
   useEffect(() => {
-    if (!sessionId && !sessionEnded) {
+    if (!sessionId && !sessionEnded && !sessionStartAttempted) {
+      setSessionStartAttempted(true)
       void startSession("text")
     }
-  }, [sessionId, sessionEnded, startSession])
+  }, [sessionId, sessionEnded, sessionStartAttempted, startSession])
 
   async function sendMessage(text: string, isVoice = false) {
     if ((!text.trim() && pendingImages.length === 0) || !sessionId || sessionEnded || loading) return
@@ -107,6 +178,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     const form = new FormData()
     form.append("sessionId", sessionId)
     form.append("message", text)
+    form.append("memoryEnabled", String(memoryEnabled))
     pendingImages.forEach((img) => form.append("images", img))
 
     setInput("")
@@ -262,6 +334,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     setMessages([])
     setInput("")
     setSessionEnded(false)
+    setSessionStartAttempted(false)
     setError(null)
     setQuotaExceeded(false)
     setWaitMinutes(0)
@@ -297,6 +370,21 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
           </span>
         </div>
         <div className="flex items-center gap-3">
+          {memoryAvailable && (
+            <button
+              type="button"
+              onClick={() => void toggleMemory()}
+              disabled={memoryBusy}
+              className={`text-[11px] border rounded-full px-2 py-0.5 transition-colors ${
+                memoryEnabled
+                  ? "border-[#C8F55A]/70 text-[#C8F55A]"
+                  : "border-[#3A3A3A] text-[#7A7A7A] hover:text-[#A3A3A3]"
+              } disabled:opacity-50`}
+              title={memoryEnabled ? "Assistant memory is ON" : "Assistant memory is OFF"}
+            >
+              Memory {memoryEnabled ? "ON" : "OFF"}
+            </button>
+          )}
           {creditsRemaining !== null && !quotaExceeded && (
             <span className="text-xs" style={{ color: creditColor }}>
               {creditsRemaining} credits
@@ -342,7 +430,15 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                   {msg.images && msg.images.length > 0 && (
                     <div className="flex gap-1 flex-wrap mb-2">
                       {msg.images.map((src, j) => (
-                        <img key={j} src={src} alt="Screenshot" className="w-20 h-20 object-cover rounded-lg border border-black/20" />
+                        <Image
+                          key={j}
+                          src={src}
+                          alt="Screenshot"
+                          width={80}
+                          height={80}
+                          unoptimized
+                          className="w-20 h-20 object-cover rounded-lg border border-black/20"
+                        />
                       ))}
                     </div>
                   )}
@@ -425,7 +521,14 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                 <div className="flex gap-2 flex-wrap mb-2">
                   {imagePreviews.map((src, i) => (
                     <div key={i} className="relative">
-                      <img src={src} alt="" className="w-14 h-14 object-cover rounded-lg" />
+                      <Image
+                        src={src}
+                        alt="Preview"
+                        width={56}
+                        height={56}
+                        unoptimized
+                        className="w-14 h-14 object-cover rounded-lg"
+                      />
                       <button
                         onClick={() => removeImage(i)}
                         className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"

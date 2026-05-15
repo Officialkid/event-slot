@@ -3,7 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { groq, ASSISTANT_MODEL } from "@/lib/groq"
 import { EVENTSLOT_SYSTEM_PROMPT } from "@/lib/assistant-context"
 import { consumeCredits } from "@/lib/chat-quota"
-import { createHash } from "crypto"
+import { isMemoryEnabled, loadMemory, updateMemoryAfterSession } from "@/lib/assistant-memory"
+import { getEventInsights, getOrganizerEventSummaries } from "@/lib/event-insights"
+import { buildDocsContext } from "@/lib/docs-context"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
@@ -11,6 +13,8 @@ import { Prisma } from "@prisma/client"
 
 const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024
 const MAX_IMAGES_PER_MESSAGE = 3
+const FULL_REPORT_CTA =
+  "For the full AI analysis and downloadable report, use Generate Report from your event dashboard (costs 20 tokens)."
 
 type AssistantContentPart =
   | { type: "image_url"; image_url: { url: string } }
@@ -26,11 +30,31 @@ type AssistantChatMessage =
       content: string
     }
 
+function detectsEventDataRequest(message: string): boolean {
+  const keywords = [
+    "how many", "registered", "registrations", "waitlist", "fill rate",
+    "capacity", "peak", "best time", "when should", "share my link",
+    "my event", "insights", "registration timeline", "people registered",
+    "how is my event", "how are registrations",
+    "wangapi", "walisajiliwa", "orodha ya kusubiri", "lini", "wakati gani",
+    "tukio langu", "usajili",
+  ]
+
+  const lower = message.toLowerCase()
+  return keywords.some((keyword) => lower.includes(keyword))
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Please sign in to use the assistant." },
+        { status: 401 }
+      )
+    }
 
-    // ── Per-IP chat rate limit (60/hr) ────────────────────
+    // Per-IP chat rate limit (60/hr).
     const ip = (req.headers.get("x-forwarded-for") ?? "127.0.0.1").split(",")[0].trim()
     const chatRl = await rateLimit(ip, "CHAT_MESSAGE", 60, 60)
     if (!chatRl.allowed) {
@@ -41,11 +65,14 @@ export async function POST(req: NextRequest) {
     let sessionId = ""
     let message = ""
     let images: File[] = []
+    let eventId: string | null = null
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData()
       sessionId = String(formData.get("sessionId") ?? "")
       message = String(formData.get("message") ?? "")
+      const eventIdRaw = formData.get("eventId")
+      eventId = typeof eventIdRaw === "string" && eventIdRaw.trim().length > 0 ? eventIdRaw.trim() : null
       images = formData
         .getAll("images")
         .filter((entry): entry is File => entry instanceof File)
@@ -53,6 +80,7 @@ export async function POST(req: NextRequest) {
       const body = await req.json()
       sessionId = String(body?.sessionId ?? "")
       message = String(body?.message ?? "")
+      eventId = typeof body?.eventId === "string" && body.eventId.trim().length > 0 ? body.eventId.trim() : null
     }
 
     if (!sessionId) {
@@ -60,21 +88,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (!message.trim() && images.length === 0) {
-      return NextResponse.json(
-        { error: "Message or image required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Message or image required" }, { status: 400 })
     }
 
     if (images.length > MAX_IMAGES_PER_MESSAGE) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_IMAGES_PER_MESSAGE} images per message` },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: `Maximum ${MAX_IMAGES_PER_MESSAGE} images per message` }, { status: 400 })
     }
 
-    const identifier = session?.user?.id ?? createHash("sha256").update(ip).digest("hex")
-    const quota = await consumeCredits(identifier, session?.user?.email, images.length)
+    const identifier = session.user.id
+    const quota = await consumeCredits(identifier, session.user.email, images.length)
 
     if (!quota.allowed) {
       const resetTime = quota.resetAt.toLocaleTimeString("en-KE", {
@@ -106,7 +128,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    if (!assistantSession) {
+    if (!assistantSession || assistantSession.userId !== session.user.id) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 })
     }
 
@@ -117,14 +139,78 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const imageContents: { type: "image_url"; image_url: { url: string } }[] = []
+    let systemPrompt = EVENTSLOT_SYSTEM_PROMPT
 
+    // Layer 1: memory context (if enabled and logged in).
+    const memEnabled = await isMemoryEnabled(session.user.id)
+    if (memEnabled) {
+      const memory = await loadMemory(session.user.id)
+      if (memory) {
+        systemPrompt += `\n${memory}`
+      }
+    }
+
+    let usedLiveEventData = false
+
+    // Layer 2: live event data (if event-related question or explicit eventId).
+    if (eventId || detectsEventDataRequest(message)) {
+      try {
+        let insights = null
+
+        if (eventId) {
+          insights = await getEventInsights(eventId, session.user.id)
+        } else {
+          const summaries = await getOrganizerEventSummaries(session.user.id)
+          const active = summaries.find((event) => {
+            const status = event.status.toLowerCase()
+            return status === "active" || status === "published"
+          })
+
+          if (active) {
+            insights = await getEventInsights(active.id, session.user.id)
+          }
+        }
+
+        if (insights) {
+          usedLiveEventData = true
+          systemPrompt += `
+═══════════════════════════════════════════════
+LIVE EVENT DATA (organiser's own event — you may share this freely)
+═══════════════════════════════════════════════
+Event: ${insights.eventTitle}
+Status: ${insights.status}
+Registrations: ${insights.totalRegistrations} of ${insights.capacity} (${insights.fillRate}% full)
+Waitlist: ${insights.waitlistCount} people
+Peak registration day: ${insights.peakDay ?? "N/A"} (${insights.peakCount} registrations)
+Best time to share link: ${insights.bestHourToShare ?? "Not enough data yet"}
+Registration velocity: ${insights.registrationVelocity}
+Daily breakdown: ${JSON.stringify(insights.dailyRegistrations)}
+
+Suggestions you can offer conversationally (not as a formal report):
+${insights.suggestions.map((suggestion, index) => `${index + 1}. ${suggestion}`).join("\n")}
+
+IMPORTANT: Share this data conversationally and helpfully.
+Do NOT format it as a formal report or use document-style headings.
+The full AI report (Word document) requires tokens and is a separate paid feature.
+═══════════════════════════════════════════════
+`
+        }
+      } catch (error) {
+        // Event context failure should not break chat.
+        console.error("[EventSlot] Event context fetch failed:", error)
+      }
+    }
+
+    // Layer 3: docs context.
+    const docsContext = buildDocsContext(message)
+    if (docsContext) {
+      systemPrompt += docsContext
+    }
+
+    const imageContents: { type: "image_url"; image_url: { url: string } }[] = []
     for (const image of images) {
       if (image.size > MAX_IMAGE_SIZE_BYTES) {
-        return NextResponse.json(
-          { error: "Image too large. Maximum size is 4MB per image." },
-          { status: 413 }
-        )
+        return NextResponse.json({ error: "Image too large. Maximum size is 4MB per image." }, { status: 413 })
       }
 
       if (!image.type.startsWith("image/")) {
@@ -133,13 +219,10 @@ export async function POST(req: NextRequest) {
 
       const arrayBuffer = await image.arrayBuffer()
       const base64 = Buffer.from(arrayBuffer).toString("base64")
-      const dataUrl = `data:${image.type};base64,${base64}`
-
-      imageContents.push({ type: "image_url", image_url: { url: dataUrl } })
+      imageContents.push({ type: "image_url", image_url: { url: `data:${image.type};base64,${base64}` } })
     }
 
-    const userContent =
-      images.length > 0 ? `[User sent ${images.length} image(s)]\n${message}` : message
+    const userContent = images.length > 0 ? `[User sent ${images.length} image(s)]\n${message}` : message
 
     await prisma.assistantMessage.create({
       data: {
@@ -150,9 +233,9 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const history: AssistantChatMessage[] = assistantSession.messages.map((m) => ({
-      role: m.role === "USER" ? ("user" as const) : ("assistant" as const),
-      content: m.content,
+    const history: AssistantChatMessage[] = assistantSession.messages.map((msg) => ({
+      role: msg.role === "USER" ? "user" : "assistant",
+      content: msg.content,
     }))
 
     const currentMessageContent =
@@ -161,9 +244,7 @@ export async function POST(req: NextRequest) {
             ...imageContents,
             {
               type: "text" as const,
-              text:
-                message ||
-                "Please explain what you see in this screenshot and how to resolve any issues.",
+              text: message || "Please explain what you see in this screenshot.",
             },
           ]
         : message
@@ -176,10 +257,7 @@ export async function POST(req: NextRequest) {
     try {
       const completion = await groq.chat.completions.create({
         model: images.length > 0 ? "llama-3.2-11b-vision-preview" : ASSISTANT_MODEL,
-        messages: [
-          { role: "system", content: EVENTSLOT_SYSTEM_PROMPT },
-          ...history,
-        ],
+        messages: [{ role: "system", content: systemPrompt }, ...history],
         max_tokens: 500,
         temperature: 0.4,
       })
@@ -196,7 +274,6 @@ export async function POST(req: NextRequest) {
       }
     } catch (error: unknown) {
       console.error("[EventSlot Assistant] Groq error:", error)
-
       const errorMessage = error instanceof Error ? error.message : String(error)
 
       if (images.length > 0 && errorMessage.toLowerCase().includes("model")) {
@@ -206,15 +283,18 @@ export async function POST(req: NextRequest) {
           "Alternatively, contact info@eventsslot.com with the screenshot attached."
       } else {
         reply =
-          "I'm having trouble responding right now. Please try again in a moment or " +
-          "contact info@eventsslot.com."
+          "I'm having trouble responding right now. Please try again in a moment or contact info@eventsslot.com."
       }
       shouldFlag = true
     }
 
-    const sessionEnded = ["this session has ended", "have a wonderful day"].some(
-      (p) => reply.toLowerCase().includes(p)
+    const sessionEnded = ["this session has ended", "have a wonderful day", "mazungumzo haya yamekwisha"].some(
+      (phrase) => reply.toLowerCase().includes(phrase)
     )
+
+    if (usedLiveEventData && !reply.includes(FULL_REPORT_CTA)) {
+      reply = `${reply.trim()}\n\n${FULL_REPORT_CTA}`
+    }
 
     try {
       await prisma.$transaction([
@@ -229,10 +309,7 @@ export async function POST(req: NextRequest) {
             status: sessionEnded ? "ENDED" : shouldFlag ? "FLAGGED" : "ACTIVE",
             flagged: shouldFlag || undefined,
             endedAt: sessionEnded ? new Date() : undefined,
-            flagReason:
-              shouldFlag && !assistantSession.flagged
-                ? userContent.substring(0, 200)
-                : undefined,
+            flagReason: shouldFlag && !assistantSession.flagged ? userContent.substring(0, 200) : undefined,
           },
         }),
       ])
@@ -250,16 +327,25 @@ export async function POST(req: NextRequest) {
               status: sessionEnded ? "ENDED" : shouldFlag ? "FLAGGED" : "ACTIVE",
               flagged: shouldFlag || undefined,
               endedAt: sessionEnded ? new Date() : undefined,
-              flagReason:
-                shouldFlag && !assistantSession.flagged
-                  ? userContent.substring(0, 200)
-                  : undefined,
+              flagReason: shouldFlag && !assistantSession.flagged ? userContent.substring(0, 200) : undefined,
             },
           }),
         ])
       } else {
         throw error
       }
+    }
+
+    if (sessionEnded) {
+      const allMessages = [
+        ...assistantSession.messages,
+        { role: "USER", content: userContent },
+        { role: "ASSISTANT", content: reply },
+      ]
+
+      setImmediate(() => {
+        updateMemoryAfterSession(session.user.id, allMessages).catch(console.error)
+      })
     }
 
     return NextResponse.json({

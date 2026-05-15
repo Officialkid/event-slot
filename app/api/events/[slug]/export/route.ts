@@ -11,6 +11,7 @@ import {
   Paragraph,
   Table,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
@@ -62,20 +63,26 @@ async function buildWordExport(params: {
   }>
 }): Promise<Buffer> {
   const { eventSlug, questions, registrations } = params
-  const CONTENT_WIDTH_DXA = 9026
 
   const tableHeaders = ['#', ...questions.map((q) => q.label), 'Status', 'Registration Day']
-  const firstColumnWidth = 520
-  const lastTwoColumnsWidth = 1700 + 1900
+  const firstColumnPct = 7
+  const statusColumnPct = 14
+  const dayColumnPct = 18
   const dynamicColumnCount = Math.max(1, tableHeaders.length - 3)
-  const dynamicColumnWidth = Math.floor((CONTENT_WIDTH_DXA - firstColumnWidth - lastTwoColumnsWidth) / dynamicColumnCount)
-
-  const columnWidths = [
-    firstColumnWidth,
-    ...new Array(dynamicColumnCount).fill(dynamicColumnWidth),
-    1700,
-    CONTENT_WIDTH_DXA - (firstColumnWidth + (dynamicColumnWidth * dynamicColumnCount) + 1700),
+  const dynamicTotalPct = Math.max(1, 100 - firstColumnPct - statusColumnPct - dayColumnPct)
+  const dynamicColumnPct = dynamicTotalPct / dynamicColumnCount
+  const baseColumnPercentages = [
+    firstColumnPct,
+    ...new Array(dynamicColumnCount).fill(dynamicColumnPct),
+    statusColumnPct,
+    dayColumnPct,
   ]
+  const columnPercentages = baseColumnPercentages.map((pct, idx) =>
+    idx === baseColumnPercentages.length - 1
+      ? 100 - baseColumnPercentages.slice(0, -1).reduce((sum, cur) => sum + cur, 0)
+      : pct,
+  )
+  const toPctWidth = (percent: number) => Math.max(1, Math.round(percent * 50))
 
   const rows = registrations.map((reg, index) => {
     const answers = Array.isArray(reg.answers)
@@ -98,13 +105,13 @@ async function buildWordExport(params: {
       children: rowValues.map(
         (value, colIndex) =>
           new TableCell({
-            width: { size: columnWidths[colIndex], type: WidthType.DXA },
+            width: { size: toPctWidth(columnPercentages[colIndex]), type: WidthType.PERCENTAGE },
             children: [
               new Paragraph({
                 children: [
                   new TextRun({
                     text: value,
-                    size: 22,
+                    size: 20,
                     color: '111111',
                   }),
                 ],
@@ -118,7 +125,16 @@ async function buildWordExport(params: {
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: 1440,
+              right: 1008,
+              bottom: 1440,
+              left: 1008,
+            },
+          },
+        },
         children: [
           new Paragraph({
             children: [new TextRun({ text: 'Confirmed Attendees', bold: true, size: 44 })],
@@ -135,14 +151,15 @@ async function buildWordExport(params: {
             spacing: { after: 260 },
           }),
           new Table({
-            width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
+            width: { size: 5000, type: WidthType.PERCENTAGE },
+            layout: TableLayoutType.FIXED,
             rows: [
               new TableRow({
                 tableHeader: true,
                 children: tableHeaders.map(
                   (header, colIndex) =>
                     new TableCell({
-                      width: { size: columnWidths[colIndex], type: WidthType.DXA },
+                      width: { size: toPctWidth(columnPercentages[colIndex]), type: WidthType.PERCENTAGE },
                       shading: { fill: '233E6D' },
                       children: [
                         new Paragraph({
