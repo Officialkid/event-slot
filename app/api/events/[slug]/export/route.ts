@@ -15,6 +15,7 @@ import {
   TextRun,
   WidthType,
 } from 'docx'
+import { jsPDF } from 'jspdf'
 
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
@@ -28,6 +29,18 @@ function formatRegistrationDay(iso: Date): string {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Africa/Nairobi',
+  }).format(iso)
+}
+
+function formatRegistrationDateTime(iso: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
     timeZone: 'Africa/Nairobi',
   }).format(iso)
 }
@@ -49,8 +62,20 @@ async function buildWordExport(params: {
   }>
 }): Promise<Buffer> {
   const { eventSlug, questions, registrations } = params
+  const CONTENT_WIDTH_DXA = 9026
 
   const tableHeaders = ['#', ...questions.map((q) => q.label), 'Status', 'Registration Day']
+  const firstColumnWidth = 520
+  const lastTwoColumnsWidth = 1700 + 1900
+  const dynamicColumnCount = Math.max(1, tableHeaders.length - 3)
+  const dynamicColumnWidth = Math.floor((CONTENT_WIDTH_DXA - firstColumnWidth - lastTwoColumnsWidth) / dynamicColumnCount)
+
+  const columnWidths = [
+    firstColumnWidth,
+    ...new Array(dynamicColumnCount).fill(dynamicColumnWidth),
+    1700,
+    CONTENT_WIDTH_DXA - (firstColumnWidth + (dynamicColumnWidth * dynamicColumnCount) + 1700),
+  ]
 
   const rows = registrations.map((reg, index) => {
     const answers = Array.isArray(reg.answers)
@@ -71,9 +96,9 @@ async function buildWordExport(params: {
 
     return new TableRow({
       children: rowValues.map(
-        (value) =>
+        (value, colIndex) =>
           new TableCell({
-            width: { size: 100 / tableHeaders.length, type: WidthType.PERCENTAGE },
+            width: { size: columnWidths[colIndex], type: WidthType.DXA },
             children: [
               new Paragraph({
                 children: [
@@ -102,7 +127,7 @@ async function buildWordExport(params: {
           new Paragraph({
             children: [
               new TextRun({
-                text: `${registrations.length} confirmed registrations as of ${formatRegistrationDay(new Date())}`,
+                text: `${registrations.length} confirmed registrations as of ${formatRegistrationDateTime(new Date())} (EAT)`,
                 size: 26,
                 color: '555555',
               }),
@@ -110,13 +135,14 @@ async function buildWordExport(params: {
             spacing: { after: 260 },
           }),
           new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
+            width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
             rows: [
               new TableRow({
                 tableHeader: true,
                 children: tableHeaders.map(
-                  (header) =>
+                  (header, colIndex) =>
                     new TableCell({
+                      width: { size: columnWidths[colIndex], type: WidthType.DXA },
                       shading: { fill: '233E6D' },
                       children: [
                         new Paragraph({
@@ -156,12 +182,158 @@ async function buildWordExport(params: {
   return Packer.toBuffer(doc)
 }
 
+function buildPdfExport(params: {
+  eventSlug: string
+  questions: Array<{ id: string; label: string; type: string }>
+  registrations: Array<{
+    status: string
+    submittedAt: Date
+    registrationNumber: number | null
+    answers: unknown
+  }>
+}): Uint8Array {
+  const { eventSlug, questions, registrations } = params
+
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const marginX = 42
+  const contentWidth = pageWidth - marginX * 2
+  const lineHeight = 16
+  const rowHeight = 22
+  let y = 56
+
+  const headers = ['#', ...questions.map((q) => q.label), 'Status', 'Registration Day']
+  const firstCol = 42
+  const statusCol = 84
+  const dayCol = 104
+  const dynamicColCount = Math.max(1, headers.length - 3)
+  const dynamicColWidth = Math.floor((contentWidth - firstCol - statusCol - dayCol) / dynamicColCount)
+  const widths = [
+    firstCol,
+    ...new Array(dynamicColCount).fill(dynamicColWidth),
+    statusCol,
+    contentWidth - (firstCol + dynamicColCount * dynamicColWidth + statusCol),
+  ]
+
+  const drawWrappedCell = (text: string, x: number, topY: number, width: number, maxLines = 2) => {
+    const lines = doc.splitTextToSize(text || '', width - 6).slice(0, maxLines)
+    lines.forEach((line: string, i: number) => {
+      doc.text(line, x + 3, topY + 14 + i * 9)
+    })
+  }
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.text('Confirmed Attendees', marginX, y)
+  y += 22
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  doc.setTextColor(80, 80, 80)
+  doc.text(
+    `${registrations.length} confirmed registrations as of ${formatRegistrationDateTime(new Date())} (EAT)`,
+    marginX,
+    y,
+  )
+  y += 22
+
+  doc.setDrawColor(35, 62, 109)
+  doc.setFillColor(35, 62, 109)
+  doc.rect(marginX, y, contentWidth, rowHeight, 'F')
+
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+
+  let x = marginX
+  headers.forEach((h, idx) => {
+    drawWrappedCell(h, x, y, widths[idx])
+    x += widths[idx]
+  })
+  y += rowHeight
+
+  doc.setTextColor(20, 20, 20)
+  doc.setFont('helvetica', 'normal')
+
+  for (let i = 0; i < registrations.length; i += 1) {
+    if (y + rowHeight > pageHeight - 90) {
+      doc.addPage()
+      y = 56
+      doc.setDrawColor(35, 62, 109)
+      doc.setFillColor(35, 62, 109)
+      doc.rect(marginX, y, contentWidth, rowHeight, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      x = marginX
+      headers.forEach((h, idx) => {
+        drawWrappedCell(h, x, y, widths[idx])
+        x += widths[idx]
+      })
+      y += rowHeight
+      doc.setTextColor(20, 20, 20)
+      doc.setFont('helvetica', 'normal')
+    }
+
+    const reg = registrations[i]
+    const answers = Array.isArray(reg.answers)
+      ? (reg.answers as Array<{ questionId?: string; value?: unknown }>)
+      : []
+    const answerMap = new Map(
+      answers
+        .filter((a) => a.questionId)
+        .map((a) => [a.questionId as string, cleanValue(a.value)]),
+    )
+
+    const rowValues = [
+      String(reg.registrationNumber ?? i + 1),
+      ...questions.map((q) => answerMap.get(q.id) ?? ''),
+      reg.status,
+      formatRegistrationDay(reg.submittedAt),
+    ]
+
+    doc.setDrawColor(225, 225, 225)
+    doc.rect(marginX, y, contentWidth, rowHeight)
+    x = marginX
+    rowValues.forEach((cell, idx) => {
+      drawWrappedCell(cell, x, y, widths[idx])
+      x += widths[idx]
+    })
+    y += rowHeight
+  }
+
+  if (y + 64 > pageHeight) {
+    doc.addPage()
+    y = 56
+  }
+
+  y += 20
+  doc.setDrawColor(163, 214, 90)
+  doc.line(marginX, y - 12, marginX, y + 24)
+  doc.setFontSize(9)
+  doc.setTextColor(90, 90, 90)
+  const noticeLines = doc.splitTextToSize(
+    'Data Protection Notice: This attendee list contains personal data processed under the Kenya Data Protection Act (2019). This document is confidential. Do not share, copy, or distribute attendee personal data without a lawful basis.',
+    contentWidth - 14,
+  )
+  doc.text(noticeLines, marginX + 10, y)
+
+  y += noticeLines.length * lineHeight
+  doc.setFontSize(8)
+  doc.setTextColor(130, 130, 130)
+  doc.text(`Event: ${eventSlug}`, marginX, y + 12)
+
+  return new Uint8Array(doc.output('arraybuffer'))
+}
+
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params
   try {
     const { slug } = params
     const token = req.nextUrl.searchParams.get('token')
-    const format = req.nextUrl.searchParams.get('format') === 'word' ? 'word' : 'csv'
+    const formatParam = req.nextUrl.searchParams.get('format')
+    const format: 'csv' | 'word' | 'pdf' = formatParam === 'word' ? 'word' : formatParam === 'pdf' ? 'pdf' : 'csv'
 
     const session = await getServerSession(authOptions)
 
@@ -209,6 +381,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'Content-Disposition': `attachment; filename="registrations-${slug}.docx"`,
+        },
+      })
+    }
+
+    if (format === 'pdf') {
+      const pdfBytes = buildPdfExport({
+        eventSlug: slug,
+        questions,
+        registrations,
+      })
+
+      return new Response(pdfBytes.buffer as ArrayBuffer, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="registrations-${slug}.pdf"`,
         },
       })
     }

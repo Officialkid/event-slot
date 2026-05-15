@@ -45,8 +45,9 @@ export async function GET(req: NextRequest) {
           page: 1,
           limit: 25,
           error: "Assistant sessions schema is out of sync. Run prisma migrate deploy.",
+          success: false,
         },
-        { status: 503 }
+        { status: 200 }
       )
     }
 

@@ -1,5 +1,27 @@
 # EventSlot — Changelog
 
+## [0.4.57] — May 15, 2026
+
+### Registrations Export UX + Document Layout Fixes
+
+- Updated organizer dashboard export control in `app/(organizer)/dashboard/events/[slug]/page.tsx`:
+  - default export format is now Word (`.docx`)
+  - format options now include Word, PDF, and CSV
+- Extended registrations export API in `app/api/events/[slug]/export/route.ts` to support `format=pdf` in addition to `csv` and `word`.
+- Fixed Word attendee table compression by switching to document-width-aware fixed column sizing instead of tiny percentage cell widths.
+- Added export timestamp precision in Word/PDF attendee documents:
+  - now shows both date and time at download (`as of <date/time> EAT`).
+
+### Report Pricing Copy Alignment (Token System)
+
+- Updated event report download messaging in organizer dashboard to token-based copy (`20 tokens per report`) while preserving super-admin free messaging.
+
+### Admin 503 Noise Reduction + Compatibility Handling
+
+- Updated `GET /api/admin/assistant-sessions` schema-compat fallback to return safe empty payload with HTTP 200 (instead of 503) to avoid repeated failed-resource console noise in admin pages.
+- Updated `POST /api/admin/comms` schema-compat fallback to return structured compatibility payload with HTTP 200 and explicit `success: false` for graceful UI handling.
+- Updated admin comms page submit handling to respect explicit error payloads even when compatibility fallback returns HTTP 200.
+
 ## [0.4.56] — May 15, 2026
 
 ### Admin Reliability Hotfix (Conversations + Comms + Email Readiness)

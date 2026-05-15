@@ -54,8 +54,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2022") {
       return NextResponse.json(
-        { error: "Comms schema is out of sync. Run prisma migrate deploy." },
-        { status: 503 }
+        {
+          success: false,
+          error: "Comms schema is out of sync. Run prisma migrate deploy.",
+        },
+        { status: 200 }
       )
     }
     console.error("[admin/comms] POST error:", err)

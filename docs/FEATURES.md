@@ -84,9 +84,21 @@ _Last updated: May 15, 2026_
 **Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  
 **What it does:** Lets organizers choose export format before download (`CSV` or `Word (.docx)`) from the event dashboard export panel, while preserving existing export permission/unlock behavior.
 
+### Confirmed Registrations Export Format Selector (Word + PDF + CSV)
+**Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Organizer export control now defaults to Word and supports three explicit formats (`Word (.docx)`, `PDF`, `CSV`) so users can choose preferred distribution format directly from the dashboard.
+
 ### Confirmed Registrations Word Document Export
 **Where:** `app/api/events/[slug]/export/route.ts`  
 **What it does:** Extends registrations export endpoint with Word output (`format=word`) that generates a document containing a branded attendee table, registration summary line, registration-day formatting, and a data-protection notice.
+
+### Confirmed Registrations PDF Export
+**Where:** `app/api/events/[slug]/export/route.ts`  
+**What it does:** Adds server-generated PDF attendee export (`format=pdf`) with table-based confirmed attendee rows, export timestamp, and privacy/data-protection notice aligned to the Word export content.
+
+### Word/PDF Export Timestamp Precision
+**Where:** `app/api/events/[slug]/export/route.ts`  
+**What it does:** Attendee documents now include both date and time of export (`as of <date/time> EAT`) to make report generation time auditable for organizer workflows.
 
 ### Super Admin Assistant Feedback Dashboard
 **Where:** `app/admin/feedback/page.tsx`  

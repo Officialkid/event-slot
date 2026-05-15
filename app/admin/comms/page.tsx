@@ -69,6 +69,10 @@ export default function AdminCommsPage() {
         body: JSON.stringify({ subject, content }),
       })
       const data = await parseJsonSafely(res)
+      if (typeof data.error === "string") {
+        setError(data.error)
+        return
+      }
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "Failed to publish announcement.")
         return
