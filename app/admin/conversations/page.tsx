@@ -20,15 +20,44 @@ export default function ConversationsPage() {
   const [total, setTotal]         = useState(0)
   const [flagged, setFlagged]     = useState(0)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState("")
+
+  const parseJsonSafely = async (res: Response): Promise<Record<string, unknown>> => {
+    const bodyText = await res.text()
+    if (!bodyText) return {}
+    try {
+      return JSON.parse(bodyText) as Record<string, unknown>
+    } catch {
+      return {}
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res  = await fetch(`/api/admin/assistant-sessions?filter=${filter}`)
-    const data = await res.json()
-    setSessions(data.sessions)
-    setTotal(data.total)
-    setFlagged(data.flaggedCount)
-    setLoading(false)
+    setError("")
+    try {
+      const res  = await fetch(`/api/admin/assistant-sessions?filter=${filter}`)
+      const data = await parseJsonSafely(res)
+
+      if (!res.ok) {
+        setSessions([])
+        setTotal(0)
+        setFlagged(0)
+        setError(typeof data.error === "string" ? data.error : "Failed to load conversations.")
+        return
+      }
+
+      setSessions(Array.isArray(data.sessions) ? (data.sessions as SessionData[]) : [])
+      setTotal(typeof data.total === "number" ? data.total : 0)
+      setFlagged(typeof data.flaggedCount === "number" ? data.flaggedCount : 0)
+    } catch {
+      setSessions([])
+      setTotal(0)
+      setFlagged(0)
+      setError("Network error while loading conversations.")
+    } finally {
+      setLoading(false)
+    }
   }, [filter])
 
   useEffect(() => { load() }, [load])
@@ -62,6 +91,9 @@ export default function ConversationsPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {error && (
+            <p className="p-4 text-red-400 text-sm">{error}</p>
+          )}
           {loading && (
             <p className="p-4 text-[#525252] text-sm">Loading...</p>
           )}

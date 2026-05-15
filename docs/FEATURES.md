@@ -10,6 +10,18 @@ _Last updated: May 15, 2026_
 
 ## Security
 
+### Admin Conversations API Resilience
+**Where:** `app/api/admin/assistant-sessions/route.ts`, `app/admin/conversations/page.tsx`, `app/admin/AdminSidebar.tsx`  
+**What it does:** Prevents admin conversations UI failures when API responses are empty/non-JSON or when the database schema is behind. API now returns structured JSON errors (including migration guidance), and the client parses responses safely to avoid `Unexpected end of JSON input` crashes.
+
+### Admin Comms API Resilience
+**Where:** `app/api/admin/comms/route.ts`, `app/admin/comms/page.tsx`  
+**What it does:** Adds robust super-admin checks and schema-drift-safe error responses for comms publishing. The page now handles error responses gracefully without client-side JSON parse crashes.
+
+### Resend Provider Readiness Requirement
+**Where:** `lib/email.ts`, `app/api/admin/broadcast/route.ts`, `app/api/admin/health/route.ts`  
+**What it does:** Email features depend on valid Resend configuration. Production email/broadcast flows require both `RESEND_API_KEY` and verified `RESEND_FROM`. Admin health reports provider configuration status, and broadcast route fails fast with a clear error when sender configuration is missing.
+
 ## Documentation Platform
 
 ### Official EventSlot Documentation Website

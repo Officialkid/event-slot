@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 interface CommsMessage {
   id: string
@@ -18,25 +18,40 @@ export default function AdminCommsPage() {
   const [success, setSuccess] = useState("")
   const [announcements, setAnnouncements] = useState<CommsMessage[]>([])
 
+  const parseJsonSafely = async (res: Response): Promise<Record<string, unknown>> => {
+    const bodyText = await res.text()
+    if (!bodyText) return {}
+    try {
+      return JSON.parse(bodyText) as Record<string, unknown>
+    } catch {
+      return {}
+    }
+  }
+
   const snippet = useMemo(() => {
     const trimmed = content.trim()
     return trimmed.length > 120 ? `${trimmed.slice(0, 120).trim()}…` : trimmed
   }, [content])
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch("/api/comms")
-      const data = await res.json()
-      setAnnouncements(data.messages ?? [])
+      const data = await parseJsonSafely(res)
+      setAnnouncements(Array.isArray(data.messages) ? (data.messages as CommsMessage[]) : [])
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Failed to load announcements.")
+      }
+    } catch {
+      setError("Network error while loading announcements.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchAnnouncements()
-  }, [])
+  }, [fetchAnnouncements])
 
   const submit = async () => {
     setError("")
@@ -53,9 +68,9 @@ export default function AdminCommsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, content }),
       })
-      const data = await res.json()
+      const data = await parseJsonSafely(res)
       if (!res.ok) {
-        setError(data.error ?? "Failed to publish announcement.")
+        setError(typeof data.error === "string" ? data.error : "Failed to publish announcement.")
         return
       }
       setSubject("")

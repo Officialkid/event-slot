@@ -24,8 +24,16 @@ export default function AdminSidebar() {
 
   useEffect(() => {
     fetch("/api/admin/assistant-sessions?filter=flagged")
-      .then(r => r.json())
-      .then(d => setFlaggedCount(d.flaggedCount ?? 0))
+      .then(async (r) => {
+        const bodyText = await r.text()
+        if (!bodyText) return {}
+        try {
+          return JSON.parse(bodyText) as { flaggedCount?: number }
+        } catch {
+          return {}
+        }
+      })
+      .then(d => setFlaggedCount(typeof d.flaggedCount === "number" ? d.flaggedCount : 0))
       .catch(() => {})
   }, [])
 

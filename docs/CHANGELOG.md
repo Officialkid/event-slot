@@ -1,5 +1,24 @@
 # EventSlot — Changelog
 
+## [0.4.56] — May 15, 2026
+
+### Admin Reliability Hotfix (Conversations + Comms + Email Readiness)
+
+- Hardened `GET /api/admin/assistant-sessions` in `app/api/admin/assistant-sessions/route.ts` with:
+  - structured `try/catch` error handling
+  - super-admin authorization fallback via `isAdminEmail`
+  - schema-drift-safe fallback response (returns actionable migration message instead of empty 500 body)
+- Hardened `POST /api/admin/comms` in `app/api/admin/comms/route.ts` with:
+  - super-admin authorization fallback via `isAdminEmail`
+  - schema mismatch detection (`P2022`) returning actionable `503` migration guidance
+- Updated admin conversations and comms UIs to safely parse non-JSON/empty responses and avoid `Unexpected end of JSON input` client crashes:
+  - `app/admin/conversations/page.tsx`
+  - `app/admin/comms/page.tsx`
+  - `app/admin/AdminSidebar.tsx`
+- Verified Resend integration tests pass (`__tests__/lib/emailResend.test.ts`) and confirmed provider readiness requirement:
+  - `RESEND_API_KEY` must be set
+  - `RESEND_FROM` must be set to a verified sender for production broadcast flows
+
 ## [0.4.55] — May 15, 2026
 
 ### EventSlot Assistant Intelligence Upgrade (MD 3) — Phase 7 (Admin Feedback Dashboard)

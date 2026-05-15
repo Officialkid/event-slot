@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
+import { isAdminEmail } from "@/lib/isAdmin"
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (session?.user?.role !== "SUPER_ADMIN" || !session.user.id) {
+    const isSuperAdmin = session?.user?.role === "SUPER_ADMIN" || isAdminEmail(session?.user?.email)
+    if (!isSuperAdmin || !session?.user?.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -49,6 +52,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(message, { status: 201 })
   } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2022") {
+      return NextResponse.json(
+        { error: "Comms schema is out of sync. Run prisma migrate deploy." },
+        { status: 503 }
+      )
+    }
     console.error("[admin/comms] POST error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
