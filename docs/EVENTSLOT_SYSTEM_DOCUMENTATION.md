@@ -1,6 +1,6 @@
 # EventSlot — Live System Documentation
 **Version:** Auto-stamped on deploy
-**Last Updated:** 2026-05-18T16:01:36Z — Commit: 71e7216 — Revision: eventslot-web-00072-zz8
+**Last Updated:** 2026-05-18T21:48:30Z — Commit: 0abf315 — Revision: eventslot-web-00077-5d5
 **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS · Neon PostgreSQL · Prisma ORM · NextAuth · Paystack · Google Cloud Run · GitHub Actions
 **Owner:** EventSlot
 **Primary Market:** Kenya
@@ -611,6 +611,7 @@ Output only the changed sections.
 |---|---|---|---|
 | 2026-05-06T00:00:00Z | manual | canonical-doc-bootstrap | Established this canonical live system documentation and deploy-update contract |
 <!-- AUTO-DEPLOY-CHANGELOG:START -->
+| 2026-05-18T21:48:30Z | 0abf315 | eventslot-web-00077-5d5 | Auto-deploy metadata update |
 | 2026-05-18T16:01:36Z | 71e7216 | eventslot-web-00072-zz8 | Auto-deploy metadata update |
 | 2026-05-18T15:41:20Z | 23c7a27 | eventslot-web-00070-rsf | Auto-deploy metadata update |
 | 2026-05-18T14:38:49Z | 41aa43e | eventslot-web-00068-942 | Auto-deploy metadata update |
