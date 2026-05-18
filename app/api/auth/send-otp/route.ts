@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { resend } from "@/lib/resend"
 
+export const dynamic = "force-dynamic"
+
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
