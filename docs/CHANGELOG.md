@@ -1,5 +1,13 @@
 # EventSlot — Changelog
 
+## [0.4.66] — May 19, 2026
+
+### Bug Fixes — `/join` Referral 500 + Virtual Event 503
+
+- **`GET /join?ref=...` 500 fixed**: Converted `app/join/page.tsx` to a Route Handler (`app/join/route.ts`). In Next.js 14+, `cookies().set()` is forbidden in Server Components and throws a runtime error — it is only permitted in Route Handlers and Server Actions. The Route Handler now sets the `eventslot_ref` cookie and redirects to `/signup` correctly.
+- **`POST /api/events` VIRTUAL 503 root-cause**: `ENCRYPTION_KEY` secret was added to the service via `gcloud run services update --update-secrets` (creating revision `00077-5d5`), but `--to-latest` then served revision `00080-p8v` which was deployed by a Cloud Build that predates the `ENCRYPTION_KEY` mapping. Fixed by ensuring `cloudrun.yaml` includes `ENCRYPTION_KEY: latest` so every Cloud Build-triggered revision inherits it. New Cloud Build deployment will resolve the 503.
+- **`cloudrun.yaml` — added missing `R2_PUBLIC_URL`**: The `R2_PUBLIC_URL` env var (mapped from `CLOUDFLARE_R2_PUBLIC_URL` secret) was present in `cloudbuild.yaml` and `validateR2Env()` checks it, but was absent from `cloudrun.yaml`. Added to keep the service manifest in sync.
+
 ## [0.4.65] — May 19, 2026
 
 ### Infrastructure Fixes — Production DB Migrations, ENCRYPTION_KEY, R2 BOM Corruption
