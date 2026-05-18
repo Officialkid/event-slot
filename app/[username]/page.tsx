@@ -122,9 +122,20 @@ export async function generateMetadata({
   const { username } = await params
   if (RESERVED.includes(username.toLowerCase())) return {}
 
-  const user = await getUserMetaByUsername(username)
+  let user: Awaited<ReturnType<typeof getUserMetaByUsername>> = null
+  try {
+    user = await getUserMetaByUsername(username)
+  } catch {
+    return {}
+  }
+
   if (!user) {
-    const event = await getEventMetaBySlug(username)
+    let event: Awaited<ReturnType<typeof getEventMetaBySlug>> = null
+    try {
+      event = await getEventMetaBySlug(username)
+    } catch {
+      return {}
+    }
     if (!event) return {}
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = process.env.NEXTAUTH_URL ?? ""
@@ -168,10 +179,20 @@ export default async function PublicProfilePage({
 
   if (RESERVED.includes(username.toLowerCase())) notFound()
 
-  const user = await getPublicUserProfile(username)
+  let user: Awaited<ReturnType<typeof getPublicUserProfile>> = null
+  try {
+    user = await getPublicUserProfile(username)
+  } catch {
+    notFound()
+  }
 
   if (!user) {
-    const event = await getEventBySlug(username)
+    let event: Awaited<ReturnType<typeof getEventBySlug>> = null
+    try {
+      event = await getEventBySlug(username)
+    } catch {
+      notFound()
+    }
     if (!event) notFound()
 
     if (event.deadline && new Date(event.deadline) < new Date()) {
