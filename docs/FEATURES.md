@@ -42,6 +42,18 @@ _Last updated: May 18, 2026_
 
 ## Event Day Access
 
+### Community Leaderboard Navigation Discoverability
+**Where:** `app/(organizer)/dashboard/_shell.tsx`, `app/(organizer)/dashboard/community/page.tsx`  
+**What it does:** Adds a dedicated `Community` item in organizer dashboard navigation so users can quickly open the referral leaderboard, invite stats, and progress view from the main sidebar.
+
+### Pioneer Badge Identity Marker
+**Where:** `app/(organizer)/dashboard/_shell.tsx`, `app/api/user/badges/route.ts`  
+**What it does:** Shows a `Pioneer` identity chip beside the organizer profile identity in the dashboard sidebar when `hasPioneer` is true.
+
+### PWA Install Banner Frequency Controls
+**Where:** `components/PwaInstallBanner.tsx`  
+**What it does:** Prevents banner fatigue by combining a 30-day dismissal TTL with a 24-hour display cooldown so users do not repeatedly see the install prompt across page visits.
+
 ### Attendee Join Event Button (Phase 6.1)
 **Where:** `components/JoinEventButton.tsx`  
 **What it does:** Provides attendee-side virtual event access UI with time-window awareness, camera-based QR scanning (via `jsqr`), server verification using `POST /api/events/{eventId}/verify-entry`, fallback name/email lookup path, and success-state meeting link launch for verified attendees.

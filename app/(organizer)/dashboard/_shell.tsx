@@ -70,6 +70,19 @@ function IconUsers() {
   )
 }
 
+function IconTrophy() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 2.5h6v2a3 3 0 01-6 0v-2z" />
+      <path d="M5 4.5H3.5A1.5 1.5 0 002 6v.2A2.8 2.8 0 004.8 9H5" />
+      <path d="M11 4.5h1.5A1.5 1.5 0 0114 6v.2A2.8 2.8 0 0111.2 9H11" />
+      <path d="M8 7.5v2.2" />
+      <path d="M6 13.5h4" />
+      <path d="M6.5 10.8h3" />
+    </svg>
+  )
+}
+
 function IconBilling() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -144,6 +157,7 @@ function IconAdmin() {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { label: "My Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { label: "Community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
   { label: "Assistant", href: "/dashboard/assistant", icon: <IconChat />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
@@ -165,6 +179,7 @@ interface SidebarInnerProps {
   image?: string | null
   initials: string
   unreadCount: number
+  hasPioneer: boolean
   usedFeatures: string[]
   onNavClick?: () => void
   onOpenTourSelector?: () => void
@@ -172,7 +187,7 @@ interface SidebarInnerProps {
   isAdmin?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -249,6 +264,29 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, use
             >
               {name}
             </div>
+            {hasPioneer && (
+              <div style={{ marginTop: "0.2rem" }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: "0.62rem",
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    color: "#C8F55A",
+                    background: "rgba(200,245,90,0.1)",
+                    border: "0.5px solid rgba(200,245,90,0.35)",
+                    fontFamily: "var(--font-dm-sans)",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    width: "fit-content",
+                  }}
+                >
+                  Pioneer
+                </span>
+              </div>
+            )}
             {email && (
               <div
                 style={{
@@ -600,6 +638,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [hasPioneer, setHasPioneer] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [usedFeatures, setUsedFeatures] = useState<string[]>([])
   const [showTourSelector, setShowTourSelector] = useState(false)
@@ -652,6 +691,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (status !== "authenticated") return
+
+    fetch("/api/user/badges")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        setHasPioneer(Boolean(d?.hasPioneer))
+      })
+      .catch(() => {
+        setHasPioneer(false)
+      })
+
     fetch("/api/onboarding")
       .then(r => r.ok ? r.json() : null)
       .then(d => {
@@ -734,6 +783,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     image,
     initials,
     unreadCount,
+    hasPioneer,
     usedFeatures,
     onOpenTourSelector: () => setShowTourSelector(true),
   }

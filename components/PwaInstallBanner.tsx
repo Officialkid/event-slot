@@ -8,7 +8,9 @@ type BeforeInstallPromptEvent = Event & {
 }
 
 const DISMISS_KEY = "eventslot.pwaBannerDismissedAt"
-const DISMISS_TTL_MS = 3 * 24 * 60 * 60 * 1000
+const LAST_SHOWN_KEY = "eventslot.pwaBannerLastShownAt"
+const DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const SHOW_COOLDOWN_MS = 24 * 60 * 60 * 1000
 
 function isStandaloneMode(): boolean {
   if (typeof window === "undefined") return false
@@ -36,6 +38,16 @@ export function PwaInstallBanner() {
   useEffect(() => {
     if (typeof window === "undefined") return
 
+    const lastShownRaw = window.localStorage.getItem(LAST_SHOWN_KEY)
+    if (lastShownRaw) {
+      const lastShownAt = Number(lastShownRaw)
+      if (Number.isFinite(lastShownAt) && Date.now() - lastShownAt < SHOW_COOLDOWN_MS) {
+        setHidden(true)
+      } else {
+        window.localStorage.removeItem(LAST_SHOWN_KEY)
+      }
+    }
+
     const dismissedAtRaw = window.localStorage.getItem(DISMISS_KEY)
     if (dismissedAtRaw) {
       const dismissedAt = Number(dismissedAtRaw)
@@ -62,6 +74,11 @@ export function PwaInstallBanner() {
 
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt)
     window.addEventListener("appinstalled", onAppInstalled)
+
+    if (!isStandaloneMode()) {
+      window.localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()))
+    }
+
     setReady(true)
 
     return () => {

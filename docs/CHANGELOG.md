@@ -16,6 +16,14 @@
   - pioneer onboarding
   - event-day verification and entry tracking
 
+### Dashboard UX Discoverability + PWA Banner Frequency
+
+- Added `Community` navigation item in dashboard sidebar linking to `/dashboard/community` for leaderboard and referral progress visibility.
+- Added Pioneer badge chip beside organizer identity in dashboard sidebar profile block for stronger belonging and recognition.
+- Updated install banner visibility behavior to reduce repeat exposure:
+  - dismiss now suppresses banner for 30 days
+  - non-dismissed banner has a 24-hour show cooldown to avoid repeated daily reappearance across pages.
+
 ## [0.4.62] — May 18, 2026
 
 ### Part 3 — Brand Colour Enforcement
