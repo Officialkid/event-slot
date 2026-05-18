@@ -51,7 +51,7 @@ _Last updated: May 18, 2026_
 **What it does:** Lets organisers define exactly when attendee join access should open (`joinOpensAt`). If not set, access defaults to 30 minutes before event start. Both server verification and attendee countdown use the same rule.
 
 ### ID-Based Attendee Lookup For Event-Day Fallback
-**Where:** `app/api/events/[id]/lookup/route.ts`, `app/api/events/[id]/verify-entry/route.ts`  
+**Where:** `app/api/events/id/[id]/lookup/route.ts`, `app/api/events/[id]/verify-entry/route.ts`  
 **What it does:** Adds event-id lookup by attendee name/email for fallback access when QR scan is unavailable, then verifies entry via ticket-based fallback payloads.
 
 ### Verify-Entry Explicit lookupTicketId Fallback (Phase 8)

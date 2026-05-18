@@ -175,7 +175,7 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
     setResult(null)
 
     try {
-      const lookupRes = await fetch(`/api/events/${eventId}/lookup?q=${encodeURIComponent(fallbackQuery)}`)
+      const lookupRes = await fetch(`/api/events/id/${eventId}/lookup?q=${encodeURIComponent(fallbackQuery)}`)
       const lookupData = (await lookupRes.json()) as {
         found?: boolean
         status?: string

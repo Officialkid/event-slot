@@ -41,7 +41,7 @@
   - recent entry timeline
   - host Google Meet quick-open action for virtual events
 - Embedded `EntryDashboard` into the organizer verify-ticket tab in `app/(organizer)/dashboard/events/[slug]/page.tsx`.
-- Added ID-based attendee lookup API in `app/api/events/[id]/lookup/route.ts` to support attendee-side fallback verification by name/email.
+- Added ID-based attendee lookup API in `app/api/events/id/[id]/lookup/route.ts` to support attendee-side fallback verification by name/email.
 - Updated attendee verification endpoint `app/api/events/[id]/verify-entry/route.ts` to support lookup fallback payloads (`LOOKUP:<ticketId>`) while preserving signed QR verification.
 - Added customizable join access opening time support:
   - new event field `joinOpensAt` in `prisma/schema.prisma`
