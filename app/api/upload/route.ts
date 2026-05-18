@@ -8,17 +8,25 @@ import { validateR2Env } from '@/lib/validateEnv'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
 
-function getR2Client() {
+function getR2Config() {
   const accountId = process.env.R2_ACCOUNT_ID?.trim()
   const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim()
-  if (!accountId || !accessKeyId || !secretAccessKey) {
+  const bucketName = process.env.R2_BUCKET_NAME?.trim()
+  const publicUrl = process.env.R2_PUBLIC_URL?.trim()
+
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicUrl) {
     throw new Error('R2 environment variables not configured')
   }
+
+  return { accountId, accessKeyId, secretAccessKey, bucketName, publicUrl }
+}
+
+function getR2Client(config: { accountId: string; accessKeyId: string; secretAccessKey: string }) {
   return new S3Client({
     region: 'auto',
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId, secretAccessKey },
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
   })
 }
 
@@ -58,13 +66,22 @@ export async function POST(req: NextRequest) {
 
   const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1]
   const key = `events/${uuidv4()}.${ext}`
-  const buffer = Buffer.from(await file.arrayBuffer())
+
+  let buffer: Buffer
+  try {
+    buffer = Buffer.from(await file.arrayBuffer())
+  } catch {
+    return NextResponse.json({ error: 'Unable to read uploaded file' }, { status: 400 })
+  }
+
+  let config: { accountId: string; accessKeyId: string; secretAccessKey: string; bucketName: string; publicUrl: string }
 
   try {
-    const r2 = getR2Client()
+    config = getR2Config()
+    const r2 = getR2Client(config)
     await r2.send(
       new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
+        Bucket: config.bucketName,
         Key: key,
         Body: buffer,
         ContentType: file.type,
@@ -72,19 +89,21 @@ export async function POST(req: NextRequest) {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload failed'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-
-  const publicUrl = process.env.R2_PUBLIC_URL
-  if (!publicUrl) {
-    return NextResponse.json({ error: 'R2_PUBLIC_URL not configured' }, { status: 500 })
+    console.error('[upload] R2 upload failed:', message)
+    return NextResponse.json(
+      { error: 'Image upload service is temporarily unavailable. Please try again shortly.' },
+      { status: 503 }
+    )
   }
 
   let normalizedPublicUrl: string
   try {
-    normalizedPublicUrl = new URL(publicUrl).toString().replace(/\/+$/, '')
+    normalizedPublicUrl = new URL(config.publicUrl).toString().replace(/\/+$/, '')
   } catch {
-    return NextResponse.json({ error: 'R2_PUBLIC_URL is invalid' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Image upload is configured incorrectly. Contact support.' },
+      { status: 503 }
+    )
   }
 
   return NextResponse.json({ url: `${normalizedPublicUrl}/${key}` })

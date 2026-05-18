@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
 import {
+  sendConfirmationEmail,
   sendOrganizerCapacity90Email,
   sendOrganizerCapacityFullEmail,
   sendOrganizerFirstWaitlistEmail,
@@ -253,6 +254,50 @@ export async function POST(req: NextRequest) {
           })
         }
       } catch { /* non-critical */ }
+    }
+
+    // Send confirmation emails for newly confirmed attendees (non-blocking)
+    try {
+      const confirmedToNotify = results
+        .map((reg, index) => ({ reg, attendee: attendees[index] }))
+        .filter(({ reg }) => reg.status === 'confirmed' && !!reg.confirmationCode)
+
+      await Promise.all(
+        confirmedToNotify.map(async ({ reg, attendee }) => {
+          const answers = attendee?.answers ?? []
+          const emailQuestion = eventQuestions.find((q) => q.type === 'email')
+          const nameQuestion = eventQuestions.find(
+            (q) => q.type === 'text' && q.label.toLowerCase().includes('name')
+          )
+
+          const attendeeEmail =
+            (emailQuestion
+              ? answers.find((a) => a.questionId === emailQuestion.id)?.value?.trim()
+              : '') || attendee?.baseEmail?.trim() || ''
+
+          if (!attendeeEmail) return
+
+          const attendeeName =
+            (nameQuestion
+              ? answers.find((a) => a.questionId === nameQuestion.id)?.value?.trim()
+              : '') || 'there'
+
+          const user = await prisma.user.findUnique({
+            where: { email: attendeeEmail.toLowerCase() },
+            select: { id: true },
+          })
+
+          await sendConfirmationEmail({
+            to: attendeeEmail,
+            name: attendeeName,
+            eventTitle: event.title,
+            confirmationNumber: reg.confirmationCode as string,
+            userId: user?.id ?? null,
+          })
+        })
+      )
+    } catch {
+      // Email delivery should never block registration success.
     }
 
     // Trigger fill-rate notifications (non-blocking, best-effort)

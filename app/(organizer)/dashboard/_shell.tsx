@@ -7,6 +7,7 @@ import { useSession, signOut } from "next-auth/react"
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
 import { HintDot } from "@/components/tutorial/HintDot"
 import OnboardingTourSelector from "@/components/OnboardingTourSelector"
+import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -1062,6 +1063,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <div className="hidden md:block" />
 
             <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+              <TokenChip />
               <button
                 onClick={tutorial.restartTutorial}
                 aria-label="Restart dashboard tour"

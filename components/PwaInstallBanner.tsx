@@ -39,11 +39,15 @@ export function PwaInstallBanner() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
+    if (pathname !== "/") return
+
+    let shouldSuppressBanner = false
 
     const lastShownRaw = window.localStorage.getItem(LAST_SHOWN_KEY)
     if (lastShownRaw) {
       const lastShownAt = Number(lastShownRaw)
       if (Number.isFinite(lastShownAt) && Date.now() - lastShownAt < SHOW_COOLDOWN_MS) {
+        shouldSuppressBanner = true
         setHidden(true)
       } else {
         window.localStorage.removeItem(LAST_SHOWN_KEY)
@@ -54,6 +58,7 @@ export function PwaInstallBanner() {
     if (dismissedAtRaw) {
       const dismissedAt = Number(dismissedAtRaw)
       if (Number.isFinite(dismissedAt) && Date.now() - dismissedAt < DISMISS_TTL_MS) {
+        shouldSuppressBanner = true
         setHidden(true)
       } else {
         window.localStorage.removeItem(DISMISS_KEY)
@@ -63,6 +68,9 @@ export function PwaInstallBanner() {
     setInstalled(isStandaloneMode())
 
     const onBeforeInstallPrompt = (event: Event) => {
+      if (shouldSuppressBanner || isStandaloneMode()) {
+        return
+      }
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
     }
@@ -74,20 +82,24 @@ export function PwaInstallBanner() {
       window.localStorage.removeItem(DISMISS_KEY)
     }
 
-    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+    if (!shouldSuppressBanner) {
+      window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+    }
     window.addEventListener("appinstalled", onAppInstalled)
 
-    if (!isStandaloneMode()) {
+    if (!isStandaloneMode() && !shouldSuppressBanner) {
       window.localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()))
     }
 
     setReady(true)
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+      if (!shouldSuppressBanner) {
+        window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+      }
       window.removeEventListener("appinstalled", onAppInstalled)
     }
-  }, [])
+  }, [pathname])
 
   async function handleDownloadClick() {
     if (deferredPrompt) {

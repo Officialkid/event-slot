@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
@@ -17,6 +18,11 @@ function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, '')
   const suffix = Math.random().toString(36).substring(2, 6)
   return `${base}-${suffix}`
+}
+
+function hasValidEncryptionKey(): boolean {
+  const keyHex = process.env.ENCRYPTION_KEY
+  return !!keyHex && /^[0-9a-fA-F]{64}$/.test(keyHex)
 }
 
 export async function POST(req: NextRequest) {
@@ -70,6 +76,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'Please provide a valid Google Meet link (https://meet.google.com/...)' },
           { status: 400 }
+        )
+      }
+
+      if (!hasValidEncryptionKey()) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Virtual event links are temporarily unavailable due to server configuration. Contact support.',
+          },
+          { status: 503 }
         )
       }
     }
@@ -165,6 +181,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, event }, { status: 201 })
   } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      if (err.code === 'P2002') {
+        return NextResponse.json(
+          { success: false, error: 'A similar event already exists. Please retry.' },
+          { status: 409 }
+        )
+      }
+
+      if (err.code === 'P1001' || err.code === 'P1002') {
+        return NextResponse.json(
+          { success: false, error: 'Database is temporarily unavailable. Please try again shortly.' },
+          { status: 503 }
+        )
+      }
+    }
+
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }

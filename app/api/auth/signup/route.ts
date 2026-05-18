@@ -17,10 +17,20 @@ export async function POST(req: Request) {
       )
     }
 
-    const { name, email, password, consentSystemEmails, marketingConsent } = await req.json()
+    const { name, email, password, privacyAccepted } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 })
+    }
+
+    if (!privacyAccepted) {
+      return NextResponse.json(
+        {
+          error: 'You must accept the Privacy Policy to create an account',
+          code: 'PRIVACY_NOT_ACCEPTED',
+        },
+        { status: 400 }
+      )
     }
 
     const existing = await prisma.user.findUnique({ where: { email } })
@@ -50,7 +60,13 @@ export async function POST(req: Request) {
 
     const hashed = await bcrypt.hash(password, 12)
     const newUser = await prisma.user.create({
-      data: { name, email, password: hashed, consentSystemEmails: consentSystemEmails === true, marketingConsent: marketingConsent === true },
+      data: {
+        name,
+        email,
+        password: hashed,
+        consentSystemEmails: true,
+        marketingConsent: true,
+      },
       select: { id: true },
     })
 

@@ -5,16 +5,25 @@ import { prisma } from "@/lib/prisma"
 
 type OnboardingAction = "complete" | "skip" | "reset"
 
+function normalizeStep(rawStep: unknown): 0 | 1 | 2 | 3 {
+  const value = typeof rawStep === "number" ? rawStep : Number(rawStep)
+  if (!Number.isFinite(value)) return 0
+  if (value <= 0) return 0
+  if (value >= 3) return 3
+  return value === 2 ? 2 : 1
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    return NextResponse.json({ onboardingCompleted: true, onboardingStep: 3, onboardingSkipped: true })
   }
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
       onboardingCompleted: true,
+      onboardingStep: true,
       onboardingSkipped: true,
       onboarding: {
         select: {
@@ -27,8 +36,9 @@ export async function GET() {
 
   const onboardingCompleted = Boolean(user?.onboardingCompleted || user?.onboarding?.tutorialCompleted)
   const onboardingSkipped = Boolean(user?.onboardingSkipped || user?.onboarding?.tutorialSkipped)
+  const onboardingStep = onboardingCompleted ? 3 : normalizeStep(user?.onboardingStep)
 
-  return NextResponse.json({ onboardingCompleted, onboardingSkipped })
+  return NextResponse.json({ onboardingCompleted, onboardingSkipped, onboardingStep })
 }
 
 export async function PATCH(request: Request) {
@@ -37,9 +47,27 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { action } = (await request.json()) as { action?: OnboardingAction }
+  const payload = (await request.json()) as { action?: OnboardingAction; step?: number }
+
+  if (payload.step !== undefined) {
+    const nextStep = normalizeStep(payload.step)
+    const completed = nextStep >= 3
+
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        onboardingStep: nextStep,
+        onboardingCompleted: completed,
+        onboardingSkipped: false,
+      },
+    })
+
+    return NextResponse.json({ success: true, completed })
+  }
+
+  const action = payload.action
   if (action !== "complete" && action !== "skip" && action !== "reset") {
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid action or step" }, { status: 400 })
   }
 
   const onboardingCompleted = action === "complete"
@@ -52,6 +80,7 @@ export async function PATCH(request: Request) {
       data: {
         onboardingCompleted: isReset ? false : onboardingCompleted,
         onboardingSkipped: isReset ? false : onboardingSkipped,
+        onboardingStep: isReset ? 0 : onboardingCompleted ? 3 : 0,
       },
     }),
     prisma.userOnboarding.upsert({
@@ -72,5 +101,5 @@ export async function PATCH(request: Request) {
     }),
   ])
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, completed: onboardingCompleted })
 }

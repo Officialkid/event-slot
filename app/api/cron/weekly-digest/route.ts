@@ -6,7 +6,25 @@ import { Resend } from 'resend'
 const DIGEST_FROM =
   process.env.RESEND_DIGEST_FROM?.trim() ||
   process.env.RESEND_FROM?.trim() ||
-  'EventSlot Digest <digest@eventsslot.com>'
+  'EventSlot <onboarding@resend.dev>'
+
+function parseDigestRecipients(): string[] {
+  const configured = [
+    process.env.SUPER_ADMIN_EMAIL?.trim(),
+    process.env.SUPER_ADMIN_EMAIL_2?.trim(),
+  ]
+    .filter(Boolean)
+    .join(',')
+
+  if (!configured) {
+    return ['eventslot.co@gmail.com']
+  }
+
+  return configured
+    .split(/[;,\s]+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+}
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
@@ -64,8 +82,18 @@ async function getWeeklyHighlights(oneWeekAgo: Date): Promise<Array<{ subject: s
 
 export async function POST(req: NextRequest) {
   try {
+    const cronSecret = process.env.CRON_SECRET?.trim()
+    if (!cronSecret) {
+      return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 })
+    }
+
     const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const providedToken = authHeader?.toLowerCase().startsWith('bearer ')
+      ? authHeader.slice(7).trim()
+      : ''
+    const expectedToken = cronSecret
+
+    if (!expectedToken || providedToken !== expectedToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -100,29 +128,48 @@ export async function POST(req: NextRequest) {
 
     const highlightsHtml = weeklyHighlights.length > 0
       ? `
-        <ul style="margin:0;padding:0 0 0 1.25rem;color:#F0EDE6;font-family:sans-serif;line-height:1.6;">
+        <ul style="margin:0;padding:0 0 0 1.25rem;color:#111827;font-family:Arial,sans-serif;line-height:1.7;">
           ${weeklyHighlights
             .map(
-              (item) => `<li style="margin-bottom:0.65rem;"><strong style="color:#C8F55A;">${item.subject}</strong><br><span style="color:#bbb;">${item.content.length > 180 ? `${item.content.slice(0, 180).trim()}…` : item.content}</span></li>`
+              (item) => `<li style="margin-bottom:0.85rem;"><strong style="color:#0F172A;">${item.subject}</strong><br><span style="color:#374151;">${item.content.length > 180 ? `${item.content.slice(0, 180).trim()}...` : item.content}</span></li>`
             )
             .join('')}
         </ul>
       `
-      : `<p style="margin:0;color:#bbb;font-family:sans-serif;">No public platform announcements were posted this week.</p>`
+      : `<p style="margin:0;color:#4B5563;font-family:Arial,sans-serif;">No public platform announcements were posted this week.</p>`
+
+    const text = [
+      'EventSlot Weekly Digest',
+      `Week ending ${weekStr}`,
+      '',
+      'What shipped this week',
+      ...(weeklyHighlights.length > 0
+        ? weeklyHighlights.map((item) => `- ${item.subject}: ${item.content.length > 180 ? `${item.content.slice(0, 180).trim()}...` : item.content}`)
+        : ['- No public platform announcements were posted this week.']),
+      '',
+      'Metrics',
+      `- New Signups: ${newUsers} (all time: ${totalUsers})`,
+      `- Events Created: ${newEvents} (all time: ${totalEvents})`,
+      `- Registrations: ${newRegistrations} (all time: ${totalRegistrations})`,
+      `- Waitlist Promotions: ${waitlistPromotions}`,
+      '',
+      'Admin: https://www.eventsslot.com/admin',
+    ].join('\n')
 
     const html = `
-      <h2 style="color:#C8F55A;font-family:sans-serif;">EventSlot Weekly Digest</h2>
-      <p style="color:#666;font-family:sans-serif;">Week ending ${weekStr}</p>
+      <div style="font-family:Arial,sans-serif;color:#111827;background:#FFFFFF;max-width:620px;margin:0 auto;padding:20px;line-height:1.6;">
+      <h2 style="color:#84CC16;font-family:Arial,sans-serif;margin:0 0 6px 0;">EventSlot Weekly Digest</h2>
+      <p style="color:#4B5563;font-family:Arial,sans-serif;margin:0 0 18px 0;">Week ending ${weekStr}</p>
 
-      <h3 style="color:#F0EDE6;font-family:sans-serif;margin-top:24px;margin-bottom:12px;">What shipped this week</h3>
+      <h3 style="color:#111827;font-family:Arial,sans-serif;margin-top:18px;margin-bottom:10px;">What shipped this week</h3>
       ${highlightsHtml}
 
-      <h3 style="color:#F0EDE6;font-family:sans-serif;margin-top:28px;margin-bottom:12px;">Metrics</h3>
-      <table style="border-collapse:collapse;width:100%;max-width:500px;font-family:sans-serif;">
-        <tr style="background:#141414;">
-          <th style="padding:12px;text-align:left;color:#888;">Metric</th>
-          <th style="padding:12px;text-align:right;color:#888;">This Week</th>
-          <th style="padding:12px;text-align:right;color:#888;">All Time</th>
+      <h3 style="color:#111827;font-family:Arial,sans-serif;margin-top:22px;margin-bottom:10px;">Metrics</h3>
+      <table style="border-collapse:collapse;width:100%;max-width:560px;font-family:Arial,sans-serif;border:1px solid #E5E7EB;">
+        <tr style="background:#F3F4F6;">
+          <th style="padding:10px;text-align:left;color:#111827;border-bottom:1px solid #E5E7EB;">Metric</th>
+          <th style="padding:10px;text-align:right;color:#111827;border-bottom:1px solid #E5E7EB;">This Week</th>
+          <th style="padding:10px;text-align:right;color:#111827;border-bottom:1px solid #E5E7EB;">All Time</th>
         </tr>
         ${[
           ['New Signups', newUsers, totalUsers],
@@ -132,10 +179,10 @@ export async function POST(req: NextRequest) {
         ]
           .map(
             ([label, week, total], i) => `
-          <tr style="background:${i % 2 === 0 ? '#0A0A0A' : '#141414'};">
-            <td style="padding:12px;color:#fff;">${label}</td>
-            <td style="padding:12px;text-align:right;color:#C8F55A;font-weight:bold;">${week}</td>
-            <td style="padding:12px;text-align:right;color:#888;">${total}</td>
+          <tr style="background:${i % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};">
+            <td style="padding:10px;color:#111827;border-bottom:1px solid #E5E7EB;">${label}</td>
+            <td style="padding:10px;text-align:right;color:#111827;font-weight:bold;border-bottom:1px solid #E5E7EB;">${week}</td>
+            <td style="padding:10px;text-align:right;color:#374151;border-bottom:1px solid #E5E7EB;">${total}</td>
           </tr>
         `
           )
@@ -148,14 +195,22 @@ export async function POST(req: NextRequest) {
           Open Admin Dashboard ->
         </a>
       </p>
+      </div>
     `
 
     const resend = getResendClient()
+    const recipients = parseDigestRecipients()
+
+    if (recipients.length === 0) {
+      return NextResponse.json({ error: 'No digest recipients configured' }, { status: 500 })
+    }
+
     const sendResult = await resend.emails.send({
-      from: DIGEST_FROM,
-      to: process.env.SUPER_ADMIN_EMAIL ?? 'eventslot.co@gmail.com',
+      from: DIGEST_FROM.trim(),
+      to: recipients,
       subject: `EventSlot Weekly Digest - ${weekStr}`,
       html,
+      text,
     })
 
     if (sendResult.error) {

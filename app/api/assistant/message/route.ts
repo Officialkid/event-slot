@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { groq, ASSISTANT_MODEL } from "@/lib/groq"
+import { groq, ASSISTANT_MODEL, VISION_MODEL, VISION_MODEL_FALLBACK } from "@/lib/groq"
 import { EVENTSLOT_SYSTEM_PROMPT } from "@/lib/assistant-context"
 import { consumeCredits } from "@/lib/chat-quota"
 import { isMemoryEnabled, loadMemory, updateMemoryAfterSession } from "@/lib/assistant-memory"
+import { isSwahiliText } from "@/lib/assistant-md4"
 import { getEventInsights, getOrganizerEventSummaries } from "@/lib/event-insights"
 import { buildDocsContext } from "@/lib/docs-context"
 import { getServerSession } from "next-auth"
@@ -15,6 +16,28 @@ const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024
 const MAX_IMAGES_PER_MESSAGE = 3
 const FULL_REPORT_CTA =
   "For the full AI analysis and downloadable report, use Generate Report from your event dashboard (costs 20 tokens)."
+const LATEST_UPDATES_REPLY =
+  "For the latest EventSlot updates, check your notification bell in the dashboard or visit www.eventsslot.com. Is there something specific about the platform I can help you with?"
+
+const VISION_SYSTEM_PROMPT = `
+You are the EventSlot Customer Assistant.
+Your job is to look at the screenshot the user has shared and help them.
+
+If it shows an error:
+1. Identify the error in plain English
+2. Explain what caused it
+3. Give specific steps to fix it within EventSlot
+
+If it shows a UI section:
+1. Explain what that section does
+2. Guide them through the relevant action
+
+If the image is not related to EventSlot:
+"This doesn't appear to be an EventSlot screenshot. Feel free to
+share a screenshot from EventSlot and I'll help explain it."
+
+Always respond in English. Keep responses clear and under 150 words.
+`.trim()
 
 type AssistantContentPart =
   | { type: "image_url"; image_url: { url: string } }
@@ -30,6 +53,38 @@ type AssistantChatMessage =
       content: string
     }
 
+function normalizeImageMediaType(rawType: string | null | undefined): string {
+  const value = (rawType ?? "").toLowerCase().trim()
+  if (value === "image/jpg") return "image/jpeg"
+  if (value === "image/jpeg" || value === "image/png" || value === "image/webp" || value === "image/gif") {
+    return value
+  }
+  return "image/jpeg"
+}
+
+function isUpdatesRequest(message: string): boolean {
+  const normalized = message.toLowerCase().trim()
+  if (!normalized) return false
+
+  return [
+    /\bany\s+new\s+updates\b/i,
+    /\bnew\s+updates\b/i,
+    /\blatest\s+updates\b/i,
+    /\bwhat'?s\s+new\b/i,
+    /\bnew\s+features\b/i,
+    /\bhabari\s+mpya\b/i,
+    /\bmambo\s+mapya\b/i,
+    /\bupdate\s+mpya\b/i,
+  ].some((pattern) => pattern.test(normalized))
+}
+
+function enforceEnglishOnlyReply(reply: string, userMessage: string): string {
+  if (!isSwahiliText(userMessage)) return reply
+  if (!isSwahiliText(reply)) return reply
+
+  return "I understand your message and I am here to help with EventSlot. I respond in English to keep things clear for everyone. Please share your EventSlot issue and I will guide you step by step."
+}
+
 function detectsEventDataRequest(message: string): boolean {
   const keywords = [
     "how many", "registered", "registrations", "waitlist", "fill rate",
@@ -42,6 +97,55 @@ function detectsEventDataRequest(message: string): boolean {
 
   const lower = message.toLowerCase()
   return keywords.some((keyword) => lower.includes(keyword))
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function callGroqWithRetry(
+  model: string,
+  messages: NonNullable<Parameters<typeof groq.chat.completions.create>[0]["messages"]>,
+  hasImages: boolean,
+  maxRetries = 2
+): Promise<string> {
+  let currentModel = model
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model: currentModel,
+        messages,
+        max_tokens: 500,
+        temperature: 0.4,
+      })
+
+      const content = completion.choices[0]?.message?.content
+      if (Array.isArray(content)) {
+        return content
+          .map((part) => (typeof part === "string" ? part : ""))
+          .join(" ")
+          .trim()
+      }
+      return content ?? ""
+    } catch (error: unknown) {
+      const status = typeof error === "object" && error && "status" in error ? Number((error as { status?: number }).status) : undefined
+
+      if (status === 429 && attempt < maxRetries) {
+        await sleep(2000 * (attempt + 1))
+        continue
+      }
+
+      if (hasImages && currentModel !== VISION_MODEL_FALLBACK && attempt < maxRetries) {
+        currentModel = VISION_MODEL_FALLBACK
+        continue
+      }
+
+      throw error
+    }
+  }
+
+  return ""
 }
 
 export async function POST(req: NextRequest) {
@@ -207,7 +311,7 @@ The full AI report (Word document) requires tokens and is a separate paid featur
       systemPrompt += docsContext
     }
 
-    const imageContents: { type: "image_url"; image_url: { url: string } }[] = []
+    const imageContents: { type: "image_url"; image_url: { url: string; detail?: "auto" } }[] = []
     for (const image of images) {
       if (image.size > MAX_IMAGE_SIZE_BYTES) {
         return NextResponse.json({ error: "Image too large. Maximum size is 4MB per image." }, { status: 413 })
@@ -217,10 +321,24 @@ The full AI report (Word document) requires tokens and is a separate paid featur
         return NextResponse.json({ error: "Only image files are supported." }, { status: 400 })
       }
 
-      const arrayBuffer = await image.arrayBuffer()
-      const base64 = Buffer.from(arrayBuffer).toString("base64")
-      imageContents.push({ type: "image_url", image_url: { url: `data:${image.type};base64,${base64}` } })
     }
+
+    const encodedImages = await Promise.all(
+      images.map(async (image) => {
+        const arrayBuffer = await image.arrayBuffer()
+        const base64 = Buffer.from(arrayBuffer).toString("base64")
+        const mediaType = normalizeImageMediaType(image.type)
+
+        return {
+          type: "image_url" as const,
+          image_url: {
+            url: `data:${mediaType};base64,${base64}`,
+          },
+        }
+      })
+    )
+
+    imageContents.push(...encodedImages)
 
     const userContent = images.length > 0 ? `[User sent ${images.length} image(s)]\n${message}` : message
 
@@ -253,18 +371,27 @@ The full AI report (Word document) requires tokens and is a separate paid featur
 
     let reply: string
     let shouldFlag = false
+    const forceUpdatesReply = isUpdatesRequest(message)
 
     try {
-      const completion = await groq.chat.completions.create({
-        model: images.length > 0 ? "llama-3.2-11b-vision-preview" : ASSISTANT_MODEL,
-        messages: [{ role: "system", content: systemPrompt }, ...history],
-        max_tokens: 500,
-        temperature: 0.4,
-      })
+      if (forceUpdatesReply) {
+        reply = LATEST_UPDATES_REPLY
+      } else {
+        const modelToUse = images.length > 0 ? VISION_MODEL : ASSISTANT_MODEL
+        const promptToUse = images.length > 0 ? VISION_SYSTEM_PROMPT : systemPrompt
 
-      reply =
-        completion.choices[0]?.message?.content ??
-        "I had trouble processing that. Please try again or contact info@eventsslot.com."
+        reply = await callGroqWithRetry(
+          modelToUse,
+          [{ role: "system", content: promptToUse }, ...history],
+          images.length > 0
+        )
+      }
+
+      if (!reply) {
+        reply = "I had trouble processing that. Please try again or contact info@eventsslot.com."
+      }
+
+      reply = enforceEnglishOnlyReply(reply, message)
 
       if (
         reply.toLowerCase().includes("flagged this conversation") ||
@@ -274,13 +401,13 @@ The full AI report (Word document) requires tokens and is a separate paid featur
       }
     } catch (error: unknown) {
       console.error("[EventSlot Assistant] Groq error:", error)
-      const errorMessage = error instanceof Error ? error.message : String(error)
-
-      if (images.length > 0 && errorMessage.toLowerCase().includes("model")) {
+      if (images.length > 0) {
         reply =
-          "I received your screenshot but I'm having trouble analysing images right now. " +
-          "Please describe what you see in the image and I'll do my best to help. " +
-          "Alternatively, contact info@eventsslot.com with the screenshot attached."
+          "I can see you've shared a screenshot. I'm having a moment of trouble " +
+          "reading images right now. Could you describe what you see - for example, " +
+          "the error message text or which part of EventSlot you're looking at? " +
+          "I'll help you resolve it. You can also email the screenshot to " +
+          "info@eventsslot.com for direct support."
       } else {
         reply =
           "I'm having trouble responding right now. Please try again in a moment or contact info@eventsslot.com."
@@ -288,7 +415,7 @@ The full AI report (Word document) requires tokens and is a separate paid featur
       shouldFlag = true
     }
 
-    const sessionEnded = ["this session has ended", "have a wonderful day", "mazungumzo haya yamekwisha"].some(
+    const sessionEnded = ["this session has ended", "have a wonderful day"].some(
       (phrase) => reply.toLowerCase().includes(phrase)
     )
 

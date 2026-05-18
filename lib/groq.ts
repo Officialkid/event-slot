@@ -10,6 +10,8 @@ export const groq = new Groq({
 
 // Llama 3.1 8B — fast, free, excellent for support use cases
 export const ASSISTANT_MODEL = 'llama-3.1-8b-instant'
+export const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
+export const VISION_MODEL_FALLBACK = 'meta-llama/llama-4-maverick-17b-128e-instruct'
 
 // Keep internal client reference for askGroq helper (null-safe legacy usage)
 const _groq = process.env.GROQ_API_KEY ? groq : null

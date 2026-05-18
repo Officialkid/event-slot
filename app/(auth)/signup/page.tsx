@@ -11,8 +11,7 @@ export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [consentSystemEmails, setConsentSystemEmails] = useState(false)
-  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,7 +33,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, consentSystemEmails, marketingConsent }),
+        body: JSON.stringify({ name, email, password, privacyAccepted }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -44,6 +43,7 @@ export default function SignUpPage() {
           EMAIL_EXISTS: 'An account with this email already exists. Please sign in or reset your password.',
           MISSING_FIELDS: 'Name, email, and password are required.',
           WEAK_PASSWORD: 'Password must be at least 8 characters.',
+          PRIVACY_NOT_ACCEPTED: 'You must accept the Privacy Policy to create an account.',
         }
         setError(errorMessages[data?.code] ?? data?.error ?? 'Something went wrong.')
         setLoading(false)
@@ -200,63 +200,57 @@ export default function SignUpPage() {
             </p>
           )}
 
-          {/* System email consent */}
-          <label style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', cursor: 'pointer', marginTop: '0.25rem' }}>
-            <span style={{ position: 'relative', flexShrink: 0, marginTop: '2px' }}>
-              <input
-                type="checkbox"
-                checked={consentSystemEmails}
-                onChange={e => setConsentSystemEmails(e.target.checked)}
-                style={{ position: 'absolute', opacity: 0, width: 16, height: 16, margin: 0, cursor: 'pointer' }}
-              />
-              <span style={{
-                display: 'block', width: 16, height: 16, borderRadius: 3,
-                border: consentSystemEmails ? '1.5px solid #C8F55A' : '1.5px solid rgba(240,237,230,0.2)',
-                background: consentSystemEmails ? '#C8F55A' : 'transparent',
-                flexShrink: 0, transition: 'background 0.15s, border 0.15s',
-              }}>
-                {consentSystemEmails && (
-                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: 'block', margin: '3px auto 0' }}>
-                    <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-            </span>
-            <span style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.5)', lineHeight: 1.5, fontFamily: 'var(--font-dm-sans)' }}>
-              I agree to receive event notifications (capacity alerts, reminders) from EventSlot. (Optional)
-            </span>
-          </label>
-
-          {/* Marketing consent */}
-          <label style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', cursor: 'pointer', marginTop: '0.25rem' }}>
-            <span style={{ position: 'relative', flexShrink: 0, marginTop: '2px' }}>
-              <input
-                type="checkbox"
-                checked={marketingConsent}
-                onChange={e => setMarketingConsent(e.target.checked)}
-                style={{ position: 'absolute', opacity: 0, width: 16, height: 16, margin: 0, cursor: 'pointer' }}
-              />
-              <span style={{
-                display: 'block', width: 16, height: 16, borderRadius: 3,
-                border: marketingConsent ? '1.5px solid #C8F55A' : '1.5px solid rgba(240,237,230,0.2)',
-                background: marketingConsent ? '#C8F55A' : 'transparent',
-                flexShrink: 0, transition: 'background 0.15s, border 0.15s',
-              }}>
-                {marketingConsent && (
-                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: 'block', margin: '3px auto 0' }}>
-                    <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </span>
-            </span>
-            <span style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.5)', lineHeight: 1.5, fontFamily: 'var(--font-dm-sans)' }}>
-              Send me exclusive offers and updates about EventSlot features. (Optional)
-            </span>
-          </label>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.75rem',
+              alignItems: 'flex-start',
+              padding: '0.85rem',
+              background: '#141414',
+              border: '0.5px solid #2A2A2A',
+              borderRadius: 12,
+              marginTop: '0.25rem',
+            }}
+          >
+            <input
+              type="checkbox"
+              id="privacy"
+              checked={privacyAccepted}
+              onChange={e => setPrivacyAccepted(e.target.checked)}
+              required
+              style={{
+                marginTop: 2,
+                width: 16,
+                height: 16,
+                accentColor: '#C8F55A',
+                cursor: 'pointer',
+              }}
+            />
+            <label
+              htmlFor="privacy"
+              style={{
+                fontSize: '0.8rem',
+                color: '#A3A3A3',
+                lineHeight: 1.6,
+                fontFamily: 'var(--font-dm-sans)',
+                cursor: 'pointer',
+              }}
+            >
+              I have read and agree to the EventSlot{' '}
+              <Link
+                href="/privacy"
+                target="_blank"
+                style={{ color: '#C8F55A', textDecoration: 'underline', fontWeight: 500 }}
+              >
+                Privacy Policy
+              </Link>
+              . I understand my data will be used as described and I agree to receive platform and marketing emails from EventSlot. I can unsubscribe at any time.
+            </label>
+          </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={!privacyAccepted || loading}
             style={{
               width: '100%',
               background: '#C8F55A',
@@ -267,12 +261,12 @@ export default function SignUpPage() {
               fontSize: '0.9rem',
               fontWeight: 500,
               fontFamily: 'var(--font-dm-sans)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              cursor: !privacyAccepted || loading ? 'not-allowed' : 'pointer',
+              opacity: !privacyAccepted || loading ? 0.4 : 1,
               marginTop: '0.25rem',
             }}
           >
-            {loading ? 'Creating account…' : 'Create account'}
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 

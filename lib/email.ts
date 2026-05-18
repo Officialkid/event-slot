@@ -1,4 +1,5 @@
 ﻿import { Resend } from 'resend'
+import { getOrCreateReferralLink } from '@/lib/referral'
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
@@ -124,6 +125,77 @@ export async function sendSlotConfirmedEmail({
         ${ticketSection}
         ${communitySection}
         <p style="margin-top:2rem;color:#888;font-size:0.8rem">You received this because you registered for ${eventTitle} via EventSlot.</p>
+      </div>
+    `,
+  })
+}
+
+export async function sendConfirmationEmail({
+  to,
+  name,
+  eventTitle,
+  confirmationNumber,
+  userId,
+}: {
+  to: string
+  name: string
+  eventTitle: string
+  confirmationNumber: string
+  userId?: string | null
+}) {
+  const referralUrl = userId
+    ? await getOrCreateReferralLink(userId).catch(() => null)
+    : null
+
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    to,
+    subject: `You're registered - ${eventTitle}`,
+    html: `
+      <div style="background:#0A0A0A;padding:40px;font-family:sans-serif;max-width:520px;">
+        <div style="margin-bottom:24px;">
+          <span style="font-size:20px;font-weight:bold;color:#fff;">Event</span>
+          <span style="font-size:20px;font-weight:bold;color:#C8F55A;">Slot</span>
+        </div>
+
+        <h2 style="color:#fff;margin-bottom:8px;">You're registered! &#127881;</h2>
+        <p style="color:#A3A3A3;font-size:14px;margin-bottom:16px;">
+          Hi ${name || 'there'}, your spot at <strong style="color:#fff;">${eventTitle}</strong>
+          is confirmed.
+        </p>
+
+        <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;
+                    padding:16px;margin-bottom:24px;">
+          <p style="color:#525252;font-size:12px;margin:0 0 4px;">
+            Confirmation number
+          </p>
+          <p style="color:#C8F55A;font-size:18px;font-weight:bold;
+                    font-family:monospace;margin:0;">
+            ${confirmationNumber}
+          </p>
+        </div>
+
+        ${referralUrl ? `
+        <div style="border-top:1px solid #2A2A2A;padding-top:20px;margin-top:4px;">
+          <p style="color:#525252;font-size:12px;margin:0 0 8px;">
+            Know someone who organises events?
+          </p>
+          <p style="color:#A3A3A3;font-size:13px;margin:0 0 12px;">
+            Share EventSlot with them and earn tokens toward your next free report.
+          </p>
+          <a href="${referralUrl}"
+             style="background:#C8F55A;color:#000;padding:10px 20px;
+                    text-decoration:none;border-radius:8px;font-weight:bold;
+                    font-size:13px;display:inline-block;">
+            Share EventSlot ->
+          </a>
+        </div>
+        ` : ''}
+
+        <p style="color:#525252;font-size:11px;margin-top:32px;">
+          Smarter Events. Better Experiences. -
+          <a href="https://www.eventsslot.com" style="color:#525252;">eventsslot.com</a>
+        </p>
       </div>
     `,
   })
