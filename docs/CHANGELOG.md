@@ -1,5 +1,26 @@
 # EventSlot — Changelog
 
+## [0.4.65] — May 19, 2026
+
+### Infrastructure Fixes — Production DB Migrations, ENCRYPTION_KEY, R2 BOM Corruption
+
+- **Production DB migrations applied**: Ran `npx prisma migrate deploy` against the Neon production database. Applied two pending migrations: `20260518193000_add_onboarding_step` (adds `onboardingStep` column to `User`) and `20260518195000_add_email_otp` (adds `EmailOTP` table). All 40 migrations are now in sync.
+- **ENCRYPTION_KEY provisioned**: Generated a valid 64-character hex AES-256-CBC key and stored it as `ENCRYPTION_KEY` (version 2) in GCP Secret Manager. Virtual Google Meet link encryption (`lib/encrypt.ts`) is now unblocked — `POST /api/events` for VIRTUAL events no longer returns 503.
+- **R2 secrets BOM corruption fixed**: Cloudflare R2 secrets in GCP Secret Manager (`CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_R2_BUCKET_NAME`) were stored with a Windows UTF-8 BOM (`\xef\xbb\xbf`) prefix, causing the AWS SDK to receive corrupted credential strings and return 403. Re-stored all three secrets with clean values (versions 5 and 7 respectively). `POST /api/upload` is now unblocked.
+- **Cloud Run revision `00080-p8v`**: Traffic migrated to latest revision (`--to-latest`) after Secret Manager updates, ensuring all new secret versions are picked up.
+
+## [0.4.64] — May 19, 2026
+
+### Production Runtime Fixes — Onboarding 500 + Schema Drift Hardening
+
+- Wrapped `GET /api/user/onboarding` Prisma query in `try/catch` to handle schema drift gracefully: when the `onboardingStep` column is absent (pending migration), the endpoint now returns HTTP 200 with safe defaults `{ onboardingCompleted: false, onboardingSkipped: false, onboardingStep: 0 }` instead of crashing with a 500. Eliminates the console flood caused by `OnboardingFlow` and `useTutorial` calling this endpoint on every dashboard mount.
+- Wrapped `PATCH /api/user/onboarding` body in `try/catch` for the same reason: any Prisma error during onboarding step persistence now returns `{ success: true, completed: false }` instead of a 500, keeping the UI functional until migrations are applied.
+
+### Root-Cause Analysis — Upload and Events 503
+
+- `POST /api/upload 503`: Caused by `validateR2Env()` detecting one or more missing R2 env vars (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`). These are mapped from GCP Secret Manager secrets (`CLOUDFLARE_R2_*`). Requires verifying those secrets exist and have valid non-empty values.
+- `POST /api/events 503`: Only fires for VIRTUAL events when `ENCRYPTION_KEY` is missing or is not a valid 64-character hex string. Also can fire on DB unreachability (P1001/P1002). Requires verifying `ENCRYPTION_KEY` secret in GCP Secret Manager has a valid value.
+
 ## [0.4.63] — May 18, 2026
 
 ### Admin Broadcast Audience + Permissions Policy Fix
