@@ -9,6 +9,12 @@ const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ''
 const BATCH_SIZE = 50
 const BATCH_DELAY_MS = 500
 
+type BroadcastAudience = 'all' | 'marketing'
+
+function parseAudience(value: string | null): BroadcastAudience {
+  return value === 'marketing' ? 'marketing' : 'all'
+}
+
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -23,7 +29,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -31,19 +37,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    // Get count of users who opted in for marketing emails
+    const audience = parseAudience(req.nextUrl.searchParams.get('audience'))
+    const userWhere =
+      audience === 'marketing'
+        ? { marketingConsent: true, email: { not: null }, suspended: false }
+        : { email: { not: null }, suspended: false }
+
+    // Get count for selected audience
     const recipientCount = await prisma.user.count({
-      where: { marketingConsent: true },
+      where: userWhere,
     })
 
     // Get sample recipients for preview
     const sampleRecipients = await prisma.user.findMany({
-      where: { marketingConsent: true },
+      where: userWhere,
       select: { email: true, name: true },
       take: 5,
     })
 
     return NextResponse.json({
+      audience,
       recipientCount,
       sampleRecipients,
     })
@@ -72,18 +85,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const { subject, html } = await req.json() as {
+    const { subject, html, audience: rawAudience } = await req.json() as {
       subject: string
       html: string
+      audience?: BroadcastAudience
     }
+
+    const audience: BroadcastAudience = rawAudience === 'marketing' ? 'marketing' : 'all'
 
     if (!subject?.trim() || !html?.trim()) {
       return NextResponse.json({ error: 'Subject and HTML content are required.' }, { status: 400 })
     }
 
-    // Get all users who opted in for marketing emails
+    // Get recipients for selected audience.
     const recipients = await prisma.user.findMany({
-      where: { marketingConsent: true },
+      where:
+        audience === 'marketing'
+          ? { marketingConsent: true, email: { not: null }, suspended: false }
+          : { email: { not: null }, suspended: false },
       select: { id: true, email: true, name: true },
     })
 
@@ -160,6 +179,7 @@ export async function POST(req: NextRequest) {
           action: 'BROADCAST_EMAIL',
           metadata: {
             subject,
+            audience,
             recipientCount: recipients.length,
             sent: accepted,
             failed,
@@ -173,6 +193,7 @@ export async function POST(req: NextRequest) {
       attempted: recipients.length,
       accepted,
       failed,
+      audience,
       sender: EMAIL_FROM,
     })
   } catch (err) {

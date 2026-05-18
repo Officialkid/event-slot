@@ -1,5 +1,21 @@
 # EventSlot — Changelog
 
+## [0.4.63] — May 18, 2026
+
+### Admin Broadcast Audience + Permissions Policy Fix
+
+- Updated admin broadcast API and UI to support audience selection:
+  - all active users with email
+  - marketing opt-in users only
+- Updated recipient preview/count and send result messaging to reflect selected audience.
+- Fixed browser permissions policy conflicts by allowing same-origin camera/microphone usage for:
+  - attendee QR scanner flow
+  - assistant voice capture flow
+- Expanded Super Admin system updates timeline for May 18 to include major delivered work:
+  - community/referrals/badges
+  - pioneer onboarding
+  - event-day verification and entry tracking
+
 ## [0.4.62] — May 18, 2026
 
 ### Part 3 — Brand Colour Enforcement

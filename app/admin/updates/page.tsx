@@ -39,6 +39,33 @@ const updates: DailyUpdates[] = [
           "Kept secret-scanning enforcement active for all other findings.",
         ],
       },
+      {
+        title: "Community, Referrals, and Badges",
+        points: [
+          "Implemented referral link generation and referral processing for signup and first event creation.",
+          "Added community leaderboard endpoints and organizer dashboard community page.",
+          "Added user badge APIs and public pioneer badge display support.",
+          "Added scheduled leaderboard reset endpoint with secure cron token guard.",
+        ],
+      },
+      {
+        title: "Pioneer Onboarding Experience",
+        points: [
+          "Launched one-time Pioneer congratulations modal for eligible users in organizer dashboard layout.",
+          "Added pioneer status API to fetch and mark congratulations visibility state.",
+          "Removed pioneer position numbering and migrated badge model to seen-flag behavior.",
+          "Added rollout scripts for pioneer badge backfill and launch announcement email workflow.",
+        ],
+      },
+      {
+        title: "Event-Day Access and Verification",
+        points: [
+          "Added attendee join flow with QR scan and fallback name or email lookup for event entry.",
+          "Added verify-entry fallback using lookup ticket identifiers and event-window checks.",
+          "Added organizer entry dashboard with live attendance metrics and recent successful scans.",
+          "Added configurable join opening time support and propagated it through create/edit/settings and attendee UI logic.",
+        ],
+      },
     ],
   },
   {

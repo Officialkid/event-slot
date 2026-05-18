@@ -70,6 +70,14 @@ _Last updated: May 18, 2026_
 
 ## Security
 
+### Browser Permissions Policy Alignment
+**Where:** `next.config.mjs`, `middleware.ts`  
+**What it does:** Aligns global and middleware `Permissions-Policy` headers to allow same-origin microphone and camera access needed by implemented assistant voice and event QR scanning flows, preventing browser policy violation noise and blocked capture requests.
+
+### Admin Broadcast Audience Selection
+**Where:** `app/admin/broadcast/page.tsx`, `app/api/admin/broadcast/route.ts`  
+**What it does:** Adds explicit audience targeting in super-admin broadcast flows, allowing sends to either all active users with email or only marketing opt-in users, with matching preview counts and sample recipients.
+
 ### Admin Conversations API Resilience
 **Where:** `app/api/admin/assistant-sessions/route.ts`, `app/admin/conversations/page.tsx`, `app/admin/AdminSidebar.tsx`  
 **What it does:** Prevents admin conversations UI failures when API responses are empty/non-JSON or when the database schema is behind. API now returns structured JSON errors (including migration guidance), and the client parses responses safely to avoid `Unexpected end of JSON input` crashes.

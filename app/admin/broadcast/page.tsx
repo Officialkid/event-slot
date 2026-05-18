@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 
 export default function BroadcastPage() {
+  const [audience, setAudience] = useState<"all" | "marketing">("all")
   const [recipientCount, setRecipientCount] = useState<number | null>(null)
   const [sampleRecipients, setSampleRecipients] = useState<Array<{ email: string; name: string | null }> | null>(null)
   const [countLoading, setCountLoading] = useState(false)
@@ -13,12 +14,12 @@ export default function BroadcastPage() {
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
 
-  // Load recipient count and samples on mount
+  // Load recipient count and samples when audience changes.
   useEffect(() => {
     let cancelled = false
     setCountLoading(true)
     setRecipientCount(null)
-    fetch(`/api/admin/broadcast`)
+    fetch(`/api/admin/broadcast?audience=${audience}`)
       .then(r => r.json())
       .then(d => {
         if (!cancelled) {
@@ -34,7 +35,7 @@ export default function BroadcastPage() {
       })
       .finally(() => { if (!cancelled) setCountLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [audience])
 
   async function handleSend() {
     setSending(true)
@@ -50,7 +51,8 @@ export default function BroadcastPage() {
         const accepted = Number(data.accepted ?? 0)
         const failed = Number(data.failed ?? 0)
         const attempted = Number(data.attempted ?? accepted + failed)
-        const base = `Accepted by provider: ${accepted}/${attempted}.`
+        const audienceLabel = audience === "all" ? "all active users" : "marketing opt-in users"
+        const base = `Accepted by provider: ${accepted}/${attempted} (${audienceLabel}).`
         const failureNote = failed > 0 ? ` ${failed} recipient${failed === 1 ? "" : "s"} failed.` : ""
         setResult({ ok: failed === 0, message: `${base}${failureNote}` })
         setSubject("")
@@ -80,7 +82,7 @@ export default function BroadcastPage() {
           Email Broadcast
         </h1>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-          Send emails to users who opted in for marketing messages.
+          Send emails to all active users or only users who opted in for marketing messages.
         </p>
       </div>
 
@@ -117,11 +119,37 @@ export default function BroadcastPage() {
           <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1rem" }}>
             Recipients
           </h2>
+          <div style={{ marginBottom: "0.9rem" }}>
+            <label style={{ display: "block", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              Audience
+            </label>
+            <select
+              value={audience}
+              onChange={(e) => setAudience(e.target.value === "marketing" ? "marketing" : "all")}
+              style={{
+                width: "100%",
+                maxWidth: 320,
+                background: "#0A0A0A",
+                border: "0.5px solid rgba(240,237,230,0.12)",
+                borderRadius: 8,
+                padding: "0.625rem 0.875rem",
+                fontSize: "0.875rem",
+                color: "#F0EDE6",
+                fontFamily: "var(--font-dm-sans)",
+                outline: "none",
+              }}
+            >
+              <option value="all">All active users</option>
+              <option value="marketing">Marketing opt-in only</option>
+            </select>
+          </div>
           <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
             {countLoading
               ? "Loading recipient count..."
               : recipientCount === null
               ? "—"
+              : audience === "all"
+              ? `${recipientCount} active user${recipientCount === 1 ? "" : "s"} with email` 
               : `${recipientCount} user${recipientCount === 1 ? "" : "s"} opted in for marketing emails`}
           </p>
           {sampleRecipients && sampleRecipients.length > 0 && (

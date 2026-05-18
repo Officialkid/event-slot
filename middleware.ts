@@ -12,7 +12,7 @@ export default withAuth(
     res.headers.set('X-Frame-Options', 'DENY')
     res.headers.set('X-XSS-Protection', '1; mode=block')
     res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    res.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()')
+    res.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
     res.headers.set('Content-Security-Policy', [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
