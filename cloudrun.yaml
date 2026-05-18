@@ -109,6 +109,11 @@ spec:
                 secretKeyRef:
                   name: ENCRYPTION_KEY
                   key: latest
+            - name: R2_PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: CLOUDFLARE_R2_PUBLIC_URL
+                  key: latest
             - name: QR_SECRET
               valueFrom:
                 secretKeyRef:
