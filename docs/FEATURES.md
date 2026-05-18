@@ -44,18 +44,18 @@ _Last updated: May 18, 2026_
 
 ### Attendee Join Event Button (Phase 6.1)
 **Where:** `components/JoinEventButton.tsx`  
-**What it does:** Provides attendee-side virtual event access UI with time-window awareness, camera-based QR scanning (via `jsqr`), server verification using `POST /api/events/[id]/verify-entry`, fallback name/email lookup path, and success-state meeting link launch for verified attendees.
+**What it does:** Provides attendee-side virtual event access UI with time-window awareness, camera-based QR scanning (via `jsqr`), server verification using `POST /api/events/{eventId}/verify-entry`, fallback name/email lookup path, and success-state meeting link launch for verified attendees.
 
 ### Custom Join Window Start Time
 **Where:** `prisma/schema.prisma`, `app/api/events/route.ts`, `app/api/events/[slug]/route.ts`, `app/api/events/[slug]/settings/route.ts`, `app/(organizer)/create/page.tsx`, `app/(organizer)/edit/[slug]/page.tsx`, `app/(organizer)/dashboard/events/[slug]/page.tsx`, `components/JoinEventButton.tsx`  
 **What it does:** Lets organisers define exactly when attendee join access should open (`joinOpensAt`). If not set, access defaults to 30 minutes before event start. Both server verification and attendee countdown use the same rule.
 
 ### ID-Based Attendee Lookup For Event-Day Fallback
-**Where:** `app/api/events/id/[id]/lookup/route.ts`, `app/api/events/[id]/verify-entry/route.ts`  
+**Where:** `app/api/events/id/[id]/lookup/route.ts`, `app/api/events/[slug]/verify-entry/route.ts`  
 **What it does:** Adds event-id lookup by attendee name/email for fallback access when QR scan is unavailable, then verifies entry via ticket-based fallback payloads.
 
 ### Verify-Entry Explicit lookupTicketId Fallback (Phase 8)
-**Where:** `app/api/events/[id]/verify-entry/route.ts`, `components/JoinEventButton.tsx`  
+**Where:** `app/api/events/[slug]/verify-entry/route.ts`, `components/JoinEventButton.tsx`  
 **What it does:** Supports direct fallback verification using `lookupTicketId` (without QR payload), including confirmation checks, timing-window enforcement, virtual-link decryption only on success, and event-day entry logging with fallback reason tags.
 
 ### Public Event Page Join Flow Mount

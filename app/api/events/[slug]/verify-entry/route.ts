@@ -22,9 +22,10 @@ function getNameFromAnswers(answers: Answer[], questions: EventQuestion[]): stri
 
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ slug: string }> }
 ) {
-  const { id } = await props.params
+  const { slug } = await props.params
+  const eventId = slug
   const body = (await req.json().catch(() => null)) as { qrPayload?: string; lookupTicketId?: string } | null
   const qrPayload = body?.qrPayload?.trim()
   const lookupTicketId = body?.lookupTicketId?.trim()
@@ -33,7 +34,7 @@ export async function POST(
   if (lookupTicketId && !qrPayload) {
     const registration = await prisma.registration.findFirst({
       where: {
-        eventId: id,
+        eventId,
         OR: [{ confirmationCode: lookupTicketId }, { id: lookupTicketId }],
       },
       select: {
@@ -58,8 +59,8 @@ export async function POST(
       },
     })
 
-    if (!registration || registration.event.id !== id) {
-      await logEntry(id, lookupTicketId, null, false, 'TICKET_NOT_FOUND')
+    if (!registration || registration.event.id !== eventId) {
+      await logEntry(eventId, lookupTicketId, null, false, 'TICKET_NOT_FOUND')
       return NextResponse.json({ success: false, message: 'Not found.' }, { status: 404 })
     }
 
@@ -68,7 +69,7 @@ export async function POST(
     const attendeeName = getNameFromAnswers(answers, questions) || 'Attendee'
 
     if (registration.status !== 'confirmed') {
-      await logEntry(id, lookupTicketId, attendeeName, false, 'NOT_CONFIRMED')
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'NOT_CONFIRMED')
       return NextResponse.json(
         {
           success: false,
@@ -83,7 +84,7 @@ export async function POST(
     const eventStart = registration.event.eventDate
 
     if (!eventStart) {
-      await logEntry(id, lookupTicketId, attendeeName, false, 'EVENT_DATE_MISSING')
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'EVENT_DATE_MISSING')
       return NextResponse.json(
         {
           success: false,
@@ -99,7 +100,7 @@ export async function POST(
 
     if (now < openWindow) {
       const minutesUntil = Math.ceil((openWindow.getTime() - now.getTime()) / 60000)
-      await logEntry(id, lookupTicketId, attendeeName, false, 'TOO_EARLY')
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'TOO_EARLY')
       return NextResponse.json(
         {
           success: false,
@@ -113,7 +114,7 @@ export async function POST(
     }
 
     if (now > eventEnd) {
-      await logEntry(id, lookupTicketId, attendeeName, false, 'EVENT_ENDED')
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'EVENT_ENDED')
       return NextResponse.json(
         {
           success: false,
@@ -138,7 +139,7 @@ export async function POST(
     }
 
     const canonicalTicketId = registration.confirmationCode ?? registration.id
-    await logEntry(id, canonicalTicketId, attendeeName, true, 'FALLBACK_LOOKUP')
+    await logEntry(eventId, canonicalTicketId, attendeeName, true, 'FALLBACK_LOOKUP')
 
     return NextResponse.json({
       success: true,
@@ -164,7 +165,7 @@ export async function POST(
     const qr = verifyQRPayload(qrPayload)
 
     if (!qr.valid) {
-      await logEntry(id, null, null, false, 'INVALID_SIGNATURE')
+      await logEntry(eventId, null, null, false, 'INVALID_SIGNATURE')
       return NextResponse.json(
         {
           success: false,
@@ -175,8 +176,8 @@ export async function POST(
       )
     }
 
-    if (qr.eventId !== id) {
-      await logEntry(id, qr.ticketId, null, false, 'WRONG_EVENT')
+    if (qr.eventId !== eventId) {
+      await logEntry(eventId, qr.ticketId, null, false, 'WRONG_EVENT')
       return NextResponse.json(
         {
           success: false,
@@ -192,7 +193,7 @@ export async function POST(
   }
 
   if (isLookupFallback && !legacyLookupTicketId) {
-    await logEntry(id, null, null, false, 'LOOKUP_TICKET_MISSING')
+    await logEntry(eventId, null, null, false, 'LOOKUP_TICKET_MISSING')
     return NextResponse.json(
       {
         success: false,
@@ -206,11 +207,11 @@ export async function POST(
   const registration = await prisma.registration.findFirst({
     where: isLookupFallback
       ? {
-          eventId: id,
+          eventId,
           OR: [{ confirmationCode: legacyLookupTicketId }, { id: legacyLookupTicketId }],
         }
       : {
-          eventId: id,
+          eventId,
           id: qrUserId!,
           OR: [{ confirmationCode: qrTicketId! }, { id: qrTicketId! }],
         },
@@ -237,7 +238,7 @@ export async function POST(
   })
 
   if (!registration) {
-    await logEntry(id, legacyLookupTicketId || qrTicketId, null, false, 'TICKET_NOT_FOUND')
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, null, false, 'TICKET_NOT_FOUND')
     return NextResponse.json(
       {
         success: false,
@@ -253,7 +254,7 @@ export async function POST(
   const attendeeName = getNameFromAnswers(answers, questions) || 'Attendee'
 
   if (registration.status !== 'confirmed') {
-    await logEntry(id, legacyLookupTicketId || qrTicketId, attendeeName, false, 'NOT_CONFIRMED')
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'NOT_CONFIRMED')
     return NextResponse.json(
       {
         success: false,
@@ -268,7 +269,7 @@ export async function POST(
   const eventStart = registration.event.eventDate
 
   if (!eventStart) {
-    await logEntry(id, legacyLookupTicketId || qrTicketId, attendeeName, false, 'EVENT_DATE_MISSING')
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'EVENT_DATE_MISSING')
     return NextResponse.json(
       {
         success: false,
@@ -284,7 +285,7 @@ export async function POST(
 
   if (now < openWindow) {
     const minutesUntil = Math.ceil((openWindow.getTime() - now.getTime()) / 60000)
-    await logEntry(id, legacyLookupTicketId || qrTicketId, attendeeName, false, 'TOO_EARLY')
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'TOO_EARLY')
     return NextResponse.json(
       {
         success: false,
@@ -298,7 +299,7 @@ export async function POST(
   }
 
   if (now > eventEnd) {
-    await logEntry(id, legacyLookupTicketId || qrTicketId, attendeeName, false, 'EVENT_ENDED')
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'EVENT_ENDED')
     return NextResponse.json(
       {
         success: false,
@@ -312,7 +313,7 @@ export async function POST(
   const canonicalTicketId = registration.confirmationCode ?? registration.id
   const alreadyScanned = await prisma.entryLog.findFirst({
     where: {
-      eventId: id,
+      eventId,
       ticketId: canonicalTicketId,
       success: true,
     },
@@ -335,7 +336,7 @@ export async function POST(
   }
 
   await logEntry(
-    id,
+    eventId,
     canonicalTicketId,
     attendeeName,
     true,

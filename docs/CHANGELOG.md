@@ -15,7 +15,7 @@
 
 ### Phase 8 — Verify Entry Fallback + Public Event-Day Join Flow
 
-- Updated `POST /api/events/[id]/verify-entry` in `app/api/events/[id]/verify-entry/route.ts` to support explicit fallback verification using `lookupTicketId` when QR payload is unavailable.
+- Updated `POST /api/events/{eventId}/verify-entry` in `app/api/events/[slug]/verify-entry/route.ts` to support explicit fallback verification using `lookupTicketId` when QR payload is unavailable.
 - Added fallback verification responses for not-found, not-confirmed, too-early, and event-ended states with entry logging parity.
 - Logged successful fallback access with reason `FALLBACK_LOOKUP` in `EntryLog`.
 - Kept backward compatibility for legacy fallback payloads (`qrPayload: LOOKUP:<ticketId>`).
@@ -42,7 +42,7 @@
   - host Google Meet quick-open action for virtual events
 - Embedded `EntryDashboard` into the organizer verify-ticket tab in `app/(organizer)/dashboard/events/[slug]/page.tsx`.
 - Added ID-based attendee lookup API in `app/api/events/id/[id]/lookup/route.ts` to support attendee-side fallback verification by name/email.
-- Updated attendee verification endpoint `app/api/events/[id]/verify-entry/route.ts` to support lookup fallback payloads (`LOOKUP:<ticketId>`) while preserving signed QR verification.
+- Updated attendee verification endpoint `app/api/events/[slug]/verify-entry/route.ts` to support lookup fallback payloads (`LOOKUP:<ticketId>`) while preserving signed QR verification.
 - Added customizable join access opening time support:
   - new event field `joinOpensAt` in `prisma/schema.prisma`
   - migration `prisma/migrations/20260518113000_add_join_opens_at_to_event/migration.sql`
@@ -57,7 +57,7 @@
 - Added attendee join component in `components/JoinEventButton.tsx` with:
   - event-window countdown logic (opens 30 minutes before start, closes at end fallback)
   - in-browser QR scanning flow using camera access
-  - ticket verification request to `POST /api/events/[id]/verify-entry`
+  - ticket verification request to `POST /api/events/{eventId}/verify-entry`
   - fallback name/email lookup flow to support users without immediate QR access
   - success/deny state UI with meeting-link action for virtual events
 - Added `jsqr` dependency to support real-time QR decode in browser camera frames.
