@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { AssistantExperience } from "@/components/assistant/AssistantExperience"
 
 export function AssistantWidget() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(false)
   const [memorySessionCount, setMemorySessionCount] = useState(0)
@@ -118,11 +120,18 @@ export function AssistantWidget() {
     )
   }
 
+  const isDashboardRoute = pathname?.startsWith("/dashboard")
+  const isAssistantRoute = pathname === "/dashboard/assistant" || pathname?.startsWith("/dashboard/assistant/")
+
+  if (!isDashboardRoute || isAssistantRoute) {
+    return null
+  }
+
   return (
     <>
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full
+        className="fixed bottom-28 right-6 z-50 h-14 w-14 rounded-full md:bottom-6
                    bg-[#C8F55A] text-black shadow-xl hover:bg-[#b8e040]
                    hover:scale-110 transition-all duration-200
                    flex items-center justify-center"
@@ -140,7 +149,7 @@ export function AssistantWidget() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[min(384px,calc(100vw-2rem))]">
+        <div className="fixed bottom-44 right-4 z-50 w-[min(384px,calc(100vw-2rem))] sm:right-6 md:bottom-24">
           <div className="flex items-center justify-end px-2 py-1 bg-[#0A0A0A] border border-[#2A2A2A] border-b-0 rounded-t-2xl">
             <button
               onClick={() => setShowMemorySettings((previous) => !previous)}

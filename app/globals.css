@@ -250,6 +250,12 @@ li {
   margin-top: 0.5rem;
 }
 
+@media (max-width: 768px) {
+  .mobile-safe-bottom {
+    padding-bottom: 20px;
+  }
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

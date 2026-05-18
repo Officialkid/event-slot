@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { usePathname } from "next/navigation"
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -25,6 +26,7 @@ function isIosDevice(): boolean {
 }
 
 export function PwaInstallBanner() {
+  const pathname = usePathname()
   const [ready, setReady] = useState(false)
   const [hidden, setHidden] = useState(false)
   const [installed, setInstalled] = useState(false)
@@ -118,39 +120,42 @@ export function PwaInstallBanner() {
     }
   }
 
+  if (pathname !== "/") return null
   if (!ready || hidden || installed) return null
 
   return (
-    <div className="mx-auto mt-3 w-full max-w-5xl px-3 sm:px-4">
-      <div className="flex items-center justify-between gap-4 rounded-3xl border border-white/10 bg-[#1B1B1E] px-5 py-4 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-        <div>
-          <p className="text-xl font-semibold leading-tight">Install EventSlot</p>
-          <p className="mt-1 max-w-2xl text-sm text-white/85">
+    <div className="mx-auto mt-8 w-full max-w-5xl px-4 sm:px-6">
+      <div className="rounded-3xl border border-white/10 bg-[#1B1B1E] px-5 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="text-xl font-semibold leading-tight">Install EventSlot</p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/85">
             Add EventSlot to your device for faster access, app-like performance, and a smoother event-day experience.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              void handleDownloadClick()
-            }}
-            className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
-          >
-            Download app
-          </button>
-          <a
-            href="/how-it-works"
-            className="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Learn more
-          </a>
-          <button
-            onClick={handleDismiss}
-            aria-label="Dismiss install banner"
-            className="rounded-full px-2 py-1 text-2xl leading-none text-white/80 transition hover:text-white"
-          >
-            ×
-          </button>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start md:self-center">
+            <button
+              onClick={() => {
+                void handleDownloadClick()
+              }}
+              className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+            >
+              Download app
+            </button>
+            <a
+              href="/how-it-works"
+              className="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Learn more
+            </a>
+            <button
+              onClick={handleDismiss}
+              aria-label="Dismiss install banner"
+              className="rounded-full px-2 py-1 text-2xl leading-none text-white/80 transition hover:text-white"
+            >
+              ×
+            </button>
+          </div>
         </div>
       </div>
     </div>

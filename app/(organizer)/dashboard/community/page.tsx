@@ -158,20 +158,24 @@ export default function CommunityPage() {
     }
   }
 
-  function shareWhatsApp() {
+  async function shareInvite() {
     if (!referralUrl) return
-    const text = encodeURIComponent(
-      `Join me on EventSlot - the smart event registration platform built for Africa. Sign up here: ${referralUrl}`
-    )
-    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer")
-  }
-
-  function shareTwitter() {
-    if (!referralUrl) return
-    const text = encodeURIComponent(
-      `I'm using EventSlot to manage my events - registrations, waitlists, and more. Join me: ${referralUrl}`
-    )
-    window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank", "noopener,noreferrer")
+    const shareText = "Join me on EventSlot - the smart event registration platform built for Africa."
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Join me on EventSlot",
+          text: shareText,
+          url: referralUrl,
+        })
+        return
+      }
+      await navigator.clipboard.writeText(referralUrl)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Ignore user-cancelled shares and clipboard errors.
+    }
   }
 
   return (
@@ -227,22 +231,15 @@ export default function CommunityPage() {
           </button>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={shareWhatsApp}
-            className="flex-1 rounded-lg bg-[#25D366] py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            type="button"
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={shareTwitter}
-            className="flex-1 rounded-lg bg-[#1DA1F2] py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            type="button"
-          >
-            Twitter / X
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            void shareInvite()
+          }}
+          className="w-full rounded-lg bg-[#C8F55A] py-2.5 text-xs font-bold text-black transition-opacity hover:opacity-90"
+          type="button"
+        >
+          Share invite
+        </button>
 
         {referralData?.stats && (
           <div className="mt-4 grid grid-cols-3 gap-3">

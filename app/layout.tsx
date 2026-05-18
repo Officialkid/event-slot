@@ -152,9 +152,9 @@ export default async function RootLayout({
     >
       <body className="antialiased">
         <Providers>
-          <PwaInstallBanner />
           <Nav />
-          {children}
+          <div className="mobile-safe-bottom">{children}</div>
+          <PwaInstallBanner />
           <Toast />
           <DevToolsDetector />
           {authSession?.user?.id ? <AssistantWidget /> : null}

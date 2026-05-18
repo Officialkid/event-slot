@@ -66,6 +66,17 @@ const updates: DailyUpdates[] = [
           "Added configurable join opening time support and propagated it through create/edit/settings and attendee UI logic.",
         ],
       },
+      {
+        title: "Mobile Dashboard UX Refinements",
+        points: [
+          "Scoped assistant launcher visibility to dashboard routes only and hid it on the assistant page.",
+          "Raised the floating assistant button and panel anchors on mobile to prevent overlap with bottom navigation.",
+          "Updated mobile bottom navigation quick action to route directly to organizer profile.",
+          "Replaced Community social-specific share buttons with one unified share action using native share support.",
+          "Added extra mobile-safe bottom spacing and increased dashboard content bottom padding to keep content clear of fixed UI.",
+          "Improved install banner responsiveness and moved its placement lower in the page flow so it appears after primary content.",
+        ],
+      },
     ],
   },
   {

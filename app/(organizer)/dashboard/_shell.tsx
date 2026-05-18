@@ -118,14 +118,6 @@ function IconX() {
   )
 }
 
-function IconMore() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 5h10M3 8h10M3 11h10" />
-    </svg>
-  )
-}
-
 function IconChat() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1130,7 +1122,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
           {/* Page content */}
           <main
-            className="dash-content pb-32 md:pb-0"
+            className="dash-content pb-40 md:pb-0"
             style={{ flex: 1, background: "#0A0A0A" }}
           >
             {children}
@@ -1205,10 +1197,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </Link>
           )
         })}
-        {/* More button */}
-        <button
-          aria-label="More options"
-          onClick={() => setMoreOpen(true)}
+        {/* Profile quick access */}
+        <Link
+          href="/dashboard/profile"
+          aria-label="Profile"
           style={{
             flex: 1,
             display: "flex",
@@ -1217,15 +1209,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             justifyContent: "center",
             gap: 3,
             padding: "0.3rem 0",
-            color: moreOpen ? "#C8F55A" : "rgba(240,237,230,0.35)",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
+            color: getIsActive(pathname, "/dashboard/profile", false) ? "#C8F55A" : "rgba(240,237,230,0.35)",
+            textDecoration: "none",
           }}
         >
-          <IconMore />
-          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>More</span>
-        </button>
+          <IconUser />
+          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>Profile</span>
+        </Link>
       </nav>
 
       {/* More bottom sheet */}
