@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
+import { JoinEventButton } from "@/components/JoinEventButton"
 
 type EventQuestion = {
   id: string
@@ -100,11 +101,13 @@ const getEventBySlug = unstable_cache(
       organizerEmail: true,
       createdAt: true,
       eventDate: true,
+      joinOpensAt: true,
+      eventType: true,
       location: true,
       communityLink: true,
       imageUrl: true,
       status: true,
-      organizer: { select: { name: true, plan: true, suspended: true } },
+      organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
   }),
   ["public-event-detail"],
@@ -232,6 +235,7 @@ export default async function PublicProfilePage({
             location={event.location}
             imageUrl={event.imageUrl}
             organizerName={event.organizer?.name ?? null}
+            organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
             capacity={event.capacity}
             confirmedCount={event.confirmedCount}
             status={event.status}
@@ -262,6 +266,15 @@ export default async function PublicProfilePage({
             <section className="space-y-3 lg:sticky lg:top-6">
               <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Attendance Lookup</p>
               <ConfirmAttendance eventSlug={username} />
+              {event.eventType === "VIRTUAL" && event.eventDate && (
+                <JoinEventButton
+                  eventId={event.id}
+                  eventType={event.eventType}
+                  startDate={event.eventDate}
+                  endDate={null}
+                  opensAt={event.joinOpensAt}
+                />
+              )}
             </section>
           </div>
         </div>

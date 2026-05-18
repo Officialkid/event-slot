@@ -74,6 +74,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         slug: event.slug,
         questions: event.questions,
         eventDate: event.eventDate,
+        joinOpensAt: event.joinOpensAt,
         location: event.location,
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
         archived: event.archived,
@@ -115,7 +116,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, capacity, deadline, eventDate, location, communityLink, questions, imageUrl, archived } = body
+    const { action, title, description, capacity, deadline, eventDate, joinOpensAt, location, communityLink, questions, imageUrl, archived } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -154,6 +155,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         capacity: capacity ? Number(capacity) : null,
         deadline: deadline ? new Date(deadline) : null,
         eventDate: eventDate ? new Date(eventDate) : null,
+        joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
         location: location || null,
         communityLink: normalizeCommunityLink(communityLink),
         imageUrl: imageUrl || null,

@@ -10,6 +10,7 @@ import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
+import { EntryDashboard } from "@/components/EntryDashboard"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -58,6 +59,7 @@ type EventData = {
   slug: string
   questions: Question[]
   eventDate: string | null
+  joinOpensAt: string | null
   location: string | null
   communityLink: string | null
   archived: boolean
@@ -582,6 +584,7 @@ const tdStyle: React.CSSProperties = {
 function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; hasRegistrations: boolean; onSaved: (updates: Partial<EventData>) => void }) {
   const [description, setDescription] = useState(event.description ?? "")
   const [eventDate, setEventDate] = useState(toDatetimeLocal(event.eventDate))
+  const [joinOpensAt, setJoinOpensAt] = useState(toDatetimeLocal(event.joinOpensAt))
   const [location, setLocation] = useState(event.location ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
   const [deadline, setDeadline] = useState(toDatetimeLocal(event.deadline))
@@ -600,6 +603,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         body: JSON.stringify({
           description: description || null,
           eventDate: eventDate || null,
+          joinOpensAt: joinOpensAt || null,
           location: location || null,
           communityLink: normalizeCommunityLink(communityLink),
           deadline: deadline || null,
@@ -608,7 +612,14 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
       const data = await res.json()
       if (res.ok) {
         setSaved(true)
-        onSaved({ description: description || null, eventDate: eventDate || null, location: location || null, communityLink: communityLink || null, deadline: deadline || null })
+        onSaved({
+          description: description || null,
+          eventDate: eventDate || null,
+          joinOpensAt: joinOpensAt || null,
+          location: location || null,
+          communityLink: communityLink || null,
+          deadline: deadline || null,
+        })
         setTimeout(() => setSaved(false), 3000)
       } else {
         setError(data.error || "Failed to save.")
@@ -681,6 +692,14 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             <label style={fieldLabel}>Location</label>
             <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city" style={inputStyle} />
           </div>
+        </div>
+
+        <div>
+          <label style={fieldLabel}>Link opens at (optional)</label>
+          <input type="datetime-local" value={joinOpensAt} onChange={e => setJoinOpensAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+            If left empty, attendee join access opens 30 minutes before the event date.
+          </p>
         </div>
 
         {/* Deadline */}
@@ -2805,6 +2824,7 @@ export default function EventDashboardPage() {
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
               Ticket Verification
             </h2>
+            {eventData && <EntryDashboard eventId={eventData.id} />}
             <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", margin: "0 0 1rem" }}>
               Verify by ticket code, scanned QR value, or attendee email/name. Once verified, a ticket cannot be verified again.
             </p>

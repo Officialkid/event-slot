@@ -42,10 +42,15 @@ export default function CreateEventPage() {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
+  const [virtualLink, setVirtualLink] = useState("")
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
+  const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
+  const [isPaid, setIsPaid] = useState(false)
+  const [ticketPrice, setTicketPrice] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [organizerName, setOrganizerName] = useState("")
@@ -266,6 +271,19 @@ export default function CreateEventPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
+
+    if (eventType === "VIRTUAL" && !virtualLink.trim()) {
+      setLoading(false)
+      setError("Google Meet link is required for virtual events.")
+      return
+    }
+
+    if (isPaid && !ticketPrice) {
+      setLoading(false)
+      setError("Please enter a ticket price for paid events.")
+      return
+    }
+
     const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
     if (invalidQuestion) {
       setLoading(false)
@@ -279,10 +297,15 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
+          eventType,
+          virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
+          joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
+          isPaid,
+          ticketPrice: isPaid && ticketPrice ? Number(ticketPrice) : undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
           questions: questions.map(q => ({
@@ -537,6 +560,134 @@ export default function CreateEventPage() {
                     {description.length} / 300 characters
                   </p>
                 </div>
+                <div className="space-y-3">
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Event Type
+                  </label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEventType("PHYSICAL")}
+                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
+                        eventType === "PHYSICAL"
+                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                      }`}
+                    >
+                      📍 Physical
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventType("VIRTUAL")}
+                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
+                        eventType === "VIRTUAL"
+                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                      }`}
+                    >
+                      💻 Virtual
+                    </button>
+                  </div>
+                </div>
+
+                {eventType === "VIRTUAL" && (
+                  <div className="space-y-2">
+                    <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                      Google Meet Link <span className="text-[#C8F55A]">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      placeholder="https://meet.google.com/..."
+                      value={virtualLink}
+                      onChange={e => setVirtualLink(e.target.value)}
+                    />
+                    <div className="rounded-xl border border-[#2A2A2A] bg-[#141414] p-4">
+                      <p className="mb-2 text-xs font-semibold text-[#C8F55A]">✦ How to get your Google Meet link</p>
+                      <ol className="list-inside list-decimal space-y-1 text-xs text-[#A3A3A3]">
+                        <li>Go to <span className="text-white">meet.new</span> or open Google Meet</li>
+                        <li>Click <span className="text-white">New meeting</span></li>
+                        <li>Select <span className="text-white">Create a meeting for later</span></li>
+                        <li>Copy the link and paste it above</li>
+                        <li>Keep the meeting open - attendees will join on event day after verification</li>
+                      </ol>
+                      <p className="mt-3 text-xs text-[#525252]">🔒 Your meeting link is encrypted and only revealed to verified attendees on event day.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Pricing
+                  </label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPaid(false)
+                        setTicketPrice("")
+                      }}
+                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
+                        !isPaid
+                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                      }`}
+                    >
+                      🎟️ Free
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPaid(true)
+                        setTicketPrice((previous) => previous || "500")
+                      }}
+                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
+                        isPaid
+                          ? "border-[rgba(255,184,77,0.6)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]"
+                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                      }`}
+                    >
+                      💳 Paid
+                    </button>
+                  </div>
+                  {isPaid && (
+                    <div className="mt-2 rounded-[8px] border border-[rgba(255,184,77,0.3)] bg-[rgba(255,184,77,0.08)] p-3">
+                      <p className="text-[0.75rem] font-semibold text-[#C8F55A]">🔔 Paid Events - Coming Soon</p>
+                      <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
+                        Payment integration is coming very soon. For now, please use the <span className="font-medium text-white">Free</span> option and handle payments manually with your attendees. Your event setup will be saved and payment activation requires no changes when we go live.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPaid(false)
+                          setTicketPrice("")
+                        }}
+                        className="mt-3 text-xs text-[#C8F55A] underline"
+                      >
+                        Switch to Free →
+                      </button>
+                    </div>
+                  )}
+
+                  {isPaid && (
+                    <div className="mt-2 space-y-2 opacity-50 pointer-events-none">
+                        <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                          Ticket Price (KSh)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                          placeholder="e.g. 500"
+                          value={ticketPrice}
+                          onChange={e => setTicketPrice(e.target.value)}
+                        />
+                        <p className="text-xs text-[#525252]">Minimum KSh 50</p>
+                      </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
                     Maximum Capacity
@@ -687,7 +838,21 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Location / Venue
+                    Link Opens At (optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    value={joinOpensAt}
+                    onChange={e => setJoinOpensAt(e.target.value)}
+                  />
+                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                    Leave empty to auto-open 30 minutes before the event start.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    {eventType === "VIRTUAL" ? "Host / Base Location (optional)" : "Location / Venue"}
                   </label>
                   <input
                     type="text"

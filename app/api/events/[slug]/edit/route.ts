@@ -20,6 +20,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         capacity: true,
         deadline: true,
         eventDate: true,
+        joinOpensAt: true,
         location: true,
         communityLink: true,
         imageUrl: true,

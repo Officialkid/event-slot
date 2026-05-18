@@ -11,6 +11,7 @@ export type EventInvitationCardProps = {
   location?: string | null
   imageUrl?: string | null
   organizerName?: string | null
+  organizerIsPioneer?: boolean
   capacity?: number | null
   confirmedCount: number
   status: string
@@ -65,6 +66,7 @@ export default function EventInvitationCard({
   location,
   imageUrl,
   organizerName,
+  organizerIsPioneer,
   capacity,
   confirmedCount,
   status,
@@ -246,9 +248,27 @@ export default function EventInvitationCard({
           {organizerName && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>✦</span>
-              <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontWeight: 400 }}>
+              <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
                 Hosted by{" "}
                 <span style={{ color: "rgba(240,237,230,0.8)", fontWeight: 500 }}>{organizerName}</span>
+                {organizerIsPioneer ? (
+                  <span
+                    title="EventSlot Pioneer - one of our first 150 supporters"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      fontSize: "0.7rem",
+                      color: "#C8F55A",
+                      border: "1px solid rgba(200,245,90,0.3)",
+                      borderRadius: 999,
+                      padding: "0.1rem 0.5rem",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <span aria-hidden="true">🏆</span> Pioneer
+                  </span>
+                ) : null}
               </span>
             </div>
           )}

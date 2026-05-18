@@ -13,6 +13,35 @@ type DailyUpdates = {
 
 const updates: DailyUpdates[] = [
   {
+    date: "18 May 2026",
+    entries: [
+      {
+        title: "Legal Pages Upgrade",
+        points: [
+          "Rebuilt Privacy Policy page with detailed startup-level policy sections.",
+          "Rebuilt Terms & Conditions page with comprehensive user, organizer, and platform terms.",
+          "Validated both legal pages with TypeScript and lint checks before release.",
+        ],
+      },
+      {
+        title: "Brand Colour Enforcement",
+        points: [
+          "Applied official EventSlot color tokens in global CSS for backgrounds, text, accent, borders, status, and leaderboard colors.",
+          "Added semantic Tailwind color mappings so components use system tokens instead of ad hoc color values.",
+          "Aligned legal pages and shared UI utility classes to approved design-system colors.",
+        ],
+      },
+      {
+        title: "Security Scan Hardening",
+        points: [
+          "Reviewed scheduled gitleaks scan findings and confirmed historical documentation/workflow false positives.",
+          "Prepared gitleaks fingerprint ignore baseline to prevent recurring false-positive alert noise.",
+          "Kept secret-scanning enforcement active for all other findings.",
+        ],
+      },
+    ],
+  },
+  {
     date: "15 May 2026",
     entries: [
       {

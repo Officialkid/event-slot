@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { verifyQRPayload } from '@/lib/ticket-qr'
 
 type EventQuestion = { id: string; type: string; label: string }
 
@@ -10,6 +11,7 @@ type VerifyBody = {
   token?: string
   code?: string
   identity?: string
+  qrPayload?: string
 }
 
 type RegistrationLookup = {
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
   try {
     const body = (await req.json()) as VerifyBody
-    const { token, code, identity } = body
+    const { token, code, identity, qrPayload } = body
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -82,8 +84,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
     const normalizedCode = code ? extractCode(code) : ''
     const normalizedIdentity = identity?.trim() ?? ''
+    const normalizedQrPayload = (qrPayload ?? '').trim()
+    const scannedPayload = normalizedQrPayload || (normalizedCode.includes(':') ? normalizedCode : '')
 
-    if (!normalizedCode && !normalizedIdentity) {
+    if (!normalizedCode && !normalizedIdentity && !scannedPayload) {
       return NextResponse.json({ success: false, error: 'Provide a ticket code or attendee identity.' }, { status: 400 })
     }
 
@@ -91,7 +95,40 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
     let target: RegistrationLookup | null = null
 
-    if (normalizedCode) {
+    if (scannedPayload) {
+      const qr = verifyQRPayload(scannedPayload)
+
+      if (!qr.valid) {
+        await logEntry(event.id, null, null, false, 'INVALID_SIGNATURE')
+        return NextResponse.json({ success: false, error: 'This ticket is not valid for verification.' }, { status: 403 })
+      }
+
+      if (qr.eventId !== event.id) {
+        await logEntry(event.id, qr.ticketId, null, false, 'WRONG_EVENT')
+        return NextResponse.json({ success: false, error: 'This ticket belongs to a different event.' }, { status: 403 })
+      }
+
+      target = await prisma.registration.findFirst({
+        where: {
+          eventId: event.id,
+          id: qr.userId!,
+          OR: [
+            { confirmationCode: qr.ticketId! },
+            { id: qr.ticketId! },
+          ],
+        },
+        select: {
+          id: true,
+          status: true,
+          attendeeEmail: true,
+          checkedIn: true,
+          checkedInAt: true,
+          confirmationCode: true,
+          answers: true,
+          registrationNumber: true,
+        },
+      }) as RegistrationLookup | null
+    } else if (normalizedCode) {
       target = await prisma.registration.findFirst({
         where: {
           eventId: event.id,
@@ -151,16 +188,20 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     }
 
     if (!target) {
+      await logEntry(event.id, normalizedCode || null, null, false, 'TICKET_NOT_FOUND')
       return NextResponse.json({ success: false, error: 'No ticket found for this event.' }, { status: 404 })
     }
 
     if (target.status !== 'confirmed') {
+      const attendeeName = getNameFromAnswers(target.answers, questions)
+      await logEntry(event.id, target.confirmationCode ?? target.id, attendeeName || null, false, 'NOT_CONFIRMED')
       return NextResponse.json({ success: false, error: 'Ticket exists but is not confirmed.' }, { status: 400 })
     }
 
     const attendeeName = getNameFromAnswers(target.answers, questions)
 
     if (target.checkedIn) {
+      await logEntry(event.id, target.confirmationCode ?? target.id, attendeeName || null, false, 'ALREADY_SCANNED')
       return NextResponse.json({
         success: true,
         valid: false,
@@ -192,6 +233,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       },
     })
 
+    await logEntry(event.id, updated.confirmationCode ?? updated.id, attendeeName || null, true)
+
     return NextResponse.json({
       success: true,
       valid: true,
@@ -210,4 +253,22 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
+}
+
+async function logEntry(
+  eventId: string,
+  ticketId: string | null,
+  attendeeName: string | null,
+  success: boolean,
+  failReason?: string
+) {
+  await prisma.entryLog.create({
+    data: {
+      eventId,
+      ticketId: ticketId ?? 'unknown',
+      attendeeName: attendeeName ?? 'Unknown',
+      success,
+      failReason: failReason ?? null,
+    },
+  }).catch(console.error)
 }

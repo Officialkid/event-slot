@@ -388,3 +388,37 @@ export async function sendExpiryWarningEmail({
   })
 }
 
+export async function sendPioneerBadgeAnnouncementEmail({
+  to,
+}: {
+  to: string
+}) {
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    to,
+    subject: "You're an EventSlot Pioneer",
+    html: `
+      <div style="background:#0A0A0A;color:#fff;padding:40px;font-family:sans-serif;max-width:520px;">
+        <h2 style="color:#C8F55A;margin-bottom:8px;">EventSlot Pioneer</h2>
+        <p style="color:#A3A3A3;margin-bottom:24px;">
+          You signed up for EventSlot early - before most people knew it existed.
+          That means something to us.
+        </p>
+        <p style="color:#fff;margin-bottom:24px;">
+          We've awarded you the <strong>Pioneer Badge</strong> - a limited badge
+          given to EventSlot's founding community. A small group will ever have it.
+          You're in it.
+        </p>
+        <a href="${BASE_URL}/dashboard/community"
+          style="background:#C8F55A;color:#000;padding:14px 28px;text-decoration:none;
+                  border-radius:8px;font-weight:bold;display:inline-block;">
+          View Your Badge ->
+        </a>
+        <p style="color:#525252;font-size:12px;margin-top:32px;">
+          Smarter Events. Better Experiences. - EventSlot
+        </p>
+      </div>
+    `,
+  })
+}
+

@@ -26,22 +26,47 @@ model Event {
   organizerId      String?
   organizer        User?     @relation(fields: [organizerId], references: [id])
   eventDate        DateTime?
+  joinOpensAt      DateTime?
   location         String?
   communityLink    String?
+  eventType        EventType @default(PHYSICAL)
+  virtualLink      String?
+  virtualLinkIv    String?
   imageUrl         String?
   archived         Boolean   @default(false)
   status           String    @default("active")
+  isPaid           Boolean   @default(false)
+  ticketPrice      Int?
+  currency         String    @default("KSh")
+  paymentsLive     Boolean   @default(false)
   ticketsEnabled   Boolean   @default(false)
   feedbackSent     Boolean   @default(false)
   reminderSent     Boolean   @default(false)
   dataExpired      Boolean   @default(false)
-    expiresAt        DateTime?
+  expiresAt        DateTime?
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
   unlocks          EventUnlock[]
   insight          EventInsight?
+  entryLogs        EntryLog[]
   teamAccess       TeamMemberEvent[]
+}
+
+enum EventType {
+  PHYSICAL
+  VIRTUAL
+}
+
+model EntryLog {
+  id           String   @id @default(cuid())
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketId      String
+  attendeeName  String
+  scannedAt     DateTime @default(now())
+  success       Boolean
+  failReason    String?
 }
 
 model User {
@@ -85,6 +110,82 @@ model User {
   voiceQuota         VoiceQuota?
   memoryPreference   UserMemoryPreference?
   memory             UserMemory?
+  referralLink       ReferralLink?
+  referralsMade      Referral[]          @relation("ReferralsMade")
+  referredBy         Referral?           @relation("ReferredBy")
+  pioneerBadge       PioneerBadge?
+  badges             UserBadge[]
+  leaderboard        LeaderboardEntry?
+}
+
+model ReferralLink {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String     @unique
+  clicks    Int        @default(0)
+  createdAt DateTime   @default(now())
+  referrals Referral[]
+}
+
+model Referral {
+  id             String         @id @default(cuid())
+  referrerId     String
+  referrer       User           @relation("ReferralsMade", fields: [referrerId], references: [id])
+  referredUserId String         @unique
+  referredUser   User           @relation("ReferredBy", fields: [referredUserId], references: [id])
+  linkId         String
+  link           ReferralLink   @relation(fields: [linkId], references: [id])
+  status         ReferralStatus @default(SIGNED_UP)
+  signupTokens   Int            @default(0)
+  eventTokens    Int            @default(0)
+  totalEarned    Int            @default(0)
+  createdAt      DateTime       @default(now())
+  eventCreatedAt DateTime?
+}
+
+enum ReferralStatus {
+  SIGNED_UP
+  EVENT_CREATED
+}
+
+model PioneerBadge {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hasSeenCongratulations Boolean @default(false)
+  awardedAt             DateTime @default(now())
+}
+
+model UserBadge {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     BadgeType
+  awardedAt DateTime  @default(now())
+
+  @@unique([userId, badge])
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklyScore  Int      @default(0)
+  monthlyScore Int      @default(0)
+  allTimeScore Int      @default(0)
+  weeklyRank   Int?
+  monthlyRank  Int?
+  allTimeRank  Int?
+  weekStart    DateTime
+  updatedAt    DateTime @updatedAt
+}
+
+enum BadgeType {
+  PIONEER
+  GROWTH_BUILDER
+  COMMUNITY_CHAMPION
+  HALL_OF_FAME
 }
 
 model UserOnboarding {

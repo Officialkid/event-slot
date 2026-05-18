@@ -104,3 +104,13 @@ spec:
                 secretKeyRef:
                   name: OPENAI_API_KEY
                   key: latest
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ENCRYPTION_KEY
+                  key: latest
+            - name: QR_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: QR_SECRET
+                  key: latest

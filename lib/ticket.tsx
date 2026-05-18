@@ -1,5 +1,6 @@
 import { renderToBuffer, Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
 import QRCode from 'qrcode'
+import { generateQRPayload } from '@/lib/ticket-qr'
 
 const styles = StyleSheet.create({
   page: {
@@ -95,13 +96,19 @@ export interface TicketPDFData {
   eventTitle: string
   attendeeName: string
   ticketId: string
+  eventId: string
+  userId: string
   eventDate: Date | null
   location: string | null
   organizerName: string
+  isPaid?: boolean
+  ticketPrice?: number
 }
 
 export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
-  const qrDataUrl = await QRCode.toDataURL(data.ticketId, {
+  const qrPayload = generateQRPayload(data.ticketId, data.eventId, data.userId)
+
+  const qrDataUrl = await QRCode.toDataURL(qrPayload, {
     width: 200,
     margin: 1,
     color: { dark: '#000000', light: '#FFFFFF' },

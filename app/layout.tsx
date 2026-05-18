@@ -7,6 +7,7 @@ import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins"
 import { AssistantWidget } from "../components/AssistantWidget";
+import { PwaInstallBanner } from "../components/PwaInstallBanner";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -151,6 +152,7 @@ export default async function RootLayout({
     >
       <body className="antialiased">
         <Providers>
+          <PwaInstallBanner />
           <Nav />
           {children}
           <Toast />

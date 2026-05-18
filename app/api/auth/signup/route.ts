@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { cookies } from 'next/headers'
 import { sendWelcomeEmail } from '@/lib/email'
 import { signupRatelimit } from '@/lib/ratelimit'
+import { checkAndAwardPioneerBadge, processSignupReferral } from '@/lib/referral'
 
 export async function POST(req: Request) {
   try {
@@ -55,6 +57,16 @@ export async function POST(req: Request) {
     await prisma.userOnboarding.create({
       data: { userId: newUser.id },
     })
+
+    const cookieStore = await cookies()
+    const referralCode = cookieStore.get('eventslot_ref')?.value
+
+    if (referralCode) {
+      await processSignupReferral(newUser.id, referralCode)
+      cookieStore.delete('eventslot_ref')
+    }
+
+    await checkAndAwardPioneerBadge(newUser.id)
 
     // Fire-and-forget welcome email — don't block the response
     sendWelcomeEmail({ to: email, name }).catch(() => {})

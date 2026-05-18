@@ -50,6 +50,7 @@ export default function EditEventPage() {
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
+  const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
@@ -79,6 +80,7 @@ export default function EditEventPage() {
         setCapacity(e.capacity != null ? String(e.capacity) : "")
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
+        setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
         setLocation(e.location ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
@@ -180,6 +182,7 @@ export default function EditEventPage() {
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
+          joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
@@ -310,6 +313,17 @@ export default function EditEventPage() {
                   className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                   value={eventDate}
                   onChange={e => setEventDate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  Link Opens At (optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  value={joinOpensAt}
+                  onChange={e => setJoinOpensAt(e.target.value)}
                 />
               </div>
               <div>

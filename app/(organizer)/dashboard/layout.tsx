@@ -1,6 +1,7 @@
 ﻿import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
+import { PioneerCongratulationsModal } from "@/components/PioneerCongratulationsModal"
 import DashboardShell from "./_shell"
 
 export default async function DashboardLayout({
@@ -13,5 +14,10 @@ export default async function DashboardLayout({
     redirect("/signin")
   }
 
-  return <DashboardShell>{children}</DashboardShell>
+  return (
+    <>
+      <DashboardShell>{children}</DashboardShell>
+      <PioneerCongratulationsModal />
+    </>
+  )
 }

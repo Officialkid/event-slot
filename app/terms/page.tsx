@@ -1,91 +1,176 @@
-export default function TermsPage() {
-  return (
-    <div
-      style={{
-        maxWidth: 720,
-        margin: '0 auto',
-        padding: '3rem 1.5rem',
-      }}
-    >
-      <h1
-        style={{
-          fontFamily: 'var(--font-instrument-serif)',
-          fontSize: '1.8rem',
-          fontWeight: 400,
-          color: '#F0EDE6',
-          margin: '0 0 0.5rem',
-        }}
-      >
-        Terms of Use
-      </h1>
-      <p
-        style={{
-          fontFamily: 'var(--font-dm-sans)',
-          fontWeight: 300,
-          fontSize: '0.85rem',
-          color: 'rgba(240,237,230,0.35)',
-          margin: '0 0 2.5rem',
-        }}
-      >
-        Last updated: March 2026
-      </p>
+import type { Metadata } from "next"
 
-      <Section title="Using EventSlot">
-        EventSlot is free to use. We provide the platform as-is, without warranty of any kind.
-        We do not guarantee uptime, data retention, or fitness for any particular purpose.
-      </Section>
-
-      <Section title="Organizer responsibility">
-        Organizers are solely responsible for the content of their events, including descriptions,
-        questions, and any communications with attendees. EventSlot is not liable for any event
-        content created by organizers.
-      </Section>
-
-      <Section title="Prohibited use">
-        You may not use EventSlot to send spam, create fake or misleading events, or engage in
-        any activity that violates applicable law or harms other users.
-      </Section>
-
-      <Section title="Changes">
-        We may update these terms at any time. Continued use of EventSlot after changes are
-        posted constitutes acceptance of the updated terms.
-      </Section>
-    </div>
-  )
+export const metadata: Metadata = {
+  title: "Terms & Conditions - EventSlot",
+  description: "The terms that govern use of EventSlot.",
 }
 
-function Section({
-  title,
-  children,
-}: {
+const sections: Array<{
+  id: number
   title: string
-  children: React.ReactNode
-}) {
+  paragraphs?: string[]
+  bullets?: string[]
+}> = [
+  {
+    id: 1,
+    title: "Introduction",
+    paragraphs: [
+      "These Terms & Conditions govern your use of EventSlot at www.eventsslot.com.",
+      "By accessing or using EventSlot, you agree to these terms and our Privacy Policy.",
+    ],
+  },
+  {
+    id: 2,
+    title: "User Agreement During Signup",
+    paragraphs: [
+      "By creating an account, you agree to our Privacy Policy and Terms & Conditions.",
+      "If you do not agree, do not create an account or use the platform.",
+    ],
+  },
+  {
+    id: 3,
+    title: "User Accounts",
+    bullets: [
+      "You are responsible for information submitted under your account.",
+      "Keep your credentials confidential.",
+      "You must provide accurate information and keep it updated.",
+      "You are responsible for activity performed through your account unless caused by EventSlot security failure.",
+    ],
+  },
+  {
+    id: 4,
+    title: "Authentication and Security",
+    paragraphs: [
+      "EventSlot may use Google Authentication, secure hosting, verified emails, and protected infrastructure controls to improve security and trust.",
+      "No system is completely risk free, but we continuously improve safeguards as the platform grows.",
+    ],
+  },
+  {
+    id: 5,
+    title: "Email Communications",
+    paragraphs: [
+      "By signing up, you agree that EventSlot may send important platform updates, feature announcements, security notifications, event-related communications, and major upgrade notices.",
+      "EventSlot aims to keep communication relevant and limited. Users can unsubscribe from non-essential communications.",
+    ],
+  },
+  {
+    id: 6,
+    title: "Organizer Responsibilities",
+    bullets: [
+      "Organizers are responsible for event content, accuracy, and attendee communications.",
+      "Organizers must not publish unlawful, misleading, abusive, or fraudulent event content.",
+      "Organizers must handle attendee information responsibly and only for legitimate event operations.",
+    ],
+  },
+  {
+    id: 7,
+    title: "Acceptable Use",
+    bullets: [
+      "Do not use EventSlot to spam, scam, or impersonate others.",
+      "Do not attempt unauthorized access to data, systems, or accounts.",
+      "Do not interfere with normal platform operation.",
+      "Do not use EventSlot for unlawful activity.",
+    ],
+  },
+  {
+    id: 8,
+    title: "Tokens, Referrals, and Community Features",
+    paragraphs: [
+      "EventSlot may offer tokens, referrals, badges, and leaderboard features. Rules may change to prevent abuse or improve fairness.",
+      "EventSlot may suspend, adjust, or reverse rewards where abuse, fraud, or technical errors are detected.",
+    ],
+  },
+  {
+    id: 9,
+    title: "Platform Availability",
+    paragraphs: [
+      "We aim for reliable availability, but we do not guarantee uninterrupted service.",
+      "EventSlot may experience downtime, maintenance windows, or third-party service interruptions.",
+    ],
+  },
+  {
+    id: 10,
+    title: "Intellectual Property",
+    paragraphs: [
+      "EventSlot branding, software, and platform content are owned by EventSlot or its licensors.",
+      "You retain ownership of your event content, but grant EventSlot permission to process and display it to provide the service.",
+    ],
+  },
+  {
+    id: 11,
+    title: "Account Suspension or Termination",
+    paragraphs: [
+      "EventSlot may suspend or terminate accounts that violate these terms, create legal risk, or harm users or platform integrity.",
+      "Where reasonable, we may provide notice and an opportunity to resolve violations.",
+    ],
+  },
+  {
+    id: 12,
+    title: "Limitation of Liability",
+    paragraphs: [
+      "EventSlot is provided on an as available basis. To the extent permitted by law, EventSlot is not liable for indirect or consequential losses resulting from platform use.",
+      "Nothing in these terms excludes liability that cannot be excluded under applicable law.",
+    ],
+  },
+  {
+    id: 13,
+    title: "Changes to the Platform and Terms",
+    paragraphs: [
+      "EventSlot is an evolving platform in an early growth stage. We may introduce new features, retire features, or update workflows.",
+      "We may update these terms when necessary. Continued use after updates means you accept the revised terms.",
+    ],
+  },
+  {
+    id: 14,
+    title: "Contact Information",
+    paragraphs: [
+      "If you have legal or policy questions, contact us at info@eventsslot.com.",
+      "Website: www.eventsslot.com",
+    ],
+  },
+]
+
+export default function TermsPage() {
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      <h2
-        style={{
-          fontFamily: 'var(--font-instrument-serif)',
-          fontSize: '1.15rem',
-          fontWeight: 400,
-          color: '#F0EDE6',
-          margin: '0 0 0.6rem',
-        }}
-      >
-        {title}
-      </h2>
-      <p
-        style={{
-          fontFamily: 'var(--font-dm-sans)',
-          fontWeight: 300,
-          fontSize: '0.9rem',
-          color: 'rgba(240,237,230,0.55)',
-          lineHeight: 1.7,
-          margin: 0,
-        }}
-      >
-        {children}
-      </p>
+    <div className="mx-auto max-w-3xl px-6 py-12">
+      <header className="mb-10">
+        <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Terms &amp; Conditions</h1>
+        <p className="text-sm text-text-muted">Last updated: May 2026</p>
+      </header>
+
+      <div className="space-y-10">
+        {sections.map((section) => (
+          <article key={section.id}>
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-text-primary">
+              <span className="font-mono text-sm text-accent">{section.id}.</span>
+              {section.title}
+            </h2>
+
+            <div className="space-y-3 text-sm leading-relaxed text-text-secondary">
+              {section.paragraphs?.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+
+              {section.bullets && (
+                <ul className="list-disc space-y-2 pl-5">
+                  {section.bullets.map((bullet, index) => (
+                    <li key={index}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <footer className="mt-12 border-t border-border-brand pt-8 text-center">
+        <p className="text-xs text-text-muted">
+          Questions? Email{" "}
+          <a href="mailto:info@eventsslot.com" className="text-accent hover:underline">
+            info@eventsslot.com
+          </a>
+        </p>
+      </footer>
     </div>
   )
 }

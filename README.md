@@ -12,6 +12,15 @@ npm install
 
 2. Configure environment variables in `.env`.
 
+Required for virtual event link encryption:
+- `ENCRYPTION_KEY` must be a 64-character hex string (32 bytes)
+- `QR_SECRET` should be a strong random secret for ticket QR signature HMAC
+- Generate one with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
 Neon connection guidance:
 - Use pooled endpoint for `DATABASE_URL` (host contains `-pooler`)
 - Use direct endpoint for `DIRECT_URL` (non-pooler host)
@@ -79,6 +88,12 @@ Then add the rest of your required app secrets and env vars via:
 1. Cloud Run console UI, or
 2. Secret Manager + `--set-secrets`, or
 3. Additional `--set-env-vars` flags.
+
+For Phase 2 virtual-link encryption, ensure Secret Manager contains:
+- `ENCRYPTION_KEY`
+
+For Phase 4 signed ticket QR payloads, ensure Secret Manager contains:
+- `QR_SECRET`
 
 ## Current Deployment Model
 

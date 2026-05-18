@@ -1,5 +1,67 @@
 # EventSlot — Changelog
 
+## [0.4.62] — May 18, 2026
+
+### Part 3 — Brand Colour Enforcement
+
+- Standardized global design tokens in `app/globals.css` to the official EventSlot palette (page/surface/input, text, accent, border, status, and leaderboard colors).
+- Added semantic Tailwind color mappings in `tailwind.config.ts` for reusable class-based usage (`text-secondary`, `border-border-brand`, `bg-bg-surface`, `text-accent`, status colors, and leaderboard colors).
+- Updated legal page implementations to use semantic design-system color classes instead of ad hoc values:
+  - `app/privacy/page.tsx`
+  - `app/terms/page.tsx`
+- Normalized shared utility styles (`.btn-*`, `.input-field`, `.card`, `.pill-*`) to approved status and border color rules in `app/globals.css`.
+
+## [0.4.61] — May 18, 2026
+
+### Phase 8 — Verify Entry Fallback + Public Event-Day Join Flow
+
+- Updated `POST /api/events/[id]/verify-entry` in `app/api/events/[id]/verify-entry/route.ts` to support explicit fallback verification using `lookupTicketId` when QR payload is unavailable.
+- Added fallback verification responses for not-found, not-confirmed, too-early, and event-ended states with entry logging parity.
+- Logged successful fallback access with reason `FALLBACK_LOOKUP` in `EntryLog`.
+- Kept backward compatibility for legacy fallback payloads (`qrPayload: LOOKUP:<ticketId>`).
+- Mounted attendee-side join flow on the public single-event page in `app/[username]/page.tsx` using `components/JoinEventButton.tsx`.
+- Passed event-aware join window data (`eventDate` + `joinOpensAt`) from public event data into `JoinEventButton`.
+- Updated attendee fallback request in `components/JoinEventButton.tsx` to call verify-entry with `lookupTicketId` payload.
+
+### Deployment Task — Migration Applied
+
+- Ran `npx prisma migrate deploy` and successfully applied migration `20260518113000_add_join_opens_at_to_event`.
+- Regenerated Prisma client and revalidated TypeScript + lint checks with zero errors.
+
+## [0.4.60] — May 18, 2026
+
+### Phase 7 — Organiser Event-Day Dashboard + Custom Join Open Time
+
+- Added organiser event-day entry tracking API in `app/api/organizer/events/[id]/entry-log/route.ts`:
+  - enforces organiser/super-admin access
+  - returns total confirmed registrations, successful entry count, host link (decrypted for virtual events), and recent successful entry scans
+- Added live organiser dashboard widget in `components/EntryDashboard.tsx`:
+  - auto-refresh every 30 seconds
+  - joined/registered/attendance metrics
+  - recent entry timeline
+  - host Google Meet quick-open action for virtual events
+- Embedded `EntryDashboard` into the organizer verify-ticket tab in `app/(organizer)/dashboard/events/[slug]/page.tsx`.
+- Added ID-based attendee lookup API in `app/api/events/[id]/lookup/route.ts` to support attendee-side fallback verification by name/email.
+- Updated attendee verification endpoint `app/api/events/[id]/verify-entry/route.ts` to support lookup fallback payloads (`LOOKUP:<ticketId>`) while preserving signed QR verification.
+- Added customizable join access opening time support:
+  - new event field `joinOpensAt` in `prisma/schema.prisma`
+  - migration `prisma/migrations/20260518113000_add_join_opens_at_to_event/migration.sql`
+  - create/edit/settings APIs updated to persist `joinOpensAt`
+  - organiser create/edit/settings UIs updated to let owners choose when attendee links open
+  - attendee countdown logic in `components/JoinEventButton.tsx` now respects custom open time and falls back to 30 minutes before start.
+
+## [0.4.59] — May 18, 2026
+
+### Phase 6.1 — Event Day Join Component (Attendee Side)
+
+- Added attendee join component in `components/JoinEventButton.tsx` with:
+  - event-window countdown logic (opens 30 minutes before start, closes at end fallback)
+  - in-browser QR scanning flow using camera access
+  - ticket verification request to `POST /api/events/[id]/verify-entry`
+  - fallback name/email lookup flow to support users without immediate QR access
+  - success/deny state UI with meeting-link action for virtual events
+- Added `jsqr` dependency to support real-time QR decode in browser camera frames.
+
 ## [0.4.58] — May 15, 2026
 
 ### EventSlot Assistant Intelligence Upgrade (MD 4) — Memory + Live Insights + Docs Grounding + Swahili
