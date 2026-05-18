@@ -418,6 +418,7 @@ jobs:
           # Regenerate metadata on top of latest origin/main each attempt to avoid rebase conflicts.
           for attempt in 1 2 3; do
             git fetch origin main
+            git restore . 2>/dev/null || git checkout -- .
             git checkout -B main origin/main
 
             node scripts/update-system-docs.mjs
