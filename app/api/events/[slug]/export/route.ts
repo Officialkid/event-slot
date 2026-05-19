@@ -85,6 +85,10 @@ async function buildWordExport(params: {
   )
   const toPctWidth = (percent: number) => Math.max(1, Math.round(percent * 50))
 
+  const cellBorder = { style: BorderStyle.SINGLE, size: 4, color: 'E1E1E1' } as const
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const
+  const cellMargins = { top: 110, bottom: 110, left: 120, right: 80 } as const
+
   const rows = registrations.map((reg, index) => {
     const answers = Array.isArray(reg.answers)
       ? (reg.answers as Array<{ questionId?: string; value?: unknown }>)
@@ -102,19 +106,29 @@ async function buildWordExport(params: {
       formatRegistrationDay(reg.submittedAt),
     ]
 
+    const rowFill = index % 2 === 1 ? 'F5F5F5' : 'FFFFFF'
+
     return new TableRow({
       children: rowValues.map(
         (value, colIndex) =>
           new TableCell({
             width: { size: toPctWidth(columnPercentages[colIndex]), type: WidthType.PERCENTAGE },
-            shading: { fill: index % 2 === 1 ? 'F5F5F5' : 'FFFFFF', type: ShadingType.CLEAR },
+            shading: { fill: rowFill, type: ShadingType.CLEAR },
+            margins: cellMargins,
+            borders: {
+              top: cellBorder,
+              bottom: cellBorder,
+              left: noBorder,
+              right: noBorder,
+            },
             children: [
               new Paragraph({
                 children: [
                   new TextRun({
                     text: value,
+                    font: 'Calibri',
                     size: 20,
-                    color: '111111',
+                    color: '1A1A1A',
                   }),
                 ],
               }),
@@ -125,36 +139,44 @@ async function buildWordExport(params: {
   })
 
   const doc = new Document({
+    styles: {
+      default: { document: { run: { font: 'Calibri', size: 22 } } },
+    },
     sections: [
       {
         properties: {
           page: {
-            margin: {
-              top: 1440,
-              right: 1008,
-              bottom: 1440,
-              left: 1008,
-            },
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1080, right: 1008, bottom: 1080, left: 1008 },
           },
         },
         children: [
           new Paragraph({
-            children: [new TextRun({ text: 'Confirmed Attendees', bold: true, size: 44 })],
-            spacing: { after: 150 },
+            children: [new TextRun({ text: 'Confirmed Attendees', bold: true, size: 44, font: 'Calibri', color: '111111' })],
+            spacing: { after: 120 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: `${registrations.length} confirmed registrations as of ${formatRegistrationDateTime(new Date())} (EAT)`,
-                size: 26,
+                text: `${registrations.length} confirmed registration${registrations.length !== 1 ? 's' : ''} as of ${formatRegistrationDateTime(new Date())} (EAT)`,
+                font: 'Calibri',
+                size: 22,
                 color: '555555',
               }),
             ],
-            spacing: { after: 260 },
+            spacing: { after: 240 },
           }),
           new Table({
             width: { size: 5000, type: WidthType.PERCENTAGE },
             layout: TableLayoutType.FIXED,
+            borders: {
+              top: noBorder,
+              bottom: noBorder,
+              left: noBorder,
+              right: noBorder,
+              insideHorizontal: cellBorder,
+              insideVertical: noBorder,
+            },
             rows: [
               new TableRow({
                 tableHeader: true,
@@ -162,11 +184,17 @@ async function buildWordExport(params: {
                   (header, colIndex) =>
                     new TableCell({
                       width: { size: toPctWidth(columnPercentages[colIndex]), type: WidthType.PERCENTAGE },
-                      shading: { fill: '233E6D' },
+                      shading: { fill: '233E6D', type: ShadingType.CLEAR },
+                      margins: cellMargins,
+                      borders: {
+                        top: noBorder,
+                        bottom: noBorder,
+                        left: noBorder,
+                        right: noBorder,
+                      },
                       children: [
                         new Paragraph({
-                          alignment: AlignmentType.LEFT,
-                          children: [new TextRun({ text: header, color: 'FFFFFF', bold: true, size: 22 })],
+                          children: [new TextRun({ text: header, font: 'Calibri', color: 'FFFFFF', bold: true, size: 22 })],
                         }),
                       ],
                     }),
@@ -176,22 +204,23 @@ async function buildWordExport(params: {
             ],
           }),
           new Paragraph({
-            spacing: { before: 250 },
+            spacing: { before: 280 },
             border: {
-              left: { style: BorderStyle.SINGLE, color: 'A3D65A', size: 6 },
+              left: { style: BorderStyle.SINGLE, color: 'A3D65A', size: 8 },
             },
             children: [
               new TextRun({
                 text: '  Data Protection Notice: This attendee list contains personal data processed under the Kenya Data Protection Act (2019). This document is confidential. Do not share, copy, or distribute attendee personal data without a lawful basis.',
                 italics: true,
-                color: '777777',
-                size: 24,
+                font: 'Calibri',
+                color: '666666',
+                size: 20,
               }),
             ],
           }),
           new Paragraph({
-            children: [new TextRun({ text: `Event: ${eventSlug}`, size: 16, color: '999999' })],
-            spacing: { before: 200 },
+            children: [new TextRun({ text: `Event: ${eventSlug}`, font: 'Calibri', size: 18, color: '999999' })],
+            spacing: { before: 180 },
           }),
         ],
       },
