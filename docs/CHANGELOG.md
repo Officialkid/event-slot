@@ -1,5 +1,14 @@
 # EventSlot — Changelog
 
+## [0.4.67] — May 20, 2026
+
+### Bug Fixes — Word Document Readability (Export + Event Report)
+
+- **Registrations export Word doc (`.docx`) — invisible data rows fixed**: Data cells in `buildWordExport` had no explicit `shading` property. In Microsoft Word dark mode, Google Docs, and some viewers, cells without explicit background shading inherit the viewer's dark theme, rendering dark text (`#111111`) invisible on a dark background. Added explicit `shading: { fill: 'FFFFFF'/'F5F5F5', type: ShadingType.CLEAR }` with alternating row colours so the background is always rendered correctly.
+- **Event report — AI section headers darkened to theme colour**: Section title cells in `aiInsightsPage` were using a hardcoded near-black fill (`0F0F0F`) regardless of the selected report theme. Changed to use `palette.banner` so navy-theme reports display the expected dark navy (`1F3864`) header instead of an almost-invisible near-black, and eventslot-theme reports use `0A0A0A`. The "Overall Score" cell was similarly updated from `0A0A0A` to `palette.banner`.
+- **Event report — AI section content cells now have explicit white shading**: Content cells below each AI section title previously had no explicit shading, causing the same dark-mode rendering issue as the export. Added `shading: { fill: 'FFFFFF', type: ShadingType.CLEAR }` to all content cells.
+- **Event report — markdown stripped from AI text**: AI-generated section content is inserted into Word paragraphs line-by-line. If the AI model returned markdown syntax (`# Heading`, `## Subheading`, `**bold**`, `*italic*`, `` `code` ``, `- list item`), those characters appeared literally in the Word document. A lightweight inline strip now removes heading markers, list bullets, bold/italic markers, and inline code backticks before each line is embedded as a `TextRun`.
+
 ## [0.4.66] — May 19, 2026
 
 ### Bug Fixes — `/join` Referral 500 + Virtual Event 503

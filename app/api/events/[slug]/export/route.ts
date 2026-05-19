@@ -9,6 +9,7 @@ import {
   Document,
   Packer,
   Paragraph,
+  ShadingType,
   Table,
   TableCell,
   TableLayoutType,
@@ -106,6 +107,7 @@ async function buildWordExport(params: {
         (value, colIndex) =>
           new TableCell({
             width: { size: toPctWidth(columnPercentages[colIndex]), type: WidthType.PERCENTAGE },
+            shading: { fill: index % 2 === 1 ? 'F5F5F5' : 'FFFFFF', type: ShadingType.CLEAR },
             children: [
               new Paragraph({
                 children: [

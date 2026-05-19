@@ -1456,7 +1456,7 @@ function aiInsightsPage(
   for (const section of sectionRows) {
     const paragraphs = section.text
       .split('\n')
-      .map((line) => line.trim())
+      .map((line) => line.trim().replace(/^#{1,6}\s+/, '').replace(/^[-*+]\s+/, '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`([^`]+)`/g, '$1'))
       .filter(Boolean)
       .map(
         (line) =>
@@ -1482,7 +1482,7 @@ function aiInsightsPage(
             children: [
               new TableCell({
                 width: { size: TABLE_WIDTH, type: WidthType.DXA },
-                shading: { type: ShadingType.CLEAR, fill: '0F0F0F', color: 'auto' },
+                shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
                 margins: { top: 130, bottom: 130, left: 220, right: 220 },
                 children: [
                   new Paragraph({
@@ -1496,6 +1496,7 @@ function aiInsightsPage(
             children: [
               new TableCell({
                 width: { size: TABLE_WIDTH, type: WidthType.DXA },
+                shading: { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
                 margins: { top: 100, bottom: 100, left: 220, right: 220 },
                 children: paragraphs.length > 0
                   ? paragraphs
@@ -1528,7 +1529,7 @@ function aiInsightsPage(
         new TableRow({
           children: [
             new TableCell({
-              shading: { type: ShadingType.CLEAR, fill: '0A0A0A', color: 'auto' },
+              shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
               margins: { top: 180, bottom: 180, left: 220, right: 220 },
               children: [
                 new Paragraph({
