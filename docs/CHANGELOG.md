@@ -1,6 +1,17 @@
 # EventSlot — Changelog
 
-## [0.4.67] — May 20, 2026
+## [0.4.68] — May 21, 2026
+
+### Features — Per-Event Team Invites, Waitlist Promotion Email, Email Campaigns Visibility
+
+- **Per-event team invites**: Team membership is now scoped per event. Organizers invite members directly from the event dashboard's new "Team" tab. Each invite call creates a `TeamMemberEvent` record, giving the invited member access only to that specific event. The invite API (`POST /api/team/invite`) now accepts an optional `eventId` field.
+- **New event team API route**: Added `GET /api/events/[slug]/team` (lists members with event access) and `DELETE /api/events/[slug]/team?memberId=...` (revokes access) — both gated to the event organizer.
+- **Team tab on event dashboard**: The organizer event dashboard now has a "Team" tab showing current members with accept/pending status badges and a Remove button, plus an invite form supporting up to two email addresses at once.
+- **Waitlist promotion email overhaul**: Promoted waitlisted attendees now receive a dedicated celebration email (`sendWaitlistPromotedEmail`) with a 🎉 subject line, event date and location, and a ticket download button — replacing the generic slot-confirmed email.
+- **Email Attendees always visible**: The "Email Attendees" link is now displayed as a persistent tab-bar item on the event dashboard (navigates to `/dashboard/events/[slug]/emails`), making the email campaigns feature discoverable at a glance.
+- **Pricing removed from public nav**: The `/pricing` link has been removed from the public marketing navbar while pricing tiers are still being finalised.
+
+
 
 ### Bug Fixes — Word Document Readability (Export + Event Report)
 

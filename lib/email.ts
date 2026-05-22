@@ -150,6 +150,65 @@ export async function sendSlotConfirmedEmail({
   })
 }
 
+export async function sendWaitlistPromotedEmail({
+  to,
+  eventTitle,
+  eventDate,
+  eventLocation,
+  communityLink,
+  ticketUrl,
+}: {
+  to: string
+  eventTitle: string
+  eventDate?: string | null
+  eventLocation?: string | null
+  communityLink?: string | null
+  ticketUrl?: string | null
+}) {
+  const dateSection = eventDate
+    ? `<p style="margin:4px 0;color:#555;font-size:0.875rem">&#128197; ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`
+    : ''
+  const locationSection = eventLocation
+    ? `<p style="margin:4px 0;color:#555;font-size:0.875rem">&#128205; ${eventLocation}</p>`
+    : ''
+  const ticketSection = ticketUrl
+    ? `<div style="margin-top:24px;padding:16px;background:#f8f8f8;border-radius:8px;text-align:center">
+         <p style="margin:0 0 12px;font-size:0.875rem;color:#555">Your ticket is ready — download it below:</p>
+         <a href="${ticketUrl}" style="display:inline-block;background:#0A0A0A;color:#C8F55A;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:0.9rem;font-weight:600">
+           View &amp; Download Ticket &rarr;
+         </a>
+       </div>`
+    : `<div style="margin-top:24px;padding:16px;background:#f8f8f8;border-radius:8px">
+         <p style="margin:0;font-size:0.875rem;color:#555">Visit the event page to download your ticket.</p>
+       </div>`
+  const communitySection = communityLink
+    ? `<p style="margin-top:16px">Join the event community: <a href="${communityLink}">${communityLink}</a></p>`
+    : ''
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `Congratulations! You've been promoted from the waitlist for ${eventTitle}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:2.5rem">&#127881;</div>
+          <h2 style="color:#0A0A0A;margin:0.5rem 0">You're off the waitlist!</h2>
+        </div>
+        <p>Great news &mdash; a spot opened up and you have been <strong>promoted from the waitlist</strong> to confirmed for <strong>${eventTitle}</strong>.</p>
+        <p>Your registration is now fully confirmed. We look forward to seeing you there!</p>
+        ${dateSection}
+        ${locationSection}
+        ${ticketSection}
+        ${communitySection}
+        <p style="margin-top:2rem;color:#888;font-size:0.8rem">
+          You received this because you were on the waitlist for ${eventTitle} via EventSlot.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendConfirmationEmail({
   to,
   name,

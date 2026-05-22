@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { sendSlotConfirmedEmail } from '@/lib/email'
+import { sendWaitlistPromotedEmail } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { getServerSession } from 'next-auth'
@@ -113,11 +113,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         }
 
         try {
-          await sendSlotConfirmedEmail({
+          await sendWaitlistPromotedEmail({
             to: r.attendeeEmail,
             eventTitle: event.title,
+            eventDate: event.eventDate ? event.eventDate.toISOString() : null,
+            eventLocation: event.location,
             communityLink: event.communityLink,
-            consentTransactional: r.consentTransactional,
             ticketUrl: r.confirmationCode ? `${BASE_URL}/register/success/${r.confirmationCode}` : null,
           })
 

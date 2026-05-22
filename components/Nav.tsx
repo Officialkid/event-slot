@@ -10,7 +10,6 @@ const navItems = [
   { title: "Home", href: "/", sectionId: null },
   { title: "Features", href: "/#how-it-works", sectionId: "how-it-works" },
   { title: "How it works", href: "/how-it-works", sectionId: null },
-  { title: "Pricing", href: "/pricing", sectionId: null },
   { title: "For Universities", href: "/for-universities", sectionId: null },
   { title: "Get started", href: "/#get-started", sectionId: "get-started" },
 ]

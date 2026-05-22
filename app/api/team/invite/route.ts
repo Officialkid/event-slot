@@ -30,6 +30,18 @@ export async function POST(req: NextRequest) {
     }
 
     const emails = parsed.data.emails
+    const eventId = parsed.data.eventId
+
+    // If eventId is provided, verify it belongs to the caller
+    if (eventId) {
+      const eventCheck = await prisma.event.findFirst({
+        where: { id: eventId, organizerId: session.user.id },
+        select: { id: true },
+      })
+      if (!eventCheck) {
+        return NextResponse.json({ error: 'Event not found or access denied' }, { status: 403 })
+      }
+    }
 
     // Reject if any email is the inviter's own address
     const selfEmail = session.user.email?.toLowerCase()
@@ -77,9 +89,16 @@ export async function POST(req: NextRequest) {
           }
 
           const inviteToken = uuidv4()
-          await prisma.teamMember.create({
+          const newMember = await prisma.teamMember.create({
             data: { ownerId: session.user.id, email, status: 'pending', inviteToken },
           })
+
+          // If invite is for a specific event, pre-create the event access record
+          if (eventId) {
+            await prisma.teamMemberEvent.create({
+              data: { teamMemberId: newMember.id, eventId },
+            }).catch(() => {/* ignore if already exists */})
+          }
 
           const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
           let emailFailed = false

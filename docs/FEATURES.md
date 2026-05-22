@@ -4,9 +4,38 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 18, 2026_
+_Last updated: May 21, 2026_
 
 ---
+
+## Team Management (Per-Event Scoping)
+
+### Per-Event Team Invites
+**Where:** `app/api/team/invite/route.ts`, `app/api/events/[slug]/team/route.ts`, `lib/schemas/team.schema.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Team membership is now scoped per event rather than globally. Organizers invite collaborators directly from the event dashboard's "Team" tab. Each invite creates a `TeamMemberEvent` record. The invite API accepts an optional `eventId`; when provided, access is restricted to that event only.
+
+### Event Team API
+**Where:** `app/api/events/[slug]/team/route.ts`  
+**What it does:** `GET` returns all team members with access to the event (name, email, status). `DELETE ?memberId=xxx` revokes a member's access to the event. Both endpoints are restricted to the event's organizer.
+
+---
+
+## Notifications & Emails
+
+### Waitlist Promotion Email
+**Where:** `lib/email.ts` (`sendWaitlistPromotedEmail`), `app/api/events/[slug]/capacity/route.ts`  
+**What it does:** When a waitlisted attendee is promoted (via capacity increase), they now receive a dedicated celebration email with a 🎉 subject, event date, location, and a ticket download button — replacing the generic slot-confirmed message.
+
+---
+
+## Organizer Dashboard UX
+
+### Email Attendees — Always-Visible Tab Link
+**Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** The "Email Attendees" entry point is now rendered as a persistent link in the event dashboard tab bar (alongside Overview, Confirmed, etc.), making the email campaigns feature immediately discoverable without scrolling through the overview tab.
+
+---
+
 
 ## Design System
 

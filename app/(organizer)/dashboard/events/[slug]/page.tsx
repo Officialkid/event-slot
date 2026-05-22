@@ -72,7 +72,15 @@ type EventData = {
   imageUrl?: string | null
 }
 
-type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings"
+type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings" | "team"
+
+type EventTeamMember = {
+  teamMemberId: string
+  email: string
+  status: "pending" | "accepted"
+  member: { name: string | null; email: string | null; image: string | null } | null
+  createdAt: string
+}
 
 type FeedbackData = {
   feedback: { id: string; rating: number; enjoyed: string | null; improve: string | null; complaint: string | null; submittedAt: string }[]
@@ -1099,6 +1107,15 @@ export default function EventDashboardPage() {
   const [checkInLoading, setCheckInLoading] = useState(false)
   const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null)
 
+  // Team tab (per-event)
+  const [eventTeam, setEventTeam] = useState<EventTeamMember[]>([])
+  const [teamLoading, setTeamLoading] = useState(false)
+  const [teamInviteEmails, setTeamInviteEmails] = useState(["", ""])
+  const [teamInviting, setTeamInviting] = useState(false)
+  const [teamInviteError, setTeamInviteError] = useState("")
+  const [teamInviteSuccess, setTeamInviteSuccess] = useState("")
+  const [removingTeamMember, setRemovingTeamMember] = useState<string | null>(null)
+
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
@@ -1547,7 +1564,56 @@ export default function EventDashboardPage() {
     { key: "feedback", label: "Feedback" },
     { key: "checkin" as TabKey, label: "Verify Ticket" },
     ...(eventData.canEdit ? [{ key: "settings" as TabKey, label: "Settings" }] : []),
+    ...(eventData.canEdit ? [{ key: "team" as TabKey, label: "Team" }] : []),
   ]
+
+  const loadEventTeam = async () => {
+    if (!eventData?.canEdit) return
+    setTeamLoading(true)
+    try {
+      const res = await fetch(`/api/events/${slug}/team`)
+      const data = await res.json()
+      if (res.ok) setEventTeam(data.members ?? [])
+    } finally {
+      setTeamLoading(false)
+    }
+  }
+
+  const handleTeamInvite = async () => {
+    const emails = teamInviteEmails.map(e => e.trim().toLowerCase()).filter(Boolean)
+    if (emails.length === 0) return
+    setTeamInviting(true)
+    setTeamInviteError("")
+    setTeamInviteSuccess("")
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails, eventId: eventData?.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTeamInviteError(data.error || 'Failed to send invites')
+        return
+      }
+      setTeamInviteEmails(["", ""])
+      const sent = (data.results as Array<{ ok: boolean; email: string }>).filter(r => r.ok).length
+      setTeamInviteSuccess(`Invite${sent !== 1 ? 's' : ''} sent to ${sent} email${sent !== 1 ? 's' : ''}.`)
+      await loadEventTeam()
+    } finally {
+      setTeamInviting(false)
+    }
+  }
+
+  const handleRemoveTeamMember = async (memberId: string) => {
+    setRemovingTeamMember(memberId)
+    try {
+      await fetch(`/api/events/${slug}/team?memberId=${encodeURIComponent(memberId)}`, { method: 'DELETE' })
+      setEventTeam(prev => prev.filter(m => m.teamMemberId !== memberId))
+    } finally {
+      setRemovingTeamMember(null)
+    }
+  }
 
   const loadInsights = async (force = false) => {
     if (!eventData || insightsLoading) return
@@ -1950,7 +2016,10 @@ export default function EventDashboardPage() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => {
+                setActiveTab(tab.key)
+                if (tab.key === "team" && eventTeam.length === 0) void loadEventTeam()
+              }}
               style={{
                 background: "transparent",
                 border: "none",
@@ -1968,6 +2037,31 @@ export default function EventDashboardPage() {
               {tab.label}
             </button>
           ))}
+          {/* Email Attendees — navigates to the dedicated email campaigns page */}
+          <Link
+            href={`/dashboard/events/${slug}/emails`}
+            style={{
+              background: "transparent",
+              border: "none",
+              borderBottom: "2px solid transparent",
+              padding: "0.6rem 1.1rem",
+              fontSize: "0.875rem",
+              fontFamily: "var(--font-dm-sans)",
+              color: "rgba(240,237,230,0.4)",
+              whiteSpace: "nowrap",
+              marginBottom: "-0.5px",
+              flexShrink: 0,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
+            </svg>
+            Email Attendees
+          </Link>
         </div>
 
         {/* ── Tab: Overview ─────────────────────────────────────────────── */}
@@ -2916,6 +3010,81 @@ export default function EventDashboardPage() {
               Event settings
             </h2>
             <SettingsTab event={eventData} hasRegistrations={hasRegistrations} onSaved={handleSettingsSaved} />
+          </div>
+        )}
+
+        {/* ── Tab: Team ─────────────────────────────────────────────────── */}
+        {activeTab === "team" && eventData.canEdit && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {/* Current team members */}
+            <div>
+              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
+                Team members with access to this event
+              </h3>
+              {teamLoading ? (
+                <p style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Loading…</p>
+              ) : eventTeam.length === 0 ? (
+                <p style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>No team members have access to this event yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {eventTeam.map(m => (
+                    <div key={m.teamMemberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem" }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                          {m.member?.name ?? m.email}
+                        </p>
+                        {m.member?.name && (
+                          <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>{m.email}</p>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <span style={{ fontSize: "0.7rem", padding: "2px 8px", borderRadius: 100, background: m.status === "accepted" ? "rgba(200,245,90,0.1)" : "rgba(240,180,0,0.1)", color: m.status === "accepted" ? "#C8F55A" : "#F0C040", border: `0.5px solid ${m.status === "accepted" ? "rgba(200,245,90,0.3)" : "rgba(240,180,0,0.3)"}`, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          {m.status}
+                        </span>
+                        <button
+                          onClick={() => void handleRemoveTeamMember(m.teamMemberId)}
+                          disabled={removingTeamMember === m.teamMemberId}
+                          style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.6)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "4px 8px", borderRadius: 6 }}
+                        >
+                          {removingTeamMember === m.teamMemberId ? "…" : "Remove"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Invite form */}
+            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
+              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
+                Invite a team member to this event
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {teamInviteEmails.map((email, i) => (
+                  <input
+                    key={i}
+                    type="email"
+                    value={email}
+                    onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
+                    placeholder={i === 0 ? "teammate@example.com" : "second@example.com (optional)"}
+                    style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                  />
+                ))}
+              </div>
+              {teamInviteError && <p style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteError}</p>}
+              {teamInviteSuccess && <p style={{ color: "#C8F55A", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteSuccess}</p>}
+              <button
+                onClick={() => void handleTeamInvite()}
+                disabled={teamInviting || teamInviteEmails.every(e => !e.trim())}
+                style={{ marginTop: "0.875rem", background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting ? 0.6 : 1 }}
+              >
+                {teamInviting ? "Sending…" : "Send Invite"}
+              </button>
+              <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                Invited members will receive an email with a link to accept. Once accepted, they can view and manage this event.
+              </p>
+            </div>
           </div>
         )}
       </div>
