@@ -39,7 +39,7 @@ model Event {
   ticketPrice      Int?
   currency         String    @default("KSh")
   paymentsLive     Boolean   @default(false)
-  ticketsEnabled   Boolean   @default(false)
+  ticketsEnabled   Boolean   @default(true)
   feedbackSent     Boolean   @default(false)
   reminderSent     Boolean   @default(false)
   dataExpired      Boolean   @default(false)

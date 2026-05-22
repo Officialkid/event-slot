@@ -463,12 +463,23 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       )}
       {/* Event details are rendered by EventInvitationCard on the parent page. */}
 
-      {compactHeader && event.deadline && (
+      {/* Countdown shown only when not in compact mode (EventInvitationCard already shows it above) */}
+      {!compactHeader && event.deadline && (
         <CountdownTimer
           deadline={event.deadline}
           urgentMode
           onExpiredChange={setDeadlineExpired}
         />
+      )}
+      {/* Hidden timer keeps expired-state in sync even in compact mode */}
+      {compactHeader && event.deadline && (
+        <div style={{ display: 'none' }}>
+          <CountdownTimer
+            deadline={event.deadline}
+            urgentMode
+            onExpiredChange={setDeadlineExpired}
+          />
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="w-full rounded-[16px] border border-[rgba(240,237,230,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] p-5 sm:p-7 space-y-6 shadow-[0_16px_36px_rgba(0,0,0,0.25)] backdrop-blur-sm">

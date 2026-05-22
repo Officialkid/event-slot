@@ -115,7 +115,7 @@ export default function EventInvitationCard({
       }}
     >
       {hasPoster && (
-        <div style={{ position: "relative", width: "100%", height: 220, backgroundColor: "#0A0A0A" }} className="sm:h-[280px] lg:h-[320px]">
+        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "#0A0A0A" }} className="sm:h-[300px] lg:h-[340px]">
           <Image
             src={posterSrc}
             alt={title}

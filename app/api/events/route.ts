@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
         isPaid,
         ticketPrice: isPaid ? Number(ticketPrice) : undefined,
         paymentsLive: false,
+        ticketsEnabled: true,
         communityLink: normalizeCommunityLink(communityLink) || undefined,
         imageUrl: imageUrl || undefined,
         questions,

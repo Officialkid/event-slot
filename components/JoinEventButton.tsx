@@ -85,6 +85,13 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
     }
   }, [])
 
+  // Auto-open meeting link for virtual events once confirmed
+  useEffect(() => {
+    if (result?.success && result.meetingLink) {
+      window.open(result.meetingLink, "_blank", "noopener,noreferrer")
+    }
+  }, [result])
+
   async function startScanning() {
     setScanning(true)
     scanningRef.current = true
@@ -213,49 +220,13 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
       {!isWindowOpen && countdown && (
         <div className="rounded-xl border border-[#2A2A2A] p-4 text-center">
           <p className="text-sm text-[#525252]">{countdown}</p>
-          <p className="mt-1 text-xs text-[#525252]">Have your ticket ready. You will scan it to join.</p>
+          <p className="mt-1 text-xs text-[#525252]">Have your email or name ready to join when the event opens.</p>
         </div>
       )}
 
-      {isWindowOpen && !scanning && !result && (
-        <div className="space-y-3">
-          <button
-            onClick={() => void startScanning()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#C8F55A] py-4 text-base font-bold text-black transition-colors hover:bg-[#b8e040]"
-          >
-            Scan Ticket to Join
-          </button>
-          <button
-            onClick={() => setFallback(true)}
-            className="w-full py-2 text-sm text-[#525252] transition-colors hover:text-[#A3A3A3]"
-          >
-            Do not have your ticket? Use name or email.
-          </button>
-        </div>
-      )}
-
-      {scanning && (
-        <div className="relative overflow-hidden rounded-xl border border-[#C8F55A]">
-          <video ref={videoRef} className="w-full" playsInline muted />
-          <canvas ref={canvasRef} className="hidden" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-48 w-48 rounded-lg border-2 border-[#C8F55A] opacity-70" />
-          </div>
-          <button
-            onClick={stopScanning}
-            className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white"
-          >
-            Cancel
-          </button>
-          <p className="absolute bottom-3 left-0 right-0 bg-black/40 py-1 text-center text-xs text-white">
-            Point camera at your ticket QR code
-          </p>
-        </div>
-      )}
-
-      {fallback && !result && (
+      {isWindowOpen && !result && (
         <div className="space-y-3 rounded-xl border border-[#2A2A2A] p-4">
-          <p className="text-sm font-medium text-white">Enter your name or email</p>
+          <p className="text-sm font-medium text-white">Enter your name or email to join</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -271,21 +242,12 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
             />
             <button
               onClick={() => void handleFallback()}
-              disabled={fallbackLoading}
+              disabled={fallbackLoading || !fallbackQuery.trim()}
               className="rounded-lg bg-[#C8F55A] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
             >
-              {fallbackLoading ? "..." : "Verify"}
+              {fallbackLoading ? "…" : "Join"}
             </button>
           </div>
-          <button
-            onClick={() => {
-              setFallback(false)
-              void startScanning()
-            }}
-            className="text-xs text-[#525252] hover:text-[#A3A3A3]"
-          >
-            Back to QR scan
-          </button>
         </div>
       )}
 
@@ -298,7 +260,7 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
           }`}
         >
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-2xl">{result.success ? "Success" : "Denied"}</span>
+            <span className="text-2xl">{result.success ? "✓" : "✕"}</span>
             <p className="font-semibold text-white">
               {result.success ? `Welcome, ${result.attendeeName ?? "Attendee"}!` : "Access Denied"}
             </p>
@@ -312,15 +274,22 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
               rel="noopener noreferrer"
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C8F55A] px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-[#b8e040]"
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 10l4.553-2.069A1 1 0 0121 8.879V15.12a1 1 0 01-1.447.894L15 14"/><rect x="3" y="8" width="12" height="8" rx="2"/>
+              </svg>
               Open Google Meet
             </a>
+          )}
+
+          {result.success && !result.meetingLink && (
+            <p className="text-xs text-[#525252]">Meeting link not available — contact the organiser.</p>
           )}
 
           {!result.success && result.reason !== "EVENT_ENDED" && (
             <button
               onClick={() => {
                 setResult(null)
-                setFallback(false)
+                setFallbackQuery("")
               }}
               className="mt-3 text-xs text-[#525252] hover:text-[#A3A3A3]"
             >
