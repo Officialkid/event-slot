@@ -45,6 +45,7 @@ export default async function TicketSuccessPage({
           ticketsEnabled: true,
         },
       },
+      ticket: true,
     },
   })
 
@@ -142,6 +143,38 @@ export default async function TicketSuccessPage({
       {event.ticketsEnabled ? (
         <div style={{ width: "100%", maxWidth: 660 }}>
           <ConfirmationTicket ticket={ticket} />
+          {registration.ticket?.scannedAt && (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                padding: "0.5rem 0.85rem",
+                background: "rgba(239,68,68,0.12)",
+                border: "0.5px solid rgba(239,68,68,0.35)",
+                borderRadius: 8,
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  color: "#f87171",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                }}
+              >
+                Ticket already scanned —{" "}
+                {new Date(registration.ticket.scannedAt).toLocaleString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div

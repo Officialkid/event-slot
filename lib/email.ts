@@ -25,6 +25,18 @@ async function sendEmail(options: Parameters<Resend['emails']['send']>[0]) {
   }
 }
 
+export async function sendCampaignEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string
+  subject: string
+  html: string
+}) {
+  await sendEmail({ to, subject, html })
+}
+
 export async function sendFeedbackRequestEmail({
   to,
   eventTitle,

@@ -1064,7 +1064,7 @@ export default function EventDashboardPage() {
   const [csvEventId, setCsvEventId] = useState<string | null>(null)
   const [csvUnlockLoading, setCsvUnlockLoading] = useState(false)
   const [csvError, setCsvError] = useState("")
-  const [exportFormat, setExportFormat] = useState<'csv' | 'word' | 'pdf'>('word')
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('pdf')
 
   // Analytics
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -1427,7 +1427,7 @@ export default function EventDashboardPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      const extension = exportFormat === 'word' ? 'docx' : exportFormat === 'pdf' ? 'pdf' : 'csv'
+      const extension = exportFormat === 'pdf' ? 'pdf' : 'csv'
       a.download = `registrations-${slug}.${extension}`
       a.click()
       URL.revokeObjectURL(url)
@@ -1988,8 +1988,8 @@ export default function EventDashboardPage() {
               ))}
             </div>
 
-            {/* Register someone button */}
-            <div>
+            {/* Register someone + Email Attendees buttons */}
+            <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
               <button
                 onClick={() => setShowManualReg(true)}
                 style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
@@ -2000,6 +2000,15 @@ export default function EventDashboardPage() {
                 </svg>
                 Register someone
               </button>
+              <Link
+                href={`/dashboard/events/${slug}/emails`}
+                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: "rgba(240,237,230,0.6)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem", textDecoration: "none" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
+                </svg>
+                Email Attendees
+              </Link>
             </div>
 
             <TicketSettingsCard
@@ -2172,7 +2181,7 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Export Registrations</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Choose Word, PDF, or CSV and download all confirmed registrations</div>
+                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Choose PDF or CSV and download all confirmed registrations</div>
                 </div>
                 {csvCost === null && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -2180,11 +2189,10 @@ export default function EventDashboardPage() {
                       value={exportFormat}
                       onChange={(e) => {
                         const v = e.target.value
-                        setExportFormat(v === 'word' || v === 'pdf' ? v : 'csv')
+                        setExportFormat(v === 'pdf' ? 'pdf' : 'csv')
                       }}
                       style={{ background: '#0A0A0A', border: '0.5px solid rgba(240,237,230,0.15)', borderRadius: 8, padding: '0.48rem 0.6rem', color: 'rgba(240,237,230,0.7)', fontSize: '0.78rem', fontFamily: 'var(--font-dm-sans)' }}
                     >
-                      <option value="word">Word (.docx)</option>
                       <option value="pdf">PDF</option>
                       <option value="csv">CSV</option>
                     </select>
@@ -2193,7 +2201,7 @@ export default function EventDashboardPage() {
                       disabled={csvExporting || confirmed.length === 0}
                       style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
                     >
-                      {csvExporting ? "Exporting…" : `Export ${exportFormat === 'word' ? 'Word' : exportFormat === 'pdf' ? 'PDF' : 'CSV'}`}
+                      {csvExporting ? "Exporting…" : `Export ${exportFormat === 'pdf' ? 'PDF' : 'CSV'}`}
                     </button>
                   </div>
                 )}

@@ -59,6 +59,26 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       prisma.eventView.count({ where: { eventId: event.id } }),
     ])
 
+    // Fetch last 3 previous events by same organiser (exclude current, already occurred)
+    const previousEvents = event.organizerId
+      ? await prisma.event.findMany({
+          where: {
+            organizerId: event.organizerId,
+            id: { not: event.id },
+            eventDate: { lt: new Date() },
+          },
+          orderBy: { eventDate: 'desc' },
+          take: 3,
+          select: {
+            title: true,
+            eventDate: true,
+            capacity: true,
+            confirmedCount: true,
+            _count: { select: { registrations: true } },
+          },
+        })
+      : []
+
     const totalRegistrations = registrations.length
     const confirmedCount = registrations.filter(r => r.status === 'confirmed').length
     const waitlistCount = registrations.filter(r => r.status === 'waitlist').length
@@ -113,11 +133,20 @@ Page views: ${viewCount} | Conversion rate: ${conversionRate}%
 Registrations by day of week: ${regsByDow || 'no data'}
 
 Form responses:
-${answerSummaries.length > 0 ? answerSummaries.join('\n') : 'No form question data.'}${insightSummary ? `\n\nAI insights:\n${insightSummary}` : ''}`
+${answerSummaries.length > 0 ? answerSummaries.join('\n') : 'No form question data.'}${insightSummary ? `\n\nAI insights:\n${insightSummary}` : ''}
+
+PREVIOUS EVENTS BY SAME ORGANISER:
+${previousEvents.length === 0
+  ? 'No previous events found.'
+  : previousEvents.map((e, i) =>
+      `[${i + 1}] "${e.title}" — ${e.eventDate ? new Date(e.eventDate).toDateString() : 'TBD'} | ${e._count.registrations} registrations (${e.confirmedCount} confirmed) | Capacity: ${e.capacity ?? 'Unlimited'}`
+    ).join('\n')
+}`
 
     const system = `You are an event analytics assistant for the event organizer.
-You have access to their event registration data.
+You have access to their current event data and up to 3 of their most recent previous events.
 Answer questions clearly and specifically using the data provided.
+When comparing events, use specific numbers from the data.
 If the data does not support a confident answer, say so honestly.
 Keep answers under 100 words. Be direct and practical.`
 

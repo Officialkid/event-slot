@@ -20,11 +20,6 @@ function generateSlug(title: string): string {
   return `${base}-${suffix}`
 }
 
-function hasValidEncryptionKey(): boolean {
-  const keyHex = process.env.ENCRYPTION_KEY
-  return !!keyHex && /^[0-9a-fA-F]{64}$/.test(keyHex)
-}
-
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -76,16 +71,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'Please provide a valid Google Meet link (https://meet.google.com/...)' },
           { status: 400 }
-        )
-      }
-
-      if (!hasValidEncryptionKey()) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Virtual event links are temporarily unavailable due to server configuration. Contact support.',
-          },
-          { status: 503 }
         )
       }
     }

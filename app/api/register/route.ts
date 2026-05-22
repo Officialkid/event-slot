@@ -10,6 +10,7 @@ import {
   sendOrganizerFirstWaitlistEmail,
 } from '@/lib/email'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
+import { generateTicketForRegistration } from '@/lib/tickets'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
@@ -190,6 +191,15 @@ export async function POST(req: NextRequest) {
 
       return attendeeResults
     })
+
+    // Auto-generate tickets for confirmed registrations (non-blocking, idempotent)
+    try {
+      await Promise.all(
+        results
+          .filter((r) => r.status === 'confirmed')
+          .map((r) => generateTicketForRegistration(r.registrationId))
+      )
+    } catch { /* non-critical */ }
 
     // Waitlist intelligence notification (non-blocking)
     if (event.organizerId && event.capacity && event.capacity > 0) {

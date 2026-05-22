@@ -12,6 +12,7 @@ type VerifyBody = {
   code?: string
   identity?: string
   qrPayload?: string
+  ticketCode?: string
 }
 
 type RegistrationLookup = {
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
   try {
     const body = (await req.json()) as VerifyBody
-    const { token, code, identity, qrPayload } = body
+    const { token, code, identity, qrPayload, ticketCode } = body
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -87,9 +88,86 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const normalizedQrPayload = (qrPayload ?? '').trim()
     const scannedPayload = normalizedQrPayload || (normalizedCode.includes(':') ? normalizedCode : '')
 
-    if (!normalizedCode && !normalizedIdentity && !scannedPayload) {
+    if (!normalizedCode && !normalizedIdentity && !scannedPayload && !ticketCode) {
       return NextResponse.json({ success: false, error: 'Provide a ticket code or attendee identity.' }, { status: 400 })
     }
+
+    // ── New Ticket-model path (ticketCode = Ticket.code) ─────────────────
+    if (ticketCode) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { code: ticketCode.trim().toUpperCase() },
+        include: {
+          registration: {
+            select: {
+              id: true,
+              eventId: true,
+              status: true,
+              attendeeEmail: true,
+              answers: true,
+              registrationNumber: true,
+              confirmationCode: true,
+            },
+          },
+        },
+      })
+
+      if (!ticket || ticket.registration.eventId !== event.id) {
+        await logEntry(event.id, ticketCode, null, false, 'TICKET_NOT_FOUND')
+        return NextResponse.json({ success: false, error: 'Ticket not found for this event.' }, { status: 404 })
+      }
+
+      if (ticket.registration.status !== 'confirmed') {
+        await logEntry(event.id, ticketCode, null, false, 'NOT_CONFIRMED')
+        return NextResponse.json({ success: false, error: 'Registration is not confirmed.' }, { status: 400 })
+      }
+
+      const questions = ((event.questions as unknown) as EventQuestion[]) ?? []
+      const attendeeName = getNameFromAnswers(
+        ticket.registration.answers as Array<{ questionId: string; value: string }>,
+        questions
+      )
+
+      if (ticket.scannedAt) {
+        await logEntry(event.id, ticketCode, attendeeName || null, false, 'ALREADY_SCANNED')
+        return NextResponse.json({
+          success: true,
+          valid: false,
+          alreadyVerified: true,
+          message: 'Ticket already scanned.',
+          ticket: {
+            registrationId: ticket.registration.id,
+            registrationNumber: ticket.registration.registrationNumber,
+            attendeeName,
+            attendeeEmail: ticket.registration.attendeeEmail,
+            ticketCode: ticket.code,
+            scannedAt: ticket.scannedAt,
+          },
+        })
+      }
+
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { scannedAt: new Date() },
+      })
+
+      await logEntry(event.id, ticketCode, attendeeName || null, true)
+
+      return NextResponse.json({
+        success: true,
+        valid: true,
+        alreadyVerified: false,
+        message: 'Ticket verified successfully.',
+        ticket: {
+          registrationId: ticket.registration.id,
+          registrationNumber: ticket.registration.registrationNumber,
+          attendeeName,
+          attendeeEmail: ticket.registration.attendeeEmail,
+          ticketCode: ticket.code,
+          scannedAt: new Date(),
+        },
+      })
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     const questions = ((event.questions as unknown) as EventQuestion[]) ?? []
 

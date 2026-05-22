@@ -51,6 +51,7 @@ model Event {
   insight          EventInsight?
   entryLogs        EntryLog[]
   teamAccess       TeamMemberEvent[]
+  emailCampaigns   EmailCampaign[]
 }
 
 enum EventType {
@@ -285,6 +286,17 @@ model Registration {
   qrCode                String?   @unique
   confirmationCode      String?   @unique
   source                String    @default("form")
+  ticket                Ticket?
+}
+
+model Ticket {
+  id             String        @id @default(cuid())
+  code           String        @unique @default(cuid())
+  registrationId String        @unique
+  registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  generatedAt    DateTime      @default(now())
+  scannedAt      DateTime?
+  createdAt      DateTime      @default(now())
 }
 
 model ErrorLog {
@@ -569,4 +581,34 @@ enum TransactionType {
   ADMIN_GRANT
   BONUS
   MONTHLY_VOICE
+}
+
+// ── Email Campaigns ────────────────────────────────────────────────────────
+
+model EmailCampaign {
+  id             String              @id @default(cuid())
+  eventId        String
+  event          Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organiserId    String
+  subject        String
+  body           String              @db.Text
+  type           EmailCampaignType   @default(CUSTOM)
+  status         EmailCampaignStatus @default(DRAFT)
+  sentAt         DateTime?
+  recipientCount Int?
+  createdAt      DateTime            @default(now())
+}
+
+enum EmailCampaignType {
+  REMINDER
+  UPDATE
+  THANK_YOU
+  CUSTOM
+}
+
+enum EmailCampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
 }
