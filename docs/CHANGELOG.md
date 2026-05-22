@@ -1,5 +1,13 @@
 # EventSlot — Changelog
 
+## [0.4.69] — May 22, 2026
+
+### Docs — Whole-System Competitive Analysis Report
+
+- **`docs/WHOLE_SYSTEM_COMPETITIVE_REPORT.md`**: Comprehensive 9-section competitive strategy report. Covers full system capability map (15 surfaces, 150+ features audited), deep-dive on 7 competitors (Eventbrite, Luma, Meetup, Whova, Ticket Tailor, Quicket, Google Forms), strategic positioning matrix (where we win / where we're behind), Africa advantage analysis (M-Pesa, WhatsApp, SMS, Swahili, offline-first), prioritised improvement roadmap (CRITICAL quick wins → GAME-CHANGERS → DIFFERENTIATORS), revenue strategy, and marketing positioning per competitor.
+
+---
+
 ## [0.4.68] — May 21, 2026
 
 ### Features — Per-Event Team Invites, Waitlist Promotion Email, Email Campaigns Visibility
