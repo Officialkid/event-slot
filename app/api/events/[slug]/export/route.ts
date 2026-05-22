@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import {
-  AlignmentType,
   BorderStyle,
   Document,
   Packer,

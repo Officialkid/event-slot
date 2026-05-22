@@ -276,7 +276,7 @@ export default function EmailDashboardPage() {
             }}
           >
             <div style={{ fontSize: '0.7rem', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.5rem' }}>
-              Email preview (sample name: "Attendee")
+              Email preview (sample name: &quot;Attendee&quot;)
             </div>
             <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F0EDE6', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.35rem' }}>
               {subject.replace(/\{\{event\}\}/g, eventTitle || '[Event]').replace(/\{\{name\}\}/g, 'Attendee')}
