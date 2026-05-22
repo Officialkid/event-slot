@@ -12,13 +12,21 @@ function getResendClient() {
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <onboarding@resend.dev>'
 
-async function sendEmail(options: Parameters<Resend['emails']['send']>[0]) {
+type InternalEmailOptions = {
+  to: string | string[]
+  subject: string
+  html?: string
+  text?: string
+  from?: string
+}
+
+async function sendEmail(options: InternalEmailOptions) {
   const resend = getResendClient()
   const { error } = await resend.emails.send({
     ...options,
     // Always use configured sender to avoid delivery failures from unverified hardcoded domains.
-    from: EMAIL_FROM,
-  })
+    from: options.from ?? EMAIL_FROM,
+  } as Parameters<Resend['emails']['send']>[0])
   if (error) {
     console.error('[email] Resend send error:', error)
     throw new Error(error.message ?? 'Failed to send email')
