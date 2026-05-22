@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import jsQR from "jsqr"
+import { useEffect, useState } from "react"
 
 interface Props {
   eventId: string
@@ -22,18 +21,11 @@ type VerifyResult = {
 }
 
 export function JoinEventButton({ eventId, eventType, startDate, endDate, opensAt }: Props) {
-  const [scanning, setScanning] = useState(false)
   const [result, setResult] = useState<VerifyResult | null>(null)
   const [countdown, setCountdown] = useState<string | null>(null)
   const [isWindowOpen, setIsWindowOpen] = useState(false)
-  const [fallback, setFallback] = useState(false)
   const [fallbackQuery, setFallbackQuery] = useState("")
   const [fallbackLoading, setFallbackLoading] = useState(false)
-
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const scanningRef = useRef(false)
 
   useEffect(() => {
     const start = startDate instanceof Date ? startDate : new Date(startDate)
@@ -79,101 +71,12 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
     }
   }, [startDate, endDate, opensAt])
 
-  useEffect(() => {
-    return () => {
-      stopScanning()
-    }
-  }, [])
-
   // Auto-open meeting link for virtual events once confirmed
   useEffect(() => {
     if (result?.success && result.meetingLink) {
       window.open(result.meetingLink, "_blank", "noopener,noreferrer")
     }
   }, [result])
-
-  async function startScanning() {
-    setScanning(true)
-    scanningRef.current = true
-    setFallback(false)
-    setResult(null)
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      })
-
-      streamRef.current = stream
-      const video = videoRef.current
-      if (!video) {
-        stopScanning()
-        return
-      }
-
-      video.srcObject = stream
-      await video.play()
-      scanFrame()
-    } catch {
-      setResult({
-        success: false,
-        message: "Camera access denied. Please use the name or email lookup below.",
-      })
-      stopScanning()
-    }
-  }
-
-  function scanFrame() {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-
-    if (!video || !canvas || !scanningRef.current) return
-
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      ctx.drawImage(video, 0, 0)
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const code = jsQR(imageData.data, imageData.width, imageData.height)
-
-      if (code?.data) {
-        stopScanning()
-        void verifyTicket(code.data)
-        return
-      }
-    }
-
-    requestAnimationFrame(scanFrame)
-  }
-
-  function stopScanning() {
-    scanningRef.current = false
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-
-    setScanning(false)
-  }
-
-  async function verifyTicket(qrPayload: string) {
-    try {
-      const res = await fetch(`/api/events/${eventId}/verify-entry`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrPayload }),
-      })
-
-      const data = (await res.json()) as VerifyResult
-      setResult(data)
-    } catch {
-      setResult({ success: false, message: "Unable to verify ticket right now." })
-    }
-  }
 
   async function handleFallback() {
     if (!fallbackQuery.trim()) return
