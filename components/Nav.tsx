@@ -9,6 +9,9 @@ import { useState, useRef, useEffect } from "react"
 const navItems = [
   { title: "Home", href: "/", sectionId: null },
   { title: "Features", href: "/#how-it-works", sectionId: "how-it-works" },
+  { title: "How it works", href: "/how-it-works", sectionId: null },
+  { title: "Pricing", href: "/pricing", sectionId: null },
+  { title: "For Universities", href: "/for-universities", sectionId: null },
   { title: "Get started", href: "/#get-started", sectionId: "get-started" },
 ]
 
@@ -162,6 +165,30 @@ export default function Nav() {
                   }}
                 >
 
+                  {[
+                    { label: "Profile", href: "/dashboard/profile" },
+                    { label: "Billing", href: "/dashboard/billing" },
+                  ].map(item => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setDropdownOpen(false)}
+                      style={{
+                        display: "block",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.82rem",
+                        color: "rgba(240,237,230,0.6)",
+                        borderRadius: 6,
+                        fontFamily: "var(--font-dm-sans)",
+                        textDecoration: "none",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,237,230,0.05)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  <div style={{ height: "0.5px", background: "rgba(240,237,230,0.08)", margin: "0.25rem 0.5rem" }} />
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: "/" })}
