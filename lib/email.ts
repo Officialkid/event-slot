@@ -42,7 +42,7 @@ export async function sendCampaignEmail({
   subject: string
   html: string
 }) {
-  await sendEmail({ to, subject, html })
+  await sendEmail({ from: 'EventSlot <noreply@eventsslot.com>', to, subject, html })
 }
 
 export async function sendFeedbackRequestEmail({

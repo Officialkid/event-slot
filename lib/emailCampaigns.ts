@@ -33,10 +33,12 @@ export async function sendBulkEmails(
   body: string,
   eventTitle: string
 ): Promise<void> {
+  let successCount = 0
+
   try {
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batch = recipients.slice(i, i + BATCH_SIZE)
-      await Promise.all(
+      const results = await Promise.allSettled(
         batch.map((r) =>
           sendCampaignEmail({
             to: r.email,
@@ -45,21 +47,29 @@ export async function sendBulkEmails(
           })
         )
       )
+      successCount += results.filter((r) => r.status === 'fulfilled').length
+      const failures = results.filter((r) => r.status === 'rejected')
+      if (failures.length > 0) {
+        failures.forEach((f) =>
+          console.error('[emailCampaigns] Individual send failed:', (f as PromiseRejectedResult).reason)
+        )
+      }
       // Small delay between batches to respect Resend rate limits
       if (i + BATCH_SIZE < recipients.length) {
         await new Promise((res) => setTimeout(res, 1000))
       }
     }
 
+    const finalStatus = successCount === 0 ? 'FAILED' : 'SENT'
     await prisma.emailCampaign.update({
       where: { id: campaignId },
-      data: { status: 'SENT', sentAt: new Date(), recipientCount: recipients.length },
+      data: { status: finalStatus, sentAt: new Date(), recipientCount: successCount },
     })
   } catch (err) {
     console.error('[emailCampaigns] Bulk send failed:', err)
     await prisma.emailCampaign.update({
       where: { id: campaignId },
-      data: { status: 'FAILED' },
+      data: { status: successCount > 0 ? 'SENT' : 'FAILED', sentAt: new Date(), recipientCount: successCount },
     })
   }
 }
