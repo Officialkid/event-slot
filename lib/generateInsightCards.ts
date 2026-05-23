@@ -92,7 +92,8 @@ function parseInsightCards(raw: string): InsightCard[] {
 
 export async function generateInsightCards(
   event: InsightEvent,
-  analytics: InsightAnalytics
+  analytics: InsightAnalytics,
+  geoContext?: string
 ): Promise<InsightGenerationResult> {
   const system = `You are an expert event analytics advisor. Generate exactly 3 insight cards based on the event data provided.
 Return ONLY a valid JSON array of 3 objects with this shape:
@@ -118,7 +119,7 @@ Analytics:
 - On waitlist: ${analytics.waitlistCount}
 - Waitlist conversion rate: ${analytics.waitlistConversionRate}%
 - Peak registration day: ${analytics.peakDay ?? "unknown"}
-- Peak registration hour: ${analytics.peakHour !== null ? `${analytics.peakHour}:00` : "unknown"}
+- Peak registration hour: ${analytics.peakHour !== null ? `${analytics.peakHour}:00` : "unknown"}${geoContext ? `\n\n${geoContext}` : ""}
 
 Generate 3 insight cards.`
 

@@ -7,6 +7,7 @@ import { generateInsightCards } from '@/lib/generateInsightCards'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { getAIProviderStatus } from '@/lib/ai'
 import { aiRatelimit } from '@/lib/ratelimit'
+import { getCountryFlag, getCountryName } from '@/lib/geoip'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -61,11 +62,18 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     // Fetch analytics data to power insights
-    const [views, registrations] = await Promise.all([
+    const [views, registrations, attendeeCountries] = await Promise.all([
       prisma.eventView.findMany({ where: { eventId: event.id }, select: { viewedAt: true } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
         select: { submittedAt: true, status: true },
+      }),
+      prisma.registration.groupBy({
+        by: ['countryCode'],
+        _count: { id: true },
+        where: { eventId: event.id, countryCode: { not: null } },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
       }),
     ])
 
@@ -111,6 +119,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     // Spend credits for free plan (before generation to avoid double-generation on failure)
     // NOTE: credits are already spent via /api/features/unlock — no charge needed here
 
+    // Build geo context for AI prompt
+    const geoContext = attendeeCountries.length > 0
+      ? `ATTENDEE GEOGRAPHY:\n${attendeeCountries.map(c =>
+          `  ${getCountryFlag(c.countryCode ?? '')} ${getCountryName(c.countryCode ?? '')} — ${c._count.id} attendees`
+        ).join('\n')}`
+      : undefined
+
     // Generate insight cards
     const generated = await generateInsightCards(
       {
@@ -129,7 +144,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         waitlistConversionRate,
         peakDay,
         peakHour,
-      }
+      },
+      geoContext
     )
 
     if (!generated.cards.length) {

@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { sendWelcomeEmail } from '@/lib/email'
 import { signupRatelimit } from '@/lib/ratelimit'
 import { checkAndAwardPioneerBadge, processSignupReferral } from '@/lib/referral'
+import { detectCountry, getCountryName } from '@/lib/geoip'
 
 export async function POST(req: Request) {
   try {
@@ -73,6 +74,15 @@ export async function POST(req: Request) {
     await prisma.userOnboarding.create({
       data: { userId: newUser.id },
     })
+
+    // Detect and persist signup country (fire-and-forget, non-critical)
+    detectCountry(req).then(code => {
+      const name = getCountryName(code)
+      prisma.user.update({
+        where: { id: newUser.id },
+        data: { signupCountry: code, countryCode: code, countryName: name },
+      }).catch(() => {})
+    }).catch(() => {})
 
     const cookieStore = await cookies()
     const referralCode = cookieStore.get('eventslot_ref')?.value

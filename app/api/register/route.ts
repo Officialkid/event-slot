@@ -11,6 +11,7 @@ import {
 } from '@/lib/email'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { generateTicketForRegistration } from '@/lib/tickets'
+import { detectCountry } from '@/lib/geoip'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Process each attendee sequentially inside a transaction
+    const registrationCountryCode = await detectCountry(req).catch(() => null)
     const results = await prisma.$transaction(async (tx): Promise<AttendeeResult[]> => {
       const attendeeResults: AttendeeResult[] = []
 
@@ -154,6 +156,7 @@ export async function POST(req: NextRequest) {
               isDuplicate: forceDuplicate ?? false,
               qrCode: uuidv4(),
               confirmationCode,
+              countryCode: registrationCountryCode ?? undefined,
             },
           })
           registrationId = reg.id
@@ -181,6 +184,7 @@ export async function POST(req: NextRequest) {
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
+              countryCode: registrationCountryCode ?? undefined,
             },
           })
           registrationId = reg.id

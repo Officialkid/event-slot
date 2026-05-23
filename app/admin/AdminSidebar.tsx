@@ -16,6 +16,7 @@ const navItems = [
   { label: "Launch Checklist", href: "/admin/launch" },
   { label: "Conversations", href: "/admin/conversations" },
   { label: "System Updates", href: "/admin/updates" },
+  { label: "Countries", href: "/admin/countries" },
 ]
 
 export default function AdminSidebar() {

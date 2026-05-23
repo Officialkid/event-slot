@@ -8,6 +8,7 @@ import { normalizeCommunityLink } from '@/lib/communityLink'
 import { createEventSchema } from '@/lib/schemas/event.schema'
 import { encrypt } from '@/lib/encrypt'
 import { processFirstEventReferral, scoreEventCreation } from '@/lib/referral'
+import { detectCountry } from '@/lib/geoip'
 
 function generateSlug(title: string): string {
   const base = title
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
     const dashboardToken = uuidv4()
     const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
     const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
+    const eventCountryCode = await detectCountry(req).catch(() => null)
 
     const event = await prisma.event.create({
       data: {
@@ -140,6 +142,7 @@ export async function POST(req: NextRequest) {
         slug,
         dashboardToken,
         organizerId,
+        countryCode: eventCountryCode ?? undefined,
       },
       select: {
         id: true,

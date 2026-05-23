@@ -44,6 +44,7 @@ model Event {
   reminderSent     Boolean   @default(false)
   dataExpired      Boolean   @default(false)
   expiresAt        DateTime?
+  countryCode      String?   // ISO 3166-1 alpha-2 — country detected when event was created
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
@@ -87,6 +88,9 @@ model User {
   paystackCustomerCode     String?  @unique
   paystackSubscriptionCode String?  @unique
   creditBalance            Float    @default(0)
+  signupCountry            String?  // ISO 3166-1 alpha-2 — set at signup, never changes
+  countryCode              String?  // most recently detected country
+  countryName              String?
   username                 String?  @unique
   resetToken               String?
   resetTokenExpiry         DateTime?
@@ -286,6 +290,7 @@ model Registration {
   qrCode                String?   @unique
   confirmationCode      String?   @unique
   source                String    @default("form")
+  countryCode           String?   // ISO 3166-1 alpha-2 — country detected when attendee registered
   ticket                Ticket?
 }
 
@@ -621,4 +626,19 @@ model ExchangeRate {
   rate      Float    // rate relative to USD (e.g. KES = 130)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ── Country Intelligence ───────────────────────────────────────────────────
+
+model CountrySnapshot {
+  id             String   @id @default(cuid())
+  countryCode    String
+  countryName    String
+  userCount      Int
+  organizerCount Int
+  eventCount     Int
+  snapshotDate   DateTime @db.Date
+  createdAt      DateTime @default(now())
+
+  @@unique([countryCode, snapshotDate])
 }
