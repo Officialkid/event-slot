@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getWeekKey } from "@/lib/leaderboard"
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization")
@@ -8,14 +9,14 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date()
-  const weekStart = new Date(now)
-  const day = weekStart.getUTCDay()
-  const offset = day === 0 ? 6 : day - 1
-  weekStart.setUTCDate(weekStart.getUTCDate() - offset)
-  weekStart.setUTCHours(0, 0, 0, 0)
+  // Runs on Monday — award badges for the week that just ended (previous week key)
+  const prevWeekDate = new Date(now)
+  prevWeekDate.setUTCDate(prevWeekDate.getUTCDate() - 7)
+  const weekKey = getWeekKey(prevWeekDate)
 
   const topThisWeek = await prisma.leaderboardEntry.findMany({
-    orderBy: { weeklyScore: "desc" },
+    where: { period: weekKey },
+    orderBy: { totalPts: "desc" },
     take: 10,
     select: { userId: true },
   })
@@ -48,22 +49,14 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  await prisma.leaderboardEntry.updateMany({
-    data: { weeklyScore: 0, weekStart },
-  })
-
-  const isFirstMondayOfMonth = weekStart.getUTCDate() <= 7
-  if (isFirstMondayOfMonth) {
-    await prisma.leaderboardEntry.updateMany({
-      data: { monthlyScore: 0 },
-    })
-  }
+  const isFirstMondayOfMonth = now.getUTCDate() <= 7
 
   return NextResponse.json({
     success: true,
-    weeklyReset: true,
+    weeklyBadgesAwarded: topThisWeek.length,
+    hallOfFameAwarded: top3.length,
     monthlyReset: isFirstMondayOfMonth,
-    top10Awarded: topThisWeek.length,
+    weekKey,
     timestamp: now.toISOString(),
   })
 }

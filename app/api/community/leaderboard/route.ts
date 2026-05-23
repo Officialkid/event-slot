@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getWeekKey, getMonthKey } from "@/lib/leaderboard"
 
 type Period = "weekly" | "monthly" | "alltime"
 
@@ -11,20 +12,26 @@ function resolvePeriod(value: string | null): Period {
   return "weekly"
 }
 
+function toPeriodKey(period: Period): string {
+  const now = new Date()
+  if (period === "monthly") return getMonthKey(now)
+  if (period === "alltime") return "all-time"
+  return getWeekKey(now)
+}
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const period = resolvePeriod(req.nextUrl.searchParams.get("period"))
-
-  const scoreField =
-    period === "monthly" ? "monthlyScore" : period === "alltime" ? "allTimeScore" : "weeklyScore"
+  const periodKey = toPeriodKey(period)
 
   const top10 = await prisma.leaderboardEntry.findMany({
-    orderBy: { [scoreField]: "desc" },
+    where: { period: periodKey },
+    orderBy: { totalPts: "desc" },
     take: 10,
     select: {
-      weeklyScore: true,
-      monthlyScore: true,
-      allTimeScore: true,
+      userId: true,
+      totalPts: true,
+      overallRank: true,
       user: {
         select: {
           name: true,
@@ -40,30 +47,23 @@ export async function GET(req: NextRequest) {
   let ownScore: number | null = null
 
   if (session?.user?.id) {
-    const allEntries = await prisma.leaderboardEntry.findMany({
-      orderBy: { [scoreField]: "desc" },
-      select: {
-        userId: true,
-        weeklyScore: true,
-        monthlyScore: true,
-        allTimeScore: true,
-      },
+    const ownEntry = await prisma.leaderboardEntry.findUnique({
+      where: { userId_period: { userId: session.user.id, period: periodKey } },
+      select: { totalPts: true, overallRank: true },
     })
-
-    const index = allEntries.findIndex((e) => e.userId === session.user.id)
-    if (index !== -1) {
-      ownRank = index + 1
-      ownScore = allEntries[index][scoreField]
+    if (ownEntry) {
+      ownRank = ownEntry.overallRank
+      ownScore = ownEntry.totalPts
     }
   }
 
   return NextResponse.json({
     period,
     top10: top10.map((entry, index) => ({
-      rank: index + 1,
+      rank: entry.overallRank ?? index + 1,
       name: entry.user.name ?? "EventSlot User",
       avatar: entry.user.image,
-      score: entry[scoreField],
+      score: entry.totalPts,
       isPioneer: !!entry.user.pioneerBadge,
       badges: entry.user.badges.map((b) => b.badge),
     })),

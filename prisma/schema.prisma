@@ -121,7 +121,7 @@ model User {
   referredBy         Referral?           @relation("ReferredBy")
   pioneerBadge       PioneerBadge?
   badges             UserBadge[]
-  leaderboard        LeaderboardEntry?
+  leaderboardEntries  LeaderboardEntry[]
 }
 
 model ReferralLink {
@@ -174,17 +174,21 @@ model UserBadge {
 }
 
 model LeaderboardEntry {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weeklyScore  Int      @default(0)
-  monthlyScore Int      @default(0)
-  allTimeScore Int      @default(0)
-  weeklyRank   Int?
-  monthlyRank  Int?
-  allTimeRank  Int?
-  weekStart    DateTime
-  updatedAt    DateTime @updatedAt
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period        String     // "2025-W21" | "2025-05" | "all-time"
+  periodType    PeriodType
+  referralPts   Int        @default(0)
+  organiserPts  Int        @default(0)
+  totalPts      Int        @default(0)
+  referralRank  Int?
+  organiserRank Int?
+  overallRank   Int?
+  calculatedAt  DateTime   @default(now())
+
+  @@unique([userId, period])
+  @@index([period, totalPts])
 }
 
 enum BadgeType {
@@ -192,6 +196,14 @@ enum BadgeType {
   GROWTH_BUILDER
   COMMUNITY_CHAMPION
   HALL_OF_FAME
+  STARRED_ORGANIZER
+  COMMUNITY_BUILDER
+}
+
+enum PeriodType {
+  WEEK
+  MONTH
+  ALL_TIME
 }
 
 model UserOnboarding {

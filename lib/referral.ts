@@ -165,55 +165,11 @@ async function checkAndAwardBadges(userId: string): Promise<void> {
   }
 }
 
-export async function updateLeaderboardScore(userId: string, points: number): Promise<void> {
-  const weekStart = getWeekStart()
-
-  await prisma.$transaction(async (tx) => {
-    const existing = await tx.leaderboardEntry.findUnique({
-      where: { userId },
-      select: { id: true, weekStart: true },
-    })
-
-    if (!existing) {
-      await tx.leaderboardEntry.create({
-        data: {
-          userId,
-          weeklyScore: points,
-          monthlyScore: points,
-          allTimeScore: points,
-          weekStart,
-        },
-      })
-      return
-    }
-
-    const sameWeek =
-      existing.weekStart.getUTCFullYear() === weekStart.getUTCFullYear() &&
-      existing.weekStart.getUTCMonth() === weekStart.getUTCMonth() &&
-      existing.weekStart.getUTCDate() === weekStart.getUTCDate()
-
-    await tx.leaderboardEntry.update({
-      where: { id: existing.id },
-      data: {
-        weeklyScore: sameWeek ? { increment: points } : points,
-        monthlyScore: { increment: points },
-        allTimeScore: { increment: points },
-        weekStart: sameWeek ? undefined : weekStart,
-      },
-    })
-  })
+export async function updateLeaderboardScore(_userId: string, _points: number): Promise<void> {
+  // Scores are now recomputed from source data by the recalculate-leaderboard cron.
+  // Real-time increments are no longer written here.
 }
 
 export async function scoreEventCreation(userId: string): Promise<void> {
   await updateLeaderboardScore(userId, 3)
-}
-
-function getWeekStart(): Date {
-  const now = new Date()
-  const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-  const day = utc.getUTCDay()
-  const offset = day === 0 ? 6 : day - 1
-  utc.setUTCDate(utc.getUTCDate() - offset)
-  utc.setUTCHours(0, 0, 0, 0)
-  return utc
 }
