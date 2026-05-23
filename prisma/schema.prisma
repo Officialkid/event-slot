@@ -612,3 +612,13 @@ enum EmailCampaignStatus {
   SENT
   FAILED
 }
+
+// ── Exchange Rates ─────────────────────────────────────────────────────────
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  currency  String   @unique
+  rate      Float    // rate relative to USD (e.g. KES = 130)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
