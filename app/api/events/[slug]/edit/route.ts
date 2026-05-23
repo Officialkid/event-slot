@@ -26,6 +26,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         imageUrl: true,
         questions: true,
         organizerId: true,
+        category: true,
+        whatsappNumber: true,
       },
     })
 

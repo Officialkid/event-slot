@@ -7,6 +7,7 @@ const TOUR_SECTIONS = [
   { id: 'create', label: 'Creating an event', desc: 'Form, questions, settings' },
   { id: 'registration', label: 'Registration page', desc: 'What attendees see' },
   { id: 'dashboard_event', label: 'Managing an event', desc: 'Confirmed, waitlist, capacity' },
+  { id: 'community', label: 'Invite & earn', desc: 'Share referral link and earn tokens' },
   { id: 'analytics', label: 'Analytics & AI insights', desc: 'Charts, insight cards, Q&A' },
   { id: 'report', label: 'Generating a report', desc: 'AI report and download' },
   { id: 'team', label: 'Team members', desc: 'Inviting collaborators' },

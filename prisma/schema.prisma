@@ -45,6 +45,9 @@ model Event {
   dataExpired      Boolean   @default(false)
   expiresAt        DateTime?
   countryCode      String?   // ISO 3166-1 alpha-2 — country detected when event was created
+  category         String?   // e.g. CONFERENCE, WORKSHOP, NETWORKING, CHURCH, CAMPUS, CONCERT, VIRTUAL
+  faqEnabled       Boolean   @default(false)
+  whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
@@ -53,6 +56,18 @@ model Event {
   entryLogs        EntryLog[]
   teamAccess       TeamMemberEvent[]
   emailCampaigns   EmailCampaign[]
+  faqs             EventFAQ[]
+}
+
+model EventFAQ {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum EventType {

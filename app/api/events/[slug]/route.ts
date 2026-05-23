@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, capacity, deadline, eventDate, joinOpensAt, location, communityLink, questions, imageUrl, archived } = body
+    const { action, title, description, capacity, deadline, eventDate, joinOpensAt, location, communityLink, questions, imageUrl, archived, category, whatsappNumber } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -160,6 +160,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         communityLink: normalizeCommunityLink(communityLink),
         imageUrl: imageUrl || null,
         questions,
+        category: category ? String(category).toUpperCase() : null,
+        whatsappNumber: whatsappNumber ? String(whatsappNumber).replace(/\D/g, '') || null : null,
       },
       select: { id: true, title: true, slug: true },
     })

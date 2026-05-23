@@ -7,6 +7,8 @@ import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
 import { JoinEventButton } from "@/components/JoinEventButton"
+import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
+import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
 import { APP_URL } from "@/lib/config"
 
 type EventQuestion = {
@@ -21,6 +23,17 @@ function toIsoOrNull(value: unknown): string | null {
   if (!value) return null
   const date = value instanceof Date ? value : new Date(value as string)
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+function formatEventDateLabel(value: Date | string | null | undefined): string | undefined {
+  if (!value) return undefined
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
 }
 
 const RESERVED = [
@@ -108,6 +121,9 @@ const getEventBySlug = unstable_cache(
       communityLink: true,
       imageUrl: true,
       status: true,
+      faqEnabled: true,
+      whatsappNumber: true,
+      faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
       organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
   }),
@@ -246,8 +262,13 @@ export default async function PublicProfilePage({
 
     const showBranding = !event.organizer || event.organizer.plan === "free"
     const maxAttendees = 3
+    // Typed local refs for new FAQ/WhatsApp fields (Prisma types may be stale in TS server)
+    const eventFaqs = (event as unknown as { faqs: { id: string; question: string; answer: string }[] }).faqs ?? []
+    const eventWhatsapp = (event as unknown as { whatsappNumber: string | null }).whatsappNumber ?? null
+    const eventDateLabel = formatEventDateLabel(event.eventDate)
+    const hasWhatsapp = Boolean(eventWhatsapp)
     return (
-      <div className="min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10">
+      <div className={`min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`}>
         <div className="mx-auto max-w-[1120px]">
           {/* Invitation card */}
           <EventInvitationCard
@@ -268,6 +289,12 @@ export default async function PublicProfilePage({
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-7 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-8 items-start">
             {/* Registration form */}
             <section className="space-y-3">
+              {/* FAQ — shown above the form if enabled */}
+              {event.faqEnabled && eventFaqs.length > 0 && (
+                <div className="rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6">
+                  <EventFAQDisplay faqs={eventFaqs} />
+                </div>
+              )}
               <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Registration</p>
               <RegistrationForm
                 event={{
@@ -300,6 +327,13 @@ export default async function PublicProfilePage({
             </section>
           </div>
         </div>
+        {eventWhatsapp && (
+          <WhatsAppFloatingButton
+            whatsappNumber={eventWhatsapp}
+            eventTitle={event.title}
+            eventDate={eventDateLabel}
+          />
+        )}
       </div>
     )
   }

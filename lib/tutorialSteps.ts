@@ -123,6 +123,16 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     spotlight: true,
   },
   {
+    id: "community_invite",
+    sectionId: "community",
+    title: "Share Invite, Earn Tokens",
+    description: "Open Community and tap Share Invite to send your referral link. You earn tokens when invited users sign up and create events.",
+    target: '[data-tutorial="community-share-invite"]',
+    position: "top",
+    icon: "📣",
+    spotlight: true,
+  },
+  {
     id: "profile",
     sectionId: "dashboard",
     title: "Complete Your Profile",

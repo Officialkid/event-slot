@@ -30,8 +30,6 @@ spec:
               value: production
             - name: NEXT_TELEMETRY_DISABLED
               value: '1'
-            - name: RUN_DB_MIGRATIONS
-              value: 'true'
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -52,10 +50,11 @@ spec:
                 secretKeyRef:
                   name: EVENTSLOT_NEXTAUTH_URL
                   key: latest
-            - name: NEXTAUTH_URL_INTERNAL
-              value: 'http://localhost:3000'
-            - name: NEXT_PUBLIC_APP_URL
-              value: 'https://www.eventsslot.com'
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: STRIPE_SECRET_KEY
+                  key: latest
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -100,24 +99,4 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
-                  key: latest
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: OPENAI_API_KEY
-                  key: latest
-            - name: ENCRYPTION_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ENCRYPTION_KEY
-                  key: latest
-            - name: R2_PUBLIC_URL
-              valueFrom:
-                secretKeyRef:
-                  name: CLOUDFLARE_R2_PUBLIC_URL
-                  key: latest
-            - name: QR_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: QR_SECRET
                   key: latest

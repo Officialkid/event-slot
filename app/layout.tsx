@@ -5,11 +5,7 @@ import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
-import { seedPrivilegedAccounts } from "@/lib/seedAdmins"
-import { AssistantWidget } from "../components/AssistantWidget";
-import { PwaInstallBanner } from "../components/PwaInstallBanner";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -138,8 +134,6 @@ export default async function RootLayout({
     }
   }
 
-  const authSession = await getServerSession(authOptions)
-
   return (
     <html
       lang="en"
@@ -153,11 +147,9 @@ export default async function RootLayout({
       <body className="antialiased">
         <Providers>
           <Nav />
-          <div className="mobile-safe-bottom">{children}</div>
-          <PwaInstallBanner />
+          {children}
           <Toast />
           <DevToolsDetector />
-          {authSession?.user?.id ? <AssistantWidget /> : null}
         </Providers>
       </body>
     </html>

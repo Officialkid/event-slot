@@ -41,8 +41,8 @@ export async function GET() {
 
     return NextResponse.json({ onboardingCompleted, onboardingSkipped, onboardingStep })
   } catch {
-    // Schema drift (e.g. pending migration) — return safe defaults so the dashboard renders
-    return NextResponse.json({ onboardingCompleted: false, onboardingSkipped: false, onboardingStep: 0 })
+    // Schema drift (e.g. pending migration) — suppress auto-onboarding unless user explicitly restarts it.
+    return NextResponse.json({ onboardingCompleted: true, onboardingSkipped: true, onboardingStep: 3 })
   }
 }
 

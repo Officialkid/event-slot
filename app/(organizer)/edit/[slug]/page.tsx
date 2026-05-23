@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
+import { EventFAQEditor } from "@/components/events/EventFAQEditor"
+import { EventWhatsAppInput } from "@/components/events/EventWhatsAppInput"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -59,6 +61,8 @@ export default function EditEventPage() {
 
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
+  const [category, setCategory] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -84,6 +88,8 @@ export default function EditEventPage() {
         setLocation(e.location ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
+        setCategory(e.category ?? "")
+        setWhatsappNumber(e.whatsappNumber ?? "")
         setQuestions(
           Array.isArray(e.questions)
             ? e.questions.map((q: Question) => ({ ...q, options: q.options ?? [] }))
@@ -186,6 +192,7 @@ export default function EditEventPage() {
           location: location || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
+          category: category || undefined,
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -350,6 +357,26 @@ export default function EditEventPage() {
                   value={communityLink}
                   onChange={e => setCommunityLink(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  Event Category (optional)
+                </label>
+                <select
+                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                >
+                  <option value="" className="bg-[#141414]">Select a category…</option>
+                  {["CONFERENCE","WORKSHOP","NETWORKING","CHURCH","CAMPUS","CONCERT","VIRTUAL"].map(c => (
+                    <option key={c} value={c} className="bg-[#141414]">
+                      {c.charAt(0) + c.slice(1).toLowerCase()}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.35)]">
+                  Used to suggest relevant FAQ questions
+                </p>
               </div>
             </div>
           </div>
@@ -541,6 +568,15 @@ export default function EditEventPage() {
             {error && <div className="text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
           </div>
         </form>
+
+        {/* FAQ editor — lives outside the main form so it saves independently */}
+        <EventFAQEditor eventSlug={slug} />
+        <EventWhatsAppInput
+          eventSlug={slug}
+          eventTitle={title}
+          eventDate={eventDate ? new Date(eventDate).toISOString() : null}
+          initialNumber={whatsappNumber}
+        />
       </div>
     </div>
   )

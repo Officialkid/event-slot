@@ -64,6 +64,24 @@ interface LeaderboardResponse {
   entries: LeaderboardEntry[]
 }
 
+const EMPTY_REFERRAL_RESPONSE: ReferralResponse = {
+  referralUrl: "",
+  stats: {
+    totalReferrals: 0,
+    completedReferrals: 0,
+    pendingReferrals: 0,
+    totalTokensEarned: 0,
+    currentBalance: 0,
+  },
+  referrals: [],
+}
+
+const EMPTY_LEADERBOARD_RESPONSE: LeaderboardResponse = {
+  period: "all-time",
+  type: "overall",
+  entries: [],
+}
+
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
@@ -208,6 +226,16 @@ export default function CommunityPage() {
   const [copied, setCopied] = useState(false)
   const [loadingBase, setLoadingBase] = useState(true)
 
+  async function readJsonSafe<T>(res: Response, fallback: T): Promise<T> {
+    try {
+      const text = await res.text()
+      if (!text) return fallback
+      return JSON.parse(text) as T
+    } catch {
+      return fallback
+    }
+  }
+
   // Load referral data + badges once
   useEffect(() => {
     let cancelled = false
@@ -218,15 +246,23 @@ export default function CommunityPage() {
           fetch("/api/user/badges"),
         ])
         const [refData, badgeData] = await Promise.all([
-          refRes.json() as Promise<ReferralResponse>,
-          badgeRes.json() as Promise<BadgesResponse>,
+          readJsonSafe<ReferralResponse>(refRes, EMPTY_REFERRAL_RESPONSE),
+          readJsonSafe<BadgesResponse>(badgeRes, { badges: [], hasPioneer: false }),
         ])
         if (cancelled) return
-        if (refRes.ok) setReferralData(refData)
+        setReferralData(refData)
         if (badgeRes.ok) {
           setBadges(badgeData.badges ?? [])
           setHasPioneer(Boolean(badgeData.hasPioneer))
+        } else {
+          setBadges([])
+          setHasPioneer(false)
         }
+      } catch {
+        if (cancelled) return
+        setReferralData(EMPTY_REFERRAL_RESPONSE)
+        setBadges([])
+        setHasPioneer(false)
       } finally {
         if (!cancelled) setLoadingBase(false)
       }
@@ -241,11 +277,12 @@ export default function CommunityPage() {
     async function load() {
       try {
         const res = await fetch(`/api/leaderboard?period=${period}&type=${type}`)
-        if (!res.ok) return
-        const data = (await res.json()) as LeaderboardResponse
-        if (!cancelled) setLeaderboard(data)
+        const data = await readJsonSafe<LeaderboardResponse>(res, EMPTY_LEADERBOARD_RESPONSE)
+        if (!cancelled) {
+          setLeaderboard(res.ok ? data : EMPTY_LEADERBOARD_RESPONSE)
+        }
       } catch {
-        // ignore
+        if (!cancelled) setLeaderboard(EMPTY_LEADERBOARD_RESPONSE)
       }
     }
     void load()
@@ -362,6 +399,7 @@ export default function CommunityPage() {
         <button
           type="button"
           onClick={() => void shareInvite()}
+          data-tutorial="community-share-invite"
           className="w-full bg-[#C8F55A] text-black font-bold py-3 rounded-xl hover:bg-[#b8e040] transition-colors flex items-center justify-center gap-2"
         >
           <ShareIcon /> Share Invite
