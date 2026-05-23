@@ -1,3 +1,9 @@
+## Deploy — May 23, 2026 (ab450e3)
+
+> feat(MD-COMMUNITY-01): Period-based leaderboard system with full scoring logic - Replace single-row LeaderboardEntry with period-based model (userId+period compound unique) - Add PeriodType enum (WEEK/MONTH/ALL_TIME) and STARRED_ORGANIZER/COMMUNITY_BUILDER to BadgeType - Create lib/leaderboard.ts: getWeekKey, getMonthKey, recalculateLeaderboard from source data - Create /api/leaderboard: public GET endpoint with period/type filtering - Create /api/cron/recalculate-leaderboard: hourly cron recalculates all three periods - Update /api/community/leaderboard: period-based model, O(1) own-rank lookup - Update /api/cron/reset-leaderboard: badge-awarding only (no more score resets) - lib/referral.ts: updateLeaderboardScore is now a no-op (scores computed by cron)
+
+---
+
 ## Deploy — May 23, 2026 (14c33b5)
 
 > fix(MD-FIX-08): Pioneer badge backfill + auto-award on OAuth signup + BadgeDisplay component - POST /api/superadmin/badges/backfill-pioneers: backfills PIONEER badge to first 150 users (protected by CRON_SECRET) - lib/auth.ts createUser event: calls checkAndAwardPioneerBadge for OAuth sign-ups (was only called in email/password signup route) - components/BadgeDisplay.tsx: reusable pill badges for PIONEER, STARRED_ORGANIZER, COMMUNITY_BUILDER, GROWTH_BUILDER, COMMUNITY_CHAMPION, HALL_OF_FAME
