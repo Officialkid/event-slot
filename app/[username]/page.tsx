@@ -7,6 +7,7 @@ import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
 import { JoinEventButton } from "@/components/JoinEventButton"
+import { APP_URL } from "@/lib/config"
 
 type EventQuestion = {
   id: string
@@ -138,7 +139,7 @@ export async function generateMetadata({
     }
     if (!event) return {}
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
-    const base = process.env.NEXTAUTH_URL ?? ""
+    const base = APP_URL
     const canonical = `${base}/${username}`
     const ogUrl = `${base}/api/og?title=${encodeURIComponent(event.title)}&organizer=${encodeURIComponent(event.organizerEmail)}${spotsLeft !== null ? `&spots=${spotsLeft}` : ""}`
     const spotsText = spotsLeft !== null ? ` ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left.` : ""
@@ -162,7 +163,7 @@ export async function generateMetadata({
   }
 
   const displayName = user.name ?? user.username ?? "Organizer"
-  const userCanonical = `${process.env.NEXTAUTH_URL ?? ""}/${username}`
+  const userCanonical = `${APP_URL}/${username}`
   return {
     title: `${displayName} — EventSlot`,
     description: `See upcoming events from ${displayName} on EventSlot — the online event registration platform.`,

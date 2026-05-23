@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { APP_URL } from '@/lib/config'
 
 type EmailAttemptResult = {
   registrationId: string
@@ -101,7 +102,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     })
 
     // Send confirmation emails to promoted attendees and capture diagnostics.
-    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+    const BASE_URL = APP_URL
     const emailAttempts: EmailAttemptResult[] = await Promise.all(
       result.promotedRegistrations.map(async r => {
         if (!r.attendeeEmail) {

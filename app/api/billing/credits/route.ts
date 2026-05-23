@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 import { CREDIT_BUNDLES } from '@/lib/credits'
 import { billingRatelimit } from '@/lib/ratelimit'
+import { APP_URL } from '@/lib/config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         email: session.user.email,
         amount: bundle.kesPrice * 100, // KES kobo
         currency: 'KES',
-        callback_url: `${process.env.NEXTAUTH_URL}/api/billing/verify`,
+        callback_url: `${APP_URL}/api/billing/verify`,
         metadata: {
           userId: session.user.id,
           type: 'credits',

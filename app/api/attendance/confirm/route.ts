@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { attendanceLookupRatelimit } from '@/lib/ratelimit'
+import { APP_URL } from '@/lib/config'
 
 function getClientIp(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for')
   return forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1'
 }
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://eventsslot.com'
+const BASE_URL = APP_URL
 
 type EventQuestion = { id: string; type: string; label: string }
 type Answer = { questionId: string; value: string }

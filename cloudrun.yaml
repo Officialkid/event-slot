@@ -54,6 +54,8 @@ spec:
                   key: latest
             - name: NEXTAUTH_URL_INTERNAL
               value: 'http://localhost:3000'
+            - name: NEXT_PUBLIC_APP_URL
+              value: 'https://www.eventsslot.com'
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import prisma from "@/lib/prisma"
 import ConfirmationTicket from "@/components/tickets/ConfirmationTicket"
 import type { TicketData } from "@/components/tickets/ConfirmationTicket"
+import { APP_URL } from "@/lib/config"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type Answer = { questionId: string; value: string }
@@ -24,7 +25,7 @@ function extractField(answers: Answer[], questions: EventQuestion[], types: stri
   return null
 }
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "https://eventsslot.com"
+const BASE_URL = APP_URL
 
 export default async function TicketSuccessPage({
   params,

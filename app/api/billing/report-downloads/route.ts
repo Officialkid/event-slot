@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
+import { APP_URL } from '@/lib/config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid download package' }, { status: 400 })
     }
 
-    const callbackUrl = `${process.env.NEXTAUTH_URL}/api/billing/verify`
+    const callbackUrl = `${APP_URL}/api/billing/verify`
 
     const data = await paystackFetch('/transaction/initialize', {
       method: 'POST',

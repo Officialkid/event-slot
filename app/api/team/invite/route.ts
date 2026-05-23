@@ -6,6 +6,7 @@ import { TEAM_MEMBER_LIMIT } from '@/lib/plans'
 import { sendTeamInviteEmail } from '@/lib/email'
 import { v4 as uuidv4 } from 'uuid'
 import { teamInviteSchema } from '@/lib/schemas/team.schema'
+import { APP_URL } from '@/lib/config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     const inviterName = owner?.name || owner?.email || 'Someone'
-    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+    const BASE_URL = APP_URL
 
     type InviteResult = {
       email: string

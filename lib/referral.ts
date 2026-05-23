@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { creditTokens } from "@/lib/tokens"
+import { APP_URL } from "@/lib/config"
 
-const REFERRAL_BASE_URL = process.env.NEXTAUTH_URL ?? "https://www.eventsslot.com"
+const REFERRAL_BASE_URL = APP_URL
 const SIGNUP_REWARD = 5
 const EVENT_REWARD = 5
 export const ATTRIBUTION_DAYS = 7

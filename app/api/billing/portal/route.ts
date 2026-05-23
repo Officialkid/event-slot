@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { APP_URL } from '@/lib/config'
 
 export async function POST() {
   try {
@@ -11,7 +12,7 @@ export async function POST() {
 
     // Paystack does not have a hosted billing portal.
     // Redirect to the in-app billing page instead.
-    return NextResponse.json({ url: `${process.env.NEXTAUTH_URL}/dashboard/billing` })
+    return NextResponse.json({ url: `${APP_URL}/dashboard/billing` })
   } catch (err) {
     console.error('[billing/portal] POST error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

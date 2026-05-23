@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendTeamInviteEmail } from '@/lib/email'
 import { v4 as uuidv4 } from 'uuid'
+import { APP_URL } from '@/lib/config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+    const BASE_URL = APP_URL
     const acceptUrl = `${BASE_URL}/team/accept?token=${newToken}`
 
     let emailFailed = false

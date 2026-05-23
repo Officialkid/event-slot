@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { billingRatelimit } from '@/lib/ratelimit'
+import { APP_URL } from '@/lib/config'
 
 export async function POST(request: Request) {
   try {
@@ -27,10 +28,6 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Payments are temporarily unavailable. Missing PAYSTACK_SECRET_KEY.' }, { status: 503 })
     }
 
-    if (!process.env.NEXTAUTH_URL) {
-      return Response.json({ error: 'Payments are temporarily unavailable. Missing NEXTAUTH_URL.' }, { status: 503 })
-    }
-
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, email: true },
@@ -51,7 +48,7 @@ export async function POST(request: Request) {
         email: checkoutEmail,
         amount: bundle.amount * 100,
         currency: 'KES',
-        callback_url: `${process.env.NEXTAUTH_URL}/api/report-downloads/verify`,
+        callback_url: `${APP_URL}/api/report-downloads/verify`,
         metadata: {
           userId: session.user.id,
           bundleKey,

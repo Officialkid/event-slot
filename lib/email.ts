@@ -1,5 +1,6 @@
 ﻿import { Resend } from 'resend'
 import { getOrCreateReferralLink } from '@/lib/referral'
+import { APP_URL } from '@/lib/config'
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY
@@ -9,7 +10,7 @@ function getResendClient() {
   return new Resend(apiKey)
 }
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://www.eventsslot.com'
+const BASE_URL = APP_URL
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <onboarding@resend.dev>'
 
 type InternalEmailOptions = {
