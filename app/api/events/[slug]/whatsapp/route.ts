@@ -7,8 +7,9 @@ import prisma from "@/lib/prisma"
 // Body: { whatsappNumber: string | null }
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await context.params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -16,7 +17,7 @@ export async function PUT(
 
   const { whatsappNumber } = (await req.json()) as { whatsappNumber: string | null }
 
-  const event = await prisma.event.findUnique({ where: { slug: params.slug } })
+  const event = await prisma.event.findUnique({ where: { slug } })
   if (!event) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
