@@ -7,6 +7,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { getConfiguredAdminEmails, isAdminEmail } from '@/lib/isAdmin'
+import { checkAndAwardPioneerBadge } from '@/lib/referral'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -173,6 +174,11 @@ export const authOptions = {
           update: {},
           create: { userId: user.id },
         })
+      } catch {
+        // non-critical
+      }
+      try {
+        await checkAndAwardPioneerBadge(user.id)
       } catch {
         // non-critical
       }
