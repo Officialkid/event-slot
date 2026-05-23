@@ -1,3 +1,9 @@
+## Deploy — May 23, 2026 (14c33b5)
+
+> fix(MD-FIX-08): Pioneer badge backfill + auto-award on OAuth signup + BadgeDisplay component - POST /api/superadmin/badges/backfill-pioneers: backfills PIONEER badge to first 150 users (protected by CRON_SECRET) - lib/auth.ts createUser event: calls checkAndAwardPioneerBadge for OAuth sign-ups (was only called in email/password signup route) - components/BadgeDisplay.tsx: reusable pill badges for PIONEER, STARRED_ORGANIZER, COMMUNITY_BUILDER, GROWTH_BUILDER, COMMUNITY_CHAMPION, HALL_OF_FAME
+
+---
+
 ## Deploy — May 23, 2026 (4877947)
 
 > fix(MD-FIX-07): Replace all NEXTAUTH_URL refs with APP_URL from lib/config - Create lib/config.ts: APP_URL skips 0.0.0.0/localhost values, hard fallback to https://www.eventsslot.com - Replace process.env.NEXTAUTH_URL in 13 files with APP_URL from @/lib/config - Fix lib/openrouter.ts: was using wrong domain 'eventslot.app' as fallback - Fix missing www in attendance/confirm and register/success pages - Remove unnecessary NEXTAUTH_URL guard in report-downloads/purchase - Add NEXT_PUBLIC_APP_URL=https://www.eventsslot.com to cloudrun.yaml
