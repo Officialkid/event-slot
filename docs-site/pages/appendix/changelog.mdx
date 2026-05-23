@@ -1,3 +1,9 @@
+## Deploy — May 23, 2026 (adf7c4f)
+
+> feat(MD-COMMUNITY-02): Leaderboard UI full redesign - Period tabs: This Week / This Month / All Time - Type sub-tabs: Overall / Top Referrers / Top Organisers - Top 3 podium with gold/silver/bronze styling - Positions 4-50 compact list with current user highlighted in lime - Avatar component with image or initial fallback - Fetch from /api/leaderboard (new period-based endpoint) - Inline SVG icons (no lucide-react), no SWR - Retained pioneer banner, badges section, referral list - User ID sourced from useSession() for self-highlight
+
+---
+
 ## Deploy — May 23, 2026 (ab450e3)
 
 > feat(MD-COMMUNITY-01): Period-based leaderboard system with full scoring logic - Replace single-row LeaderboardEntry with period-based model (userId+period compound unique) - Add PeriodType enum (WEEK/MONTH/ALL_TIME) and STARRED_ORGANIZER/COMMUNITY_BUILDER to BadgeType - Create lib/leaderboard.ts: getWeekKey, getMonthKey, recalculateLeaderboard from source data - Create /api/leaderboard: public GET endpoint with period/type filtering - Create /api/cron/recalculate-leaderboard: hourly cron recalculates all three periods - Update /api/community/leaderboard: period-based model, O(1) own-rank lookup - Update /api/cron/reset-leaderboard: badge-awarding only (no more score resets) - lib/referral.ts: updateLeaderboardScore is now a no-op (scores computed by cron)
