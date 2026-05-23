@@ -121,7 +121,8 @@ model User {
   referredBy         Referral?           @relation("ReferredBy")
   pioneerBadge       PioneerBadge?
   badges             UserBadge[]
-  leaderboardEntries  LeaderboardEntry[]
+  leaderboardEntries         LeaderboardEntry[]
+  weeklyRankingNotifications WeeklyRankingNotification[]
 }
 
 model ReferralLink {
@@ -189,6 +190,20 @@ model LeaderboardEntry {
 
   @@unique([userId, period])
   @@index([period, totalPts])
+}
+
+model WeeklyRankingNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekKey   String    // "2025-W21"
+  rank      Int
+  totalPts  Int
+  seen      Boolean   @default(false)
+  sharedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, weekKey])
 }
 
 enum BadgeType {

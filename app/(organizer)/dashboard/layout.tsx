@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { OnboardingFlow } from "@/components/OnboardingFlow"
 import { PioneerCongratulationsModal } from "@/components/PioneerCongratulationsModal"
+import { WeeklyRankingPopup } from "@/components/WeeklyRankingPopup"
 import DashboardShell from "./_shell"
 
 export default async function DashboardLayout({
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
       <DashboardShell>{children}</DashboardShell>
       <OnboardingFlow />
       <PioneerCongratulationsModal />
+      <WeeklyRankingPopup />
     </>
   )
 }
