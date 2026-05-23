@@ -1,3 +1,9 @@
+## Deploy — May 23, 2026 (2cc56be)
+
+> feat(MD-COMMUNITY-03): Weekly ranking popup + Monday cron - Add WeeklyRankingNotification model to schema (userId+weekKey unique) - GET /api/user/weekly-ranking: returns unseen notification for prev week - POST /api/user/weekly-ranking/dismiss: marks notification seen, records sharedAt - POST /api/cron/weekly-ranking-notifications: Monday cron generates notifications from leaderboard entries - WeeklyRankingPopup component: medal display, share message preview, share/skip actions - Pioneer modal takes priority (checked via /api/user/pioneer-status before showing) - Inline SVG icons (no lucide-react); shows once per week; dismiss on share or skip - Dashboard layout: mount WeeklyRankingPopup alongside PioneerCongratulationsModal
+
+---
+
 ## Deploy — May 23, 2026 (adf7c4f)
 
 > feat(MD-COMMUNITY-02): Leaderboard UI full redesign - Period tabs: This Week / This Month / All Time - Type sub-tabs: Overall / Top Referrers / Top Organisers - Top 3 podium with gold/silver/bronze styling - Positions 4-50 compact list with current user highlighted in lime - Avatar component with image or initial fallback - Fetch from /api/leaderboard (new period-based endpoint) - Inline SVG icons (no lucide-react), no SWR - Retained pioneer banner, badges section, referral list - User ID sourced from useSession() for self-highlight
