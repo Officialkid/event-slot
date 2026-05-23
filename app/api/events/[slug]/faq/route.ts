@@ -6,10 +6,11 @@ import prisma from '@/lib/prisma'
 // GET /api/events/[slug]/faq — public, returns FAQs for event page
 export async function GET(
   _: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await context.params
   const event = await prisma.event.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     select: {
       faqEnabled: true,
       faqs: { orderBy: { order: 'asc' } },
@@ -23,8 +24,9 @@ export async function GET(
 // PUT /api/events/[slug]/faq — organiser only, saves FAQs
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await context.params
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -38,7 +40,7 @@ export async function PUT(
     return NextResponse.json({ error: 'Maximum 10 FAQ items allowed' }, { status: 400 })
   }
 
-  const event = await prisma.event.findUnique({ where: { slug: params.slug } })
+  const event = await prisma.event.findUnique({ where: { slug } })
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (event.organizerId !== session.user.id)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
