@@ -1,3 +1,9 @@
+## Deploy — May 25, 2026 (1b0d814)
+
+> fix: referral tracking for OAuth, comms date filter, Pioneer modal polish - Add POST /api/user/claim-referral: reads eventslot_ref cookie and calls processSignupReferral for the current session user. Fixes referral counts not updating when users sign up via Google OAuth (cookie was set on /join redirect but never consumed in the OAuth flow). - Call claim-referral from dashboard _shell.tsx on first authenticated load so the cookie is always processed regardless of signup method. - Filter /api/comms GET to only return messages created \>gt;= user createdAt, so new users don't see announcements from before they joined. - Pioneer modal: mobile-responsive sizing (p-5 sm:p-8, h-16 sm:h-24 trophy), concise copy, backdrop click to dismiss (marks hasSeenCongratulations).
+
+---
+
 ## Deploy — May 25, 2026 (de32673)
 
 > feat: Pioneer badge for all early users + visible trophy + no count in descriptions
