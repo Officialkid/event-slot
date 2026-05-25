@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { getConfiguredAdminEmails, isAdminEmail } from '@/lib/isAdmin'
 import { checkAndAwardPioneerBadge } from '@/lib/referral'
+import { APP_URL } from '@/lib/config'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -69,6 +70,8 @@ export const authOptions = {
   session: { strategy: 'jwt' as const },
   pages: {
     signIn: '/signin',
+    signOut: '/signin',
+    error: '/signin',
   },
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: { id: string; email?: string | null } }) {
@@ -161,8 +164,14 @@ export const authOptions = {
       return session
     },
     async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      if (url.startsWith(baseUrl)) return url
-      return `${baseUrl}/dashboard`
+      const safeBaseUrl =
+        baseUrl && !baseUrl.includes('0.0.0.0') && !baseUrl.includes('localhost')
+          ? baseUrl
+          : APP_URL
+
+      if (url.startsWith('/')) return `${safeBaseUrl}${url}`
+      if (url.startsWith(safeBaseUrl)) return url
+      return `${safeBaseUrl}/dashboard`
     },
   },
   events: {

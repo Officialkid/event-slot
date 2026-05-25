@@ -76,6 +76,8 @@ export default function CountryIntelligence() {
 
       {/* Country table */}
       <div className="border border-[#2A2A2A] rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
         <div className="grid grid-cols-6 gap-4 px-5 py-3 bg-[#1E1E1E] border-b border-[#2A2A2A]">
           {['Country', 'Users', 'Organisers', 'Events', '7d Growth', 'Currency'].map(h => (
             <p key={h} className="text-[#525252] text-xs font-semibold uppercase tracking-wider">{h}</p>
@@ -83,7 +85,20 @@ export default function CountryIntelligence() {
         </div>
 
         {loading && (
-          <div className="px-5 py-8 text-center text-[#525252] text-sm">Loading…</div>
+          <div className="px-5 py-5">
+            <div className="space-y-2 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="grid grid-cols-6 gap-4 py-2">
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                  <div className="h-4 rounded bg-[#1A1A1A]" />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {!loading && (data?.countries ?? []).length === 0 && (
@@ -113,6 +128,8 @@ export default function CountryIntelligence() {
             <p className="text-[#A3A3A3] text-sm self-center">{c.currency}</p>
           </div>
         ))}
+        </div>
+        </div>
       </div>
     </div>
   )

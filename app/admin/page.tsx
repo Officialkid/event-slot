@@ -221,7 +221,20 @@ export default function AdminOverviewPage() {
   }
 
   if (loading) {
-    return <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>Loading…</div>
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 980, animation: "pulse 1.4s ease-in-out infinite" }}>
+        <div style={{ height: 24, width: 180, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 14, width: 260, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
+              <div style={{ height: 10, width: 90, borderRadius: 6, background: "#1E1E1E", marginBottom: "0.55rem" }} />
+              <div style={{ height: 18, width: 56, borderRadius: 6, background: "#1E1E1E" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
   if (!stats) return null
 

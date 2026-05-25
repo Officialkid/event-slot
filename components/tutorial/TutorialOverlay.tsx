@@ -158,18 +158,18 @@ export function TutorialOverlay({
           width: "min(360px, calc(100vw - 24px))",
           animation: "tutorial-fade-in 220ms ease",
         }}
-        className="bg-[#0f1a0f] border border-[#a3e635]/30 rounded-2xl p-6 shadow-2xl shadow-black/50"
+        className="bg-[#141414] border border-[#2A2A2A] rounded-2xl p-6 shadow-2xl shadow-black/50"
       >
         <style>{`@keyframes tutorial-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
-        <div className="w-full bg-white/10 rounded-full h-1 mb-4">
+        <div className="w-full bg-[#2A2A2A] rounded-full h-1 mb-4">
           <div
-            className="bg-[#a3e635] h-1 rounded-full transition-all duration-500"
+            className="bg-[#C8F55A] h-1 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
-        <p className="text-white/40 text-xs mb-3">
+        <p className="text-[#525252] text-xs mb-3">
           Step {currentStepIndex + 1} of {totalSteps}
         </p>
 
@@ -177,12 +177,12 @@ export function TutorialOverlay({
 
         <h3 className="text-white font-bold text-lg mb-2">{step.title}</h3>
 
-        <p className="text-white/70 text-sm leading-relaxed mb-6">{step.description}</p>
+        <p className="text-[#A3A3A3] text-sm leading-relaxed mb-6">{step.description}</p>
 
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={onSkip}
-            className="text-white/40 text-sm hover:text-white/70 transition-colors"
+            className="text-[#525252] text-sm hover:text-[#A3A3A3] transition-colors"
           >
             Skip tour
           </button>
@@ -191,7 +191,7 @@ export function TutorialOverlay({
             {currentStepIndex > 0 && (
               <button
                 onClick={onBack}
-                className="px-4 py-2 rounded-xl border border-white/20 text-white/70 text-sm hover:border-white/40 transition-all"
+                className="px-4 py-2 rounded-xl border border-[#2A2A2A] text-[#A3A3A3] text-sm hover:text-white transition-all"
               >
                 Back
               </button>
@@ -199,7 +199,7 @@ export function TutorialOverlay({
 
             <button
               onClick={onNext}
-              className="px-5 py-2 rounded-xl bg-[#a3e635] text-black font-semibold text-sm hover:bg-[#b5f542] transition-all"
+              className="bg-[#C8F55A] text-black font-bold px-5 py-2 rounded-xl hover:bg-[#b8e040] transition-colors text-sm"
             >
               {currentStepIndex + 1 === totalSteps ? "Finish" : "Next →"}
             </button>

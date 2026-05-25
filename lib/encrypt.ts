@@ -1,9 +1,10 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { env } from "@/lib/env"
 
 const ALGORITHM = "aes-256-cbc"
 
 function getSecretKey(): Buffer | null {
-  const keyHex = process.env.ENCRYPTION_KEY
+  const keyHex = env.ENCRYPTION_KEY
 
   if (!keyHex) {
     return null
@@ -40,7 +41,8 @@ export function encrypt(text: string): { encrypted: string; iv: string } {
 // Decrypt an encrypted payload using the original IV.
 // If iv is empty the value was stored as plain text — return as-is.
 // If ENCRYPTION_KEY is not configured, return the stored value as-is.
-export function decrypt(encrypted: string, iv: string): string {
+// Returns null only when payload looks encrypted but decryption fails.
+export function decrypt(encrypted: string, iv: string): string | null {
   if (!iv) {
     // Plain-text passthrough (stored without encryption)
     return encrypted
@@ -53,11 +55,16 @@ export function decrypt(encrypted: string, iv: string): string {
     return encrypted
   }
 
-  const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"))
-  const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(encrypted, "hex")),
-    decipher.final(),
-  ])
+  try {
+    const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, "hex"))
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(encrypted, "hex")),
+      decipher.final(),
+    ])
 
-  return decrypted.toString("utf8")
+    return decrypted.toString("utf8")
+  } catch (error) {
+    console.error("[encryption] Decryption failed", error)
+    return null
+  }
 }

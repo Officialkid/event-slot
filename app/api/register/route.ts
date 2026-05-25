@@ -28,13 +28,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { eventSlug, attendees, consentTransactional, consentMarketing, forceDuplicate } = body as {
+    const { eventSlug, attendees, consentTransactional, consentMarketing, forceDuplicate, source, refCode, utmSource } = body as {
       eventSlug: string
       attendees: AttendeePayload[]
       consentTransactional?: boolean
       consentMarketing?: boolean
       forceDuplicate?: boolean
+      source?: string
+      refCode?: string
+      utmSource?: string
     }
+
+    const normalizedSource = typeof source === 'string' && source.trim().length > 0 ? source.trim().toLowerCase() : 'unknown'
+    const normalizedRefCode = typeof refCode === 'string' && refCode.trim().length > 0 ? refCode.trim() : null
+    const normalizedUtmSource = typeof utmSource === 'string' && utmSource.trim().length > 0 ? utmSource.trim() : null
 
     if (!eventSlug || !Array.isArray(attendees) || attendees.length === 0) {
       return NextResponse.json({ success: false, error: 'Missing eventSlug or attendees' }, { status: 400 })
@@ -156,6 +163,9 @@ export async function POST(req: NextRequest) {
               isDuplicate: forceDuplicate ?? false,
               qrCode: uuidv4(),
               confirmationCode,
+              source: normalizedSource,
+              refCode: normalizedRefCode,
+              utmSource: normalizedUtmSource,
               countryCode: registrationCountryCode ?? undefined,
             },
           })
@@ -184,6 +194,9 @@ export async function POST(req: NextRequest) {
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
+              source: normalizedSource,
+              refCode: normalizedRefCode,
+              utmSource: normalizedUtmSource,
               countryCode: registrationCountryCode ?? undefined,
             },
           })

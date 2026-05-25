@@ -14,6 +14,7 @@ interface Campaign {
   status: CampaignStatus
   sentAt: string | null
   recipientCount: number | null
+  failureReason?: string | null
   createdAt: string
 }
 
@@ -386,6 +387,11 @@ export default function EmailDashboardPage() {
                     {c.recipientCount != null && ` · ${c.recipientCount} recipient${c.recipientCount === 1 ? '' : 's'}`}
                     {' · '}<span style={{ textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>{TYPE_LABELS[c.type]}</span>
                   </p>
+                  {c.status === 'FAILED' && c.failureReason && (
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: '#A3A3A3', fontFamily: 'var(--font-dm-sans)' }}>
+                      {c.failureReason}
+                    </p>
+                  )}
                 </div>
                 <span
                   style={{

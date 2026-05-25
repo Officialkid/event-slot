@@ -336,14 +336,24 @@ export default function CommunityPage() {
   const top3 = leaderboard?.entries?.slice(0, 3) ?? []
   const rest = leaderboard?.entries?.slice(3) ?? []
 
+  if (loadingBase && !referralData) {
+    return (
+      <div className="max-w-2xl mx-auto p-5 space-y-3 animate-pulse">
+        <div className="h-4 bg-[#2A2A2A] rounded-full w-3/4" />
+        <div className="h-4 bg-[#2A2A2A] rounded-full w-1/2" />
+        <div className="h-40 bg-[#141414] border border-[#2A2A2A] rounded-2xl" />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-2xl mx-auto p-5 space-y-6">
 
       {/* Pioneer banner */}
       {hasPioneer && (
-        <div className="flex items-center gap-4 rounded-xl border border-[#C8F55A]/30 bg-gradient-to-r from-[#C8F55A]/10 to-[#C8F55A]/5 p-5">
+        <div className="flex items-center gap-4 flex-wrap rounded-xl border border-[#C8F55A]/30 bg-gradient-to-r from-[#C8F55A]/10 to-[#C8F55A]/5 p-5">
           <span className="text-4xl">🏆</span>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-[#C8F55A]">EventSlot Pioneer</p>
             <p className="mt-0.5 text-xs text-[#A3A3A3]">
               You are one of EventSlot&apos;s earliest supporters. This badge belongs to a limited group — and you&apos;re in it.
@@ -382,8 +392,8 @@ export default function CommunityPage() {
         </p>
 
         {/* Referral link */}
-        <div className="flex items-center gap-2 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 mb-3">
-          <span className="text-[#A3A3A3] text-xs flex-1 truncate">
+        <div className="flex items-center gap-2 flex-wrap bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 mb-3">
+          <span className="text-[#A3A3A3] text-xs flex-1 min-w-0 truncate">
             {referralUrl || (loadingBase ? "Loading..." : "Unavailable")}
           </span>
           <button
@@ -466,13 +476,13 @@ export default function CommunityPage() {
         </div>
 
         {/* Type sub-tabs */}
-        <div className="flex gap-2 p-3 border-b border-[#2A2A2A]">
+        <div className="flex gap-2 flex-wrap p-3 border-b border-[#2A2A2A]">
           {TYPE_TABS.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => setType(t.key)}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors
+              className={`flex-1 min-w-[92px] py-1.5 text-xs font-medium rounded-lg transition-colors
                 ${type === t.key
                   ? "bg-[#C8F55A] text-black"
                   : "bg-[#0A0A0A] text-[#525252] hover:text-white"}`}

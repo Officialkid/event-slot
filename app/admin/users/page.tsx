@@ -109,6 +109,7 @@ export default function AdminUsersPage() {
   }
 
   const planTabs = ["all", "free"]
+  const skeletonRows = [1, 2, 3, 4]
 
   return (
     <div>
@@ -138,7 +139,7 @@ export default function AdminUsersPage() {
             maxWidth: 380,
           }}
         />
-        <div style={{ display: "flex", gap: "0.35rem" }}>
+        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
           {planTabs.map(t => (
             <button
               key={t}
@@ -176,9 +177,17 @@ export default function AdminUsersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} style={{ padding: "2rem 1rem", textAlign: "center", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>Loading…</td>
-              </tr>
+              skeletonRows.map((row) => (
+                <tr key={`skeleton-${row}`} style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)" }}>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "70%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "82%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 20, borderRadius: 100, background: "#1A1A1A", width: 58, animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: 28, margin: "0 auto", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "56%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 20, borderRadius: 100, background: "#1A1A1A", width: 72, animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 24, borderRadius: 8, background: "#1A1A1A", width: 36, animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                </tr>
+              ))
             ) : users.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: "2rem 1rem", textAlign: "center", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>No users found.</td>

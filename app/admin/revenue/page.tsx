@@ -49,7 +49,23 @@ export default function RevenuePage() {
       .catch(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="p-8 text-[#525252]">Loading...</div>
+  if (loading) {
+    return (
+      <div className="p-6 max-w-6xl animate-pulse space-y-4">
+        <div className="h-6 w-40 rounded bg-[#1A1A1A]" />
+        <div className="h-4 w-72 rounded bg-[#1A1A1A]" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] space-y-3">
+              <div className="h-3 w-20 rounded bg-[#1A1A1A]" />
+              <div className="h-8 w-28 rounded bg-[#1A1A1A]" />
+              <div className="h-3 w-24 rounded bg-[#1A1A1A]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
   if (!data)   return <div className="p-8 text-red-400">Failed to load revenue data.</div>
 
   const changePositive = parseFloat(data.revenueChangePercent) >= 0
@@ -178,7 +194,7 @@ export default function RevenuePage() {
                     <span className="text-[#525252] text-xs w-20 shrink-0">{m.month}</span>
                     <div className="flex-1 bg-[#0A0A0A] rounded-full h-2">
                       <div
-                        className="bg-white/30 h-2 rounded-full transition-all"
+                        className="bg-[#C8F55A]/40 h-2 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

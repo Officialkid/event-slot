@@ -1,0 +1,3 @@
+ALTER TABLE "Registration"
+ADD COLUMN IF NOT EXISTS "refCode" TEXT,
+ADD COLUMN IF NOT EXISTS "utmSource" TEXT;

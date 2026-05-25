@@ -34,6 +34,20 @@ export async function sendBulkEmails(
   eventTitle: string
 ): Promise<void> {
   let successCount = 0
+  let firstFailureReason: string | null = null
+
+  if (!recipients || recipients.length === 0) {
+    await prisma.emailCampaign.update({
+      where: { id: campaignId },
+      data: {
+        status: 'FAILED',
+        sentAt: new Date(),
+        recipientCount: 0,
+        failureReason: 'No confirmed recipients found for this event.',
+      },
+    })
+    return
+  }
 
   try {
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
@@ -50,9 +64,13 @@ export async function sendBulkEmails(
       successCount += results.filter((r) => r.status === 'fulfilled').length
       const failures = results.filter((r) => r.status === 'rejected')
       if (failures.length > 0) {
-        failures.forEach((f) =>
-          console.error('[emailCampaigns] Individual send failed:', (f as PromiseRejectedResult).reason)
-        )
+        failures.forEach((f, index) => {
+          const reason = (f as PromiseRejectedResult).reason
+          const message = reason instanceof Error ? reason.message : String(reason)
+          const failedRecipient = batch[index]?.email ?? 'unknown recipient'
+          console.error(`[emailCampaigns] Failed to send to ${failedRecipient}:`, message)
+          if (!firstFailureReason) firstFailureReason = message
+        })
       }
       // Small delay between batches to respect Resend rate limits
       if (i + BATCH_SIZE < recipients.length) {
@@ -63,13 +81,24 @@ export async function sendBulkEmails(
     const finalStatus = successCount === 0 ? 'FAILED' : 'SENT'
     await prisma.emailCampaign.update({
       where: { id: campaignId },
-      data: { status: finalStatus, sentAt: new Date(), recipientCount: successCount },
+      data: {
+        status: finalStatus,
+        sentAt: new Date(),
+        recipientCount: successCount,
+        failureReason: finalStatus === 'FAILED' ? (firstFailureReason ?? 'Unknown error') : null,
+      },
     })
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[emailCampaigns] Bulk send failed:', err)
     await prisma.emailCampaign.update({
       where: { id: campaignId },
-      data: { status: successCount > 0 ? 'SENT' : 'FAILED', sentAt: new Date(), recipientCount: successCount },
+      data: {
+        status: successCount > 0 ? 'SENT' : 'FAILED',
+        sentAt: new Date(),
+        recipientCount: successCount,
+        failureReason: successCount > 0 ? null : message,
+      },
     })
   }
 }

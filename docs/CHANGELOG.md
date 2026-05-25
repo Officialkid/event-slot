@@ -1,5 +1,106 @@
 # EventSlot — Changelog
 
+## [0.4.72] — May 25, 2026
+
+### Insights Expansion — H1 to H6
+
+- **H1 Top events leaderboard**: Added per-event leaderboard data to `GET /api/insights` and rendered sortable "Your Events" leaderboard on `app/(organizer)/dashboard/insights/page.tsx`.
+- **H2 Registration source tracking**:
+  - Added `refCode` and `utmSource` fields to `Registration` model (`prisma/schema.prisma`) and migration `20260525193000_add_registration_source`.
+  - Added source/ref capture in attendee registration flow (`app/(attendee)/[username]/RegistrationForm.tsx`) and persisted source metadata in `POST /api/register`.
+  - Added `sourceBreakdown` to per-event analytics API and rendered source pie chart on event analytics tab.
+- **H3 Feedback score in analytics tab**: Added `feedbackScore` and `feedbackCount` to per-event analytics API and surfaced score + stars + feedback shortcut card in analytics UI.
+- **H4 Date range filter on global tracker**: Added `range` query support (`30d`, `90d`, `1y`, `all`) in `GET /api/insights`, and range controls in tracker UI.
+- **H5 AI audience profile card**: Added `POST /api/insights/audience-profile` and on-demand Audience Profile card with regenerate flow on global tracker.
+- **H6 CSV exports**:
+  - Added `GET /api/insights/export` (range-aware global export).
+  - Added `GET /api/events/[slug]/analytics/export` (per-event export).
+  - Added export buttons to both global tracker and per-event analytics tab.
+
+## [0.4.71] — May 25, 2026
+
+### Insights UX — C5 Month-over-Month Trend Badges
+
+- **Global insights API now returns MoM metrics**: Updated `GET /api/insights` in `app/api/insights/route.ts` to compute and return `momChange` and `registrantsMoM` from the existing `registrationsByMonth` series.
+- **Insight Tracker stat cards now show trend direction**: Updated `app/(organizer)/dashboard/insights/page.tsx` with a reusable `MoMBadge` renderer that displays `▲/▼` trend direction and percentage vs last month.
+- **Top metrics now include growth/decline context**: Stat cards no longer show only raw counts; month-over-month movement is now visible at a glance on the Global Insight Tracker.
+
+## [0.4.70] — May 25, 2026
+
+### Critical Bug Fixes — BUG-01 Signup/OAuth Redirect Host Hardening
+
+- **Hardened canonical app URL resolver**: Continued standardization on `APP_URL` from `lib/config.ts` so app-generated links never resolve to internal bind hosts such as `0.0.0.0` or `localhost`.
+- **Referral join redirect fixed**: Updated `app/join/route.ts` to build `/signup` redirects from `APP_URL` instead of `req.nextUrl.origin`, preventing broken mobile redirects when host headers are not canonical.
+- **Event QR destination hardened**: Updated `app/api/events/[slug]/qr/route.ts` to generate QR registration targets from `APP_URL` instead of request origin.
+- **NextAuth redirect safety fallback**: Updated `lib/auth.ts` redirect callback to reject invalid `baseUrl` values containing `0.0.0.0` or `localhost` and fall back to `APP_URL`.
+- **NextAuth explicit custom pages expanded**: Added explicit `pages.signOut` and `pages.error` alongside `pages.signIn` in `lib/auth.ts` to keep auth navigation deterministic.
+
+### Critical Bug Fixes — BUG-02 Virtual Meeting Link Decryption Fallback
+
+- **Null-safe decryption behavior**: Updated `lib/encrypt.ts` so `decrypt(...)` now returns `null` only when payload decryption fails, while still gracefully returning stored plaintext when `virtualLinkIv` is empty or when `ENCRYPTION_KEY` is unavailable.
+- **Attendee join API fallback fixed**: Updated `app/api/events/[slug]/verify-entry/route.ts` to attempt virtual-link decryption whenever `virtualLink` exists (not only when `virtualLinkIv` exists), enabling events saved during key outage periods to still return a valid meeting link.
+- **Explicit attendee-facing setup message**: `verify-entry` now returns a clear message (`Meeting link is being set up...`) when a virtual attendee is verified but the meeting link cannot be decrypted.
+- **Organizer host-link fallback fixed**: Updated `app/api/organizer/events/[id]/entry-log/route.ts` so host link resolution also supports plaintext-stored links when IV is absent.
+- **One-time admin re-encryption route added**: Added `POST /api/admin/migrate-virtual-links` in `app/api/admin/migrate-virtual-links/route.ts` (superadmin-only) to re-save virtual links using current encryption key after key restoration.
+
+### Critical Bug Fixes — BUG-03 Bulk Email Campaign Failure Visibility
+
+- **Campaign failure reason field added**: Added `failureReason` to `EmailCampaign` in `prisma/schema.prisma` plus migration `prisma/migrations/20260525113000_add_email_campaign_failure_reason/migration.sql` so failed campaigns store actionable diagnostics.
+- **Bulk sender failure persistence improved**: Updated `lib/emailCampaigns.ts` to:
+  - fail early with a clear reason when recipient list is empty,
+  - capture first per-recipient delivery error message,
+  - persist `failureReason` when final campaign status is `FAILED`.
+- **Pre-send confirmed-attendee validation**: Updated `POST /api/events/[slug]/campaigns/send` in `app/api/events/[slug]/campaigns/send/route.ts` to return HTTP 400 when event has zero confirmed registrations.
+- **Campaign history API expanded**: Updated `GET /api/events/[slug]/campaigns` in `app/api/events/[slug]/campaigns/route.ts` to include `failureReason` in response payload.
+- **Organizer UI now shows failure reason**: Updated sent-history rendering in `app/(organizer)/dashboard/events/[slug]/emails/page.tsx` so `FAILED` campaigns display stored `failureReason` directly under campaign details.
+
+### Critical Bug Fixes — BUG-04 Team Invite Failure Diagnostics
+
+- **Team invite API now returns aggregate send outcomes**: Updated `POST /api/team/invite` in `app/api/team/invite/route.ts` to return `{ sent, failed, message, results }` and provide explicit 500 responses with a clear error when no invite emails are actually delivered.
+- **Partial/full failure logging improved**: Added aggregate failure logging (`[team-invite] Some invites failed`) and per-email error capture to make provider/config issues visible in logs.
+- **Top-level invite error message improved**: API catch path now returns `Failed to send invites: <reason>` instead of a generic error.
+- **Team UI now surfaces API error text reliably**: Updated `app/(organizer)/dashboard/team/page.tsx` so error banners are shown even when the API also returns per-email result rows.
+- **Team invite sender now uses configured from-address**: Updated `sendTeamInviteEmail` in `lib/email.ts` to use `EMAIL_FROM` instead of hardcoded sender, reducing failures from unverified-from-domain restrictions.
+
+### Critical Bug Fixes — BUG-05 Virtual Event Creation 503 Hardening
+
+- **Safe virtual-link encryption already guarded**: Event creation uses `encrypt(...)` from `lib/encrypt.ts`, which gracefully degrades to plaintext storage when `ENCRYPTION_KEY` is missing/invalid instead of throwing.
+- **Create-event route catch hardened**: Updated `POST /api/events` in `app/api/events/route.ts` to add explicit error logging (`[events/POST] Error creating event`) and return a stable user-facing 500 message (`Failed to create event. Please try again.`) for non-Prisma failures.
+- **Database-specific 503 behavior preserved**: Prisma connection errors (`P1001`, `P1002`) continue to return 503 with the existing temporary-unavailable message.
+
+### Critical Bug Fixes — BUG-06 Verify Ticket 404 Compatibility
+
+- **Verify-ticket event lookup made id/slug compatible**: Updated `POST /api/events/[slug]/verify-ticket` in `app/api/events/[slug]/verify-ticket/route.ts` to resolve event records by either `slug` or `id`.
+- **Result**: ticket verification no longer returns false 404s when callers pass event IDs in the dynamic path segment.
+
+### Priority 2 System-Wide Audit Hardening
+
+- **Environment configuration centralized**: Added `lib/env.ts` with required/optional env access helpers and a typed `env` object so missing critical vars are logged consistently and core services fail gracefully.
+- **Core env consumers migrated**: Updated `lib/config.ts`, `lib/encrypt.ts`, `lib/email.ts`, and `lib/resend.ts` to consume centralized env values instead of direct ad hoc `process.env` reads.
+- **Admin comms query safety improved**: Updated `POST /api/admin/comms` (`app/api/admin/comms/route.ts`) to replace unbounded user reads with batched pagination (`take: 1000` + cursor), and corrected schema-drift fallback to return `503` with a safe generic message.
+- **Virtual-link migration route hardened**: Updated `POST /api/admin/migrate-virtual-links` (`app/api/admin/migrate-virtual-links/route.ts`) with bounded event pagination (`take: 500` + cursor), explicit internal logging, and generic 500 responses.
+- **Verify-ticket fallback scan bounded**: Added `orderBy` and `take: 1000` to attendee identity fallback in `app/api/events/[slug]/verify-ticket/route.ts` to avoid unbounded registration scans.
+- **Stakeholder report API safeguarded**: Updated `GET /api/admin/stakeholder-report` (`app/api/admin/stakeholder-report/route.ts`) to add top-level try/catch and high-volume `findMany` limits for report error and transaction pulls.
+- **Pioneer backfill admin endpoint added**: Added `POST /api/admin/backfill-pioneers` in `app/api/admin/backfill-pioneers/route.ts` for session-authenticated superadmins.
+- **Existing superadmin backfill route hardened**: Updated `app/api/superadmin/badges/backfill-pioneers/route.ts` to use centralized env checks, shared backfill logic (`lib/pioneer-backfill.ts`), and generic internal error handling.
+
+### Priority 3 — AI Scanner Complete Revamp
+
+- **Two-mode scanner architecture shipped**: Added dedicated scanner mode selector and split organizer ticket operations into:
+  - `Quick Scan` (high-volume gate flow with auto-reset result overlays), and
+  - `Deep Scan` (full attendee profile workflow with mark-attended + notes + session export).
+- **New scanner component suite**:
+  - `components/scanner/ScannerHome.tsx`
+  - `components/scanner/QuickScan.tsx`
+  - `components/scanner/DeepScan.tsx`
+  - `components/scanner/qr-utils.ts`
+- **New input options implemented in both scanner modes**: Camera scan, uploaded ticket image scan, manual ticket code entry, and manual email/name lookup.
+- **Deep-scan API surface added**:
+  - `GET /api/events/[slug]/attendee-profile` (`app/api/events/[slug]/attendee-profile/route.ts`)
+  - `POST /api/events/[slug]/attendee-profile/mark-attended` (`app/api/events/[slug]/attendee-profile/mark-attended/route.ts`)
+- **Verify Ticket tab integrated with new scanner home**: Replaced legacy manual-only verify panel in `app/(organizer)/dashboard/events/[slug]/page.tsx` with `ScannerHome`.
+- **Assessment + implementation documentation added**: `docs/AI_SCANNER_REVAMP.md` now captures pre-revamp scanner behavior, API usage, error states, and final architecture.
+
 ## [0.4.69] — May 22, 2026
 
 ### Docs — Whole-System Competitive Analysis Report

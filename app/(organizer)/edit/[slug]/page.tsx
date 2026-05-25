@@ -220,8 +220,10 @@ export default function EditEventPage() {
   if (status === "loading" || loading) {
     return (
       <div className="px-4 py-12">
-        <div className="mx-auto max-w-[640px] text-[rgba(240,237,230,0.4)] text-sm" style={{ fontFamily: "var(--font-dm-sans)" }}>
-          Loading…
+        <div className="mx-auto max-w-[640px] space-y-3 animate-pulse">
+          <div className="h-6 w-40 rounded bg-[#1A1A1A]" />
+          <div className="h-4 w-64 rounded bg-[#1A1A1A]" />
+          <div className="h-40 rounded-xl bg-[#141414] border border-[#2A2A2A]" />
         </div>
       </div>
     )

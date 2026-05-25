@@ -22,7 +22,7 @@ export function EventFAQEditor({ eventSlug }: Props) {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/events/${eventSlug}/faq`).then((r) => r.json()),
+      fetch(`/api/events/${eventSlug}/faq?includeAll=1`).then((r) => r.json()),
       fetch(`/api/events/${eventSlug}/faq/suggestions`).then((r) => r.json()),
     ]).then(([faqData, suggestData]) => {
       setEnabled(faqData.enabled ?? false)
@@ -64,7 +64,7 @@ export function EventFAQEditor({ eventSlug }: Props) {
   }
 
   return (
-    <div className="border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6 bg-[#141414] space-y-5">
+    <div className="border border-[#2A2A2A] rounded-xl p-6 bg-[#141414] space-y-5">
       {/* Toggle header */}
       <div className="flex items-center justify-between">
         <div>
@@ -82,7 +82,7 @@ export function EventFAQEditor({ eventSlug }: Props) {
           aria-label={enabled ? 'Disable FAQ' : 'Enable FAQ'}
         >
           <span
-            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-[#A3A3A3] shadow transition-transform ${
               enabled ? 'translate-x-5' : 'translate-x-0'
             }`}
           />

@@ -147,12 +147,12 @@ export default function AdminBroadcastPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Email Broadcast</h1>
-        <p className="text-gray-400 mt-1">Send updates to all users, subscribers, or selected individuals.</p>
+        <p className="text-[#A3A3A3] mt-1">Send updates to all users, subscribers, or selected individuals.</p>
       </div>
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 space-y-6">
+      <div className="rounded-2xl border border-[#2A2A2A] bg-[#141414] p-6 space-y-6">
         <div>
-          <label className="block text-sm mb-2 text-zinc-300">Mode</label>
+          <label className="block text-sm mb-2 text-[#A3A3A3]">Mode</label>
           <div className="grid grid-cols-3 gap-2">
             {(["ALL", "SUBSCRIBED", "INDIVIDUAL"] as const).map((m) => (
               <button
@@ -160,8 +160,8 @@ export default function AdminBroadcastPage() {
                 onClick={() => setMode(m)}
                 className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
                   mode === m
-                    ? "bg-lime-400 text-black"
-                    : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+                    ? "bg-[#C8F55A] text-black"
+                    : "bg-[#0A0A0A] text-[#A3A3A3] hover:text-white border border-[#2A2A2A]"
                 }`}
               >
                 {m}
@@ -171,11 +171,11 @@ export default function AdminBroadcastPage() {
         </div>
 
         {mode !== "INDIVIDUAL" && (
-          <div className="rounded-xl bg-zinc-900 p-4 border border-zinc-800">
-            <p className="text-sm text-zinc-400">Recipient preview</p>
+          <div className="rounded-xl bg-[#0A0A0A] p-4 border border-[#2A2A2A]">
+            <p className="text-sm text-[#A3A3A3]">Recipient preview</p>
             <p className="text-2xl font-bold text-white mt-1">{loadingPreview ? "..." : prettyCount}</p>
             {preview?.sampleRecipients?.length ? (
-              <div className="mt-3 text-xs text-zinc-500 space-y-1">
+              <div className="mt-3 text-xs text-[#525252] space-y-1">
                 {preview.sampleRecipients.map((u) => (
                   <div key={u.id}>{u.email}</div>
                 ))}
@@ -186,17 +186,17 @@ export default function AdminBroadcastPage() {
 
         {mode === "INDIVIDUAL" && (
           <div className="space-y-3">
-            <label className="block text-sm text-zinc-300">Find users</label>
+            <label className="block text-sm text-[#A3A3A3]">Find users</label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or email"
-              className="w-full rounded-xl bg-zinc-900 border border-zinc-700 px-4 py-2 text-white"
+              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
             />
 
-            <div className="max-h-44 overflow-y-auto rounded-xl border border-zinc-800">
+            <div className="max-h-44 overflow-y-auto rounded-xl border border-[#2A2A2A]">
               {foundUsers.length === 0 ? (
-                <p className="p-3 text-sm text-zinc-500">No users found</p>
+                <p className="p-3 text-sm text-[#525252]">No users found</p>
               ) : (
                 foundUsers.map((u) => (
                   <button
@@ -207,10 +207,10 @@ export default function AdminBroadcastPage() {
                         setSelectedUsers((prev) => [...prev, u])
                       }
                     }}
-                    className="w-full text-left px-3 py-2 border-b border-zinc-800 hover:bg-zinc-900"
+                    className="w-full text-left px-3 py-2 border-b border-[#2A2A2A] hover:bg-[#141414]"
                   >
                     <p className="text-sm text-white">{u.name || "No name"}</p>
-                    <p className="text-xs text-zinc-500">{u.email}</p>
+                    <p className="text-xs text-[#525252]">{u.email}</p>
                   </button>
                 ))
               )}
@@ -221,7 +221,7 @@ export default function AdminBroadcastPage() {
                 {selectedUsers.map((u) => (
                   <span
                     key={u.id}
-                    className="inline-flex items-center gap-2 rounded-full bg-lime-400/20 border border-lime-500/30 px-3 py-1 text-xs text-lime-200"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30 px-3 py-1 text-xs"
                   >
                     {u.email}
                     <button
@@ -235,47 +235,47 @@ export default function AdminBroadcastPage() {
               </div>
             )}
 
-            <p className="text-xs text-zinc-500">Selected: {selectedUsers.length}</p>
+            <p className="text-xs text-[#525252]">Selected: {selectedUsers.length}</p>
           </div>
         )}
 
         <div>
-          <label className="block text-sm mb-1 text-zinc-300">Subject</label>
+          <label className="block text-sm mb-1 text-[#A3A3A3]">Subject</label>
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="w-full rounded-xl bg-zinc-900 border border-zinc-700 px-4 py-2 text-white"
+            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
             placeholder="Your subject"
           />
         </div>
 
         <div>
-          <label className="block text-sm mb-1 text-zinc-300">Message</label>
+          <label className="block text-sm mb-1 text-[#A3A3A3]">Message</label>
           <textarea
             value={htmlContent}
             onChange={(e) => setHtmlContent(e.target.value)}
             rows={10}
-            className="w-full rounded-xl bg-zinc-900 border border-zinc-700 px-4 py-2 text-white"
+            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
           />
-          <p className="mt-1 text-xs text-zinc-500">Use {"{{name}}"} for personalization.</p>
+          <p className="mt-1 text-xs text-[#525252]">Use {"{{name}}"} for personalization.</p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={handleSend}
             disabled={sending}
-            className="rounded-xl bg-lime-400 text-black font-semibold px-5 py-2 hover:bg-lime-300 disabled:opacity-50"
+            className="bg-[#C8F55A] text-black font-bold px-5 py-2 rounded-xl hover:bg-[#b8e040] transition-colors disabled:opacity-50"
           >
             {sending ? "Sending..." : `Send (${mode})`}
           </button>
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[#525252]">
             {mode === "INDIVIDUAL"
               ? `${selectedUsers.length} selected`
               : `${preview?.recipientCount ?? 0} recipients`}
           </span>
         </div>
 
-        {message ? <p className="text-sm text-zinc-300">{message}</p> : null}
+        {message ? <p className="text-sm text-[#A3A3A3]">{message}</p> : null}
       </div>
     </div>
   )

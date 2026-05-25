@@ -63,14 +63,14 @@ export default function ConversationsPage() {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-64px)] flex-col lg:flex-row">
       {/* Sidebar */}
-      <div className="w-80 border-r border-[#2A2A2A] flex flex-col shrink-0">
+      <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-[#2A2A2A] flex flex-col shrink-0">
         <div className="p-4 border-b border-[#2A2A2A]">
           <h1 className="text-white font-bold text-base mb-3">
             Assistant Conversations
           </h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {(["flagged", "all"] as const).map(f => (
               <button
                 key={f}
@@ -95,7 +95,14 @@ export default function ConversationsPage() {
             <p className="p-4 text-red-400 text-sm">{error}</p>
           )}
           {loading && (
-            <p className="p-4 text-[#525252] text-sm">Loading...</p>
+            <div className="p-4 space-y-2 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="rounded-lg border border-[#2A2A2A] bg-[#141414] p-3">
+                  <div className="h-3 w-32 rounded bg-[#1A1A1A] mb-2" />
+                  <div className="h-2.5 w-40 rounded bg-[#1A1A1A]" />
+                </div>
+              ))}
+            </div>
           )}
           {!loading && sessions.length === 0 && (
             <p className="p-4 text-[#525252] text-sm">

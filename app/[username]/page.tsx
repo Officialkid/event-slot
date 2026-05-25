@@ -215,7 +215,7 @@ export default async function PublicProfilePage({
     if (event.deadline && new Date(event.deadline) < new Date()) {
       return (
         <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-          <div className="mx-auto max-w-[480px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-10 text-center">
+          <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
             <h1 className="text-[1.4rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
               Registration closed
             </h1>
@@ -233,7 +233,7 @@ export default async function PublicProfilePage({
     if (event.status === "closed") {
       return (
         <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-          <div className="mx-auto max-w-[480px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-10 text-center">
+          <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
             <h1 className="text-[1.4rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
               {event.title}
             </h1>
@@ -291,11 +291,11 @@ export default async function PublicProfilePage({
             <section className="space-y-3">
               {/* FAQ — shown above the form if enabled */}
               {event.faqEnabled && eventFaqs.length > 0 && (
-                <div className="rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6">
+                <div className="rounded-xl border border-[#2A2A2A] bg-[#141414] p-6">
                   <EventFAQDisplay faqs={eventFaqs} />
                 </div>
               )}
-              <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Registration</p>
+              <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-2">✦ Registration</p>
               <RegistrationForm
                 event={{
                   ...event,
@@ -313,7 +313,7 @@ export default async function PublicProfilePage({
 
             {/* Already Registered? lookup panel */}
             <section className="space-y-3 lg:sticky lg:top-6">
-              <p className="text-[0.72rem] uppercase tracking-[0.11em] text-[rgba(240,237,230,0.45)]">Attendance Lookup</p>
+              <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-2">✦ Attendance Lookup</p>
               <ConfirmAttendance eventSlug={username} />
               {event.eventType === "VIRTUAL" && event.eventDate && (
                 <JoinEventButton

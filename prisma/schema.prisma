@@ -47,6 +47,7 @@ model Event {
   countryCode      String?   // ISO 3166-1 alpha-2 — country detected when event was created
   category         String?   // e.g. CONFERENCE, WORKSHOP, NETWORKING, CHURCH, CAMPUS, CONCERT, VIRTUAL
   faqEnabled       Boolean   @default(false)
+  aiInsightsFreeUsed Boolean @default(false)
   whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
   registrations    Registration[]
   views            EventView[]
@@ -332,6 +333,8 @@ model Registration {
   qrCode                String?   @unique
   confirmationCode      String?   @unique
   source                String    @default("form")
+  refCode               String?
+  utmSource             String?
   countryCode           String?   // ISO 3166-1 alpha-2 — country detected when attendee registered
   ticket                Ticket?
 }
@@ -643,6 +646,7 @@ model EmailCampaign {
   status         EmailCampaignStatus @default(DRAFT)
   sentAt         DateTime?
   recipientCount Int?
+  failureReason  String?
   createdAt      DateTime            @default(now())
 }
 

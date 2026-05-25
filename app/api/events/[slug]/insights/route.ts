@@ -8,6 +8,8 @@ import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { getAIProviderStatus } from '@/lib/ai'
 import { aiRatelimit } from '@/lib/ratelimit'
 import { getCountryFlag, getCountryName } from '@/lib/geoip'
+import { spendCredits, CREDIT_COSTS } from '@/lib/credits'
+import { isSuperAdmin } from '@/lib/tokens'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -57,8 +59,19 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           cards: event.insight.cards,
           generatedAt: event.insight.generatedAt,
           cached: true,
+          aiInsightsFreeUsed: event.aiInsightsFreeUsed,
         })
       }
+
+      // Avoid hidden credit charges on passive page loads.
+      // Non-forced loads return last generated insights even when stale.
+      return NextResponse.json({
+        cards: event.insight.cards,
+        generatedAt: event.insight.generatedAt,
+        cached: true,
+        stale: true,
+        aiInsightsFreeUsed: event.aiInsightsFreeUsed,
+      })
     }
 
     // Fetch analytics data to power insights
@@ -116,8 +129,41 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       ? Math.ceil((new Date(event.eventDate).getTime() - Date.now()) / 86400000)
       : null
 
-    // Spend credits for free plan (before generation to avoid double-generation on failure)
-    // NOTE: credits are already spent via /api/features/unlock — no charge needed here
+    // Free-first + paid regeneration model.
+    // First generated insight set is free per event; subsequent forced regenerations are paid.
+    let aiInsightsFreeUsed = event.aiInsightsFreeUsed
+    const userEmail = session?.user?.email ?? null
+    const isPrivileged = isSuperAdmin(userEmail)
+
+    if (!isPrivileged) {
+      if (!aiInsightsFreeUsed) {
+        await prisma.event.update({
+          where: { id: event.id },
+          data: { aiInsightsFreeUsed: true },
+        })
+        aiInsightsFreeUsed = true
+      } else if (force) {
+        if (!session?.user?.id) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const spend = await spendCredits({
+          userId: session.user.id,
+          amount: CREDIT_COSTS.ai_insights,
+          description: 'AI event insights regeneration',
+          eventId: event.id,
+        })
+        if (!spend.success) {
+          return NextResponse.json(
+            {
+              error: spend.error || 'Insufficient credits',
+              insufficientCredits: true,
+              creditsNeeded: CREDIT_COSTS.ai_insights,
+            },
+            { status: 402 }
+          )
+        }
+      }
+    }
 
     // Build geo context for AI prompt
     const geoContext = attendeeCountries.length > 0
@@ -168,6 +214,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         provider: generated.provider,
         providerStatus: generated.providerStatus,
         retryRecommended: generated.retryRecommended,
+        aiInsightsFreeUsed,
       })
     }
 
@@ -184,6 +231,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       source: generated.source,
       provider: generated.provider,
       providerStatus: generated.providerStatus,
+      aiInsightsFreeUsed,
     })
   } catch (err) {
     console.error('Insights error:', err)

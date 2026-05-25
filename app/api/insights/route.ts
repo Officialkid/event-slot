@@ -1,15 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { askAIWithMeta } from '@/lib/ai'
 
-export async function GET() {
+type InsightsRange = '30d' | '90d' | '1y' | 'all'
+
+function getStartDate(range: InsightsRange): Date | undefined {
+  const now = Date.now()
+  if (range === '30d') return new Date(now - 30 * 86_400_000)
+  if (range === '90d') return new Date(now - 90 * 86_400_000)
+  if (range === '1y') return new Date(now - 365 * 86_400_000)
+  return undefined
+}
+
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rangeParam = req.nextUrl.searchParams.get('range')
+    const range: InsightsRange =
+      rangeParam === '30d' || rangeParam === '90d' || rangeParam === '1y' || rangeParam === 'all'
+        ? rangeParam
+        : '90d'
+    const startDate = getStartDate(range)
 
     // Fetch all events + registrations for this organizer
     const events = await prisma.event.findMany({
@@ -19,6 +36,7 @@ export async function GET() {
         title: true,
         questions: true,
         registrations: {
+          where: startDate ? { submittedAt: { gte: startDate } } : undefined,
           select: {
             answers: true,
             submittedAt: true,
@@ -28,9 +46,78 @@ export async function GET() {
       },
     })
 
+    const eventsBreakdown = await prisma.event.findMany({
+      where: { organizerId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        eventDate: true,
+      },
+    })
+
     const totalEventsAnalysed = events.length
     const allRegistrations = events.flatMap(e => e.registrations)
     const totalRespondents = allRegistrations.length
+
+    const eventLeaderboardRaw = await Promise.all(
+      eventsBreakdown.map(async (eventRow) => {
+        const [registrationsCount, confirmedCount, checkedInCount, viewsCount] = await Promise.all([
+          prisma.registration.count({
+            where: {
+              eventId: eventRow.id,
+              ...(startDate ? { submittedAt: { gte: startDate } } : {}),
+            },
+          }),
+          prisma.registration.count({
+            where: {
+              eventId: eventRow.id,
+              status: { in: ['confirmed', 'CONFIRMED'] },
+              ...(startDate ? { submittedAt: { gte: startDate } } : {}),
+            },
+          }),
+          prisma.ticket.count({
+            where: {
+              registration: {
+                eventId: eventRow.id,
+                ...(startDate ? { submittedAt: { gte: startDate } } : {}),
+              },
+              scannedAt: { not: null },
+            },
+          }),
+          prisma.eventView.count({
+            where: {
+              eventId: eventRow.id,
+              ...(startDate ? { viewedAt: { gte: startDate } } : {}),
+            },
+          }),
+        ])
+
+        const conversionRate = viewsCount > 0
+          ? Math.round((registrationsCount / viewsCount) * 100)
+          : 0
+        const checkInRate = confirmedCount > 0
+          ? Math.round((checkedInCount / confirmedCount) * 100)
+          : 0
+
+        return {
+          id: eventRow.id,
+          slug: eventRow.slug,
+          title: eventRow.title,
+          date: eventRow.eventDate,
+          registrations: registrationsCount,
+          confirmed: confirmedCount,
+          checkedIn: checkedInCount,
+          checkInRate,
+          conversionRate,
+          views: viewsCount,
+        }
+      })
+    )
+
+    const eventLeaderboard = eventLeaderboardRaw.sort((a, b) => b.registrations - a.registrations)
 
     // Cross-event demographics by question label
     const questionAggMap = new Map<string, {
@@ -102,6 +189,20 @@ export async function GET() {
     }
     const registrationsByMonth = Array.from(monthMap.entries()).map(([month, count]) => ({ month, count }))
 
+    const months = registrationsByMonth
+    const currentMonthCount = months[months.length - 1]?.count ?? 0
+    const previousMonthCount = months[months.length - 2]?.count ?? 0
+
+    const momChange = previousMonthCount > 0
+      ? Math.round(((currentMonthCount - previousMonthCount) / previousMonthCount) * 100)
+      : null
+
+    const thisMonthTotal = months.slice(-1)[0]?.count ?? 0
+    const lastMonthTotal = months.slice(-2, -1)[0]?.count ?? 0
+    const registrantsMoM = lastMonthTotal > 0
+      ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
+      : null
+
     // Repeat attendees (emails that appear in 2+ registrations)
     const emailCount = new Map<string, number>()
     for (const reg of allRegistrations) {
@@ -140,12 +241,16 @@ ${registrationsByMonth.map((m) => `${m.month}: ${m.count}`).join(', ')}`
       ?? 'AI summary is temporarily unavailable. Core analytics remain available below.'
 
     return NextResponse.json({
+      range,
       totalEventsAnalysed,
       totalRespondents,
       questionInsights,
       registrationsByDayOfWeek,
       registrationsByMonth,
       repeatAttendees,
+      momChange,
+      registrantsMoM,
+      eventLeaderboard,
       aiSummary,
       aiSummarySource: aiSummaryResult.content ? 'ai' : 'fallback',
       aiProvider: aiSummaryResult.provider,

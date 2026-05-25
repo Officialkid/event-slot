@@ -61,8 +61,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const body = (await req.json()) as VerifyBody
     const { token, code, identity, qrPayload, ticketCode } = body
 
-    const event = await prisma.event.findUnique({
-      where: { slug },
+    const event = await prisma.event.findFirst({
+      where: {
+        OR: [{ slug }, { id: slug }],
+      },
       select: { id: true, title: true, organizerId: true, dashboardToken: true, questions: true },
     })
 
@@ -229,6 +231,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
           eventId: event.id,
           status: 'confirmed',
         },
+        orderBy: { createdAt: 'desc' },
+        take: 1000,
         select: {
           id: true,
           status: true,

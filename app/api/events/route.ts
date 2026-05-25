@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       isPaid,
       ticketPrice,
       communityLink,
+      whatsappNumber,
       imageUrl,
       questions,
       organizerEmail,
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
     const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
     const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
     const eventCountryCode = await detectCountry(req).catch(() => null)
+    const cleanWhatsappNumber = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : null
 
     const event = await prisma.event.create({
       data: {
@@ -136,6 +138,7 @@ export async function POST(req: NextRequest) {
         paymentsLive: false,
         ticketsEnabled: true,
         communityLink: normalizeCommunityLink(communityLink) || undefined,
+        whatsappNumber: cleanWhatsappNumber || undefined,
         imageUrl: imageUrl || undefined,
         questions,
         organizerEmail: eventOrganizerEmail,
@@ -170,6 +173,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, event }, { status: 201 })
   } catch (err) {
+    console.error('[events/POST] Error creating event:', err)
+
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
       if (err.code === 'P2002') {
         return NextResponse.json(
@@ -186,7 +191,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return NextResponse.json({ success: false, error: message }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: 'Failed to create event. Please try again.' },
+      { status: 500 }
+    )
   }
 }

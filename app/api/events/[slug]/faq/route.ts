@@ -5,18 +5,31 @@ import prisma from '@/lib/prisma'
 
 // GET /api/events/[slug]/faq — public, returns FAQs for event page
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await context.params
+  const includeAll = req.nextUrl.searchParams.get('includeAll') === '1'
+
   const event = await prisma.event.findUnique({
     where: { slug },
     select: {
+      id: true,
+      organizerId: true,
       faqEnabled: true,
       faqs: { orderBy: { order: 'asc' } },
     },
   })
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  if (includeAll) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || event.organizerId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    return NextResponse.json({ enabled: event.faqEnabled, faqs: event.faqs })
+  }
+
   if (!event.faqEnabled) return NextResponse.json({ enabled: false, faqs: [] })
   return NextResponse.json({ enabled: true, faqs: event.faqs })
 }

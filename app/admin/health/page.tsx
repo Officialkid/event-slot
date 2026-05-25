@@ -39,7 +39,20 @@ export default function AdminHealthPage() {
   }, [])
 
   if (loading) {
-    return <div style={{ color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>Loading…</div>
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 960, animation: "pulse 1.4s ease-in-out infinite" }}>
+        <div style={{ height: 24, width: 220, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 14, width: 260, borderRadius: 8, background: "#1A1A1A" }} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ height: 10, width: 120, borderRadius: 6, background: "#1A1A1A", marginBottom: "0.8rem" }} />
+              <div style={{ height: 16, width: 90, borderRadius: 6, background: "#1A1A1A" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
   if (!data) return null
 

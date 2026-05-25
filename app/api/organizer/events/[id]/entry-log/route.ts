@@ -51,12 +51,8 @@ export async function GET(
   })
 
   let hostLink: string | null = null
-  if (event.eventType === 'VIRTUAL' && event.virtualLink && event.virtualLinkIv) {
-    try {
-      hostLink = decrypt(event.virtualLink, event.virtualLinkIv)
-    } catch {
-      hostLink = null
-    }
+  if (event.eventType === 'VIRTUAL' && event.virtualLink) {
+    hostLink = decrypt(event.virtualLink, event.virtualLinkIv ?? '')
   }
 
   return NextResponse.json({

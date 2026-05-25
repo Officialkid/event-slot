@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { env } from '@/lib/env'
+import { runPioneerBackfill } from '@/lib/pioneer-backfill'
 
 /**
  * POST /api/superadmin/badges/backfill-pioneers
@@ -11,32 +12,16 @@ import { prisma } from '@/lib/prisma'
  *     -H "Authorization: Bearer $CRON_SECRET"
  */
 export async function POST(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const firstUsers = await prisma.user.findMany({
-    orderBy: { createdAt: 'asc' },
-    take: 150,
-    select: { id: true },
-  })
-
-  let awarded = 0
-  for (const u of firstUsers) {
-    const has = await prisma.userBadge.findUnique({
-      where: { userId_badge: { userId: u.id, badge: 'PIONEER' } },
-    })
-    if (!has) {
-      await prisma.userBadge.create({ data: { userId: u.id, badge: 'PIONEER' } })
-      await prisma.pioneerBadge.upsert({
-        where: { userId: u.id },
-        update: {},
-        create: { userId: u.id, hasSeenCongratulations: false },
-      })
-      awarded++
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!env.CRON_SECRET || authHeader !== `Bearer ${env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-  }
 
-  return NextResponse.json({ awarded, total: firstUsers.length })
+    const result = await runPioneerBackfill(150)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('[superadmin/backfill-pioneers] POST error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

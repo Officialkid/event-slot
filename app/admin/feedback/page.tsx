@@ -39,7 +39,23 @@ export default function FeedbackPage() {
 
   const STARS = ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐", "⭐⭐⭐⭐⭐"]
 
-  if (loading) return <div className="p-8 text-[#525252]">Loading...</div>
+  if (loading) {
+    return (
+      <div className="p-6 max-w-4xl animate-pulse space-y-4">
+        <div className="h-6 w-56 rounded bg-[#1A1A1A]" />
+        <div className="h-4 w-48 rounded bg-[#1A1A1A]" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] space-y-3">
+              <div className="h-3 w-20 rounded bg-[#1A1A1A]" />
+              <div className="h-8 w-24 rounded bg-[#1A1A1A]" />
+              <div className="h-3 w-16 rounded bg-[#1A1A1A]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
   if (!data) return <div className="p-8 text-red-400">Failed to load.</div>
 
   return (

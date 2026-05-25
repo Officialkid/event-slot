@@ -126,16 +126,8 @@ export async function POST(
     }
 
     let meetingLink: string | null = null
-    if (
-      registration.event.eventType === 'VIRTUAL' &&
-      registration.event.virtualLink &&
-      registration.event.virtualLinkIv
-    ) {
-      try {
-        meetingLink = decrypt(registration.event.virtualLink, registration.event.virtualLinkIv)
-      } catch {
-        console.error('[EventSlot] Failed to decrypt virtual link in fallback path')
-      }
+    if (registration.event.eventType === 'VIRTUAL' && registration.event.virtualLink) {
+      meetingLink = decrypt(registration.event.virtualLink, registration.event.virtualLinkIv ?? '')
     }
 
     const canonicalTicketId = registration.confirmationCode ?? registration.id
@@ -147,7 +139,10 @@ export async function POST(
       ticketId: canonicalTicketId,
       meetingLink,
       eventType: registration.event.eventType,
-      message: `Welcome, ${attendeeName}!`,
+      message:
+        registration.event.eventType === 'VIRTUAL' && !meetingLink
+          ? 'Meeting link is being set up. Please check back shortly or contact the organiser.'
+          : `Welcome, ${attendeeName}!`,
     })
   }
 
@@ -322,18 +317,16 @@ export async function POST(
   const isDuplicateScan = !!alreadyScanned
 
   let meetingLink: string | null = null
-  if (
-    registration.event.eventType === 'VIRTUAL' &&
-    registration.event.virtualLink &&
-    registration.event.virtualLinkIv
-  ) {
-    try {
-      meetingLink = decrypt(registration.event.virtualLink, registration.event.virtualLinkIv)
-    } catch {
-      console.error('[EventSlot] Failed to decrypt virtual link')
-      meetingLink = null
-    }
+  if (registration.event.eventType === 'VIRTUAL' && registration.event.virtualLink) {
+    meetingLink = decrypt(registration.event.virtualLink, registration.event.virtualLinkIv ?? '')
   }
+
+  const successMessage =
+    registration.event.eventType === 'VIRTUAL'
+      ? meetingLink
+        ? `Welcome, ${attendeeName}! Your meeting link is ready.`
+        : 'Meeting link is being set up. Please check back shortly or contact the organiser.'
+      : `Welcome, ${attendeeName}! Enjoy the event!`
 
   await logEntry(
     eventId,
@@ -353,7 +346,7 @@ export async function POST(
     isPaid: registration.event.isPaid,
     ticketPrice: registration.event.ticketPrice,
     isDuplicateScan,
-    message: `Welcome, ${attendeeName}! ${registration.event.eventType === 'VIRTUAL' ? 'Your meeting link is ready.' : 'Enjoy the event!'}`,
+    message: successMessage,
   })
 }
 

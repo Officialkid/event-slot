@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth"
 import { isAdminEmail } from "@/lib/isAdmin"
 import { prisma } from "@/lib/prisma"
 import { generateStakeholderReport } from "@/lib/generateStakeholderReport"
+import { env } from "@/lib/env"
 
 type ReportPeriod = "weekly" | "monthly" | "yearly"
 
@@ -19,7 +20,7 @@ type MonthlySnapshot = {
 }
 
 const FIRST_PLATFORM_ACTIVITY_AT = new Date("2026-04-15T00:00:00.000Z")
-const PRO_ELIGIBILITY_MIN_REGISTRATIONS = Number.parseInt(process.env.REPORT_PRO_ELIGIBILITY_MIN_REGISTRATIONS ?? "30", 10)
+const PRO_ELIGIBILITY_MIN_REGISTRATIONS = Number.parseInt(env.REPORT_PRO_ELIGIBILITY_MIN_REGISTRATIONS || "30", 10)
 
 function getMonthlyWeekBuckets(periodStart: Date): TrendBuckets {
   const labels: string[] = []
@@ -104,125 +105,135 @@ function buildMonthlySnapshotsSinceLaunch(
 }
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!isAdminEmail(session?.user?.email)) {
-    return new Response(null, { status: 404 })
-  }
+  try {
+    const session = await getServerSession(authOptions)
+    if (!isAdminEmail(session?.user?.email)) {
+      return new Response(null, { status: 404 })
+    }
 
-  const { searchParams } = new URL(request.url)
-  const periodParam = searchParams.get("period")
-  const period: ReportPeriod =
-    periodParam === "weekly" || periodParam === "monthly" || periodParam === "yearly" ? periodParam : "monthly"
+    const { searchParams } = new URL(request.url)
+    const periodParam = searchParams.get("period")
+    const period: ReportPeriod =
+      periodParam === "weekly" || periodParam === "monthly" || periodParam === "yearly" ? periodParam : "monthly"
 
-  const now = new Date()
-  let periodStart: Date
-  let periodLabel: string
-  let prevStart: Date
-  let prevEnd: Date
+    const now = new Date()
+    let periodStart: Date
+    let periodLabel: string
+    let prevStart: Date
+    let prevEnd: Date
 
-  if (period === "weekly") {
-    periodStart = new Date(now)
-    periodStart.setDate(now.getDate() - 7)
-    prevStart = new Date(now)
-    prevStart.setDate(now.getDate() - 14)
-    prevEnd = new Date(periodStart)
-    periodLabel = `Week of ${periodStart.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
-  } else if (period === "monthly") {
-    periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    prevEnd = new Date(periodStart)
-    periodLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-  } else {
-    periodStart = new Date(now.getFullYear(), 0, 1)
-    prevStart = new Date(now.getFullYear() - 1, 0, 1)
-    prevEnd = new Date(periodStart)
-    periodLabel = String(now.getFullYear())
-  }
+    if (period === "weekly") {
+      periodStart = new Date(now)
+      periodStart.setDate(now.getDate() - 7)
+      prevStart = new Date(now)
+      prevStart.setDate(now.getDate() - 14)
+      prevEnd = new Date(periodStart)
+      periodLabel = `Week of ${periodStart.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+    } else if (period === "monthly") {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      prevEnd = new Date(periodStart)
+      periodLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+    } else {
+      periodStart = new Date(now.getFullYear(), 0, 1)
+      prevStart = new Date(now.getFullYear() - 1, 0, 1)
+      prevEnd = new Date(periodStart)
+      periodLabel = String(now.getFullYear())
+    }
 
-  const trendBuckets =
-    period === "yearly" ? getYearlyMonthBuckets(now.getFullYear()) : getMonthlyWeekBuckets(periodStart)
+    const trendBuckets =
+      period === "yearly" ? getYearlyMonthBuckets(now.getFullYear()) : getMonthlyWeekBuckets(periodStart)
 
-  const trendStart = trendBuckets.starts[0] ?? periodStart
-  const trendEnd = trendBuckets.ends[trendBuckets.ends.length - 1] ?? now
+    const trendStart = trendBuckets.starts[0] ?? periodStart
+    const trendEnd = trendBuckets.ends[trendBuckets.ends.length - 1] ?? now
 
-  const [
-    totalUsers,
-    newUsers,
-    prevNewUsers,
-    totalEvents,
-    newEvents,
-    prevNewEvents,
-    totalRegistrations,
-    newRegistrations,
-    prevNewRegistrations,
-    activeEvents,
-    errorLogs,
-    transactions,
-    topEvents,
-    userPlans,
-    usersForTrend,
-    eventsForTrend,
-    registrationsForTrend,
-    usersSinceLaunch,
-    registrationsSinceLaunch,
-    allEventsForPipeline,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { createdAt: { gte: periodStart } } }),
-    prisma.user.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
-    prisma.event.count(),
-    prisma.event.count({ where: { createdAt: { gte: periodStart } } }),
-    prisma.event.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
-    prisma.registration.count(),
-    prisma.registration.count({ where: { submittedAt: { gte: periodStart } } }),
-    prisma.registration.count({ where: { submittedAt: { gte: prevStart, lt: prevEnd } } }),
-    prisma.event.count({
-      where: {
-        status: "active",
-        archived: false,
-        OR: [{ deadline: null }, { deadline: { gt: now } }],
-      },
-    }),
-    prisma.errorLog.findMany({ where: { createdAt: { gte: periodStart } }, orderBy: { createdAt: "desc" } }),
-    prisma.reportDownloadTransaction.findMany({ where: { createdAt: { gte: periodStart } } }),
-    prisma.event.findMany({
-      where: { createdAt: { gte: periodStart } },
-      orderBy: { confirmedCount: "desc" },
-      take: 10,
-      include: { organizer: { select: { name: true, email: true } } },
-    }),
-    prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),
-    prisma.user.findMany({
-      where: { createdAt: { gte: trendStart, lt: trendEnd } },
-      select: { createdAt: true },
-    }),
-    prisma.event.findMany({
-      where: { createdAt: { gte: trendStart, lt: trendEnd } },
-      select: { createdAt: true },
-    }),
-    prisma.registration.findMany({
-      where: { submittedAt: { gte: trendStart, lt: trendEnd } },
-      select: { submittedAt: true },
-    }),
-    prisma.user.findMany({
-      where: { createdAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
-      select: { createdAt: true },
-    }),
-    prisma.registration.findMany({
-      where: { submittedAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
-      select: { submittedAt: true },
-    }),
-    prisma.event.findMany({
-      select: {
-        organizerId: true,
-        organizerEmail: true,
-        confirmedCount: true,
-        deadline: true,
-        status: true,
-        archived: true,
-      },
-    }),
-  ])
+    const [
+      totalUsers,
+      newUsers,
+      prevNewUsers,
+      totalEvents,
+      newEvents,
+      prevNewEvents,
+      totalRegistrations,
+      newRegistrations,
+      prevNewRegistrations,
+      activeEvents,
+      errorLogs,
+      transactions,
+      topEvents,
+      userPlans,
+      usersForTrend,
+      eventsForTrend,
+      registrationsForTrend,
+      usersSinceLaunch,
+      registrationsSinceLaunch,
+      allEventsForPipeline,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { createdAt: { gte: periodStart } } }),
+      prisma.user.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
+      prisma.event.count(),
+      prisma.event.count({ where: { createdAt: { gte: periodStart } } }),
+      prisma.event.count({ where: { createdAt: { gte: prevStart, lt: prevEnd } } }),
+      prisma.registration.count(),
+      prisma.registration.count({ where: { submittedAt: { gte: periodStart } } }),
+      prisma.registration.count({ where: { submittedAt: { gte: prevStart, lt: prevEnd } } }),
+      prisma.event.count({
+        where: {
+          status: "active",
+          archived: false,
+          OR: [{ deadline: null }, { deadline: { gt: now } }],
+        },
+      }),
+      prisma.errorLog.findMany({
+        where: { createdAt: { gte: periodStart } },
+        orderBy: { createdAt: "desc" },
+        take: 5000,
+      }),
+      prisma.reportDownloadTransaction.findMany({
+        where: { createdAt: { gte: periodStart } },
+        orderBy: { createdAt: "desc" },
+        take: 5000,
+      }),
+      prisma.event.findMany({
+        where: { createdAt: { gte: periodStart } },
+        orderBy: { confirmedCount: "desc" },
+        take: 10,
+        include: { organizer: { select: { name: true, email: true } } },
+      }),
+      prisma.user.groupBy({ by: ["plan"], _count: { _all: true } }),
+      prisma.user.findMany({
+        where: { createdAt: { gte: trendStart, lt: trendEnd } },
+        select: { createdAt: true },
+      }),
+      prisma.event.findMany({
+        where: { createdAt: { gte: trendStart, lt: trendEnd } },
+        select: { createdAt: true },
+      }),
+      prisma.registration.findMany({
+        where: { submittedAt: { gte: trendStart, lt: trendEnd } },
+        select: { submittedAt: true },
+      }),
+      prisma.user.findMany({
+        where: { createdAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
+        select: { createdAt: true },
+      }),
+      prisma.registration.findMany({
+        where: { submittedAt: { gte: FIRST_PLATFORM_ACTIVITY_AT } },
+        select: { submittedAt: true },
+      }),
+      prisma.event.findMany({
+        select: {
+          organizerId: true,
+          organizerEmail: true,
+          confirmedCount: true,
+          deadline: true,
+          status: true,
+          archived: true,
+        },
+        take: 5000,
+      }),
+    ])
 
   const errorMap: Record<string, { count: number; message: string }> = {}
   for (const error of errorLogs) {
@@ -318,13 +329,17 @@ export async function GET(request: Request) {
     eligibleForProOrganizers: eligibleForProOrganizerKeys.size,
   })
 
-  const reportBytes = new Uint8Array(buffer)
+    const reportBytes = new Uint8Array(buffer)
 
-  return new Response(reportBytes, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="eventslot-${period}-report-${now.toISOString().split("T")[0]}.docx"`,
-    },
-  })
+    return new Response(reportBytes, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="eventslot-${period}-report-${now.toISOString().split("T")[0]}.docx"`,
+      },
+    })
+  } catch (error) {
+    console.error("[admin/stakeholder-report] GET error:", error)
+    return Response.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

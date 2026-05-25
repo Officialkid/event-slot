@@ -25,20 +25,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Subject and content are required" }, { status: 400 })
     }
 
-    const [message, users] = await Promise.all([
-      prisma.message.create({
-        data: {
-          type: "ADMIN_BROADCAST",
-          authorId: null,
-          subject,
-          content,
-          isPublic: true,
-        },
-      }),
-      prisma.user.findMany({ select: { id: true } }),
-    ])
+    const message = await prisma.message.create({
+      data: {
+        type: "ADMIN_BROADCAST",
+        authorId: null,
+        subject,
+        content,
+        isPublic: true,
+      },
+    })
 
-    if (users.length > 0) {
+    const batchSize = 1000
+    let cursor: string | null = null
+    let notified = 0
+
+    for (;;) {
+      const users = await prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: "asc" },
+        take: batchSize,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      })
+
+      if (users.length === 0) {
+        break
+      }
+
       await prisma.notification.createMany({
         data: users.map((user) => ({
           userId: user.id,
@@ -48,17 +60,20 @@ export async function POST(req: NextRequest) {
           link: "/comms",
         })),
       })
+
+      notified += users.length
+      cursor = users[users.length - 1].id
     }
 
-    return NextResponse.json(message, { status: 201 })
+    return NextResponse.json({ ...message, recipientsNotified: notified }, { status: 201 })
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2022") {
       return NextResponse.json(
         {
           success: false,
-          error: "Comms schema is out of sync. Run prisma migrate deploy.",
+          error: "Comms service is temporarily unavailable.",
         },
-        { status: 200 }
+        { status: 503 }
       )
     }
     console.error("[admin/comms] POST error:", err)

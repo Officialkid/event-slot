@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import CountdownTimer from "@/components/CountdownTimer"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 
@@ -102,6 +102,9 @@ type PendingPayload = {
   attendeesPayload: Array<{ answers: Array<{ questionId: string; value: string }>; baseEmail?: string }>
   consentTransactional: boolean
   consentMarketing: boolean
+  source: string
+  refCode?: string
+  utmSource?: string
 }
 
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
@@ -121,10 +124,50 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [waitlistEmailErrors, setWaitlistEmailErrors] = useState<Record<string, string>>({})
   // Base email inputs — always collected when event has no email question
   const [baseEmails, setBaseEmails] = useState<string[]>([""])
+  const [registrationSource, setRegistrationSource] = useState<string>("unknown")
+  const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
+  const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
     if (!event.deadline) return false
     return new Date(event.deadline).getTime() <= Date.now()
   })
+
+  useEffect(() => {
+    const sourceKey = `event_source_${event.slug}`
+    const refKey = `event_ref_${event.slug}`
+    const utmKey = `event_utm_source_${event.slug}`
+
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get("ref")?.trim() || ""
+    const utmSource = params.get("utm_source")?.trim() || ""
+    const referrer = document.referrer || ""
+
+    let source = "unknown"
+    if (ref) {
+      source = "referral"
+    } else if (!referrer) {
+      source = "direct"
+    } else {
+      try {
+        const refHost = new URL(referrer).host
+        source = refHost.includes("eventslot") ? "shared" : "unknown"
+      } catch {
+        source = "unknown"
+      }
+    }
+
+    sessionStorage.setItem(sourceKey, source)
+    if (ref) sessionStorage.setItem(refKey, ref)
+    if (utmSource) sessionStorage.setItem(utmKey, utmSource)
+
+    const storedSource = sessionStorage.getItem(sourceKey) || source
+    const storedRef = sessionStorage.getItem(refKey) || undefined
+    const storedUtmSource = sessionStorage.getItem(utmKey) || undefined
+
+    setRegistrationSource(storedSource)
+    setRegistrationRefCode(storedRef)
+    setRegistrationUtmSource(storedUtmSource)
+  }, [event.slug])
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
   const fieldClassName = "mt-1 w-full rounded-[10px] bg-[rgba(255,255,255,0.04)] border border-[rgba(240,237,230,0.16)] px-3 py-2.5 text-[#F0EDE6] text-[0.875rem] placeholder:text-[rgba(240,237,230,0.45)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none focus:ring-2 focus:ring-[rgba(200,245,90,0.15)]"
@@ -184,7 +227,15 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventSlug: event.slug, attendees: attendeesPayload, consentTransactional, consentMarketing }),
+        body: JSON.stringify({
+          eventSlug: event.slug,
+          attendees: attendeesPayload,
+          consentTransactional,
+          consentMarketing,
+          source: registrationSource,
+          refCode: registrationRefCode,
+          utmSource: registrationUtmSource,
+        }),
       })
       const data = await res.json()
       if (data.success) {
@@ -196,7 +247,15 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           name: data.existing?.name ?? "",
           maskedPhone: data.existing?.maskedPhone ?? "",
         })
-        setPendingPayload({ eventSlug: event.slug, attendeesPayload, consentTransactional, consentMarketing })
+        setPendingPayload({
+          eventSlug: event.slug,
+          attendeesPayload,
+          consentTransactional,
+          consentMarketing,
+          source: registrationSource,
+          refCode: registrationRefCode,
+          utmSource: registrationUtmSource,
+        })
       } else {
         setError(data.error || "Registration failed.")
       }
@@ -215,7 +274,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...pendingPayload, attendees: pendingPayload.attendeesPayload, forceDuplicate: true }),
+        body: JSON.stringify({
+          ...pendingPayload,
+          attendees: pendingPayload.attendeesPayload,
+          forceDuplicate: true,
+        }),
       })
       const data = await res.json()
       if (data.success) {

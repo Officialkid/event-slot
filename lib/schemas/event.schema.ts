@@ -21,6 +21,7 @@ export const createEventSchema = z.object({
   isPaid: z.boolean().optional().default(false),
   ticketPrice: z.number().int().positive().optional().nullable(),
   communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
+  whatsappNumber: z.string().max(40).optional().nullable().or(z.literal('')),
   imageUrl: z.string().url().max(1000).optional().nullable(),
   questions: z.array(questionSchema).min(1, 'At least one question is required').max(30),
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
@@ -67,6 +68,17 @@ export const createEventSchema = z.object({
       path: ['ticketPrice'],
       message: 'Maximum ticket price is KSh 500,000',
     })
+  }
+
+  if (data.whatsappNumber?.trim()) {
+    const cleanWhatsapp = data.whatsappNumber.replace(/\D/g, '')
+    if (cleanWhatsapp.length < 7 || cleanWhatsapp.length > 15) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['whatsappNumber'],
+        message: 'WhatsApp number must be between 7 and 15 digits',
+      })
+    }
   }
 })
 

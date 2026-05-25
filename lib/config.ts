@@ -1,3 +1,5 @@
+import { env } from '@/lib/env'
+
 /**
  * APP_URL — canonical public URL for this app.
  * Skips obviously-broken values like 0.0.0.0 or localhost so that
@@ -6,8 +8,7 @@
  */
 function resolveAppUrl(): string {
   const candidates = [
-    process.env.NEXTAUTH_URL,
-    process.env.NEXT_PUBLIC_APP_URL,
+    env.APP_URL,
   ]
   for (const candidate of candidates) {
     if (

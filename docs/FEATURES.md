@@ -4,7 +4,61 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 21, 2026_
+_Last updated: May 25, 2026_
+
+---
+
+## Authentication & URL Integrity
+
+### Canonical App URL Enforcement (BUG-01)
+**Where:** `lib/config.ts`, `app/join/route.ts`, `app/api/events/[slug]/qr/route.ts`, `lib/auth.ts`  
+**What it does:** Enforces canonical absolute URL generation through `APP_URL` and blocks user-facing redirects from inheriting invalid bind-host origins (for example `0.0.0.0` / `localhost`). Referral join redirects, event QR targets, and NextAuth redirect handling now prefer safe canonical URLs.
+
+### NextAuth Explicit Pages + Safe Redirect Fallback
+**Where:** `lib/auth.ts`, `app/api/auth/[...nextauth]/route.ts`  
+**What it does:** Uses explicit NextAuth custom pages (`signIn`, `signOut`, `error`) and a hardened redirect callback that safely resolves relative redirects against canonical app origin.
+
+### Virtual Meeting Link Resilience + Recovery (BUG-02)
+**Where:** `lib/encrypt.ts`, `app/api/events/[slug]/verify-entry/route.ts`, `app/api/organizer/events/[id]/entry-log/route.ts`, `app/api/admin/migrate-virtual-links/route.ts`  
+**What it does:** Prevents virtual-event join failures when encryption key configuration is missing or when legacy links were stored without IV. Attendee and organizer APIs now support plaintext fallback safely, return clear setup messaging when decryption fails, and provide a superadmin-only one-time re-encryption endpoint for post-recovery cleanup.
+
+### Bulk Email Campaign Failure Diagnostics (BUG-03)
+**Where:** `prisma/schema.prisma`, `lib/emailCampaigns.ts`, `app/api/events/[slug]/campaigns/send/route.ts`, `app/api/events/[slug]/campaigns/route.ts`, `app/(organizer)/dashboard/events/[slug]/emails/page.tsx`  
+**What it does:** Adds explicit campaign failure diagnostics by persisting `failureReason`, enforcing pre-send confirmed-attendee validation, and surfacing error reasons in organizer sent-history UI when campaign status is `FAILED`.
+
+### Team Invite Delivery Diagnostics (BUG-04)
+**Where:** `app/api/team/invite/route.ts`, `app/(organizer)/dashboard/team/page.tsx`, `lib/email.ts`  
+**What it does:** Provides deterministic invite send outcomes (`sent`, `failed`, detailed per-email results), clearer API errors when delivery fails, and more reliable UI error surfacing. Team invite emails now use configured sender identity (`EMAIL_FROM`) to reduce provider-side rejection risk.
+
+### Virtual Event Creation Resilience (BUG-05)
+**Where:** `lib/encrypt.ts`, `app/api/events/route.ts`  
+**What it does:** Prevents virtual-event create-request crashes when `ENCRYPTION_KEY` is missing by using graceful encryption fallback and top-level route error handling with stable user-facing responses.
+
+### Verify Ticket Route Compatibility (BUG-06)
+**Where:** `app/api/events/[slug]/verify-ticket/route.ts`  
+**What it does:** Supports event resolution by both slug and event ID in the verify-ticket API path, preventing false 404 responses when different clients pass different identifier types.
+
+### Organizer Scanner Mode Revamp (PRIORITY-3)
+**Where:** `components/scanner/ScannerHome.tsx`, `components/scanner/QuickScan.tsx`, `components/scanner/DeepScan.tsx`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Replaces manual-only ticket verification with a two-mode scanner system:
+- Quick Scan for high-throughput gate checks with instant result overlays and auto-reset.
+- Deep Scan for full attendee profile context, note-taking, explicit mark-attended flow, and CSV session export.
+
+### Multi-Input Scanner Access (Camera, Upload, Manual)
+**Where:** `components/scanner/QuickScan.tsx`, `components/scanner/DeepScan.tsx`, `components/scanner/qr-utils.ts`  
+**What it does:** Adds flexible verification inputs for organisers: live camera QR scan, uploaded ticket image decoding, manual ticket code entry, and manual email/name lookup.
+
+### Deep-Scan Attendee Profile APIs
+**Where:** `app/api/events/[slug]/attendee-profile/route.ts`, `app/api/events/[slug]/attendee-profile/mark-attended/route.ts`  
+**What it does:** Enables deep profile retrieval and controlled attendance confirmation. Supports owner/team/token authorization, custom-answer mapping, note capture, and checked-in state updates.
+
+### Centralized Runtime Environment Access (AUDIT-02)
+**Where:** `lib/env.ts`, `lib/config.ts`, `lib/encrypt.ts`, `lib/email.ts`, `lib/resend.ts`  
+**What it does:** Centralizes environment variable access and required-var logging so configuration faults are visible without crashing app startup. Core URL, encryption, and email services now consume shared env definitions.
+
+### Pioneer Badge Backfill Endpoints (AUDIT-04)
+**Where:** `lib/pioneer-backfill.ts`, `app/api/admin/backfill-pioneers/route.ts`, `app/api/superadmin/badges/backfill-pioneers/route.ts`  
+**What it does:** Provides reusable backfill logic and both admin-session and cron-secret protected endpoints to award missing Pioneer badges for the first eligible users.
 
 ---
 
@@ -29,6 +83,34 @@ _Last updated: May 21, 2026_
 ---
 
 ## Organizer Dashboard UX
+
+### Global Insight Tracker — Month-over-Month Trend Badges (C5)
+**Where:** `app/api/insights/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`  
+**What it does:** Adds month-over-month trend context to top tracker stat cards. The insights API now returns `momChange` and `registrantsMoM` (computed from `registrationsByMonth`), and the dashboard displays a directional trend badge (`▲/▼ X% vs last month`) so organizers can immediately see growth or decline, not just raw totals.
+
+### Global Insight Tracker — Event Leaderboard (H1)
+**Where:** `app/api/insights/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`  
+**What it does:** Adds a per-event leaderboard showing registrations, conversion rate, check-in rate, and views for up to 20 organizer events, sorted by registrations.
+
+### Registration Source Tracking + Source Analytics (H2)
+**Where:** `prisma/schema.prisma`, `app/(attendee)/[username]/RegistrationForm.tsx`, `app/api/register/route.ts`, `app/api/events/[slug]/analytics/route.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Captures registration attribution (`source`, `refCode`, `utmSource`), stores it with each registration, exposes per-event source breakdown in analytics API, and visualizes source distribution via pie chart in event analytics.
+
+### Feedback Score in Event Analytics (H3)
+**Where:** `app/api/events/[slug]/analytics/route.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Surfaces average attendee feedback score and response count directly in the analytics tab, with inline star visualization and quick jump to the feedback tab.
+
+### Global Insight Tracker Date Range Filter (H4)
+**Where:** `app/api/insights/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`  
+**What it does:** Adds user-selectable date windows (`30d`, `90d`, `1y`, `all`) so tracker metrics and trend charts can be analyzed by period rather than all-time only.
+
+### AI Audience Profile (H5)
+**Where:** `app/api/insights/audience-profile/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`  
+**What it does:** Adds on-demand AI-generated 2-sentence audience narrative synthesized from cross-event registration answer patterns.
+
+### CSV Exports for Tracker and Event Analytics (H6)
+**Where:** `app/api/insights/export/route.ts`, `app/api/events/[slug]/analytics/export/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Enables downloadable CSV reports for global organizer insights and per-event analytics with registration/check-in columns for external reporting.
 
 ### Email Attendees — Always-Visible Tab Link
 **Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  

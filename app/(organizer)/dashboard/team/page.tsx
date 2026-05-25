@@ -92,10 +92,11 @@ export default function TeamPage() {
         body: JSON.stringify({ emails }),
       })
       const data = await res.json()
-      if (!res.ok && !data.results) {
+      if (!res.ok) {
         setInviteErrors([data.error ?? "Failed to send invites"])
-      } else {
-        setInviteResults(data.results ?? [])
+      }
+      setInviteResults(data.results ?? [])
+      if (res.ok) {
         setInviteEmails(["", ""])
       }
       // Refresh list

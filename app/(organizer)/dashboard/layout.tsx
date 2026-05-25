@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { PioneerCongratulationsModal } from "@/components/PioneerCongratulationsModal"
 import { WeeklyRankingPopup } from "@/components/WeeklyRankingPopup"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import DashboardShell from "./_shell"
 
 export default async function DashboardLayout({
@@ -16,10 +17,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <DashboardShell>{children}</DashboardShell>
       <PioneerCongratulationsModal />
       <WeeklyRankingPopup />
-    </>
+    </ErrorBoundary>
   )
 }

@@ -33,24 +33,69 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     // Fetch views and registrations
-    const [views, registrations] = await Promise.all([
+    const [views, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackResponses] = await Promise.all([
       prisma.eventView.findMany({ where: { eventId: event.id }, select: { viewedAt: true } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
         select: { submittedAt: true, status: true },
       }),
+      prisma.registration.count({
+        where: {
+          eventId: event.id,
+          status: { in: ['confirmed', 'CONFIRMED'] },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          registration: { eventId: event.id },
+          scannedAt: { not: null },
+        },
+      }),
+      prisma.registration.count({
+        where: {
+          eventId: event.id,
+          status: { in: ['waitlist', 'WAITLISTED', 'waitlisted'] },
+        },
+      }),
+      prisma.errorLog.findMany({
+        where: { route: `waitlist-promotion-email:${event.id}` },
+        select: { message: true },
+      }),
+      prisma.registration.groupBy({
+        by: ['source'],
+        where: { eventId: event.id },
+        _count: { id: true },
+      }),
+      prisma.attendeeFeedback.findMany({
+        where: { eventId: event.id },
+        select: { rating: true },
+      }),
     ])
 
     const totalViews = views.length
     const totalRegistrations = registrations.length
-    const confirmedCount = registrations.filter((r: { status: string }) => r.status === 'confirmed').length
-    const waitlistCount = registrations.filter((r: { status: string }) => r.status === 'waitlist').length
+    const waitlistCount = waitlistedCount
+    const stillWaitingCount = waitlistedCount
+    const promotedCount = promotionLogs.reduce((acc, log) => {
+      try {
+        const parsed = JSON.parse(log.message) as { promoted?: number }
+        return acc + (typeof parsed.promoted === 'number' ? parsed.promoted : 0)
+      } catch {
+        return acc
+      }
+    }, 0)
+    const checkInRate = confirmedCount > 0
+      ? Math.round((checkedInCount / confirmedCount) * 100)
+      : 0
     const conversionRate = totalViews > 0
       ? Math.round((totalRegistrations / totalViews) * 1000) / 10
       : 0
     const waitlistConversionRate = confirmedCount > 0 && waitlistCount > 0
       ? Math.round((confirmedCount / (confirmedCount + waitlistCount)) * 1000) / 10
       : confirmedCount > 0 ? 100 : 0
+    const avgFeedbackScore = feedbackResponses.length > 0
+      ? Math.round((feedbackResponses.reduce((sum, row) => sum + (row.rating ?? 0), 0) / feedbackResponses.length) * 10) / 10
+      : null
 
     // Registrations by day (last 30 days)
     const now = new Date()
@@ -83,8 +128,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       totalRegistrations,
       conversionRate,
       confirmedCount,
+      checkedInCount,
+      checkInRate,
       waitlistCount,
+      waitlistedCount,
+      promotedCount,
+      stillWaitingCount,
       waitlistConversionRate,
+      sourceBreakdown: sourceBreakdown.map((item) => ({
+        source: item.source ?? 'unknown',
+        count: item._count.id,
+      })),
+      feedbackScore: avgFeedbackScore,
+      feedbackCount: feedbackResponses.length,
+      aiInsightsFreeUsed: event.aiInsightsFreeUsed,
+      event: { capacity: event.capacity },
       registrationsByDay,
       registrationsByHour,
     })

@@ -79,50 +79,81 @@ export async function POST(req: NextRequest) {
       error?: string
     }
 
-    const results: InviteResult[] = await Promise.all(
+    const settled = await Promise.allSettled(
       emails.map(async (email): Promise<InviteResult> => {
+        const existing = await prisma.teamMember.findFirst({
+          where: { ownerId: session.user.id, email, status: { in: ['pending', 'accepted'] } },
+        })
+        if (existing) {
+          return { email, ok: false, alreadyInvited: true, error: 'Already invited or a member' }
+        }
+
+        const inviteToken = uuidv4()
+        const newMember = await prisma.teamMember.create({
+          data: { ownerId: session.user.id, email, status: 'pending', inviteToken },
+        })
+
+        // If invite is for a specific event, pre-create the event access record
+        if (eventId) {
+          await prisma.teamMemberEvent.create({
+            data: { teamMemberId: newMember.id, eventId },
+          }).catch(() => {/* ignore if already exists */})
+        }
+
+        const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
         try {
-          const existing = await prisma.teamMember.findFirst({
-            where: { ownerId: session.user.id, email, status: { in: ['pending', 'accepted'] } },
-          })
-          if (existing) {
-            return { email, ok: false, alreadyInvited: true, error: 'Already invited or a member' }
-          }
-
-          const inviteToken = uuidv4()
-          const newMember = await prisma.teamMember.create({
-            data: { ownerId: session.user.id, email, status: 'pending', inviteToken },
-          })
-
-          // If invite is for a specific event, pre-create the event access record
-          if (eventId) {
-            await prisma.teamMemberEvent.create({
-              data: { teamMemberId: newMember.id, eventId },
-            }).catch(() => {/* ignore if already exists */})
-          }
-
-          const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
-          let emailFailed = false
-          try {
-            await sendTeamInviteEmail({ to: email, inviterName, inviteToken })
-          } catch (emailErr) {
-            console.error('[team/invite] email failed:', emailErr)
-            emailFailed = true
-          }
-
-          return { email, ok: true, emailFailed, acceptUrl }
-        } catch (err) {
-          console.error('[team/invite] per-email error:', err)
-          return { email, ok: false, error: 'Internal error' }
+          await sendTeamInviteEmail({ to: email, inviterName, inviteToken })
+          return { email, ok: true, emailFailed: false, acceptUrl }
+        } catch (emailErr) {
+          const message = emailErr instanceof Error ? emailErr.message : 'Email delivery failed'
+          console.error('[team/invite] email failed:', message)
+          return { email, ok: true, emailFailed: true, acceptUrl, error: message }
         }
       })
     )
 
-    const anyOk = results.some(r => r.ok)
-    const status = anyOk ? 201 : results.every(r => r.alreadyInvited) ? 409 : 500
-    return NextResponse.json({ results }, { status })
+    const results: InviteResult[] = settled.map((item, index) => {
+      if (item.status === 'fulfilled') return item.value
+      const reason = item.reason instanceof Error ? item.reason.message : 'Internal error'
+      console.error('[team/invite] per-email error:', reason)
+      return { email: emails[index] ?? 'unknown', ok: false, error: reason }
+    })
+
+    const sentCount = results.filter(r => r.ok && !r.emailFailed).length
+    const failedCount = results.length - sentCount
+    const failedReasons = results
+      .filter(r => r.emailFailed || (!r.ok && !r.alreadyInvited))
+      .map(r => r.error)
+      .filter(Boolean) as string[]
+
+    if (failedReasons.length > 0) {
+      console.error('[team-invite] Some invites failed:', failedReasons)
+    }
+
+    if (sentCount === 0) {
+      return NextResponse.json(
+        {
+          error: 'Failed to send invites. Please check your email configuration.',
+          sent: 0,
+          failed: failedCount,
+          results,
+        },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        sent: sentCount,
+        failed: failedCount,
+        message: `Invite${sentCount > 1 ? 's' : ''} sent successfully.`,
+        results,
+      },
+      { status: 201 }
+    )
   } catch (err) {
-    console.error('[team/invite]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    console.error('[team-invite] Error:', err)
+    return NextResponse.json({ error: `Failed to send invites: ${message}` }, { status: 500 })
   }
 }

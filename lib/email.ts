@@ -1,9 +1,10 @@
 ﻿import { Resend } from 'resend'
 import { getOrCreateReferralLink } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
+import { env } from '@/lib/env'
 
 function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = env.RESEND_API_KEY
   if (!apiKey) {
     throw new Error('RESEND_API_KEY is not configured')
   }
@@ -11,7 +12,7 @@ function getResendClient() {
 }
 
 const BASE_URL = APP_URL
-const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <onboarding@resend.dev>'
+const EMAIL_FROM = env.RESEND_FROM || 'EventSlot <onboarding@resend.dev>'
 
 type InternalEmailOptions = {
   to: string | string[]
@@ -89,7 +90,7 @@ export async function sendTeamInviteEmail({
   const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: EMAIL_FROM,
     to,
     subject: `${inviterName} invited you to join their EventSlot team`,
     html: `

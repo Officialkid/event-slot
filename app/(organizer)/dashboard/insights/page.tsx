@@ -15,15 +15,50 @@ type QuestionInsight = {
   totalAnswers: number
   topAnswers: TopAnswer[]
 }
+type EventLeaderboardItem = {
+  id: string
+  slug: string
+  title: string
+  date: string | null
+  registrations: number
+  confirmed: number
+  checkedIn: number
+  checkInRate: number
+  conversionRate: number
+  views: number
+}
+type DateRange = "30d" | "90d" | "1y" | "all"
+
 type InsightsData = {
+  range: DateRange
   totalEventsAnalysed: number
   totalRespondents: number
   questionInsights: QuestionInsight[]
   registrationsByDayOfWeek: { day: string; count: number }[]
   registrationsByMonth: { month: string; count: number }[]
   repeatAttendees: number
+  momChange: number | null
+  registrantsMoM: number | null
+  eventLeaderboard: EventLeaderboardItem[]
   aiSummary?: string | null
   aiSummarySource?: "ai" | "fallback"
+}
+
+function MoMBadge({ change }: { change: number | null }) {
+  if (change === null) return null
+  const positive = change >= 0
+  return (
+    <span
+      style={{
+        fontSize: "0.72rem",
+        fontWeight: 600,
+        color: positive ? "#22C55E" : "#EF4444",
+        fontFamily: "var(--font-dm-sans)",
+      }}
+    >
+      {positive ? "▲" : "▼"} {Math.abs(change)}% vs last month
+    </span>
+  )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -33,12 +68,15 @@ export default function InsightsPage() {
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [range, setRange] = useState<DateRange>("90d")
+  const [profile, setProfile] = useState<string | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   const load = async () => {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch("/api/insights")
+      const res = await fetch(`/api/insights?range=${range}`)
       const json = await res.json()
       if (!res.ok) { setError(json.error || "Failed to load insights"); return }
       setData(json)
@@ -46,7 +84,30 @@ export default function InsightsPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  const generateProfile = async () => {
+    setProfileLoading(true)
+    try {
+      const res = await fetch('/api/insights/audience-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error || 'Unable to generate audience profile.')
+        return
+      }
+      setProfile(typeof json.profile === 'string' ? json.profile : null)
+    } catch {
+      setError('Unable to generate audience profile.')
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [range])
 
   // ─── Loading skeleton ─────────────────────────────────────────────────────
 
@@ -98,13 +159,73 @@ export default function InsightsPage() {
       <style>{`@keyframes ins-pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ marginBottom: "1.75rem" }}>
-          <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
-            Insight Tracker
-          </h1>
-          <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
-            Patterns across all your events.
+        <div style={{ marginBottom: "1.75rem", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.9rem", flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
+              Insight Tracker
+            </h1>
+            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+              Patterns across all your events.
+            </p>
+          </div>
+          <a
+            href={`/api/insights/export?range=${range}`}
+            download
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 10, padding: "0.48rem 0.8rem", textDecoration: "none", color: "rgba(240,237,230,0.75)", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}
+          >
+            <span>⬇</span>
+            Export CSV
+          </a>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+          {(["30d", "90d", "1y", "all"] as DateRange[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              style={{
+                borderRadius: 8,
+                padding: "0.36rem 0.72rem",
+                fontSize: "0.76rem",
+                fontWeight: 600,
+                fontFamily: "var(--font-dm-sans)",
+                cursor: "pointer",
+                border: range === r ? "0.5px solid #C8F55A" : "0.5px solid rgba(240,237,230,0.14)",
+                background: range === r ? "rgba(200,245,90,0.12)" : "transparent",
+                color: range === r ? "#C8F55A" : "rgba(240,237,230,0.52)",
+              }}
+            >
+              {r === "30d" ? "Last 30 days" : r === "90d" ? "Last 90 days" : r === "1y" ? "Last year" : "All time"}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.1rem", marginBottom: "1rem" }}>
+          <p style={{ fontSize: "0.68rem", color: "#C8F55A", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 0.6rem 0", fontFamily: "var(--font-dm-sans)" }}>
+            ✦ AI Audience Profile
           </p>
+          {profile ? (
+            <>
+              <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
+                "{profile}"
+              </p>
+              <button
+                onClick={generateProfile}
+                disabled={profileLoading}
+                style={{ marginTop: "0.6rem", background: "transparent", border: "none", padding: 0, fontSize: "0.74rem", color: "rgba(240,237,230,0.4)", cursor: profileLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
+              >
+                {profileLoading ? "Analysing..." : "Regenerate"}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={generateProfile}
+              disabled={profileLoading}
+              style={{ background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 10, padding: "0.52rem 0.9rem", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", cursor: profileLoading ? "not-allowed" : "pointer", opacity: profileLoading ? 0.7 : 1 }}
+            >
+              {profileLoading ? "Analysing..." : "Generate Audience Profile"}
+            </button>
+          )}
         </div>
 
         {data.aiSummary && (
@@ -131,9 +252,9 @@ export default function InsightsPage() {
         {/* Top stat cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1.75rem" }} className="ins-stat-grid">
           {[
-            { label: "Events Analysed", value: data.totalEventsAnalysed },
-            { label: "Total Respondents", value: data.totalRespondents },
-            { label: "Repeat Attendees", value: data.repeatAttendees },
+            { label: "Events Analysed", value: data.totalEventsAnalysed, mom: null as number | null },
+            { label: "Total Respondents", value: data.totalRespondents, mom: data.registrantsMoM },
+            { label: "Repeat Attendees", value: data.repeatAttendees, mom: data.momChange },
           ].map(stat => (
             <div
               key={stat.label}
@@ -148,6 +269,7 @@ export default function InsightsPage() {
             >
               <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
               <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: stat.label === "Repeat Attendees" && data.repeatAttendees > 0 ? "#C8F55A" : "#F0EDE6" }}>{stat.value}</div>
+              <MoMBadge change={stat.mom} />
             </div>
           ))}
         </div>
@@ -182,6 +304,51 @@ export default function InsightsPage() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {data.eventLeaderboard?.length > 0 && (
+          <div style={{ border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 14, overflow: "hidden", background: "#141414", marginBottom: "1.75rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.85rem 1rem", borderBottom: "0.5px solid rgba(240,237,230,0.12)" }}>
+              <p style={{ margin: 0, fontSize: "0.68rem", color: "#C8F55A", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+                ✦ Your Events
+              </p>
+              <p style={{ margin: 0, color: "rgba(240,237,230,0.35)", fontSize: "0.7rem", fontFamily: "var(--font-dm-sans)" }}>Sorted by registrations</p>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ minWidth: 760 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.75rem 1rem", background: "#1E1E1E", borderBottom: "0.5px solid rgba(240,237,230,0.12)" }}>
+                  {['Event', 'Registrations', 'Conversion', 'Check-in', 'Views'].map((h) => (
+                    <p key={h} style={{ margin: 0, color: "rgba(240,237,230,0.35)", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
+                      {h}
+                    </p>
+                  ))}
+                </div>
+                {data.eventLeaderboard.map((item, i) => (
+                  <a
+                    key={item.id}
+                    href={`/dashboard/events/${item.slug}`}
+                    style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.9rem 1rem", borderBottom: "0.5px solid rgba(240,237,230,0.07)", textDecoration: "none" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", minWidth: 0 }}>
+                      {i < 3 && (
+                        <span style={{ fontSize: "0.95rem", flexShrink: 0 }}>
+                          {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                        </span>
+                      )}
+                      <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", fontWeight: 500, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                    </div>
+                    <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.registrations}</p>
+                    <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.conversionRate}%</p>
+                    <p style={{ margin: 0, fontSize: "0.82rem", alignSelf: "center", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: item.checkInRate >= 70 ? '#22C55E' : item.checkInRate >= 50 ? '#F59E0B' : '#EF4444' }}>
+                      {item.checkInRate > 0 ? `${item.checkInRate}%` : '—'}
+                    </p>
+                    <p style={{ margin: 0, color: "rgba(240,237,230,0.55)", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.views.toLocaleString()}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Audience question insights */}
         {data.questionInsights.length > 0 && (

@@ -52,6 +52,17 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
+  const confirmedCount = await prisma.registration.count({
+    where: { eventId: event.id, status: 'confirmed' },
+  })
+
+  if (confirmedCount === 0) {
+    return NextResponse.json(
+      { error: 'This event has no confirmed registrations. No emails were sent.' },
+      { status: 400 }
+    )
+  }
+
   // Extract recipients — skip any registration without an email
   const questions = Array.isArray(event.questions)
     ? (event.questions as Array<{ id: string; label: string; type: string }>)
@@ -74,7 +85,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
   if (recipients.length === 0) {
     return NextResponse.json(
-      { error: 'No confirmed attendees with email addresses found' },
+      { error: 'No confirmed attendees with email addresses found for this event.' },
       { status: 422 }
     )
   }

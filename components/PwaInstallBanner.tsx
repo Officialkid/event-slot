@@ -137,11 +137,11 @@ export function PwaInstallBanner() {
 
   return (
     <div className="mx-auto mt-8 w-full max-w-5xl px-4 sm:px-6">
-      <div className="rounded-3xl border border-white/10 bg-[#1B1B1E] px-5 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+      <div className="rounded-3xl border border-[#2A2A2A] bg-[#141414] px-5 py-5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <p className="text-xl font-semibold leading-tight">Install EventSlot</p>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/85">
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#A3A3A3]">
             Add EventSlot to your device for faster access, app-like performance, and a smoother event-day experience.
             </p>
           </div>
@@ -150,20 +150,20 @@ export function PwaInstallBanner() {
               onClick={() => {
                 void handleDownloadClick()
               }}
-              className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+              className="bg-[#C8F55A] text-black font-bold px-5 py-2 rounded-xl hover:bg-[#b8e040] transition-colors text-sm"
             >
               Download app
             </button>
             <a
               href="/how-it-works"
-              className="rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              className="rounded-xl border border-[#2A2A2A] px-4 py-2 text-sm font-semibold text-[#A3A3A3] transition hover:text-white"
             >
               Learn more
             </a>
             <button
               onClick={handleDismiss}
               aria-label="Dismiss install banner"
-              className="rounded-full px-2 py-1 text-2xl leading-none text-white/80 transition hover:text-white"
+              className="rounded-full px-2 py-1 text-2xl leading-none text-[#A3A3A3] transition hover:text-white"
             >
               ×
             </button>

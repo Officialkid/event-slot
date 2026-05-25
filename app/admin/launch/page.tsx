@@ -117,8 +117,17 @@ export default function LaunchChecklistPage() {
 
   if (loading) {
     return (
-      <div style={{ color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>
-        Running checks…
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 920, animation: "pulse 1.4s ease-in-out infinite" }}>
+        <div style={{ height: 22, width: 180, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 14, width: 240, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
+              <div style={{ height: 10, width: 100, borderRadius: 6, background: "#1E1E1E", marginBottom: "0.55rem" }} />
+              <div style={{ height: 18, width: 68, borderRadius: 6, background: "#1E1E1E" }} />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

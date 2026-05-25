@@ -50,6 +50,7 @@ export default function AdminEventsPage() {
   }
 
   const statusTabs = ["all", "active", "closed", "archived"]
+  const skeletonRows = [1, 2, 3, 4]
 
   function getStatusBadge(e: AdminEvent) {
     if (e.archived) return { label: "Archived", bg: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.3)" }
@@ -75,7 +76,7 @@ export default function AdminEventsPage() {
           onChange={e => setSearch(e.target.value)}
           style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 1rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", maxWidth: 400 }}
         />
-        <div style={{ display: "flex", gap: "0.35rem" }}>
+        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
           {statusTabs.map(t => (
             <button
               key={t}
@@ -102,7 +103,16 @@ export default function AdminEventsPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: "2rem 1rem", textAlign: "center", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>Loading…</td></tr>
+              skeletonRows.map((row) => (
+                <tr key={`skeleton-${row}`} style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)" }}>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "78%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "66%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: 48, margin: "0 auto", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 20, borderRadius: 100, background: "#1A1A1A", width: 72, animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "52%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                  <td style={{ padding: "0.75rem 1rem" }}><div style={{ height: 12, borderRadius: 6, background: "#1A1A1A", width: "65%", animation: "pulse 1.4s ease-in-out infinite" }} /></td>
+                </tr>
+              ))
             ) : events.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: "2rem 1rem", textAlign: "center", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>No events found.</td></tr>
             ) : events.map((ev, i) => {
@@ -126,7 +136,7 @@ export default function AdminEventsPage() {
                     {new Date(ev.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                       <a
                         href={`/${ev.slug}`}
                         target="_blank"

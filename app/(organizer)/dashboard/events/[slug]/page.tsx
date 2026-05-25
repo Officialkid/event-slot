@@ -11,9 +11,11 @@ import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
 import { EntryDashboard } from "@/components/EntryDashboard"
+import { ScannerHome } from "@/components/scanner/ScannerHome"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
 } from "recharts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -94,10 +96,30 @@ type AnalyticsData = {
   totalRegistrations: number
   conversionRate: number
   confirmedCount: number
+  checkedInCount: number
+  checkInRate: number
   waitlistCount: number
+  waitlistedCount: number
+  promotedCount: number
+  stillWaitingCount: number
   waitlistConversionRate: number
+  sourceBreakdown: { source: string; count: number }[]
+  feedbackScore: number | null
+  feedbackCount: number
+  aiInsightsFreeUsed: boolean
+  event?: { capacity: number | null }
   registrationsByDay: { date: string; count: number }[]
   registrationsByHour: { hour: number; count: number }[]
+}
+
+const SOURCE_COLORS: Record<string, string> = {
+  direct: '#C8F55A',
+  shared: '#3B82F6',
+  referral: '#F59E0B',
+  qr: '#22C55E',
+  unknown: '#525252',
+  form: '#7A7A7A',
+  manual: '#A855F7',
 }
 
 type InsightCard = {
@@ -1084,7 +1106,7 @@ export default function EventDashboardPage() {
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [insightsError, setInsightsError] = useState("")
   const [insightsLocked, setInsightsLocked] = useState(false)
-  const [insightsRequiredCredits] = useState(2)
+  const [insightsRequiredCredits] = useState(20)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
   const [insightsEventId] = useState<string | null>(null)
   const [insightsUnlockLoading, setInsightsUnlockLoading] = useState(false)
@@ -1627,6 +1649,9 @@ export default function EventDashboardPage() {
       const res = await fetch(`/api/events/${slug}/insights${qs}`)
       const data = await res.json()
       if (!res.ok) {
+        if (res.status === 402 && data.insufficientCredits) {
+          setInsightsLocked(true)
+        }
         setInsightsError(data.error || 'Unable to load AI insights. Please retry.')
         return
       }
@@ -1640,6 +1665,9 @@ export default function EventDashboardPage() {
       setInsightsData(data.cards)
       setInsightsGeneratedAt(data.generatedAt ?? null)
       setInsightsLocked(false)
+      if (analyticsData && typeof data.aiInsightsFreeUsed === 'boolean') {
+        setAnalyticsData({ ...analyticsData, aiInsightsFreeUsed: data.aiInsightsFreeUsed })
+      }
       if (typeof data.message === 'string' && data.message.trim().length > 0) {
         setInsightsError(data.message)
       }
@@ -1694,19 +1722,37 @@ export default function EventDashboardPage() {
     finally { setQaLoading(false) }
   }
 
-  const loadAnalytics = async () => {
-    if (!eventData || analyticsLoading) return
-    setAnalyticsLoading(true)
-    setAnalyticsError("")
-    try {
-      const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
-      const data = await res.json()
-      if (!res.ok) { setAnalyticsError(data.error || "Failed to load analytics"); return }
-      setAnalyticsData(data)
-      loadInsights()
-    } catch { setAnalyticsError("Unable to load analytics.") }
-    finally { setAnalyticsLoading(false) }
-  }
+  useEffect(() => {
+    if (activeTab !== "analytics") return
+    if (!eventData || analyticsData || analyticsLoading) return
+
+    let cancelled = false
+    const autoLoadAnalytics = async () => {
+      setAnalyticsLoading(true)
+      setAnalyticsError("")
+      try {
+        const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+        const data = await res.json()
+        if (!res.ok) {
+          if (!cancelled) setAnalyticsError(data.error || "Failed to load analytics")
+          return
+        }
+        if (!cancelled) {
+          setAnalyticsData(data)
+          loadInsights()
+        }
+      } catch {
+        if (!cancelled) setAnalyticsError("Unable to load analytics.")
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false)
+      }
+    }
+
+    void autoLoadAnalytics()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, eventData, analyticsData, analyticsLoading, slug, token, loadInsights])
 
   const loadFeedback = async () => {
     if (!eventData || feedbackLoading) return
@@ -2568,14 +2614,14 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Event Analytics</h2>
-              {!analyticsData && !analyticsLoading && !analyticsError && (
-                <button
-                  onClick={loadAnalytics}
-                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
-                >
-                  Load analytics
-                </button>
-              )}
+              <a
+                href={`/api/events/${slug}/analytics/export${token ? `?token=${encodeURIComponent(token)}` : ''}`}
+                download
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: "rgba(240,237,230,0.72)", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
+              >
+                <span>⬇</span>
+                Export CSV
+              </a>
             </div>
 
             {analyticsLoading && (
@@ -2599,12 +2645,14 @@ export default function EventDashboardPage() {
                         <span style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>· {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
                       )}
                     </div>
-                    {insightsData && !insightsLoading && (
+                    {!insightsLoading && (
                       <button
                         onClick={() => loadInsights(true)}
                         style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
-                        Regenerate ({insightsRequiredCredits} pts)
+                        {analyticsData.aiInsightsFreeUsed
+                          ? `Regenerate — ${insightsRequiredCredits} credits`
+                          : "Generate AI Insights — Free"}
                       </button>
                     )}
                   </div>
@@ -2618,11 +2666,11 @@ export default function EventDashboardPage() {
                       </div>
                       {reportCreditBalance >= insightsRequiredCredits ? (
                         <button
-                          onClick={handleUnlockInsights}
+                          onClick={() => loadInsights(true)}
                           disabled={insightsUnlockLoading}
                           style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", border: "none", cursor: insightsUnlockLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: insightsUnlockLoading ? 0.6 : 1 }}
                         >
-                          {insightsUnlockLoading ? "Unlocking…" : `Unlock (${insightsRequiredCredits} credits)`}
+                          {insightsUnlockLoading ? "Generating…" : `Regenerate (${insightsRequiredCredits} credits)`}
                         </button>
                       ) : (
                         <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
@@ -2684,7 +2732,111 @@ export default function EventDashboardPage() {
                       <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
                     </div>
                   ))}
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Check-in Rate</div>
+                    <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{analyticsData.checkInRate}%</div>
+                    <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                      {analyticsData.checkedInCount} of {analyticsData.confirmedCount} confirmed
+                    </div>
+                    {analyticsData.checkInRate >= 70 && (
+                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#22C55E", fontFamily: "var(--font-dm-sans)" }}>↑ Strong turnout</div>
+                    )}
+                    {analyticsData.checkInRate < 50 && analyticsData.confirmedCount > 0 && (
+                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#F59E0B", fontFamily: "var(--font-dm-sans)" }}>↓ Low turnout</div>
+                    )}
+                  </div>
+                  {analyticsData.feedbackScore !== null && (
+                    <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Feedback Score</div>
+                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{analyticsData.feedbackScore} / 5</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.18rem", marginTop: "0.35rem" }}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? '#C8F55A' : 'rgba(240,237,230,0.15)' }}>
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                        {analyticsData.feedbackCount} response{analyticsData.feedbackCount !== 1 ? 's' : ''} ·{' '}
+                        <button
+                          onClick={() => setActiveTab('feedback')}
+                          style={{ background: "transparent", border: "none", padding: 0, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "0.75rem" }}
+                        >
+                          View feedback
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {(analyticsData.waitlistedCount > 0 || analyticsData.promotedCount > 0) && (
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                      ✦ Waitlist Funnel
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ color: "#F0EDE6", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.waitlistedCount}</div>
+                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Total Waitlisted</div>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ color: "#22C55E", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.promotedCount}</div>
+                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Promoted</div>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ color: "#F59E0B", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.stillWaitingCount}</div>
+                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Still Waiting</div>
+                      </div>
+                    </div>
+
+                    {analyticsData.stillWaitingCount > 0 && (
+                      <div style={{ marginTop: "0.75rem", borderLeft: "4px solid #C8F55A", paddingLeft: "0.75rem", background: "rgba(200,245,90,0.05)", borderTopRightRadius: 10, borderBottomRightRadius: 10, paddingTop: "0.5rem", paddingBottom: "0.5rem" }}>
+                        <p style={{ color: "#A3A3A3", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                          {analyticsData.stillWaitingCount} people are waiting.
+                          {analyticsData.event?.capacity && (
+                            <> Increasing capacity by {Math.min(analyticsData.stillWaitingCount, 10)} would promote the next {Math.min(analyticsData.stillWaitingCount, 10)} attendees.</>
+                          )}
+                        </p>
+                        <button
+                          onClick={() => setActiveTab("settings")}
+                          style={{ marginTop: "0.3rem", background: "transparent", border: "none", padding: 0, color: "#C8F55A", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
+                        >
+                          Adjust capacity →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {analyticsData.sourceBreakdown?.length > 0 && (
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                      ✦ Registration Sources
+                    </div>
+                    <ResponsiveContainer width="100%" height={220}>
+                      <PieChart>
+                        <Pie
+                          data={analyticsData.sourceBreakdown}
+                          dataKey="count"
+                          nameKey="source"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={78}
+                          label={({ source, count }) => `${source}: ${count}`}
+                        >
+                          {analyticsData.sourceBreakdown.map((item) => (
+                            <Cell key={item.source} fill={SOURCE_COLORS[item.source] ?? '#525252'} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: '#141414', border: '1px solid rgba(240,237,230,0.15)', borderRadius: 8 }}
+                          labelStyle={{ color: 'rgba(240,237,230,0.6)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
 
                 {/* Registrations by day */}
                 <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
@@ -2716,9 +2868,9 @@ export default function EventDashboardPage() {
               </div>
             )}
 
-            {!analyticsData && !analyticsLoading && !analyticsError && (
+            {!analyticsData && !analyticsLoading && (
               <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load analytics&rdquo; to see views, conversions, and registration trends.</p>
+                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Could not load analytics. Please refresh.</p>
               </div>
             )}
 
@@ -2928,78 +3080,16 @@ export default function EventDashboardPage() {
             </h2>
             {eventData && <EntryDashboard eventId={eventData.id} />}
             <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", margin: "0 0 1rem" }}>
-              Verify by ticket code, scanned QR value, or attendee email/name. Once verified, a ticket cannot be verified again.
+              Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.9rem" }}>
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
-                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Ticket code</p>
-                <input
-                  value={ticketCodeInput}
-                  onChange={e => setTicketCodeInput(e.target.value)}
-                  placeholder="Enter confirmation code"
-                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
-                />
-                <button
-                  onClick={() => verifyTicket({ code: ticketCodeInput })}
-                  disabled={checkInLoading || !ticketCodeInput.trim()}
-                  style={{ marginTop: "0.55rem", width: "100%", background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A", cursor: checkInLoading || !ticketCodeInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !ticketCodeInput.trim() ? 0.6 : 1 }}
-                >
-                  Verify code
-                </button>
-              </div>
-
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
-                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Scan code</p>
-                <input
-                  value={scanCodeInput}
-                  onChange={e => setScanCodeInput(e.target.value)}
-                  placeholder="Paste scanned QR/URL/code"
-                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
-                />
-                <button
-                  onClick={() => verifyTicket({ code: scanCodeInput })}
-                  disabled={checkInLoading || !scanCodeInput.trim()}
-                  style={{ marginTop: "0.55rem", width: "100%", background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "#C8F55A", cursor: checkInLoading || !scanCodeInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !scanCodeInput.trim() ? 0.5 : 1 }}
-                >
-                  Verify scan
-                </button>
-              </div>
-
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
-                <p style={{ margin: "0 0 0.55rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Owner email or name</p>
-                <input
-                  value={identityInput}
-                  onChange={e => setIdentityInput(e.target.value)}
-                  placeholder="jane@email.com or Jane Doe"
-                  style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.55rem 0.75rem", fontSize: "0.84rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
-                />
-                <button
-                  onClick={() => verifyTicket({ identity: identityInput })}
-                  disabled={checkInLoading || !identityInput.trim()}
-                  style={{ marginTop: "0.55rem", width: "100%", background: "transparent", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.8rem", fontWeight: 600, color: "rgba(240,237,230,0.7)", cursor: checkInLoading || !identityInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: checkInLoading || !identityInput.trim() ? 0.5 : 1 }}
-                >
-                  Find and verify
-                </button>
-              </div>
-            </div>
-
-            {checkInResult && (
-              <div style={{ marginTop: "1rem", background: "#141414", border: checkInResult.valid ? "0.5px solid rgba(200,245,90,0.3)" : checkInResult.alreadyVerified ? "0.5px solid rgba(255,168,0,0.3)" : "0.5px solid rgba(255,107,107,0.3)", borderRadius: 12, padding: "1rem" }}>
-                <p style={{ margin: 0, fontSize: "0.88rem", color: checkInResult.valid ? "#C8F55A" : checkInResult.alreadyVerified ? "rgba(255,168,0,0.9)" : "#FF6B6B", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
-                  {checkInResult.message || checkInResult.error || "Verification complete."}
-                </p>
-                {checkInResult.ticket && (
-                  <div style={{ marginTop: "0.55rem", display: "flex", flexDirection: "column", gap: "0.3rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)" }}>
-                    <span>Name: {checkInResult.ticket.attendeeName || "Not provided"}</span>
-                    <span>Email: {checkInResult.ticket.attendeeEmail || "Not provided"}</span>
-                    <span>Ticket code: {checkInResult.ticket.confirmationCode || "Not provided"}</span>
-                    {checkInResult.ticket.registrationNumber && <span>Registration #: {checkInResult.ticket.registrationNumber}</span>}
-                    {checkInResult.ticket.checkedInAt && <span>Verified at: {new Date(checkInResult.ticket.checkedInAt).toLocaleString()}</span>}
-                  </div>
-                )}
-              </div>
-            )}
+            <ScannerHome
+              eventSlug={slug}
+              accessToken={token || eventData.dashboardToken}
+              onVerified={() => {
+                void fetchDashboard()
+              }}
+            />
           </div>
         )}
 
@@ -3022,7 +3112,14 @@ export default function EventDashboardPage() {
                 Team members with access to this event
               </h3>
               {teamLoading ? (
-                <p style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Loading…</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
+                      <div style={{ height: 12, width: "42%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.4rem" }} />
+                      <div style={{ height: 10, width: "58%", borderRadius: 6, background: "#1A1A1A" }} />
+                    </div>
+                  ))}
+                </div>
               ) : eventTeam.length === 0 ? (
                 <p style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>No team members have access to this event yet.</p>
               ) : (

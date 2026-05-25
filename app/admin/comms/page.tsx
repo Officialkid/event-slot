@@ -99,7 +99,7 @@ export default function AdminCommsPage() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "minmax(0, 1fr) 1fr" }}>
+      <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
         <section style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 14, padding: "1.25rem" }}>
           <h2 style={{ margin: "0 0 1rem", color: "#F0EDE6", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
             New Announcement
@@ -128,7 +128,15 @@ export default function AdminCommsPage() {
             Recent Public Notices
           </h2>
           {loading ? (
-            <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Loading…</div>
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.06)", borderRadius: 12, padding: "1rem" }}>
+                  <div style={{ height: 12, width: "48%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.55rem", animation: "pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 10, width: "92%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.35rem", animation: "pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 10, width: "74%", borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite" }} />
+                </div>
+              ))}
+            </div>
           ) : announcements.length === 0 ? (
             <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
               No announcements published yet.

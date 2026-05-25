@@ -40,6 +40,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       status: true,
       sentAt: true,
       recipientCount: true,
+      failureReason: true,
       createdAt: true,
     },
   })

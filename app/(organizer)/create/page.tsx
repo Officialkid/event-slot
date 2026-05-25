@@ -52,6 +52,7 @@ export default function CreateEventPage() {
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
   const [communityLink, setCommunityLink] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [organizerName, setOrganizerName] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
@@ -307,6 +308,7 @@ export default function CreateEventPage() {
           isPaid,
           ticketPrice: isPaid && ticketPrice ? Number(ticketPrice) : undefined,
           communityLink: communityLink || undefined,
+          whatsappNumber: whatsappNumber || undefined,
           imageUrl: imageUrl || undefined,
           questions: questions.map(q => ({
             id: q.id,
@@ -900,6 +902,27 @@ export default function CreateEventPage() {
                   <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
                     After registering, confirmed attendees will see this link.
                   </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    WhatsApp contact (optional)
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(37,211,102,0.5)] focus:outline-none"
+                    placeholder="e.g. 254712345678"
+                    value={whatsappNumber}
+                    onChange={e => setWhatsappNumber(e.target.value)}
+                  />
+                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                    Attendees will see a floating WhatsApp chat button on this event page if you add a number.
+                  </p>
+                  {whatsappNumber.trim() && (
+                    <p style={{ fontSize: "0.72rem", color: "#F59E0B", marginTop: "0.35rem" }}>
+                      This number is public on your event page. Use a dedicated events or business line.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
