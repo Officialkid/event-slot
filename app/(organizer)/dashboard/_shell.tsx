@@ -214,35 +214,60 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, has
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={image}
-              alt={name}
-              width={32}
-              height={32}
-              style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "rgba(200,245,90,0.15)",
-                border: "0.5px solid rgba(200,245,90,0.25)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                color: "#C8F55A",
-                flexShrink: 0,
-              }}
-            >
-              {initials}
-            </div>
-          )}
+          {/* Avatar with Pioneer badge overlay */}
+          <div style={{ position: "relative", flexShrink: 0, width: 32, height: 32 }}>
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image}
+                alt={name}
+                width={32}
+                height={32}
+                style={{ borderRadius: "50%", objectFit: "cover", display: "block", width: 32, height: 32 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(200,245,90,0.15)",
+                  border: "0.5px solid rgba(200,245,90,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: "#C8F55A",
+                }}
+              >
+                {initials}
+              </div>
+            )}
+            {hasPioneer && (
+              <span
+                title="EventSlot Pioneer"
+                style={{
+                  position: "absolute",
+                  bottom: -2,
+                  right: -4,
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  background: "#C8F55A",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.52rem",
+                  border: "1.5px solid #141414",
+                  lineHeight: 1,
+                  boxShadow: "0 0 4px rgba(200,245,90,0.6)",
+                }}
+              >
+                🏆
+              </span>
+            )}
+          </div>
           <div className="dash-user-det" style={{ overflow: "hidden", minWidth: 0 }}>
             <div
               style={{

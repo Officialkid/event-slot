@@ -253,7 +253,7 @@ export default function EventInvitationCard({
                 <span style={{ color: "rgba(240,237,230,0.8)", fontWeight: 500 }}>{organizerName}</span>
                 {organizerIsPioneer ? (
                   <span
-                    title="EventSlot Pioneer - one of our first 150 supporters"
+                    title="EventSlot Pioneer - one of our earliest supporters"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",

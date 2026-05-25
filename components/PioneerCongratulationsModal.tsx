@@ -39,8 +39,8 @@ export function PioneerCongratulationsModal() {
       >
         <div className="absolute left-1/2 top-0 h-1 w-32 -translate-x-1/2 rounded-full bg-[#C8F55A] blur-sm" />
 
-        <div className="mx-auto mb-5 mt-2 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#C8F55A]/40 bg-[#C8F55A]/10">
-          <span className="text-4xl">🏆</span>
+        <div className="mx-auto mb-5 mt-2 flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#C8F55A] bg-[#C8F55A]/20" style={{ boxShadow: "0 0 24px rgba(200,245,90,0.35)" }}>
+          <span className="text-5xl">🏆</span>
         </div>
 
         <h2 className="mb-2 text-2xl font-bold leading-tight text-white">

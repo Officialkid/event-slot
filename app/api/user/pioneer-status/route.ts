@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { checkAndAwardPioneerBadge } from "@/lib/referral"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -9,8 +10,13 @@ export async function GET() {
     return NextResponse.json({ isPioneer: false, showCongratulations: false })
   }
 
+  const userId = session.user.id
+
+  // Auto-award Pioneer badge to any eligible existing user who hasn't received it yet
+  await checkAndAwardPioneerBadge(userId).catch(() => {})
+
   const pioneer = await prisma.pioneerBadge.findUnique({
-    where: { userId: session.user.id },
+    where: { userId },
     select: { hasSeenCongratulations: true },
   })
 

@@ -110,7 +110,7 @@ const BADGE_META: Record<BadgeKey, { icon: string; label: string; description: s
   PIONEER: {
     icon: "🏆",
     label: "EventSlot Pioneer",
-    description: "One of EventSlot's first 150 supporters",
+    description: "One of EventSlot's earliest supporters",
   },
   GROWTH_BUILDER: {
     icon: "🚀",

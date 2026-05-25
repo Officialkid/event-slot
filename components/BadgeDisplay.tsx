@@ -2,7 +2,7 @@ const BADGE_CONFIG = {
   PIONEER: {
     emoji: '🏆',
     label: 'Pioneer',
-    description: "One of EventSlot's first 150 users",
+    description: "One of EventSlot's earliest supporters",
     bg: 'bg-[#C8F55A]/10',
     border: 'border-[#C8F55A]/30',
     text: 'text-[#C8F55A]',
