@@ -31,38 +31,40 @@ export function PioneerCongratulationsModal() {
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity duration-300 ${
         closing ? "opacity-0" : "opacity-100"
       }`}
+      onClick={dismiss}
     >
       <div
-        className={`relative w-full max-w-md rounded-2xl border border-[#C8F55A]/40 bg-[#141414] p-8 text-center transition-transform duration-300 ${
+        className={`relative w-full max-w-md rounded-2xl border border-[#C8F55A]/40 bg-[#141414] p-5 sm:p-8 text-center transition-transform duration-300 ${
           closing ? "scale-95" : "scale-100"
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute left-1/2 top-0 h-1 w-32 -translate-x-1/2 rounded-full bg-[#C8F55A] blur-sm" />
 
-        <div className="mx-auto mb-5 mt-2 flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#C8F55A] bg-[#C8F55A]/20" style={{ boxShadow: "0 0 24px rgba(200,245,90,0.35)" }}>
-          <span className="text-5xl">🏆</span>
+        <div className="mx-auto mb-4 mt-2 flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-full border-2 border-[#C8F55A] bg-[#C8F55A]/20" style={{ boxShadow: "0 0 24px rgba(200,245,90,0.35)" }}>
+          <span className="text-4xl sm:text-5xl">🏆</span>
         </div>
 
-        <h2 className="mb-2 text-2xl font-bold leading-tight text-white">
+        <h2 className="mb-2 text-xl sm:text-2xl font-bold leading-tight text-white">
           Congratulations!
           <br />
           <span className="text-[#C8F55A]">You&apos;re an EventSlot Pioneer.</span>
         </h2>
 
-        <p className="mb-6 text-sm leading-relaxed text-[#A3A3A3]">
-          You signed up for EventSlot early - before most people knew what it would become. That matters to us. The
-          Pioneer badge is awarded to a limited group of our earliest supporters. <span className="font-medium text-white">You&apos;re in it.</span>
+        <p className="mb-4 text-sm leading-relaxed text-[#A3A3A3]">
+          You joined EventSlot early — before most people knew what it would become. The Pioneer badge is awarded to a limited group of our earliest supporters.{" "}
+          <span className="font-medium text-white">You&apos;re in it.</span>
         </p>
 
-        <div className="my-5 border-t border-[#2A2A2A]" />
+        <div className="my-4 border-t border-[#2A2A2A]" />
 
-        <div className="mb-6 rounded-xl border border-[#C8F55A]/20 bg-[#C8F55A]/10 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">A gift from us</p>
+        <div className="mb-5 rounded-xl border border-[#C8F55A]/20 bg-[#C8F55A]/10 p-3 sm:p-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">A gift from us</p>
           <p className="text-sm leading-relaxed text-white">
-            Invite 2 people to EventSlot. When both create their first event, your next AI event report is{" "}
-            <span className="font-bold text-[#C8F55A]">completely free</span> - on us. No payment needed.
+            Invite 2 friends to EventSlot. When both create their first event, your next AI report is{" "}
+            <span className="font-bold text-[#C8F55A]">completely free</span>.
           </p>
-          <p className="mt-2 text-xs text-[#525252]">Each referral earns you tokens. 20 tokens = 1 free report.</p>
+          <p className="mt-1 text-xs text-[#525252]">Each referral earns tokens. 20 tokens = 1 free report.</p>
         </div>
 
         <div className="space-y-3">
@@ -78,9 +80,9 @@ export function PioneerCongratulationsModal() {
           </button>
         </div>
 
-        <div className="mt-5 flex items-center justify-center gap-2 border-t border-[#2A2A2A] pt-4">
+        <div className="mt-4 flex items-center justify-center gap-2 border-t border-[#2A2A2A] pt-4">
           <span className="text-[#C8F55A]">🏆</span>
-          <span className="text-xs text-[#525252]">EventSlot Pioneer - Limited Badge</span>
+          <span className="text-xs text-[#525252]">EventSlot Pioneer — Limited Badge</span>
         </div>
       </div>
     </div>

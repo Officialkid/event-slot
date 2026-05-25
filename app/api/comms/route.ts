@@ -5,8 +5,23 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+
+    let userCreatedAt: Date | null = null
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { createdAt: true },
+      })
+      userCreatedAt = user?.createdAt ?? null
+    }
+
     const messages = await prisma.message.findMany({
-      where: { type: "ADMIN_BROADCAST", isPublic: true },
+      where: {
+        type: "ADMIN_BROADCAST",
+        isPublic: true,
+        ...(userCreatedAt ? { createdAt: { gte: userCreatedAt } } : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: 20,
       include: {

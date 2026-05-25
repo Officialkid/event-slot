@@ -735,6 +735,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     }
   }, [status, router])
 
+  // Claim any pending referral from the eventslot_ref cookie (handles OAuth signups)
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/user/claim-referral", { method: "POST" }).catch(() => {})
+    }
+  }, [status])
+
   useEffect(() => {
     setDrawerOpen(false)
     setMoreOpen(false)
