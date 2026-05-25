@@ -251,7 +251,7 @@ export default function TeamPage() {
                 disabled={removingId === confirmTarget.id}
                 style={{ background: "rgba(239,68,68,0.12)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, color: "#EF4444", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
               >
-                {removingId === confirmTarget.id ? "Removingâ€¦" : "Remove"}
+                {removingId === confirmTarget.id ? "Removing…" : "Remove"}
               </button>
             </div>
           </div>
@@ -443,117 +443,134 @@ export default function TeamPage() {
               const displayName = m.member?.name ?? m.email
               const displayEmail = m.member?.email ?? m.email
               const initials = getInitials(m.member?.name ?? null, m.email)
+              const events = m.eventAccess ?? []
               return (
                 <div
                   key={m.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.875rem",
                     background: "#141414",
                     border: "0.5px solid rgba(240,237,230,0.06)",
                     borderRadius: 10,
                     padding: "0.75rem 1rem",
                   }}
                 >
-                  {/* Initials circle */}
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: "rgba(200,245,90,0.15)",
-                      border: "0.5px solid rgba(200,245,90,0.25)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#C8F55A",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      fontFamily: "var(--font-dm-sans)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {initials}
-                  </div>
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Top row: avatar + name + action buttons */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
+                    {/* Initials circle */}
                     <div
                       style={{
-                        fontSize: "0.875rem",
-                        color: "rgba(240,237,230,0.85)",
+                        width: 36,
+                        height: 36,
+                        borderRadius: "50%",
+                        background: "rgba(200,245,90,0.15)",
+                        border: "0.5px solid rgba(200,245,90,0.25)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#C8F55A",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
                         fontFamily: "var(--font-dm-sans)",
-                        fontWeight: 500,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        flexShrink: 0,
                       }}
                     >
-                      {displayName}
+                      {initials}
                     </div>
-                    {m.member?.name && (
+                    {/* Name / email */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: "0.75rem",
-                          color: "rgba(240,237,230,0.35)",
+                          fontSize: "0.875rem",
+                          color: "rgba(240,237,230,0.85)",
                           fontFamily: "var(--font-dm-sans)",
+                          fontWeight: 500,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {displayEmail}
+                        {displayName}
                       </div>
+                      {m.member?.name && (
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "rgba(240,237,230,0.35)",
+                            fontFamily: "var(--font-dm-sans)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {displayEmail}
+                        </div>
+                      )}
+                    </div>
+                    {/* Manage access button */}
+                    <button
+                      onClick={() => openAssignModal(m)}
+                      style={{
+                        background: "transparent",
+                        border: "0.5px solid rgba(200,245,90,0.2)",
+                        borderRadius: 7,
+                        color: "#C8F55A",
+                        fontSize: "0.75rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        padding: "0.3rem 0.625rem",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Manage access
+                    </button>
+                    {/* Remove button */}
+                    <button
+                      onClick={() => setConfirmRemoveId(m.id)}
+                      style={{
+                        background: "transparent",
+                        border: "0.5px solid rgba(239,68,68,0.2)",
+                        borderRadius: 7,
+                        color: "#EF4444",
+                        fontSize: "0.75rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        padding: "0.3rem 0.625rem",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  {/* Event chips row */}
+                  <div style={{ marginTop: "0.5rem", paddingLeft: "2.875rem", display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                    {events.length === 0 ? (
+                      <span style={{ fontSize: "0.6875rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>
+                        No events assigned
+                      </span>
+                    ) : (
+                      events.map(a => (
+                        <span
+                          key={a.event.id}
+                          style={{
+                            fontSize: "0.6875rem",
+                            fontFamily: "var(--font-dm-sans)",
+                            background: a.event.status === "active" ? "rgba(200,245,90,0.08)" : "rgba(240,237,230,0.05)",
+                            border: `0.5px solid ${a.event.status === "active" ? "rgba(200,245,90,0.2)" : "rgba(240,237,230,0.08)"}`,
+                            color: a.event.status === "active" ? "#C8F55A" : "rgba(240,237,230,0.4)",
+                            borderRadius: 5,
+                            padding: "0.2rem 0.5rem",
+                            maxWidth: 180,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={a.event.title}
+                        >
+                          {a.event.title}
+                        </span>
+                      ))
                     )}
                   </div>
-                  {/* Badge */}
-                  <span
-                    style={{
-                      fontSize: "0.6875rem",
-                      fontFamily: "var(--font-dm-sans)",
-                      color: "rgba(240,237,230,0.4)",
-                      background: "rgba(240,237,230,0.06)",
-                      borderRadius: 6,
-                      padding: "0.2rem 0.5rem",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(m.eventAccess?.length ?? 0) > 0 ? `${m.eventAccess!.length} event${m.eventAccess!.length !== 1 ? "s" : ""}` : "No events"}
-                  </span>
-                  {/* Manage access button */}
-                  <button
-                    onClick={() => openAssignModal(m)}
-                    style={{
-                      background: "transparent",
-                      border: "0.5px solid rgba(200,245,90,0.2)",
-                      borderRadius: 7,
-                      color: "#C8F55A",
-                      fontSize: "0.75rem",
-                      fontFamily: "var(--font-dm-sans)",
-                      padding: "0.3rem 0.625rem",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  >
-                    Manage access
-                  </button>
-                  {/* Remove button */}
-                  <button
-                    onClick={() => setConfirmRemoveId(m.id)}
-                    style={{
-                      background: "transparent",
-                      border: "0.5px solid rgba(239,68,68,0.2)",
-                      borderRadius: 7,
-                      color: "#EF4444",
-                      fontSize: "0.75rem",
-                      fontFamily: "var(--font-dm-sans)",
-                      padding: "0.3rem 0.625rem",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  >
-                    Remove
-                  </button>
                 </div>
               )
             })}
@@ -638,7 +655,7 @@ export default function TeamPage() {
                     transition: "color 0.2s",
                   }}
                 >
-                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sendingâ€¦" : "Resend invite"}
+                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sending…" : "Resend invite"}
                 </button>                {/* Copy link (shown when resend email failed) */}
                 {resendFailedUrls[m.id] && (
                   <button
