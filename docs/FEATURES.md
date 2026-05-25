@@ -4,7 +4,7 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 25, 2026_
+_Last updated: May 26, 2026_
 
 ---
 
@@ -111,6 +111,26 @@ _Last updated: May 25, 2026_
 ### CSV Exports for Tracker and Event Analytics (H6)
 **Where:** `app/api/insights/export/route.ts`, `app/api/events/[slug]/analytics/export/route.ts`, `app/(organizer)/dashboard/insights/page.tsx`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
 **What it does:** Enables downloadable CSV reports for global organizer insights and per-event analytics with registration/check-in columns for external reporting.
+
+### Comparative Performance vs Organizer Average (M1)
+**Where:** `app/api/events/[slug]/analytics/route.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** Analytics API computes `vsAverage` (percentage delta) and `avgRegistrations` vs the organizer's other events. The analytics tab shows a comparison card with green (above average) or amber (below average) border and percentage context.
+
+### Waitlist Intelligence Widget (M2)
+**Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** When an event has waitlisted attendees, the Overview tab surfaces a contextual card with quick-action buttons — increase capacity (jumps to settings tab) or view waitlist (jumps to waitlist tab).
+
+### Real-Time Registration Ticker (M3)
+**Where:** `app/api/events/[slug]/recent-registrations/route.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** New API route returns the last 5 registrations with attendee name and relative timestamp. The Overview tab polls every 30 seconds and renders a live ticker, giving organizers instant visibility into registration momentum.
+
+### Post-Event Summary Email Cron (M4)
+**Where:** `app/api/cron/post-event-summary/route.ts`, `lib/email.ts`, `prisma/schema.prisma`  
+**What it does:** Hourly Cloud Scheduler job (`0 * * * *`) detects events that ended 1–2 hours ago and haven't received a summary email (`summaryEmailSent: false`). For each qualifying event, sends a summary email with registration count, check-in rate, and average feedback score via `sendPostEventSummaryEmail`, then marks `summaryEmailSent: true`.
+
+### AI 4th "Action" Insight Card (Phase 4)
+**Where:** `lib/generateInsightCards.ts`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
+**What it does:** AI insight generation now produces 4 cards (was 3). The 4th card is type `"action"` — a concrete, 48-hour actionable task derived from event data. Rendered with a lime border and `→ action` label in the analytics tab.
 
 ### Email Attendees — Always-Visible Tab Link
 **Where:** `app/(organizer)/dashboard/events/[slug]/page.tsx`  

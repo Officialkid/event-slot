@@ -1,5 +1,15 @@
 # EventSlot — Changelog
 
+## [0.4.73] — May 26, 2026
+
+### Phase 3 (M1–M4) + Phase 4 — Analytics Intelligence & Automation
+
+- **M1 Comparative performance**: `GET /api/events/[slug]/analytics` now computes `vsAverage` and `avgRegistrations` vs the organizer's other events. Per-event analytics tab shows a comparison card with green (above avg) or amber (below avg) border and percentage delta.
+- **M2 Waitlist intelligence widget**: Overview tab of the organizer event dashboard now surfaces a waitlist card when `waitlistCount > 0`, with quick-action buttons to increase capacity (→ settings tab) or view waitlist (→ waitlist tab).
+- **M3 Real-time registration ticker**: New `GET /api/events/[slug]/recent-registrations` route returns the last 5 registrations. Overview tab polls every 30 seconds and shows a live ticker with attendee names and relative timestamps.
+- **M4 Post-event summary email cron**: New `GET /api/cron/post-event-summary` route (hourly Cloud Scheduler target) queries events that ended 1–2 hours ago with `summaryEmailSent: false`, sends a summary email via `sendPostEventSummaryEmail` in `lib/email.ts`, then sets `summaryEmailSent: true`. `summaryEmailSent Boolean @default(false)` field added to `Event` model and synced via `prisma db push`.
+- **Phase 4 AI 4th "action" insight card**: `lib/generateInsightCards.ts` now generates 4 insight cards (was 3). The 4th card is type `"action"` — a concrete 48-hour suggested task. Insight card UI updated with lime border/background for action cards.
+
 ## [0.4.72] — May 25, 2026
 
 ### Insights Expansion — H1 to H6
