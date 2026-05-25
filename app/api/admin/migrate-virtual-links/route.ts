@@ -33,7 +33,7 @@ export async function POST() {
     let skipped = 0
 
     for (;;) {
-      const events = await prisma.event.findMany({
+      const events: { id: string; virtualLink: string | null; virtualLinkIv: string | null }[] = await prisma.event.findMany({
         where: {
           eventType: 'VIRTUAL',
           virtualLink: { not: null },

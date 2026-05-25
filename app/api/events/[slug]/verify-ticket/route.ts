@@ -231,7 +231,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
           eventId: event.id,
           status: 'confirmed',
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { submittedAt: 'desc' },
         take: 1000,
         select: {
           id: true,
@@ -243,7 +243,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
           answers: true,
           registrationNumber: true,
         },
-      }) as RegistrationLookup[]
+      }) as unknown as RegistrationLookup[]
 
       const q = normalizedIdentity.toLowerCase()
       const isEmailLookup = q.includes('@')

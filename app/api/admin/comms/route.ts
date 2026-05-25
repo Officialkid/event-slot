@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     let notified = 0
 
     for (;;) {
-      const users = await prisma.user.findMany({
+      const users: { id: string }[] = await prisma.user.findMany({
         select: { id: true },
         orderBy: { id: "asc" },
         take: batchSize,
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       }
 
       await prisma.notification.createMany({
-        data: users.map((user) => ({
+        data: users.map((user: { id: string }) => ({
           userId: user.id,
           type: "PLATFORM",
           title: subject,

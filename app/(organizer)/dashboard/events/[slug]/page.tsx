@@ -16,7 +16,7 @@ import { ScannerHome } from "@/components/scanner/ScannerHome"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, type PieLabelRenderProps,
 } from "recharts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -2910,7 +2910,7 @@ export default function EventDashboardPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={78}
-                          label={({ source, count }) => `${source}: ${count}`}
+                          label={(props: PieLabelRenderProps) => `${props.payload?.source ?? ''}: ${props.payload?.count ?? ''}`}
                         >
                           {analyticsData.sourceBreakdown.map((item) => (
                             <Cell key={item.source} fill={SOURCE_COLORS[item.source] ?? '#525252'} />
