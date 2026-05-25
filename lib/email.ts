@@ -575,3 +575,63 @@ export async function sendPioneerBadgeAnnouncementEmail({
   })
 }
 
+export async function sendPostEventSummaryEmail({
+  to,
+  organizerName,
+  eventTitle,
+  eventSlug,
+  totalRegistrations,
+  confirmedCount,
+  checkInRate,
+  avgFeedbackScore,
+}: {
+  to: string
+  organizerName: string | null
+  eventTitle: string
+  eventSlug: string
+  totalRegistrations: number
+  confirmedCount: number
+  checkInRate: number
+  avgFeedbackScore: string | null
+}) {
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    to,
+    subject: `Post-event summary: ${eventTitle}`,
+    html: `
+      <div style="background:#0A0A0A;color:#F0EDE6;padding:40px;font-family:sans-serif;max-width:520px;">
+        <h2 style="color:#C8F55A;margin-bottom:8px;">Your event has ended 🎉</h2>
+        <p style="color:#A3A3A3;margin-bottom:24px;">
+          ${organizerName ? `Hi ${organizerName}, here` : 'Here'}'s how <strong style="color:#F0EDE6;">${eventTitle}</strong> went:
+        </p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#A3A3A3;font-size:14px;">Total registrations</td>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#F0EDE6;font-size:14px;font-weight:bold;text-align:right;">${totalRegistrations}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#A3A3A3;font-size:14px;">Confirmed attendees</td>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#F0EDE6;font-size:14px;font-weight:bold;text-align:right;">${confirmedCount}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#A3A3A3;font-size:14px;">Check-in rate</td>
+            <td style="padding:10px 0;border-bottom:1px solid rgba(240,237,230,0.08);color:#C8F55A;font-size:14px;font-weight:bold;text-align:right;">${checkInRate}%</td>
+          </tr>
+          ${avgFeedbackScore ? `
+          <tr>
+            <td style="padding:10px 0;color:#A3A3A3;font-size:14px;">Feedback score</td>
+            <td style="padding:10px 0;color:#C8F55A;font-size:14px;font-weight:bold;text-align:right;">${avgFeedbackScore} / 5</td>
+          </tr>` : ''}
+        </table>
+        <a href="${BASE_URL}/dashboard/events/${eventSlug}"
+          style="background:#C8F55A;color:#0A0A0A;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">
+          View Full Analytics →
+        </a>
+        <p style="color:#525252;font-size:12px;margin-top:32px;">
+          Smarter Events. Better Experiences. - EventSlot
+        </p>
+      </div>
+    `,
+  })
+}
+

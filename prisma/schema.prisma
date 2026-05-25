@@ -49,6 +49,7 @@ model Event {
   faqEnabled       Boolean   @default(false)
   aiInsightsFreeUsed Boolean @default(false)
   whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
+  summaryEmailSent Boolean   @default(false)
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]

@@ -1,7 +1,7 @@
 import { askAIWithMeta, AIProviderStatus } from "./ai"
 
 export interface InsightCard {
-  type: "success" | "warning" | "tip" | "info"
+  type: "success" | "warning" | "tip" | "info" | "action"
   title: string
   body: string
 }
@@ -58,6 +58,15 @@ function buildFallbackCards(analytics: InsightAnalytics): InsightCard[] {
         ? "Your view-to-registration conversion is low. Clarify value in the first screen and reduce optional form friction."
         : "Keep traffic active around your peak registration windows to sustain current signup pace.",
     },
+    {
+      type: "action",
+      title: "Suggested Next Action",
+      body: waitlistPressure
+        ? `You have ${analytics.waitlistCount} people waiting — increase capacity by at least ${Math.min(analytics.waitlistCount, 10)} to promote the next attendees automatically.`
+        : analytics.conversionRate < 10 && analytics.totalViews >= 20
+        ? "Share your event link in 2 targeted communities today to lift your conversion rate above 10%."
+        : `Send a reminder to your ${analytics.confirmedCount} confirmed attendees with the event details and community link.`,
+    },
   ]
 }
 
@@ -68,7 +77,7 @@ function parseInsightCards(raw: string): InsightCard[] {
     throw new Error("Invalid response shape")
   }
 
-  const validTypes: Array<InsightCard["type"]> = ["success", "warning", "tip", "info"]
+  const validTypes: Array<InsightCard["type"]> = ["success", "warning", "tip", "info", "action"]
   const normalized = parsed
     .map((item): InsightCard | null => {
       if (!item || typeof item !== "object") return null
@@ -87,7 +96,7 @@ function parseInsightCards(raw: string): InsightCard[] {
     throw new Error("No valid insight cards returned")
   }
 
-  return normalized.slice(0, 3)
+  return normalized.slice(0, 4)
 }
 
 export async function generateInsightCards(
@@ -95,14 +104,16 @@ export async function generateInsightCards(
   analytics: InsightAnalytics,
   geoContext?: string
 ): Promise<InsightGenerationResult> {
-  const system = `You are an expert event analytics advisor. Generate exactly 3 insight cards based on the event data provided.
-Return ONLY a valid JSON array of 3 objects with this shape:
-[{"type":"success"|"warning"|"tip"|"info","title":"...","body":"..."}]
+  const system = `You are an expert event analytics advisor. Generate exactly 4 insight cards based on the event data provided.
+Return ONLY a valid JSON array of 4 objects with this shape:
+[{"type":"success"|"warning"|"tip"|"info"|"action","title":"...","body":"..."}]
 - "success": a positive result or milestone
 - "warning": something worth monitoring or addressing
 - "tip": an actionable recommendation
 - "info": a neutral contextual observation
-Keep each title under 8 words. Keep each body 1-2 sentences, practical and specific.
+- "action": one concrete task the organiser should do in the next 48 hours (title must be "Suggested Next Action")
+Keep each title under 8 words. Keep each body 1-2 sentences, practical and specific. Use the actual numbers.
+The fourth card must always have type "action" and title "Suggested Next Action".
 Do not include any markdown, code fences, or explanation outside the JSON array.`
 
   const prompt = `Event: "${event.title}"
@@ -128,7 +139,7 @@ Generate 3 insight cards.`
       system,
       prompt,
       taskType: 'insights',
-      maxTokens: 400,
+      maxTokens: 520,
     })
     if (!aiResult.content) {
       return {

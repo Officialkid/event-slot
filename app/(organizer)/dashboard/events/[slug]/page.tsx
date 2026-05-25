@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
 import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
@@ -106,6 +107,8 @@ type AnalyticsData = {
   sourceBreakdown: { source: string; count: number }[]
   feedbackScore: number | null
   feedbackCount: number
+  vsAverage: number | null
+  avgRegistrations: number | null
   aiInsightsFreeUsed: boolean
   event?: { capacity: number | null }
   registrationsByDay: { date: string; count: number }[]
@@ -123,7 +126,7 @@ const SOURCE_COLORS: Record<string, string> = {
 }
 
 type InsightCard = {
-  type: "success" | "warning" | "tip" | "info"
+  type: "success" | "warning" | "tip" | "info" | "action"
   title: string
   body: string
 }
@@ -1101,6 +1104,9 @@ export default function EventDashboardPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState("")
 
+  // Recent registrations ticker (30s poll)
+  const [recentRegs, setRecentRegs] = useState<{ id: string; name: string; submittedAt: string; status: string }[]>([])
+
   // AI Insights
   const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(false)
@@ -1753,6 +1759,20 @@ export default function EventDashboardPage() {
       cancelled = true
     }
   }, [activeTab, eventData, analyticsData, analyticsLoading, slug, token, loadInsights])
+
+  // Recent registrations polling (30s, only when on overview tab)
+  useEffect(() => {
+    if (!slug) return
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
+    const load = () =>
+      fetch(`/api/events/${slug}/recent-registrations${tokenParam}`)
+        .then(r => r.json())
+        .then(d => { if (d.recent) setRecentRegs(d.recent) })
+        .catch(() => {/* ignore */ })
+    load()
+    const interval = setInterval(load, 30_000)
+    return () => clearInterval(interval)
+  }, [slug, token])
 
   const loadFeedback = async () => {
     if (!eventData || feedbackLoading) return
@@ -2428,6 +2448,57 @@ export default function EventDashboardPage() {
               )}
             </div>
 
+            {/* M2 — Waitlist Intelligence */}
+            {eventData.waitlistCount > 0 && (
+              <div style={{ border: "0.5px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "1rem 1.25rem", background: "rgba(245,158,11,0.05)" }}>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F59E0B", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>✦ WAITLIST INTELLIGENCE</div>
+                <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.375rem 0" }}>
+                  {eventData.waitlistCount} {eventData.waitlistCount === 1 ? 'person is' : 'people are'} on the waitlist
+                </p>
+                <p style={{ fontSize: "0.8rem", color: "#A3A3A3", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.875rem 0", lineHeight: 1.5 }}>
+                  {eventData.capacity
+                    ? `Increasing capacity by ${Math.min(eventData.waitlistCount, 10)} would automatically promote the next ${Math.min(eventData.waitlistCount, 10)} attendees.`
+                    : 'You have unlimited capacity — all waitlisted attendees can be promoted.'}
+                </p>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    style={{ background: "#C8F55A", border: "none", borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  >
+                    Increase Capacity
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('waitlist')}
+                    style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "#A3A3A3", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  >
+                    View Waitlist
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* M3 — Recent Registrations Ticker */}
+            {recentRegs.length > 0 && (
+              <div style={{ border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem", background: "#141414" }}>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>✦ RECENT REGISTRATIONS</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+                  {recentRegs.map((r) => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(200,245,90,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#C8F55A", flexShrink: 0, fontFamily: "var(--font-dm-sans)" }}>
+                          {r.name[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
+                      </div>
+                      <span style={{ fontSize: "0.72rem", color: "#525252", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
+                        {formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Community link (if set) */}
             {eventData.communityLink && (
               <div style={{ background: "rgba(200,245,90,0.04)", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "0.875rem 1.125rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
@@ -2702,15 +2773,31 @@ export default function EventDashboardPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
                       {insightsData.map((card, i) => (
                         <div key={i} style={{
-                          borderLeft: `3px solid ${card.type === 'warning' ? '#FF6B6B' : card.type === 'info' ? 'rgba(240,237,230,0.2)' : '#C8F55A'}`,
+                          borderLeft: `3px solid ${
+                            card.type === 'warning' ? '#FF6B6B' :
+                            card.type === 'action'  ? '#C8F55A' :
+                            card.type === 'info'    ? 'rgba(240,237,230,0.2)' :
+                            '#C8F55A'
+                          }`,
                           borderTop: "0.5px solid rgba(240,237,230,0.06)",
                           borderRight: "0.5px solid rgba(240,237,230,0.06)",
                           borderBottom: "0.5px solid rgba(240,237,230,0.06)",
-                          background: card.type === 'warning' ? "rgba(255,107,107,0.04)" : card.type === 'info' ? "rgba(240,237,230,0.03)" : "rgba(200,245,90,0.04)",
+                          background:
+                            card.type === 'warning' ? "rgba(255,107,107,0.04)" :
+                            card.type === 'action'  ? "rgba(200,245,90,0.06)" :
+                            card.type === 'info'    ? "rgba(240,237,230,0.03)" :
+                            "rgba(200,245,90,0.04)",
                           borderRadius: 8,
                           padding: "0.875rem 1rem",
                         }}>
-                          <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: card.type === 'warning' ? '#FF6B6B' : card.type === 'info' ? 'rgba(240,237,230,0.35)' : '#C8F55A', fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>{card.type}</div>
+                          <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color:
+                            card.type === 'warning' ? '#FF6B6B' :
+                            card.type === 'action'  ? '#C8F55A' :
+                            card.type === 'info'    ? 'rgba(240,237,230,0.35)' :
+                            '#C8F55A',
+                            fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>
+                            {card.type === 'action' ? '→ action' : card.type}
+                          </div>
                           <div style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
                           <div style={{ fontSize: "0.76rem", fontWeight: 300, color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
                         </div>
@@ -2865,6 +2952,26 @@ export default function EventDashboardPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+
+                {/* M1 — Comparative performance vs own average */}
+                {analyticsData.vsAverage !== null && analyticsData.avgRegistrations !== null && (
+                  <div style={{ borderLeft: `4px solid ${analyticsData.vsAverage >= 0 ? '#22C55E' : '#F59E0B'}`, paddingLeft: "1rem", paddingTop: "0.625rem", paddingBottom: "0.625rem", background: analyticsData.vsAverage >= 0 ? "rgba(34,197,94,0.05)" : "rgba(245,158,11,0.05)", borderTopRightRadius: 12, borderBottomRightRadius: 12 }}>
+                    <p style={{ color: "#A3A3A3", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.25rem 0", lineHeight: 1.5 }}>
+                      {analyticsData.vsAverage >= 0 ? (
+                        <>This event has{' '}
+                          <span style={{ color: "#22C55E", fontWeight: 700 }}>{analyticsData.vsAverage}% more</span>
+                          {' '}registrations than your average event.</>
+                      ) : (
+                        <>This event has{' '}
+                          <span style={{ color: "#F59E0B", fontWeight: 700 }}>{Math.abs(analyticsData.vsAverage)}% fewer</span>
+                          {' '}registrations than your average event.</>
+                      )}
+                    </p>
+                    <p style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                      Your average: {analyticsData.avgRegistrations} registrations per event
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

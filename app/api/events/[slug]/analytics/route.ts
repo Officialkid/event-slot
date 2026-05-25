@@ -97,6 +97,24 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       ? Math.round((feedbackResponses.reduce((sum, row) => sum + (row.rating ?? 0), 0) / feedbackResponses.length) * 10) / 10
       : null
 
+    // Comparative performance vs organizer average
+    let vsAverage: number | null = null
+    let avgRegistrations: number | null = null
+    if (event.organizerId) {
+      const allOrgEvents = await prisma.event.findMany({
+        where: { organizerId: event.organizerId, id: { not: event.id } },
+        include: { _count: { select: { registrations: true } } },
+      })
+      if (allOrgEvents.length > 0) {
+        avgRegistrations = Math.round(
+          allOrgEvents.reduce((s, e) => s + e._count.registrations, 0) / allOrgEvents.length
+        )
+        if (avgRegistrations > 0) {
+          vsAverage = Math.round(((registrations.length - avgRegistrations) / avgRegistrations) * 100)
+        }
+      }
+    }
+
     // Registrations by day (last 30 days)
     const now = new Date()
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -141,6 +159,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       })),
       feedbackScore: avgFeedbackScore,
       feedbackCount: feedbackResponses.length,
+      vsAverage,
+      avgRegistrations,
       aiInsightsFreeUsed: event.aiInsightsFreeUsed,
       event: { capacity: event.capacity },
       registrationsByDay,
