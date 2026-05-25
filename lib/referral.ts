@@ -165,6 +165,7 @@ async function checkAndAwardBadges(userId: string): Promise<void> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function updateLeaderboardScore(_userId: string, _points: number): Promise<void> {
   // Scores are now recomputed from source data by the recalculate-leaderboard cron.
   // Real-time increments are no longer written here.

@@ -112,6 +112,18 @@ export function DeepScan({ eventSlug, accessToken, onExit, onVerified }: Props) 
     [accessToken, eventSlug]
   )
 
+  const stopCamera = () => {
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+    setCameraReady(false)
+  }
+
   useEffect(() => {
     if (inputMode !== "camera" || profile) {
       stopCamera()
@@ -185,18 +197,6 @@ export function DeepScan({ eventSlug, accessToken, onExit, onVerified }: Props) 
       stopCamera()
     }
   }, [inputMode, loadProfile, profile])
-
-  const stopCamera = () => {
-    if (frameRef.current) {
-      cancelAnimationFrame(frameRef.current)
-      frameRef.current = null
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-    setCameraReady(false)
-  }
 
   const onUpload = async (file: File | null) => {
     if (!file) return

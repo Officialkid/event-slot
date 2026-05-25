@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -72,7 +72,7 @@ export default function InsightsPage() {
   const [profile, setProfile] = useState<string | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
@@ -82,7 +82,7 @@ export default function InsightsPage() {
       setData(json)
     } catch { setError("Unable to load insights.") }
     finally { setLoading(false) }
-  }
+  }, [range])
 
   const generateProfile = async () => {
     setProfileLoading(true)
@@ -107,7 +107,7 @@ export default function InsightsPage() {
 
   useEffect(() => {
     load()
-  }, [range])
+  }, [load])
 
   // ─── Loading skeleton ─────────────────────────────────────────────────────
 
@@ -207,7 +207,7 @@ export default function InsightsPage() {
           {profile ? (
             <>
               <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
-                "{profile}"
+                &ldquo;{profile}&rdquo;
               </p>
               <button
                 onClick={generateProfile}

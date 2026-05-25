@@ -137,22 +137,6 @@ type QAItem = {
   timestamp: string
 }
 
-type CheckInResult = {
-  success: boolean
-  valid?: boolean
-  alreadyVerified?: boolean
-  message?: string
-  error?: string
-  ticket?: {
-    registrationId: string
-    registrationNumber: number | null
-    attendeeName: string
-    attendeeEmail: string | null
-    confirmationCode: string | null
-    checkedInAt: string | null
-  }
-}
-
 type WaitlistEmailDiagnosticsSummary = {
   attempted: number
   sent: number
@@ -1114,8 +1098,7 @@ export default function EventDashboardPage() {
   const [insightsLocked, setInsightsLocked] = useState(false)
   const [insightsRequiredCredits] = useState(20)
   const [insightsGeneratedAt, setInsightsGeneratedAt] = useState<string | null>(null)
-  const [insightsEventId] = useState<string | null>(null)
-  const [insightsUnlockLoading, setInsightsUnlockLoading] = useState(false)
+  const [insightsUnlockLoading] = useState(false)
 
   // AI Q&A
   const [qaHistory, setQaHistory] = useState<QAItem[]>([])
@@ -1127,13 +1110,6 @@ export default function EventDashboardPage() {
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackError, setFeedbackError] = useState("")
-
-  // Check-in
-  const [ticketCodeInput, setTicketCodeInput] = useState("")
-  const [scanCodeInput, setScanCodeInput] = useState("")
-  const [identityInput, setIdentityInput] = useState("")
-  const [checkInLoading, setCheckInLoading] = useState(false)
-  const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null)
 
   // Team tab (per-event)
   const [eventTeam, setEventTeam] = useState<EventTeamMember[]>([])
@@ -1513,34 +1489,89 @@ export default function EventDashboardPage() {
     }
   }
 
-  const verifyTicket = async (payload: { code?: string; identity?: string }) => {
-    if (!eventData) return
-    setCheckInLoading(true)
-    setCheckInResult(null)
+  const loadInsights = useCallback(async (force = false) => {
+    if (!eventData || insightsLoading) return
+    setInsightsLoading(true)
+    setInsightsError("")
     try {
-      const res = await fetch(`/api/events/${slug}/verify-ticket`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: token || eventData.dashboardToken,
-          ...payload,
-        }),
-      })
-      const data = (await res.json()) as CheckInResult
-      setCheckInResult(data)
-
-      if (res.ok && data.success && data.valid) {
-        setTicketCodeInput("")
-        setScanCodeInput("")
-        setIdentityInput("")
-        await fetchDashboard()
+      const params = new URLSearchParams()
+      if (token) params.set('token', token)
+      if (force) params.set('force', 'true')
+      const qs = params.toString() ? `?${params.toString()}` : ''
+      const res = await fetch(`/api/events/${slug}/insights${qs}`)
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 402 && data.insufficientCredits) {
+          setInsightsLocked(true)
+        }
+        setInsightsError(data.error || 'Unable to load AI insights. Please retry.')
+        return
+      }
+      if (!Array.isArray(data.cards) || data.cards.length === 0) {
+        setInsightsData(null)
+        setInsightsError('No insight cards returned. Please regenerate.')
+        return
+      }
+      setInsightsData(data.cards)
+      setInsightsGeneratedAt(data.generatedAt ?? null)
+      setInsightsLocked(false)
+      if (analyticsData && typeof data.aiInsightsFreeUsed === 'boolean') {
+        setAnalyticsData({ ...analyticsData, aiInsightsFreeUsed: data.aiInsightsFreeUsed })
+      }
+      if (typeof data.message === 'string' && data.message.trim().length > 0) {
+        setInsightsError(data.message)
       }
     } catch {
-      setCheckInResult({ success: false, error: "Unable to verify ticket right now." })
-    } finally {
-      setCheckInLoading(false)
+      setInsightsError('AI insights are currently unavailable due to a network issue. Please retry.')
     }
-  }
+    finally { setInsightsLoading(false) }
+  }, [eventData, insightsLoading, token, slug, analyticsData])
+
+  useEffect(() => {
+    if (activeTab !== "analytics") return
+    if (!eventData || analyticsData || analyticsLoading) return
+
+    let cancelled = false
+    const autoLoadAnalytics = async () => {
+      setAnalyticsLoading(true)
+      setAnalyticsError("")
+      try {
+        const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+        const data = await res.json()
+        if (!res.ok) {
+          if (!cancelled) setAnalyticsError(data.error || "Failed to load analytics")
+          return
+        }
+        if (!cancelled) {
+          setAnalyticsData(data)
+          loadInsights()
+        }
+      } catch {
+        if (!cancelled) setAnalyticsError("Unable to load analytics.")
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false)
+      }
+    }
+
+    void autoLoadAnalytics()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, eventData, analyticsData, analyticsLoading, slug, token, loadInsights])
+
+  // Recent registrations polling (30s, only when on overview tab)
+  useEffect(() => {
+    if (!slug) return
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
+    const load = () =>
+      fetch(`/api/events/${slug}/recent-registrations${tokenParam}`)
+        .then(r => r.json())
+        .then(d => { if (d.recent) setRecentRegs(d.recent) })
+        .catch(() => {/* ignore */ })
+    load()
+    const interval = setInterval(load, 30_000)
+    return () => clearInterval(interval)
+  }, [slug, token])
 
   // ── Renders ────────────────────────────────────────────────────────────────
 
@@ -1643,68 +1674,6 @@ export default function EventDashboardPage() {
     }
   }
 
-  const loadInsights = async (force = false) => {
-    if (!eventData || insightsLoading) return
-    setInsightsLoading(true)
-    setInsightsError("")
-    try {
-      const params = new URLSearchParams()
-      if (token) params.set('token', token)
-      if (force) params.set('force', 'true')
-      const qs = params.toString() ? `?${params.toString()}` : ''
-      const res = await fetch(`/api/events/${slug}/insights${qs}`)
-      const data = await res.json()
-      if (!res.ok) {
-        if (res.status === 402 && data.insufficientCredits) {
-          setInsightsLocked(true)
-        }
-        setInsightsError(data.error || 'Unable to load AI insights. Please retry.')
-        return
-      }
-
-      if (!Array.isArray(data.cards) || data.cards.length === 0) {
-        setInsightsData(null)
-        setInsightsError('No insight cards returned. Please regenerate.')
-        return
-      }
-
-      setInsightsData(data.cards)
-      setInsightsGeneratedAt(data.generatedAt ?? null)
-      setInsightsLocked(false)
-      if (analyticsData && typeof data.aiInsightsFreeUsed === 'boolean') {
-        setAnalyticsData({ ...analyticsData, aiInsightsFreeUsed: data.aiInsightsFreeUsed })
-      }
-      if (typeof data.message === 'string' && data.message.trim().length > 0) {
-        setInsightsError(data.message)
-      }
-    } catch {
-      setInsightsError('AI insights are currently unavailable due to a network issue. Please retry.')
-    }
-    finally { setInsightsLoading(false) }
-  }
-
-  const handleUnlockInsights = async () => {
-    if (!insightsEventId) return
-    setInsightsUnlockLoading(true)
-    try {
-      const res = await fetch('/api/features/unlock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feature: 'ai_insights', eventId: insightsEventId }),
-      })
-      const data = await res.json()
-      if (res.status === 402) {
-        router.push('/dashboard/billing')
-        return
-      }
-      if (!res.ok || !data.success) return
-      showToast({ featureName: 'AI Insights', creditsUsed: insightsRequiredCredits, creditsRemaining: data.creditsRemaining })
-      setInsightsLocked(false)
-      await loadInsights(true)
-    } catch {}
-    finally { setInsightsUnlockLoading(false) }
-  }
-
   const submitQuestion = async (question: string) => {
     const q = question.trim()
     if (!q || qaLoading) return
@@ -1727,52 +1696,6 @@ export default function EventDashboardPage() {
     } catch {}
     finally { setQaLoading(false) }
   }
-
-  useEffect(() => {
-    if (activeTab !== "analytics") return
-    if (!eventData || analyticsData || analyticsLoading) return
-
-    let cancelled = false
-    const autoLoadAnalytics = async () => {
-      setAnalyticsLoading(true)
-      setAnalyticsError("")
-      try {
-        const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
-        const data = await res.json()
-        if (!res.ok) {
-          if (!cancelled) setAnalyticsError(data.error || "Failed to load analytics")
-          return
-        }
-        if (!cancelled) {
-          setAnalyticsData(data)
-          loadInsights()
-        }
-      } catch {
-        if (!cancelled) setAnalyticsError("Unable to load analytics.")
-      } finally {
-        if (!cancelled) setAnalyticsLoading(false)
-      }
-    }
-
-    void autoLoadAnalytics()
-    return () => {
-      cancelled = true
-    }
-  }, [activeTab, eventData, analyticsData, analyticsLoading, slug, token, loadInsights])
-
-  // Recent registrations polling (30s, only when on overview tab)
-  useEffect(() => {
-    if (!slug) return
-    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ''
-    const load = () =>
-      fetch(`/api/events/${slug}/recent-registrations${tokenParam}`)
-        .then(r => r.json())
-        .then(d => { if (d.recent) setRecentRegs(d.recent) })
-        .catch(() => {/* ignore */ })
-    load()
-    const interval = setInterval(load, 30_000)
-    return () => clearInterval(interval)
-  }, [slug, token])
 
   const loadFeedback = async () => {
     if (!eventData || feedbackLoading) return
