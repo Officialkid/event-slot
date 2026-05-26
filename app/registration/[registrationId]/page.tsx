@@ -179,7 +179,7 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
           </p>
           <AddToCalendarButton
             eventSlug={event.slug}
-            eventTitle={`[Waitlisted] ${event.title}`}
+            _eventTitle={`[Waitlisted] ${event.title}`}
             isConnected={attendeeCalendarConnected}
             staticGoogleUrl={staticGoogleUrl}
             staticIcsUrl={`/api/events/${event.slug}/calendar.ics`}

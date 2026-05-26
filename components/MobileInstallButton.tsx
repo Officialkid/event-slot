@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 
 // Package ID must match keystore + assetlinks.json
@@ -27,10 +28,12 @@ export function MobileInstallButton() {
         aria-label="Get EventSlot on Google Play"
         style={{ display: "inline-flex", alignItems: "center" }}
       >
-        <img
+        <Image
           src="/images/google-play-badge.png"
           alt="Get it on Google Play"
-          style={{ height: "48px", width: "auto", display: "block" }}
+          height={48}
+          width={180}
+          style={{ display: "block" }}
         />
       </a>
     )
@@ -96,13 +99,13 @@ export function MobileInstallButton() {
               <li className="flex items-start gap-2">
                 <span className="text-[#C8F55A] text-xs font-bold shrink-0 mt-0.5">2.</span>
                 <span className="text-[#A3A3A3] text-xs leading-relaxed">
-                  Scroll down and tap <strong className="text-white">"Add to Home Screen"</strong>
+                  Scroll down and tap <strong className="text-white">&quot;Add to Home Screen&quot;</strong>
                 </span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#C8F55A] text-xs font-bold shrink-0 mt-0.5">3.</span>
                 <span className="text-[#A3A3A3] text-xs leading-relaxed">
-                  Tap <strong className="text-white">"Add"</strong> in the top right
+                  Tap <strong className="text-white">&quot;Add&quot;</strong> in the top right
                 </span>
               </li>
             </ol>

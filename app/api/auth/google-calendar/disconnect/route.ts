@@ -4,7 +4,8 @@ import { getServerSession }          from 'next-auth';
 import { authOptions }               from '@/lib/auth';
 import { disconnectGoogleCalendar }  from '@/lib/googleCalendar';
 
-export async function POST(req: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function POST(_req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

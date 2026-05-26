@@ -3,15 +3,16 @@ import { useState } from 'react';
 import { Calendar, CheckCircle } from 'lucide-react';
 
 interface Props {
-  eventSlug:       string;
-  eventTitle:      string;
-  isConnected:     boolean;
-  staticGoogleUrl: string;
-  staticIcsUrl:    string;
+  eventSlug:        string;
+  _eventTitle:      string; // Reserved for future use
+  isConnected:      boolean;
+  staticGoogleUrl:  string;
+  staticIcsUrl:     string;
 }
 
 export function AddToCalendarButton({
-  eventSlug, eventTitle, isConnected, staticGoogleUrl, staticIcsUrl,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  eventSlug, _eventTitle, isConnected, staticGoogleUrl, staticIcsUrl,
 }: Props) {
   const [state, setState] = useState<'idle' | 'adding' | 'done' | 'fallback'>('idle');
 

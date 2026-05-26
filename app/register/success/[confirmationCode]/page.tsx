@@ -240,7 +240,7 @@ export default async function TicketSuccessPage({
         <div style={{ width: "100%", maxWidth: 660, marginTop: "1.5rem" }}>
           <AddToCalendarButton
             eventSlug={eventSlug}
-            eventTitle={event.title}
+            _eventTitle={event.title}
             isConnected={attendeeCalendarConnected}
             staticGoogleUrl={staticGoogleUrl}
             staticIcsUrl={`/api/events/${eventSlug}/calendar.ics`}
