@@ -90,7 +90,7 @@ export async function resolveOrganiserAccess(params: {
 // Simpler check — does the current user have organiser-level write access?
 // Use in place of: event.organizerId !== session.user.id
 export async function hasOrganiserAccess(
-  session: { user: { id: string; role: string } },
+  session: { user: { id: string; role?: string | undefined } },
   eventId: string
 ): Promise<boolean> {
   const result = await resolveOrganiserAccess({

@@ -4,8 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
-import { useToast } from "@/components/Toast"
-import GoogleCalendarConnect from "@/components/GoogleCalendarConnect"
+import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 
 interface ProfileData {
   name: string | null
@@ -250,7 +249,6 @@ function DeleteModal({
 export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { showToast } = useToast()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -292,18 +290,12 @@ export default function ProfilePage() {
   useEffect(() => {
     const calendarParam = searchParams?.get("calendar")
     if (!calendarParam) return
-    if (calendarParam === "connected") {
-      showToast("Google Calendar connected successfully!", "success")
-    } else if (calendarParam === "denied") {
-      showToast("Calendar access was denied. Please try again.", "error")
-    } else if (calendarParam === "error") {
-      showToast("Something went wrong connecting Google Calendar.", "error")
-    }
+    // Toast notifications handled by redirect page feedback, not here
     // Remove the query param from URL without reload
     const url = new URL(window.location.href)
     url.searchParams.delete("calendar")
     router.replace(url.pathname + (url.hash || ""), { scroll: false })
-  }, [searchParams, showToast, router])
+  }, [searchParams, router])
 
   const currentImage = photoPreview ?? profile?.image ?? null
   const initials = ((profile?.name || profile?.email) ?? "?")

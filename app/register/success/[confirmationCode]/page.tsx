@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma"
 import ConfirmationTicket from "@/components/tickets/ConfirmationTicket"
 import type { TicketData } from "@/components/tickets/ConfirmationTicket"
 import { APP_URL } from "@/lib/config"
-import AddToCalendarButton from "@/components/AddToCalendarButton"
+import { AddToCalendarButton } from "@/components/AddToCalendarButton"
 import { isCalendarConnected } from "@/lib/googleCalendar"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
