@@ -135,18 +135,3 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
     </>
   )
 }
-              >
-                Allow Camera
-              </button>
-              <button
-                onClick={() => { setShowCameraRationale(false); setPendingMode(null) }}
-                className="flex-1 border border-[#2A2A2A] text-[#A3A3A3] py-2.5 rounded-xl text-sm"
-              >
-                Not Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-  )
-}
