@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { isAdminEmail } from '@/lib/isAdmin'
-import { getCountryFlag } from '@/lib/geoip'
+import { getCountryFlag, getCountryName } from '@/lib/geoip'
 import { COUNTRY_CURRENCY, DEFAULT_CURRENCY } from '@/lib/currency'
 
 export async function GET() {
@@ -35,6 +35,47 @@ export async function GET() {
       distinct: ['countryCode'],
     })
     const prevMap = Object.fromEntries(previous.map(p => [p.countryCode, p]))
+
+    // If cron snapshots are empty (e.g. before first daily run), build a live view from existing users/events.
+    if (latest.length === 0) {
+      const [usersByCountry, eventsByCountry] = await Promise.all([
+        prisma.$queryRaw<Array<{ countryCode: string; userCount: bigint; organizerCount: bigint }>>`
+          SELECT
+            COALESCE(u."signupCountry", u."countryCode") AS "countryCode",
+            COUNT(*)::bigint AS "userCount",
+            COUNT(*) FILTER (
+              WHERE EXISTS (
+                SELECT 1
+                FROM "Event" e
+                WHERE e."organizerId" = u."id"
+              )
+            )::bigint AS "organizerCount"
+          FROM "User" u
+          WHERE COALESCE(u."signupCountry", u."countryCode") IS NOT NULL
+          GROUP BY COALESCE(u."signupCountry", u."countryCode")
+        `,
+        prisma.$queryRaw<Array<{ countryCode: string; eventCount: bigint }>>`
+          SELECT "countryCode", COUNT(*)::bigint AS "eventCount"
+          FROM "Event"
+          WHERE "countryCode" IS NOT NULL
+          GROUP BY "countryCode"
+        `,
+      ])
+
+      const userMap = Object.fromEntries(usersByCountry.map(r => [r.countryCode, r]))
+      const eventMap = Object.fromEntries(eventsByCountry.map(r => [r.countryCode, Number(r.eventCount)]))
+      const codes = Array.from(new Set([...Object.keys(userMap), ...Object.keys(eventMap)]))
+
+      latest.push(
+        ...codes.map(code => ({
+          countryCode: code,
+          countryName: getCountryName(code),
+          userCount: Number(userMap[code]?.userCount ?? 0),
+          organizerCount: Number(userMap[code]?.organizerCount ?? 0),
+          eventCount: Number(eventMap[code] ?? 0),
+        }))
+      )
+    }
 
     const countries = latest.map(c => {
       const prev = prevMap[c.countryCode]
