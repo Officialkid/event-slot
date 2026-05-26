@@ -1,5 +1,51 @@
 # EventSlot — Changelog
 
+## [0.4.75] — May 26, 2026
+
+### MD-PLAYSTORE-01 Parts 13–14 — Version Strategy & Mobile Install Button
+
+**Part 13 — Version Management**
+- Confirmed `twa/twa-manifest.json` at `appVersion: "1.1.0"`, `appVersionCode: 3` (correct — no changes needed)
+- `twa/app/build.gradle` at `versionName "1.1.0"`, `versionCode 2` (set by last successful build)
+- Version bump workflow documented: increment `appVersionCode` in `twa-manifest.json`, then `bubblewrap build`
+
+**Part 14 — Mobile Install Button**
+- **`hooks/usePWAInstall.ts`** — new hook; detects install method (`play-store | pwa-prompt | ios-manual | already-installed | null`), handles `beforeinstallprompt` + `appinstalled` events, SSR-safe
+- **`components/MobileInstallButton.tsx`** — new component; renders only on mobile:
+  - Android → Google Play Store badge (`/images/google-play-badge.png`, height 48px, links to `com.alphatech.eventslot`)
+  - PWA prompt browsers → "Install App" button calling `promptInstall()`
+  - iOS Safari → "Add to Home Screen" button with step-by-step tooltip
+  - Already-installed / desktop → renders `null`
+- **`public/images/google-play-badge.png`** — official badge downloaded from Google Play assets CDN
+- **`app/page.tsx`** — `<MobileInstallButton />` added to hero buttons flex container (mobile-only, aligned with existing CTAs)
+
+---
+
+## [0.4.74] — May 26, 2026
+
+### MD-PWA-01 — Full PWA Icon & Manifest Overhaul (New EventSlot Logo)
+
+- **Favicon & icons regenerated**: All 11 PWA icon sizes (16–512px) regenerated from `public/assets/logo.png` via `scripts/generate-icons.mjs`. `app/favicon.ico` rebuilt as a proper ICO binary (16/32/48px frames). `public/apple-touch-icon.png` regenerated (180×180, `#0a0a0a` bg, 10% safe-zone padding).
+- **`public/favicon.svg` created**: SVG favicon for modern browsers and Safari `mask-icon`, using `#0a0a0a` background with `#a3e635` accent (replace with design-team SVG when available).
+- **`public/browserconfig.xml` created**: Windows/Edge pinned-tile config (72×72, 144×144, 384×384), `TileColor: #0a0a0a`.
+- **`public/splash/` created**: 7 iOS splash screens (2048×2732 → 750×1334) generated via `scripts/generate-splash.mjs` — `#0a0a0a` background, centred logo (25% width), "EventSlot" title, tagline.
+- **`public/manifest.json` updated**: `theme_color: #a3e635`, `background_color: #0a0a0a`, 9 icon entries (72–512 + 180), maskable purpose on 192/512, `dir: ltr`, app shortcuts (Create Event, My Events), `prefer_related_applications: false`.
+- **`app/layout.tsx` updated**: Added `export const viewport: Viewport` (themeColor, viewportFit cover, userScalable false). Icon metadata with ICO, SVG, 16/32 PNG, apple-touch-icon, mask-icon. Seven `appleWebApp.startupImage` entries. `metadata.other` with mobile-web-app-capable, msapplication-TileColor/TileImage, format-detection.
+- **`next.config.mjs` updated**: Cache headers added for `/icons/:path*` (immutable, 1yr), `/manifest.json` (1d), `/favicon.*`, `/apple-touch-icon.png`, `/splash/:path*`.
+
+### MD-PLAYSTORE-01 — Google Play Store Publication (Parts 1–8)
+
+- **Store icon updated**: `twa/store_icon.png` regenerated — 512×512, `#0a0a0a` bg, 15% padding (Play Store hi-res icon).
+- **`twa/twa-manifest.json` updated**: `appVersion: 1.1.0`, `appVersionCode: 3`, `enableNotifications: true`, `orientation: default`, added `features.playBilling: {enabled: false}`, `fullyIsolatedCsp: false`, `fingerprints: []`, `compileSdkVersion: 36`, `targetSdkVersion: 36`, `minSdkVersion: 24`. Shortcuts now use `shortName` (camelCase) and `chosenIconUrl` as required by Bubblewrap ≥1.24.
+- **`twa/app/build.gradle` updated**: `minSdkVersion 24` (was 21), `targetSdkVersion 36` (was 35), `compileSdkVersion 36` confirmed.
+- **Android icons & drawables regenerated**: All 5 mipmap densities for `ic_launcher` and `ic_maskable` regenerated from new logo. All 5 `drawable-*/splash.png` densities regenerated. `ic_launcher.xml` updated to use `@color/backgroundColor` (`#0a0a0a`) instead of white.
+- **Shortcuts wired in Android**: `twa/app/src/main/res/xml/shortcuts.xml`, `strings.xml`, `colors.xml` updated with Create Event + My Events shortcuts.
+- **`public/.well-known/assetlinks.json` verified**: Google Digital Asset Links API confirmed correct — package `com.alphatech.eventslot`, SHA256 `AE:6E:70:05:...39:8E:B5` ✅. `Cache-Control` updated to `public, max-age=3600`.
+- **SDK targets updated (Play Store 2026 requirement)**: `minSdkVersion 24`, `targetSdkVersion 36`, `compileSdkVersion 36` in both `build.gradle` and `twa-manifest.json`.
+- **Camera permission rationale added** (`components/scanner/ScannerHome.tsx`): Both Quick Scan and Deep Scan now show an in-app rationale modal ("Camera Access Needed") before triggering the system permission dialog — required by Google Play policy. Checks `navigator.permissions` state; if denied, shows a settings-redirect alert.
+- **`hooks/usePushSubscription.ts` created**: Rationale-first push notification hook. `requestNotifications()` shows in-app rationale before calling `Notification.requestPermission()`. Includes `TODO` marker for pushManager subscription wire-up (MD-SYSTEM-01 S4-F).
+- **`.gitignore` updated**: Added `*.keystore`, `*.jks`, `keystore.properties` — Android signing files must never be committed.
+
 ## [0.4.73] — May 26, 2026
 
 ### Phase 3 (M1–M4) + Phase 4 — Analytics Intelligence & Automation

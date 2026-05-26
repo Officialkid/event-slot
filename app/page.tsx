@@ -3,6 +3,7 @@ import Link from "next/link"
 import Image from "next/image"
 import type { CSSProperties } from "react"
 import SmartCTA from "@/components/SmartCTA"
+import { MobileInstallButton } from "@/components/MobileInstallButton"
 
 export const metadata: Metadata = {
   title: "EventSlot – Smart Event Registration Platform with Built-in Waitlist",
@@ -259,7 +260,7 @@ export default function Home() {
             </p>
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
               <Link href="/signup" style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -294,6 +295,8 @@ export default function Home() {
                 See it in action
                 <span style={{ opacity: 0.5 }}>↓</span>
               </a>
+              {/* Mobile-only: Google Play badge on Android, PWA prompt on desktop, iOS tooltip on iPhone */}
+              <MobileInstallButton />
             </div>
 
             {/* Trust stats */}

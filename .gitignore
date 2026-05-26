@@ -47,3 +47,12 @@ tmp_*.txt
 tmp_*.json
 eventslot_google_client_id.txt
 eventslot_google_client_secret.txt
+
+# Android signing — NEVER commit these
+*.keystore
+*.jks
+keystore.properties
+
+# Android build outputs
+twa/app/build/
+twa/.gradle/

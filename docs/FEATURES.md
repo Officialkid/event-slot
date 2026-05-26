@@ -40,7 +40,7 @@ _Last updated: May 26, 2026_
 
 ### Organizer Scanner Mode Revamp (PRIORITY-3)
 **Where:** `components/scanner/ScannerHome.tsx`, `components/scanner/QuickScan.tsx`, `components/scanner/DeepScan.tsx`, `app/(organizer)/dashboard/events/[slug]/page.tsx`  
-**What it does:** Replaces manual-only ticket verification with a two-mode scanner system:
+**What it does:** Replaces manual-only ticket verification with a two-mode scanner system. Now includes camera permission rationale gate (Play Store policy) — both modes show an in-app explanation before the system permission dialog. See also: [Camera Permission Rationale](#camera-permission-rationale-md-playstore-01-part-8).
 - Quick Scan for high-throughput gate checks with instant result overlays and auto-reset.
 - Deep Scan for full attendee profile context, note-taking, explicit mark-attended flow, and CSV session export.
 
@@ -323,16 +323,46 @@ _Last updated: May 26, 2026_
 
 ## PWA & Mobile App
 
-### Android TWA / Google Play Store Packaging
-**Where:** `public/.well-known/assetlinks.json`, `twa/twa-manifest.json`, `next.config.mjs`  
-**What it does:** Enables packaging EventSlot as a native Android APK via a Trusted Web Activity (TWA). The Digital Asset Links file verifies domain ownership to Android — without it, the app shows a browser bar. The `twa-manifest.json` is a pre-filled Bubblewrap config (package: `com.alphatech.eventslot`) that bypasses the interactive wizard.  
-**To build APK:** Install JDK 8+, Android SDK → `mkdir eventslot-android && cd eventslot-android` → copy `twa/twa-manifest.json` into it → `bubblewrap build`.  
-**Fingerprint:** After generating `eventslot-release.keystore`, run `keytool -list -v -keystore eventslot-release.keystore -alias eventslot`, copy the SHA256 fingerprint, and replace the placeholder in `public/.well-known/assetlinks.json`.
+### Android TWA / Google Play Store Packaging (MD-PLAYSTORE-01)
+**Where:** `twa/`, `twa/twa-manifest.json`, `twa/app/build.gradle`, `twa/app/src/main/res/`, `public/.well-known/assetlinks.json`, `next.config.mjs`  
+**Package:** `com.alphatech.eventslot` — do NOT change; locked to Play Store listing and keystore.  
+**Keystore:** `twa/eventslot-release.keystore`, alias `eventslot`. Never commit — covered by `.gitignore`.  
+**Build:** `cd twa && bubblewrap build` (requires keystore password). Produces `twa/app/build/outputs/bundle/release/app-release.aab`.  
+**SDK targets (2026):** `compileSdkVersion 36`, `targetSdkVersion 36`, `minSdkVersion 24` (Android 7.0+).  
+**Digital Asset Links:** `public/.well-known/assetlinks.json` — verified live via Google API. SHA256: `AE:6E:70:05:A1:3C:18:D7:6A:DA:90:25:90:5A:1E:DF:23:47:56:3F:53:89:C0:45:7D:F4:53:63:0B:39:8E:B5`. Served with `Content-Type: application/json`, `Cache-Control: public, max-age=3600`, `Access-Control-Allow-Origin: *`.  
+**Android icons:** All 5 mipmap densities for `ic_launcher` and `ic_maskable` generated from `public/assets/logo.png` via `scripts/generate-android-icons.mjs`. Adaptive icon uses `#0a0a0a` background via `@color/backgroundColor`.  
+**Shortcuts:** Two Android app shortcuts — "Create Event" (`/dashboard/events/new`) and "My Events" (`/dashboard/events`) — wired in `shortcuts.xml`, `strings.xml`, `colors.xml`.  
+**Store icon:** `twa/store_icon.png` — 512×512, `#0a0a0a` bg, 15% padding (Play Store hi-res icon).  
+**Regenerate icons:** `node scripts/generate-android-icons.mjs` after updating `public/assets/logo.png`.
 
-### Progressive Web App (Google Play Store Ready)
-**Where:** `public/manifest.json`, `public/offline.html`, `public/icons/`, `app/layout.tsx`, `scripts/generate-icons.js`  
-**What it does:** Makes EventSlot a fully compliant PWA — installable on Android/iOS, packagable via PWABuilder/Bubblewrap for Google Play. Includes full Web App Manifest (8-size icon set, `start_url: /dashboard`, `display: standalone`), Apple Web App meta tags, offline fallback page, and service worker via `@ducanh2912/next-pwa`.  
-**Icon generation:** Run `node scripts/generate-icons.js` after replacing `public/icons/icon-source.png` with the final 512×512 logo.
+### Camera Permission Rationale (MD-PLAYSTORE-01 Part 8)
+**Where:** `components/scanner/ScannerHome.tsx`  
+**What it does:** Shows an in-app "Camera Access Needed" modal before triggering the system permission dialog — required by Google Play policy. Both Quick Scan and Deep Scan modes go through this gate. If the user has already denied camera access, an alert directs them to device settings instead of showing a broken scanner.
+
+### Push Notification Permission Hook (MD-PLAYSTORE-01 Part 8)
+**Where:** `hooks/usePushSubscription.ts`  
+**What it does:** Provides a rationale-first push notification flow: `requestNotifications()` shows an in-app explanation before calling `Notification.requestPermission()`. Exposes `showRationale`, `subscriptionState`, `requestFromRationale()`, and `dismissRationale()`. PushManager subscription wire-up pending (MD-SYSTEM-01 S4-F).
+
+### Mobile Install Button (MD-PLAYSTORE-01 Part 14)
+**Where:** `components/MobileInstallButton.tsx`, `hooks/usePWAInstall.ts`, `app/page.tsx`, `public/images/google-play-badge.png`  
+**What it does:** Renders a context-aware install button **only on mobile devices** in the landing page hero:
+- **Android (TWA)** → Google Play Store badge (`/images/google-play-badge.png`, height 48px) linking to `https://play.google.com/store/apps/details?id=com.alphatech.eventslot`
+- **PWA prompt browsers** → "Install App" button that calls the native `BeforeInstallPromptEvent`
+- **iOS Safari** → "Add to Home Screen" button that opens a step-by-step tooltip
+- **Desktop or already-installed** → renders `null` (no visual impact)  
+**Hook:** `usePWAInstall` detects install method, captures `beforeinstallprompt`, and listens for `appinstalled` events. SSR-safe via `isMounted` guard.
+
+### Progressive Web App — New Logo & Full Icon Suite (MD-PWA-01)
+**Where:** `public/manifest.json`, `public/icons/`, `public/splash/`, `public/favicon.svg`, `public/apple-touch-icon.png`, `public/browserconfig.xml`, `app/favicon.ico`, `app/layout.tsx`, `next.config.mjs`  
+**What it does:** Full PWA compliance with new EventSlot logo:
+- 11 icon sizes (16–512px) + maskable variants, generated from `public/assets/logo.png`.
+- 7 iOS splash screens covering iPad Pro through iPhone SE.
+- `public/favicon.svg` for modern browsers and Safari mask-icon (replace with design SVG when ready).
+- `public/browserconfig.xml` for Windows/Edge pinned tiles.
+- `app/layout.tsx` exports `viewport` (themeColor `#a3e635`, viewportFit cover) and full icon/startup-image metadata.
+- Cache headers: icons immutable (1yr), manifest 1d, splash/favicon 1d.
+- Service worker auto-managed by `@ducanh2912/next-pwa` (`skipWaiting: true`).  
+**Regenerate:** `node scripts/generate-icons.mjs` (PWA icons) · `node scripts/generate-splash.mjs` (splash screens) · `node scripts/generate-android-icons.mjs` (Android icons).
 
 ---
 
