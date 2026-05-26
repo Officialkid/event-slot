@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { generateInsightCards } from '@/lib/generateInsightCards'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 import { getAIProviderStatus } from '@/lib/ai'
 import { aiRatelimit } from '@/lib/ratelimit'
 import { getCountryFlag, getCountryName } from '@/lib/geoip'
@@ -46,8 +47,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       organizerId: event.organizerId,
       eventId: event.id,
     }))
+    const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
 
-    if (!isOwner && !hasValidToken && !hasTeamAccess) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess && !adminAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

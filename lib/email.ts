@@ -159,6 +159,7 @@ export async function sendWaitlistPromotedEmail({
   eventLocation,
   communityLink,
   ticketUrl,
+  eventSlug,
 }: {
   to: string
   eventTitle: string
@@ -166,6 +167,7 @@ export async function sendWaitlistPromotedEmail({
   eventLocation?: string | null
   communityLink?: string | null
   ticketUrl?: string | null
+  eventSlug?: string | null
 }) {
   const dateSection = eventDate
     ? `<p style="margin:4px 0;color:#555;font-size:0.875rem">&#128197; ${new Date(eventDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`
@@ -187,6 +189,45 @@ export async function sendWaitlistPromotedEmail({
     ? `<p style="margin-top:16px">Join the event community: <a href="${communityLink}">${communityLink}</a></p>`
     : ''
 
+  let calendarSection = ''
+  if (eventDate && eventSlug) {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmtDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const start = new Date(eventDate)
+    const end   = new Date(start.getTime() + 120 * 60_000)
+    const details = `Confirmed! You're attending ${eventTitle}.`
+    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(eventTitle)}` +
+      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
+      `&details=${encodeURIComponent(details)}` +
+      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
+    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    calendarSection = `
+      <div style="margin-top: 20px; padding: 16px; background: #141414;
+                   border: 1px solid rgba(34,197,94,0.3); border-radius: 12px;">
+        <p style="color: #22C55E; font-weight: bold; margin: 0 0 8px;">
+          &#128197; Update your calendar
+        </p>
+        <p style="color: #A3A3A3; font-size: 13px; margin: 0 0 12px;">
+          If you saved the date when you joined the waitlist, your calendar
+          has been updated automatically. If not, add it now:
+        </p>
+        <a href="${googleCalUrl}"
+           style="display: inline-block; background: #4285F4; color: white;
+                  font-weight: bold; padding: 10px 20px; border-radius: 8px;
+                  text-decoration: none; margin-right: 8px;">
+          &#128197; Add to Google Calendar
+        </a>
+        <a href="${icsUrl}"
+           style="display: inline-block; border: 1px solid #2A2A2A; color: #A3A3A3;
+                  padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+          &#11015; Download .ics
+        </a>
+      </div>`
+  }
+
   await sendEmail({
     from: 'EventSlot <noreply@eventsslot.com>',
     to,
@@ -203,8 +244,86 @@ export async function sendWaitlistPromotedEmail({
         ${locationSection}
         ${ticketSection}
         ${communitySection}
+        ${calendarSection}
         <p style="margin-top:2rem;color:#888;font-size:0.8rem">
           You received this because you were on the waitlist for ${eventTitle} via EventSlot.
+        </p>
+      </div>
+    `,
+  })
+}
+
+export async function sendWaitlistJoinedEmail({
+  to,
+  eventTitle,
+  waitlistPosition,
+  eventDate,
+  eventSlug,
+  eventLocation,
+}: {
+  to: string
+  eventTitle: string
+  waitlistPosition?: number | null
+  eventDate?: string | Date | null
+  eventSlug?: string | null
+  eventLocation?: string | null
+}) {
+  let calendarSection = ''
+  if (eventDate && eventSlug) {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmtDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const start = new Date(eventDate)
+    const end   = new Date(start.getTime() + 120 * 60_000)
+    const details = `You are on the waitlist for ${eventTitle}.${waitlistPosition != null ? ` Position: #${waitlistPosition}.` : ''}\n\nYou will be notified if a spot opens up.`
+    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(`[Waitlisted] ${eventTitle}`)}` +
+      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
+      `&details=${encodeURIComponent(details)}` +
+      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
+    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    calendarSection = `
+      <div style="margin-top: 20px; padding: 16px; background: #1a1a0a;
+                   border: 1px solid rgba(245,158,11,0.3); border-radius: 12px;">
+        <p style="color: #F59E0B; font-weight: bold; margin: 0 0 8px;">
+          &#128197; Save the date
+        </p>
+        <p style="color: #A3A3A3; font-size: 13px; margin: 0 0 12px;">
+          Add it to your calendar now &mdash; it will update automatically if you&apos;re confirmed.
+        </p>
+        <a href="${googleCalUrl}"
+           style="display: inline-block; background: #4285F4; color: white;
+                  font-weight: bold; padding: 10px 20px; border-radius: 8px;
+                  text-decoration: none; margin-right: 8px;">
+          &#128197; Add to Google Calendar
+        </a>
+        <a href="${icsUrl}"
+           style="display: inline-block; border: 1px solid #2A2A2A; color: #A3A3A3;
+                  padding: 10px 20px; border-radius: 8px; text-decoration: none;">
+          &#11015; Download .ics
+        </a>
+      </div>`
+  }
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `You're on the waitlist for ${eventTitle}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.3rem;font-weight:400;margin:0 0 1rem">You&apos;re on the waitlist</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">
+          You&apos;ve been added to the waitlist for <strong style="color:#F0EDE6">${eventTitle}</strong>.
+          ${waitlistPosition != null ? `You are currently <strong style="color:#F59E0B">position #${waitlistPosition}</strong>.` : ''}
+        </p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">
+          If a spot opens up, you will be notified automatically and moved to confirmed.
+        </p>
+        ${calendarSection}
+        <p style="margin-top:2rem;color:rgba(240,237,230,0.3);font-size:0.75rem">
+          You received this because you joined the waitlist for ${eventTitle} via EventSlot.
         </p>
       </div>
     `,
@@ -217,16 +336,57 @@ export async function sendConfirmationEmail({
   eventTitle,
   confirmationNumber,
   userId,
+  eventDate,
+  eventSlug,
+  eventLocation,
 }: {
   to: string
   name: string
   eventTitle: string
   confirmationNumber: string
   userId?: string | null
+  eventDate?: string | Date | null
+  eventSlug?: string | null
+  eventLocation?: string | null
 }) {
   const referralUrl = userId
     ? await getOrCreateReferralLink(userId).catch(() => null)
     : null
+
+  // Build inline Google Calendar URL if date is available
+  let calendarSection = ''
+  if (eventDate && eventSlug) {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmtDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const start = new Date(eventDate)
+    const end   = new Date(start.getTime() + 120 * 60_000)
+    const details = `You're registered for ${eventTitle}!\n\nConfirmation: ${confirmationNumber}`
+    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(eventTitle)}` +
+      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
+      `&details=${encodeURIComponent(details)}` +
+      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
+    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    calendarSection = `
+    <div style="border-top:1px solid #2A2A2A;padding-top:16px;margin-top:16px;">
+      <p style="color:#525252;font-size:12px;margin:0 0 8px;">Add to your calendar</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="${googleCalUrl}"
+           style="background:#C8F55A;color:#000;padding:8px 16px;text-decoration:none;
+                  border-radius:8px;font-weight:bold;font-size:13px;display:inline-block;">
+          Google Calendar
+        </a>
+        <a href="${icsUrl}"
+           style="background:transparent;color:#C8F55A;padding:8px 16px;text-decoration:none;
+                  border-radius:8px;font-weight:bold;font-size:13px;display:inline-block;
+                  border:1px solid #C8F55A;">
+          Download .ics
+        </a>
+      </div>
+    </div>`
+  }
 
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
@@ -272,6 +432,8 @@ export async function sendConfirmationEmail({
           </a>
         </div>
         ` : ''}
+
+        ${calendarSection}
 
         <p style="color:#525252;font-size:11px;margin-top:32px;">
           Smarter Events. Better Experiences. -

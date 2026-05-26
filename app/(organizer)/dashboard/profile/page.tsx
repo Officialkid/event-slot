@@ -2,14 +2,17 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
+import { useToast } from "@/components/Toast"
+import GoogleCalendarConnect from "@/components/GoogleCalendarConnect"
 
 interface ProfileData {
   name: string | null
   email: string | null
   image: string | null
   hasPassword: boolean
+  calendarConnected: boolean
 }
 
 // ─── Input component ─────────────────────────────────────────────────────────
@@ -246,6 +249,8 @@ function DeleteModal({
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { showToast } = useToast()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -282,6 +287,23 @@ export default function ProfilePage() {
         setName(data.name ?? "")
       })
   }, [])
+
+  // Handle ?calendar= query param toasts
+  useEffect(() => {
+    const calendarParam = searchParams?.get("calendar")
+    if (!calendarParam) return
+    if (calendarParam === "connected") {
+      showToast("Google Calendar connected successfully!", "success")
+    } else if (calendarParam === "denied") {
+      showToast("Calendar access was denied. Please try again.", "error")
+    } else if (calendarParam === "error") {
+      showToast("Something went wrong connecting Google Calendar.", "error")
+    }
+    // Remove the query param from URL without reload
+    const url = new URL(window.location.href)
+    url.searchParams.delete("calendar")
+    router.replace(url.pathname + (url.hash || ""), { scroll: false })
+  }, [searchParams, showToast, router])
 
   const currentImage = photoPreview ?? profile?.image ?? null
   const initials = ((profile?.name || profile?.email) ?? "?")
@@ -765,6 +787,14 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* ── Google Calendar card ── */}
+        <div id="calendar" style={{ marginBottom: "1.25rem" }}>
+          <GoogleCalendarConnect
+            isConnected={!!profile.calendarConnected}
+            variant="profile"
+          />
+        </div>
+
         {/* ── Danger zone card ── */}
         <Card dangerBorder>
           <SectionHeading color="#FF6B6B">Danger zone</SectionHeading>
@@ -846,6 +876,27 @@ export default function ProfilePage() {
           error={deleteError}
         />
       )}
+
+      {/* Legal links — required by Google Play Store policy */}
+      <div className="flex items-center justify-center gap-3 py-4">
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#525252] text-xs hover:text-[#C8F55A] transition-colors"
+        >
+          Privacy Policy
+        </a>
+        <span className="text-[#2A2A2A]">·</span>
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#525252] text-xs hover:text-[#C8F55A] transition-colors"
+        >
+          Terms of Service
+        </a>
+      </div>
     </>
   )
 }

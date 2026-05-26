@@ -73,6 +73,8 @@ type EventData = {
   organizerPlan: string
   canEdit?: boolean
   imageUrl?: string | null
+  calendarSynced?: boolean
+  googleCalendarConnected?: boolean
 }
 
 type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings" | "team"
@@ -2072,6 +2074,23 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Register someone + Email Attendees buttons */}
+            <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
+
+            {/* Google Calendar sync status */}
+            {eventData.calendarSynced ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 100, padding: "0.3rem 0.75rem" }}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#C8F55A" strokeWidth="1.2"/><path d="M3 5l1.5 1.5L7 3.5" stroke="#C8F55A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                In your Google Calendar
+              </span>
+            ) : eventData.googleCalendarConnected === false ? (
+              <a href="/dashboard/profile#calendar" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Connect Google Calendar
+              </a>
+            ) : null}
+            </div>
+
+            {/* Register someone + Email Attendees action buttons */}
             <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
               <button
                 onClick={() => setShowManualReg(true)}

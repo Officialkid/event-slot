@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 
 interface AdminEvent {
   id: string
@@ -22,6 +22,8 @@ export default function AdminEventsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [entering, setEntering] = useState<string | null>(null)
+  const router = useRouter()
 
   const userId = searchParamsHook.get("user") ?? ""
 
@@ -38,6 +40,27 @@ export default function AdminEventsPage() {
   }, [search, statusFilter, userId])
 
   useEffect(() => { fetchEvents() }, [fetchEvents])
+
+  async function enterAdminMode(eventId: string) {
+    setEntering(eventId)
+    try {
+      const res = await fetch('/api/admin/event-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.redirectTo) {
+        router.push(data.redirectTo)
+      } else {
+        alert(data.error ?? 'Failed to enter Admin Mode')
+      }
+    } catch {
+      alert('Network error. Please try again.')
+    } finally {
+      setEntering(null)
+    }
+  }
 
   async function deleteEvent(id: string) {
     await fetch("/api/admin/events", {
@@ -145,6 +168,14 @@ export default function AdminEventsPage() {
                       >
                         View ↗
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => enterAdminMode(ev.id)}
+                        disabled={entering === ev.id}
+                        style={{ fontSize: "0.72rem", color: "#0A0A0A", background: entering === ev.id ? "rgba(200,245,90,0.5)" : "#C8F55A", border: "none", cursor: entering === ev.id ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", padding: "0.2rem 0.55rem", borderRadius: 6, fontWeight: 700 }}
+                      >
+                        {entering === ev.id ? "Entering…" : "Admin Mode"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(ev.id)}

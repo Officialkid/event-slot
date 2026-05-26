@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { hasOrganiserAccess } from '@/lib/adminMode'
 
 // PUT /api/events/[slug]/whatsapp
 // Body: { whatsappNumber: string | null }
@@ -22,7 +23,7 @@ export async function PUT(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  if (event.organizerId !== session.user.id) {
+  if (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

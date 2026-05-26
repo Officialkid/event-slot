@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { hasOrganiserAccess } from "@/lib/adminMode"
 import { randomBytes } from "crypto"
 
 function generateSlug(title: string): string {
@@ -30,7 +31,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ error: "Event not found" }, { status: 404 })
     }
 
-    if (source.organizerId !== session.user.id) {
+    if (source.organizerId !== session.user.id && !(await hasOrganiserAccess(session, source.id))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

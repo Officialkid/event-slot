@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 import { verifyQRPayload } from '@/lib/ticket-qr'
 
 type EventQuestion = { id: string; type: string; label: string }
@@ -80,8 +81,9 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       organizerId: event.organizerId,
       eventId: event.id,
     }))
+    const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
 
-    if (!isOwner && !hasValidToken && !hasTeamAccess) {
+    if (!isOwner && !hasValidToken && !hasTeamAccess && !adminAccess) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 

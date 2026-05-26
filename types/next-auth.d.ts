@@ -14,6 +14,12 @@ declare module 'next-auth' {
       onboardingCompleted: boolean
       onboardingSkipped: boolean
       suspended: boolean
+      // Admin Mode fields
+      adminModeActive: boolean
+      adminModeEventId: string | null
+      adminModeEventSlug: string | null
+      adminModeOrganiserId: string | null
+      adminModeEventTitle: string | null
     }
   }
 
@@ -33,5 +39,11 @@ declare module 'next-auth/jwt' {
     tier?: 'FREE' | 'PRO' | 'BUSINESS'
     isAdmin?: boolean
     username?: string | null
+    // Admin Mode fields
+    adminModeActive?: boolean
+    adminModeEventId?: string | null
+    adminModeEventSlug?: string | null
+    adminModeOrganiserId?: string | null
+    adminModeEventTitle?: string | null
   }
 }

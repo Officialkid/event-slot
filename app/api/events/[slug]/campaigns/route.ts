@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 
 // GET /api/events/[slug]/campaigns — list campaigns + confirmed count for this event
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
@@ -25,8 +26,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     session?.user?.id &&
     (await hasTeamEventAccess({ userId: session.user.id, organizerId: event.organizerId, eventId: event.id }))
   )
+  const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
 
-  if (!isOwner && !hasValidToken && !hasTeamAccess) {
+  if (!isOwner && !hasValidToken && !hasTeamAccess && !adminAccess) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { cancelCalendarEvent, removeCalendarEvent } from '@/lib/googleCalendar'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
@@ -118,7 +119,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
 
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
-      include: { event: { select: { dashboardToken: true, id: true } } },
+      include: { event: { select: { dashboardToken: true, id: true, title: true } } },
     })
 
     if (!registration) {
@@ -130,6 +131,31 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
     }
 
     await prisma.registration.delete({ where: { id: params.registrationId } })
+
+    // Update attendee's Google Calendar entry based on registration status
+    if (registration.attendeeEmail) {
+      const attendeeUser = await prisma.user.findUnique({
+        where:  { email: registration.attendeeEmail.toLowerCase() },
+        select: { id: true },
+      })
+      if (attendeeUser?.id) {
+        if (registration.status === 'waitlist') {
+          // Remove the [Waitlisted] entry entirely — they were never confirmed
+          removeCalendarEvent({
+            userId:      attendeeUser.id,
+            eventSlotId: registration.eventId,
+            role:        'attendee',
+          }).catch(console.error)
+        } else {
+          cancelCalendarEvent({
+            userId:      attendeeUser.id,
+            eventSlotId: registration.eventId,
+            role:        'attendee',
+            eventTitle:  registration.event.title,
+          }).catch(console.error)
+        }
+      }
+    }
 
     // Keep event counts accurate
     if (registration.status === 'confirmed') {

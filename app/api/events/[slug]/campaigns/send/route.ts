@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { sendBulkEmails } from '@/lib/emailCampaigns'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 
 // POST /api/events/[slug]/campaigns/send — create and fire a bulk email campaign
 export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
   }
 
   // Only the event owner can send bulk email (not token-based access — safety measure)
-  if (event.organizerId !== session.user.id) {
+  if (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 

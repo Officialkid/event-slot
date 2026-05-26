@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 
 // GET /api/events/[slug]/faq — public, returns FAQs for event page
 export async function GET(
@@ -24,7 +25,7 @@ export async function GET(
 
   if (includeAll) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id || event.organizerId !== session.user.id) {
+    if (!session?.user?.id || (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id)))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     return NextResponse.json({ enabled: event.faqEnabled, faqs: event.faqs })
@@ -55,7 +56,7 @@ export async function PUT(
 
   const event = await prisma.event.findUnique({ where: { slug } })
   if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (event.organizerId !== session.user.id)
+  if (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await prisma.event.update({

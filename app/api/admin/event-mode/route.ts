@@ -1,0 +1,120 @@
+// app/api/admin/event-mode/route.ts
+// POST   — enter Admin Mode for a specific event
+// DELETE — exit Admin Mode
+// GET    — return current Admin Mode state (used by the banner component)
+
+import { NextRequest, NextResponse }                      from 'next/server'
+import { getServerSession }                               from 'next-auth'
+import { authOptions }                                    from '@/lib/auth'
+import { prisma }                                         from '@/lib/prisma'
+import { encodeAdminModeState, getAdminModeFromCookie,
+         ADMIN_MODE_COOKIE_OPTIONS }                      from '@/lib/adminMode'
+
+const ADMIN_MODE_COOKIE = 'es_admin_mode'
+
+// POST /api/admin/event-mode
+// Body: { eventId: string }
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+
+  if (!session || session.user.role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ error: 'Superadmin access required' }, { status: 403 })
+  }
+
+  const body = await req.json().catch(() => ({}))
+  const { eventId } = body as { eventId?: string }
+  if (!eventId) {
+    return NextResponse.json({ error: 'eventId required' }, { status: 400 })
+  }
+
+  const event = await prisma.event.findUnique({
+    where:  { id: eventId },
+    select: {
+      id:          true,
+      slug:        true,
+      title:       true,
+      organizerId: true,
+      organizer:   { select: { name: true, email: true } },
+    },
+  })
+
+  if (!event) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+  }
+
+  // Audit trail — fire-and-forget
+  prisma.auditLog.create({
+    data: {
+      actorId: session.user.id,
+      action:  'ADMIN_MODE_ACTIVATED',
+      metadata: {
+        eventId:        event.id,
+        eventTitle:     event.title,
+        organiserId:    event.organizerId,
+        organiserName:  event.organizer?.name  ?? null,
+        organiserEmail: event.organizer?.email ?? null,
+      },
+    },
+  }).catch(err => console.error('[audit] Failed to log admin mode activation:', err))
+
+  const adminModeState = {
+    active:      true,
+    eventId:     event.id,
+    eventSlug:   event.slug,
+    eventTitle:  event.title,
+    organiserId: event.organizerId,
+    activatedAt: new Date().toISOString(),
+  }
+
+  const cookieValue = encodeAdminModeState(adminModeState)
+
+  const response = NextResponse.json({
+    ok:         true,
+    eventSlug:  event.slug,
+    eventTitle: event.title,
+    redirectTo: `/dashboard/events/${event.slug}`,
+  })
+
+  response.cookies.set(ADMIN_MODE_COOKIE, cookieValue, ADMIN_MODE_COOKIE_OPTIONS)
+
+  return response
+}
+
+// DELETE /api/admin/event-mode
+export async function DELETE() {
+  const session = await getServerSession(authOptions)
+
+  if (!session || session.user.role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Audit trail — fire-and-forget
+  prisma.auditLog.create({
+    data: {
+      actorId:  session.user.id,
+      action:   'ADMIN_MODE_EXITED',
+      metadata: {},
+    },
+  }).catch(() => {})
+
+  const response = NextResponse.json({ ok: true, redirectTo: '/admin/events' })
+
+  response.cookies.set(ADMIN_MODE_COOKIE, '', {
+    ...ADMIN_MODE_COOKIE_OPTIONS,
+    maxAge: 0, // immediately expire
+  })
+
+  return response
+}
+
+// GET /api/admin/event-mode
+export async function GET() {
+  const session = await getServerSession(authOptions)
+
+  if (!session || session.user.role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ active: false })
+  }
+
+  const state = await getAdminModeFromCookie()
+  return NextResponse.json(state)
+}

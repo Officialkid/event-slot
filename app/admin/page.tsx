@@ -66,6 +66,14 @@ function HeroSignupCard({
   )
 }
 
+interface AuditLogEntry {
+  id: string
+  actorId: string
+  action: string
+  metadata: Record<string, string | null> | null
+  createdAt: string
+}
+
 interface Revenue {
   totalCreditsPurchased: number
   totalCreditsSpent: number
@@ -173,6 +181,7 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [revenue, setRevenue] = useState<Revenue | null>(null)
   const [loading, setLoading] = useState(true)
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
   const [reportLinkInput, setReportLinkInput] = useState("")
   const [generatingByLink, setGeneratingByLink] = useState(false)
   const [linkReportError, setLinkReportError] = useState("")
@@ -186,6 +195,13 @@ export default function AdminOverviewPage() {
       setStats(s)
       setRevenue(r)
     }).finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/admin/audit-log?action=ADMIN_MODE_ACTIVATED&limit=20")
+      .then(r => r.json())
+      .then(d => setAuditLogs(d.logs ?? []))
+      .catch(() => {})
   }, [])
 
   const downloadReport = (period: "weekly" | "monthly" | "yearly") => {
@@ -677,6 +693,48 @@ export default function AdminOverviewPage() {
           </tbody>
         </table>
       </div>
+
+      {auditLogs.length > 0 && (
+        <div style={{ marginTop: "2.5rem" }}>
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1rem" }}>
+            Admin Mode Activity
+          </h2>
+          <div style={{ borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)", overflow: "hidden" }}>
+            <div style={{ padding: "0.75rem 1rem", background: "#111", borderBottom: "0.5px solid rgba(240,237,230,0.08)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444", flexShrink: 0 }} />
+              <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
+                Admin Mode Activity Log
+              </span>
+            </div>
+            {auditLogs.map((log, i) => {
+              const meta = log.metadata ?? {}
+              return (
+                <div
+                  key={log.id}
+                  style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.75rem 1rem", borderBottom: i < auditLogs.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none", background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent" }}
+                >
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "0.5px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem" }}>
+                    🛡
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                      {meta.eventTitle ? `Entered Admin Mode for "${meta.eventTitle}"` : log.action}
+                    </p>
+                    {meta.organiserEmail && (
+                      <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
+                        Organiser: {meta.organiserName} ({meta.organiserEmail})
+                      </p>
+                    )}
+                    <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
+                      {new Date(log.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

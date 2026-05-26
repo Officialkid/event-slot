@@ -9,6 +9,8 @@ import { createEventSchema } from '@/lib/schemas/event.schema'
 import { encrypt } from '@/lib/encrypt'
 import { processFirstEventReferral, scoreEventCreation } from '@/lib/referral'
 import { detectCountry } from '@/lib/geoip'
+import { createCalendarEvent } from '@/lib/googleCalendar'
+import { APP_URL } from '@/lib/config'
 
 function generateSlug(title: string): string {
   const base = title
@@ -169,6 +171,23 @@ export async function POST(req: NextRequest) {
       } catch (rewardErr) {
         console.warn('[events][community-rewards] failed to process:', rewardErr)
       }
+    }
+
+    // Auto-push to organiser's Google Calendar (fire-and-forget)
+    if (organizerId && eventDate) {
+      createCalendarEvent({
+        userId:       organizerId,
+        eventSlotId:  event.id,
+        role:         'organiser',
+        title:        `[EventSlot] ${normalizedTitle}`,
+        description:  `${description ?? ''}\n\nManage event: ${APP_URL}/dashboard/events/${event.slug}`,
+        location:     eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || null,
+        startDate:    new Date(eventDate),
+        durationMins: 120,
+        eventUrl:     `${APP_URL}/dashboard/events/${event.slug}`,
+        isVirtual:    eventType === 'VIRTUAL',
+        meetingLink:  eventType === 'VIRTUAL' ? normalizedVirtualLink : null,
+      }).catch(console.error)
     }
 
     return NextResponse.json({ success: true, event }, { status: 201 })

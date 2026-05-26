@@ -13,7 +13,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, email: true, image: true, password: true },
+      select: { name: true, email: true, image: true, password: true, googleCalendarConnected: true },
     })
 
     if (!user) {
@@ -25,6 +25,7 @@ export async function GET() {
       email: user.email,
       image: user.image,
       hasPassword: !!user.password,
+      calendarConnected: !!user.googleCalendarConnected,
     })
   } catch (err) {
     console.error("[profile] GET error:", err)

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { sendWaitlistPromotedEmail } from '@/lib/email'
+import { isCalendarConnected, updateCalendarEvent } from '@/lib/googleCalendar'
+import { decrypt } from '@/lib/encrypt'
 import { createNotification } from '@/lib/notifications'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { getServerSession } from 'next-auth'
@@ -121,6 +123,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
             eventLocation: event.location,
             communityLink: event.communityLink,
             ticketUrl: r.confirmationCode ? `${BASE_URL}/register/success/${r.confirmationCode}` : null,
+            eventSlug: event.slug,
           })
 
           return {
@@ -178,6 +181,51 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       } catch {
         // Non-critical
       }
+    }
+
+    // Update Google Calendar for promoted attendees with connected calendars (non-blocking)
+    if (result.promoted > 0 && event.eventDate) {
+      ;(async () => {
+        try {
+          const isVirtual = event.eventType === 'VIRTUAL'
+          const meetingLink = isVirtual && event.virtualLink
+            ? decrypt(event.virtualLink, event.virtualLinkIv ?? '')
+            : null
+          const eventUrl = `${APP_URL}/join/${event.slug}`
+          await Promise.all(
+            result.promotedRegistrations.map(async r => {
+              if (!r.attendeeEmail) return
+              const user = await prisma.user.findUnique({
+                where:  { email: r.attendeeEmail.toLowerCase() },
+                select: { id: true },
+              })
+              if (!user?.id) return
+              const connected = await isCalendarConnected(user.id)
+              if (!connected) return
+              updateCalendarEvent({
+                userId:       user.id,
+                eventSlotId:  event.id,
+                role:         'attendee',
+                title:        event.title,
+                description:  [
+                  `You're confirmed for ${event.title}! 🎉`,
+                  `Confirmation code: ${r.confirmationCode ?? ''}`,
+                  '',
+                  `View your ticket: ${eventUrl}`,
+                ].join('\n'),
+                location:     event.location,
+                startDate:    new Date(event.eventDate!),
+                durationMins: 120,
+                eventUrl,
+                isVirtual,
+                meetingLink,
+              }).catch(err => console.error('[calendar] Promotion calendar update failed:', err))
+            })
+          )
+        } catch (err) {
+          console.error('[calendar] Promotion calendar block failed:', err)
+        }
+      })()
     }
 
     return NextResponse.json({

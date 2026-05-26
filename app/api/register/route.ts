@@ -5,6 +5,7 @@ import { ratelimit } from '@/lib/ratelimit'
 import { createNotification } from '@/lib/notifications'
 import {
   sendConfirmationEmail,
+  sendWaitlistJoinedEmail,
   sendOrganizerCapacity90Email,
   sendOrganizerCapacityFullEmail,
   sendOrganizerFirstWaitlistEmail,
@@ -12,6 +13,9 @@ import {
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { generateTicketForRegistration } from '@/lib/tickets'
 import { detectCountry } from '@/lib/geoip'
+import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar'
+import { decrypt } from '@/lib/encrypt'
+import { APP_URL } from '@/lib/config'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Find event by slug
-    const event = await prisma.event.findUnique({ where: { slug: eventSlug } })
+    const event = await prisma.event.findUnique({ where: { slug: eventSlug }, include: { organizer: { select: { username: true } } } })
     const eventQuestions = (event?.questions as EventQuestion[] | null) ?? []
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
@@ -320,11 +324,105 @@ export async function POST(req: NextRequest) {
             eventTitle: event.title,
             confirmationNumber: reg.confirmationCode as string,
             userId: user?.id ?? null,
+            eventDate: event.eventDate,
+            eventSlug: event.slug,
+            eventLocation: event.location,
           })
+
+          // Auto-push to Google Calendar if attendee has it connected
+          if (user?.id && event.eventDate) {
+            const isVirtual = event.eventType === 'VIRTUAL'
+            const meetingLink = isVirtual && event.virtualLink
+              ? decrypt(event.virtualLink, event.virtualLinkIv ?? '')
+              : null
+            const organizerUsername = event.organizer?.username
+            const eventUrl = organizerUsername
+              ? `${APP_URL}/${organizerUsername}/${event.slug}`
+              : `${APP_URL}/join/${event.slug}`
+            createCalendarEvent({
+              userId:       user.id,
+              eventSlotId:  event.id,
+              role:         'attendee',
+              title:        event.title,
+              description:  `You're registered for ${event.title}!\n\nConfirmation: ${reg.confirmationCode}`,
+              location:     event.location,
+              startDate:    new Date(event.eventDate),
+              durationMins: 120,
+              eventUrl,
+              isVirtual,
+              meetingLink,
+            }).catch(err => console.error('[calendar] Auto-push after registration failed:', err))
+          }
         })
       )
     } catch {
       // Email delivery should never block registration success.
+    }
+
+    // Send waitlist joined email + calendar push for waitlisted attendees (non-blocking)
+    try {
+      const waitlistedToNotify = results
+        .map((reg, index) => ({ reg, attendee: attendees[index] }))
+        .filter(({ reg }) => reg.status === 'waitlist')
+
+      await Promise.all(
+        waitlistedToNotify.map(async ({ reg, attendee }) => {
+          const answers = attendee?.answers ?? []
+          const emailQuestion = eventQuestions.find((q) => q.type === 'email')
+          const attendeeEmail =
+            (emailQuestion
+              ? answers.find((a) => a.questionId === emailQuestion.id)?.value?.trim()
+              : '') || attendee?.baseEmail?.trim() || ''
+
+          if (!attendeeEmail) return
+
+          // Fire-and-forget waitlist join confirmation email with calendar links
+          sendWaitlistJoinedEmail({
+            to:               attendeeEmail,
+            eventTitle:       event.title,
+            waitlistPosition: reg.waitlistPosition,
+            eventDate:        event.eventDate,
+            eventSlug:        event.slug,
+            eventLocation:    event.location,
+          }).catch(err => console.error('[email] Waitlist join email failed:', err))
+
+          // Auto-push to Google Calendar if attendee has it connected
+          const user = await prisma.user.findUnique({
+            where:  { email: attendeeEmail.toLowerCase() },
+            select: { id: true },
+          })
+          if (user?.id && event.eventDate) {
+            const calendarConnected = await isCalendarConnected(user.id)
+            if (calendarConnected) {
+              const organizerUsername = event.organizer?.username
+              const eventUrl = organizerUsername
+                ? `${APP_URL}/${organizerUsername}/${event.slug}`
+                : `${APP_URL}/join/${event.slug}`
+              createCalendarEvent({
+                userId:       user.id,
+                eventSlotId:  event.id,
+                role:         'attendee',
+                title:        `[Waitlisted] ${event.title}`,
+                description:  [
+                  `You are on the waitlist for ${event.title}.`,
+                  `Waitlist position: #${reg.waitlistPosition ?? '?'}`,
+                  '',
+                  `You will be notified if a spot opens up.`,
+                  `Check your status: ${eventUrl}`,
+                ].join('\n'),
+                location:     event.location,
+                startDate:    new Date(event.eventDate),
+                durationMins: 120,
+                eventUrl,
+                isVirtual:    event.eventType === 'VIRTUAL',
+                meetingLink:  null, // No meeting link for waitlisted attendees
+              }).catch(err => console.error('[calendar] Waitlist calendar push failed:', err))
+            }
+          }
+        })
+      )
+    } catch {
+      // Non-critical
     }
 
     // Trigger fill-rate notifications (non-blocking, best-effort)

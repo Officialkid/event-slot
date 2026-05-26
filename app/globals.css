@@ -399,3 +399,13 @@ li {
 .surface:hover {
   background: var(--surface-hover);
 }
+
+/* Admin Mode banner height offset */
+.admin-mode-aware-layout {
+  padding-top: 0;
+  transition: padding-top 0.2s;
+}
+
+body.admin-mode-active .admin-mode-aware-layout {
+  padding-top: 72px;
+}

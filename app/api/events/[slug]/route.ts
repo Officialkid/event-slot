@@ -5,6 +5,10 @@ import { authOptions } from '@/lib/auth'
 import { normalizeCommunityLink } from '@/lib/communityLink'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { purgeUserCache } from '@/lib/cache'
+import { hasOrganiserAccess } from '@/lib/adminMode'
+import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar'
+import { decrypt } from '@/lib/encrypt'
+import { APP_URL } from '@/lib/config'
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -33,6 +37,24 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     if (!isOwner && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
+    }
+
+    // Fetch organizer calendar sync status for the owner only
+    let calendarSynced = false
+    let googleCalendarConnected = false
+    if (isOwner && session?.user?.id) {
+      const [syncRecord, organizer] = await Promise.all([
+        prisma.calendarEventSync.findUnique({
+          where: { userId_eventId_role: { userId: session.user.id, eventId: event.id, role: 'organiser' } },
+          select: { syncStatus: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { googleCalendarConnected: true },
+        }),
+      ])
+      calendarSynced = syncRecord?.syncStatus === 'synced'
+      googleCalendarConnected = !!organizer?.googleCalendarConnected
     }
 
     const registrations = await prisma.registration.findMany({
@@ -85,6 +107,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         organizerPlan: event.organizer?.plan ?? 'free',
         imageUrl: event.imageUrl ?? null,
         canEdit: isOwner,
+        calendarSynced,
+        googleCalendarConnected,
       },
       confirmed,
       waitlist,
@@ -111,7 +135,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    if (event.organizerId !== session.user.id) {
+    if (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id))) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
@@ -129,6 +153,30 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
 
     if (action === 'archive') {
       await prisma.event.update({ where: { slug }, data: { archived: !!archived } })
+
+      // Cancel calendar entries when archiving
+      if (archived === true && event.organizerId) {
+        cancelCalendarEvent({
+          userId:      event.organizerId,
+          eventSlotId: event.id,
+          role:        'organiser',
+          eventTitle:  event.title,
+        }).catch(console.error)
+
+        const attendeesSynced = await prisma.calendarEventSync.findMany({
+          where:  { eventId: event.id, role: 'attendee' },
+          select: { userId: true },
+        })
+        for (const { userId } of attendeesSynced) {
+          cancelCalendarEvent({
+            userId,
+            eventSlotId: event.id,
+            role:        'attendee',
+            eventTitle:  event.title,
+          }).catch(console.error)
+        }
+      }
+
       return NextResponse.json({ success: true })
     }
 
@@ -165,6 +213,30 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       },
       select: { id: true, title: true, slug: true },
     })
+
+    // Sync changes to organiser's Google Calendar (fire-and-forget)
+    if (event.organizerId) {
+      const calendarStartDate = eventDate ? new Date(eventDate) : event.eventDate
+      if (calendarStartDate) {
+        const isVirtual = event.eventType === 'VIRTUAL'
+        const meetingLink = isVirtual && event.virtualLink
+          ? decrypt(event.virtualLink, event.virtualLinkIv ?? '')
+          : null
+        updateCalendarEvent({
+          userId:       event.organizerId,
+          eventSlotId:  event.id,
+          role:         'organiser',
+          title:        `[EventSlot] ${title}`,
+          description:  `${description ?? ''}\n\nManage: ${APP_URL}/dashboard/events/${updated.slug}`,
+          location:     location || null,
+          startDate:    calendarStartDate,
+          durationMins: 120,
+          eventUrl:     `${APP_URL}/dashboard/events/${updated.slug}`,
+          isVirtual,
+          meetingLink,
+        }).catch(console.error)
+      }
+    }
 
     return NextResponse.json({ success: true, event: updated })
   } catch (err) {

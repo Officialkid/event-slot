@@ -56,12 +56,52 @@ const nextConfig = {
           { key: "Cache-Control", value: "no-store, must-revalidate" },
         ],
       },
+      // PWA icons — versioned by filename, safe to cache aggressively
+      {
+        source: "/icons/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      // PWA manifest — should revalidate regularly so icon updates propagate
+      {
+        source: "/manifest.json",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, must-revalidate" },
+        ],
+      },
+      // Favicon files
+      {
+        source: "/favicon.ico",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400" },
+        ],
+      },
+      {
+        source: "/favicon.svg",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400" },
+        ],
+      },
+      // Apple touch icon & splash screens
+      {
+        source: "/apple-touch-icon.png",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400" },
+        ],
+      },
+      {
+        source: "/splash/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400" },
+        ],
+      },
       // Allow Android Digital Asset Links to be fetched cleanly
       {
         source: "/.well-known/assetlinks.json",
         headers: [
-          { key: "Content-Type", value: "application/json" },
-          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type",              value: "application/json" },
+          { key: "Cache-Control",             value: "public, max-age=3600" },
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },

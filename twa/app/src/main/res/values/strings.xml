@@ -38,5 +38,12 @@
         }
     }]
     
-  </string>  
+  </string>
+
+  <!-- App shortcuts -->
+  <string name="shortcut_create_event_short">Create</string>
+  <string name="shortcut_create_event_long">Create Event</string>
+  <string name="shortcut_my_events_short">Events</string>
+  <string name="shortcut_my_events_long">My Events</string>
+
 </resources>

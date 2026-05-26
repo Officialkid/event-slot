@@ -1,5 +1,10 @@
 import prisma from '@/lib/prisma'
 import { getCommunityLinkLabel, normalizeCommunityLink } from '@/lib/communityLink'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { isCalendarConnected } from '@/lib/googleCalendar'
+import { AddToCalendarButton } from '@/components/AddToCalendarButton'
+import { APP_URL } from '@/lib/config'
 
 export default async function RegistrationStatusPage(props: { params: Promise<{ registrationId: string }> }) {
   const params = await props.params;
@@ -48,6 +53,30 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
   }
 
   const isConfirmed = registration.status === 'confirmed'
+
+  // Calendar data for the waitlist "Save the date" section
+  let attendeeCalendarConnected = false
+  let staticGoogleUrl = ''
+  if (!isConfirmed && event.eventDate) {
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id ?? null
+    if (userId) {
+      attendeeCalendarConnected = await isCalendarConnected(userId)
+    }
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmtDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const start = new Date(event.eventDate)
+    const end   = new Date(start.getTime() + 120 * 60_000)
+    const waitlistTitle = `[Waitlisted] ${event.title}`
+    const details = `You are on the waitlist for ${event.title}.${registration.waitlistPosition != null ? ` Position: #${registration.waitlistPosition}.` : ''}\n\nYou will be notified if a spot opens up.\n\nCheck your status: ${APP_URL}/registration/${registrationId}`
+    staticGoogleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(waitlistTitle)}` +
+      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
+      `&details=${encodeURIComponent(details)}` +
+      (event.location ? `&location=${encodeURIComponent(event.location)}` : '')
+  }
 
   return (
     <main style={{ maxWidth: 480, margin: '0 auto', padding: '3rem 1.5rem' }}>
@@ -136,6 +165,27 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
           </>
         )}
       </div>
+
+      {/* Save the date — waitlist only */}
+      {!isConfirmed && staticGoogleUrl && (
+        <div className="border border-[#F59E0B]/30 rounded-2xl p-5 bg-[#F59E0B]/5 space-y-3 mt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[#F59E0B]">&#128197;</span>
+            <p className="text-white font-semibold text-sm">Save the date</p>
+          </div>
+          <p className="text-[#A3A3A3] text-sm">
+            You&apos;re on the waitlist. Save the date so you don&apos;t forget &mdash;
+            your calendar entry will be updated automatically if you&apos;re confirmed.
+          </p>
+          <AddToCalendarButton
+            eventSlug={event.slug}
+            eventTitle={`[Waitlisted] ${event.title}`}
+            isConnected={attendeeCalendarConnected}
+            staticGoogleUrl={staticGoogleUrl}
+            staticIcsUrl={`/api/events/${event.slug}/calendar.ics`}
+          />
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' }}>

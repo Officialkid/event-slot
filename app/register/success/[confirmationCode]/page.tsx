@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import ConfirmationTicket from "@/components/tickets/ConfirmationTicket"
 import type { TicketData } from "@/components/tickets/ConfirmationTicket"
 import { APP_URL } from "@/lib/config"
+import AddToCalendarButton from "@/components/AddToCalendarButton"
+import { isCalendarConnected } from "@/lib/googleCalendar"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type Answer = { questionId: string; value: string }
@@ -44,6 +48,9 @@ export default async function TicketSuccessPage({
           location: true,
           questions: true,
           ticketsEnabled: true,
+          slug: true,
+          eventType: true,
+          organizer: { select: { username: true } },
         },
       },
       ticket: true,
@@ -83,6 +90,34 @@ export default async function TicketSuccessPage({
     attendeeEmail: attendeeEmail || null,
     attendeePhone: attendeePhone || null,
     verifyUrl: `${BASE_URL}/verify/${confirmationCode}`,
+  }
+
+  // Calendar add button data
+  const session = await getServerSession(authOptions)
+  const attendeeCalendarConnected = session?.user?.id
+    ? await isCalendarConnected(session.user.id).catch(() => false)
+    : false
+
+  const eventSlug = event.slug
+  const organizerUsername = event.organizer?.username
+  const eventUrl = organizerUsername
+    ? `${BASE_URL}/${organizerUsername}/${eventSlug}`
+    : `${BASE_URL}/join/${eventSlug}`
+
+  let staticGoogleUrl = ""
+  if (event.eventDate) {
+    const pad = (n: number) => String(n).padStart(2, "0")
+    const fmtDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
+      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const start = new Date(event.eventDate)
+    const end   = new Date(start.getTime() + 120 * 60_000)
+    const details = `You're registered for ${event.title}!\n\nConfirmation: ${confirmationCode}\n\n${eventUrl}`
+    staticGoogleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(event.title)}` +
+      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
+      `&details=${encodeURIComponent(details)}` +
+      (event.location ? `&location=${encodeURIComponent(event.location)}` : "")
   }
 
   return (
@@ -197,6 +232,19 @@ export default async function TicketSuccessPage({
           <p style={{ margin: "0.6rem 0 0", color: "rgba(240,237,230,0.38)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>
             Tickets are currently disabled for this event. Keep your confirmation code for check-in.
           </p>
+        </div>
+      )}
+
+      {/* ── Add to Calendar ── */}
+      {event.eventDate && staticGoogleUrl && (
+        <div style={{ width: "100%", maxWidth: 660, marginTop: "1.5rem" }}>
+          <AddToCalendarButton
+            eventSlug={eventSlug}
+            eventTitle={event.title}
+            isConnected={attendeeCalendarConnected}
+            staticGoogleUrl={staticGoogleUrl}
+            staticIcsUrl={`/api/events/${eventSlug}/calendar.ics`}
+          />
         </div>
       )}
     </main>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { hasOrganiserAccess } from '@/lib/adminMode'
 
 // GET /api/events/[slug]/team — list team members who have access to this event
 export async function GET(_req: Request, props: { params: Promise<{ slug: string }> }) {
@@ -17,7 +18,7 @@ export async function GET(_req: Request, props: { params: Promise<{ slug: string
       select: { id: true, organizerId: true },
     })
 
-    if (!event || event.organizerId !== session.user.id) {
+    if (!event || (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id)))) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
@@ -67,7 +68,7 @@ export async function DELETE(req: Request, props: { params: Promise<{ slug: stri
       select: { id: true, organizerId: true },
     })
 
-    if (!event || event.organizerId !== session.user.id) {
+    if (!event || (event.organizerId !== session.user.id && !(await hasOrganiserAccess(session, event.id)))) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 

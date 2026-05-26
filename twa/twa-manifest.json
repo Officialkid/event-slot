@@ -4,20 +4,20 @@
   "name": "EventSlot",
   "launcherName": "EventSlot",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "default",
   "themeColor": "#a3e635",
   "navigationColor": "#0a0a0a",
   "navigationColorDark": "#0a0a0a",
   "navigationDividerColor": "#0a0a0a",
   "navigationDividerColorDark": "#0a0a0a",
   "backgroundColor": "#0a0a0a",
-  "enableNotifications": false,
+  "enableNotifications": true,
   "startUrl": "/dashboard",
   "iconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
   "maskableIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
   "monochromeIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
-  "appVersion": "1.0.0",
-  "appVersionCode": 1,
+  "appVersion": "1.1.0",
+  "appVersionCode": 3,
   "signingKey": {
     "path": "./eventslot-release.keystore",
     "alias": "eventslot"
@@ -27,17 +27,37 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://www.eventsslot.com/",
-  "minSdkVersion": 19,
-  "shortcuts": [],
+  "minSdkVersion": 24,
+  "compileSdkVersion": 36,
+  "targetSdkVersion": 36,
+  "shortcuts": [
+    {
+      "name": "Create Event",
+      "shortName": "Create",
+      "url": "/dashboard/events/new",
+      "chosenIconUrl": "https://www.eventsslot.com/icons/icon-96x96.png"
+    },
+    {
+      "name": "My Events",
+      "shortName": "Events",
+      "url": "/dashboard/events",
+      "chosenIconUrl": "https://www.eventsslot.com/icons/icon-96x96.png"
+    }
+  ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://www.eventsslot.com/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
       "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
     }
   },
   "alphaDependencies": {
     "enabled": false
-  }
+  },
+  "fullyIsolatedCsp": false,
+  "fingerprints": []
 }

@@ -59,6 +59,7 @@ model Event {
   teamAccess       TeamMemberEvent[]
   emailCampaigns   EmailCampaign[]
   faqs             EventFAQ[]
+  calendarSyncs    CalendarEventSync[]
 }
 
 model EventFAQ {
@@ -113,6 +114,7 @@ model User {
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
   marketingConsent         Boolean   @default(false)
+  googleCalendarConnected  Boolean   @default(false)
   onboardingCompleted      Boolean   @default(false)
   onboardingStep           Int       @default(0)
   onboardingSkipped        Boolean   @default(false)
@@ -140,6 +142,8 @@ model User {
   badges             UserBadge[]
   leaderboardEntries         LeaderboardEntry[]
   weeklyRankingNotifications WeeklyRankingNotification[]
+  googleCalendarToken        GoogleCalendarToken?
+  calendarEventSyncs         CalendarEventSync[]
 }
 
 model ReferralLink {
@@ -688,4 +692,36 @@ model CountrySnapshot {
   createdAt      DateTime @default(now())
 
   @@unique([countryCode, snapshotDate])
+}
+
+// ── Google Calendar Integration ────────────────────────────────────────────
+
+model GoogleCalendarToken {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken   String   @db.Text
+  refreshToken  String   @db.Text
+  expiresAt     DateTime
+  scope         String
+  connected     Boolean  @default(true)
+  connectedAt   DateTime @default(now())
+  lastUsedAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CalendarEventSync {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  googleEventId String
+  calendarId    String   @default("primary")
+  role          String   // 'organiser' | 'attendee'
+  lastSyncedAt  DateTime @default(now())
+  syncStatus    String   @default("synced") // 'synced' | 'pending' | 'failed'
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, eventId, role])
 }
