@@ -17,7 +17,15 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
 
   const invite = await prisma.teamMember.findUnique({
     where: { inviteToken: token },
-    include: { owner: { select: { name: true, email: true } } },
+    include: {
+      owner: { select: { name: true, email: true } },
+      eventAccess: {
+        take: 1,
+        include: {
+          event: { select: { slug: true, dashboardToken: true } },
+        },
+      },
+    },
   })
 
   if (!invite) {
@@ -66,6 +74,10 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
   })
 
   const ownerName = invite.owner.name || invite.owner.email || 'the organiser'
+  const assignedEvent = invite.eventAccess[0]?.event
+  const postAcceptHref = assignedEvent
+    ? `/dashboard/events/${assignedEvent.slug}?token=${encodeURIComponent(assignedEvent.dashboardToken)}`
+    : '/dashboard'
 
   return (
     <main style={{ minHeight: '100vh', background: '#0A0A0A', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
@@ -88,10 +100,10 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
             You are now part of <strong style={{ color: 'rgba(240,237,230,0.75)' }}>{ownerName}</strong>&apos;s EventSlot team.
           </p>
           <Link
-            href="/dashboard"
+            href={postAcceptHref}
             style={{ display: 'inline-block', background: '#C8F55A', color: '#0A0A0A', borderRadius: 8, padding: '0.7rem 2rem', fontSize: '0.925rem', fontWeight: 600, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
           >
-            Go to dashboard
+            {assignedEvent ? 'Open event dashboard' : 'Go to dashboard'}
           </Link>
         </div>
       </div>

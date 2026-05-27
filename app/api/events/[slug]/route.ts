@@ -29,13 +29,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
+    const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
     const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
       userId: session.user.id,
       organizerId: event.organizerId,
       eventId: event.id,
     }))
 
-    if (!isOwner && !hasValidToken && !hasTeamAccess) {
+    if (!adminAccess && !hasValidToken && !hasTeamAccess) {
       return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
     }
 
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
         imageUrl: event.imageUrl ?? null,
-        canEdit: isOwner,
+        canEdit: adminAccess || hasTeamAccess,
         calendarSynced,
         googleCalendarConnected,
       },

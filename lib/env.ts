@@ -1,6 +1,6 @@
 function requireEnv(key: string): string {
   const val = process.env[key]
-  if (!val) {
+  if (!val && typeof window === 'undefined') {
     console.error(`[env] MISSING REQUIRED ENV VAR: ${key}`)
   }
   return val ?? ''

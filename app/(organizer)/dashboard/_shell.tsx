@@ -154,13 +154,15 @@ const NAV_ITEMS = [
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
   { label: "Assistant", href: "/dashboard/assistant", icon: <IconChat />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
+  { label: "Calendar", href: "/dashboard/profile#calendar", icon: <IconCalendar />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
   { label: "Comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
 ] as const
 
 function getIsActive(pathname: string, href: string, exact: boolean): boolean {
-  if (exact) return pathname === href
-  return pathname === href || pathname.startsWith(href + "/")
+  const normalizedHref = href.split("#")[0].split("?")[0]
+  if (exact) return pathname === normalizedHref
+  return pathname === normalizedHref || pathname.startsWith(normalizedHref + "/")
 }
 
 // ─── Sidebar inner content ────────────────────────────────────────────────────

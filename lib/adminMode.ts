@@ -4,6 +4,7 @@
 
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 const ADMIN_MODE_COOKIE = 'es_admin_mode'
 
@@ -70,6 +71,17 @@ export async function resolveOrganiserAccess(params: {
   // Organiser owns the event
   if (event.organizerId === params.userId) {
     return { hasAccess: true, isAdminMode: false, organiserId: params.userId }
+  }
+
+  // Accepted team members with event access can manage the event (mini-admin),
+  // but destructive actions can still enforce owner-only checks at route level.
+  const teamAccess = await hasTeamEventAccess({
+    userId: params.userId,
+    organizerId: event.organizerId,
+    eventId: params.eventId,
+  })
+  if (teamAccess) {
+    return { hasAccess: true, isAdminMode: false, organiserId: event.organizerId }
   }
 
   // SuperAdmin in Admin Mode for this event
