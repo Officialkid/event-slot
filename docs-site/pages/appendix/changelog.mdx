@@ -1,3 +1,9 @@
+## Deploy — June 02, 2026 (e5e0a9c)
+
+> feat: restore Pricing link in public navbar
+
+---
+
 ## Deploy — June 02, 2026 (d254c66)
 
 > fix: ticket PDF 500, QR cut-off, Meet link normalisation, admin mobile, assistant language - fix(tickets): add serverExternalPackages for @react-pdf/renderer in next.config.mjs to resolve 500 on PDF download route - fix(tickets): wrap generateTicketPDF in try/catch in /api/tickets/[confirmationCode]/route.ts - fix(tickets): replace Next.js Image with plain img in ConfirmationTicket.tsx so html2canvas captures QR correctly; widen right panel to 168px - fix(tickets): remove duplicate width/height from react-pdf page style in lib/ticket.tsx to prevent QR clip - fix(events): normalise Google Meet links entered without https:// (meet.google.com/... now accepted) in schema, API route, and create page input - fix(admin): make AdminSidebar mobile-friendly with hamburger drawer - fix(admin): update admin layout.tsx for mobile top bar padding - fix(assistant): rewrite SWAHILI_RULES with positive-only framing; move language rule to position [0] in prompt assembly - feat(cloudrun): add ENCRYPTION_KEY, GROQ_API_KEY, NEXT_PUBLIC_APP_URL, RESEND_FROM to cloudrun.yaml - docs(payments): add v2 four-tier pricing strategy with tiered commission model and pay-as-you-go design
