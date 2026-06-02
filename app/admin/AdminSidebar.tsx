@@ -22,6 +22,7 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname = usePathname()
   const [flaggedCount, setFlaggedCount] = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
     fetch("/api/admin/assistant-sessions?filter=flagged")
@@ -38,53 +39,79 @@ export default function AdminSidebar() {
       .catch(() => {})
   }, [])
 
-  return (
-    <aside
-      style={{
-        width: 220,
-        flexShrink: 0,
-        background: "#080808",
-        borderRight: "0.5px solid rgba(240,237,230,0.07)",
-        padding: "2rem 0",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ padding: "0 1.5rem 2rem", borderBottom: "0.5px solid rgba(240,237,230,0.07)" }}>
-        <Link
-          href="/admin"
-          style={{
-            fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.2rem",
-            textDecoration: "none",
-            lineHeight: 1.2,
-          }}
-        >
-          <span style={{ color: "#F0EDE6" }}>Event</span>
-          <span style={{ color: "#C8F55A" }}>Slot</span>
-        </Link>
-        <div
-          style={{
-            marginTop: "0.4rem",
-            fontSize: "0.65rem",
-            fontWeight: 700,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            color: "rgba(240,237,230,0.3)",
-            fontFamily: "var(--font-dm-sans)",
-          }}
-        >
-          Admin Console
+  // Close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [pathname])
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [drawerOpen])
+
+  const sidebarContent = (
+    <>
+      <div style={{ padding: "0 1.5rem 2rem", borderBottom: "0.5px solid rgba(240,237,230,0.07)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <Link
+            href="/admin"
+            style={{
+              fontFamily: "var(--font-instrument-serif)",
+              fontSize: "1.2rem",
+              textDecoration: "none",
+              lineHeight: 1.2,
+            }}
+            onClick={() => setDrawerOpen(false)}
+          >
+            <span style={{ color: "#F0EDE6" }}>Event</span>
+            <span style={{ color: "#C8F55A" }}>Slot</span>
+          </Link>
+          <div
+            style={{
+              marginTop: "0.4rem",
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "rgba(240,237,230,0.3)",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
+            Admin Console
+          </div>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          className="admin-sidebar-close-btn"
+          onClick={() => setDrawerOpen(false)}
+          aria-label="Close menu"
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "rgba(240,237,230,0.4)",
+            cursor: "pointer",
+            padding: "0.2rem",
+            lineHeight: 1,
+            fontSize: "1.4rem",
+          }}
+        >
+          ✕
+        </button>
       </div>
 
-      <nav style={{ padding: "1.25rem 0.75rem", flex: 1 }}>
+      <nav style={{ padding: "1.25rem 0.75rem", flex: 1, overflowY: "auto" }}>
         {navItems.map(item => {
           const isActive = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setDrawerOpen(false)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -160,6 +187,154 @@ export default function AdminSidebar() {
           ← Back to site
         </Link>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <style>{`
+        /* ── Desktop sidebar ── */
+        .admin-sidebar-desktop {
+          width: 220px;
+          flex-shrink: 0;
+          background: #080808;
+          border-right: 0.5px solid rgba(240,237,230,0.07);
+          padding: 2rem 0;
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 0;
+          height: 100vh;
+          overflow-y: auto;
+        }
+
+        /* Hide close button on desktop */
+        .admin-sidebar-close-btn {
+          display: none !important;
+        }
+
+        /* ── Mobile top bar ── */
+        .admin-mobile-topbar {
+          display: none;
+        }
+
+        /* ── Mobile drawer overlay ── */
+        .admin-drawer-overlay {
+          display: none;
+        }
+
+        @media (max-width: 767px) {
+          /* Hide desktop sidebar on mobile */
+          .admin-sidebar-desktop {
+            display: none !important;
+          }
+
+          /* Show mobile top bar */
+          .admin-mobile-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: #080808;
+            border-bottom: 0.5px solid rgba(240,237,230,0.07);
+            padding: 0 1.25rem;
+            z-index: 200;
+          }
+
+          /* Show close button inside drawer on mobile */
+          .admin-sidebar-close-btn {
+            display: block !important;
+          }
+
+          /* Drawer overlay backdrop */
+          .admin-drawer-overlay {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 300;
+          }
+
+          /* Drawer panel */
+          .admin-drawer-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            max-width: 85vw;
+            background: #080808;
+            border-right: 0.5px solid rgba(240,237,230,0.07);
+            z-index: 301;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 0;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease;
+          }
+
+          .admin-drawer-panel.open {
+            transform: translateX(0);
+          }
+        }
+      `}</style>
+
+      {/* ── Mobile top bar ── */}
+      <div className="admin-mobile-topbar">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+          style={{
+            background: "transparent",
+            border: "0.5px solid rgba(240,237,230,0.12)",
+            borderRadius: 8,
+            color: "rgba(240,237,230,0.7)",
+            cursor: "pointer",
+            padding: "0.4rem 0.6rem",
+            fontSize: "1rem",
+            lineHeight: 1,
+          }}
+        >
+          ☰
+        </button>
+        <Link
+          href="/admin"
+          style={{
+            fontFamily: "var(--font-instrument-serif)",
+            fontSize: "1.1rem",
+            textDecoration: "none",
+          }}
+        >
+          <span style={{ color: "#F0EDE6" }}>Event</span>
+          <span style={{ color: "#C8F55A" }}>Slot</span>
+        </Link>
+        <div style={{ width: 36 }} /> {/* spacer to centre logo */}
+      </div>
+
+      {/* ── Drawer (mobile) ── */}
+      {drawerOpen && (
+        <div
+          className="admin-drawer-overlay"
+          onClick={() => setDrawerOpen(false)}
+        >
+          <div
+            className={`admin-drawer-panel open`}
+            onClick={e => e.stopPropagation()}
+          >
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop sidebar ── */}
+      <aside className="admin-sidebar-desktop">
+        {sidebarContent}
+      </aside>
+    </>
   )
 }

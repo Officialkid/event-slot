@@ -70,16 +70,22 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
 
   const attendeeName = extractField(answers, questions, ['text'], ['name']) || 'Attendee'
 
-  const pdfBuffer = await generateTicketPDF({
-    eventTitle: registration.event.title,
-    attendeeName,
-    ticketId: registration.confirmationCode ?? registration.id,
-    eventId: registration.event.id,
-    userId: registration.id,
-    eventDate: registration.event.eventDate,
-    location: registration.event.location,
-    organizerName: registration.event.organizer?.name ?? 'Organizer',
-  })
+  let pdfBuffer: Buffer
+  try {
+    pdfBuffer = await generateTicketPDF({
+      eventTitle: registration.event.title,
+      attendeeName,
+      ticketId: registration.confirmationCode ?? registration.id,
+      eventId: registration.event.id,
+      userId: registration.id,
+      eventDate: registration.event.eventDate,
+      location: registration.event.location,
+      organizerName: registration.event.organizer?.name ?? 'Organizer',
+    })
+  } catch (err) {
+    console.error('[ticket-api] PDF generation failed:', err)
+    return NextResponse.json({ error: 'Failed to generate ticket PDF' }, { status: 500 })
+  }
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import QRCode from "qrcode"
-import Image from "next/image"
 
 export type TicketData = {
   confirmationCode: string
@@ -128,18 +127,20 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
         <div style={{ width: 1, borderLeft: "1.5px dashed rgba(200,245,90,0.25)", margin: "1.25rem 0", flexShrink: 0 }} />
 
         {/* ── Right: QR code ──────────────────────────────────────────────── */}
-        <div style={{ width: 150, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem 1rem", gap: "0.75rem" }}>
+        <div style={{ width: 168, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem 1.25rem", gap: "0.75rem" }}>
           {qrDataUrl ? (
-            <Image
+            // Plain <img> is required here — html2canvas does not capture Next.js
+            // Image components reliably when they wrap data: URLs.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={qrDataUrl}
               alt="Scan to verify"
-              width={116}
-              height={116}
-              unoptimized
-              style={{ borderRadius: 8, display: "block" }}
+              width={118}
+              height={118}
+              style={{ borderRadius: 8, display: "block", maxWidth: "100%" }}
             />
           ) : (
-            <div style={{ width: 116, height: 116, background: "rgba(240,237,230,0.06)", borderRadius: 8 }} />
+            <div style={{ width: 118, height: 118, background: "rgba(240,237,230,0.06)", borderRadius: 8 }} />
           )}
           <p style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", textAlign: "center", margin: 0 }}>
             Scan to verify

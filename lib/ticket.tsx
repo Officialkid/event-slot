@@ -6,8 +6,6 @@ const styles = StyleSheet.create({
   page: {
     backgroundColor: '#0A0A0A',
     padding: 0,
-    width: 400,
-    height: 200,
   },
   container: {
     flexDirection: 'row',

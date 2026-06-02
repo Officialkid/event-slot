@@ -68,12 +68,16 @@ export async function POST(req: NextRequest) {
     const normalizedTitle = title.trim()
     const normalizedOrganizerName = organizerName.trim()
     const normalizedOrganizerEmail = (organizerEmail ?? '').trim()
-    const normalizedVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
+    const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
+    // Accept links entered as meet.google.com/... (without protocol) and normalise them.
+    const normalizedVirtualLink = /^meet\.google\.com\//i.test(rawVirtualLink)
+      ? `https://${rawVirtualLink}`
+      : rawVirtualLink
 
     if (eventType === 'VIRTUAL') {
       if (!normalizedVirtualLink.toLowerCase().startsWith('https://meet.google.com/')) {
         return NextResponse.json(
-          { success: false, error: 'Please provide a valid Google Meet link (https://meet.google.com/...)' },
+          { success: false, error: 'Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij)' },
           { status: 400 }
         )
       }

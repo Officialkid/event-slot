@@ -100,3 +100,17 @@ spec:
                 secretKeyRef:
                   name: CLOUDFLARE_R2_BUCKET_NAME
                   key: latest
+            - name: NEXT_PUBLIC_APP_URL
+              value: 'https://www.eventsslot.com'
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: EVENTSLOT_ENCRYPTION_KEY
+                  key: latest
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: GROQ_API_KEY
+                  key: latest
+            - name: RESEND_FROM
+              value: 'events@eventsslot.com'

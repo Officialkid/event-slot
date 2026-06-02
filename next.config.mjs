@@ -24,6 +24,10 @@ const withPWAConfig = withPWA({
 const nextConfig = {
   output: 'standalone',
 
+  // @react-pdf/renderer uses native Node.js modules that webpack cannot bundle.
+  // Marking it as external causes Next.js to require() it at runtime instead.
+  serverExternalPackages: ['@react-pdf/renderer'],
+
   // Explicitly disable source maps in production to prevent exposing readable
   // source code in browser DevTools.
   productionBrowserSourceMaps: false,

@@ -12,7 +12,7 @@ export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(5000).optional().nullable(),
   eventType: z.enum(['PHYSICAL', 'VIRTUAL']).default('PHYSICAL'),
-  virtualLink: z.string().url().max(1000).optional().nullable().or(z.literal('')),
+  virtualLink: z.string().max(1000).optional().nullable().or(z.literal('')),  // URL format validated in superRefine (accepts with or without https://)
   capacity: z.number().int().positive().optional().nullable(),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
@@ -36,12 +36,14 @@ export const createEventSchema = z.object({
   }
 
   if (data.eventType === 'VIRTUAL' && data.virtualLink?.trim()) {
-    const normalized = data.virtualLink.trim().toLowerCase()
-    if (!normalized.startsWith('https://meet.google.com/')) {
+    const raw = data.virtualLink.trim()
+    // Normalise: accept links pasted without the https:// scheme
+    const withScheme = /^meet\.google\.com\//i.test(raw) ? `https://${raw}` : raw
+    if (!withScheme.toLowerCase().startsWith('https://meet.google.com/')) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['virtualLink'],
-        message: 'Please provide a valid Google Meet link (https://meet.google.com/...)',
+        message: 'Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij)',
       })
     }
   }
