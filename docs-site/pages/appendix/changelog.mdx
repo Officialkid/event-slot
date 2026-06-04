@@ -1,3 +1,9 @@
+## Deploy — June 04, 2026 (ebdf606)
+
+> feat: add CSV, Excel, and PDF (individual responses) export for registrations - Upgrade CSV export route: status=all support, registrationNumber column, cleanValue type safety, UTF-8 BOM, CRLF line endings - Add Excel (.xlsx) export route: frozen header, lime/dark theme, zebra rows, status colour-coding, Summary sheet (exceljs) - Add PDF export route + RegistrationResponsesPdf component: Google Forms-style layout with one page per attendee, questions listed vertically, full answers, DPA footer on every page, response counter (N / total) - Add RegistrationsPdf component (cover page + per-attendee card fallback) - Add export buttons to Confirmed and Waitlist tab headers in organiser dashboard: CSV, Excel, and PDF (Individual responses) for confirmed / waitlist / all
+
+---
+
 ## Deploy — June 04, 2026 (9f6a27c)
 
 > feat: add CSV download button on individual response view
