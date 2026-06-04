@@ -155,7 +155,8 @@ export async function GET(
         eventDate:     eventDateStr,
         exportedAt,
         registrations: pdfRegistrations,
-      }) as React.ReactElement<Record<string, unknown>>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as React.ReactElement<any>,
     )
 
     const safeTitle    = (event.title as string).replace(/[^a-z0-9]/gi, '_').toLowerCase()
