@@ -1120,6 +1120,7 @@ export default function EventDashboardPage() {
   const [teamInviting, setTeamInviting] = useState(false)
   const [teamInviteError, setTeamInviteError] = useState("")
   const [teamInviteSuccess, setTeamInviteSuccess] = useState("")
+  const [teamInviteAcceptLinks, setTeamInviteAcceptLinks] = useState<{ email: string; acceptUrl: string }[]>([])
   const [removingTeamMember, setRemovingTeamMember] = useState<string | null>(null)
 
   useEffect(() => {
@@ -1646,6 +1647,7 @@ export default function EventDashboardPage() {
     setTeamInviting(true)
     setTeamInviteError("")
     setTeamInviteSuccess("")
+    setTeamInviteAcceptLinks([])
     try {
       const res = await fetch('/api/team/invite', {
         method: 'POST',
@@ -1658,8 +1660,17 @@ export default function EventDashboardPage() {
         return
       }
       setTeamInviteEmails(["", ""])
-      const sent = (data.results as Array<{ ok: boolean; email: string }>).filter(r => r.ok).length
-      setTeamInviteSuccess(`Invite${sent !== 1 ? 's' : ''} sent to ${sent} email${sent !== 1 ? 's' : ''}.`)
+      const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string }>
+      if (data.emailFailed) {
+        // DB records created but email delivery failed — surface the accept links
+        setTeamInviteError('Email delivery failed. Share these invite links directly:')
+        setTeamInviteAcceptLinks(
+          results.filter(r => r.acceptUrl).map(r => ({ email: r.email, acceptUrl: r.acceptUrl! }))
+        )
+      } else {
+        const sent = results.filter(r => r.ok && !r.emailFailed).length
+        setTeamInviteSuccess(`Invite${sent !== 1 ? 's' : ''} sent to ${sent} email${sent !== 1 ? 's' : ''}.`)
+      }
       await loadEventTeam()
     } finally {
       setTeamInviting(false)
@@ -3219,6 +3230,21 @@ export default function EventDashboardPage() {
                 ))}
               </div>
               {teamInviteError && <p style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteError}</p>}
+              {teamInviteAcceptLinks.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  {teamInviteAcceptLinks.map(({ email, acceptUrl }) => (
+                    <div key={email} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                      <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(acceptUrl)}
+                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: "0.72rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                      >
+                        Copy link
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               {teamInviteSuccess && <p style={{ color: "#C8F55A", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteSuccess}</p>}
               <button
                 onClick={() => void handleTeamInvite()}

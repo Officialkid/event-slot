@@ -140,14 +140,13 @@ describe('createEventSchema — virtual event Google Meet link', () => {
     expect(result.success).toBe(false)
   })
 
-  // ⚠️ KNOWN ISSUE — documented below
-  it('rejects http:// (non-HTTPS) Google Meet links', () => {
+  // http:// links are now normalised to https://
+  it('normalises http:// Google Meet links to https://', () => {
     const result = createEventSchema.safeParse({
       ...virtualBase,
       virtualLink: 'http://meet.google.com/abc-defg-hij',
     })
-    // The schema checks for startsWith('https://meet.google.com/') — http:// fails
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 })
 

@@ -35,10 +35,12 @@ export const createEventSchema = z.object({
     })
   }
 
-  if (data.eventType === 'VIRTUAL' && data.virtualLink?.trim()) {
+    if (data.eventType === 'VIRTUAL' && data.virtualLink?.trim()) {
     const raw = data.virtualLink.trim()
-    // Normalise: accept links pasted without the https:// scheme
-    const withScheme = /^meet\.google\.com\//i.test(raw) ? `https://${raw}` : raw
+    // Normalise: accept links pasted without the https:// scheme, or with http://
+    let withScheme = raw
+    if (/^meet\.google\.com\//i.test(raw)) withScheme = `https://${raw}`
+    else if (/^http:\/\/meet\.google\.com\//i.test(raw)) withScheme = raw.replace(/^http:\/\//i, 'https://')
     if (!withScheme.toLowerCase().startsWith('https://meet.google.com/')) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

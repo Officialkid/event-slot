@@ -96,7 +96,8 @@ export default function TeamPage() {
         setInviteErrors([data.error ?? "Failed to send invites"])
       }
       setInviteResults(data.results ?? [])
-      if (res.ok) {
+      // Clear the form on success OR when DB record was created but email failed
+      if (res.ok || data.emailFailed) {
         setInviteEmails(["", ""])
       }
       // Refresh list

@@ -130,6 +130,23 @@ export async function POST(req: NextRequest) {
       console.error('[team-invite] Some invites failed:', failedReasons)
     }
 
+    // If all DB records were created but email delivery failed, return 201 with
+    // emailFailed=true so the client can show the "Copy link" fallback instead of
+    // a generic error. The team member record already exists and the accept URL works.
+    const allDbCreated = results.every(r => r.ok || r.alreadyInvited)
+    if (sentCount === 0 && allDbCreated && results.some(r => r.emailFailed)) {
+      return NextResponse.json(
+        {
+          sent: 0,
+          failed: failedCount,
+          emailFailed: true,
+          message: 'Invite created but email delivery failed — share the link below directly.',
+          results,
+        },
+        { status: 201 }
+      )
+    }
+
     if (sentCount === 0) {
       return NextResponse.json(
         {

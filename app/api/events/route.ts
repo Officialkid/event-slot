@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
     const normalizedOrganizerName = organizerName.trim()
     const normalizedOrganizerEmail = (organizerEmail ?? '').trim()
     const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
-    // Accept links entered as meet.google.com/... (without protocol) and normalise them.
-    const normalizedVirtualLink = /^meet\.google\.com\//i.test(rawVirtualLink)
-      ? `https://${rawVirtualLink}`
-      : rawVirtualLink
+    // Accept links entered as meet.google.com/... (without protocol) or with http:// and normalise to https://.
+    let normalizedVirtualLink = rawVirtualLink
+    if (/^meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = `https://${rawVirtualLink}`
+    else if (/^http:\/\/meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = rawVirtualLink.replace(/^http:\/\//i, 'https://')
 
     if (eventType === 'VIRTUAL') {
       if (!normalizedVirtualLink.toLowerCase().startsWith('https://meet.google.com/')) {

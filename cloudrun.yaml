@@ -113,4 +113,9 @@ spec:
                   name: GROQ_API_KEY
                   key: latest
             - name: RESEND_FROM
-              value: 'events@eventsslot.com'
+              value: 'EventSlot <events@eventsslot.com>'
+            - name: QR_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: EVENTSLOT_QR_SECRET
+                  key: latest
