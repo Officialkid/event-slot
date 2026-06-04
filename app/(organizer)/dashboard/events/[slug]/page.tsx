@@ -452,7 +452,7 @@ function EditRegModal({
 }
 
 function RegTable({
-  rows, questions, showPosition = false, emptyText, token, onRemove,
+  rows, questions, showPosition = false, emptyText, token, onRemove, slug, registrationStatus = 'confirmed',
 }: {
   rows: Registration[]
   questions: Question[]
@@ -460,6 +460,8 @@ function RegTable({
   emptyText: string
   token: string
   onRemove: (id: string) => void
+  slug: string
+  registrationStatus?: string
 }) {
   const [confirmingId, setConfirmingId] = React.useState<string | null>(null)
   const [removingId, setRemovingId] = React.useState<string | null>(null)
@@ -502,13 +504,14 @@ function RegTable({
             {showPosition && <th style={thStyle}>#</th>}
             {labels.map(label => <th key={label} style={thStyle}>{label}</th>)}
             <th style={thStyle}>Registered</th>
+            <th style={thStyle}>View</th>
             <th style={thStyle}>Remove</th>
           </tr>
         </thead>
         <tbody>
           {rowData.length === 0 ? (
             <tr>
-              <td colSpan={labels.length + (showPosition ? 3 : 2)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={labels.length + (showPosition ? 4 : 3)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                 {emptyText}
               </td>
             </tr>
@@ -534,6 +537,15 @@ function RegTable({
                     </span>
                   )}
                   </span>
+                </td>
+                <td style={{ ...tdStyle, width: 60 }}>
+                  <Link
+                    href={`/dashboard/events/${slug}/registrations/${reg.id}${registrationStatus !== 'confirmed' ? `?from=${registrationStatus}` : ''}`}
+                    style={{ fontSize: "0.72rem", color: "#C8F55A", textDecoration: "none", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    View →
+                  </Link>
                 </td>
                 <td style={{ ...tdStyle, width: 120 }}>
                   {confirmingId === reg.id ? (
@@ -2506,6 +2518,8 @@ export default function EventDashboardPage() {
                 questions={eventData.questions}
                 emptyText="No confirmed registrations yet"
                 token={token || eventData.dashboardToken}
+                slug={slug}
+                registrationStatus="confirmed"
                 onRemove={id => {
                   setConfirmed(prev => prev.filter(r => r.id !== id))
                   setEventData(prev => prev ? { ...prev, confirmedCount: Math.max(0, prev.confirmedCount - 1) } : null)
@@ -2625,6 +2639,8 @@ export default function EventDashboardPage() {
               showPosition
               emptyText="Waitlist is empty"
               token={token || eventData.dashboardToken}
+              slug={slug}
+              registrationStatus="waitlist"
               onRemove={id => {
                 setWaitlist(prev => prev.filter(r => r.id !== id))
                 setEventData(prev => prev ? { ...prev, waitlistCount: Math.max(0, prev.waitlistCount - 1) } : null)
