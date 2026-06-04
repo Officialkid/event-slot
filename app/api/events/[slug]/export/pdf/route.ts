@@ -89,9 +89,6 @@ export async function GET(
       event.questions as Array<{ id: string; label: string; type: string; order?: number }>
     ).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 
-    const confirmedCount = registrations.filter(r => r.status === 'confirmed').length
-    const waitlistCount  = registrations.filter(r => r.status === 'waitlist').length
-
     const total = registrations.length
 
     // ── Transform for PDF component ───────────────────────────────────────────
@@ -158,7 +155,7 @@ export async function GET(
         eventDate:     eventDateStr,
         exportedAt,
         registrations: pdfRegistrations,
-      }) as React.ReactElement<any>,
+      }) as React.ReactElement<Record<string, unknown>>,
     )
 
     const safeTitle    = (event.title as string).replace(/[^a-z0-9]/gi, '_').toLowerCase()
