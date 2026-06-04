@@ -28,6 +28,17 @@ const nextConfig = {
   // Marking it as external causes Next.js to require() it at runtime instead.
   serverExternalPackages: ['@react-pdf/renderer'],
 
+  // Ensure @react-pdf/renderer and its dependencies are included in the
+  // standalone output so they are available in the Cloud Run Docker image.
+  outputFileTracingIncludes: {
+    '/api/tickets/[confirmationCode]': [
+      './node_modules/@react-pdf/**/*',
+      './node_modules/yoga-layout/**/*',
+      './node_modules/fontkit/**/*',
+      './node_modules/qrcode/**/*',
+    ],
+  },
+
   // Explicitly disable source maps in production to prevent exposing readable
   // source code in browser DevTools.
   productionBrowserSourceMaps: false,
