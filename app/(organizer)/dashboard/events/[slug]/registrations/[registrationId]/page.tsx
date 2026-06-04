@@ -47,6 +47,45 @@ function extractPhone(questionAnswers: QuestionAnswer[]): string | null {
   )
 }
 
+/** Triggers a CSV download for a single registration response. */
+function downloadResponseAsCSV(registration: RegistrationDetail, displayName: string) {
+  const rows: string[][] = [
+    ['Field', 'Value'],
+    ['Name', displayName],
+    ['Email', registration.attendeeEmail ?? ''],
+    ['Status', registration.status],
+    ['Registered At', new Date(registration.registeredAt).toLocaleString()],
+    ['Confirmation Code', registration.confirmationCode ?? ''],
+    ['Ticket Code', registration.ticketCode ?? ''],
+    ['Checked In', registration.checkedIn ? 'Yes' : 'No'],
+    ...(registration.checkedInAt
+      ? [['Checked In At', new Date(registration.checkedInAt).toLocaleString()]]
+      : []),
+    ['', ''],
+    ['Question', 'Answer'],
+    ...registration.questionAnswers.map((qa) => [
+      qa.label + (qa.required ? ' *' : ''),
+      qa.answer ?? '',
+    ]),
+  ]
+
+  const csv = rows
+    .map((row) =>
+      row
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    .join('\r\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `response-${displayName.replace(/\s+/g, '-').toLowerCase()}-${registration.confirmationCode ?? registration.id.slice(0, 8)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function RegistrationDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -170,6 +209,7 @@ export default function RegistrationDetailPage() {
               )}
               {phone && <p className="text-zinc-400 text-sm">{phone}</p>}
             </div>
+            <div className="flex items-start gap-3">
             <span
               className={`shrink-0 text-xs px-3 py-1 rounded-full font-medium ${
                 registration.status === 'confirmed'
@@ -179,6 +219,14 @@ export default function RegistrationDetailPage() {
             >
               {registration.status}
             </span>
+            <button
+              onClick={() => downloadResponseAsCSV(registration, displayName)}
+              className="shrink-0 text-xs px-3 py-1 rounded-full font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
+              title="Download this response as CSV"
+            >
+              ⬇ Download
+            </button>
+            </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-zinc-800 grid grid-cols-2 gap-4">
