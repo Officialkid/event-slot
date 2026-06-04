@@ -158,7 +158,7 @@ export async function GET(
         eventDate:     eventDateStr,
         exportedAt,
         registrations: pdfRegistrations,
-      }),
+      }) as React.ReactElement<any>,
     )
 
     const safeTitle    = (event.title as string).replace(/[^a-z0-9]/gi, '_').toLowerCase()
@@ -166,7 +166,7 @@ export async function GET(
     const dateSuffix   = new Date().toISOString().slice(0, 10)
     const filename     = `eventslot_${safeTitle}${statusSuffix}_${dateSuffix}.pdf`
 
-    return new Response(pdfBuffer, {
+    return new Response(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type':        'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,

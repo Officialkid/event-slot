@@ -208,8 +208,8 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
       {reg.ticketCode && (
         <Text style={styles.respondentMeta}>Ticket: {reg.ticketCode}</Text>
       )}
-      <View style={[styles.statusBadge, reg.status !== 'confirmed' && styles.statusBadgeWaitlist]}>
-        <Text style={[styles.statusText, reg.status !== 'confirmed' && styles.statusTextWaitlist]}>
+      <View style={[styles.statusBadge, reg.status !== 'confirmed' ? styles.statusBadgeWaitlist : {}]}>
+        <Text style={[styles.statusText, reg.status !== 'confirmed' ? styles.statusTextWaitlist : {}]}>
           {reg.status.toUpperCase()}
         </Text>
       </View>
