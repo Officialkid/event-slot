@@ -2483,7 +2483,7 @@ export default function EventDashboardPage() {
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
                 Confirmed registrations
               </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 <button
                   onClick={() => setShowManualReg(true)}
                   style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
@@ -2493,6 +2493,48 @@ export default function EventDashboardPage() {
                   </svg>
                   Add registrant
                 </button>
+                <a
+                  href={`/api/events/${slug}/export?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ Confirmed CSV
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/excel?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.07)" }}
+                >
+                  ↓ Excel
+                </a>
+                <a
+                  href={`/api/events/${slug}/export?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ All CSV
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/excel?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.55)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)" }}
+                >
+                  ↓ All Excel
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ PDF (Individual responses)
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ All PDF (Individual responses)
+                </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
                   {confirmed.length} confirmed
                 </span>
@@ -2629,9 +2671,32 @@ export default function EventDashboardPage() {
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
                 Waitlist
               </h2>
-              <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
-                {waitlist.length} waiting
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                <a
+                  href={`/api/events/${slug}/export?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ Waitlisted CSV
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/excel?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.65)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.05)" }}
+                >
+                  ↓ Waitlisted Excel
+                </a>
+                <a
+                  href={`/api/events/${slug}/export/pdf?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  ↓ Waitlisted PDF (Individual responses)
+                </a>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
+                  {waitlist.length} waiting
+                </span>
+              </div>
             </div>
             <RegTable
               rows={waitlist}

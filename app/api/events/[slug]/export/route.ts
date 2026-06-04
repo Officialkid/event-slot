@@ -410,10 +410,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch confirmed registrations
+    const statusFilter = req.nextUrl.searchParams.get('status')
+    const statusWhere: string | null = statusFilter === 'waitlist' ? 'waitlist' : statusFilter === 'all' ? null : 'confirmed'
+
+    // Fetch registrations (confirmed by default; pass ?status=waitlist or ?status=all)
     const registrations = await prisma.registration.findMany({
-      where: { eventId: event.id, status: 'confirmed' },
+      where: { eventId: event.id, ...(statusWhere ? { status: statusWhere } : {}) },
       orderBy: { submittedAt: 'asc' },
+      include: { ticket: { select: { code: true } } },
     })
 
     const questions = event.questions as Array<{ id: string; label: string; type: string }>
@@ -449,29 +453,41 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       })
     }
 
-    const headerRow = [
-      ...questions.map(q => escapeCSV(q.label)),
-      'Status',
-      'Registered At',
-    ].join(',')
+    const coreHeaders = ['#', ...questions.map(q => escapeCSV(q.label)), 'Status', 'Registration Date', 'Registration Time', 'Ticket Code']
 
-    const dataRows = registrations.map(reg => {
-      const answers = reg.answers as Array<{ questionId: string; value: string }>
-      const cols = questions.map(q => {
-        const val = answers.find(a => a.questionId === q.id)?.value ?? ''
+    const headerRow = coreHeaders.join(',')
+
+    const dataRows = registrations.map((reg, index) => {
+      const answers = reg.answers as Array<{ questionId?: string; value?: unknown }>
+      const questionCols = questions.map(q => {
+        const val = cleanValue(answers.find(a => a.questionId === q.id)?.value)
         return escapeCSV(val)
       })
-      cols.push(escapeCSV(reg.status))
-      cols.push(escapeCSV(reg.submittedAt.toISOString()))
+      const cols = [
+        String(reg.registrationNumber ?? index + 1),
+        ...questionCols,
+        escapeCSV(reg.status),
+        escapeCSV(formatRegistrationDay(reg.submittedAt)),
+        escapeCSV(
+          new Intl.DateTimeFormat('en-GB', {
+            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Nairobi',
+          }).format(reg.submittedAt)
+        ),
+        escapeCSV(reg.ticket?.code ?? ''),
+      ]
       return cols.join(',')
     })
 
-    const csvString = [headerRow, ...dataRows].join('\n')
+    const safeTitle = (event.title as string).replace(/[^a-z0-9]/gi, '_').toLowerCase()
+    const dateSuffix = new Date().toISOString().slice(0, 10)
+    const filename = `eventslot_${safeTitle}_${statusWhere ?? 'all'}_${dateSuffix}.csv`
+
+    const csvString = [headerRow, ...dataRows].join('\r\n')
 
     return new Response('\uFEFF' + csvString, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="registrations-${slug}.csv"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     })
   } catch (err) {

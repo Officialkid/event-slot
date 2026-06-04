@@ -34,6 +34,7 @@
     "bcryptjs": "^3.0.3",
     "date-fns": "^3.6.0",
     "docx": "^9.6.1",
+    "exceljs": "^4.4.0",
     "googleapis": "^172.0.0",
     "groq-sdk": "^1.2.0",
     "html2canvas": "^1.4.1",
