@@ -144,6 +144,8 @@ model User {
   weeklyRankingNotifications WeeklyRankingNotification[]
   googleCalendarToken        GoogleCalendarToken?
   calendarEventSyncs         CalendarEventSync[]
+  subscriptions              Subscription[]
+  paygSettings               PaygSettings?
 }
 
 model ReferralLink {
@@ -724,4 +726,172 @@ model CalendarEventSync {
   createdAt     DateTime @default(now())
 
   @@unique([userId, eventId, role])
+}
+
+// ─── Subscription Plans (seeded, not user-created) ───────────────────────────
+model Plan {
+  id                     String         @id @default(cuid())
+  name                   String         @unique // "free" | "standard" | "pro" | "business"
+  displayName            String
+  monthlyPriceUsd        Float
+  annualPriceUsd         Float
+  // Limits (-1 = unlimited)
+  maxAttendeesPerEvent   Int
+  maxWaitlistPerEvent    Int
+  maxActiveEvents        Int
+  maxOrganizerSeats      Int
+  dataRetentionDays      Int
+  paidEventCommission    Float
+  // Feature flags
+  hasWaitlist            Boolean        @default(false)
+  hasPdfTickets          Boolean        @default(false)
+  hasQrCheckin           Boolean        @default(false)
+  hasBasicAnalytics      Boolean        @default(false)
+  hasFullAnalytics       Boolean        @default(false)
+  hasAiInsights          Boolean        @default(false)
+  freeAiInsightsPerMonth Int            @default(0)
+  hasAiReports           Boolean        @default(false)
+  hasEmailCampaigns      Boolean        @default(false)
+  hasCustomBranding      Boolean        @default(false)
+  hasCustomDomain        Boolean        @default(false)
+  hasFaqSystem           Boolean        @default(false)
+  hasRecurringEvents     Boolean        @default(false)
+  hasApiAccess           Boolean        @default(false)
+  hasPrioritySupport     Boolean        @default(false)
+  hasPayg                Boolean        @default(true)
+  isActive               Boolean        @default(true)
+  createdAt              DateTime       @default(now())
+  subscriptions          Subscription[]
+}
+
+// ─── User Subscriptions ───────────────────────────────────────────────────────
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               Plan               @relation(fields: [planId], references: [id])
+  billingCycle       BillingCycle       @default(MONTHLY)
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  paymentProvider    String?
+  mpesaPhone         String?
+  lastPaymentRef     String?
+  lastPaymentAmount  Float?
+  lastPaymentAt      DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  payments           SubscriptionPayment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
+
+// ─── Individual payment records ───────────────────────────────────────────────
+model SubscriptionPayment {
+  id                String        @id @default(cuid())
+  subscriptionId    String
+  subscription      Subscription  @relation(fields: [subscriptionId], references: [id])
+  amountKes         Float
+  amountUsd         Float
+  exchangeRate      Float
+  provider          String
+  providerRef       String?
+  checkoutRequestId String?
+  status            PaymentStatus @default(PENDING)
+  phone             String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([subscriptionId])
+  @@index([checkoutRequestId])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// ─── PAYG opt-in and settings per user ───────────────────────────────────────
+model PaygSettings {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isEnabled       Boolean      @default(false)
+  monthlyCapUsd   Float        @default(10.0)
+  mpesaPhone      String?
+  paymentProvider String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  usageRecords    PaygUsage[]
+  invoices        PaygInvoice[]
+}
+
+// ─── Individual PAYG usage events ────────────────────────────────────────────
+model PaygUsage {
+  id             String        @id @default(cuid())
+  paygSettingsId String
+  paygSettings   PaygSettings  @relation(fields: [paygSettingsId], references: [id])
+  userId         String
+  billingMonth   String
+  usageType      PaygUsageType
+  quantity       Float         @default(1)
+  unitCostUsd    Float
+  totalCostUsd   Float
+  description    String?
+  eventId        String?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, billingMonth])
+}
+
+enum PaygUsageType {
+  EXTRA_ATTENDEE
+  EXTRA_EVENT
+  EXTRA_SEAT
+  AI_INSIGHT
+  AI_REPORT
+  EMAIL_SEND
+  DATA_RETENTION
+}
+
+// ─── Monthly PAYG invoices ────────────────────────────────────────────────────
+model PaygInvoice {
+  id             String        @id @default(cuid())
+  paygSettingsId String
+  paygSettings   PaygSettings  @relation(fields: [paygSettingsId], references: [id])
+  userId         String
+  billingMonth   String
+  totalAmountUsd Float
+  totalAmountKes Float
+  status         InvoiceStatus @default(UNPAID)
+  dueAt          DateTime
+  paidAt         DateTime?
+  providerRef    String?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, billingMonth])
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  FAILED
+  WAIVED
 }
