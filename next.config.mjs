@@ -37,6 +37,11 @@ const nextConfig = {
       './node_modules/fontkit/**/*',
       './node_modules/qrcode/**/*',
     ],
+    '/api/events/[slug]/export/pdf': [
+      './node_modules/@react-pdf/**/*',
+      './node_modules/yoga-layout/**/*',
+      './node_modules/fontkit/**/*',
+    ],
   },
 
   // Explicitly disable source maps in production to prevent exposing readable
