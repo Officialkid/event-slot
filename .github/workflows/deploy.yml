@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  PROJECT_ID: eventslot
+  PROJECT_ID: eventslot-prod
   REGION: us-central1
   SERVICE: eventslot-web
   REPOSITORY: eventslot
