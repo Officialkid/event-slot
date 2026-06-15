@@ -36,15 +36,28 @@ export async function POST(req: NextRequest) {
   const kesRate = parseFloat(process.env.KES_USD_RATE ?? '130');
   const priceUsd = billingCycle === 'annual' ? plan.annualPriceUsd : plan.monthlyPriceUsd;
   const amountKes = Math.ceil(priceUsd * kesRate);
+  const now = new Date();
 
   // Build a pending payment record first
-  let existingSub = await prisma.subscription.findFirst({
+  const existingSub = await prisma.subscription.findFirst({
     where: { userId: session.user.id, status: 'ACTIVE' },
+  });
+  const subscription = existingSub ?? await prisma.subscription.create({
+    data: {
+      userId: session.user.id,
+      planId: plan.id,
+      billingCycle: billingCycle === 'annual' ? 'ANNUAL' : 'MONTHLY',
+      status: 'PAST_DUE',
+      currentPeriodStart: now,
+      currentPeriodEnd: now,
+      paymentProvider: 'mpesa',
+      mpesaPhone: normalisedPhone,
+    },
   });
 
   const paymentRecord = await prisma.subscriptionPayment.create({
     data: {
-      subscriptionId: existingSub?.id ?? '', // will update after STK
+      subscriptionId: subscription.id,
       amountKes,
       amountUsd: priceUsd,
       exchangeRate: kesRate,
@@ -115,7 +128,7 @@ export async function POST(req: NextRequest) {
       amountKes,
       amountUsd: priceUsd,
     });
-  } catch (err: any) {
+  } catch (err) {
     await prisma.subscriptionPayment.update({
       where: { id: paymentRecord.id },
       data: { status: 'FAILED' },

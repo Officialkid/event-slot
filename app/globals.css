@@ -45,6 +45,8 @@
   --body-size: 0.9rem;
   --small-size: 0.75rem;
   --label-size: 0.72rem;
+
+  --font-instrument-serif: Georgia, "Times New Roman", serif;
 }
 
 html {

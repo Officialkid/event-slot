@@ -30,7 +30,24 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const event = await prisma.event.findUnique({
       where: { slug },
-      include: { organizer: { select: { plan: true } } },
+      include: {
+        organizer: { select: { plan: true } },
+        ticketTiers: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            priceKes: true,
+            capacity: true,
+            description: true,
+            bundleSize: true,
+            sortOrder: true,
+            soldCount: true,
+            waitlistCount: true,
+            status: true,
+          },
+        },
+      },
     })
 
     if (!event) {
@@ -107,6 +124,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         id: event.id,
         title: event.title,
         description: event.description,
+        isPaid: event.isPaid,
         capacity: event.capacity,
         deadline: event.deadline,
         confirmedCount: event.confirmedCount,
@@ -125,6 +143,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
         imageUrl: event.imageUrl ?? null,
+        ticketTiers: event.ticketTiers,
         canEdit: adminAccess || hasTeamAccess,
         calendarSynced,
         googleCalendarConnected,

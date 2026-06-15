@@ -17,6 +17,9 @@ type QuickScanResult = {
     attendeeName?: string | null
     checkedInAt?: string | null
     scannedAt?: string | null
+    admissionsTotal?: number
+    admissionsUsed?: number
+    admissionsRemaining?: number
   }
 }
 
@@ -68,7 +71,9 @@ export function QuickScan({ eventSlug, accessToken, onExit, onVerified, initialI
 
         if (res.ok && data.success && data.valid) {
           nextState = "valid"
-          nextMessage = `Welcome, ${data.ticket?.attendeeName || "Attendee"}!`
+          nextMessage = data.ticket?.admissionsTotal && data.ticket.admissionsTotal > 1
+            ? `Welcome, ${data.ticket?.attendeeName || "Attendee"}! ${data.ticket.admissionsRemaining ?? 0} remaining.`
+            : `Welcome, ${data.ticket?.attendeeName || "Attendee"}!`
           delay = 2000
           onVerified?.()
           if (typeof navigator !== "undefined" && navigator.vibrate) {

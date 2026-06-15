@@ -53,6 +53,7 @@ model Event {
   summaryEmailSent Boolean   @default(false)
   ticketTiers      TicketTier[]
   paidOrders       PaidEventOrder[]
+  payments         Payment[]
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
@@ -348,9 +349,10 @@ model Registration {
   countryCode           String?   // ISO 3166-1 alpha-2 — country detected when attendee registered
   ticketTierId          String?
   ticketTier            TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
-  paidOrderId           String?   @unique
+  paidOrderId           String?
   paidOrder             PaidEventOrder? @relation(fields: [paidOrderId], references: [id], onDelete: SetNull)
   ticket                Ticket?
+  payment               Payment?
 
   @@index([eventId, status])
   @@index([eventId, submittedAt])
@@ -373,6 +375,7 @@ model TicketTier {
   registrations      Registration[]
   paidOrders         PaidEventOrder[]
   tickets            Ticket[]
+  payments           Payment[]
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -406,7 +409,8 @@ model PaidEventOrder {
   paidAt                DateTime?
   cancelledAt           DateTime?
   promotionRegistrationId String?
-  registration          Registration?
+  registrations         Registration[]
+  payment               Payment?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
@@ -438,9 +442,39 @@ model Ticket {
   ticketTier     TicketTier?   @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
   ticketTierName String?
   amountPaidKes  Int?
+  admissionsTotal Int          @default(1)
+  admissionsUsed  Int          @default(0)
+  verifiedEntries Json?
   generatedAt    DateTime      @default(now())
   scannedAt      DateTime?
   createdAt      DateTime      @default(now())
+  payment        Payment?
+}
+
+model Payment {
+  id                String               @id @default(cuid())
+  eventId           String
+  event             Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  paidEventOrderId  String               @unique
+  paidEventOrder    PaidEventOrder       @relation(fields: [paidEventOrderId], references: [id], onDelete: Cascade)
+  registrationId    String?              @unique
+  registration      Registration?        @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  ticketId          String?              @unique
+  ticket            Ticket?              @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  ticketTierId      String?
+  ticketTier        TicketTier?          @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
+  amount            Int
+  commissionAmount  Int
+  organizerAmount   Int
+  commissionRate    Float
+  method            PaidOrderPaymentMethod
+  mpesaRef          String?
+  status            PaymentStatus        @default(PENDING)
+  createdAt         DateTime             @default(now())
+  paidAt            DateTime?
+
+  @@index([eventId, status])
+  @@index([ticketTierId, status])
 }
 
 model ErrorLog {

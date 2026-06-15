@@ -55,6 +55,7 @@ type EventData = {
   id: string
   title: string
   description: string | null
+  isPaid?: boolean
   capacity: number | null
   deadline: string | null
   confirmedCount: number
@@ -78,6 +79,18 @@ type EventData = {
   imageUrl?: string | null
   calendarSynced?: boolean
   googleCalendarConnected?: boolean
+  ticketTiers?: Array<{
+    id: string
+    name: string
+    priceKes: number
+    capacity: number
+    description?: string | null
+    bundleSize?: number
+    sortOrder: number
+    soldCount: number
+    waitlistCount: number
+    status: string
+  }>
 }
 
 type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings" | "team"
@@ -118,6 +131,22 @@ type AnalyticsData = {
   event?: { capacity: number | null }
   registrationsByDay: { date: string; count: number }[]
   registrationsByHour: { hour: number; count: number }[]
+  paidRevenueKes?: number
+  paidCommissionKes?: number
+  paidNetKes?: number
+  paidTicketsSold?: number
+  paidAdmissionsIssued?: number
+  pendingPaidOrders?: number
+  tierBreakdown?: Array<{
+    id: string
+    name: string
+    priceKes: number
+    soldCount: number
+    waitlistCount: number
+    bundleSize: number
+    grossKes: number
+    admissionsIssued: number
+  }>
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -647,6 +676,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [whatsappNumber, setWhatsappNumber] = useState(event.whatsappNumber ?? "")
   const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
   const [deadline, setDeadline] = useState(toDatetimeLocal(event.deadline))
+  const [ticketTiers, setTicketTiers] = useState(event.ticketTiers ?? [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
@@ -661,7 +691,8 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     setWhatsappNumber(event.whatsappNumber ?? "")
     setContactMode(event.contactMode ?? "WHATSAPP")
     setDeadline(toDatetimeLocal(event.deadline))
-  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline])
+    setTicketTiers(event.ticketTiers ?? [])
+  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
 
   const handleSave = async () => {
     setSaving(true)
@@ -692,6 +723,44 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         setTimeout(() => setSaved(false), 3000)
       } else {
         setError(data.error || "Failed to save.")
+      }
+    } catch {
+      setError("Unexpected error.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveTicketTiers = async () => {
+    setSaving(true)
+    setError("")
+    setSaved(false)
+    try {
+      const res = await fetch(`/api/events/${event.slug}/ticket-tiers`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketTiers: ticketTiers.map((tier) => ({
+            id: tier.id.startsWith("new-") ? undefined : tier.id,
+            name: tier.name,
+            priceKes: Number(tier.priceKes),
+            capacity: Number(tier.capacity),
+            description: tier.description ?? null,
+            bundleSize: Number(tier.bundleSize ?? 1),
+          })),
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setTicketTiers(data.ticketTiers ?? [])
+        onSaved({
+          ticketTiers: data.ticketTiers ?? [],
+          capacity: (data.ticketTiers ?? []).reduce((sum: number, tier: { capacity: number }) => sum + tier.capacity, 0),
+        })
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        setError(data.error || "Failed to save ticket tiers.")
       }
     } catch {
       setError("Unexpected error.")
@@ -819,6 +888,67 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             </p>
           </div>
         </div>
+
+        {event.isPaid && (
+          <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
+              <label style={fieldLabel}>Ticket tiers</label>
+              <button
+                type="button"
+                onClick={() => setTicketTiers((current) => [
+                  ...current,
+                  {
+                    id: `new-${Date.now()}-${current.length}`,
+                    name: "",
+                    priceKes: 500,
+                    capacity: 1,
+                    description: null,
+                    bundleSize: 1,
+                    sortOrder: current.length,
+                    soldCount: 0,
+                    waitlistCount: 0,
+                    status: "ACTIVE",
+                  },
+                ])}
+                style={{ background: "transparent", border: "0.5px solid rgba(255,184,77,0.25)", borderRadius: 999, padding: "0.35rem 0.75rem", color: "#FFB84D", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)" }}
+              >
+                + Add tier
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+              {ticketTiers.map((tier) => (
+                <div key={tier.id} style={{ border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem", background: "#141414" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.8fr", gap: "0.75rem" }}>
+                    <input value={tier.name} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, name: e.target.value } : item))} placeholder="Tier name" style={inputStyle} />
+                    <input type="number" min="50" value={tier.priceKes} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, priceKes: Number(e.target.value) } : item))} placeholder="Price" style={inputStyle} />
+                    <input type="number" min="1" value={tier.capacity} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, capacity: Number(e.target.value) } : item))} placeholder="Capacity" style={inputStyle} />
+                  </div>
+                  <textarea value={tier.description ?? ""} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, description: e.target.value } : item))} placeholder="Optional tier description" rows={2} style={{ ...inputStyle, marginTop: "0.75rem", resize: "vertical" }} />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.65rem" }}>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                      Sold: {tier.soldCount} · Waiting: {tier.waitlistCount}
+                    </p>
+                    <button type="button" onClick={() => setTicketTiers(items => items.filter(item => item.id !== tier.id))} style={{ background: "transparent", border: "none", color: "#FF6B6B", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: "1rem" }}>
+              <button
+                type="button"
+                onClick={saveTicketTiers}
+                disabled={saving}
+                style={{ background: "#FFB84D", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
+              >
+                {saving ? "Saving tiers…" : "Save ticket tiers"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p style={{ marginTop: "1rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
@@ -3083,6 +3213,49 @@ export default function EventDashboardPage() {
                     </div>
                   )}
                 </div>
+
+                {eventData.isPaid && (
+                  <div style={{ background: "#141414", border: "0.5px solid rgba(255,184,77,0.14)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.7rem", color: "#FFB84D", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.85rem", fontFamily: "var(--font-dm-sans)" }}>
+                      Paid Event Snapshot
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
+                      {[
+                        { label: "Gross Sales", value: `KES ${(analyticsData.paidRevenueKes ?? 0).toLocaleString()}` },
+                        { label: "Organizer Net", value: `KES ${(analyticsData.paidNetKes ?? 0).toLocaleString()}` },
+                        { label: "Platform Commission", value: `KES ${(analyticsData.paidCommissionKes ?? 0).toLocaleString()}` },
+                        { label: "Pending Payments", value: analyticsData.pendingPaidOrders ?? 0 },
+                        { label: "Tickets Sold", value: analyticsData.paidTicketsSold ?? 0 },
+                        { label: "Admissions Issued", value: analyticsData.paidAdmissionsIssued ?? 0 },
+                      ].map((stat) => (
+                        <div key={stat.label} style={{ background: "#0F0F0F", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
+                          <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>{stat.label}</div>
+                          <div style={{ fontSize: "1.25rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!!analyticsData.tierBreakdown?.length && (
+                      <div style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
+                        {analyticsData.tierBreakdown.map((tier) => (
+                          <div key={tier.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 10, background: "#0F0F0F", border: "0.5px solid rgba(240,237,230,0.08)", flexWrap: "wrap" }}>
+                            <div>
+                              <div style={{ color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>{tier.name}</div>
+                              <div style={{ color: "rgba(240,237,230,0.4)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
+                                KES {tier.priceKes.toLocaleString()} · {tier.soldCount} sold · {tier.waitlistCount} waitlist
+                                {tier.bundleSize > 1 ? ` · ${tier.bundleSize} entries each` : ""}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ color: "#FFB84D", fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>KES {tier.grossKes.toLocaleString()}</div>
+                              <div style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>{tier.admissionsIssued} admissions issued</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {(analyticsData.waitlistedCount > 0 || analyticsData.promotedCount > 0) && (
                   <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>

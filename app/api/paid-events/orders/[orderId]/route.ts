@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params
@@ -10,7 +11,24 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
       id: true,
       status: true,
       holdExpiresAt: true,
-      registration: {
+      promotionRegistrationId: true,
+      attendeeEmail: true,
+      amountKes: true,
+      event: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      ticketTier: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      registrations: {
+        take: 1,
         select: {
           confirmationCode: true,
           id: true,
@@ -30,12 +48,29 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
       where: { id: order.id },
       data: { status: 'EXPIRED' },
     }).catch(() => {})
+    await prisma.payment.updateMany({
+      where: { paidEventOrderId: order.id },
+      data: { status: 'FAILED' },
+    }).catch(() => {})
+    if (order.promotionRegistrationId) {
+      await prisma.registration.update({
+        where: { id: order.promotionRegistrationId },
+        data: { status: 'waitlist-offer-expired' },
+      }).catch(() => {})
+    }
+    await offerNextPaidWaitlistSpot(order.event.id, order.ticketTier.id).catch(() => {})
   }
 
   return NextResponse.json({
     success: true,
     status,
-    confirmationCode: order.registration?.confirmationCode ?? null,
-    registrationId: order.registration?.id ?? null,
+    confirmationCode: order.registrations[0]?.confirmationCode ?? null,
+    registrationId: order.registrations[0]?.id ?? null,
+    eventTitle: order.event.title,
+    eventSlug: order.event.slug,
+    ticketTierName: order.ticketTier.name,
+    amountKes: order.amountKes,
+    attendeeEmail: order.attendeeEmail,
+    holdExpiresAt: order.holdExpiresAt.toISOString(),
   })
 }

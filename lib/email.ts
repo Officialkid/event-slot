@@ -348,6 +348,57 @@ export async function sendWaitlistJoinedEmail({
   })
 }
 
+export async function sendPaidWaitlistPromotionEmail({
+  to,
+  eventTitle,
+  tierName,
+  priceKes,
+  paymentLink,
+  expiresAt,
+}: {
+  to: string
+  eventTitle: string
+  tierName: string
+  priceKes: number
+  paymentLink: string
+  expiresAt: Date
+}) {
+  const expiryLabel = expiresAt.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  })
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `A paid ticket is now available for ${eventTitle}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
+        <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
+        <h2 style="color:#F0EDE6;font-size:1.25rem;font-weight:400;margin:0 0 1rem">You're next in line</h2>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">
+          A slot just opened for <strong style="color:#F0EDE6">${eventTitle}</strong>.
+        </p>
+        <div style="background:#141414;border:1px solid rgba(255,184,77,0.2);border-radius:12px;padding:16px;margin-bottom:1rem">
+          <p style="margin:0 0 6px;color:#FFB84D;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em">Ticket tier</p>
+          <p style="margin:0 0 6px;color:#F0EDE6;font-size:1rem;font-weight:600">${tierName}</p>
+          <p style="margin:0;color:rgba(240,237,230,0.6);font-size:0.88rem">Price: KES ${priceKes.toLocaleString('en-KE')}</p>
+        </div>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">
+          Complete payment before <strong style="color:#C8F55A">${expiryLabel}</strong> or the offer will move to the next person on the waitlist.
+        </p>
+        <a href="${paymentLink}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
+          Pay for this ticket
+        </a>
+      </div>
+    `,
+  })
+}
+
 export async function sendConfirmationEmail({
   to,
   name,

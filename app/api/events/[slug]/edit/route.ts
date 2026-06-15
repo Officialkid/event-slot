@@ -31,6 +31,21 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         organizerId: true,
         category: true,
         whatsappNumber: true,
+        isPaid: true,
+        ticketTiers: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            priceKes: true,
+            capacity: true,
+            description: true,
+            bundleSize: true,
+            soldCount: true,
+            waitlistCount: true,
+            status: true,
+          },
+        },
       },
     })
 

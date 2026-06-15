@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma'
 import { initiateStkPush, normaliseMpesaPhone } from '@/lib/daraja'
 import { detectCountry } from '@/lib/geoip'
 import { parseAttendeeIdentity } from '@/lib/paidEvents'
+import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
+import { sendWaitlistJoinedEmail } from '@/lib/email'
 
 type AttendeePayload = {
   answers: Array<{ questionId: string; value: string }>
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
         waitlistCount: true,
         questions: true,
         organizerEmail: true,
+        organizer: { select: { plan: true } },
         ticketTiers: {
           where: { id: ticketTierId, status: 'ACTIVE' },
           select: {
@@ -166,6 +169,17 @@ export async function POST(req: NextRequest) {
         return created
       })
 
+      if (attendeeEmail) {
+        sendWaitlistJoinedEmail({
+          to: attendeeEmail,
+          eventTitle: event.title,
+          waitlistPosition: registration.waitlistPosition,
+          eventDate: null,
+          eventSlug: event.slug,
+          eventLocation: null,
+        }).catch(() => {})
+      }
+
       return NextResponse.json({
         success: true,
         results: [{
@@ -193,6 +207,22 @@ export async function POST(req: NextRequest) {
         mpesaPhone: normalizedMpesaPhone,
       },
       select: { id: true },
+    })
+
+    const commission = calculatePaidEventCommission(ticketTier.priceKes, event.organizer?.plan ?? 'free')
+
+    await prisma.payment.create({
+      data: {
+        eventId: event.id,
+        paidEventOrderId: order.id,
+        ticketTierId: ticketTier.id,
+        amount: ticketTier.priceKes,
+        commissionAmount: commission.commissionAmount,
+        organizerAmount: commission.organizerAmount,
+        commissionRate: commission.commissionRate,
+        method: 'MPESA',
+        status: 'PENDING',
+      },
     })
 
     try {

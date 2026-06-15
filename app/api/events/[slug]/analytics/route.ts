@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     // Keep the dashboard analytics query lightweight enough to resolve quickly on live pages.
-    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate] = await Promise.all([
+    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate, payments, ticketTiers] = await Promise.all([
       prisma.eventView.count({ where: { eventId: event.id } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
@@ -76,6 +76,28 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         _avg: { rating: true },
         _count: { id: true },
       }),
+      prisma.payment.findMany({
+        where: { eventId: event.id },
+        select: {
+          amount: true,
+          commissionAmount: true,
+          organizerAmount: true,
+          status: true,
+          ticketTierId: true,
+        },
+      }),
+      prisma.ticketTier.findMany({
+        where: { eventId: event.id },
+        select: {
+          id: true,
+          name: true,
+          priceKes: true,
+          soldCount: true,
+          waitlistCount: true,
+          bundleSize: true,
+        },
+        orderBy: { sortOrder: 'asc' },
+      }),
     ])
 
     const totalRegistrations = registrations.length
@@ -102,6 +124,23 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const avgFeedbackScore = typeof feedbackAggregate._avg.rating === 'number'
       ? Math.round(feedbackAggregate._avg.rating * 10) / 10
       : null
+    const successfulPayments = payments.filter((payment) => payment.status === 'SUCCESS')
+    const pendingPayments = payments.filter((payment) => payment.status === 'PENDING')
+    const paidRevenueKes = successfulPayments.reduce((sum, payment) => sum + payment.amount, 0)
+    const paidCommissionKes = successfulPayments.reduce((sum, payment) => sum + payment.commissionAmount, 0)
+    const paidNetKes = successfulPayments.reduce((sum, payment) => sum + payment.organizerAmount, 0)
+    const paidTicketsSold = ticketTiers.reduce((sum, tier) => sum + tier.soldCount, 0)
+    const paidAdmissionsIssued = ticketTiers.reduce((sum, tier) => sum + (tier.soldCount * Math.max(1, tier.bundleSize)), 0)
+    const tierBreakdown = ticketTiers.map((tier) => ({
+      id: tier.id,
+      name: tier.name,
+      priceKes: tier.priceKes,
+      soldCount: tier.soldCount,
+      waitlistCount: tier.waitlistCount,
+      bundleSize: tier.bundleSize,
+      grossKes: tier.soldCount * tier.priceKes,
+      admissionsIssued: tier.soldCount * Math.max(1, tier.bundleSize),
+    }))
 
     // Comparative performance vs organizer average
     let vsAverage: number | null = null
@@ -171,6 +210,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       event: { capacity: event.capacity },
       registrationsByDay,
       registrationsByHour,
+      paidRevenueKes,
+      paidCommissionKes,
+      paidNetKes,
+      paidTicketsSold,
+      paidAdmissionsIssued,
+      pendingPaidOrders: pendingPayments.length,
+      tierBreakdown,
     })
   } catch (err) {
     console.error('Analytics error:', err)

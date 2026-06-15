@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { cancelCalendarEvent, removeCalendarEvent } from '@/lib/googleCalendar'
+import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
@@ -119,7 +120,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
 
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
-      include: { event: { select: { dashboardToken: true, id: true, title: true } } },
+      include: { event: { select: { dashboardToken: true, id: true, title: true, isPaid: true } } },
     })
 
     if (!registration) {
@@ -163,11 +164,27 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
         where: { id: registration.eventId },
         data: { confirmedCount: { decrement: 1 } },
       })
+      if (registration.ticketTierId) {
+        await prisma.ticketTier.update({
+          where: { id: registration.ticketTierId },
+          data: { soldCount: { decrement: 1 } },
+        }).catch(() => {})
+      }
     } else if (registration.status === 'waitlist') {
       await prisma.event.update({
         where: { id: registration.eventId },
         data: { waitlistCount: { decrement: 1 } },
       })
+      if (registration.ticketTierId) {
+        await prisma.ticketTier.update({
+          where: { id: registration.ticketTierId },
+          data: { waitlistCount: { decrement: 1 } },
+        }).catch(() => {})
+      }
+    }
+
+    if (registration.event.isPaid && registration.ticketTierId && registration.status === 'confirmed') {
+      await offerNextPaidWaitlistSpot(registration.eventId, registration.ticketTierId).catch(() => {})
     }
 
     return NextResponse.json({ success: true })

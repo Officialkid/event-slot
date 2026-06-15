@@ -75,6 +75,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         select: {
           code: true,
           scannedAt: true,
+          admissionsTotal: true,
+          admissionsUsed: true,
+          verifiedEntries: true,
         },
       },
     },
@@ -116,6 +119,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       ticketCode: registration.ticket?.code ?? registration.confirmationCode ?? registration.id,
       alreadyVerified: Boolean(registration.ticket?.scannedAt ?? registration.checkedInAt),
       verifiedAt: registration.ticket?.scannedAt ?? registration.checkedInAt,
+      admissionsTotal: registration.ticket?.admissionsTotal ?? 1,
+      admissionsUsed: registration.ticket?.admissionsUsed ?? 0,
+      admissionsRemaining: Math.max(0, (registration.ticket?.admissionsTotal ?? 1) - (registration.ticket?.admissionsUsed ?? 0)),
+      verifiedEntries: Array.isArray(registration.ticket?.verifiedEntries) ? registration.ticket?.verifiedEntries : [],
     }
   })
 

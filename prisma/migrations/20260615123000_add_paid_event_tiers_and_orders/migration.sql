@@ -53,7 +53,6 @@ ADD COLUMN "ticketTierName" TEXT,
 ADD COLUMN "amountPaidKes" INTEGER;
 
 CREATE UNIQUE INDEX "PaidEventOrder_checkoutRequestId_key" ON "PaidEventOrder"("checkoutRequestId");
-CREATE UNIQUE INDEX "Registration_paidOrderId_key" ON "Registration"("paidOrderId");
 CREATE INDEX "TicketTier_eventId_sortOrder_idx" ON "TicketTier"("eventId", "sortOrder");
 CREATE INDEX "PaidEventOrder_eventId_status_idx" ON "PaidEventOrder"("eventId", "status");
 CREATE INDEX "PaidEventOrder_ticketTierId_status_idx" ON "PaidEventOrder"("ticketTierId", "status");

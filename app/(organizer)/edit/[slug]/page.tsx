@@ -19,6 +19,29 @@ type Question = {
   allowMultiple?: boolean
 }
 
+type TicketTierDraft = {
+  id: string
+  name: string
+  priceKes: string
+  capacity: string
+  description: string
+  bundleSize: string
+  soldCount?: number
+  waitlistCount?: number
+  status?: string
+}
+
+function defaultTicketTier(): TicketTierDraft {
+  return {
+    id: crypto.randomUUID(),
+    name: "Standard",
+    priceKes: "",
+    capacity: "",
+    description: "",
+    bundleSize: "1",
+  }
+}
+
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "text", label: "Text" },
   { value: "email", label: "Email" },
@@ -66,6 +89,8 @@ export default function EditEventPage() {
   const [category, setCategory] = useState("")
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [contactMode, setContactMode] = useState<EventContactMode>("WHATSAPP")
+  const [isPaid, setIsPaid] = useState(false)
+  const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -95,6 +120,32 @@ export default function EditEventPage() {
         setCategory(e.category ?? "")
         setWhatsappNumber(e.whatsappNumber ?? "")
         setContactMode(e.contactMode === "CALL" ? "CALL" : "WHATSAPP")
+        setIsPaid(Boolean(e.isPaid))
+        setTicketTiers(
+          Array.isArray(e.ticketTiers) && e.ticketTiers.length > 0
+            ? e.ticketTiers.map((tier: {
+                id: string
+                name: string
+                priceKes: number
+                capacity: number
+                description?: string | null
+                bundleSize?: number | null
+                soldCount?: number
+                waitlistCount?: number
+                status?: string
+              }) => ({
+                id: tier.id,
+                name: tier.name ?? "",
+                priceKes: String(tier.priceKes ?? ""),
+                capacity: String(tier.capacity ?? ""),
+                description: tier.description ?? "",
+                bundleSize: String(tier.bundleSize ?? 1),
+                soldCount: tier.soldCount ?? 0,
+                waitlistCount: tier.waitlistCount ?? 0,
+                status: tier.status ?? "ACTIVE",
+              }))
+            : [defaultTicketTier()]
+        )
         setQuestions(
           Array.isArray(e.questions)
             ? e.questions.map((q: Question) => ({ ...q, options: q.options ?? [] }))
@@ -173,6 +224,20 @@ export default function EditEventPage() {
   const removeQuestion = (idx: number) =>
     setQuestions(qs => qs.length > 1 ? qs.filter((_, i) => i !== idx) : qs)
 
+  function updateTicketTier(id: string, field: keyof TicketTierDraft, value: string) {
+    setTicketTiers((current) =>
+      current.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier))
+    )
+  }
+
+  function addTicketTier() {
+    setTicketTiers((current) => current.length >= 10 ? current : [...current, defaultTicketTier()])
+  }
+
+  function removeTicketTier(id: string) {
+    setTicketTiers((current) => (current.length > 1 ? current.filter((tier) => tier.id !== id) : current))
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
@@ -182,6 +247,19 @@ export default function EditEventPage() {
       setSaving(false)
       setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
       return
+    }
+    if (isPaid) {
+      const invalidTier = ticketTiers.find((tier) => {
+        const price = Number(tier.priceKes)
+        const capacityValue = Number(tier.capacity)
+        const bundleSize = Number(tier.bundleSize || "1")
+        return !tier.name.trim() || !price || price < 50 || !capacityValue || capacityValue < 1 || bundleSize < 1
+      })
+      if (invalidTier) {
+        setSaving(false)
+        setError("Each paid tier needs a name, a price of at least KSh 50, a capacity, and a bundle size of at least 1.")
+        return
+      }
     }
     try {
       const res = await fetch(`/api/events/${slug}`, {
@@ -213,6 +291,28 @@ export default function EditEventPage() {
       })
       const data = await res.json()
       if (data.success) {
+        if (isPaid) {
+          const tierRes = await fetch(`/api/events/${slug}/ticket-tiers`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ticketTiers: ticketTiers.map((tier) => ({
+                id: tier.id.startsWith("c") ? tier.id : undefined,
+                name: tier.name.trim(),
+                priceKes: Number(tier.priceKes),
+                capacity: Number(tier.capacity),
+                description: tier.description.trim() || null,
+                bundleSize: Number(tier.bundleSize || "1"),
+              })),
+            }),
+          })
+          const tierData = await tierRes.json()
+          if (!tierRes.ok || !tierData.success) {
+            setError(tierData.error || "Event details saved, but ticket tiers failed to update.")
+            setSaving(false)
+            return
+          }
+        }
         setSuccess(true)
         setTimeout(() => router.push("/my-events"), 1500)
       } else {
@@ -298,6 +398,95 @@ export default function EditEventPage() {
                 />
               </div>
               <div>
+                {isPaid && (
+                  <div className="mb-4 rounded-[10px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Paid ticket tiers</p>
+                        <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
+                          Manage prices, capacities, and bundle sizes without changing existing registrations.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addTicketTier}
+                        disabled={ticketTiers.length >= 10}
+                        className="rounded-full border border-[rgba(255,184,77,0.25)] px-3 py-1 text-[0.75rem] text-[#FFB84D] disabled:opacity-40"
+                      >
+                        + Add tier
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {ticketTiers.map((tier, index) => (
+                        <div key={tier.id} className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-[0.78rem] font-semibold text-[#F0EDE6]">Tier {index + 1}</p>
+                              {(tier.soldCount || tier.waitlistCount) ? (
+                                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.4)]">
+                                  {tier.soldCount ?? 0} sold · {tier.waitlistCount ?? 0} on waitlist
+                                </p>
+                              ) : null}
+                            </div>
+                            {ticketTiers.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeTicketTier(tier.id)}
+                                className="text-[0.72rem] text-[#FF6B6B]"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <input
+                              type="text"
+                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              placeholder="Tier name"
+                              value={tier.name}
+                              onChange={e => updateTicketTier(tier.id, "name", e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="50"
+                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              placeholder="Price (KES)"
+                              value={tier.priceKes}
+                              onChange={e => updateTicketTier(tier.id, "priceKes", e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              placeholder="Tier capacity"
+                              value={tier.capacity}
+                              onChange={e => updateTicketTier(tier.id, "capacity", e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              placeholder="Bundle size"
+                              value={tier.bundleSize}
+                              onChange={e => updateTicketTier(tier.id, "bundleSize", e.target.value)}
+                            />
+                          </div>
+
+                          <textarea
+                            className="mt-3 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                            rows={2}
+                            placeholder="Optional description"
+                            value={tier.description}
+                            onChange={e => updateTicketTier(tier.id, "description", e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
                   Maximum Capacity
                 </label>

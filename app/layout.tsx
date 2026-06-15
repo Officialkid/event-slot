@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
@@ -7,18 +7,10 @@ import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
+const dmSans = localFont({
+  src: "./fonts/GeistVF.woff",
   variable: "--font-dm-sans",
-  preload: false,
-  display: "swap",
-});
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-instrument-serif",
-  preload: false,
+  weight: "100 900",
   display: "swap",
 });
 
@@ -190,7 +182,7 @@ export default async function RootLayout({
         color: "#F0EDE6",
         fontFamily: "var(--font-dm-sans)",
       }}
-      className={`${dmSans.variable} ${instrumentSerif.variable}`}
+      className={dmSans.variable}
     >
       <head>
         {/* Microsoft tile meta */}

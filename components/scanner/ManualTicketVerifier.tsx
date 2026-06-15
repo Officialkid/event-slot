@@ -14,6 +14,10 @@ type LookupResult = {
   ticketCode: string
   alreadyVerified: boolean
   verifiedAt: string | null
+  admissionsTotal: number
+  admissionsUsed: number
+  admissionsRemaining: number
+  verifiedEntries: Array<{ name?: string; verifiedAt?: string }>
 }
 
 interface Props {
@@ -32,8 +36,8 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
 
   const summary = useMemo(() => {
     if (results.length === 0) return ""
-    const verified = results.filter((item) => item.alreadyVerified).length
-    return `${results.length} match${results.length === 1 ? "" : "es"} found · ${verified} already verified`
+    const verified = results.filter((item) => item.admissionsUsed > 0).length
+    return `${results.length} match${results.length === 1 ? "" : "es"} found · ${verified} with at least one verification`
   }, [results])
 
   const runLookup = async () => {
@@ -77,7 +81,16 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
             ? {
                 ...item,
                 alreadyVerified: true,
+                admissionsUsed: typeof data.ticket?.admissionsUsed === "number"
+                  ? data.ticket.admissionsUsed
+                  : Math.min(item.admissionsTotal, item.admissionsUsed + 1),
+                admissionsRemaining: typeof data.ticket?.admissionsRemaining === "number"
+                  ? data.ticket.admissionsRemaining
+                  : Math.max(0, item.admissionsTotal - (item.admissionsUsed + 1)),
                 verifiedAt: data.ticket?.scannedAt ?? data.ticket?.checkedInAt ?? new Date().toISOString(),
+                verifiedEntries: Array.isArray(data.ticket?.verifiedEntries)
+                  ? data.ticket.verifiedEntries
+                  : item.verifiedEntries,
               }
             : item
         )
@@ -107,7 +120,20 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
       setResults((current) =>
         current.map((item) =>
           item.ticketCode === ticketCode
-            ? { ...item, alreadyVerified: false, verifiedAt: null }
+            ? {
+                ...item,
+                alreadyVerified: Boolean(data.ticket?.admissionsUsed ?? Math.max(0, item.admissionsUsed - 1)),
+                verifiedAt: data.ticket?.scannedAt ?? null,
+                admissionsUsed: typeof data.ticket?.admissionsUsed === "number"
+                  ? data.ticket.admissionsUsed
+                  : Math.max(0, item.admissionsUsed - 1),
+                admissionsRemaining: typeof data.ticket?.admissionsRemaining === "number"
+                  ? data.ticket.admissionsRemaining
+                  : Math.min(item.admissionsTotal, item.admissionsRemaining + 1),
+                verifiedEntries: Array.isArray(data.ticket?.verifiedEntries)
+                  ? data.ticket.verifiedEntries
+                  : item.verifiedEntries.slice(0, -1),
+              }
             : item
         )
       )
@@ -141,85 +167,104 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
 
   return (
     <div className="w-full min-h-[70vh] rounded-2xl border border-[#232323] bg-[#0A0A0A] p-5 md:p-6">
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-white text-lg font-semibold">Verify Ticket</p>
-          <p className="text-[#A3A3A3] text-sm">Search by attendee name, email, ticket number, or confirmation code.</p>
+          <p className="text-lg font-semibold text-white">Verify Ticket</p>
+          <p className="text-sm text-[#A3A3A3]">Search by attendee name, email, ticket number, or confirmation code.</p>
         </div>
-        <button onClick={onExit} className="px-3 py-1.5 rounded-full bg-[#141414] text-white text-xs border border-[#2A2A2A]">
+        <button onClick={onExit} className="rounded-full border border-[#2A2A2A] bg-[#141414] px-3 py-1.5 text-xs text-white">
           Back
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-3 mb-4">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void runLookup() }}
           placeholder="Enter name, email, ticket number, or confirmation code"
-          className="flex-1 bg-[#141414] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] text-sm"
+          className="flex-1 rounded-xl border border-[#2A2A2A] bg-[#141414] px-4 py-3 text-sm text-white placeholder:text-[#525252] focus:border-[#C8F55A] focus:outline-none"
         />
         <button
           onClick={() => void runLookup()}
           disabled={loading || query.trim().length < 2}
-          className="bg-[#C8F55A] text-black font-bold px-5 py-3 rounded-xl hover:bg-[#b8e040] transition-colors text-sm disabled:opacity-50"
+          className="rounded-xl bg-[#C8F55A] px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-[#b8e040] disabled:opacity-50"
         >
           {loading ? "Searching..." : "Find ticket"}
         </button>
       </div>
 
-      {summary && <p className="text-[#A3A3A3] text-xs mb-3">{summary}</p>}
-      {error && <p className="text-[#F87171] text-sm mb-3">{error}</p>}
+      {summary && <p className="mb-3 text-xs text-[#A3A3A3]">{summary}</p>}
+      {error && <p className="mb-3 text-sm text-[#F87171]">{error}</p>}
 
       <div className="space-y-3">
         {results.length === 0 && !loading && (
-          <div className="rounded-2xl border border-[#232323] bg-[#141414] p-6 text-center text-[#525252] text-sm">
+          <div className="rounded-2xl border border-[#232323] bg-[#141414] p-6 text-center text-sm text-[#525252]">
             Search results will appear here.
           </div>
         )}
 
         {results.map((item) => (
           <div key={item.registrationId} className="rounded-2xl border border-[#232323] bg-[#141414] p-4">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <p className="text-white font-semibold">{item.attendeeName}</p>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${item.alreadyVerified ? "border-[#EF4444]/30 text-[#F87171] bg-[#EF4444]/10" : "border-[#22C55E]/30 text-[#86EFAC] bg-[#22C55E]/10"}`}>
-                    {item.alreadyVerified ? "VERIFIED" : "READY"}
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-white">{item.attendeeName}</p>
+                  <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                    item.admissionsUsed > 0
+                      ? item.admissionsRemaining > 0
+                        ? "border-[#F59E0B]/30 bg-[#F59E0B]/10 text-[#FCD34D]"
+                        : "border-[#EF4444]/30 bg-[#EF4444]/10 text-[#F87171]"
+                      : "border-[#22C55E]/30 bg-[#22C55E]/10 text-[#86EFAC]"
+                  }`}>
+                    {item.admissionsUsed > 0
+                      ? item.admissionsRemaining > 0
+                        ? "PARTIALLY VERIFIED"
+                        : "VERIFIED"
+                      : "READY"}
                   </span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-[#2A2A2A] text-[#A3A3A3]">
+                  <span className="rounded-full border border-[#2A2A2A] px-2 py-0.5 text-[11px] text-[#A3A3A3]">
                     {item.status.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-[#A3A3A3] text-sm">{item.attendeeEmail || "No email captured"}</p>
-                <div className="mt-2 text-xs text-[#737373] space-y-1">
+                <p className="text-sm text-[#A3A3A3]">{item.attendeeEmail || "No email captured"}</p>
+                <div className="mt-2 space-y-1 text-xs text-[#737373]">
                   <p>Ticket: {item.ticketCode}</p>
                   {item.confirmationCode && <p>Confirmation: {item.confirmationCode}</p>}
                   {item.registrationNumber && <p>Registration #{item.registrationNumber}</p>}
                   {item.waitlistPosition ? <p>Waitlist position #{item.waitlistPosition}</p> : null}
-                  {item.verifiedAt ? <p>Verified at {new Date(item.verifiedAt).toLocaleString()}</p> : <p>Not yet verified</p>}
+                  <p>
+                    Entries used: {item.admissionsUsed} / {item.admissionsTotal}
+                    {item.admissionsTotal > 1 ? ` · ${item.admissionsRemaining} remaining` : ""}
+                  </p>
+                  {item.verifiedAt ? <p>Last verified at {new Date(item.verifiedAt).toLocaleString()}</p> : <p>Not yet verified</p>}
+                  {item.verifiedEntries.length > 0 && (
+                    <p>
+                      Verification history: {item.verifiedEntries.map((entry) => entry.name?.trim() || "Attendee").join(", ")}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => void verifyTicket(item.ticketCode)}
-                  disabled={item.status.toLowerCase() !== "confirmed" || busyKey !== null}
-                  className="px-3 py-2 rounded-xl bg-[#C8F55A] text-black text-xs font-bold disabled:opacity-40"
+                  disabled={item.status.toLowerCase() !== "confirmed" || item.admissionsRemaining <= 0 || busyKey !== null}
+                  className="rounded-xl bg-[#C8F55A] px-3 py-2 text-xs font-bold text-black disabled:opacity-40"
                 >
-                  {busyKey === `verify-${item.ticketCode}` ? "Verifying..." : "Verify"}
+                  {busyKey === `verify-${item.ticketCode}` ? "Verifying..." : item.admissionsRemaining > 0 ? "Verify" : "Fully used"}
                 </button>
                 <button
                   onClick={() => void unverifyTicket(item.ticketCode)}
-                  disabled={!item.alreadyVerified || busyKey !== null}
-                  className="px-3 py-2 rounded-xl border border-[#2A2A2A] text-[#F0EDE6] text-xs disabled:opacity-40"
+                  disabled={item.admissionsUsed <= 0 || busyKey !== null}
+                  className="rounded-xl border border-[#2A2A2A] px-3 py-2 text-xs text-[#F0EDE6] disabled:opacity-40"
                 >
                   {busyKey === `unverify-${item.ticketCode}` ? "Saving..." : "Unverify"}
                 </button>
                 <button
                   onClick={() => void deleteRegistration(item.registrationId)}
                   disabled={busyKey !== null}
-                  className="px-3 py-2 rounded-xl border border-[#EF4444]/35 text-[#F87171] text-xs disabled:opacity-40"
+                  className="rounded-xl border border-[#EF4444]/35 px-3 py-2 text-xs text-[#F87171] disabled:opacity-40"
                 >
                   {busyKey === `delete-${item.registrationId}` ? "Deleting..." : "Delete"}
                 </button>
