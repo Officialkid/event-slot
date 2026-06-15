@@ -13,6 +13,17 @@ type EventQuestion = {
   allowMultiple?: boolean
 }
 
+type EventTicketTier = {
+  id: string
+  name: string
+  priceKes: number
+  capacity: number
+  description?: string | null
+  soldCount: number
+  waitlistCount: number
+  bundleSize: number
+}
+
 type EventProps = {
   event: {
     slug: string
@@ -29,6 +40,8 @@ type EventProps = {
     communityLink?: string | null
     imageUrl?: string | null
     createdAt: Date | string
+    isPaid?: boolean
+    ticketTiers?: EventTicketTier[]
   }
   showBranding?: boolean
   maxAttendees?: number
@@ -107,6 +120,17 @@ type PendingPayload = {
   utmSource?: string
 }
 
+type PaidCheckoutResponse = {
+  success: true
+  orderId: string
+  checkoutRequestId: string
+  customerMessage: string
+  amountKes: number
+  eventTitle: string
+  ticketTierName: string
+  paymentMethod: "mpesa"
+}
+
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
@@ -127,6 +151,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [registrationSource, setRegistrationSource] = useState<string>("unknown")
   const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
   const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)
+  const [selectedTierId, setSelectedTierId] = useState<string>(event.ticketTiers?.[0]?.id ?? "")
+  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa")
+  const [mpesaPhone, setMpesaPhone] = useState("")
+  const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
+  const [paymentPolling, setPaymentPolling] = useState(false)
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
     if (!event.deadline) return false
     return new Date(event.deadline).getTime() <= Date.now()
@@ -169,11 +198,59 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     setRegistrationUtmSource(storedUtmSource)
   }, [event.slug])
 
+  useEffect(() => {
+    if (!paidCheckout?.orderId) return
+
+    let cancelled = false
+    setPaymentPolling(true)
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/paid-events/orders/${paidCheckout.orderId}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok || cancelled) return
+
+        if (data.status === "PAID" && data.confirmationCode) {
+          window.location.href = `/register/success/${data.confirmationCode}`
+          return
+        }
+
+        if (data.status === "EXPIRED") {
+          setError("Your payment hold expired. Please choose your ticket tier again.")
+          setPaidCheckout(null)
+          setPaymentPolling(false)
+          return
+        }
+
+        if (data.status === "FAILED" || data.status === "CANCELLED") {
+          setError("Payment was not completed. Please try again.")
+          setPaidCheckout(null)
+          setPaymentPolling(false)
+          return
+        }
+
+        window.setTimeout(poll, 4000)
+      } catch {
+        if (!cancelled) {
+          window.setTimeout(poll, 5000)
+        }
+      }
+    }
+
+    poll()
+
+    return () => {
+      cancelled = true
+      setPaymentPolling(false)
+    }
+  }, [paidCheckout])
+
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
   const fieldClassName = "mt-1 w-full rounded-[10px] bg-[rgba(255,255,255,0.04)] border border-[rgba(240,237,230,0.16)] px-3 py-2.5 text-[#F0EDE6] text-[0.875rem] placeholder:text-[rgba(240,237,230,0.45)] focus:border-[rgba(200,245,90,0.62)] focus:outline-none focus:ring-2 focus:ring-[rgba(200,245,90,0.15)]"
   const subtleLabelClassName = "mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.82)] tracking-[0.04em]"
 
-  const canAddMore = attendees.length < maxAttendees
+  const canAddMore = !event.isPaid && attendees.length < maxAttendees
+  const selectedTier = event.ticketTiers?.find((tier) => tier.id === selectedTierId) ?? null
 
   function addAttendee() {
     if (!canAddMore) return
@@ -218,46 +295,90 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       }
     }
 
+    if (event.isPaid) {
+      if (!selectedTierId) {
+        setError("Please choose a ticket tier.")
+        return
+      }
+      if (paymentMethod === "card") {
+        setError("Card payments are coming soon. Please use M-Pesa for now.")
+        return
+      }
+      if (!mpesaPhone.trim()) {
+        setError("Please enter the M-Pesa phone number to pay with.")
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const attendeesPayload = attendees.map((form, i) => ({
         answers: event.questions.map(q => ({ questionId: q.id, value: form[q.id] || "" })),
         ...((!hasEmailQuestion && baseEmails[i]) ? { baseEmail: baseEmails[i] } : {}),
       }))
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventSlug: event.slug,
-          attendees: attendeesPayload,
-          consentTransactional,
-          consentMarketing,
-          source: registrationSource,
-          refCode: registrationRefCode,
-          utmSource: registrationUtmSource,
-        }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setBulkResult(data)
-      } else if (data.duplicate) {
-        setDuplicateInfo({
-          attendeeIndex: data.attendeeIndex ?? 0,
-          registrationNumber: data.existing?.registrationNumber ?? null,
-          name: data.existing?.name ?? "",
-          maskedPhone: data.existing?.maskedPhone ?? "",
+
+      if (event.isPaid) {
+        const res = await fetch("/api/paid-events/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventSlug: event.slug,
+            ticketTierId: selectedTierId,
+            attendee: attendeesPayload[0],
+            consentTransactional,
+            consentMarketing,
+            paymentMethod,
+            mpesaPhone,
+            source: registrationSource,
+            refCode: registrationRefCode,
+            utmSource: registrationUtmSource,
+          }),
         })
-        setPendingPayload({
-          eventSlug: event.slug,
-          attendeesPayload,
-          consentTransactional,
-          consentMarketing,
-          source: registrationSource,
-          refCode: registrationRefCode,
-          utmSource: registrationUtmSource,
-        })
+        const data = await res.json()
+
+        if (data.success && data.checkoutRequestId) {
+          setPaidCheckout(data)
+        } else if (data.success && data.results) {
+          setBulkResult(data)
+        } else {
+          setError(data.error || "Unable to start payment.")
+        }
       } else {
-        setError(data.error || "Registration failed.")
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventSlug: event.slug,
+            attendees: attendeesPayload,
+            consentTransactional,
+            consentMarketing,
+            source: registrationSource,
+            refCode: registrationRefCode,
+            utmSource: registrationUtmSource,
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setBulkResult(data)
+        } else if (data.duplicate) {
+          setDuplicateInfo({
+            attendeeIndex: data.attendeeIndex ?? 0,
+            registrationNumber: data.existing?.registrationNumber ?? null,
+            name: data.existing?.name ?? "",
+            maskedPhone: data.existing?.maskedPhone ?? "",
+          })
+          setPendingPayload({
+            eventSlug: event.slug,
+            attendeesPayload,
+            consentTransactional,
+            consentMarketing,
+            source: registrationSource,
+            refCode: registrationRefCode,
+            utmSource: registrationUtmSource,
+          })
+        } else {
+          setError(data.error || "Registration failed.")
+        }
       }
     } catch {
       setError("Unexpected error. Please try again.")
@@ -320,6 +441,30 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     } finally {
       setWaitlistEmailSaving(prev => ({ ...prev, [registrationId]: false }))
     }
+  }
+
+  if (paidCheckout) {
+    return (
+      <div className="mx-auto w-full max-w-[480px]">
+        <div className="rounded-[12px] border border-[rgba(255,184,77,0.2)] bg-[#141414] p-8 text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(255,184,77,0.3)] bg-[rgba(255,184,77,0.08)]">
+            <span className="text-[#FFB84D] text-xl">₿</span>
+          </div>
+          <h2 className="text-[1.5rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            Complete payment on your phone
+          </h2>
+          <p className="mt-3 text-[0.9rem] text-[rgba(240,237,230,0.55)]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+            We sent an M-Pesa STK push for <strong style={{ color: "#F0EDE6" }}>KES {paidCheckout.amountKes.toLocaleString()}</strong> for the <strong style={{ color: "#F0EDE6" }}>{paidCheckout.ticketTierName}</strong> ticket.
+          </p>
+          <p className="mt-3 text-[0.82rem] text-[#C8F55A]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            {paidCheckout.customerMessage}
+          </p>
+          <p className="mt-5 text-[0.78rem] text-[rgba(240,237,230,0.35)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            {paymentPolling ? "Waiting for payment confirmation..." : "Checking payment status..."}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   // Success screen
@@ -549,6 +694,86 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
           Registration form
         </p>
+
+        {event.isPaid && (
+          <div className="space-y-4 rounded-[12px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
+            <div>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#FFB84D]">Paid Ticket</p>
+              <p className="mt-1 text-[0.82rem] text-[rgba(240,237,230,0.5)]">
+                Choose a tier and pay before your ticket is issued.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {event.ticketTiers?.map((tier) => {
+                const available = Math.max(0, tier.capacity - tier.soldCount)
+                const selected = selectedTierId === tier.id
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    onClick={() => setSelectedTierId(tier.id)}
+                    className={`w-full rounded-[10px] border px-4 py-3 text-left transition ${selected ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)]" : "border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)]"}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[0.9rem] font-semibold text-[#F0EDE6]">{tier.name}</p>
+                        {tier.description && (
+                          <p className="mt-1 text-[0.76rem] text-[rgba(240,237,230,0.45)]">{tier.description}</p>
+                        )}
+                        <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.4)]">
+                          {available > 0 ? `${available} spot${available === 1 ? "" : "s"} left` : "Tier is full - waitlist available"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[0.95rem] font-semibold text-[#FFB84D]">KES {tier.priceKes.toLocaleString()}</p>
+                        {tier.bundleSize > 1 && (
+                          <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">{tier.bundleSize} entries</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={subtleLabelClassName}>Payment method</label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("mpesa")}
+                    className={`rounded-[10px] border px-3 py-2 text-[0.82rem] ${paymentMethod === "mpesa" ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]" : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.6)]"}`}
+                  >
+                    M-Pesa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("card")}
+                    className={`rounded-[10px] border px-3 py-2 text-[0.82rem] ${paymentMethod === "card" ? "border-[rgba(255,184,77,0.45)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]" : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.6)]"}`}
+                  >
+                    Card
+                  </button>
+                </div>
+                {paymentMethod === "card" && (
+                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">Card checkout is coming soon. Use M-Pesa for now.</p>
+                )}
+              </div>
+
+              <div>
+                <label className={subtleLabelClassName}>M-Pesa phone</label>
+                <input
+                  type="tel"
+                  value={mpesaPhone}
+                  onChange={(e) => setMpesaPhone(e.target.value)}
+                  placeholder="e.g. 0712345678 or 254712345678"
+                  className={fieldClassName}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bulk prompt row */}
       <div className="flex items-center justify-between rounded-[10px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)] px-3 py-2.5">
@@ -786,7 +1011,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${(loading || deadlineExpired) ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
         disabled={loading || deadlineExpired}
       >
-        {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
+        {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : event.isPaid ? "Proceed to payment" : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
       </button>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
       </form>

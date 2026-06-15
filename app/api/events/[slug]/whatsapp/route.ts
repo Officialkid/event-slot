@@ -3,9 +3,10 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { parseEventContact, validateAndEncodeEventContact } from "@/lib/eventContact"
 
 // PUT /api/events/[slug]/whatsapp
-// Body: { whatsappNumber: string | null }
+// Body: { whatsappNumber: string | null, contactMode?: "WHATSAPP" | "CALL" }
 export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ slug: string }> }
@@ -16,7 +17,7 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { whatsappNumber } = (await req.json()) as { whatsappNumber: string | null }
+  const { whatsappNumber, contactMode } = (await req.json()) as { whatsappNumber: string | null; contactMode?: "WHATSAPP" | "CALL" }
 
   const event = await prisma.event.findUnique({ where: { slug } })
   if (!event) {
@@ -27,17 +28,24 @@ export async function PUT(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const clean = whatsappNumber ? whatsappNumber.replace(/\D/g, "") : null
-
-  // E.164 allows up to 15 digits; reject unrealistic short/long numbers.
-  if (clean && (clean.length < 7 || clean.length > 15)) {
-    return NextResponse.json({ error: "Invalid phone number" }, { status: 400 })
+  let storedEventContact: string | null = null
+  if (whatsappNumber?.trim()) {
+    const validatedContact = validateAndEncodeEventContact(whatsappNumber, contactMode === 'CALL' ? 'CALL' : 'WHATSAPP')
+    if (!validatedContact.ok) {
+      return NextResponse.json({ error: validatedContact.error }, { status: 400 })
+    }
+    storedEventContact = validatedContact.stored
   }
 
   await prisma.event.update({
     where: { id: event.id },
-    data: { whatsappNumber: clean },
+    data: { whatsappNumber: storedEventContact },
   })
 
-  return NextResponse.json({ ok: true, whatsappNumber: clean })
+  const parsedContact = parseEventContact(storedEventContact)
+  return NextResponse.json({
+    ok: true,
+    whatsappNumber: parsedContact?.number ?? null,
+    contactMode: parsedContact?.mode ?? 'WHATSAPP',
+  })
 }

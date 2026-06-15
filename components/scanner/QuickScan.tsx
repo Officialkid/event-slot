@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import jsQR from "jsqr"
-import { decodeQrFromImageFile, normalizeDecodedValue } from "@/components/scanner/qr-utils"
+import { extractTicketReferenceFromFile, normalizeDecodedValue } from "@/components/scanner/qr-utils"
 
 type ScanState = "scanning" | "valid" | "used" | "not_found" | "error"
 type InputMode = "camera" | "upload" | "manual"
@@ -25,9 +25,11 @@ interface Props {
   accessToken: string
   onExit: () => void
   onVerified?: () => void
+  initialInputMode?: InputMode
+  title?: string
 }
 
-export function QuickScan({ eventSlug, accessToken, onExit, onVerified }: Props) {
+export function QuickScan({ eventSlug, accessToken, onExit, onVerified, initialInputMode = "camera", title = "VERIFY TICKET" }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -36,7 +38,7 @@ export function QuickScan({ eventSlug, accessToken, onExit, onVerified }: Props)
 
   const [state, setState] = useState<ScanState>("scanning")
   const [message, setMessage] = useState("Point camera at ticket QR")
-  const [inputMode, setInputMode] = useState<InputMode>("camera")
+  const [inputMode, setInputMode] = useState<InputMode>(initialInputMode)
   const [cameraReady, setCameraReady] = useState(false)
   const [manualCode, setManualCode] = useState("")
   const [manualIdentity, setManualIdentity] = useState("")
@@ -228,10 +230,10 @@ export function QuickScan({ eventSlug, accessToken, onExit, onVerified }: Props)
 
   const onUpload = async (file: File | null) => {
     if (!file) return
-    const decoded = await decodeQrFromImageFile(file)
+    const decoded = await extractTicketReferenceFromFile(file)
     if (!decoded) {
       setState("error")
-      setMessage("Could not detect QR in uploaded image")
+      setMessage("We could not read a ticket from that file")
       window.setTimeout(() => resetVisualState(), 1800)
       return
     }
@@ -260,7 +262,7 @@ export function QuickScan({ eventSlug, accessToken, onExit, onVerified }: Props)
         <button onClick={onExit} className="px-3 py-1.5 rounded-full bg-[#0A0A0A]/70 text-white text-xs border border-[#2A2A2A]">
           Exit
         </button>
-        <span className="px-3 py-1.5 rounded-full bg-[#C8F55A] text-black text-xs font-semibold">QUICK SCAN</span>
+        <span className="px-3 py-1.5 rounded-full bg-[#C8F55A] text-black text-xs font-semibold">{title}</span>
       </div>
 
       <div className="absolute z-20 top-4 right-4 flex gap-2">
@@ -289,11 +291,11 @@ export function QuickScan({ eventSlug, accessToken, onExit, onVerified }: Props)
         {inputMode === "upload" && (
           <div className="h-full flex items-center justify-center p-8">
             <label className="w-full max-w-md border border-dashed border-[#2A2A2A] rounded-2xl p-8 text-center text-[#A3A3A3] cursor-pointer hover:border-[#C8F55A]/40 bg-[#141414]">
-              <p className="text-sm mb-2">Upload ticket image</p>
-              <p className="text-xs text-[#525252] mb-4">PNG / JPG with visible QR code</p>
+              <p className="text-sm mb-2">Upload ticket image or PDF</p>
+              <p className="text-xs text-[#525252] mb-4">PNG / JPG / PDF exported from EventSlot</p>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0] ?? null

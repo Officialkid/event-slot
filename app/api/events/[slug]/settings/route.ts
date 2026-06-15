@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import { updateEventSettingsSchema } from "@/lib/schemas/event.schema"
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { purgeUserCache } from "@/lib/cache"
+import { parseEventContact, validateAndEncodeEventContact } from "@/lib/eventContact"
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -40,21 +42,52 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       )
     }
 
-    const { description, eventDate, joinOpensAt, location, communityLink, deadline } = parsed.data
+    const { description, eventDate, eventEndAt, joinOpensAt, location, communityLink, deadline, whatsappNumber, contactMode } = parsed.data
 
-    await prisma.event.update({
+    let storedEventContact: string | null = null
+    if (whatsappNumber?.trim()) {
+      const validatedContact = validateAndEncodeEventContact(whatsappNumber, contactMode === 'CALL' ? 'CALL' : 'WHATSAPP')
+      if (!validatedContact.ok) {
+        return NextResponse.json({ error: validatedContact.error }, { status: 400 })
+      }
+      storedEventContact = validatedContact.stored
+    }
+
+    const updatedEvent = await prisma.event.update({
       where: { slug },
       data: {
         description: description !== undefined ? (description?.trim() || null) : undefined,
         eventDate: eventDate !== undefined ? (eventDate ? new Date(eventDate) : null) : undefined,
+        eventEndAt: eventEndAt !== undefined ? (eventEndAt ? new Date(eventEndAt) : null) : undefined,
         joinOpensAt: joinOpensAt !== undefined ? (joinOpensAt ? new Date(joinOpensAt) : null) : undefined,
         location: location !== undefined ? (location?.trim() || null) : undefined,
         communityLink: communityLink !== undefined ? normalizeCommunityLink(communityLink) : undefined,
+        whatsappNumber: whatsappNumber !== undefined ? storedEventContact : undefined,
         deadline: deadline !== undefined ? (deadline ? new Date(deadline) : null) : undefined,
+      },
+      select: {
+        description: true,
+        eventDate: true,
+        eventEndAt: true,
+        joinOpensAt: true,
+        location: true,
+        communityLink: true,
+        whatsappNumber: true,
+        deadline: true,
       },
     })
 
-    return NextResponse.json({ success: true })
+    purgeUserCache(session.user.id, session.user.email ?? null)
+
+    const parsedContact = parseEventContact(updatedEvent.whatsappNumber)
+    return NextResponse.json({
+      success: true,
+      event: {
+        ...updatedEvent,
+        whatsappNumber: parsedContact?.number ?? null,
+        contactMode: parsedContact?.mode ?? 'WHATSAPP',
+      },
+    })
   } catch {
     return NextResponse.json({ error: "Failed to save settings" }, { status: 500 })
   }

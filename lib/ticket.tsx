@@ -101,6 +101,7 @@ export interface TicketPDFData {
   organizerName: string
   isPaid?: boolean
   ticketPrice?: number
+  ticketTierName?: string | null
 }
 
 export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
@@ -162,6 +163,18 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
                 <Text style={styles.metaLabel}>HOST</Text>
                 <Text style={styles.metaValue}>{data.organizerName}</Text>
               </View>
+              {data.ticketTierName && (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>TIER</Text>
+                  <Text style={styles.metaValue}>{data.ticketTierName}</Text>
+                </View>
+              )}
+              {data.ticketPrice ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>PAID</Text>
+                  <Text style={styles.metaValue}>KES {data.ticketPrice.toLocaleString('en-KE')}</Text>
+                </View>
+              ) : null}
             </View>
 
             <Text style={styles.tagline}>Smarter Events. Better Experiences. - eventsslot.com</Text>

@@ -62,9 +62,12 @@ type EventData = {
   slug: string
   questions: Question[]
   eventDate: string | null
+  eventEndAt?: string | null
   joinOpensAt: string | null
   location: string | null
   communityLink: string | null
+  whatsappNumber?: string | null
+  contactMode?: "WHATSAPP" | "CALL"
   archived: boolean
   status: string
   ticketsEnabled: boolean
@@ -192,6 +195,28 @@ function isEventPast(e: EventData): boolean {
 
 function isEventClosed(e: EventData): boolean {
   return e.status === "closed" || e.status === "COMPLETED"
+}
+
+function isValidEmailAddress(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
+function extractResendVerificationDomain(message: string | null | undefined): string | null {
+  if (!message) return null
+  const match = message.match(/(?:the\s+)?([a-z0-9.-]+\.[a-z]{2,})\s+domain is not verified/i)
+  return match?.[1]?.toLowerCase() ?? null
+}
+
+function buildDomainVerificationHelp(message: string | null | undefined): string {
+  const domain = extractResendVerificationDomain(message) ?? "eventsslot.com"
+  return `Email delivery is paused because ${domain} is not verified in Resend. Verify the domain, then resend the invite or share the direct invite link below.`
+}
+
+function toIsoFromDatetimeLocal(value: string): string | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -615,42 +640,55 @@ const tdStyle: React.CSSProperties = {
 function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; hasRegistrations: boolean; onSaved: (updates: Partial<EventData>) => void }) {
   const [description, setDescription] = useState(event.description ?? "")
   const [eventDate, setEventDate] = useState(toDatetimeLocal(event.eventDate))
+  const [eventEndAt, setEventEndAt] = useState(toDatetimeLocal(event.eventEndAt))
   const [joinOpensAt, setJoinOpensAt] = useState(toDatetimeLocal(event.joinOpensAt))
   const [location, setLocation] = useState(event.location ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
+  const [whatsappNumber, setWhatsappNumber] = useState(event.whatsappNumber ?? "")
+  const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
   const [deadline, setDeadline] = useState(toDatetimeLocal(event.deadline))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
 
+  useEffect(() => {
+    setDescription(event.description ?? "")
+    setEventDate(toDatetimeLocal(event.eventDate))
+    setEventEndAt(toDatetimeLocal(event.eventEndAt))
+    setJoinOpensAt(toDatetimeLocal(event.joinOpensAt))
+    setLocation(event.location ?? "")
+    setCommunityLink(event.communityLink ?? "")
+    setWhatsappNumber(event.whatsappNumber ?? "")
+    setContactMode(event.contactMode ?? "WHATSAPP")
+    setDeadline(toDatetimeLocal(event.deadline))
+  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline])
+
   const handleSave = async () => {
     setSaving(true)
     setError("")
     setSaved(false)
+    const normalizedCommunityLink = normalizeCommunityLink(communityLink)
+    const payload = {
+      description: description || null,
+      eventDate: toIsoFromDatetimeLocal(eventDate),
+      eventEndAt: toIsoFromDatetimeLocal(eventEndAt),
+      joinOpensAt: toIsoFromDatetimeLocal(joinOpensAt),
+      location: location || null,
+      communityLink: normalizedCommunityLink,
+      whatsappNumber: whatsappNumber || null,
+      contactMode,
+      deadline: toIsoFromDatetimeLocal(deadline),
+    }
     try {
       const res = await fetch(`/api/events/${event.slug}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: description || null,
-          eventDate: eventDate || null,
-          joinOpensAt: joinOpensAt || null,
-          location: location || null,
-          communityLink: normalizeCommunityLink(communityLink),
-          deadline: deadline || null,
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (res.ok) {
         setSaved(true)
-        onSaved({
-          description: description || null,
-          eventDate: eventDate || null,
-          joinOpensAt: joinOpensAt || null,
-          location: location || null,
-          communityLink: communityLink || null,
-          deadline: deadline || null,
-        })
+        onSaved(data.event ?? payload)
         setTimeout(() => setSaved(false), 3000)
       } else {
         setError(data.error || "Failed to save.")
@@ -716,7 +754,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         {/* Date / Location row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div>
-            <label style={fieldLabel}>Event date &amp; time</label>
+            <label style={fieldLabel}>Event start</label>
             <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} style={inputStyle} className="dt-input" />
           </div>
           <div>
@@ -726,19 +764,27 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         </div>
 
         <div>
+          <label style={fieldLabel}>Event end</label>
+          <input type="datetime-local" value={eventEndAt} onChange={e => setEventEndAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+            If the deadline is empty, registrations close when this event end time is reached.
+          </p>
+        </div>
+
+        <div>
           <label style={fieldLabel}>Link opens at (optional)</label>
           <input type="datetime-local" value={joinOpensAt} onChange={e => setJoinOpensAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-            If left empty, attendee join access opens 30 minutes before the event date.
+            If left empty, attendee join access opens 30 minutes before the event start.
           </p>
         </div>
 
         {/* Deadline */}
         <div>
-          <label style={fieldLabel}>Registration deadline</label>
+          <label style={fieldLabel}>Registration deadline (optional)</label>
           <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ ...inputStyle, maxWidth: 280 }} className="dt-input" />
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-            After this time, new registrations will be rejected.
+            Leave this empty if people should keep registering until the event ends.
           </p>
         </div>
 
@@ -749,6 +795,29 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
             Sent to confirmed attendees automatically.
           </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: "1rem" }}>
+          <div>
+            <label style={fieldLabel}>Contact action</label>
+            <select value={contactMode} onChange={e => setContactMode(e.target.value as "WHATSAPP" | "CALL")} style={inputStyle}>
+              <option value="WHATSAPP">Text on WhatsApp</option>
+              <option value="CALL">Call organiser</option>
+            </select>
+          </div>
+          <div>
+            <label style={fieldLabel}>Organizer contact number</label>
+            <input
+              type="tel"
+              value={whatsappNumber}
+              onChange={e => setWhatsappNumber(e.target.value)}
+              placeholder="+254712345678"
+              style={inputStyle}
+            />
+            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              Must include country code. {contactMode === "WHATSAPP" ? "Attendees will open WhatsApp with a prefilled message." : "Attendees will copy the number and open their phone dialer."}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -800,6 +869,12 @@ function ManualRegModal({
   const [results, setResults] = React.useState<Array<{ registrationNumber: number; status: string; name: string }>>([])
   const [dupWarning, setDupWarning] = React.useState<{ attendeeIdx: number; regNumber: number } | null>(null)
   const [forceIndexes, setForceIndexes] = React.useState<Set<number>>(new Set())
+
+  React.useEffect(() => {
+    if (results.length === 0) return
+    const timer = window.setTimeout(() => onClose(), 2200)
+    return () => window.clearTimeout(timer)
+  }, [results, onClose])
 
   const atCapacity = !!(capacity && confirmedCount >= capacity)
   const slotsLeft = capacity ? Math.max(0, capacity - confirmedCount) : null
@@ -910,7 +985,10 @@ function ManualRegModal({
             ))}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
-            <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Closing automatically…</span>
+              <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
+            </div>
           </div>
         </div>
       </>
@@ -1134,6 +1212,11 @@ export default function EventDashboardPage() {
   const [teamInviteSuccess, setTeamInviteSuccess] = useState("")
   const [teamInviteAcceptLinks, setTeamInviteAcceptLinks] = useState<{ email: string; acceptUrl: string }[]>([])
   const [removingTeamMember, setRemovingTeamMember] = useState<string | null>(null)
+  const [resendingTeamMember, setResendingTeamMember] = useState<string | null>(null)
+  const [resendTeamSuccessId, setResendTeamSuccessId] = useState<string | null>(null)
+  const [resendTeamFailedUrls, setResendTeamFailedUrls] = useState<Record<string, string>>({})
+  const [copiedTeamInviteKey, setCopiedTeamInviteKey] = useState<string | null>(null)
+  const [shareFeedback, setShareFeedback] = useState("")
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -1194,7 +1277,16 @@ export default function EventDashboardPage() {
 
   const handleCopy = async () => {
     if (!regLink) return
-    try { await navigator.clipboard.writeText(regLink); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+    try {
+      await navigator.clipboard.writeText(regLink)
+      setCopied(true)
+      setShareFeedback("Registration link copied.")
+      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => setShareFeedback(""), 2500)
+    } catch {
+      setShareFeedback("Could not copy the registration link.")
+      setTimeout(() => setShareFeedback(""), 2500)
+    }
   }
 
   const handleShare = async () => {
@@ -1206,12 +1298,14 @@ export default function EventDashboardPage() {
           text: `Register for ${eventData.title}`,
           url: regLink,
         })
+        setShareFeedback("Share sheet opened.")
+        setTimeout(() => setShareFeedback(""), 2500)
         return
       } catch {
         // user cancelled or not supported — fall through to copy
       }
     }
-    handleCopy()
+    await handleCopy()
   }
 
   const handleGenerateQR = async () => {
@@ -1542,16 +1636,40 @@ export default function EventDashboardPage() {
     finally { setInsightsLoading(false) }
   }, [eventData, insightsLoading, token, slug, analyticsData])
 
+  const loadAnalytics = useCallback(async () => {
+    if (!eventData || analyticsLoading) return
+    setAnalyticsLoading(true)
+    setAnalyticsError("")
+    try {
+      const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setAnalyticsError(data.error || "Failed to load analytics")
+        return
+      }
+      setAnalyticsData(data)
+      loadInsights()
+    } catch {
+      setAnalyticsError("Unable to load analytics.")
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }, [analyticsLoading, eventData, loadInsights, slug, token])
+
   useEffect(() => {
     if (activeTab !== "analytics") return
     if (!eventData || analyticsData || analyticsLoading) return
 
     let cancelled = false
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000)
     const autoLoadAnalytics = async () => {
       setAnalyticsLoading(true)
       setAnalyticsError("")
       try {
-        const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`)
+        const res = await fetch(`/api/events/${slug}/analytics${token ? `?token=${encodeURIComponent(token)}` : ""}`, {
+          signal: controller.signal,
+        })
         const data = await res.json()
         if (!res.ok) {
           if (!cancelled) setAnalyticsError(data.error || "Failed to load analytics")
@@ -1561,9 +1679,17 @@ export default function EventDashboardPage() {
           setAnalyticsData(data)
           loadInsights()
         }
-      } catch {
-        if (!cancelled) setAnalyticsError("Unable to load analytics.")
+      } catch (error) {
+        if (!cancelled) {
+          const isAbort = error instanceof DOMException && error.name === "AbortError"
+          setAnalyticsError(
+            isAbort
+              ? "Analytics is taking too long to load right now. Please retry in a moment."
+              : "Unable to load analytics."
+          )
+        }
       } finally {
+        window.clearTimeout(timeoutId)
         if (!cancelled) setAnalyticsLoading(false)
       }
     }
@@ -1571,6 +1697,8 @@ export default function EventDashboardPage() {
     void autoLoadAnalytics()
     return () => {
       cancelled = true
+      window.clearTimeout(timeoutId)
+      controller.abort()
     }
   }, [activeTab, eventData, analyticsData, analyticsLoading, slug, token, loadInsights])
 
@@ -1630,6 +1758,9 @@ export default function EventDashboardPage() {
   const capacityDisplay = eventData.capacity === null ? "Unlimited" : eventData.capacity
   const slotsRemaining = eventData.capacity === null ? "Unlimited" : Math.max(0, eventData.capacity - eventData.confirmedCount)
   const hasRegistrations = confirmed.length + waitlist.length > 0
+  const invalidTeamInviteEntries = teamInviteEmails
+    .map((email, index) => ({ email: email.trim(), index }))
+    .filter(({ email }) => email.length > 0 && !isValidEmailAddress(email))
   const tabs: { key: TabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "confirmed", label: `Confirmed (${confirmed.length})` },
@@ -1653,9 +1784,29 @@ export default function EventDashboardPage() {
     }
   }
 
+  const copyTeamInviteLink = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedTeamInviteKey(key)
+      window.setTimeout(() => setCopiedTeamInviteKey((current) => (current === key ? null : current)), 2500)
+    } catch {
+      setTeamInviteError("Couldn't copy the invite link. Please copy it manually.")
+    }
+  }
+
   const handleTeamInvite = async () => {
     const emails = teamInviteEmails.map(e => e.trim().toLowerCase()).filter(Boolean)
     if (emails.length === 0) return
+    const invalidEmails = emails.filter(email => !isValidEmailAddress(email))
+    if (invalidEmails.length > 0) {
+      setTeamInviteError(`Enter a valid email address for ${invalidEmails.join(", ")}.`)
+      return
+    }
+    const uniqueEmails = [...new Set(emails)]
+    if (uniqueEmails.length !== emails.length) {
+      setTeamInviteError("Each invite email must be unique.")
+      return
+    }
     setTeamInviting(true)
     setTeamInviteError("")
     setTeamInviteSuccess("")
@@ -1664,7 +1815,7 @@ export default function EventDashboardPage() {
       const res = await fetch('/api/team/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails, eventId: eventData?.id }),
+        body: JSON.stringify({ emails: uniqueEmails, eventId: eventData?.id }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -1672,10 +1823,11 @@ export default function EventDashboardPage() {
         return
       }
       setTeamInviteEmails(["", ""])
-      const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string }>
+      const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string; error?: string }>
       if (data.emailFailed) {
         // DB records created but email delivery failed — surface the accept links
-        setTeamInviteError('Email delivery failed. Share these invite links directly:')
+        const failureReason = results.find(r => r.emailFailed && r.error)?.error
+        setTeamInviteError(buildDomainVerificationHelp(failureReason))
         setTeamInviteAcceptLinks(
           results.filter(r => r.acceptUrl).map(r => ({ email: r.email, acceptUrl: r.acceptUrl! }))
         )
@@ -1686,6 +1838,38 @@ export default function EventDashboardPage() {
       await loadEventTeam()
     } finally {
       setTeamInviting(false)
+    }
+  }
+
+  const handleResendTeamInvite = async (memberId: string) => {
+    setResendingTeamMember(memberId)
+    setResendTeamSuccessId(null)
+    setTeamInviteError("")
+    try {
+      const res = await fetch("/api/team/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTeamInviteError(data.error || "Failed to resend invite.")
+        return
+      }
+      if (data.emailFailed && data.acceptUrl) {
+        setResendTeamFailedUrls(prev => ({ ...prev, [memberId]: data.acceptUrl }))
+        setTeamInviteError(buildDomainVerificationHelp("eventsslot.com domain is not verified"))
+        return
+      }
+      setResendTeamFailedUrls(prev => {
+        const next = { ...prev }
+        delete next[memberId]
+        return next
+      })
+      setResendTeamSuccessId(memberId)
+      window.setTimeout(() => setResendTeamSuccessId(current => current === memberId ? null : current), 3000)
+    } finally {
+      setResendingTeamMember(null)
     }
   }
 
@@ -1999,8 +2183,13 @@ export default function EventDashboardPage() {
                 <circle cx="13" cy="3" r="2"/><circle cx="3" cy="8" r="2"/><circle cx="13" cy="13" r="2"/>
                 <path d="M5 7l6-3M5 9l6 3"/>
               </svg>
-              Share
-            </button>
+                Share
+              </button>
+            {shareFeedback && (
+              <span style={{ fontSize: "0.75rem", color: shareFeedback.includes("Could not") ? "#FF6B6B" : "rgba(200,245,90,0.85)", fontFamily: "var(--font-dm-sans)" }}>
+                {shareFeedback}
+              </span>
+            )}
             <button
               onClick={() => void handleGenerateQR()}
               disabled={qrGenerating}
@@ -2483,10 +2672,11 @@ export default function EventDashboardPage() {
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
                 Confirmed registrations
               </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 320px", minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
                 <button
                   onClick={() => setShowManualReg(true)}
-                  style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                  style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <path d="M5 1v8M1 5h8" />
@@ -2496,48 +2686,52 @@ export default function EventDashboardPage() {
                 <a
                   href={`/api/events/${slug}/export?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ Confirmed CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/excel?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.07)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.07)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ All CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/excel?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.55)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.55)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ All Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ PDF (Individual responses)
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   ↓ All PDF (Individual responses)
                 </a>
-                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {confirmed.length} confirmed
                 </span>
+                </div>
+                <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                  Swipe sideways on mobile to reveal the rest of the actions.
+                </p>
               </div>
             </div>
             {confirmed.length === 0 ? (
@@ -3011,7 +3205,15 @@ export default function EventDashboardPage() {
 
             {!analyticsData && !analyticsLoading && (
               <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Could not load analytics. Please refresh.</p>
+                <p style={{ fontSize: "0.875rem", color: analyticsError ? "#FFB3B3" : "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                  {analyticsError || "Could not load analytics yet."}
+                </p>
+                <button
+                  onClick={() => void loadAnalytics()}
+                  style={{ marginTop: "0.85rem", background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.45rem 0.85rem", color: "#F0EDE6", fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
+                >
+                  Retry analytics
+                </button>
               </div>
             )}
 
@@ -3266,8 +3468,8 @@ export default function EventDashboardPage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {eventTeam.map(m => (
-                    <div key={m.teamMemberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem" }}>
-                      <div>
+                    <div key={m.teamMemberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem", gap: "0.75rem", flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0, flex: "1 1 220px" }}>
                         <p style={{ margin: 0, fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
                           {m.member?.name ?? m.email}
                         </p>
@@ -3275,16 +3477,33 @@ export default function EventDashboardPage() {
                           <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>{m.email}</p>
                         )}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
                         <span style={{ fontSize: "0.7rem", padding: "2px 8px", borderRadius: 100, background: m.status === "accepted" ? "rgba(200,245,90,0.1)" : "rgba(240,180,0,0.1)", color: m.status === "accepted" ? "#C8F55A" : "#F0C040", border: `0.5px solid ${m.status === "accepted" ? "rgba(200,245,90,0.3)" : "rgba(240,180,0,0.3)"}`, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                           {m.status}
                         </span>
+                        {m.status === "pending" && (
+                          <button
+                            onClick={() => void handleResendTeamInvite(m.teamMemberId)}
+                            disabled={resendingTeamMember === m.teamMemberId}
+                            style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 7, color: resendTeamSuccessId === m.teamMemberId ? "#C8F55A" : "rgba(240,237,230,0.55)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer", opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1 }}
+                          >
+                            {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sending…" : "Resend"}
+                          </button>
+                        )}
+                        {m.status === "pending" && resendTeamFailedUrls[m.teamMemberId] && (
+                          <button
+                            onClick={() => void copyTeamInviteLink(resendTeamFailedUrls[m.teamMemberId], `resend-${m.teamMemberId}`)}
+                            style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 7, color: copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "#C8F55A" : "rgba(200,245,90,0.7)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer" }}
+                          >
+                            {copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "Copied!" : "Copy link"}
+                          </button>
+                        )}
                         <button
                           onClick={() => void handleRemoveTeamMember(m.teamMemberId)}
                           disabled={removingTeamMember === m.teamMemberId}
-                          style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(239,68,68,0.6)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "4px 8px", borderRadius: 6 }}
+                          style={{ background: "transparent", border: m.status === "pending" ? "0.5px solid rgba(239,68,68,0.2)" : "none", cursor: "pointer", color: "rgba(239,68,68,0.75)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "4px 8px", borderRadius: 6 }}
                         >
-                          {removingTeamMember === m.teamMemberId ? "…" : "Remove"}
+                          {removingTeamMember === m.teamMemberId ? "…" : m.status === "pending" ? "Cancel" : "Remove"}
                         </button>
                       </div>
                     </div>
@@ -3306,10 +3525,15 @@ export default function EventDashboardPage() {
                     value={email}
                     onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
                     placeholder={i === 0 ? "teammate@example.com" : "second@example.com (optional)"}
-                    style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: "#0A0A0A", border: invalidTeamInviteEntries.some(entry => entry.index === i) ? "0.5px solid rgba(239,68,68,0.6)" : "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
                   />
                 ))}
               </div>
+              {invalidTeamInviteEntries.length > 0 && (
+                <p style={{ color: "#EF4444", fontSize: "0.78rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>
+                  Enter a valid email address before sending the invite.
+                </p>
+              )}
               {teamInviteError && <p style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteError}</p>}
               {teamInviteAcceptLinks.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
@@ -3317,10 +3541,10 @@ export default function EventDashboardPage() {
                     <div key={email} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
                       <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
                       <button
-                        onClick={() => navigator.clipboard.writeText(acceptUrl)}
+                        onClick={() => void copyTeamInviteLink(acceptUrl, `new-${email}`)}
                         style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: "0.72rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
                       >
-                        Copy link
+                        {copiedTeamInviteKey === `new-${email}` ? "Copied!" : "Copy link"}
                       </button>
                     </div>
                   ))}
@@ -3329,13 +3553,13 @@ export default function EventDashboardPage() {
               {teamInviteSuccess && <p style={{ color: "#C8F55A", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteSuccess}</p>}
               <button
                 onClick={() => void handleTeamInvite()}
-                disabled={teamInviting || teamInviteEmails.every(e => !e.trim())}
-                style={{ marginTop: "0.875rem", background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting ? 0.6 : 1 }}
+                disabled={teamInviting || teamInviteEmails.every(e => !e.trim()) || invalidTeamInviteEntries.length > 0}
+                style={{ marginTop: "0.875rem", background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting || invalidTeamInviteEntries.length > 0 ? 0.6 : 1 }}
               >
                 {teamInviting ? "Sending…" : "Send Invite"}
               </button>
               <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-                Invited members will receive an email with a link to accept. Once accepted, they can view and manage this event.
+                Invited members receive an email with a link to accept. If delivery is paused, copy the direct invite link and resend after the sender domain is verified.
               </p>
             </div>
           </div>

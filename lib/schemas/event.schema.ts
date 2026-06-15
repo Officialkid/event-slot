@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { normalizeInternationalPhoneNumber } from '@/lib/eventContact'
 
 const questionSchema = z.object({
   id: z.string().min(1),
@@ -6,6 +7,14 @@ const questionSchema = z.object({
   type: z.enum(['text', 'email', 'phone', 'select', 'checkbox', 'textarea', 'number']),
   required: z.boolean().optional(),
   options: z.array(z.string()).optional(),
+})
+
+const ticketTierSchema = z.object({
+  name: z.string().min(1, 'Tier name is required').max(120),
+  priceKes: z.number().int().positive('Tier price must be positive'),
+  capacity: z.number().int().positive('Tier capacity must be positive'),
+  description: z.string().max(500).optional().nullable(),
+  bundleSize: z.number().int().positive().max(100).optional().nullable(),
 })
 
 export const createEventSchema = z.object({
@@ -16,12 +25,15 @@ export const createEventSchema = z.object({
   capacity: z.number().int().positive().optional().nullable(),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
+  eventEndAt: z.string().datetime({ offset: true }).optional().nullable(),
   joinOpensAt: z.string().datetime({ offset: true }).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
   isPaid: z.boolean().optional().default(false),
   ticketPrice: z.number().int().positive().optional().nullable(),
+  ticketTiers: z.array(ticketTierSchema).max(10, 'Maximum 10 ticket tiers').optional().default([]),
   communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
   whatsappNumber: z.string().max(40).optional().nullable().or(z.literal('')),
+  contactMode: z.enum(['WHATSAPP', 'CALL']).optional().default('WHATSAPP'),
   imageUrl: z.string().url().max(1000).optional().nullable(),
   questions: z.array(questionSchema).min(1, 'At least one question is required').max(30),
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
@@ -51,14 +63,16 @@ export const createEventSchema = z.object({
   }
 
   if (data.isPaid && !data.ticketPrice) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['ticketPrice'],
-      message: 'Ticket price is required for paid events',
-    })
+    if (!data.ticketTiers || data.ticketTiers.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ticketTiers'],
+        message: 'At least one ticket tier is required for paid events',
+      })
+    }
   }
 
-  if (data.isPaid && data.ticketPrice && data.ticketPrice < 50) {
+  if (data.isPaid && (!data.ticketTiers || data.ticketTiers.length === 0) && data.ticketPrice && data.ticketPrice < 50) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['ticketPrice'],
@@ -66,7 +80,7 @@ export const createEventSchema = z.object({
     })
   }
 
-  if (data.isPaid && data.ticketPrice && data.ticketPrice > 500000) {
+  if (data.isPaid && (!data.ticketTiers || data.ticketTiers.length === 0) && data.ticketPrice && data.ticketPrice > 500000) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['ticketPrice'],
@@ -74,13 +88,64 @@ export const createEventSchema = z.object({
     })
   }
 
+  if (data.isPaid) {
+    const tiers = data.ticketTiers ?? []
+    if (tiers.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ticketTiers'],
+        message: 'At least one ticket tier is required for paid events',
+      })
+    }
+    for (const [index, tier] of tiers.entries()) {
+      if (tier.priceKes < 50) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTiers', index, 'priceKes'],
+          message: 'Minimum tier price is KSh 50',
+        })
+      }
+      if (tier.priceKes > 500000) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTiers', index, 'priceKes'],
+          message: 'Maximum tier price is KSh 500,000',
+        })
+      }
+    }
+  }
+
   if (data.whatsappNumber?.trim()) {
-    const cleanWhatsapp = data.whatsappNumber.replace(/\D/g, '')
-    if (cleanWhatsapp.length < 7 || cleanWhatsapp.length > 15) {
+    const normalized = normalizeInternationalPhoneNumber(data.whatsappNumber)
+    if (!normalized.ok) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['whatsappNumber'],
-        message: 'WhatsApp number must be between 7 and 15 digits',
+        message: normalized.error,
+      })
+    }
+  }
+
+  if (data.eventDate && data.eventEndAt) {
+    const start = new Date(data.eventDate)
+    const end = new Date(data.eventEndAt)
+    if (end < start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['eventEndAt'],
+        message: 'Event end time must be after the start time',
+      })
+    }
+  }
+
+  if (data.deadline && data.eventEndAt) {
+    const deadline = new Date(data.deadline)
+    const end = new Date(data.eventEndAt)
+    if (deadline > end) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deadline'],
+        message: 'Registration deadline cannot be after the event end time',
       })
     }
   }
@@ -89,10 +154,48 @@ export const createEventSchema = z.object({
 export const updateEventSettingsSchema = z.object({
   description: z.string().max(5000).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
+  eventEndAt: z.string().datetime({ offset: true }).optional().nullable(),
   joinOpensAt: z.string().datetime({ offset: true }).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
   communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
+  whatsappNumber: z.string().max(40).optional().nullable().or(z.literal('')),
+  contactMode: z.enum(['WHATSAPP', 'CALL']).optional().default('WHATSAPP'),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.whatsappNumber?.trim()) {
+    const normalized = normalizeInternationalPhoneNumber(data.whatsappNumber)
+    if (!normalized.ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['whatsappNumber'],
+        message: normalized.error,
+      })
+    }
+  }
+
+  if (data.eventDate && data.eventEndAt) {
+    const start = new Date(data.eventDate)
+    const end = new Date(data.eventEndAt)
+    if (end < start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['eventEndAt'],
+        message: 'Event end time must be after the start time',
+      })
+    }
+  }
+
+  if (data.deadline && data.eventEndAt) {
+    const deadline = new Date(data.deadline)
+    const end = new Date(data.eventEndAt)
+    if (deadline > end) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deadline'],
+        message: 'Registration deadline cannot be after the event end time',
+      })
+    }
+  }
 })
 
 export const renameEventSchema = z.object({

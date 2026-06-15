@@ -31,6 +31,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
   const registration = await prisma.registration.findUnique({
     where: { confirmationCode },
     include: {
+      ticket: true,
       event: {
         select: {
           id: true,
@@ -39,6 +40,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
           location: true,
           questions: true,
           ticketsEnabled: true,
+          isPaid: true,
           organizer: {
             select: { name: true },
           },
@@ -81,6 +83,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
       eventDate: registration.event.eventDate,
       location: registration.event.location,
       organizerName: registration.event.organizer?.name ?? 'Organizer',
+      isPaid: registration.event.isPaid,
+      ticketPrice: registration.ticket?.amountPaidKes ?? undefined,
+      ticketTierName: registration.ticket?.ticketTierName ?? undefined,
     })
   } catch (err) {
     console.error('[ticket-api] PDF generation failed:', err)

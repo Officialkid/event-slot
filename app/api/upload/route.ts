@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { validateR2Env } from '@/lib/validateEnv'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const MAX_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_BYTES = 15 * 1024 * 1024 // 15 MB
 
 function getR2Config() {
   const accountId = process.env.R2_ACCOUNT_ID?.trim()
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: 'File too large. Maximum is 5 MB.' }, { status: 400 })
+    return NextResponse.json({ error: 'File too large. Maximum is 15 MB.' }, { status: 400 })
   }
 
   const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1]

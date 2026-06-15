@@ -26,6 +26,7 @@ model Event {
   organizerId      String?
   organizer        User?     @relation(fields: [organizerId], references: [id])
   eventDate        DateTime?
+  eventEndAt       DateTime?
   joinOpensAt      DateTime?
   location         String?
   communityLink    String?
@@ -50,6 +51,8 @@ model Event {
   aiInsightsFreeUsed Boolean @default(false)
   whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
   summaryEmailSent Boolean   @default(false)
+  ticketTiers      TicketTier[]
+  paidOrders       PaidEventOrder[]
   registrations    Registration[]
   views            EventView[]
   feedback         AttendeeFeedback[]
@@ -343,7 +346,87 @@ model Registration {
   refCode               String?
   utmSource             String?
   countryCode           String?   // ISO 3166-1 alpha-2 — country detected when attendee registered
+  ticketTierId          String?
+  ticketTier            TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
+  paidOrderId           String?   @unique
+  paidOrder             PaidEventOrder? @relation(fields: [paidOrderId], references: [id], onDelete: SetNull)
   ticket                Ticket?
+
+  @@index([eventId, status])
+  @@index([eventId, submittedAt])
+  @@index([eventId, waitlistPosition])
+}
+
+model TicketTier {
+  id                 String             @id @default(cuid())
+  eventId            String
+  event              Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name               String
+  priceKes           Int
+  capacity           Int
+  description        String?
+  sortOrder          Int                @default(0)
+  bundleSize         Int                @default(1)
+  status             TicketTierStatus   @default(ACTIVE)
+  soldCount          Int                @default(0)
+  waitlistCount      Int                @default(0)
+  registrations      Registration[]
+  paidOrders         PaidEventOrder[]
+  tickets            Ticket[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([eventId, sortOrder])
+}
+
+enum TicketTierStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model PaidEventOrder {
+  id                    String               @id @default(cuid())
+  eventId               String
+  event                 Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketTierId          String
+  ticketTier            TicketTier           @relation(fields: [ticketTierId], references: [id], onDelete: Restrict)
+  status                PaidOrderStatus      @default(PENDING)
+  paymentMethod         PaidOrderPaymentMethod
+  attendeePayload       Json
+  attendeeEmail         String?
+  attendeeName          String?
+  attendeePhone         String?
+  amountKes             Int
+  currency              String               @default("KES")
+  holdExpiresAt         DateTime
+  checkoutRequestId     String?              @unique
+  providerReference     String?
+  mpesaReceiptNumber    String?
+  mpesaPhone            String?
+  paidAt                DateTime?
+  cancelledAt           DateTime?
+  promotionRegistrationId String?
+  registration          Registration?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([eventId, status])
+  @@index([ticketTierId, status])
+  @@index([holdExpiresAt])
+}
+
+enum PaidOrderStatus {
+  PENDING
+  PAYMENT_PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+  FAILED
+}
+
+enum PaidOrderPaymentMethod {
+  MPESA
+  CARD
 }
 
 model Ticket {
@@ -351,6 +434,10 @@ model Ticket {
   code           String        @unique @default(cuid())
   registrationId String        @unique
   registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  ticketTierId   String?
+  ticketTier     TicketTier?   @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
+  ticketTierName String?
+  amountPaidKes  Int?
   generatedAt    DateTime      @default(now())
   scannedAt      DateTime?
   createdAt      DateTime      @default(now())
@@ -361,6 +448,8 @@ model ErrorLog {
   route     String
   message   String
   createdAt DateTime @default(now())
+
+  @@index([route, createdAt])
 }
 
 enum MessageType {
@@ -436,6 +525,8 @@ model EventView {
   event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   viewedAt DateTime @default(now())
   source   String?
+
+  @@index([eventId, viewedAt])
 }
 
 model AttendeeFeedback {
@@ -448,6 +539,8 @@ model AttendeeFeedback {
   improve        String?
   complaint      String?
   submittedAt    DateTime @default(now())
+
+  @@index([eventId, submittedAt])
 }
 
 model TeamMember {
@@ -814,6 +907,7 @@ model SubscriptionPayment {
   checkoutRequestId String?
   status            PaymentStatus @default(PENDING)
   phone             String?
+  description       String?       @db.Text
   paidAt            DateTime?
   createdAt         DateTime      @default(now())
 

@@ -1,7 +1,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: eventslot
+  name: eventslot-web
   annotations:
     run.googleapis.com/ingress: all
 spec:
@@ -9,13 +9,13 @@ spec:
     metadata:
       annotations:
         autoscaling.knative.dev/minScale: '1'
-        autoscaling.knative.dev/maxScale: '10'
-        run.googleapis.com/cpu-throttling: 'false'
+        autoscaling.knative.dev/maxScale: '20'
+        run.googleapis.com/cpu-throttling: 'true'
     spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-        - image: us-central1-docker.pkg.dev/eventslot-prod/eventslot/app:latest
+        - image: us-central1-docker.pkg.dev/eventslot/eventslot/eventslot-web:latest
           ports:
             - containerPort: 3000
           resources:
@@ -46,15 +46,9 @@ spec:
                   name: NEXTAUTH_SECRET
                   key: latest
             - name: NEXTAUTH_URL
-              valueFrom:
-                secretKeyRef:
-                  name: EVENTSLOT_NEXTAUTH_URL
-                  key: latest
-            - name: STRIPE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: STRIPE_SECRET_KEY
-                  key: latest
+              value: 'https://www.eventsslot.com'
+            - name: NEXTAUTH_URL_INTERNAL
+              value: 'http://localhost:3000'
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -105,7 +99,7 @@ spec:
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: EVENTSLOT_ENCRYPTION_KEY
+                  name: ENCRYPTION_KEY
                   key: latest
             - name: GROQ_API_KEY
               valueFrom:
@@ -113,9 +107,9 @@ spec:
                   name: GROQ_API_KEY
                   key: latest
             - name: RESEND_FROM
-              value: 'EventSlot <events@eventsslot.com>'
+              value: 'EventSlot <onboarding@resend.dev>'
             - name: QR_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: EVENTSLOT_QR_SECRET
+                  name: QR_SECRET
                   key: latest

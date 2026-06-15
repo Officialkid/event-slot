@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { purgeUserCache } from '@/lib/cache'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
@@ -143,6 +144,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
       return created
     })
+
+    if (session?.user?.id) {
+      purgeUserCache(session.user.id, session.user.email ?? null)
+    }
 
     return NextResponse.json({
       success: true,

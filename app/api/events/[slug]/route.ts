@@ -9,6 +9,16 @@ import { hasOrganiserAccess } from '@/lib/adminMode'
 import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
+import { parseEventContact, validateAndEncodeEventContact } from '@/lib/eventContact'
+
+const CONFIRMED_STATUSES = new Set(['confirmed', 'CONFIRMED'])
+const WAITLIST_STATUSES = new Set(['waitlist', 'WAITLISTED', 'waitlisted'])
+
+function getDurationMins(startIso: string | Date | null | undefined, endIso: string | Date | null | undefined) {
+  if (!startIso || !endIso) return 120
+  const diff = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000)
+  return diff > 0 ? diff : 120
+}
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -75,18 +85,25 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     })
 
     const confirmed = registrations
-      .filter(r => r.status === 'confirmed')
+      .filter(r => CONFIRMED_STATUSES.has(r.status))
       .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
       .map(r => ({ id: r.id, answers: r.answers, submittedAt: r.submittedAt, source: r.source }))
 
     const waitlist = registrations
-      .filter(r => r.status === 'waitlist')
+      .filter(r => WAITLIST_STATUSES.has(r.status))
       .sort((a, b) => (a.waitlistPosition ?? 0) - (b.waitlistPosition ?? 0))
       .map(r => ({ id: r.id, answers: r.answers, waitlistPosition: r.waitlistPosition, submittedAt: r.submittedAt, source: r.source }))
 
     return NextResponse.json({
       success: true,
       event: {
+        ...(() => {
+          const parsedContact = parseEventContact(event.whatsappNumber)
+          return {
+            whatsappNumber: parsedContact?.number ?? null,
+            contactMode: parsedContact?.mode ?? 'WHATSAPP',
+          }
+        })(),
         id: event.id,
         title: event.title,
         description: event.description,
@@ -97,6 +114,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         slug: event.slug,
         questions: event.questions,
         eventDate: event.eventDate,
+        eventEndAt: event.eventEndAt,
         joinOpensAt: event.joinOpensAt,
         location: event.location,
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
@@ -141,7 +159,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, capacity, deadline, eventDate, joinOpensAt, location, communityLink, questions, imageUrl, archived, category, whatsappNumber } = body
+    const { action, title, description, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -196,6 +214,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       }
     }
 
+    let storedEventContact: string | null = null
+    if (whatsappNumber?.trim()) {
+      const validatedContact = validateAndEncodeEventContact(String(whatsappNumber), contactMode === 'CALL' ? 'CALL' : 'WHATSAPP')
+      if (!validatedContact.ok) {
+        return NextResponse.json({ success: false, error: validatedContact.error }, { status: 400 })
+      }
+      storedEventContact = validatedContact.stored
+    }
+
     const updated = await prisma.event.update({
       where: { slug },
       data: {
@@ -204,13 +231,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         capacity: capacity ? Number(capacity) : null,
         deadline: deadline ? new Date(deadline) : null,
         eventDate: eventDate ? new Date(eventDate) : null,
+        eventEndAt: eventEndAt ? new Date(eventEndAt) : null,
         joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
         location: location || null,
         communityLink: normalizeCommunityLink(communityLink),
         imageUrl: imageUrl || null,
         questions,
         category: category ? String(category).toUpperCase() : null,
-        whatsappNumber: whatsappNumber ? String(whatsappNumber).replace(/\D/g, '') || null : null,
+        whatsappNumber: storedEventContact,
       },
       select: { id: true, title: true, slug: true },
     })
@@ -231,7 +259,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           description:  `${description ?? ''}\n\nManage: ${APP_URL}/dashboard/events/${updated.slug}`,
           location:     location || null,
           startDate:    calendarStartDate,
-          durationMins: 120,
+          durationMins: getDurationMins(calendarStartDate, eventEndAt ? new Date(eventEndAt) : event.eventEndAt),
           eventUrl:     `${APP_URL}/dashboard/events/${updated.slug}`,
           isVirtual,
           meetingLink,

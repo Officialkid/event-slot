@@ -11,6 +11,9 @@ import { processFirstEventReferral, scoreEventCreation } from '@/lib/referral'
 import { detectCountry } from '@/lib/geoip'
 import { createCalendarEvent } from '@/lib/googleCalendar'
 import { APP_URL } from '@/lib/config'
+import { canCreateEvent } from '@/lib/planEnforcement'
+import { validateAndEncodeEventContact } from '@/lib/eventContact'
+import { normalizeTicketTiers, sumTierCapacity } from '@/lib/paidEvents'
 
 function generateSlug(title: string): string {
   const base = title
@@ -23,11 +26,25 @@ function generateSlug(title: string): string {
   return `${base}-${suffix}`
 }
 
+function getDurationMins(startIso: string | null | undefined, endIso: string | null | undefined) {
+  if (!startIso || !endIso) return 120
+  const diff = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000)
+  return diff > 0 ? diff : 120
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const enforcement = await canCreateEvent(session.user.id, session.user.email ?? '')
+    if (!enforcement.allowed) {
+      return NextResponse.json(
+        { error: enforcement.reason, upgradeRequired: enforcement.upgradeRequired, code: 'PLAN_LIMIT_EVENTS' },
+        { status: 403 }
+      )
     }
 
     let rawBody: unknown
@@ -53,12 +70,15 @@ export async function POST(req: NextRequest) {
       capacity,
       deadline,
       eventDate,
+      eventEndAt,
       joinOpensAt,
       location,
       isPaid,
       ticketPrice,
+      ticketTiers,
       communityLink,
       whatsappNumber,
+      contactMode,
       imageUrl,
       questions,
       organizerEmail,
@@ -83,14 +103,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (isPaid) {
-      if (!ticketPrice || ticketPrice < 50) {
-        return NextResponse.json({ success: false, error: 'Minimum ticket price is KSh 50' }, { status: 400 })
-      }
+    const normalizedTicketTiers = isPaid
+      ? normalizeTicketTiers(ticketTiers, { ticketPrice, capacity })
+      : []
 
-      if (ticketPrice > 500000) {
-        return NextResponse.json({ success: false, error: 'Maximum ticket price is KSh 500,000' }, { status: 400 })
-      }
+    if (isPaid && normalizedTicketTiers.length === 0) {
+      return NextResponse.json({ success: false, error: 'At least one ticket tier is required for paid events' }, { status: 400 })
+    }
+
+    if (isPaid && normalizedTicketTiers.some((tier) => tier.priceKes < 50 || tier.priceKes > 500000)) {
+      return NextResponse.json({ success: false, error: 'Each ticket tier must be between KSh 50 and KSh 500,000' }, { status: 400 })
     }
 
     for (const question of questions) {
@@ -125,7 +147,14 @@ export async function POST(req: NextRequest) {
     const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
     const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
     const eventCountryCode = await detectCountry(req).catch(() => null)
-    const cleanWhatsappNumber = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : null
+    let storedEventContact: string | null = null
+    if (whatsappNumber?.trim()) {
+      const validatedContact = validateAndEncodeEventContact(whatsappNumber, contactMode ?? 'WHATSAPP')
+      if (!validatedContact.ok) {
+        return NextResponse.json({ success: false, error: validatedContact.error }, { status: 400 })
+      }
+      storedEventContact = validatedContact.stored
+    }
 
     const event = await prisma.event.create({
       data: {
@@ -134,17 +163,18 @@ export async function POST(req: NextRequest) {
         eventType,
         virtualLink: encryptedVirtualLink?.encrypted,
         virtualLinkIv: encryptedVirtualLink?.iv,
-        capacity,
+        capacity: isPaid ? sumTierCapacity(normalizedTicketTiers) : capacity,
         deadline: deadline ? new Date(deadline) : undefined,
         eventDate: eventDate ? new Date(eventDate) : undefined,
+        eventEndAt: eventEndAt ? new Date(eventEndAt) : undefined,
         joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : undefined,
         location: eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || undefined,
         isPaid,
-        ticketPrice: isPaid ? Number(ticketPrice) : undefined,
+        ticketPrice: isPaid ? normalizedTicketTiers[0]?.priceKes ?? Number(ticketPrice) : undefined,
         paymentsLive: false,
         ticketsEnabled: true,
         communityLink: normalizeCommunityLink(communityLink) || undefined,
-        whatsappNumber: cleanWhatsappNumber || undefined,
+        whatsappNumber: storedEventContact || undefined,
         imageUrl: imageUrl || undefined,
         questions,
         organizerEmail: eventOrganizerEmail,
@@ -152,12 +182,25 @@ export async function POST(req: NextRequest) {
         dashboardToken,
         organizerId,
         countryCode: eventCountryCode ?? undefined,
+        ticketTiers: isPaid
+          ? {
+              create: normalizedTicketTiers.map((tier, index) => ({
+                name: tier.name,
+                priceKes: tier.priceKes,
+                capacity: tier.capacity,
+                description: tier.description ?? undefined,
+                bundleSize: tier.bundleSize ?? 1,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
       },
       select: {
         id: true,
         title: true,
         slug: true,
         dashboardToken: true,
+        capacity: true,
       },
     })
 
@@ -187,7 +230,7 @@ export async function POST(req: NextRequest) {
         description:  `${description ?? ''}\n\nManage event: ${APP_URL}/dashboard/events/${event.slug}`,
         location:     eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || null,
         startDate:    new Date(eventDate),
-        durationMins: 120,
+        durationMins: getDurationMins(eventDate, eventEndAt),
         eventUrl:     `${APP_URL}/dashboard/events/${event.slug}`,
         isVirtual:    eventType === 'VIRTUAL',
         meetingLink:  eventType === 'VIRTUAL' ? normalizedVirtualLink : null,

@@ -38,6 +38,32 @@ export async function decodeQrFromImageFile(file: File): Promise<string | null> 
   }
 }
 
+export async function extractTicketReferenceFromFile(file: File): Promise<string | null> {
+  if (file.type.startsWith("image/")) {
+    return decodeQrFromImageFile(file)
+  }
+
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+    const nameMatch = file.name.match(/ticket-([a-z0-9-]+)\.pdf$/i)
+    if (nameMatch?.[1]) {
+      return nameMatch[1].toUpperCase()
+    }
+
+    try {
+      const raw = new TextDecoder("latin1").decode(await file.arrayBuffer())
+      const directCode = raw.match(/#([A-Z0-9-]{6,})/i)
+      if (directCode?.[1]) return directCode[1].toUpperCase()
+
+      const filenameCode = raw.match(/ticket-([A-Z0-9-]{6,})\\.pdf/i)
+      if (filenameCode?.[1]) return filenameCode[1].toUpperCase()
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image()

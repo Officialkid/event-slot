@@ -51,6 +51,12 @@ const STATUS_COLORS: Record<CampaignStatus, string> = {
   DRAFT: 'rgba(240,237,230,0.4)',
 }
 
+function extractResendVerificationDomain(message: string | null | undefined): string | null {
+  if (!message) return null
+  const match = message.match(/(?:the\s+)?([a-z0-9.-]+\.[a-z]{2,})\s+domain is not verified/i)
+  return match?.[1]?.toLowerCase() ?? null
+}
+
 export default function EmailDashboardPage() {
   const params = useParams()
   const router = useRouter()
@@ -68,6 +74,9 @@ export default function EmailDashboardPage() {
   const [sending, setSending] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const failedVerificationDomain = campaigns
+    .map((campaign) => extractResendVerificationDomain(campaign.failureReason))
+    .find(Boolean) ?? null
 
   const fetchData = useCallback(async () => {
     try {
@@ -357,27 +366,49 @@ export default function EmailDashboardPage() {
         <div style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.875rem' }}>
           Sent History
         </div>
+        {failedVerificationDomain && (
+          <div style={{ marginBottom: '0.875rem', background: 'rgba(255,107,107,0.08)', border: '0.5px solid rgba(255,107,107,0.24)', borderRadius: 10, padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)', fontWeight: 600 }}>
+                Email sending is paused for {failedVerificationDomain}.
+              </p>
+              <p style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(240,237,230,0.5)', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                Verify the sender domain in Resend, then send the campaign again. Until that is done, organizer emails can keep failing even when the rest of the dashboard works.
+              </p>
+            </div>
+            <a
+              href='https://resend.com/domains'
+              target='_blank'
+              rel='noreferrer'
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '0.5px solid rgba(255,107,107,0.3)', borderRadius: 8, padding: '0.45rem 0.8rem', textDecoration: 'none', color: '#FF6B6B', fontSize: '0.75rem', fontFamily: 'var(--font-dm-sans)', whiteSpace: 'nowrap' }}
+            >
+              Open Resend domains
+            </a>
+          </div>
+        )}
         {campaigns.length === 0 ? (
           <p style={{ fontSize: '0.82rem', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
             No emails sent yet for this event.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            {campaigns.map((c) => (
-              <div
-                key={c.id}
-                style={{
-                  background: '#141414',
-                  border: '0.5px solid rgba(240,237,230,0.07)',
-                  borderRadius: 10,
-                  padding: '0.875rem 1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap',
-                }}
-              >
+            {campaigns.map((c) => {
+              const failedDomain = extractResendVerificationDomain(c.failureReason)
+              return (
+                <div
+                  key={c.id}
+                  style={{
+                    background: '#141414',
+                    border: '0.5px solid rgba(240,237,230,0.07)',
+                    borderRadius: 10,
+                    padding: '0.875rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
                 <div>
                   <p style={{ margin: '0 0 0.2rem', fontSize: '0.875rem', color: '#F0EDE6', fontFamily: 'var(--font-dm-sans)', fontWeight: 500 }}>
                     {c.subject}
@@ -391,6 +422,21 @@ export default function EmailDashboardPage() {
                     <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: '#A3A3A3', fontFamily: 'var(--font-dm-sans)' }}>
                       {c.failureReason}
                     </p>
+                  )}
+                  {failedDomain && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)' }}>
+                        Verify {failedDomain} in Resend before retrying this email.
+                      </span>
+                      <a
+                        href='https://resend.com/domains'
+                        target='_blank'
+                        rel='noreferrer'
+                        style={{ fontSize: '0.72rem', color: '#C8F55A', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
+                      >
+                        View domains
+                      </a>
+                    </div>
                   )}
                 </div>
                 <span
@@ -414,8 +460,9 @@ export default function EmailDashboardPage() {
                 >
                   {c.status}
                 </span>
-              </div>
-            ))}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

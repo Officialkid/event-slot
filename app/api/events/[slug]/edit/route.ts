@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { parseEventContact } from '@/lib/eventContact'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
@@ -21,6 +22,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         capacity: true,
         deadline: true,
         eventDate: true,
+        eventEndAt: true,
         joinOpensAt: true,
         location: true,
         communityLink: true,
@@ -40,7 +42,16 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    return NextResponse.json({ success: true, event })
+    const parsedContact = parseEventContact(event.whatsappNumber)
+
+    return NextResponse.json({
+      success: true,
+      event: {
+        ...event,
+        whatsappNumber: parsedContact?.number ?? '',
+        contactMode: parsedContact?.mode ?? 'WHATSAPP',
+      },
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })

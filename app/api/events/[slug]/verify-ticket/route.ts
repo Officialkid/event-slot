@@ -149,9 +149,21 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
         })
       }
 
-      await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: { scannedAt: new Date() },
+      const verifiedAt = new Date()
+
+      await prisma.$transaction(async (tx) => {
+        await tx.ticket.update({
+          where: { id: ticket.id },
+          data: { scannedAt: verifiedAt },
+        })
+
+        await tx.registration.update({
+          where: { id: ticket.registration.id },
+          data: {
+            checkedIn: true,
+            checkedInAt: verifiedAt,
+          },
+        })
       })
 
       await logEntry(event.id, ticketCode, attendeeName || null, true)
@@ -167,7 +179,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
           attendeeName,
           attendeeEmail: ticket.registration.attendeeEmail,
           ticketCode: ticket.code,
-          scannedAt: new Date(),
+          scannedAt: verifiedAt,
+          checkedInAt: verifiedAt,
         },
       })
     }

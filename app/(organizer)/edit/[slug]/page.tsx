@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
 import { EventFAQEditor } from "@/components/events/EventFAQEditor"
 import { EventWhatsAppInput } from "@/components/events/EventWhatsAppInput"
+import type { EventContactMode } from "@/lib/eventContact"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -52,6 +53,7 @@ export default function EditEventPage() {
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
+  const [eventEndAt, setEventEndAt] = useState("")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [communityLink, setCommunityLink] = useState("")
@@ -63,6 +65,7 @@ export default function EditEventPage() {
   const [imageError, setImageError] = useState("")
   const [category, setCategory] = useState("")
   const [whatsappNumber, setWhatsappNumber] = useState("")
+  const [contactMode, setContactMode] = useState<EventContactMode>("WHATSAPP")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -84,12 +87,14 @@ export default function EditEventPage() {
         setCapacity(e.capacity != null ? String(e.capacity) : "")
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
+        setEventEndAt(toDatetimeLocal(e.eventEndAt))
         setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
         setLocation(e.location ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
         setCategory(e.category ?? "")
         setWhatsappNumber(e.whatsappNumber ?? "")
+        setContactMode(e.contactMode === "CALL" ? "CALL" : "WHATSAPP")
         setQuestions(
           Array.isArray(e.questions)
             ? e.questions.map((q: Question) => ({ ...q, options: q.options ?? [] }))
@@ -188,11 +193,14 @@ export default function EditEventPage() {
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
+          eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
           category: category || undefined,
+          whatsappNumber: whatsappNumber || undefined,
+          contactMode,
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -304,7 +312,7 @@ export default function EditEventPage() {
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                  Registration Deadline
+                  Registration Deadline (optional)
                 </label>
                 <input
                   type="datetime-local"
@@ -315,7 +323,7 @@ export default function EditEventPage() {
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                  Event Date
+                  Event Start
                 </label>
                 <input
                   type="datetime-local"
@@ -323,6 +331,20 @@ export default function EditEventPage() {
                   value={eventDate}
                   onChange={e => setEventDate(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  Event End (optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  value={eventEndAt}
+                  onChange={e => setEventEndAt(e.target.value)}
+                />
+                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.35)]">
+                  If you leave the deadline blank, registration closes when the event ends.
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
@@ -389,7 +411,7 @@ export default function EditEventPage() {
               Event Poster
             </h2>
             <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
-              Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF · max 5 MB.
+              Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved.
             </p>
 
             {imageUrl && (
@@ -578,6 +600,11 @@ export default function EditEventPage() {
           eventTitle={title}
           eventDate={eventDate ? new Date(eventDate).toISOString() : null}
           initialNumber={whatsappNumber}
+          initialMode={contactMode}
+          onSaved={({ number, mode }) => {
+            setWhatsappNumber(number)
+            setContactMode(mode)
+          }}
         />
       </div>
     </div>

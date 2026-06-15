@@ -20,7 +20,8 @@ interface UpcomingEvent {
   slug: string
   confirmedCount: number
   capacity: number | null
-  deadline: string
+  eventDate: string | null
+  deadline: string | null
 }
 
 interface ActivityItem {
@@ -750,8 +751,10 @@ export default function DashboardOverviewPage() {
                   const pct = ev.capacity && ev.capacity > 0
                     ? Math.min(100, Math.round((ev.confirmedCount / ev.capacity) * 100))
                     : 0
-                  const deadlineDate = new Date(ev.deadline)
-                  const formatted = deadlineDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+                  const primaryDate = new Date(ev.eventDate ?? ev.deadline ?? "")
+                  const formatted = Number.isNaN(primaryDate.getTime())
+                    ? "Date TBD"
+                    : primaryDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
                   return (
                     <div
                       key={ev.slug}
@@ -794,7 +797,7 @@ export default function DashboardOverviewPage() {
                               marginTop: "0.15rem",
                             }}
                           >
-                            Closes {formatted}
+                            {ev.eventDate ? `Happens ${formatted}` : `Closes ${formatted}`}
                           </div>
                         </div>
                         <Link

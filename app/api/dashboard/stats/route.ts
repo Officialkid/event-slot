@@ -126,17 +126,30 @@ export async function GET() {
       }).catch(() => []),
       prisma.event.findMany({
         where: {
-          AND: [organizerFilter, { deadline: { gt: now } }],
+          AND: [
+            organizerFilter,
+            {
+              OR: [
+                { eventDate: { gt: now } },
+                {
+                  AND: [
+                    { eventDate: null },
+                    { deadline: { gt: now } },
+                  ],
+                },
+              ],
+            },
+          ],
         },
         select: {
           title: true,
           slug: true,
           confirmedCount: true,
           capacity: true,
+          eventDate: true,
           deadline: true,
         },
-        orderBy: { deadline: "asc" },
-        take: 3,
+        take: 10,
       }).catch(() => []),
       prisma.event.findMany({
         where: {
@@ -183,13 +196,20 @@ export async function GET() {
       }))
       .sort((a, b) => b.confirmedCount / b.capacity - a.confirmedCount / a.capacity)
 
-    const upcomingEvents = upcomingCandidates.map((e) => ({
-      title: e.title,
-      slug: e.slug,
-      confirmedCount: e.confirmedCount,
-      capacity: e.capacity,
-      deadline: e.deadline!.toISOString(),
-    }))
+    const upcomingEvents = upcomingCandidates
+      .map((e) => ({
+        title: e.title,
+        slug: e.slug,
+        confirmedCount: e.confirmedCount,
+        capacity: e.capacity,
+        eventDate: e.eventDate?.toISOString() ?? null,
+        deadline: e.deadline?.toISOString() ?? null,
+        sortDate: e.eventDate ?? e.deadline,
+      }))
+      .filter((e): e is typeof e & { sortDate: Date } => !!e.sortDate)
+      .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+      .slice(0, 3)
+      .map(({ sortDate: _sortDate, ...event }) => event)
 
     // Trigger feedback notifications for events whose deadline has passed (non-critical)
     if (expiredEvents.length > 0) {

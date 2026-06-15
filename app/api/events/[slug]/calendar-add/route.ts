@@ -9,31 +9,7 @@ import { createCalendarEvent,
          isCalendarConnected }       from '@/lib/googleCalendar';
 import { decrypt }                   from '@/lib/encrypt';
 import prisma                        from '@/lib/prisma';
-import { APP_URL }                   from '@/lib/config';
-
-function buildGoogleCalendarUrl(params: {
-  title:       string;
-  description: string;
-  location:    string;
-  startDate:   Date;
-  durationMins: number;
-}): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const fmt = (d: Date) =>
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-    `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-
-  const end = new Date(params.startDate.getTime() + params.durationMins * 60_000)
-
-  const qs = new URLSearchParams({
-    action:   'TEMPLATE',
-    text:     params.title,
-    dates:    `${fmt(params.startDate)}/${fmt(end)}`,
-    details:  params.description,
-    location: params.location,
-  })
-  return `https://calendar.google.com/calendar/render?${qs.toString()}`
-}
+import { buildEventPublicUrl, buildGoogleCalendarTemplateUrl, getDurationMins } from '@/lib/calendarLinks';
 
 export async function POST(
   req: NextRequest,
@@ -57,9 +33,7 @@ export async function POST(
         ? decrypt(event.virtualLink, event.virtualLinkIv ?? '')
         : null;
       const organizerUsername = event.organizer?.username;
-      const eventUrl = organizerUsername
-        ? `${APP_URL}/${organizerUsername}/${event.slug}`
-        : `${APP_URL}/join/${event.slug}`;
+      const eventUrl = buildEventPublicUrl(event.slug, organizerUsername);
 
       const result = await createCalendarEvent({
         userId:       session.user.id,
@@ -69,7 +43,7 @@ export async function POST(
         description:  event.description ?? '',
         location:     event.location,
         startDate:    new Date(event.eventDate),
-        durationMins: 120,
+        durationMins: getDurationMins(event.eventDate, event.eventEndAt),
         eventUrl,
         isVirtual,
         meetingLink,
@@ -83,12 +57,12 @@ export async function POST(
 
   // Fall back to returning the Google Calendar URL for manual add
   const calendarUrl = event.eventDate
-    ? buildGoogleCalendarUrl({
+    ? buildGoogleCalendarTemplateUrl({
         title:        event.title,
         description:  event.description ?? '',
         location:     event.location ?? (event.eventType === 'VIRTUAL' ? 'Online' : ''),
         startDate:    new Date(event.eventDate),
-        durationMins: 120,
+        endDate:      event.eventEndAt ? new Date(event.eventEndAt) : null,
       })
     : null;
 

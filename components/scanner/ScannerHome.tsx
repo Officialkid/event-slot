@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Camera, Search, Zap } from "lucide-react"
-import { DeepScan } from "@/components/scanner/DeepScan"
+import { Camera, FileUp, Search } from "lucide-react"
+import { ManualTicketVerifier } from "@/components/scanner/ManualTicketVerifier"
 import { QuickScan } from "@/components/scanner/QuickScan"
 
-type Mode = null | "quick" | "deep"
+type Mode = null | "scan" | "upload" | "manual"
 
 interface Props {
   eventSlug: string
@@ -36,20 +36,35 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
     setPendingMode(null)
   }
 
-  if (mode === "quick") {
+  if (mode === "scan") {
     return (
       <QuickScan
         eventSlug={eventSlug}
         accessToken={accessToken}
         onExit={() => setMode(null)}
         onVerified={onVerified}
+        initialInputMode="camera"
+        title="VERIFY TICKET"
       />
     )
   }
 
-  if (mode === "deep") {
+  if (mode === "upload") {
     return (
-      <DeepScan
+      <QuickScan
+        eventSlug={eventSlug}
+        accessToken={accessToken}
+        onExit={() => setMode(null)}
+        onVerified={onVerified}
+        initialInputMode="upload"
+        title="UPLOAD SOFTCOPY"
+      />
+    )
+  }
+
+  if (mode === "manual") {
+    return (
+      <ManualTicketVerifier
         eventSlug={eventSlug}
         accessToken={accessToken}
         onExit={() => setMode(null)}
@@ -61,39 +76,57 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
   return (
     <>
       <div className="min-h-[70vh] bg-[#0A0A0A] border border-[#2A2A2A] rounded-2xl flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-2xl grid md:grid-cols-2 gap-4">
+        <div className="w-full max-w-4xl grid md:grid-cols-3 gap-4">
           <button
-            onClick={() => requestCameraAccess("quick")}
+            onClick={() => requestCameraAccess("scan")}
             className="w-full border border-[#2A2A2A] rounded-2xl p-5 bg-[#141414] text-left hover:border-[#C8F55A]/40 transition-colors group"
           >
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#C8F55A]/10 border border-[#C8F55A]/30 flex items-center justify-center shrink-0 group-hover:bg-[#C8F55A]/20 transition-colors">
-                <Zap className="w-5 h-5 text-[#C8F55A]" />
+                <Camera className="w-5 h-5 text-[#C8F55A]" />
               </div>
               <div>
-                <p className="text-white font-semibold mb-1">Quick Scan</p>
+                <p className="text-white font-semibold mb-1">Scan QR Code</p>
                 <p className="text-[#A3A3A3] text-sm leading-relaxed">
-                  Verify entry at speed. Camera, upload image, or manual ticket/email/name lookup.
+                  Use the camera to scan a physical ticket QR code and verify it instantly.
                 </p>
-                <p className="text-[#C8F55A] text-xs mt-2">Best for entry gates and high volume</p>
+                <p className="text-[#C8F55A] text-xs mt-2">Best for gate check-in</p>
               </div>
             </div>
           </button>
 
           <button
-            onClick={() => requestCameraAccess("deep")}
+            onClick={() => setMode("upload")}
             className="w-full border border-[#2A2A2A] rounded-2xl p-5 bg-[#141414] text-left hover:border-[#3B82F6]/40 transition-colors group"
           >
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex items-center justify-center shrink-0 group-hover:bg-[#3B82F6]/20 transition-colors">
-                <Search className="w-5 h-5 text-[#3B82F6]" />
+                <FileUp className="w-5 h-5 text-[#3B82F6]" />
               </div>
               <div>
-                <p className="text-white font-semibold mb-1">Deep Scan</p>
+                <p className="text-white font-semibold mb-1">Upload Softcopy</p>
                 <p className="text-[#A3A3A3] text-sm leading-relaxed">
-                  Full attendee profile, previous notes, and mark-attended flow with scanner session export.
+                  Upload a ticket image or EventSlot PDF and let the system read the ticket for you.
                 </p>
-                <p className="text-[#60A5FA] text-xs mt-2">Best for VIP check-in and workshops</p>
+                <p className="text-[#60A5FA] text-xs mt-2">Works with image files and EventSlot PDFs</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setMode("manual")}
+            className="w-full border border-[#2A2A2A] rounded-2xl p-5 bg-[#141414] text-left hover:border-[#F59E0B]/40 transition-colors group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center shrink-0 group-hover:bg-[#F59E0B]/20 transition-colors">
+                <Search className="w-5 h-5 text-[#F59E0B]" />
+              </div>
+              <div>
+                <p className="text-white font-semibold mb-1">Enter Details</p>
+                <p className="text-[#A3A3A3] text-sm leading-relaxed">
+                  Search by attendee name, email, ticket number, or confirmation code, then verify or unverify manually.
+                </p>
+                <p className="text-[#FCD34D] text-xs mt-2">Best for exceptions and follow-up questions</p>
               </div>
             </div>
           </button>

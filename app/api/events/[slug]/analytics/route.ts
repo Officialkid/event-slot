@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { hasOrganiserAccess } from '@/lib/adminMode'
 
+const CONFIRMED_STATUSES = ['confirmed', 'CONFIRMED'] as const
+const WAITLIST_STATUSES = ['waitlist', 'WAITLISTED', 'waitlisted'] as const
+
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   try {
@@ -34,17 +37,17 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch views and registrations
-    const [views, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackResponses] = await Promise.all([
-      prisma.eventView.findMany({ where: { eventId: event.id }, select: { viewedAt: true } }),
+    // Keep the dashboard analytics query lightweight enough to resolve quickly on live pages.
+    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate] = await Promise.all([
+      prisma.eventView.count({ where: { eventId: event.id } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
-        select: { submittedAt: true, status: true },
+        select: { submittedAt: true, source: true },
       }),
       prisma.registration.count({
         where: {
           eventId: event.id,
-          status: { in: ['confirmed', 'CONFIRMED'] },
+          status: { in: CONFIRMED_STATUSES as unknown as string[] },
         },
       }),
       prisma.ticket.count({
@@ -56,7 +59,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       prisma.registration.count({
         where: {
           eventId: event.id,
-          status: { in: ['waitlist', 'WAITLISTED', 'waitlisted'] },
+          status: { in: WAITLIST_STATUSES as unknown as string[] },
         },
       }),
       prisma.errorLog.findMany({
@@ -68,13 +71,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         where: { eventId: event.id },
         _count: { id: true },
       }),
-      prisma.attendeeFeedback.findMany({
+      prisma.attendeeFeedback.aggregate({
         where: { eventId: event.id },
-        select: { rating: true },
+        _avg: { rating: true },
+        _count: { id: true },
       }),
     ])
 
-    const totalViews = views.length
     const totalRegistrations = registrations.length
     const waitlistCount = waitlistedCount
     const stillWaitingCount = waitlistedCount
@@ -95,8 +98,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const waitlistConversionRate = confirmedCount > 0 && waitlistCount > 0
       ? Math.round((confirmedCount / (confirmedCount + waitlistCount)) * 1000) / 10
       : confirmedCount > 0 ? 100 : 0
-    const avgFeedbackScore = feedbackResponses.length > 0
-      ? Math.round((feedbackResponses.reduce((sum, row) => sum + (row.rating ?? 0), 0) / feedbackResponses.length) * 10) / 10
+    const feedbackCount = feedbackAggregate._count.id
+    const avgFeedbackScore = typeof feedbackAggregate._avg.rating === 'number'
+      ? Math.round(feedbackAggregate._avg.rating * 10) / 10
       : null
 
     // Comparative performance vs organizer average
@@ -160,7 +164,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         count: item._count.id,
       })),
       feedbackScore: avgFeedbackScore,
-      feedbackCount: feedbackResponses.length,
+      feedbackCount,
       vsAverage,
       avgRegistrations,
       aiInsightsFreeUsed: event.aiInsightsFreeUsed,

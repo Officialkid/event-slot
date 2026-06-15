@@ -7,6 +7,7 @@ import type { TicketData } from "@/components/tickets/ConfirmationTicket"
 import { APP_URL } from "@/lib/config"
 import { AddToCalendarButton } from "@/components/AddToCalendarButton"
 import { isCalendarConnected } from "@/lib/googleCalendar"
+import { buildGoogleCalendarTemplateUrl } from "@/lib/calendarLinks"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type Answer = { questionId: string; value: string }
@@ -45,6 +46,7 @@ export default async function TicketSuccessPage({
         select: {
           title: true,
           eventDate: true,
+          eventEndAt: true,
           location: true,
           questions: true,
           ticketsEnabled: true,
@@ -54,6 +56,7 @@ export default async function TicketSuccessPage({
         },
       },
       ticket: true,
+      ticketTier: true,
     },
   })
 
@@ -89,6 +92,8 @@ export default async function TicketSuccessPage({
     attendeeName,
     attendeeEmail: attendeeEmail || null,
     attendeePhone: attendeePhone || null,
+    ticketTierName: registration.ticket?.ticketTierName ?? registration.ticketTier?.name ?? null,
+    amountPaidKes: registration.ticket?.amountPaidKes ?? null,
     verifyUrl: `${BASE_URL}/verify/${confirmationCode}`,
   }
 
@@ -106,18 +111,15 @@ export default async function TicketSuccessPage({
 
   let staticGoogleUrl = ""
   if (event.eventDate) {
-    const pad = (n: number) => String(n).padStart(2, "0")
-    const fmtDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
     const start = new Date(event.eventDate)
-    const end   = new Date(start.getTime() + 120 * 60_000)
     const details = `You're registered for ${event.title}!\n\nConfirmation: ${confirmationCode}\n\n${eventUrl}`
-    staticGoogleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-      `&text=${encodeURIComponent(event.title)}` +
-      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
-      `&details=${encodeURIComponent(details)}` +
-      (event.location ? `&location=${encodeURIComponent(event.location)}` : "")
+    staticGoogleUrl = buildGoogleCalendarTemplateUrl({
+      title: event.title,
+      description: details,
+      location: event.location,
+      startDate: start,
+      endDate: event.eventEndAt ? new Date(event.eventEndAt) : null,
+    })
   }
 
   return (

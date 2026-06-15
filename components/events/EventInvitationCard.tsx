@@ -121,6 +121,8 @@ export default function EventInvitationCard({
             alt={title}
             fill
             sizes="100vw"
+            quality={100}
+            unoptimized
             style={{ objectFit: "cover", objectPosition: "center" }}
             onError={handlePosterError}
           />

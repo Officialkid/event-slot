@@ -11,6 +11,8 @@ export type TicketData = {
   attendeeName: string
   attendeeEmail: string | null
   attendeePhone: string | null
+  ticketTierName?: string | null
+  amountPaidKes?: number | null
   verifyUrl: string
 }
 
@@ -110,6 +112,20 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
             <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", margin: "0.05rem 0" }}>
               {ticket.attendeePhone}
             </p>
+          )}
+          {(ticket.ticketTierName || ticket.amountPaidKes) && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+              {ticket.ticketTierName && (
+                <span style={{ display: "inline-flex", alignItems: "center", border: "1px solid rgba(200,245,90,0.25)", background: "rgba(200,245,90,0.08)", color: "#C8F55A", borderRadius: 999, padding: "0.24rem 0.65rem", fontSize: "0.7rem", fontWeight: 600 }}>
+                  {ticket.ticketTierName}
+                </span>
+              )}
+              {ticket.amountPaidKes ? (
+                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.5)" }}>
+                  Paid KES {ticket.amountPaidKes.toLocaleString()}
+                </span>
+              ) : null}
+            </div>
           )}
 
           <hr style={{ border: "none", borderTop: "0.5px solid rgba(240,237,230,0.1)", margin: "0.75rem 0 0.5rem" }} />

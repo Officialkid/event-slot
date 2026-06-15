@@ -64,13 +64,13 @@ gcloud artifacts repositories create eventslot --repository-format=docker --loca
 PowerShell helper:
 
 ```powershell
-./scripts/deploy-gcp.ps1 -ProjectId YOUR_GCP_PROJECT_ID -Region us-central1 -Service eventslot-web -Repository eventslot
+./scripts/deploy-gcp.ps1 -Region us-central1 -Service eventslot-web -Repository eventslot
 ```
 
 Or direct Cloud Build command:
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml --substitutions _REGION=us-central1,_SERVICE=eventslot-web,_REPOSITORY=eventslot
+gcloud builds submit --project eventslot --config cloudbuild.yaml --substitutions _REGION=us-central1,_SERVICE=eventslot-web,_REPOSITORY=eventslot
 ```
 
 ### Configure Cloud Run environment variables
@@ -97,7 +97,9 @@ For Phase 4 signed ticket QR payloads, ensure Secret Manager contains:
 
 ## Current Deployment Model
 
+- Canonical Google Cloud project: `eventslot` (`458973844514`)
 - Primary deployment target: Google Cloud Run
+- Production scaling baseline: 1 minimum instance, 20 maximum instances
 - Build pipeline: Cloud Build (`cloudbuild.yaml`)
 - Container source: `Dockerfile`
 - Local Docker Compose files are kept for local workflows, but production hosting should use Cloud Run.

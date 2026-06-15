@@ -10,6 +10,7 @@ import { JoinEventButton } from "@/components/JoinEventButton"
 import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
 import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
 import { APP_URL } from "@/lib/config"
+import { parseEventContact } from "@/lib/eventContact"
 
 type EventQuestion = {
   id: string
@@ -17,6 +18,17 @@ type EventQuestion = {
   type: string
   options?: string[]
   required: boolean
+}
+
+type PublicTicketTier = {
+  id: string
+  name: string
+  priceKes: number
+  capacity: number
+  description?: string | null
+  soldCount: number
+  waitlistCount: number
+  bundleSize: number
 }
 
 function toIsoOrNull(value: unknown): string | null {
@@ -121,8 +133,23 @@ const getEventBySlug = unstable_cache(
       communityLink: true,
       imageUrl: true,
       status: true,
+      isPaid: true,
       faqEnabled: true,
       whatsappNumber: true,
+      ticketTiers: {
+        where: { status: "ACTIVE" },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          name: true,
+          priceKes: true,
+          capacity: true,
+          description: true,
+          soldCount: true,
+          waitlistCount: true,
+          bundleSize: true,
+        },
+      },
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
       organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
@@ -265,8 +292,9 @@ export default async function PublicProfilePage({
     // Typed local refs for new FAQ/WhatsApp fields (Prisma types may be stale in TS server)
     const eventFaqs = (event as unknown as { faqs: { id: string; question: string; answer: string }[] }).faqs ?? []
     const eventWhatsapp = (event as unknown as { whatsappNumber: string | null }).whatsappNumber ?? null
+    const parsedContact = parseEventContact(eventWhatsapp)
     const eventDateLabel = formatEventDateLabel(event.eventDate)
-    const hasWhatsapp = Boolean(eventWhatsapp)
+    const hasWhatsapp = Boolean(parsedContact?.number)
     return (
       <div className={`min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`}>
         <div className="mx-auto max-w-[1120px]">
@@ -304,6 +332,8 @@ export default async function PublicProfilePage({
                   organizerName: event.organizer?.name ?? null,
                   deadline: toIsoOrNull(event.deadline),
                   eventDate: toIsoOrNull(event.eventDate),
+                  isPaid: event.isPaid,
+                  ticketTiers: event.ticketTiers as PublicTicketTier[],
                 }}
                 showBranding={showBranding}
                 maxAttendees={maxAttendees}
@@ -327,9 +357,10 @@ export default async function PublicProfilePage({
             </section>
           </div>
         </div>
-        {eventWhatsapp && (
+        {parsedContact && (
           <WhatsAppFloatingButton
-            whatsappNumber={eventWhatsapp}
+            contactNumber={parsedContact.number}
+            contactMode={parsedContact.mode}
             eventTitle={event.title}
             eventDate={eventDateLabel}
           />

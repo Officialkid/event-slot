@@ -1,6 +1,7 @@
 param(
-  [Parameter(Mandatory = $true)]
-  [string]$ProjectId,
+  [Parameter(Mandatory = $false)]
+  [ValidateSet("eventslot")]
+  [string]$ProjectId = "eventslot",
 
   [Parameter(Mandatory = $false)]
   [string]$Region = "us-central1",

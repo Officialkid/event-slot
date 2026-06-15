@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
+import type { EventContactMode } from "@/lib/eventContact"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -16,6 +17,15 @@ type Question = {
   required: boolean
   options: string[]
   allowMultiple?: boolean
+}
+
+type TicketTierDraft = {
+  id: string
+  name: string
+  priceKes: string
+  capacity: string
+  description: string
+  bundleSize: string
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
@@ -36,6 +46,15 @@ const defaultQuestion = (): Question => ({
 
 const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
 
+const defaultTicketTier = (): TicketTierDraft => ({
+  id: uuidv4(),
+  name: "Standard",
+  priceKes: "500",
+  capacity: "",
+  description: "",
+  bundleSize: "1",
+})
+
 export default function CreateEventPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -47,12 +66,15 @@ export default function CreateEventPage() {
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
+  const [eventEndAt, setEventEndAt] = useState("")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
+  const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
   const [communityLink, setCommunityLink] = useState("")
   const [whatsappNumber, setWhatsappNumber] = useState("")
+  const [contactMode, setContactMode] = useState<EventContactMode>("WHATSAPP")
   const [imageUrl, setImageUrl] = useState("")
   const [organizerName, setOrganizerName] = useState("")
   const [organizerEmail, setOrganizerEmail] = useState("")
@@ -268,6 +290,32 @@ export default function CreateEventPage() {
       return qs.filter((_, i) => i !== idx)
     })
 
+  const updateTicketTier = (id: string, field: keyof TicketTierDraft, value: string) => {
+    setTicketTiers((tiers) => tiers.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)))
+  }
+
+  const addTicketTier = () => {
+    if (ticketTiers.length >= 10) return
+    setTicketTiers((tiers) => [
+      ...tiers,
+      {
+        id: uuidv4(),
+        name: "",
+        priceKes: "",
+        capacity: "",
+        description: "",
+        bundleSize: "1",
+      },
+    ])
+  }
+
+  const removeTicketTier = (id: string) => {
+    setTicketTiers((tiers) => {
+      if (tiers.length <= 1) return tiers
+      return tiers.filter((tier) => tier.id !== id)
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
@@ -283,6 +331,19 @@ export default function CreateEventPage() {
       setLoading(false)
       setError("Please enter a ticket price for paid events.")
       return
+    }
+
+    if (isPaid) {
+      const invalidTier = ticketTiers.find((tier) => {
+        const price = Number(tier.priceKes)
+        const tierCapacity = Number(tier.capacity || capacity)
+        return !tier.name.trim() || !price || price < 50 || !tierCapacity || tierCapacity < 1
+      })
+      if (invalidTier) {
+        setLoading(false)
+        setError("Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity.")
+        return
+      }
     }
 
     const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
@@ -303,12 +364,23 @@ export default function CreateEventPage() {
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
+          eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           isPaid,
           ticketPrice: isPaid && ticketPrice ? Number(ticketPrice) : undefined,
+          ticketTiers: isPaid
+            ? ticketTiers.map((tier) => ({
+                name: tier.name.trim(),
+                priceKes: Number(tier.priceKes),
+                capacity: Number(tier.capacity || capacity),
+                description: tier.description || undefined,
+                bundleSize: Number(tier.bundleSize || "1"),
+              }))
+            : undefined,
           communityLink: communityLink || undefined,
           whatsappNumber: whatsappNumber || undefined,
+          contactMode,
           imageUrl: imageUrl || undefined,
           questions: questions.map(q => ({
             id: q.id,
@@ -629,6 +701,7 @@ export default function CreateEventPage() {
                       onClick={() => {
                         setIsPaid(false)
                         setTicketPrice("")
+                        setTicketTiers([defaultTicketTier()])
                       }}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         !isPaid
@@ -643,6 +716,7 @@ export default function CreateEventPage() {
                       onClick={() => {
                         setIsPaid(true)
                         setTicketPrice((previous) => previous || "500")
+                        setTicketTiers((previous) => previous.length ? previous : [defaultTicketTier()])
                       }}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         isPaid
@@ -654,39 +728,88 @@ export default function CreateEventPage() {
                     </button>
                   </div>
                   {isPaid && (
-                    <div className="mt-2 rounded-[8px] border border-[rgba(255,184,77,0.3)] bg-[rgba(255,184,77,0.08)] p-3">
-                      <p className="text-[0.75rem] font-semibold text-[#C8F55A]">🔔 Paid Events - Coming Soon</p>
-                      <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
-                        Payment integration is coming very soon. For now, please use the <span className="font-medium text-white">Free</span> option and handle payments manually with your attendees. Your event setup will be saved and payment activation requires no changes when we go live.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsPaid(false)
-                          setTicketPrice("")
-                        }}
-                        className="mt-3 text-xs text-[#C8F55A] underline"
-                      >
-                        Switch to Free →
-                      </button>
-                    </div>
-                  )}
-
-                  {isPaid && (
-                    <div className="mt-2 space-y-2 opacity-50 pointer-events-none">
-                        <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                          Ticket Price (KSh)
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
-                          placeholder="e.g. 500"
-                          value={ticketPrice}
-                          onChange={e => setTicketPrice(e.target.value)}
-                        />
-                        <p className="text-xs text-[#525252]">Minimum KSh 50</p>
+                    <div className="mt-3 space-y-3 rounded-[10px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Ticket tiers</p>
+                          <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
+                            Add up to 10 paid tiers. Event capacity will be the sum of all tier capacities.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addTicketTier}
+                          disabled={ticketTiers.length >= 10}
+                          className="rounded-full border border-[rgba(255,184,77,0.25)] px-3 py-1 text-[0.75rem] text-[#FFB84D] disabled:opacity-40"
+                        >
+                          + Add tier
+                        </button>
                       </div>
+
+                      <div className="space-y-3">
+                        {ticketTiers.map((tier, index) => (
+                          <div key={tier.id} className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-3">
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                              <p className="text-[0.78rem] font-semibold text-[#F0EDE6]">Tier {index + 1}</p>
+                              {ticketTiers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeTicketTier(tier.id)}
+                                  className="text-[0.72rem] text-[#FF6B6B]"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <input
+                                type="text"
+                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                placeholder="Tier name"
+                                value={tier.name}
+                                onChange={e => updateTicketTier(tier.id, "name", e.target.value)}
+                              />
+                              <input
+                                type="number"
+                                min="50"
+                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                placeholder="Price (KES)"
+                                value={tier.priceKes}
+                                onChange={e => {
+                                  updateTicketTier(tier.id, "priceKes", e.target.value)
+                                  if (index === 0) setTicketPrice(e.target.value)
+                                }}
+                              />
+                              <input
+                                type="number"
+                                min="1"
+                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                placeholder="Tier capacity"
+                                value={tier.capacity}
+                                onChange={e => updateTicketTier(tier.id, "capacity", e.target.value)}
+                              />
+                              <input
+                                type="number"
+                                min="1"
+                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                placeholder="Bundle size"
+                                value={tier.bundleSize}
+                                onChange={e => updateTicketTier(tier.id, "bundleSize", e.target.value)}
+                              />
+                            </div>
+
+                            <textarea
+                              className="mt-3 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              rows={2}
+                              placeholder="Optional description of what this tier includes"
+                              value={tier.description}
+                              onChange={e => updateTicketTier(tier.id, "description", e.target.value)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -818,7 +941,7 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Registration Deadline
+                    Registration Deadline (optional)
                   </label>
                   <input
                     type="datetime-local"
@@ -829,7 +952,7 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Event Date
+                    Event Start
                   </label>
                   <input
                     type="datetime-local"
@@ -837,6 +960,20 @@ export default function CreateEventPage() {
                     value={eventDate}
                     onChange={e => setEventDate(e.target.value)}
                   />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Event End (optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    value={eventEndAt}
+                    onChange={e => setEventEndAt(e.target.value)}
+                  />
+                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                    If the deadline is empty, registration will close automatically when the event ends.
+                  </p>
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
@@ -905,22 +1042,33 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    WhatsApp contact (optional)
+                    Contact action (optional)
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    value={contactMode}
+                    onChange={e => setContactMode(e.target.value === "CALL" ? "CALL" : "WHATSAPP")}
+                  >
+                    <option value="WHATSAPP" className="bg-[#141414] text-[#F0EDE6]">Text on WhatsApp</option>
+                    <option value="CALL" className="bg-[#141414] text-[#F0EDE6]">Call organiser</option>
+                  </select>
+                  <label className="mb-1 mt-3 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    Organizer number (optional)
                   </label>
                   <input
                     type="tel"
                     inputMode="tel"
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(37,211,102,0.5)] focus:outline-none"
-                    placeholder="e.g. 254712345678"
+                    placeholder="e.g. +254712345678"
                     value={whatsappNumber}
                     onChange={e => setWhatsappNumber(e.target.value)}
                   />
                   <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
-                    Attendees will see a floating WhatsApp chat button on this event page if you add a number.
+                    Attendees will see either a WhatsApp button or a Call organiser button on the event page.
                   </p>
                   {whatsappNumber.trim() && (
                     <p style={{ fontSize: "0.72rem", color: "#F59E0B", marginTop: "0.35rem" }}>
-                      This number is public on your event page. Use a dedicated events or business line.
+                      This number is public on your event page. Use the full country code, for example +254..., and use a dedicated events or business line where possible.
                     </p>
                   )}
                 </div>
@@ -933,7 +1081,7 @@ export default function CreateEventPage() {
                 Event Poster
               </h2>
               <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
-                Optional flyer or banner. JPEG, PNG, WebP or GIF · max 5 MB.
+                Optional flyer or banner. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved.
               </p>
               {imageUrl && (
                 <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>

@@ -10,6 +10,7 @@ import { authOptions } from '@/lib/auth'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { APP_URL } from '@/lib/config'
+import { getDurationMins } from '@/lib/calendarLinks'
 
 type EmailAttemptResult = {
   registrationId: string
@@ -49,6 +50,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
 
     if (!Number.isInteger(newCapacity) || newCapacity <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid new capacity' }, { status: 400 })
+    }
+
+    if (event.isPaid) {
+      return NextResponse.json({
+        success: false,
+        error: 'Paid-event capacity changes are now managed per ticket tier. Use the ticket tiers editor instead.',
+      }, { status: 400 })
     }
 
     if (event.capacity !== null && newCapacity <= event.capacity) {
@@ -120,6 +128,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
             to: r.attendeeEmail,
             eventTitle: event.title,
             eventDate: event.eventDate ? event.eventDate.toISOString() : null,
+            eventEndAt: event.eventEndAt ? event.eventEndAt.toISOString() : null,
             eventLocation: event.location,
             communityLink: event.communityLink,
             ticketUrl: r.confirmationCode ? `${BASE_URL}/register/success/${r.confirmationCode}` : null,
@@ -215,7 +224,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
                 ].join('\n'),
                 location:     event.location,
                 startDate:    new Date(event.eventDate!),
-                durationMins: 120,
+                durationMins: getDurationMins(event.eventDate, event.eventEndAt),
                 eventUrl,
                 isVirtual,
                 meetingLink,

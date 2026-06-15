@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { isCalendarConnected } from '@/lib/googleCalendar'
 import { AddToCalendarButton } from '@/components/AddToCalendarButton'
 import { APP_URL } from '@/lib/config'
+import { buildGoogleCalendarTemplateUrl } from '@/lib/calendarLinks'
 
 export default async function RegistrationStatusPage(props: { params: Promise<{ registrationId: string }> }) {
   const params = await props.params;
@@ -32,6 +33,7 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
       slug: true,
       organizerEmail: true,
       eventDate: true,
+      eventEndAt: true,
       location: true,
       communityLink: true,
       status: true,
@@ -63,19 +65,16 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
     if (userId) {
       attendeeCalendarConnected = await isCalendarConnected(userId)
     }
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const fmtDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
     const start = new Date(event.eventDate)
-    const end   = new Date(start.getTime() + 120 * 60_000)
     const waitlistTitle = `[Waitlisted] ${event.title}`
     const details = `You are on the waitlist for ${event.title}.${registration.waitlistPosition != null ? ` Position: #${registration.waitlistPosition}.` : ''}\n\nYou will be notified if a spot opens up.\n\nCheck your status: ${APP_URL}/registration/${registrationId}`
-    staticGoogleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-      `&text=${encodeURIComponent(waitlistTitle)}` +
-      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
-      `&details=${encodeURIComponent(details)}` +
-      (event.location ? `&location=${encodeURIComponent(event.location)}` : '')
+    staticGoogleUrl = buildGoogleCalendarTemplateUrl({
+      title: waitlistTitle,
+      description: details,
+      location: event.location,
+      startDate: start,
+      endDate: event.eventEndAt ? new Date(event.eventEndAt) : null,
+    })
   }
 
   return (

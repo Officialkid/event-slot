@@ -42,11 +42,19 @@ export async function POST(
         status: true,
         confirmationCode: true,
         answers: true,
+        ticket: {
+          select: {
+            ticketTierName: true,
+            amountPaidKes: true,
+            scannedAt: true,
+          },
+        },
         event: {
           select: {
             id: true,
             title: true,
             eventDate: true,
+            eventEndAt: true,
             joinOpensAt: true,
             eventType: true,
             virtualLink: true,
@@ -96,7 +104,9 @@ export async function POST(
     }
 
     const openWindow = registration.event.joinOpensAt ?? new Date(eventStart.getTime() - 30 * 60 * 1000)
-    const eventEnd = new Date(eventStart.getTime() + 4 * 60 * 60 * 1000)
+    const eventEnd = registration.event.eventEndAt
+      ? new Date(registration.event.eventEndAt)
+      : new Date(eventStart.getTime() + 4 * 60 * 60 * 1000)
 
     if (now < openWindow) {
       const minutesUntil = Math.ceil((openWindow.getTime() - now.getTime()) / 60000)
@@ -215,11 +225,19 @@ export async function POST(
       status: true,
       confirmationCode: true,
       answers: true,
+      ticket: {
+        select: {
+          ticketTierName: true,
+          amountPaidKes: true,
+          scannedAt: true,
+        },
+      },
       event: {
         select: {
           id: true,
           title: true,
           eventDate: true,
+          eventEndAt: true,
           joinOpensAt: true,
           eventType: true,
           virtualLink: true,
@@ -275,7 +293,9 @@ export async function POST(
     )
   }
 
-  const eventEnd = new Date(eventStart.getTime() + 4 * 60 * 60 * 1000)
+  const eventEnd = registration.event.eventEndAt
+    ? new Date(registration.event.eventEndAt)
+    : new Date(eventStart.getTime() + 4 * 60 * 60 * 1000)
   const openWindow = registration.event.joinOpensAt ?? new Date(eventStart.getTime() - 30 * 60 * 1000)
 
   if (now < openWindow) {
@@ -344,7 +364,9 @@ export async function POST(
     eventType: registration.event.eventType,
     meetingLink,
     isPaid: registration.event.isPaid,
-    ticketPrice: registration.event.ticketPrice,
+    ticketPrice: registration.ticket?.amountPaidKes ?? registration.event.ticketPrice,
+    ticketTierName: registration.ticket?.ticketTierName ?? null,
+    alreadyVerifiedAt: registration.ticket?.scannedAt?.toISOString() ?? alreadyScanned?.scannedAt?.toISOString() ?? null,
     isDuplicateScan,
     message: successMessage,
   })

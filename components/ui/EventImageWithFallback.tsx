@@ -14,6 +14,7 @@ type EventImageWithFallbackProps = {
   height?: number
   sizes?: string
   priority?: boolean
+  unoptimized?: boolean
   objectFit?: "cover" | "contain"
   objectPosition?: string
   borderRadius?: number | string
@@ -31,6 +32,7 @@ export default function EventImageWithFallback({
   height,
   sizes,
   priority = false,
+  unoptimized = true,
   objectFit = "cover",
   objectPosition = "center",
   borderRadius = 0,
@@ -124,6 +126,8 @@ export default function EventImageWithFallback({
         {...(fill ? { fill: true } : { width: width ?? 1200, height: height ?? 630 })}
         sizes={sizes}
         priority={priority}
+        quality={100}
+        unoptimized={unoptimized}
         style={{ objectFit, objectPosition, borderRadius, ...imageStyle }}
         onLoad={() => onStatusChange?.("loaded")}
         onError={handleImageError}

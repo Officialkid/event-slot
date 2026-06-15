@@ -16,9 +16,16 @@ import { detectCountry } from '@/lib/geoip'
 import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
+import { canAddAttendee, canUseWaitlist } from '@/lib/planEnforcement'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
+
+function getDurationMins(startIso: Date | null | undefined, endIso: Date | null | undefined) {
+  if (!startIso || !endIso) return 120
+  const diff = Math.round((endIso.getTime() - startIso.getTime()) / 60000)
+  return diff > 0 ? diff : 120
+}
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
@@ -55,17 +62,35 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Find event by slug
-    const event = await prisma.event.findUnique({ where: { slug: eventSlug }, include: { organizer: { select: { username: true } } } })
+    const event = await prisma.event.findUnique({ where: { slug: eventSlug }, include: { organizer: { select: { username: true, email: true } } } })
     const eventQuestions = (event?.questions as EventQuestion[] | null) ?? []
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
+    }
+
+    // Plan enforcement — check organizer's attendee cap for this event
+    let planWaitlistForced = false
+    if (event.organizerId) {
+      const organizerEmail = event.organizer?.email ?? ''
+      const attendeeCheck = await canAddAttendee(event.organizerId, event.id, organizerEmail)
+      if (!attendeeCheck.allowed) {
+        const waitlistCheck = await canUseWaitlist(event.organizerId, organizerEmail)
+        if (!waitlistCheck.allowed) {
+          return NextResponse.json(
+            { success: false, error: 'This event is full and the waitlist is not available.', code: 'EVENT_FULL' },
+            { status: 409 }
+          )
+        }
+        planWaitlistForced = true
+      }
     }
 
     // 2. Check deadline / closed status
     if (event.status === 'closed' || event.status === 'COMPLETED') {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
-    if (event.deadline && new Date(event.deadline) < new Date()) {
+    const effectiveCloseAt = event.deadline ?? event.eventEndAt ?? null
+    if (effectiveCloseAt && new Date(effectiveCloseAt) < new Date()) {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
 
@@ -137,6 +162,11 @@ export async function POST(req: NextRequest) {
           status = 'waitlist'
         } else {
           status = 'confirmed'
+        }
+
+        // Override to waitlist if organizer's plan attendee cap is reached
+        if (planWaitlistForced) {
+          status = 'waitlist'
         }
 
         const emailAnswer = attendee.answers.find(a => {
@@ -347,7 +377,7 @@ export async function POST(req: NextRequest) {
               description:  `You're registered for ${event.title}!\n\nConfirmation: ${reg.confirmationCode}`,
               location:     event.location,
               startDate:    new Date(event.eventDate),
-              durationMins: 120,
+              durationMins: getDurationMins(event.eventDate, event.eventEndAt),
               eventUrl,
               isVirtual,
               meetingLink,
@@ -412,7 +442,7 @@ export async function POST(req: NextRequest) {
                 ].join('\n'),
                 location:     event.location,
                 startDate:    new Date(event.eventDate),
-                durationMins: 120,
+                durationMins: getDurationMins(event.eventDate, event.eventEndAt),
                 eventUrl,
                 isVirtual:    event.eventType === 'VIRTUAL',
                 meetingLink:  null, // No meeting link for waitlisted attendees

@@ -2,6 +2,7 @@
 import { getOrCreateReferralLink } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { env } from '@/lib/env'
+import { buildGoogleCalendarTemplateUrl } from '@/lib/calendarLinks'
 
 function getResendClient() {
   const apiKey = env.RESEND_API_KEY
@@ -14,6 +15,24 @@ function getResendClient() {
 const BASE_URL = APP_URL
 const EMAIL_FROM = env.RESEND_FROM || 'EventSlot <onboarding@resend.dev>'
 
+function extractEmailAddress(sender: string): string {
+  const match = sender.match(/<([^>]+)>/)
+  return (match?.[1] ?? sender).trim()
+}
+
+function extractDisplayName(sender: string): string | null {
+  const match = sender.match(/^\s*"?([^"<]+?)"?\s*<[^>]+>\s*$/)
+  return match?.[1]?.trim() ?? null
+}
+
+function getVerifiedSender(preferredFrom?: string): string {
+  const verifiedAddress = extractEmailAddress(EMAIL_FROM)
+  const preferredName = preferredFrom ? extractDisplayName(preferredFrom) : null
+  const fallbackName = extractDisplayName(EMAIL_FROM) ?? 'EventSlot'
+  const displayName = preferredName || fallbackName
+  return `${displayName} <${verifiedAddress}>`
+}
+
 type InternalEmailOptions = {
   to: string | string[]
   subject: string
@@ -24,10 +43,11 @@ type InternalEmailOptions = {
 
 async function sendEmail(options: InternalEmailOptions) {
   const resend = getResendClient()
+  const verifiedFrom = getVerifiedSender(options.from)
   const { error } = await resend.emails.send({
     ...options,
-    // Always use configured sender to avoid delivery failures from unverified hardcoded domains.
-    from: options.from ?? EMAIL_FROM,
+    // Always use the verified sender address, even if callers pass a branded alias.
+    from: verifiedFrom,
   } as Parameters<Resend['emails']['send']>[0])
   if (error) {
     console.error('[email] Resend send error:', error)
@@ -156,6 +176,7 @@ export async function sendWaitlistPromotedEmail({
   to,
   eventTitle,
   eventDate,
+  eventEndAt,
   eventLocation,
   communityLink,
   ticketUrl,
@@ -164,6 +185,7 @@ export async function sendWaitlistPromotedEmail({
   to: string
   eventTitle: string
   eventDate?: string | null
+  eventEndAt?: string | Date | null
   eventLocation?: string | null
   communityLink?: string | null
   ticketUrl?: string | null
@@ -191,19 +213,16 @@ export async function sendWaitlistPromotedEmail({
 
   let calendarSection = ''
   if (eventDate && eventSlug) {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const fmtDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
     const start = new Date(eventDate)
-    const end   = new Date(start.getTime() + 120 * 60_000)
     const details = `Confirmed! You're attending ${eventTitle}.`
-    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-      `&text=${encodeURIComponent(eventTitle)}` +
-      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
-      `&details=${encodeURIComponent(details)}` +
-      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
-    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    const googleCalUrl = buildGoogleCalendarTemplateUrl({
+      title: eventTitle,
+      description: details,
+      location: eventLocation,
+      startDate: start,
+      endDate: eventEndAt ? new Date(eventEndAt) : null,
+    })
+    const icsUrl = `${APP_URL}/api/events/${eventSlug}/calendar.ics`
     calendarSection = `
       <div style="margin-top: 20px; padding: 16px; background: #141414;
                    border: 1px solid rgba(34,197,94,0.3); border-radius: 12px;">
@@ -258,6 +277,7 @@ export async function sendWaitlistJoinedEmail({
   eventTitle,
   waitlistPosition,
   eventDate,
+  eventEndAt,
   eventSlug,
   eventLocation,
 }: {
@@ -265,24 +285,22 @@ export async function sendWaitlistJoinedEmail({
   eventTitle: string
   waitlistPosition?: number | null
   eventDate?: string | Date | null
+  eventEndAt?: string | Date | null
   eventSlug?: string | null
   eventLocation?: string | null
 }) {
   let calendarSection = ''
   if (eventDate && eventSlug) {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const fmtDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
     const start = new Date(eventDate)
-    const end   = new Date(start.getTime() + 120 * 60_000)
     const details = `You are on the waitlist for ${eventTitle}.${waitlistPosition != null ? ` Position: #${waitlistPosition}.` : ''}\n\nYou will be notified if a spot opens up.`
-    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-      `&text=${encodeURIComponent(`[Waitlisted] ${eventTitle}`)}` +
-      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
-      `&details=${encodeURIComponent(details)}` +
-      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
-    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    const googleCalUrl = buildGoogleCalendarTemplateUrl({
+      title: `[Waitlisted] ${eventTitle}`,
+      description: details,
+      location: eventLocation,
+      startDate: start,
+      endDate: eventEndAt ? new Date(eventEndAt) : null,
+    })
+    const icsUrl = `${APP_URL}/api/events/${eventSlug}/calendar.ics`
     calendarSection = `
       <div style="margin-top: 20px; padding: 16px; background: #1a1a0a;
                    border: 1px solid rgba(245,158,11,0.3); border-radius: 12px;">
@@ -337,6 +355,7 @@ export async function sendConfirmationEmail({
   confirmationNumber,
   userId,
   eventDate,
+  eventEndAt,
   eventSlug,
   eventLocation,
 }: {
@@ -346,6 +365,7 @@ export async function sendConfirmationEmail({
   confirmationNumber: string
   userId?: string | null
   eventDate?: string | Date | null
+  eventEndAt?: string | Date | null
   eventSlug?: string | null
   eventLocation?: string | null
 }) {
@@ -356,19 +376,16 @@ export async function sendConfirmationEmail({
   // Build inline Google Calendar URL if date is available
   let calendarSection = ''
   if (eventDate && eventSlug) {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const fmtDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T` +
-      `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
     const start = new Date(eventDate)
-    const end   = new Date(start.getTime() + 120 * 60_000)
     const details = `You're registered for ${eventTitle}!\n\nConfirmation: ${confirmationNumber}`
-    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-      `&text=${encodeURIComponent(eventTitle)}` +
-      `&dates=${fmtDate(start)}/${fmtDate(end)}` +
-      `&details=${encodeURIComponent(details)}` +
-      (eventLocation ? `&location=${encodeURIComponent(eventLocation)}` : '')
-    const icsUrl = `https://www.eventsslot.com/api/events/${eventSlug}/calendar.ics`
+    const googleCalUrl = buildGoogleCalendarTemplateUrl({
+      title: eventTitle,
+      description: details,
+      location: eventLocation,
+      startDate: start,
+      endDate: eventEndAt ? new Date(eventEndAt) : null,
+    })
+    const icsUrl = `${APP_URL}/api/events/${eventSlug}/calendar.ics`
     calendarSection = `
     <div style="border-top:1px solid #2A2A2A;padding-top:16px;margin-top:16px;">
       <p style="color:#525252;font-size:12px;margin:0 0 8px;">Add to your calendar</p>
