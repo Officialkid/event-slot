@@ -9,7 +9,7 @@ import { APP_URL }                   from '@/lib/config';
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.redirect(`${APP_URL}/login`);
+    return NextResponse.redirect(`${APP_URL}/signin`);
   }
 
   const { searchParams } = new URL(req.url);

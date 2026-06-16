@@ -1064,7 +1064,9 @@ export default function CreateEventPage() {
                     onChange={e => setJoinOpensAt(e.target.value)}
                   />
                   <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
-                    Leave empty to auto-open 30 minutes before the event start.
+                    {isWalkInEvent
+                      ? "You can create and share this link ahead of time. Before the event starts, attendees will simply see that check-in is not open yet."
+                      : "Leave empty to auto-open 30 minutes before the event start."}
                   </p>
                 </div>
                 <div>

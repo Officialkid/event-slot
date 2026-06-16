@@ -277,6 +277,7 @@ export default function ProfilePage() {
   const [securitySaving, setSecuritySaving] = useState(false)
   const [securitySuccess, setSecuritySuccess] = useState(false)
   const [securityError, setSecurityError] = useState("")
+  const [calendarFeedback, setCalendarFeedback] = useState("")
 
   // Password form
   const [currentPw, setCurrentPw] = useState("")
@@ -306,6 +307,13 @@ export default function ProfilePage() {
   useEffect(() => {
     const calendarParam = searchParams?.get("calendar")
     if (!calendarParam) return
+    const messageMap: Record<string, string> = {
+      connected: "Google Calendar connected successfully.",
+      denied: "Google Calendar connection was cancelled.",
+      error: "Google Calendar could not be connected. Please try again.",
+      unavailable: "Google Calendar is not fully configured yet.",
+    }
+    setCalendarFeedback(messageMap[calendarParam] ?? "")
     // Toast notifications handled by redirect page feedback, not here
     // Remove the query param from URL without reload
     const url = new URL(window.location.href)
@@ -894,6 +902,22 @@ export default function ProfilePage() {
         </div>
 
         <div id="calendar" style={{ marginBottom: "1.25rem" }}>
+          {calendarFeedback && (
+            <div
+              style={{
+                marginBottom: "0.75rem",
+                border: "0.5px solid rgba(200,245,90,0.2)",
+                background: "rgba(200,245,90,0.06)",
+                borderRadius: 10,
+                padding: "0.75rem 0.9rem",
+                fontSize: "0.82rem",
+                color: "rgba(240,237,230,0.78)",
+                fontFamily: "var(--font-dm-sans)",
+              }}
+            >
+              {calendarFeedback}
+            </div>
+          )}
           <GoogleCalendarConnect
             isConnected={!!profile.calendarConnected}
             variant="profile"

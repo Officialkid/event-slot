@@ -4,22 +4,35 @@
 
 import { google } from 'googleapis';
 import { prisma } from './prisma';
+import { APP_URL } from './config';
+
+function getCalendarConfig() {
+  const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
+  const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '';
+  const redirectUri =
+    process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
+    `${APP_URL}/api/auth/google-calendar/callback`;
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+  };
+}
 
 // Guard: if Google Calendar is not configured, skip silently
 function isCalendarConfigured(): boolean {
-  return !!(
-    process.env.GOOGLE_CALENDAR_CLIENT_ID &&
-    process.env.GOOGLE_CALENDAR_CLIENT_SECRET &&
-    process.env.GOOGLE_CALENDAR_REDIRECT_URI
-  );
+  const { clientId, clientSecret, redirectUri } = getCalendarConfig();
+  return !!(clientId && clientSecret && redirectUri);
 }
 
 // OAuth2 client — singleton factory
 function createOAuth2Client() {
+  const { clientId, clientSecret, redirectUri } = getCalendarConfig();
   return new google.auth.OAuth2(
-    process.env.GOOGLE_CALENDAR_CLIENT_ID,
-    process.env.GOOGLE_CALENDAR_CLIENT_SECRET,
-    process.env.GOOGLE_CALENDAR_REDIRECT_URI
+    clientId,
+    clientSecret,
+    redirectUri
   );
 }
 
@@ -426,3 +439,5 @@ export async function disconnectGoogleCalendar(userId: string): Promise<void> {
     data:  { googleCalendarConnected: false },
   });
 }
+
+export { isCalendarConfigured };
