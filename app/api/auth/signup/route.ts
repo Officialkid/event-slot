@@ -34,7 +34,10 @@ export async function POST(req: Request) {
       )
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const normalizedEmail = email.trim()
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    })
     if (existing) {
       const googleAccount = await prisma.account.findFirst({
         where: { userId: existing.id, provider: 'google' },
@@ -63,10 +66,11 @@ export async function POST(req: Request) {
     const newUser = await prisma.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         password: hashed,
         consentSystemEmails: true,
         marketingConsent: true,
+        otpRequired: true,
       },
       select: { id: true },
     })

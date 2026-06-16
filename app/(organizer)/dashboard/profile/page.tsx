@@ -12,6 +12,7 @@ interface ProfileData {
   image: string | null
   hasPassword: boolean
   calendarConnected: boolean
+  twoFactorEnabled: boolean
 }
 
 // ─── Input component ─────────────────────────────────────────────────────────
@@ -263,6 +264,12 @@ export default function ProfilePage() {
   const [detailsSuccess, setDetailsSuccess] = useState(false)
   const [detailsError, setDetailsError] = useState("")
 
+  // Security
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [securitySaving, setSecuritySaving] = useState(false)
+  const [securitySuccess, setSecuritySuccess] = useState(false)
+  const [securityError, setSecurityError] = useState("")
+
   // Password form
   const [currentPw, setCurrentPw] = useState("")
   const [newPw, setNewPw] = useState("")
@@ -283,6 +290,7 @@ export default function ProfilePage() {
       .then((data: ProfileData) => {
         setProfile(data)
         setName(data.name ?? "")
+        setTwoFactorEnabled(!!data.twoFactorEnabled)
       })
   }, [])
 
@@ -379,6 +387,35 @@ export default function ProfilePage() {
   }
 
   // ── Password handler ────────────────────────────────────────────────────────
+
+  async function handleTwoFactorToggle(nextValue: boolean) {
+    const previousValue = twoFactorEnabled
+    setTwoFactorEnabled(nextValue)
+    setSecurityError("")
+    setSecuritySaving(true)
+
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ twoFactorEnabled: nextValue }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error ?? "Failed to update 2FA setting")
+      }
+
+      setProfile(prev => (prev ? { ...prev, twoFactorEnabled: nextValue } : prev))
+      setSecuritySuccess(true)
+      setTimeout(() => setSecuritySuccess(false), 2500)
+    } catch (error) {
+      setTwoFactorEnabled(previousValue)
+      setSecurityError(error instanceof Error ? error.message : "Failed to update 2FA setting")
+    } finally {
+      setSecuritySaving(false)
+    }
+  }
 
   async function handlePasswordSave(e: React.FormEvent) {
     e.preventDefault()
@@ -780,6 +817,74 @@ export default function ProfilePage() {
         )}
 
         {/* ── Google Calendar card ── */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <Card>
+            <SectionHeading>Two-factor email codes</SectionHeading>
+            <p
+              style={{
+                margin: "0 0 1rem",
+                fontSize: "0.85rem",
+                color: "rgba(240,237,230,0.48)",
+                fontFamily: "var(--font-dm-sans)",
+                lineHeight: 1.6,
+              }}
+            >
+              When enabled, EventSlot sends a 6-digit code to your email before the sign-in completes.
+            </p>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                cursor: securitySaving ? "default" : "pointer",
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "0.9rem",
+                color: "#F0EDE6",
+              }}
+            >
+              <span style={{ position: "relative", display: "inline-flex", width: 20, height: 20 }}>
+                <input
+                  type="checkbox"
+                  checked={twoFactorEnabled}
+                  onChange={e => void handleTwoFactorToggle(e.target.checked)}
+                  disabled={securitySaving}
+                  style={checkboxStyle}
+                />
+                <span
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 5,
+                    border: "0.5px solid rgba(240,237,230,0.18)",
+                    background: twoFactorEnabled ? "#C8F55A" : "rgba(10,10,10,0.92)",
+                    color: twoFactorEnabled ? "#0A0A0A" : "transparent",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓
+                </span>
+              </span>
+              Require email OTP on sign-in
+            </label>
+            <div style={{ marginTop: "0.75rem", minHeight: "1.1rem" }}>
+              {securitySuccess && (
+                <span style={{ fontSize: "0.8rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                  Two-factor setting updated
+                </span>
+              )}
+              {securityError && (
+                <span style={{ fontSize: "0.8rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
+                  {securityError}
+                </span>
+              )}
+            </div>
+          </Card>
+        </div>
+
         <div id="calendar" style={{ marginBottom: "1.25rem" }}>
           <GoogleCalendarConnect
             isConnected={!!profile.calendarConnected}

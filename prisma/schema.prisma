@@ -15,6 +15,7 @@ model Event {
   title            String
   description      String?
   slug             String    @unique
+  accessType       EventAccessType @default(REGISTRATION)
   capacity         Int?
   deadline         DateTime?
   confirmedCount   Int       @default(0)
@@ -55,6 +56,7 @@ model Event {
   paidOrders       PaidEventOrder[]
   payments         Payment[]
   registrations    Registration[]
+  walkInCheckins   WalkInCheckin[]
   views            EventView[]
   feedback         AttendeeFeedback[]
   unlocks          EventUnlock[]
@@ -80,6 +82,24 @@ model EventFAQ {
 enum EventType {
   PHYSICAL
   VIRTUAL
+}
+
+enum EventAccessType {
+  REGISTRATION
+  WALK_IN
+}
+
+model WalkInCheckin {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  dayDate   DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, phone, dayDate])
+  @@index([eventId, dayDate])
 }
 
 model EntryLog {
@@ -118,6 +138,8 @@ model User {
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
   marketingConsent         Boolean   @default(false)
+  twoFactorEnabled         Boolean   @default(false)
+  otpRequired              Boolean   @default(false)
   googleCalendarConnected  Boolean   @default(false)
   onboardingCompleted      Boolean   @default(false)
   onboardingStep           Int       @default(0)

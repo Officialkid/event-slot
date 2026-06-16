@@ -13,7 +13,14 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, email: true, image: true, password: true, googleCalendarConnected: true },
+      select: {
+        name: true,
+        email: true,
+        image: true,
+        password: true,
+        googleCalendarConnected: true,
+        twoFactorEnabled: true,
+      },
     })
 
     if (!user) {
@@ -26,6 +33,7 @@ export async function GET() {
       image: user.image,
       hasPassword: !!user.password,
       calendarConnected: !!user.googleCalendarConnected,
+      twoFactorEnabled: !!user.twoFactorEnabled,
     })
   } catch (err) {
     console.error("[profile] GET error:", err)
@@ -55,15 +63,23 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    const { name } = parsed.data
+    const { name, twoFactorEnabled } = parsed.data
+    const data: { name?: string; twoFactorEnabled?: boolean } = {}
 
-    if (!name || name.trim().length === 0) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    if (typeof name === "string" && name.trim().length > 0) {
+      data.name = name.trim()
+    }
+    if (typeof twoFactorEnabled === "boolean") {
+      data.twoFactorEnabled = twoFactorEnabled
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "No changes provided" }, { status: 400 })
     }
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { name: name.trim() },
+      data,
     })
 
     return NextResponse.json({ success: true })

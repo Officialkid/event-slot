@@ -6,6 +6,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(500).optional().nullable(),
   website: z.string().url().max(500).optional().nullable().or(z.literal('')),
   consentSystemEmails: z.boolean().optional(),
+  twoFactorEnabled: z.boolean().optional(),
 })
 
 export const changePasswordSchema = z.object({

@@ -14,6 +14,9 @@ export default function SignUpPage() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpRequired, setOtpRequired] = useState(false)
+  const [otpHint, setOtpHint] = useState('')
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -49,7 +52,21 @@ export default function SignUpPage() {
         setLoading(false)
         return
       }
-      const result = await signIn('credentials', { email, password, callbackUrl: '/my-events', redirect: false })
+      const result = await signIn('credentials', {
+        email,
+        password,
+        otp: otpRequired ? otp : '',
+        callbackUrl: '/my-events',
+        redirect: false,
+      })
+
+      if (result?.error === 'OTP_REQUIRED') {
+        setOtpRequired(true)
+        setOtpHint('We sent a 6-digit code to your email. Enter it below to finish creating your account.')
+        setLoading(false)
+        return
+      }
+
       if (result?.error) {
         setError('Account created, but automatic sign-in failed. Please sign in manually.')
         setLoading(false)
@@ -187,6 +204,27 @@ export default function SignUpPage() {
             style={inputStyle}
           />
 
+          {otpRequired && (
+            <>
+              <input
+                type="text"
+                placeholder="6-digit verification code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                style={inputStyle}
+              />
+              {otpHint && (
+                <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                  {otpHint}
+                </p>
+              )}
+            </>
+          )}
+
           {error && (
             <p
               style={{
@@ -266,7 +304,7 @@ export default function SignUpPage() {
               marginTop: '0.25rem',
             }}
           >
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? 'Creating account...' : otpRequired ? 'Verify code and continue' : 'Create account'}
           </button>
         </form>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { normalizeEmailForOtp, verifyOtpForEmail } from "@/lib/emailOtp"
 
 export const dynamic = "force-dynamic"
 
@@ -10,15 +11,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email and OTP required" }, { status: 400 })
   }
 
-  const record = await prisma.emailOTP.findFirst({
-    where: {
-      email,
-      otp,
-      used: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  })
+  const normalizedEmail = normalizeEmailForOtp(email)
+  const record = await verifyOtpForEmail(normalizedEmail, otp)
 
   if (!record) {
     return NextResponse.json(
@@ -27,14 +21,12 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  await prisma.emailOTP.update({
-    where: { id: record.id },
-    data: { used: true },
-  })
-
   await prisma.user.updateMany({
-    where: { email },
-    data: { emailVerified: new Date() },
+    where: { email: normalizedEmail },
+    data: {
+      emailVerified: new Date(),
+      otpRequired: false,
+    },
   })
 
   return NextResponse.json({ success: true, verified: true })

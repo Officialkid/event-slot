@@ -4,11 +4,12 @@ import type { Provider } from 'next-auth/providers/index'
 import GoogleProvider from 'next-auth/providers/google'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
 import { getConfiguredAdminEmails, isAdminEmail } from '@/lib/isAdmin'
 import { checkAndAwardPioneerBadge } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
+import { issueOtpForEmail, normalizeEmailForOtp, verifyOtpForEmail } from '@/lib/emailOtp'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -23,7 +24,6 @@ function normalizeTier(plan: string | null | undefined): 'FREE' | 'PRO' | 'BUSIN
 
 const providers: Provider[] = []
 
-// Keep credentials auth available even if Google OAuth env vars are missing.
 if (googleClientId && googleClientSecret) {
   providers.push(
     GoogleProvider({
@@ -49,16 +49,57 @@ providers.push(
     credentials: {
       email: { label: 'Email', type: 'email' },
       password: { label: 'Password', type: 'password' },
+      otp: { label: 'Verification code', type: 'text' },
+      rememberMe: { label: 'Remember me', type: 'text' },
     },
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null
-      const user = await prisma.user.findUnique({
-        where: { email: credentials.email },
+
+      const normalizedEmail = normalizeEmailForOtp(credentials.email)
+      const user = await prisma.user.findFirst({
+        where: {
+          email: { equals: normalizedEmail, mode: 'insensitive' },
+        },
       })
-      if (!user || !user.password) return null
-      if (user.suspended) return null
+
+      if (!user || !user.password || user.suspended) return null
+
       const valid = await bcrypt.compare(credentials.password, user.password)
       if (!valid) return null
+
+      const requiresOtp = Boolean(user.twoFactorEnabled || user.otpRequired)
+      const submittedOtp = typeof credentials.otp === 'string' ? credentials.otp.trim() : ''
+
+      if (requiresOtp && !submittedOtp) {
+        try {
+          await issueOtpForEmail(normalizedEmail)
+        } catch (error) {
+          if (error instanceof Error && error.name === 'OTP_RATE_LIMIT') {
+            throw new Error('OTP_RATE_LIMIT')
+          }
+          throw error
+        }
+
+        throw new Error('OTP_REQUIRED')
+      }
+
+      if (requiresOtp && submittedOtp) {
+        const record = await verifyOtpForEmail(normalizedEmail, submittedOtp)
+        if (!record) {
+          throw new Error('INVALID_OTP')
+        }
+
+        if (user.otpRequired || !user.emailVerified) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              otpRequired: false,
+              emailVerified: user.emailVerified ?? new Date(),
+            },
+          })
+        }
+      }
+
       return user
     },
   })
@@ -67,7 +108,14 @@ providers.push(
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers,
-  session: { strategy: 'jwt' as const },
+  session: {
+    strategy: 'jwt' as const,
+    maxAge: 60 * 60 * 24 * 365,
+    updateAge: 60 * 60 * 24,
+  },
+  jwt: {
+    maxAge: 60 * 60 * 24 * 365,
+  },
   pages: {
     signIn: '/signin',
     signOut: '/signin',
@@ -157,7 +205,6 @@ export const authOptions = {
             session.user.tier = normalizeTier(user.plan)
           }
         } catch (error) {
-          // CRITICAL: never let session callback crash — return partial session
           console.error('[NextAuth session callback error]', error)
         }
       }
@@ -202,3 +249,4 @@ export const authOptions = {
     },
   },
 }
+

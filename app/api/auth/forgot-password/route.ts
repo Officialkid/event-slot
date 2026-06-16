@@ -13,7 +13,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const normalizedEmail = email.trim()
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    })
     if (!user) {
       return NextResponse.json({ ok: true })
     }
@@ -31,7 +34,7 @@ export async function POST(req: Request) {
     })
 
     // Fire-and-forget
-    sendPasswordResetEmail({ to: email, token: rawToken }).catch(() => {})
+    sendPasswordResetEmail({ to: normalizedEmail, token: rawToken }).catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch {

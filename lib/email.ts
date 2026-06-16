@@ -721,6 +721,41 @@ export async function sendPasswordResetEmail({
   })
 }
 
+export async function sendEmailOtp({
+  to,
+  otp,
+}: {
+  to: string
+  otp: string
+}) {
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `${otp} - Your EventSlot verification code`,
+    html: `
+      <div style="background:#0A0A0A;padding:40px;font-family:sans-serif;max-width:400px;">
+        <div style="margin-bottom:24px;">
+          <span style="font-size:20px;font-weight:bold;color:#fff;">Event</span>
+          <span style="font-size:20px;font-weight:bold;color:#C8F55A;">Slot</span>
+        </div>
+        <h2 style="color:#fff;margin-bottom:8px;">Verify your email</h2>
+        <p style="color:#A3A3A3;font-size:14px;margin-bottom:24px;">
+          Enter this code to verify your email address.
+          It expires in 10 minutes.
+        </p>
+        <div style="background:#141414;border:2px solid #C8F55A;border-radius:12px;
+                    padding:20px;text-align:center;margin-bottom:24px;">
+          <span style="font-size:36px;font-weight:bold;color:#C8F55A;
+                       letter-spacing:8px;">${otp}</span>
+        </div>
+        <p style="color:#525252;font-size:12px;">
+          If you did not request this, ignore this email.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendExpiryWarningEmail({
   to,
   organizerName,

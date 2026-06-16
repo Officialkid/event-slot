@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
+import { Eye, EyeOff, Check } from 'lucide-react'
 
 function SignInForm() {
   const { status } = useSession()
@@ -14,16 +14,41 @@ function SignInForm() {
   const didReset = searchParams.get('reset') === 'success'
   const authError = searchParams.get('error')
 
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMeReady, setRememberMeReady] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [otpRequired, setOtpRequired] = useState(false)
+  const [otpHint, setOtpHint] = useState('')
+
   useEffect(() => {
     if (status === 'authenticated') {
       router.replace('/dashboard')
     }
   }, [status, router])
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('eventslot.rememberMe')
+      if (stored !== null) setRememberMe(stored === '1')
+    } catch {
+      // Ignore storage issues in private mode.
+    }
+    setRememberMeReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!rememberMeReady) return
+    try {
+      window.localStorage.setItem('eventslot.rememberMe', rememberMe ? '1' : '0')
+    } catch {
+      // Ignore storage issues in private mode.
+    }
+  }, [rememberMe, rememberMeReady])
 
   async function handleGoogleSignIn() {
     setError('')
@@ -40,44 +65,53 @@ function SignInForm() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const result = await signIn('credentials', {
-      email,
-      password,
-      callbackUrl: '/my-events',
-      redirect: false,
-    })
-    if (result?.status === 429) {
-      setError('Too many login attempts. Please wait 10 minutes before trying again.')
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        otp: otpRequired ? otp : '',
+        rememberMe: rememberMe ? 'true' : 'false',
+        callbackUrl: '/my-events',
+        redirect: false,
+      })
+
+      if (result?.error === 'OTP_REQUIRED') {
+        setOtpRequired(true)
+        setOtpHint('We sent a 6-digit code to your email. Enter it below to finish signing in.')
+        setError('')
+        return
+      }
+
+      if (result?.error === 'OTP_RATE_LIMIT') {
+        setError('Too many code requests. Please wait a few minutes and try again.')
+        return
+      }
+
+      if (result?.status === 429) {
+        setError('Too many login attempts. Please wait 10 minutes before trying again.')
+        return
+      }
+
+      if (result?.error) {
+        setError(otpRequired ? 'Invalid verification code. Please try again.' : 'Invalid email or password')
+        return
+      }
+
+      router.push(result?.url || '/my-events')
+    } finally {
       setLoading(false)
-    } else if (result?.error) {
-      setError('Invalid email or password')
-      setLoading(false)
-    } else if (result?.url) {
-      window.location.href = result.url
     }
   }
 
   return (
-    <div
-      style={{
-        maxWidth: 440,
-        margin: '0 auto',
-        padding: '4rem 1.5rem',
-      }}
-    >
-      {/* PWA Splash Header — visible only in standalone (installed) mode */}
+    <div style={{ maxWidth: 440, margin: '0 auto', padding: '4rem 1.5rem' }}>
       <style>{`
         .pwa-header { display: none; }
         @media (display-mode: standalone) { .pwa-header { display: flex; } }
       `}</style>
-      <div
-        className="pwa-header"
-        style={{
-          flexDirection: 'column',
-          alignItems: 'center',
-          marginBottom: '2rem',
-        }}
-      >
+
+      <div className="pwa-header" style={{ flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
         <Image src="/assets/logo.png" alt="EventSlot" width={160} height={48} style={{ height: 48, width: 'auto' }} />
         <p
           style={{
@@ -93,7 +127,6 @@ function SignInForm() {
         </p>
       </div>
 
-      {/* Card */}
       <div
         style={{
           background: '#141414',
@@ -119,7 +152,6 @@ function SignInForm() {
           </div>
         )}
 
-        {/* Heading */}
         <h1
           style={{
             fontFamily: 'var(--font-instrument-serif)',
@@ -143,7 +175,6 @@ function SignInForm() {
           Sign in to manage your events.
         </p>
 
-        {/* Google Button */}
         <button
           type="button"
           onClick={handleGoogleSignIn}
@@ -176,60 +207,98 @@ function SignInForm() {
         </button>
 
         {authError && (
-          <p
-            style={{
-              fontSize: '0.8rem',
-              color: '#FF6B6B',
-              margin: '0.75rem 0 0',
-              fontFamily: 'var(--font-dm-sans)',
-              lineHeight: 1.5,
-            }}
-          >
+          <p style={{ fontSize: '0.8rem', color: '#FF6B6B', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
             Sign-in session expired. Please tap Google again to continue.
           </p>
         )}
 
-        {/* Divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            margin: '1.5rem 0',
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0' }}>
           <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: 'rgba(240,237,230,0.3)',
-              fontFamily: 'var(--font-dm-sans)',
-            }}
-          >
-            or
-          </span>
+          <span style={{ fontSize: '0.75rem', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)' }}>or</span>
           <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
         </div>
 
-        {/* Form */}
+        <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'rgba(240,237,230,0.42)', fontFamily: 'var(--font-dm-sans)', margin: '-0.25rem 0 1rem' }}>
+          If this email was created with Google sign-in, use the Google button above. If you later set a password, you can sign in below.
+        </p>
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          <label style={fieldLabelStyle} htmlFor="signin-email">
+            Email address
+          </label>
           <input
+            id="signin-email"
             type="email"
-            placeholder="Email"
+            autoComplete="email"
             required
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             style={inputStyle}
           />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={inputStyle}
-          />
-          <div style={{ textAlign: 'right', marginTop: '-0.25rem' }}>
+
+          <label style={fieldLabelStyle} htmlFor="signin-password">
+            Password
+          </label>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="signin-password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ ...inputStyle, paddingRight: '3rem' }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((value) => !value)}
+              style={passwordToggleStyle}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          {otpRequired && (
+            <>
+              <label style={fieldLabelStyle} htmlFor="signin-otp">
+                Verification code
+              </label>
+              <input
+                id="signin-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                required
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                style={inputStyle}
+              />
+              {otpHint && (
+                <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                  {otpHint}
+                </p>
+              )}
+            </>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', fontSize: '0.82rem', color: 'rgba(240,237,230,0.68)' }}>
+              <span style={{ position: 'relative', display: 'inline-flex', width: 18, height: 18 }}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={checkboxStyle}
+                />
+                <span style={rememberBoxStyle}>
+                  {rememberMe && <Check size={12} strokeWidth={3} />}
+                </span>
+              </span>
+              Remember me
+            </label>
+
             <Link
               href="/forgot-password"
               style={{
@@ -244,14 +313,7 @@ function SignInForm() {
           </div>
 
           {error && (
-            <p
-              style={{
-                fontSize: '0.82rem',
-                color: '#FF6B6B',
-                margin: '0',
-                fontFamily: 'var(--font-dm-sans)',
-              }}
-            >
+            <p style={{ fontSize: '0.82rem', color: '#FF6B6B', margin: '0', fontFamily: 'var(--font-dm-sans)' }}>
               {error}
             </p>
           )}
@@ -278,7 +340,6 @@ function SignInForm() {
           </button>
         </form>
 
-        {/* Footer */}
         <p
           style={{
             fontSize: '0.82rem',
@@ -289,10 +350,7 @@ function SignInForm() {
           }}
         >
           Don&apos;t have an account?{' '}
-          <Link
-            href="/signup"
-            style={{ color: 'rgba(240,237,230,0.7)', textDecoration: 'underline' }}
-          >
+          <Link href="/signup" style={{ color: 'rgba(240,237,230,0.7)', textDecoration: 'underline' }}>
             Sign up
           </Link>
         </p>
@@ -312,6 +370,50 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',
+}
+
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: '0.78rem',
+  color: 'rgba(240,237,230,0.58)',
+  fontFamily: 'var(--font-dm-sans)',
+  marginBottom: '-0.35rem',
+}
+
+const passwordToggleStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '50%',
+  right: '0.75rem',
+  transform: 'translateY(-50%)',
+  width: 32,
+  height: 32,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: 'none',
+  borderRadius: 8,
+  background: 'transparent',
+  color: 'rgba(240,237,230,0.5)',
+  cursor: 'pointer',
+}
+
+const checkboxStyle: React.CSSProperties = {
+  position: 'absolute',
+  inset: 0,
+  margin: 0,
+  opacity: 0,
+  cursor: 'pointer',
+}
+
+const rememberBoxStyle: React.CSSProperties = {
+  width: 18,
+  height: 18,
+  borderRadius: 5,
+  border: '0.5px solid rgba(240,237,230,0.18)',
+  background: 'rgba(10,10,10,0.92)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#C8F55A',
 }
 
 export default function SignInPage() {
