@@ -20,6 +20,7 @@ const ticketTierSchema = z.object({
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(5000).optional().nullable(),
+  accessType: z.enum(['REGISTRATION', 'WALK_IN']).default('REGISTRATION'),
   eventType: z.enum(['PHYSICAL', 'VIRTUAL']).default('PHYSICAL'),
   virtualLink: z.string().max(1000).optional().nullable().or(z.literal('')),  // URL format validated in superRefine (accepts with or without https://)
   capacity: z.number().int().positive().optional().nullable(),
@@ -35,10 +36,18 @@ export const createEventSchema = z.object({
   whatsappNumber: z.string().max(40).optional().nullable().or(z.literal('')),
   contactMode: z.enum(['WHATSAPP', 'CALL']).optional().default('WHATSAPP'),
   imageUrl: z.string().url().max(1000).optional().nullable(),
-  questions: z.array(questionSchema).min(1, 'At least one question is required').max(30),
+  questions: z.array(questionSchema).max(30).default([]),
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
   organizerName: z.string().min(1, 'Organizer name is required').max(200),
 }).superRefine((data, ctx) => {
+  if (data.accessType === 'REGISTRATION' && data.questions.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['questions'],
+      message: 'At least one question is required',
+    })
+  }
+
   if (data.eventType === 'VIRTUAL' && !data.virtualLink?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -60,6 +69,38 @@ export const createEventSchema = z.object({
         message: 'Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij)',
       })
     }
+  }
+
+  if (data.accessType === 'WALK_IN' && data.eventType !== 'PHYSICAL') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['eventType'],
+      message: 'Walk-In events are only available for physical events right now',
+    })
+  }
+
+  if (data.accessType === 'WALK_IN' && !data.eventDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['eventDate'],
+      message: 'Walk-In events need a start date',
+    })
+  }
+
+  if (data.accessType === 'WALK_IN' && data.isPaid) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['isPaid'],
+      message: 'Walk-In events do not support paid ticketing in this version',
+    })
+  }
+
+  if (data.accessType === 'WALK_IN' && data.capacity) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['capacity'],
+      message: 'Walk-In events do not use capacity limits',
+    })
   }
 
   if (data.isPaid && !data.ticketPrice) {

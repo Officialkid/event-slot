@@ -19,6 +19,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         id: true,
         title: true,
         description: true,
+        accessType: true,
+        eventType: true,
         capacity: true,
         deadline: true,
         eventDate: true,

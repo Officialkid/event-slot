@@ -16,6 +16,8 @@ export type EventInvitationCardProps = {
   confirmedCount: number
   status: string
   deadline?: Date | string | null
+  accessType?: "REGISTRATION" | "WALK_IN"
+  walkInOpenToday?: boolean
 }
 
 function formatEventDate(date: Date): string {
@@ -29,11 +31,38 @@ function formatEventDate(date: Date): string {
 }
 
 function getStatusBadge(
+  accessType: "REGISTRATION" | "WALK_IN",
   status: string,
   capacity: number | null | undefined,
   confirmedCount: number,
-  deadline: Date | string | null | undefined
+  deadline: Date | string | null | undefined,
+  walkInOpenToday: boolean
 ): { label: string; bg: string; border: string; color: string } {
+  if (accessType === "WALK_IN") {
+    if (status === "closed") {
+      return {
+        label: "Check-In Closed",
+        bg: "rgba(255,107,107,0.1)",
+        border: "rgba(255,107,107,0.3)",
+        color: "#FF6B6B",
+      }
+    }
+    if (walkInOpenToday) {
+      return {
+        label: "Check-In Open Today",
+        bg: "rgba(200,245,90,0.1)",
+        border: "rgba(200,245,90,0.3)",
+        color: "#C8F55A",
+      }
+    }
+    return {
+      label: "Walk-In Event",
+      bg: "rgba(79,172,254,0.12)",
+      border: "rgba(79,172,254,0.3)",
+      color: "#7CC6FF",
+    }
+  }
+
   const isClosed =
     status === "closed" ||
     (deadline && new Date(deadline) < new Date())
@@ -71,12 +100,14 @@ export default function EventInvitationCard({
   confirmedCount,
   status,
   deadline,
+  accessType = "REGISTRATION",
+  walkInOpenToday = false,
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
   const posterErrorHandledRef = useRef(false)
-  const badge = getStatusBadge(status, capacity, confirmedCount, deadline ?? null)
+  const badge = getStatusBadge(accessType, status, capacity, confirmedCount, deadline ?? null, walkInOpenToday)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
   const isLongDescription = Boolean(description && description.length > 300)
@@ -316,13 +347,13 @@ export default function EventInvitationCard({
           </>
         )}
 
-        {deadline && badge.label !== "Registration Closed" && (
+        {accessType === "REGISTRATION" && deadline && badge.label !== "Registration Closed" && (
           <div style={{ marginTop: "1rem", maxWidth: 420 }}>
             <CountdownTimer deadline={deadline} urgentMode />
           </div>
         )}
 
-        {spotsLeft !== null && badge.label !== "Registration Closed" && (
+        {accessType === "REGISTRATION" && spotsLeft !== null && badge.label !== "Registration Closed" && (
           <div style={{ marginTop: "0.2rem" }}>
             <span
               style={{

@@ -94,6 +94,9 @@ export const loginRatelimit = makeLimiter(5, 600)
 /** Attendance lookup: 5 req / 10 min per IP */
 export const attendanceLookupRatelimit = makeLimiter(5, 600)
 
+/** Walk-in check-in: 5 req / min per IP */
+export const walkInCheckinRatelimit = makeLimiter(5, 60)
+
 /** AI endpoints (ask, insights, predict-capacity): 10 req / min per user/IP */
 export const aiRatelimit = makeLimiter(10, 60)
 

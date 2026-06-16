@@ -124,6 +124,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         id: event.id,
         title: event.title,
         description: event.description,
+        accessType: event.accessType,
+        eventType: event.eventType,
         isPaid: event.isPaid,
         capacity: event.capacity,
         deadline: event.deadline,
@@ -222,11 +224,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     if (!title) {
       return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
     }
-    if (!Array.isArray(questions) || questions.length === 0) {
+    const isWalkInEvent = event.accessType === 'WALK_IN'
+
+    if (!isWalkInEvent && (!Array.isArray(questions) || questions.length === 0)) {
       return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
     }
 
-    for (const question of questions) {
+    for (const question of isWalkInEvent ? [] : questions) {
       const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
         return NextResponse.json({ success: false, error: `Question "${question?.label || 'Untitled'}" needs at least one option` }, { status: 400 })
@@ -255,7 +259,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         location: location || null,
         communityLink: normalizeCommunityLink(communityLink),
         imageUrl: imageUrl || null,
-        questions,
+        questions: isWalkInEvent ? [] : questions,
         category: category ? String(category).toUpperCase() : null,
         whatsappNumber: storedEventContact,
       },

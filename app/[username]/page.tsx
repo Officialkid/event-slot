@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
+import PublicWalkInEventPage from "@/components/events/PublicWalkInEventPage"
 import { JoinEventButton } from "@/components/JoinEventButton"
 import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
 import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
@@ -75,6 +76,7 @@ const getEventMetaBySlug = unstable_cache(
       organizerEmail: true,
       location: true,
       eventDate: true,
+      accessType: true,
     },
   }),
   ["public-event-meta"],
@@ -129,6 +131,8 @@ const getEventBySlug = unstable_cache(
       eventDate: true,
       joinOpensAt: true,
       eventType: true,
+      accessType: true,
+      eventEndAt: true,
       location: true,
       communityLink: true,
       imageUrl: true,
@@ -183,7 +187,8 @@ export async function generateMetadata({
     if (!event) return {}
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = APP_URL
-    const canonical = `${base}/${username}`
+    const isWalkInEvent = event.accessType === "WALK_IN"
+    const canonical = isWalkInEvent ? `${base}/walkin/${username}` : `${base}/${username}`
     const ogUrl = `${base}/api/og?title=${encodeURIComponent(event.title)}&organizer=${encodeURIComponent(event.organizerEmail)}${spotsLeft !== null ? `&spots=${spotsLeft}` : ""}`
     const spotsText = spotsLeft !== null ? ` ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left.` : ""
     const locationText = event.location ? ` at ${event.location}` : ""
@@ -239,7 +244,9 @@ export default async function PublicProfilePage({
     }
     if (!event) notFound()
 
-    if (event.deadline && new Date(event.deadline) < new Date()) {
+    const isWalkInEvent = event.accessType === "WALK_IN"
+
+    if (!isWalkInEvent && event.deadline && new Date(event.deadline) < new Date()) {
       return (
         <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
           <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
@@ -257,7 +264,7 @@ export default async function PublicProfilePage({
       )
     }
 
-    if (event.status === "closed") {
+    if (!isWalkInEvent && event.status === "closed") {
       return (
         <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
           <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
@@ -295,6 +302,11 @@ export default async function PublicProfilePage({
     const parsedContact = parseEventContact(eventWhatsapp)
     const eventDateLabel = formatEventDateLabel(event.eventDate)
     const hasWhatsapp = Boolean(parsedContact?.number)
+
+    if (isWalkInEvent) {
+      return <PublicWalkInEventPage event={{ ...event, slug: username, faqs: eventFaqs, whatsappNumber: eventWhatsapp }} />
+    }
+
     return (
       <div className={`min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`}>
         <div className="mx-auto max-w-[1120px]">
@@ -311,6 +323,8 @@ export default async function PublicProfilePage({
             confirmedCount={event.confirmedCount}
             status={event.status}
             deadline={event.deadline}
+            accessType={event.accessType}
+            walkInOpenToday={false}
           />
 
           {/* Form + lookup grid */}

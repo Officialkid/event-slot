@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function SignUpPage() {
   const { status } = useSession()
@@ -14,6 +15,7 @@ export default function SignUpPage() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [otp, setOtp] = useState('')
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
@@ -195,14 +197,24 @@ export default function SignUpPage() {
             onChange={e => setEmail(e.target.value)}
             style={inputStyle}
           />
-          <input
-            type="password"
-            placeholder="Password"
-            required
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            style={inputStyle}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Password"
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              style={{ ...inputStyle, paddingRight: '3rem' }}
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword(value => !value)}
+              style={passwordToggleStyle}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
 
           {otpRequired && (
             <>
@@ -342,4 +354,21 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',
+}
+
+const passwordToggleStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '50%',
+  right: '0.75rem',
+  transform: 'translateY(-50%)',
+  width: 32,
+  height: 32,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: 'none',
+  borderRadius: 8,
+  background: 'transparent',
+  color: 'rgba(240,237,230,0.5)',
+  cursor: 'pointer',
 }

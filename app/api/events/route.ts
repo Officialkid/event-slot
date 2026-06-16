@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     const {
       title,
       description,
+      accessType,
       eventType,
       virtualLink,
       capacity,
@@ -88,6 +89,8 @@ export async function POST(req: NextRequest) {
     const normalizedTitle = title.trim()
     const normalizedOrganizerName = organizerName.trim()
     const normalizedOrganizerEmail = (organizerEmail ?? '').trim()
+    const isWalkInEvent = accessType === 'WALK_IN'
+    const isRegistrationEvent = !isWalkInEvent
     const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
     // Accept links entered as meet.google.com/... (without protocol) or with http:// and normalise to https://.
     let normalizedVirtualLink = rawVirtualLink
@@ -103,19 +106,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const normalizedTicketTiers = isPaid
+    const normalizedTicketTiers = isPaid && isRegistrationEvent
       ? normalizeTicketTiers(ticketTiers, { ticketPrice, capacity })
       : []
 
-    if (isPaid && normalizedTicketTiers.length === 0) {
+    if (isPaid && isRegistrationEvent && normalizedTicketTiers.length === 0) {
       return NextResponse.json({ success: false, error: 'At least one ticket tier is required for paid events' }, { status: 400 })
     }
 
-    if (isPaid && normalizedTicketTiers.some((tier) => tier.priceKes < 50 || tier.priceKes > 500000)) {
+    if (isPaid && isRegistrationEvent && normalizedTicketTiers.some((tier) => tier.priceKes < 50 || tier.priceKes > 500000)) {
       return NextResponse.json({ success: false, error: 'Each ticket tier must be between KSh 50 and KSh 500,000' }, { status: 400 })
     }
 
-    for (const question of questions) {
+    for (const question of isRegistrationEvent ? questions : []) {
       const usesOptions = question.type === 'select' || question.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
         return NextResponse.json({ success: false, error: `Question "${question.label}" needs at least one option` }, { status: 400 })
@@ -160,29 +163,30 @@ export async function POST(req: NextRequest) {
       data: {
         title: normalizedTitle,
         description,
+        accessType,
         eventType,
         virtualLink: encryptedVirtualLink?.encrypted,
         virtualLinkIv: encryptedVirtualLink?.iv,
-        capacity: isPaid ? sumTierCapacity(normalizedTicketTiers) : capacity,
-        deadline: deadline ? new Date(deadline) : undefined,
+        capacity: isWalkInEvent ? null : isPaid ? sumTierCapacity(normalizedTicketTiers) : capacity,
+        deadline: isWalkInEvent ? null : deadline ? new Date(deadline) : undefined,
         eventDate: eventDate ? new Date(eventDate) : undefined,
-        eventEndAt: eventEndAt ? new Date(eventEndAt) : undefined,
+        eventEndAt: eventEndAt ? new Date(eventEndAt) : isWalkInEvent && eventDate ? new Date(eventDate) : undefined,
         joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : undefined,
         location: eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || undefined,
-        isPaid,
-        ticketPrice: isPaid ? normalizedTicketTiers[0]?.priceKes ?? Number(ticketPrice) : undefined,
+        isPaid: isWalkInEvent ? false : isPaid,
+        ticketPrice: isWalkInEvent ? undefined : isPaid ? normalizedTicketTiers[0]?.priceKes ?? Number(ticketPrice) : undefined,
         paymentsLive: false,
         ticketsEnabled: true,
         communityLink: normalizeCommunityLink(communityLink) || undefined,
         whatsappNumber: storedEventContact || undefined,
         imageUrl: imageUrl || undefined,
-        questions,
+        questions: isWalkInEvent ? [] : questions,
         organizerEmail: eventOrganizerEmail,
         slug,
         dashboardToken,
         organizerId,
         countryCode: eventCountryCode ?? undefined,
-        ticketTiers: isPaid
+        ticketTiers: isPaid && isRegistrationEvent
           ? {
               create: normalizedTicketTiers.map((tier, index) => ({
                 name: tier.name,
@@ -200,6 +204,7 @@ export async function POST(req: NextRequest) {
         title: true,
         slug: true,
         dashboardToken: true,
+        accessType: true,
         capacity: true,
       },
     })

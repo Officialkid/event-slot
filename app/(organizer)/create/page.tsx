@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
+import { getPublicEventUrl } from "@/lib/eventUrls"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import type { EventContactMode } from "@/lib/eventContact"
 
@@ -61,6 +62,7 @@ export default function CreateEventPage() {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
   const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
   const [virtualLink, setVirtualLink] = useState("")
   const [capacity, setCapacity] = useState("")
@@ -82,7 +84,7 @@ export default function CreateEventPage() {
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string } | null>(null)
+  const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string; accessType: "REGISTRATION" | "WALK_IN" } | null>(null)
   const [error, setError] = useState("")
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
@@ -107,6 +109,8 @@ export default function CreateEventPage() {
   const [aiPredictionLoading, setAiPredictionLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
+  const isWalkInEvent = accessType === "WALK_IN"
+  const isRegistrationEvent = !isWalkInEvent
 
   // Auto-fill organizer details from signed-in account
   useEffect(() => {
@@ -132,6 +136,17 @@ export default function CreateEventPage() {
   useEffect(() => {
     setOrigin(window.location.origin)
   }, [])
+
+  useEffect(() => {
+    if (!isWalkInEvent) return
+    setEventType("PHYSICAL")
+    setVirtualLink("")
+    setIsPaid(false)
+    setTicketPrice("")
+    setTicketTiers([defaultTicketTier()])
+    setCapacity("")
+    setDeadline("")
+  }, [isWalkInEvent])
 
   async function fetchCapacitySuggestion() {
     if (capacitySuggestionFetched) return
@@ -180,7 +195,9 @@ export default function CreateEventPage() {
     }, 50)
   }
 
-  const successRegistrationLink = eventInfo && origin ? `${origin}/${eventInfo.slug}` : ""
+  const successRegistrationLink = eventInfo && origin
+    ? getPublicEventUrl(origin, eventInfo.slug, eventInfo.accessType)
+    : ""
 
   const handleCopySuccessLink = async () => {
     if (!successRegistrationLink) return
@@ -346,7 +363,9 @@ export default function CreateEventPage() {
       }
     }
 
-    const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
+    const invalidQuestion = isRegistrationEvent
+      ? questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
+      : null
     if (invalidQuestion) {
       setLoading(false)
       setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
@@ -359,17 +378,18 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
+          accessType,
           eventType,
           virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
-          capacity: capacity ? Number(capacity) : undefined,
-          deadline: deadline ? new Date(deadline).toISOString() : undefined,
+          capacity: isRegistrationEvent && capacity ? Number(capacity) : undefined,
+          deadline: isRegistrationEvent && deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
           eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
-          isPaid,
-          ticketPrice: isPaid && ticketPrice ? Number(ticketPrice) : undefined,
-          ticketTiers: isPaid
+          isPaid: isRegistrationEvent ? isPaid : false,
+          ticketPrice: isRegistrationEvent && isPaid && ticketPrice ? Number(ticketPrice) : undefined,
+          ticketTiers: isRegistrationEvent && isPaid
             ? ticketTiers.map((tier) => ({
                 name: tier.name.trim(),
                 priceKes: Number(tier.priceKes),
@@ -382,14 +402,16 @@ export default function CreateEventPage() {
           whatsappNumber: whatsappNumber || undefined,
           contactMode,
           imageUrl: imageUrl || undefined,
-          questions: questions.map(q => ({
-            id: q.id,
-            label: q.label,
-            type: q.type,
-            options: typeUsesOptions(q.type) ? q.options : undefined,
-            allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
-            required: q.required,
-          })),
+          questions: isRegistrationEvent
+            ? questions.map(q => ({
+                id: q.id,
+                label: q.label,
+                type: q.type,
+                options: typeUsesOptions(q.type) ? q.options : undefined,
+                allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+                required: q.required,
+              }))
+            : [],
           organizerName,
           organizerEmail: organizerEmail || undefined,
         }),
@@ -457,11 +479,13 @@ export default function CreateEventPage() {
               </div>
 
               <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
-                Scan to register for <strong style={{ color: "#F0EDE6" }}>{eventInfo.title}</strong>
+                {isWalkInEvent ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: "#F0EDE6" }}>{eventInfo.title}</strong>
               </p>
 
               <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
-                Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly.
+                {isWalkInEvent
+                  ? "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the walk-in check-in page directly."
+                  : "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly."}
               </p>
 
               <button
@@ -598,6 +622,48 @@ export default function CreateEventPage() {
           <div ref={formRef}>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
+              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-2" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                What kind of event is this?
+              </h2>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setAccessType("REGISTRATION")}
+                  className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
+                    accessType === "REGISTRATION"
+                      ? "border-[rgba(200,245,90,0.65)] bg-[rgba(200,245,90,0.08)] text-[#F0EDE6]"
+                      : "border-[rgba(240,237,230,0.12)] bg-[#101010] text-[rgba(240,237,230,0.65)]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
+                    <span aria-hidden="true">{accessType === "REGISTRATION" ? "◉" : "○"}</span>
+                    <span>Registration Event</span>
+                  </div>
+                  <p className="mt-4 text-[0.84rem] leading-6 text-[rgba(240,237,230,0.52)]">
+                    People sign up in advance. You set a capacity. Waitlist manages overflow.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccessType("WALK_IN")}
+                  className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
+                    accessType === "WALK_IN"
+                      ? "border-[rgba(124,198,255,0.7)] bg-[rgba(79,172,254,0.09)] text-[#F0EDE6]"
+                      : "border-[rgba(240,237,230,0.12)] bg-[#101010] text-[rgba(240,237,230,0.65)]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
+                    <span aria-hidden="true">{accessType === "WALK_IN" ? "◉" : "○"}</span>
+                    <span>Walk-In Event</span>
+                  </div>
+                  <p className="mt-4 text-[0.84rem] leading-6 text-[rgba(240,237,230,0.52)]">
+                    Free and open. People check in when they arrive. Live attendance counts.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
               <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
                 Event Details
               </h2>
@@ -652,12 +718,16 @@ export default function CreateEventPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEventType("VIRTUAL")}
+                      onClick={() => {
+                        if (isWalkInEvent) return
+                        setEventType("VIRTUAL")
+                      }}
+                      disabled={isWalkInEvent}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         eventType === "VIRTUAL"
                           ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
                           : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
-                      }`}
+                      } ${isWalkInEvent ? "cursor-not-allowed opacity-40" : ""}`}
                     >
                       💻 Virtual
                     </button>
@@ -691,6 +761,7 @@ export default function CreateEventPage() {
                   </div>
                 )}
 
+                {isRegistrationEvent && (
                 <div className="space-y-3">
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
                     Pricing
@@ -812,7 +883,9 @@ export default function CreateEventPage() {
                     </div>
                   )}
                 </div>
+                )}
 
+                {isRegistrationEvent && (
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
                     Maximum Capacity
@@ -939,6 +1012,8 @@ export default function CreateEventPage() {
                     </div>
                   )}
                 </div>
+                )}
+                {isRegistrationEvent && (
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
                     Registration Deadline (optional)
@@ -950,9 +1025,10 @@ export default function CreateEventPage() {
                     onChange={e => setDeadline(e.target.value)}
                   />
                 </div>
+                )}
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Event Start
+                    {isWalkInEvent ? "Walk-In Start" : "Event Start"}
                   </label>
                   <input
                     type="datetime-local"
@@ -963,7 +1039,7 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
-                    Event End (optional)
+                    {isWalkInEvent ? "Walk-In End (optional)" : "Event End (optional)"}
                   </label>
                   <input
                     type="datetime-local"
@@ -972,7 +1048,9 @@ export default function CreateEventPage() {
                     onChange={e => setEventEndAt(e.target.value)}
                   />
                   <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
-                    If the deadline is empty, registration will close automatically when the event ends.
+                    {isWalkInEvent
+                      ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
+                      : "If the deadline is empty, registration will close automatically when the event ends."}
                   </p>
                 </div>
                 <div>
@@ -1037,7 +1115,9 @@ export default function CreateEventPage() {
                     onChange={e => setCommunityLink(e.target.value)}
                   />
                   <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
-                    After registering, confirmed attendees will see this link.
+                    {isWalkInEvent
+                      ? "After check-in, attendees can use this link to join your community."
+                      : "After registering, confirmed attendees will see this link."}
                   </p>
                 </div>
                 <div>
@@ -1114,6 +1194,7 @@ export default function CreateEventPage() {
               {imageError && <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>}
             </div>
 
+            {isRegistrationEvent ? (
             <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
               <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
                 Registration Questions
@@ -1270,6 +1351,16 @@ export default function CreateEventPage() {
                 </button>
               </div>
             </div>
+            ) : (
+            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
+              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-2" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                Walk-In Check-In Fields
+              </h2>
+              <p className="text-[0.82rem] text-[rgba(240,237,230,0.45)]">
+                Walk-in events keep attendee check-in intentionally fast. The public page will only ask for name and phone number on the event day.
+              </p>
+            </div>
+            )}
 
             <div className="space-y-4">
               <button
@@ -1292,7 +1383,9 @@ export default function CreateEventPage() {
               Your event is live!
             </h2>
             <p className="text-[0.875rem] text-[rgba(240,237,230,0.45)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
-              Share your registration link now or download a print-ready QR code.
+              {isWalkInEvent
+                ? "Share your walk-in check-in link now or download a print-ready QR code."
+                : "Share your registration link now or download a print-ready QR code."}
             </p>
 
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

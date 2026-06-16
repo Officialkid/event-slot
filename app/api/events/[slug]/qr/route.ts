@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { generateEventQRCodeBuffer } from "@/lib/qrcode"
 import { APP_URL } from "@/lib/config"
+import { getPublicEventPath } from "@/lib/eventUrls"
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params
@@ -11,14 +12,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     const event = await prisma.event.findUnique({
       where: { slug },
-      select: { id: true },
+      select: { id: true, accessType: true },
     })
 
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 })
     }
 
-    const registrationUrl = `${APP_URL}/${slug}`
+    const registrationUrl = `${APP_URL}${getPublicEventPath(slug, event.accessType)}`
     const buffer = await generateEventQRCodeBuffer(registrationUrl)
 
     return new Response(buffer as unknown as BodyInit, {

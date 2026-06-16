@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { formatWalkInDayLabel, getWalkInDayKey } from '@/lib/walkInEvents'
 
 const CONFIRMED_STATUSES = ['confirmed', 'CONFIRMED'] as const
 const WAITLIST_STATUSES = ['waitlist', 'WAITLISTED', 'waitlisted'] as const
@@ -35,6 +36,68 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     if (!isOwner && !hasValidToken && !hasTeamAccess && !adminAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (event.accessType === 'WALK_IN') {
+      const [totalViews, allCheckins, groupedByDay] = await Promise.all([
+        prisma.eventView.count({ where: { eventId: event.id } }),
+        prisma.walkInCheckin.findMany({
+          where: { eventId: event.id },
+          select: { createdAt: true, dayDate: true },
+        }),
+        prisma.walkInCheckin.groupBy({
+          by: ['dayDate'],
+          where: { eventId: event.id },
+          _count: { _all: true },
+          orderBy: { dayDate: 'asc' },
+        }),
+      ])
+
+      const totalCheckins = allCheckins.length
+      const todayKey = getWalkInDayKey(new Date(), 'Africa/Nairobi')
+      const todayCount = groupedByDay.find((entry) => getWalkInDayKey(entry.dayDate, 'Africa/Nairobi') === todayKey)?._count._all ?? 0
+      const conversionRate = totalViews > 0
+        ? Math.round((totalCheckins / totalViews) * 1000) / 10
+        : 0
+
+      const registrationsByDay = groupedByDay.map((entry) => {
+        const dayKey = getWalkInDayKey(entry.dayDate, 'Africa/Nairobi')
+        return { date: dayKey, count: entry._count._all, label: formatWalkInDayLabel(dayKey, 'Africa/Nairobi') }
+      })
+
+      const hourMap = new Map<number, number>()
+      for (let hour = 0; hour < 24; hour++) hourMap.set(hour, 0)
+      for (const checkin of allCheckins) {
+        const hour = checkin.createdAt.getHours()
+        hourMap.set(hour, (hourMap.get(hour) ?? 0) + 1)
+      }
+      const registrationsByHour = Array.from(hourMap.entries()).map(([hour, count]) => ({ hour, count }))
+
+      return NextResponse.json({
+        mode: 'walk_in',
+        totalViews,
+        totalRegistrations: totalCheckins,
+        conversionRate,
+        confirmedCount: totalCheckins,
+        checkedInCount: totalCheckins,
+        checkInRate: totalCheckins > 0 ? 100 : 0,
+        waitlistCount: 0,
+        waitlistedCount: 0,
+        promotedCount: 0,
+        stillWaitingCount: 0,
+        waitlistConversionRate: 0,
+        sourceBreakdown: [{ source: 'walk_in', count: totalCheckins }],
+        feedbackScore: null,
+        feedbackCount: 0,
+        vsAverage: null,
+        avgRegistrations: null,
+        aiInsightsFreeUsed: event.aiInsightsFreeUsed,
+        event: { capacity: null },
+        registrationsByDay,
+        registrationsByHour,
+        walkInTodayCount: todayCount,
+        walkInActiveDays: groupedByDay.length,
+      })
     }
 
     // Keep the dashboard analytics query lightweight enough to resolve quickly on live pages.

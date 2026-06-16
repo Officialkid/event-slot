@@ -22,6 +22,14 @@ export function normalizeInternationalPhoneNumber(raw: string | null | undefined
     return { ok: false, error: 'Phone number must be between 8 and 15 digits' }
   }
 
+  if (value.startsWith('0') && digits.length === 10) {
+    return { ok: true, number: `254${digits.slice(1)}` }
+  }
+
+  if (value.startsWith('254') || value.startsWith('+254')) {
+    return { ok: true, number: digits.startsWith('254') ? digits : `254${digits}` }
+  }
+
   if (value.startsWith('0')) {
     return { ok: false, error: 'Use the full country code, for example +254...' }
   }

@@ -6,6 +6,14 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 
+const checkboxStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  margin: 0,
+  opacity: 0,
+  cursor: "pointer",
+}
+
 interface ProfileData {
   name: string | null
   email: string | null
