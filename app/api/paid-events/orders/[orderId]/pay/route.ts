@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { initiateStkPush, normaliseMpesaPhone } from '@/lib/daraja'
+import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend'
 
 export async function POST(req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params
@@ -35,29 +35,27 @@ export async function POST(req: NextRequest, props: { params: Promise<{ orderId:
     return NextResponse.json({ success: false, error: 'This payment link has expired' }, { status: 400 })
   }
 
-  const phone = normaliseMpesaPhone(rawPhone)
+  const phone = normalizeMpesaPhone(rawPhone)
   if (!/^2547\d{8}$/.test(phone) && !/^2541\d{8}$/.test(phone)) {
     return NextResponse.json({ success: false, error: 'Invalid M-Pesa phone number' }, { status: 400 })
   }
 
   try {
-    const stk = await initiateStkPush({
+    const apiRef = `order_${order.id}`
+    const stk = await startIntaSendStkPush({
+      apiRef,
       phone,
       amountKes: order.amountKes,
-      accountReference: 'EventSlot',
-      transactionDesc: `${order.ticketTier.name} ticket`,
+      email: order.attendeeEmail ?? `${order.id}@eventslot.local`,
+      name: order.attendeeName ?? 'Event attendee',
     })
-
-    if (stk.ResponseCode !== '0') {
-      return NextResponse.json({ success: false, error: 'M-Pesa request failed. Please try again.' }, { status: 502 })
-    }
 
     await prisma.paidEventOrder.update({
       where: { id: order.id },
       data: {
         status: 'PAYMENT_PENDING',
-        checkoutRequestId: stk.CheckoutRequestID,
-        providerReference: stk.MerchantRequestID,
+        checkoutRequestId: stk.invoiceId,
+        providerReference: apiRef,
         mpesaPhone: phone,
       },
     })
@@ -65,8 +63,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ orderId:
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      checkoutRequestId: stk.CheckoutRequestID,
-      customerMessage: stk.CustomerMessage,
+      checkoutRequestId: stk.invoiceId,
+      customerMessage: 'Check your phone to complete payment.',
       amountKes: order.amountKes,
       eventTitle: order.event.title,
       ticketTierName: order.ticketTier.name,

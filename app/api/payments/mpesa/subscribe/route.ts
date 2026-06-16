@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { initiateStkPush, normaliseMpesaPhone } from '@/lib/daraja';
+import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate phone
-  const normalisedPhone = normaliseMpesaPhone(phone);
+  const normalisedPhone = normalizeMpesaPhone(phone);
   if (!/^2547\d{8}$/.test(normalisedPhone) && !/^2541\d{8}$/.test(normalisedPhone)) {
     return NextResponse.json({ error: 'Invalid M-Pesa phone number' }, { status: 400 });
   }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       status: 'PAST_DUE',
       currentPeriodStart: now,
       currentPeriodEnd: now,
-      paymentProvider: 'mpesa',
+      paymentProvider: 'intasend',
       mpesaPhone: normalisedPhone,
     },
   });
@@ -61,51 +61,31 @@ export async function POST(req: NextRequest) {
       amountKes,
       amountUsd: priceUsd,
       exchangeRate: kesRate,
-      provider: 'mpesa',
+      provider: 'intasend',
       phone: normalisedPhone,
       status: 'PENDING',
     },
   });
 
+  const paymentApiRef = `subpay_${paymentRecord.id}`;
+
   try {
-    const stkResponse = await initiateStkPush({
+    const stkResponse = await startIntaSendStkPush({
+      apiRef: paymentApiRef,
       phone: normalisedPhone,
       amountKes,
-      accountReference: 'EventSlot',
-      transactionDesc: `${plan.displayName} plan`,
+      email: session.user.email ?? `${session.user.id}@eventslot.local`,
+      name: session.user.name?.trim() || 'EventSlot User',
     });
 
-    if (stkResponse.ResponseCode !== '0') {
-      await prisma.subscriptionPayment.update({
-        where: { id: paymentRecord.id },
-        data: { status: 'FAILED' },
-      });
-      return NextResponse.json(
-        { error: 'M-Pesa request failed. Please try again.' },
-        { status: 502 }
-      );
-    }
-
-    // Store CheckoutRequestID so callback can match the payment
     await prisma.subscriptionPayment.update({
       where: { id: paymentRecord.id },
       data: {
-        checkoutRequestId: stkResponse.CheckoutRequestID,
-        providerRef: stkResponse.MerchantRequestID,
+        checkoutRequestId: stkResponse.invoiceId,
+        providerRef: paymentApiRef,
       },
     });
 
-    // Store pending intent on the user's subscription record for callback to find
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        // Store pending upgrade info in a temp field or use a separate PendingUpgrade table
-        // Here we use a simple metadata approach via the subscription's lastPaymentRef
-      },
-    });
-
-    // Store the intended plan in a temp record for the callback to use
-    // Use a simple key-value in the payment description field
     await prisma.subscriptionPayment.update({
       where: { id: paymentRecord.id },
       data: {
@@ -123,8 +103,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      checkoutRequestId: stkResponse.CheckoutRequestID,
-      customerMessage: stkResponse.CustomerMessage,
+      checkoutRequestId: stkResponse.invoiceId,
+      customerMessage: 'Check your phone to complete payment.',
       amountKes,
       amountUsd: priceUsd,
     });

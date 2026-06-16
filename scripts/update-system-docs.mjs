@@ -1,30 +1,43 @@
 import fs from 'node:fs'
 import path from 'node:path'
-
-const repoRoot = process.cwd()
-const docPath = path.join(repoRoot, 'docs', 'EVENTSLOT_SYSTEM_DOCUMENTATION.md')
-
-const updatedAt = process.env.DOC_UPDATED_AT ?? new Date().toISOString()
-const commitSha = (process.env.DOC_COMMIT_SHA ?? 'unknown').slice(0, 7)
-const revision = process.env.DOC_CLOUD_RUN_REVISION ?? 'unknown'
-const description = process.env.DOC_CHANGE_DESCRIPTION ?? 'Auto-deploy metadata update'
+import { fileURLToPath } from 'node:url'
 
 const startMarker = '<!-- AUTO-DEPLOY-CHANGELOG:START -->'
 const endMarker = '<!-- AUTO-DEPLOY-CHANGELOG:END -->'
 const lastUpdatedPrefix = '**Last Updated:** '
-const newRow = `| ${updatedAt} | ${commitSha} | ${revision} | ${description} |`
+const placeholderRow = '| â€” | â€” | â€” | Auto-deploy entries will be prepended here by GitHub Actions |'
 
-const doc = fs.readFileSync(docPath, 'utf8')
+function resolveConfig(env) {
+  const updatedAt = env.DOC_UPDATED_AT ?? new Date().toISOString()
+  const commitSha = (env.DOC_COMMIT_SHA ?? 'unknown').slice(0, 7)
+  const revision = env.DOC_CLOUD_RUN_REVISION ?? 'unknown'
+  const description = env.DOC_CHANGE_DESCRIPTION ?? 'Auto-deploy metadata update'
+  const newRow = `| ${updatedAt} | ${commitSha} | ${revision} | ${description} |`
 
-if (!doc.includes(startMarker) || !doc.includes(endMarker)) {
-  throw new Error('Auto-deploy changelog markers are missing from the canonical system doc.')
+  return {
+    updatedAt,
+    commitSha,
+    revision,
+    newRow,
+  }
 }
 
-const updatedDoc = (() => {
+export function updateSystemDocs({
+  repoRoot = process.cwd(),
+  env = process.env,
+} = {}) {
+  const docPath = path.join(repoRoot, 'docs', 'EVENTSLOT_SYSTEM_DOCUMENTATION.md')
+  const { updatedAt, commitSha, revision, newRow } = resolveConfig(env)
+  const doc = fs.readFileSync(docPath, 'utf8')
+
+  if (!doc.includes(startMarker) || !doc.includes(endMarker)) {
+    throw new Error('Auto-deploy changelog markers are missing from the canonical system doc.')
+  }
+
   const lines = doc.split(/\r?\n/)
   const nextLines = lines.map((line) =>
     line.startsWith(lastUpdatedPrefix)
-      ? `${lastUpdatedPrefix}${updatedAt} — Commit: ${commitSha} — Revision: ${revision}`
+      ? `${lastUpdatedPrefix}${updatedAt} â€” Commit: ${commitSha} â€” Revision: ${revision}`
       : line
   )
 
@@ -40,16 +53,32 @@ const updatedDoc = (() => {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .filter((line) => line !== '| — | — | — | Auto-deploy entries will be prepended here by GitHub Actions |')
+    .filter((line) => line !== placeholderRow)
 
   const dedupedRows = existingRows.filter((line) => line !== newRow)
-  const nextRows = [newRow, ...dedupedRows]
+  const updatedDoc = `${before}\n${[newRow, ...dedupedRows].join('\n')}\n${after}`
 
-  return `${before}\n${nextRows.join('\n')}\n${after}`
-})()
+  if (updatedDoc !== doc) {
+    fs.writeFileSync(docPath, updatedDoc, 'utf8')
+  }
 
-if (updatedDoc !== doc) {
-  fs.writeFileSync(docPath, updatedDoc, 'utf8')
+  return {
+    docPath,
+    updatedDoc,
+    changed: updatedDoc !== doc,
+  }
 }
 
-process.stdout.write(`Updated ${path.relative(repoRoot, docPath)}\n`)
+const currentFilePath = fileURLToPath(import.meta.url)
+const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null
+
+if (invokedPath && invokedPath === currentFilePath) {
+  try {
+    const { docPath } = updateSystemDocs()
+    process.stdout.write(`Updated ${path.relative(process.cwd(), docPath)}\n`)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update system documentation.'
+    process.stderr.write(`${message}\n`)
+    process.exitCode = 1
+  }
+}

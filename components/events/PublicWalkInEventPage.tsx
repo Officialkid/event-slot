@@ -215,7 +215,7 @@ export default function PublicWalkInEventPage({ event }: { event: WalkInEventVie
           {eventTitle}
         </h1>
         <p className="mt-10 text-[1.55rem] font-semibold leading-tight text-[#F0EDE6]">
-          This event hasn't started yet.
+          This event hasn&apos;t started yet.
         </p>
         <p className="mt-8 text-[1.15rem] leading-8 text-[rgba(240,237,230,0.68)]">
           Check-in opens on<br />

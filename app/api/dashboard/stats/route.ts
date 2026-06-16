@@ -209,7 +209,10 @@ export async function GET() {
       .filter((e): e is typeof e & { sortDate: Date } => !!e.sortDate)
       .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
       .slice(0, 3)
-      .map(({ sortDate: _sortDate, ...event }) => event)
+      .map(({ sortDate, ...event }) => {
+        void sortDate
+        return event
+      })
 
     // Trigger feedback notifications for events whose deadline has passed (non-critical)
     if (expiredEvents.length > 0) {

@@ -250,8 +250,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const subtleLabelClassName = "mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.82)] tracking-[0.04em]"
 
   const canAddMore = !event.isPaid && attendees.length < maxAttendees
-  const selectedTier = event.ticketTiers?.find((tier) => tier.id === selectedTierId) ?? null
-
   function addAttendee() {
     if (!canAddMore) return
     setAttendees(a => [...a, emptyAnswers(event.questions)])

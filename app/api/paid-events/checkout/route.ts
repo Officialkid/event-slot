@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { initiateStkPush, normaliseMpesaPhone } from '@/lib/daraja'
 import { detectCountry } from '@/lib/geoip'
 import { parseAttendeeIdentity } from '@/lib/paidEvents'
 import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
-import { sendWaitlistJoinedEmail } from '@/lib/email'
+import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend'
+import { joinPaidEventWaitlist } from '@/lib/paymentFinalizers'
 
 type AttendeePayload = {
   answers: Array<{ questionId: string; value: string }>
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const normalizedSource = typeof source === 'string' && source.trim() ? source.trim().toLowerCase() : 'unknown'
     const normalizedRefCode = typeof refCode === 'string' && refCode.trim() ? refCode.trim() : null
     const normalizedUtmSource = typeof utmSource === 'string' && utmSource.trim() ? utmSource.trim() : null
-    const normalizedMpesaPhone = normaliseMpesaPhone(mpesaPhone)
+    const normalizedMpesaPhone = normalizeMpesaPhone(mpesaPhone)
 
     if (!/^2547\d{8}$/.test(normalizedMpesaPhone) && !/^2541\d{8}$/.test(normalizedMpesaPhone)) {
       return NextResponse.json({ success: false, error: 'Invalid M-Pesa phone number' }, { status: 400 })
@@ -133,52 +133,21 @@ export async function POST(req: NextRequest) {
 
     if (available <= 0) {
       const registrationCountryCode = await detectCountry(req).catch(() => null)
-      const registrationNumber = (await prisma.registration.count({ where: { eventId: event.id } })) + 1
-      const nextPosition = ticketTier.waitlistCount + 1
-
-      const registration = await prisma.$transaction(async (tx) => {
-        const created = await tx.registration.create({
-          data: {
-            eventId: event.id,
-            ticketTierId: ticketTier.id,
-            answers: attendee.answers,
-            status: 'waitlist',
-            waitlistPosition: nextPosition,
-            registrationNumber,
-            attendeeEmail,
-            consentTransactional: consentTransactional ?? false,
-            consentMarketing: consentMarketing ?? false,
-            source: normalizedSource,
-            refCode: normalizedRefCode,
-            utmSource: normalizedUtmSource,
-            countryCode: registrationCountryCode ?? undefined,
-          },
-          select: { id: true, registrationNumber: true, waitlistPosition: true },
-        })
-
-        await tx.event.update({
-          where: { id: event.id },
-          data: { waitlistCount: { increment: 1 } },
-        })
-
-        await tx.ticketTier.update({
-          where: { id: ticketTier.id },
-          data: { waitlistCount: { increment: 1 } },
-        })
-
-        return created
+      const registration = await joinPaidEventWaitlist({
+        eventId: event.id,
+        eventSlug: event.slug,
+        eventTitle: event.title,
+        ticketTierId: ticketTier.id,
+        ticketTierWaitlistCount: ticketTier.waitlistCount,
+        attendeeEmail,
+        attendeeAnswers: attendee.answers,
+        consentTransactional: consentTransactional ?? false,
+        consentMarketing: consentMarketing ?? false,
+        source: normalizedSource,
+        refCode: normalizedRefCode,
+        utmSource: normalizedUtmSource,
+        countryCode: registrationCountryCode,
       })
-
-      if (attendeeEmail) {
-        sendWaitlistJoinedEmail({
-          to: attendeeEmail,
-          eventTitle: event.title,
-          waitlistPosition: registration.waitlistPosition,
-          eventDate: null,
-          eventSlug: event.slug,
-          eventLocation: null,
-        }).catch(() => {})
-      }
 
       return NextResponse.json({
         success: true,
@@ -226,35 +195,29 @@ export async function POST(req: NextRequest) {
     })
 
     try {
-      const stk = await initiateStkPush({
+      const apiRef = `order_${order.id}`
+      const stk = await startIntaSendStkPush({
+        apiRef,
         phone: normalizedMpesaPhone,
         amountKes: ticketTier.priceKes,
-        accountReference: 'EventSlot',
-        transactionDesc: `${ticketTier.name} ticket`,
+        email: attendeeEmail,
+        name: attendeeName,
       })
-
-      if (stk.ResponseCode !== '0') {
-        await prisma.paidEventOrder.update({
-          where: { id: order.id },
-          data: { status: 'FAILED' },
-        })
-        return NextResponse.json({ success: false, error: 'M-Pesa request failed. Please try again.' }, { status: 502 })
-      }
 
       await prisma.paidEventOrder.update({
         where: { id: order.id },
         data: {
           status: 'PAYMENT_PENDING',
-          checkoutRequestId: stk.CheckoutRequestID,
-          providerReference: stk.MerchantRequestID,
+          checkoutRequestId: stk.invoiceId,
+          providerReference: apiRef,
         },
       })
 
       return NextResponse.json({
         success: true,
         orderId: order.id,
-        checkoutRequestId: stk.CheckoutRequestID,
-        customerMessage: stk.CustomerMessage,
+        checkoutRequestId: stk.invoiceId,
+        customerMessage: 'Check your phone to complete payment.',
         amountKes: ticketTier.priceKes,
         eventTitle: event.title,
         ticketTierName: ticketTier.name,

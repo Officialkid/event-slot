@@ -1,10 +1,3 @@
-/**
- * Tests for lib/schemas/event.schema.ts — createEventSchema validation
- *
- * Covers: physical events, virtual events (Google Meet link normalisation),
- * paid events (ticket price bounds), and WhatsApp number validation.
- */
-
 import { createEventSchema } from '@/lib/schemas/event.schema'
 
 const BASE_QUESTION = { id: 'q1', label: 'Full Name', type: 'text' as const, required: true }
@@ -22,8 +15,13 @@ const virtualBase = {
   virtualLink: 'https://meet.google.com/abc-defg-hij',
 }
 
-// ─── Physical events ──────────────────────────────────────────────────────────
-describe('createEventSchema — physical events', () => {
+const paidTierBase = {
+  name: 'Regular',
+  priceKes: 1500,
+  capacity: 100,
+}
+
+describe('createEventSchema â€” physical events', () => {
   it('accepts a minimal valid physical event', () => {
     const result = createEventSchema.safeParse(physicalBase)
     expect(result.success).toBe(true)
@@ -79,8 +77,7 @@ describe('createEventSchema — physical events', () => {
   })
 })
 
-// ─── Virtual events ───────────────────────────────────────────────────────────
-describe('createEventSchema — virtual event Google Meet link', () => {
+describe('createEventSchema â€” virtual event Google Meet link', () => {
   it('accepts a full https://meet.google.com/ link', () => {
     const result = createEventSchema.safeParse(virtualBase)
     expect(result.success).toBe(true)
@@ -140,7 +137,6 @@ describe('createEventSchema — virtual event Google Meet link', () => {
     expect(result.success).toBe(false)
   })
 
-  // http:// links are now normalised to https://
   it('normalises http:// Google Meet links to https://', () => {
     const result = createEventSchema.safeParse({
       ...virtualBase,
@@ -150,66 +146,92 @@ describe('createEventSchema — virtual event Google Meet link', () => {
   })
 })
 
-// ─── Paid events ──────────────────────────────────────────────────────────────
-describe('createEventSchema — paid event ticket pricing', () => {
-  it('rejects isPaid=true without a ticketPrice', () => {
+describe('createEventSchema â€” paid event ticket pricing', () => {
+  it('rejects isPaid=true without ticket tiers', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true })
     expect(result.success).toBe(false)
     if (!result.success) {
       const paths = result.error.issues.map((i) => i.path).flat()
-      expect(paths).toContain('ticketPrice')
+      expect(paths).toContain('ticketTiers')
     }
   })
 
-  it('rejects ticketPrice below the minimum of KSh 50', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 30 })
+  it('rejects tier price below the minimum of KSh 50', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 30 }],
+    })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/50/)
+      expect(result.error.issues.some((issue) => /50/.test(issue.message))).toBe(true)
     }
   })
 
-  it('rejects ticketPrice of exactly KSh 49', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 49 })
+  it('rejects tier price of exactly KSh 49', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 49 }],
+    })
     expect(result.success).toBe(false)
   })
 
-  it('accepts ticketPrice of exactly KSh 50 (boundary)', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 50 })
+  it('accepts tier price of exactly KSh 50 (boundary)', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 50 }],
+    })
     expect(result.success).toBe(true)
   })
 
-  it('accepts a mid-range ticket price of KSh 1,500', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 1500 })
+  it('accepts a mid-range tier price of KSh 1,500', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 1500 }],
+    })
     expect(result.success).toBe(true)
   })
 
-  it('accepts ticketPrice of exactly KSh 500,000 (upper boundary)', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 500000 })
+  it('accepts tier price of exactly KSh 500,000 (upper boundary)', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 500000 }],
+    })
     expect(result.success).toBe(true)
   })
 
-  it('rejects ticketPrice above KSh 500,000', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 500001 })
+  it('rejects tier price above KSh 500,000', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 500001 }],
+    })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/500,000/)
+      expect(result.error.issues.some((issue) => /500,000/.test(issue.message))).toBe(true)
     }
   })
 
-  it('rejects a non-integer ticket price', () => {
-    const result = createEventSchema.safeParse({ ...physicalBase, isPaid: true, ticketPrice: 99.99 })
+  it('rejects a non-integer tier price', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      isPaid: true,
+      ticketTiers: [{ ...paidTierBase, priceKes: 99.99 }],
+    })
     expect(result.success).toBe(false)
   })
 
-  it('accepts isPaid=false without ticketPrice', () => {
+  it('accepts isPaid=false without ticket tiers', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, isPaid: false })
     expect(result.success).toBe(true)
   })
 })
 
-// ─── WhatsApp number ──────────────────────────────────────────────────────────
-describe('createEventSchema — WhatsApp number validation', () => {
+describe('createEventSchema â€” WhatsApp number validation', () => {
   it('accepts a valid Kenyan number with country code', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, whatsappNumber: '+254712345678' })
     expect(result.success).toBe(true)
@@ -220,11 +242,11 @@ describe('createEventSchema — WhatsApp number validation', () => {
     expect(result.success).toBe(true)
   })
 
-  it('rejects a number with fewer than 7 digits', () => {
+  it('rejects a number with fewer than 8 digits', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, whatsappNumber: '12345' })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/7 and 15 digits/i)
+      expect(result.error.issues[0].message).toMatch(/8 and 15 digits/i)
     }
   })
 

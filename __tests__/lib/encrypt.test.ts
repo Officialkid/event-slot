@@ -9,9 +9,6 @@
  * they need to vary per test group.
  */
 
-// Valid 64-character hex string (32 bytes) for AES-256
-const VALID_KEY = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'
-
 jest.mock('@/lib/env', () => ({
   env: { ENCRYPTION_KEY: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2' },
 }))

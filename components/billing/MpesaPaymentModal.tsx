@@ -17,7 +17,6 @@ export function MpesaPaymentModal({
   const [step, setStep] = useState<'input' | 'waiting' | 'success' | 'error'>('input');
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [amountKes, setAmountKes] = useState(0);
 
   const priceUsd = billingCycle === 'annual' ? plan.annualPriceUsd : plan.monthlyPriceUsd;
 
@@ -39,7 +38,7 @@ export function MpesaPaymentModal({
     }, 3000); // poll every 3 seconds
 
     return () => clearInterval(interval);
-  }, [step, checkoutRequestId]);
+  }, [checkoutRequestId, onClose, onSuccess, step]);
 
   const handleSubmit = async () => {
     if (!phone.trim()) return;
@@ -59,9 +58,7 @@ export function MpesaPaymentModal({
         setStep('error');
         return;
       }
-
       setCheckoutRequestId(data.checkoutRequestId);
-      setAmountKes(data.amountKes);
     } catch {
       setErrorMessage('Network error. Please try again.');
       setStep('error');

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
+import { failPaidEventOrderPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
+import { extractInvoiceState, extractProviderReference, getIntaSendPaymentStatus } from '@/lib/intasend'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params
@@ -61,16 +63,72 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
     await offerNextPaidWaitlistSpot(order.event.id, order.ticketTier.id).catch(() => {})
   }
 
+  if (status === 'PAYMENT_PENDING' && order.id) {
+    const paymentOrder = await prisma.paidEventOrder.findUnique({
+      where: { id: order.id },
+      select: { checkoutRequestId: true, providerReference: true },
+    })
+
+    if (paymentOrder?.checkoutRequestId) {
+      try {
+        const providerStatus = await getIntaSendPaymentStatus(paymentOrder.checkoutRequestId)
+        const state = extractInvoiceState(providerStatus)
+        const providerRef = extractProviderReference(providerStatus) ?? paymentOrder.providerReference
+
+        if (state === 'COMPLETE') {
+          await finalizePaidEventOrderPayment(order.id, providerRef)
+          status = 'PAID'
+        } else if (state === 'FAILED') {
+          await failPaidEventOrderPayment(order.id, 'FAILED')
+          status = 'FAILED'
+        }
+      } catch {
+        // Keep the stored status if the provider check is temporarily unavailable.
+      }
+    }
+  }
+
+  const responseOrder = status === order.status
+    ? order
+    : await prisma.paidEventOrder.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          status: true,
+          holdExpiresAt: true,
+          attendeeEmail: true,
+          amountKes: true,
+          event: {
+            select: {
+              title: true,
+              slug: true,
+            },
+          },
+          ticketTier: {
+            select: {
+              name: true,
+            },
+          },
+          registrations: {
+            take: 1,
+            select: {
+              confirmationCode: true,
+              id: true,
+            },
+          },
+        },
+      })
+
   return NextResponse.json({
     success: true,
     status,
-    confirmationCode: order.registrations[0]?.confirmationCode ?? null,
-    registrationId: order.registrations[0]?.id ?? null,
-    eventTitle: order.event.title,
-    eventSlug: order.event.slug,
-    ticketTierName: order.ticketTier.name,
-    amountKes: order.amountKes,
-    attendeeEmail: order.attendeeEmail,
-    holdExpiresAt: order.holdExpiresAt.toISOString(),
+    confirmationCode: responseOrder?.registrations[0]?.confirmationCode ?? order.registrations[0]?.confirmationCode ?? null,
+    registrationId: responseOrder?.registrations[0]?.id ?? order.registrations[0]?.id ?? null,
+    eventTitle: responseOrder?.event.title ?? order.event.title,
+    eventSlug: responseOrder?.event.slug ?? order.event.slug,
+    ticketTierName: responseOrder?.ticketTier.name ?? order.ticketTier.name,
+    amountKes: responseOrder?.amountKes ?? order.amountKes,
+    attendeeEmail: responseOrder?.attendeeEmail ?? order.attendeeEmail,
+    holdExpiresAt: (responseOrder?.holdExpiresAt ?? order.holdExpiresAt).toISOString(),
   })
 }
