@@ -48,10 +48,16 @@ export async function canCreateEvent(
   if (!plan) return { allowed: false, reason: 'No active plan found' };
   if (plan.maxActiveEvents === -1) return { allowed: true };
 
+  const now = new Date();
+
   const activeCount = await prisma.event.count({
     where: {
       organizerId: userId,
       archived: false,
+      OR: [
+        { deadline: null },
+        { deadline: { gt: now } },
+      ],
     },
   });
 
