@@ -2,16 +2,9 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { Resend } from "resend"
 import { isAdminEmail } from "@/lib/isAdmin"
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ""
-
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return null
-  return new Resend(apiKey)
-}
 
 function extractSenderEmail(sender: string) {
   const match = sender.match(/<([^>]+)>/)
@@ -19,17 +12,26 @@ function extractSenderEmail(sender: string) {
 }
 
 async function getProviderAcceptedCountSince(startDate: Date): Promise<number | null> {
-  if (!EMAIL_FROM) return null
-  const resend = getResendClient()
-  const listMethod = (resend as unknown as { emails?: { list?: (params?: Record<string, unknown>) => Promise<unknown> } })?.emails?.list
-  if (!listMethod) return null
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  if (!EMAIL_FROM || !apiKey) return null
 
-  const response = await listMethod({ limit: 100 })
-  const root = (response as { data?: unknown })?.data
-  const rows = Array.isArray(root)
-    ? root
-    : Array.isArray((root as { data?: unknown })?.data)
-    ? (root as { data: unknown[] }).data
+  const response = await fetch("https://api.resend.com/emails?limit=100", {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || `HTTP ${response.status}`)
+  }
+
+  const payload = await response.json() as { data?: unknown; emails?: unknown }
+  const rows = Array.isArray(payload.data)
+    ? payload.data
+    : Array.isArray(payload.emails)
+    ? payload.emails
     : []
 
   const senderEmail = extractSenderEmail(EMAIL_FROM)

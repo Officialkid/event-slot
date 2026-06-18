@@ -19,6 +19,20 @@ async function loadFont(fileName: string) {
   return readFile(fontPath)
 }
 
+async function loadRemoteImageAsDataUrl(url: string) {
+  try {
+    const response = await fetch(url, { cache: "no-store" })
+    if (!response.ok) return null
+
+    const contentType = response.headers.get("content-type") || "image/jpeg"
+    const arrayBuffer = await response.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString("base64")
+    return `data:${contentType};base64,${base64}`
+  } catch {
+    return null
+  }
+}
+
 function parseDayIndex(rawDay: string | null, totalDays: number) {
   if (!rawDay) return null
   const parsed = Number(rawDay)
@@ -40,6 +54,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const requestedDay = searchParams.get("day")
     const attendeeName = (searchParams.get("name") ?? "").trim().slice(0, 56)
     const checkinNumber = parsePositiveInt(searchParams.get("spot"))
+    const shouldDownload = searchParams.get("download") === "1"
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -78,9 +93,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       timeZone: WALK_IN_TIME_ZONE,
     })
 
-    const [geistRegular, geistBold] = await Promise.all([
+    const [geistRegular, geistBold, coverImageDataUrl] = await Promise.all([
       loadFont("GeistVF.woff"),
       loadFont("GeistVF.woff"),
+      event.imageUrl ? loadRemoteImageAsDataUrl(event.imageUrl) : Promise.resolve(null),
     ])
 
     const response = new ImageResponse(
@@ -97,10 +113,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
             fontFamily: "Geist, system-ui, sans-serif",
           }}
         >
-          {event.imageUrl ? (
+          {coverImageDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={event.imageUrl}
+              src={coverImageDataUrl}
               alt=""
               style={{
                 position: "absolute",
@@ -258,6 +274,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     )
 
     response.headers.set("Cache-Control", "private, no-store")
+    if (shouldDownload) {
+      response.headers.set(
+        "Content-Disposition",
+        `attachment; filename="${slug}-walkin-poster.png"`,
+      )
+    }
     return response
   } catch (error) {
     console.error("[WALKIN SHARE CARD]", error)

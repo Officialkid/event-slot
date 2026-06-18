@@ -80,6 +80,11 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     return `${window.location.origin}/api/walkin/${event.slug}/share-card?${params.toString()}`
   }, [event.slug, result])
 
+  const shareCardDownloadUrl = useMemo(() => {
+    if (!shareCardUrl) return ""
+    return `${shareCardUrl}&download=1`
+  }, [shareCardUrl])
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -128,17 +133,17 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   async function handleDownloadShareCard() {
     setDownloadingCard(true)
     try {
-      const file = await getShareCardFile()
-      if (!file) return
       setShareError("")
+      if (!shareCardDownloadUrl) return
+
       const link = document.createElement("a")
-      link.href = URL.createObjectURL(file)
-      link.download = file.name
-      link.rel = "noopener"
+      link.href = shareCardDownloadUrl
+      link.download = `${event.slug}-checkin-poster.png`
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
     } catch {
       setShareError("We could not generate your poster just now. Please try again.")
     } finally {
@@ -149,6 +154,11 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   async function handleShare(target: "whatsapp" | "story") {
     if (!result) return
     setSharing(target)
+    const whatsappWindow =
+      target === "whatsapp" && typeof window !== "undefined"
+        ? window.open("", "_blank", "noopener,noreferrer")
+        : null
+
     try {
       setShareError("")
       const file = await getShareCardFile()
@@ -166,6 +176,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
             text: shareText,
             files: [file],
           })
+          if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
           return
         } catch {
           // Fall through to channel-specific fallback.
@@ -180,13 +191,19 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
               text: shareText,
               url: eventLink,
             })
+            if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
             return
           } catch {
             // Fall through to WhatsApp text fallback.
           }
         }
 
-        window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${eventLink}`.trim())}`, "_blank", "noopener,noreferrer")
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${eventLink}`.trim())}`
+        if (whatsappWindow && !whatsappWindow.closed) {
+          whatsappWindow.location.href = whatsappUrl
+        } else {
+          window.location.href = whatsappUrl
+        }
         return
       }
 
@@ -197,6 +214,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
             text: shareText,
             url: eventLink,
           })
+          if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
           return
         } catch {
           // Fall through to local download fallback.
@@ -205,6 +223,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
 
       await handleDownloadShareCard()
     } catch {
+      if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
       setShareError("Sharing is not available right now. Please try Download my poster instead.")
     } finally {
       setSharing(null)
