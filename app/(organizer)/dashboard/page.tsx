@@ -86,7 +86,7 @@ function StatCard({ label, value, trend }: { label: string; value: number | stri
       </span>
       <span
         style={{
-          fontSize: "2rem",
+          fontSize: "1.8rem",
           fontWeight: 600,
           color: "#F0EDE6",
           fontFamily: "var(--font-dm-sans)",
@@ -382,10 +382,11 @@ export default function DashboardOverviewPage() {
             <h1
               style={{
                 fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.6rem",
+                fontSize: "1.45rem",
                 color: "#F0EDE6",
                 fontWeight: 400,
                 margin: 0,
+                lineHeight: 1.1,
               }}
             >
               {getGreeting()}, {firstName}
@@ -393,7 +394,7 @@ export default function DashboardOverviewPage() {
             <p
               style={{
                 marginTop: "0.4rem",
-                fontSize: "0.875rem",
+                fontSize: "0.9rem",
                 fontWeight: 300,
                 color: "rgba(240,237,230,0.45)",
                 fontFamily: "var(--font-dm-sans)",

@@ -308,7 +308,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Page content — pb-20 clears mobile tab bar */}
-          <main className="pb-20 md:pb-0" style={{ flex: 1, background: "#0A0A0A" }}>
+          <main className="md:pb-0" style={{ flex: 1, background: "#0A0A0A", paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>
             {children}
           </main>
         </div>
@@ -357,3 +357,4 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     </>
   )
 }
+

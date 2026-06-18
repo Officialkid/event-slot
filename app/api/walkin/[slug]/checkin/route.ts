@@ -80,6 +80,7 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
     }
 
     const todayDate = getTodayWalkInDate(new Date(), WALK_IN_TIME_ZONE)
+    let duplicate = false
 
     try {
       await prisma.walkInCheckin.create({
@@ -91,12 +92,33 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
         },
       })
     } catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        duplicate = true
+      } else {
         throw error
       }
     }
 
-    const [countToday, dayPosition] = await Promise.all([
+    const attendeeEntry = await prisma.walkInCheckin.findUnique({
+      where: {
+        eventId_phone_dayDate: {
+          eventId: event.id,
+          phone: phone.number,
+          dayDate: todayDate,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+      },
+    })
+
+    if (!attendeeEntry) {
+      throw new Error('Walk-in check-in could not be loaded after save.')
+    }
+
+    const [countToday, dayPosition, checkinNumber] = await Promise.all([
       prisma.walkInCheckin.count({ where: { eventId: event.id, dayDate: todayDate } }),
       Promise.resolve(getWalkInDayPosition({
         dayKey: todayKey,
@@ -104,15 +126,31 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
         eventEndAt: event.eventEndAt,
         timeZone: WALK_IN_TIME_ZONE,
       })),
+      prisma.walkInCheckin.count({
+        where: {
+          eventId: event.id,
+          dayDate: todayDate,
+          OR: [
+            { createdAt: { lt: attendeeEntry.createdAt } },
+            {
+              createdAt: attendeeEntry.createdAt,
+              id: { lte: attendeeEntry.id },
+            },
+          ],
+        },
+      }),
     ])
 
     return NextResponse.json({
       success: true,
+      duplicate,
       dayNumber: dayPosition?.index ?? 1,
       totalDays: dayPosition?.total ?? 1,
       dayLabel: formatWalkInLongDayLabel(todayKey, WALK_IN_TIME_ZONE),
       countToday,
       eventTitle: event.title,
+      attendeeName: attendeeEntry.name,
+      checkinNumber,
     })
   } catch (error) {
     console.error('[WALKIN CHECKIN]', error)

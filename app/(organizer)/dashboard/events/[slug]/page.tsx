@@ -255,9 +255,9 @@ function hasActiveWalkInDay(dashboard: WalkInDashboard | null): boolean {
 
 function walkInDashboardHeaderLabel(dashboard: WalkInDashboard | null): string {
   if (!dashboard) return "Walk-In Event"
-  if (dashboard.status === "ENDED") return "Walk-In Event Â· Completed"
-  if (dashboard.status === "NOT_STARTED") return `Walk-In Event Â· Starts ${formatDateRange(dashboard.startDate, dashboard.startDate)}`
-  return `Walk-In Event Â· Live ${formatDateRange(dashboard.startDate, dashboard.endDate)}`
+  if (dashboard.status === "ENDED") return "Walk-In Event - Completed"
+  if (dashboard.status === "NOT_STARTED") return `Walk-In Event - Starts ${formatDateRange(dashboard.startDate, dashboard.startDate)}`
+  return `Walk-In Event - Live ${formatDateRange(dashboard.startDate, dashboard.endDate)}`
 }
 
 function isEventArchived(e: EventData): boolean {
@@ -2417,7 +2417,7 @@ export default function EventDashboardPage() {
                   <path d="M8 2v8M5 7l3 3 3-3" />
                   <path d="M2 12h12" />
                 </svg>
-                {reportLoading ? "Generatingâ€¦" : reportData ? "Report Ready" : "Generate Report"}
+                {reportLoading ? "Generating..." : reportData ? "Report Ready" : "Generate Report"}
               </button>
               {eventData.canEdit && (
                 <HeaderMenu
@@ -2627,13 +2627,13 @@ export default function EventDashboardPage() {
                           Day {day.dayNumber} ({day.label.split(",")[0]})
                         </td>
                         <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: day.status === "UPCOMING" ? "rgba(240,237,230,0.35)" : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", fontWeight: 700 }}>
-                          {day.status === "UPCOMING" && day.count === 0 ? "-" : day.count.toLocaleString()}{day.status === "ACTIVE" ? " ●" : ""}
+                          {day.status === "UPCOMING" && day.count === 0 ? "-" : day.count.toLocaleString()}{day.status === "ACTIVE" ? " (Live)" : ""}
                         </td>
                         <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           -
                         </td>
                         <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: day.status === "ACTIVE" ? "#C8F55A" : "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
-                          {day.status === "CLOSED" ? "✓ Closed" : day.status === "ACTIVE" ? "● Active" : "Upcoming"}
+                          {day.status === "CLOSED" ? "Closed" : day.status === "ACTIVE" ? "Active" : "Upcoming"}
                         </td>
                       </tr>
                     ))}
@@ -2663,7 +2663,7 @@ export default function EventDashboardPage() {
                     onClick={() => setShowReportPaymentModal(true)}
                     style={{ background: "transparent", border: "0.5px solid rgba(124,198,255,0.22)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "#7CC6FF", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                   >
-                    Export Attendance Data 🔒
+                    Export Attendance Data (Locked)
                   </button>
                 ) : (
                   <>
@@ -4096,3 +4096,4 @@ export default function EventDashboardPage() {
     </>
   )
 }
+

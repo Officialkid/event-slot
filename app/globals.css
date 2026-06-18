@@ -252,9 +252,263 @@ li {
   margin-top: 0.5rem;
 }
 
+.marketing-shell {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1240px;
+}
+
+.marketing-display-title {
+  font-size: clamp(1.78rem, 3.25vw, 2.75rem);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.marketing-page-title {
+  font-size: clamp(1.75rem, 2.8vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.marketing-section-title {
+  font-size: clamp(1.32rem, 2vw, 1.82rem);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.marketing-panel {
+  position: relative;
+  border: 1px solid rgba(240, 237, 230, 0.08);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(15, 19, 14, 0.98) 0%, rgba(10, 10, 10, 0.98) 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.marketing-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at top, rgba(200, 245, 90, 0.12), transparent 38%),
+    linear-gradient(rgba(200, 245, 90, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 245, 90, 0.06) 1px, transparent 1px);
+  background-size: auto, 24px 24px, 24px 24px;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.marketing-grid::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -18% auto;
+  width: min(420px, 48vw);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(200, 245, 90, 0.16), transparent 68%);
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+.marketing-eyebrow,
+.marketing-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 245, 90, 0.18);
+  background: rgba(200, 245, 90, 0.08);
+  padding: 0.38rem 0.78rem;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.marketing-card {
+  border: 1px solid rgba(240, 237, 230, 0.08);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(20, 22, 20, 0.96) 0%, rgba(14, 14, 14, 0.98) 100%);
+  padding: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.marketing-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(200, 245, 90, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.marketing-icon-wrap {
+  display: inline-flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(200, 245, 90, 0.16);
+  background: rgba(200, 245, 90, 0.08);
+}
+
+.marketing-chip {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 237, 230, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.45rem 0.9rem;
+  color: rgba(240, 237, 230, 0.76);
+  font-size: 0.88rem;
+}
+
+.marketing-stat-block {
+  border: 1px solid rgba(240, 237, 230, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem 1.1rem;
+}
+
+.marketing-dashboard-frame {
+  position: relative;
+  border: 1px solid rgba(240, 237, 230, 0.08);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(17, 20, 17, 0.98) 0%, rgba(10, 10, 10, 0.98) 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+}
+
+.marketing-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid rgba(240, 237, 230, 0.08);
+}
+
+.marketing-window-dot {
+  display: inline-block;
+  height: 0.6rem;
+  width: 0.6rem;
+  border-radius: 999px;
+}
+
+.marketing-button-primary,
+.marketing-button-secondary {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 14px;
+  padding: 0.8rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.marketing-button-primary {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #0a0a0a;
+}
+
+.marketing-button-primary:hover,
+.marketing-button-primary:focus-visible {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.marketing-button-secondary {
+  border: 1px solid rgba(240, 237, 230, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(240, 237, 230, 0.86);
+}
+
+.marketing-button-secondary:hover,
+.marketing-button-secondary:focus-visible {
+  border-color: rgba(200, 245, 90, 0.24);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.marketing-fade-up {
+  animation: marketingFadeUp 0.55s ease both;
+}
+
+.marketing-fade-up-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.marketing-fade-up-delay-2 {
+  animation-delay: 0.16s;
+}
+
+@keyframes marketingFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-page-shell {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.dashboard-page-title {
+  font-family: var(--font-instrument-serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #f0ede6;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.dashboard-page-intro {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: rgba(240, 237, 230, 0.5);
+}
+
+.dashboard-surface {
+  background: #141414;
+  border: 0.5px solid rgba(240, 237, 230, 0.08);
+  border-radius: 14px;
+ }
+
 @media (max-width: 768px) {
   .mobile-safe-bottom {
     padding-bottom: 20px;
+  }
+
+  .marketing-panel,
+  .marketing-dashboard-frame,
+  .marketing-card {
+    border-radius: 22px;
+  }
+
+  .marketing-display-title {
+    font-size: clamp(1.72rem, 7vw, 2.2rem);
+  }
+
+  .dashboard-page-title {
+    font-size: 1.35rem;
   }
 }
 

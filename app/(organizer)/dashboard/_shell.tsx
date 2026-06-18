@@ -200,10 +200,10 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, has
           className="dash-hdr-logo"
           style={{ textDecoration: "none", display: "inline-block", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#F0EDE6" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#F0EDE6" }}>
             Event
           </span>
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#C8F55A" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#C8F55A" }}>
             Slot
           </span>
         </Link>
@@ -212,7 +212,7 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, has
           className="dash-logo-e"
           style={{ textDecoration: "none", display: "none", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", color: "#C8F55A" }}>E</span>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#C8F55A" }}>E</span>
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -1158,8 +1158,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
           {/* Page content */}
           <main
-            className="dash-content pb-40 md:pb-0"
-            style={{ flex: 1, background: "#0A0A0A" }}
+            className="dash-content md:pb-0"
+            style={{ flex: 1, background: "#0A0A0A", paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
             {children}
           </main>
@@ -1466,3 +1466,4 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     </>
   )
 }
+

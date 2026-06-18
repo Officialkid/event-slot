@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { MarketingFooter } from "@/components/MarketingFooter"
 
 export const metadata: Metadata = {
   title: "Privacy Policy - EventSlot",
@@ -146,50 +147,53 @@ const sections: Array<{
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
-      <header className="mb-10">
-        <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Privacy Policy</h1>
-        <p className="text-sm text-text-muted">Last updated: May 2026</p>
-      </header>
+    <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <header className="mb-10">
+          <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Privacy Policy</h1>
+          <p className="text-sm text-text-muted">Last updated: May 2026</p>
+        </header>
 
-      <p className="mb-8 text-sm leading-relaxed text-text-secondary">
-        By using EventSlot, you agree to the data practices described in this Privacy Policy. If you do not agree,
-        please discontinue use of the platform.
-      </p>
-
-      <div className="space-y-10">
-        {sections.map((section) => (
-          <article key={section.id}>
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-text-primary">
-              <span className="font-mono text-sm text-accent">{section.id}.</span>
-              {section.title}
-            </h2>
-
-            <div className="space-y-3 text-sm leading-relaxed text-text-secondary">
-              {section.paragraphs?.map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-
-              {section.bullets && (
-                <ul className="list-disc space-y-2 pl-5">
-                  {section.bullets.map((bullet, index) => (
-                    <li key={index}>{bullet}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <footer className="mt-12 border-t border-border-brand pt-8 text-center">
-        <p className="text-xs text-text-muted">
-          Questions? Email{" "}
-          <a href="mailto:info@eventsslot.com" className="text-accent hover:underline">
-            info@eventsslot.com
-          </a>
+        <p className="mb-8 text-sm leading-relaxed text-text-secondary">
+          By using EventSlot, you agree to the data practices described in this Privacy Policy. If you do not agree,
+          please discontinue use of the platform.
         </p>
-      </footer>
-    </div>
+
+        <div className="space-y-10">
+          {sections.map((section) => (
+            <article key={section.id}>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-text-primary">
+                <span className="font-mono text-sm text-accent">{section.id}.</span>
+                {section.title}
+              </h2>
+
+              <div className="space-y-3 text-sm leading-relaxed text-text-secondary">
+                {section.paragraphs?.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
+
+                {section.bullets && (
+                  <ul className="list-disc space-y-2 pl-5">
+                    {section.bullets.map((bullet, index) => (
+                      <li key={index}>{bullet}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <footer className="mt-12 border-t border-border-brand pt-8 text-center">
+          <p className="text-xs text-text-muted">
+            Questions? Email{" "}
+            <a href="mailto:info@eventsslot.com" className="text-accent hover:underline">
+              info@eventsslot.com
+            </a>
+          </p>
+        </footer>
+      </div>
+      <MarketingFooter />
+    </main>
   )
 }

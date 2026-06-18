@@ -58,3 +58,4 @@ export function WhatsAppFloatingButton({ contactNumber, contactMode, eventTitle,
     </a>
   )
 }
+

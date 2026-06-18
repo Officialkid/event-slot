@@ -32,15 +32,16 @@ export default async function BillingPage() {
   const currentPlan = getSubscriptionPlan(user?.plan)
 
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto" }}>
+    <div className="dashboard-page-shell" style={{ maxWidth: 920 }}>
       <div style={{ marginBottom: "1.5rem" }}>
         <h1
           style={{
             fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.8rem",
+            fontSize: "1.5rem",
             fontWeight: 400,
             color: "#F0EDE6",
             margin: "0 0 0.35rem",
+            lineHeight: 1.1,
           }}
         >
           Billing
@@ -48,7 +49,7 @@ export default async function BillingPage() {
         <p
           style={{
             margin: 0,
-            fontSize: "0.95rem",
+            fontSize: "0.9rem",
             color: "rgba(240,237,230,0.5)",
             fontFamily: "var(--font-dm-sans)",
             lineHeight: 1.7,
@@ -62,7 +63,7 @@ export default async function BillingPage() {
         style={{
           background: "#141414",
           border: "0.5px solid rgba(240,237,230,0.08)",
-          borderRadius: 12,
+          borderRadius: 14,
           padding: "1.25rem",
           marginBottom: "1rem",
         }}
@@ -113,7 +114,7 @@ export default async function BillingPage() {
         style={{
           background: "#141414",
           border: "0.5px solid rgba(240,237,230,0.08)",
-          borderRadius: 12,
+          borderRadius: 14,
           padding: "1.25rem",
           marginBottom: "1rem",
         }}
@@ -163,7 +164,7 @@ export default async function BillingPage() {
         style={{
           background: "#141414",
           border: "0.5px solid rgba(240,237,230,0.08)",
-          borderRadius: 12,
+          borderRadius: 14,
           padding: "1.25rem",
         }}
       >

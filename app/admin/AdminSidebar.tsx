@@ -17,6 +17,7 @@ const navItems = [
   { label: "Conversations", href: "/admin/conversations" },
   { label: "System Updates", href: "/admin/updates" },
   { label: "Countries", href: "/admin/countries" },
+  { label: "Payment Tests", href: "/admin/test/payments" },
 ]
 
 export default function AdminSidebar() {

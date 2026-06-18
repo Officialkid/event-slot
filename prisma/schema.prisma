@@ -12,6 +12,7 @@ generator client {
 
 model Event {
   id               String    @id @default(cuid())
+  isTestData       Boolean   @default(false)
   title            String
   description      String?
   slug             String    @unique
@@ -115,6 +116,7 @@ model EntryLog {
 
 model User {
   id             String         @id @default(cuid())
+  isTestData     Boolean        @default(false)
   name           String?
   email          String?        @unique
   emailVerified  DateTime?
@@ -349,6 +351,7 @@ model EmailOTP {
 
 model Registration {
   id                    String    @id @default(cuid())
+  isTestData            Boolean   @default(false)
   eventId               String
   event                 Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
   answers               Json
@@ -457,6 +460,7 @@ enum PaidOrderPaymentMethod {
 
 model Ticket {
   id             String        @id @default(cuid())
+  isTestData     Boolean       @default(false)
   code           String        @unique @default(cuid())
   registrationId String        @unique
   registration   Registration  @relation(fields: [registrationId], references: [id], onDelete: Cascade)
@@ -475,6 +479,7 @@ model Ticket {
 
 model Payment {
   id                String               @id @default(cuid())
+  isTestData        Boolean              @default(false)
   eventId           String
   event             Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
   paidEventOrderId  String               @unique

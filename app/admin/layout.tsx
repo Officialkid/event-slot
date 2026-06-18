@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/signin?callbackUrl=/admin&reason=admin')
   }
 
-  const isAdmin = session.user.role === 'SUPER_ADMIN' || isAdminEmail(session?.user?.email)
+  const isAdmin = session.user.role === 'SUPER_ADMIN' || session.user.isAdmin || isAdminEmail(session?.user?.email)
   if (!isAdmin) {
     redirect('/unauthorized')
   }

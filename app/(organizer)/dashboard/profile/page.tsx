@@ -537,15 +537,16 @@ export default function ProfilePage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div className="dashboard-page-shell" style={{ maxWidth: 560 }}>
         {/* Page heading */}
         <h1
           style={{
             fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.6rem",
+            fontSize: "1.45rem",
             color: "#F0EDE6",
             fontWeight: 400,
             margin: "0 0 2rem",
+            lineHeight: 1.1,
           }}
         >
           Your profile

@@ -15,6 +15,25 @@ type SubscriptionIntent = {
   phone?: string
 }
 
+async function logPaidTicketEmail(orderId: string, data: {
+  attendeeEmail: string
+  status: 'sent' | 'failed'
+  error?: string
+}) {
+  await prisma.errorLog.create({
+    data: {
+      route: `paid-ticket-email:${orderId}`,
+      message: JSON.stringify({
+        orderId,
+        attendeeEmail: data.attendeeEmail,
+        status: data.status,
+        error: data.error ?? null,
+        createdAt: new Date().toISOString(),
+      }),
+    },
+  }).catch(() => {})
+}
+
 export async function failPaidEventOrderPayment(orderId: string, status: 'FAILED' | 'CANCELLED') {
   const order = await prisma.paidEventOrder.findUnique({
     where: { id: orderId },
@@ -223,7 +242,16 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
       eventDate: eventOrder.event.eventDate,
       eventSlug: eventOrder.event.slug,
       eventLocation: eventOrder.event.location,
-    }).catch(() => {})
+    })
+      .then(() => logPaidTicketEmail(eventOrder.id, {
+        attendeeEmail: eventOrder.attendeeEmail as string,
+        status: 'sent',
+      }))
+      .catch((error) => logPaidTicketEmail(eventOrder.id, {
+        attendeeEmail: eventOrder.attendeeEmail as string,
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown email error',
+      }))
   }
 }
 

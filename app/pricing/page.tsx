@@ -1,4 +1,6 @@
 import Link from "next/link"
+import { ArrowRight, Check, ShieldCheck } from "lucide-react"
+import { MarketingFooter } from "@/components/MarketingFooter"
 import { SUBSCRIPTION_PLANS, formatCommissionRate } from "@/lib/subscriptionPlans"
 
 const comparisonRows: Array<{
@@ -15,114 +17,163 @@ const comparisonRows: Array<{
 export default function PricingPage() {
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
-      <section className="border-b border-[rgba(240,237,230,0.08)] px-5 py-16 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[#C8F55A]">
-            Pricing
-          </p>
-          <div className="mt-4 max-w-3xl">
-            <h1
-              className="text-[2.6rem] leading-tight sm:text-[3.5rem]"
-              style={{ fontFamily: "var(--font-instrument-serif)" }}
-            >
-              Simple plans for organisers, lower commission as you grow.
-            </h1>
-            <p className="mt-5 max-w-2xl text-[1.02rem] leading-8 text-[rgba(240,237,230,0.62)]">
-              EventSlot gives every organiser a free starting point, then rewards heavier usage with
-              better tools and lower paid-event commission rates.
-            </p>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/signin"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-[8px] bg-[#C8F55A] px-5 text-[0.95rem] font-semibold text-[#0A0A0A]"
-            >
-              Get started
-            </Link>
-            <Link
-              href="/dashboard/events/new"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-[8px] border border-[rgba(240,237,230,0.16)] px-5 text-[0.95rem] font-semibold text-[#F0EDE6]"
-            >
-              Create an event
-            </Link>
+      <section className="marketing-shell px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
+        <div className="marketing-panel overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.46fr)] lg:items-end">
+            <div className="max-w-3xl">
+              <div className="marketing-eyebrow">
+                <span className="inline-flex h-2 w-2 rounded-full bg-[#C8F55A]" />
+                Pricing
+              </div>
+              <h1 className="marketing-page-title mt-6 font-semibold text-white">
+                Start free now, then keep more of each paid ticket as you grow.
+              </h1>
+              <p className="mt-6 max-w-2xl text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+                EventSlot keeps entry simple for new organizers and rewards teams that run more
+                events with lower commission and stronger account limits.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/signup" className="marketing-button-primary">
+                  Try It Now
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/how-it-works" className="marketing-button-secondary">
+                  See how it works
+                </Link>
+              </div>
+            </div>
+
+            <div className="marketing-card">
+              <div className="flex items-center gap-3 text-[#C8F55A]">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-[0.88rem] font-semibold uppercase tracking-[0.14em]">
+                  Commission bands
+                </span>
+              </div>
+              <div className="mt-5 space-y-4">
+                {SUBSCRIPTION_PLANS.map((plan) => (
+                  <div
+                    key={plan.key}
+                    className="flex items-center justify-between rounded-[14px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-4 py-3"
+                  >
+                    <span className="text-[0.95rem] text-white">{plan.name}</span>
+                    <span className="text-[1.05rem] font-semibold text-[#C8F55A]">
+                      {formatCommissionRate(plan.commissionRate)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="px-5 py-12 sm:px-8">
-        <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-4">
+      <section className="marketing-shell px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="grid gap-4 xl:grid-cols-4">
           {SUBSCRIPTION_PLANS.map((plan) => (
             <article
               key={plan.key}
-              className={`rounded-[8px] border p-6 ${
+              className={`marketing-card marketing-fade-up flex h-full flex-col ${
                 plan.key === "pro"
-                  ? "border-[rgba(200,245,90,0.35)] bg-[rgba(200,245,90,0.05)]"
-                  : "border-[rgba(240,237,230,0.08)] bg-[#111111]"
+                  ? "border-[rgba(200,245,90,0.28)] bg-[linear-gradient(180deg,rgba(200,245,90,0.12),rgba(255,255,255,0.03))]"
+                  : ""
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2
-                    className="text-[1.5rem]"
-                    style={{ fontFamily: "var(--font-instrument-serif)" }}
-                  >
-                    {plan.name}
-                  </h2>
-                  <p className="mt-2 text-[0.9rem] text-[rgba(240,237,230,0.52)]">
+                  <h2 className="text-[1.55rem] font-semibold text-white">{plan.name}</h2>
+                  <p className="mt-2 text-[0.95rem] text-[rgba(240,237,230,0.52)]">
                     ${plan.monthlyPriceUsd}/month
                   </p>
                 </div>
                 <span className="rounded-full border border-[rgba(240,237,230,0.12)] px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#C8F55A]">
-                  {formatCommissionRate(plan.commissionRate)} commission
+                  {formatCommissionRate(plan.commissionRate)}
                 </span>
               </div>
 
-              <ul className="mt-6 space-y-3 text-[0.92rem] leading-7 text-[rgba(240,237,230,0.72)]">
+              <ul className="mt-6 space-y-3 text-[0.96rem] leading-7 text-[rgba(240,237,230,0.72)]">
                 {plan.highlights.map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <span className="text-[#C8F55A]">•</span>
+                  <li key={item} className="flex gap-3">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-[#C8F55A]" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
+
+              <div className="mt-8">
+                <Link href="/signup" className="marketing-button-secondary w-full justify-center">
+                  Choose {plan.name}
+                </Link>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="border-t border-[rgba(240,237,230,0.08)] px-5 py-12 sm:px-8">
-        <div className="mx-auto max-w-6xl overflow-hidden rounded-[8px] border border-[rgba(240,237,230,0.08)]">
-          <div className="grid grid-cols-5 border-b border-[rgba(240,237,230,0.08)] bg-[#121212]">
-            <div className="px-4 py-4 text-[0.82rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.5)]">
-              Feature
-            </div>
-            {SUBSCRIPTION_PLANS.map((plan) => (
-              <div
-                key={plan.key}
-                className="px-4 py-4 text-center text-[0.92rem] font-semibold text-[#F0EDE6]"
-              >
-                {plan.name}
-              </div>
-            ))}
+      <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0D0F0C] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="marketing-shell">
+          <div className="max-w-2xl">
+            <div className="marketing-section-label">Plan comparison</div>
+            <h2 className="marketing-section-title mt-4 font-semibold text-white">
+              Compare the limits that matter before you choose a plan.
+            </h2>
           </div>
 
-          {comparisonRows.map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-5 border-b border-[rgba(240,237,230,0.06)] last:border-b-0"
-            >
-              <div className="px-4 py-4 text-[0.92rem] text-[rgba(240,237,230,0.66)]">
-                {row.label}
+          <div className="mt-8 overflow-hidden rounded-[24px] border border-[rgba(240,237,230,0.08)] bg-[#111311]">
+            <div className="hidden grid-cols-5 border-b border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] lg:grid">
+              <div className="px-5 py-4 text-[0.8rem] font-semibold uppercase tracking-[0.12em] text-[rgba(240,237,230,0.45)]">
+                Feature
               </div>
               {SUBSCRIPTION_PLANS.map((plan) => (
-                <div key={plan.key} className="px-4 py-4 text-center text-[0.92rem] text-[#F0EDE6]">
-                  {plan[row.key]}
+                <div key={plan.key} className="px-5 py-4 text-center text-[0.92rem] font-semibold text-white">
+                  {plan.name}
                 </div>
               ))}
             </div>
-          ))}
+
+            <div className="lg:hidden">
+              {comparisonRows.map((row) => (
+                <div key={row.label} className="border-b border-[rgba(240,237,230,0.08)] px-5 py-5 last:border-b-0">
+                  <div className="text-[0.84rem] font-semibold uppercase tracking-[0.12em] text-[rgba(240,237,230,0.45)]">
+                    {row.label}
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    {SUBSCRIPTION_PLANS.map((plan) => (
+                      <div
+                        key={plan.key}
+                        className="flex items-center justify-between rounded-[14px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-4 py-3"
+                      >
+                        <span className="text-[0.9rem] text-[rgba(240,237,230,0.68)]">{plan.name}</span>
+                        <span className="text-[0.95rem] text-white">{plan[row.key]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden lg:block">
+              {comparisonRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="grid grid-cols-5 border-b border-[rgba(240,237,230,0.06)] last:border-b-0"
+                >
+                  <div className="px-5 py-4 text-[0.94rem] text-[rgba(240,237,230,0.68)]">
+                    {row.label}
+                  </div>
+                  {SUBSCRIPTION_PLANS.map((plan) => (
+                    <div key={plan.key} className="px-5 py-4 text-center text-[0.94rem] text-white">
+                      {plan[row.key]}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
+
+      <MarketingFooter />
     </main>
   )
 }

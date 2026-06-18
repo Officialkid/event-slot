@@ -4,7 +4,6 @@ import { readFile } from 'fs/promises'
 import path from 'path'
 import prisma from '@/lib/prisma'
 import {
-  dayKeyToDate,
   formatWalkInLongDayLabel,
   getWalkInDayKey,
   getWalkInDayPosition,
@@ -27,16 +26,24 @@ function parseDayIndex(rawDay: string | null, totalDays: number) {
   return parsed
 }
 
+function parsePositiveInt(rawValue: string | null) {
+  if (!rawValue) return null
+  const parsed = Number(rawValue)
+  if (!Number.isInteger(parsed) || parsed < 1) return null
+  return parsed
+}
+
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await props.params
     const { searchParams } = new URL(req.url)
     const requestedDay = searchParams.get('day')
+    const attendeeName = (searchParams.get('name') ?? '').trim().slice(0, 56)
+    const checkinNumber = parsePositiveInt(searchParams.get('spot'))
 
     const event = await prisma.event.findUnique({
       where: { slug },
       select: {
-        id: true,
         title: true,
         accessType: true,
         eventDate: true,
@@ -69,14 +76,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       eventDate: event.eventDate,
       eventEndAt: event.eventEndAt,
       timeZone: WALK_IN_TIME_ZONE,
-    })
-
-    const dayDate = dayKeyToDate(dayKey)
-    const countToday = await prisma.walkInCheckin.count({
-      where: {
-        eventId: event.id,
-        dayDate,
-      },
     })
 
     const [geistRegular, geistBold] = await Promise.all([
@@ -163,7 +162,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
               position: 'absolute',
               left: 72,
               right: 72,
-              top: 420,
+              top: 380,
               display: 'flex',
               flexDirection: 'column',
               gap: 28,
@@ -190,9 +189,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
               ✓
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.08, color: '#C8F55A' }}>
+                Welcome to
+              </div>
               <div style={{ fontSize: 44, fontWeight: 700, lineHeight: 1.08 }}>
-                I attended
+                We are glad to have you at
               </div>
               <div
                 style={{
@@ -206,11 +208,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
                 {event.title}
               </div>
               <div style={{ fontSize: 34, fontWeight: 600, color: '#C8F55A' }}>
-                {dayPosition && dayPosition.total > 1 ? `Day ${dayPosition.index} of ${dayPosition.total} · ` : ''}
+                {dayPosition && dayPosition.total > 1 ? `Day ${dayPosition.index} of ${dayPosition.total} - ` : ''}
                 {formatWalkInLongDayLabel(dayKey, WALK_IN_TIME_ZONE)}
               </div>
-              <div style={{ fontSize: 38, fontWeight: 700 }}>
-                {countToday.toLocaleString()} people here today
+              {attendeeName ? (
+                <div style={{ fontSize: 30, fontWeight: 500, color: 'rgba(240,237,230,0.82)' }}>
+                  Checked in as {attendeeName}
+                </div>
+              ) : null}
+              {checkinNumber ? (
+                <div style={{ fontSize: 38, fontWeight: 700 }}>
+                  Check-in number #{checkinNumber}
+                </div>
+              ) : null}
+              <div style={{ fontSize: 28, fontWeight: 500, color: 'rgba(240,237,230,0.86)' }}>
+                Thanks for being part of this moment.
               </div>
             </div>
           </div>
@@ -229,7 +241,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
             }}
           >
             <div style={{ fontSize: 24, fontWeight: 700 }}>Powered by EventSlot</div>
-            <div style={{ fontSize: 22, color: 'rgba(240,237,230,0.78)' }}>eventsslot.com</div>
+            <div style={{ fontSize: 22, color: 'rgba(240,237,230,0.78)' }}>Check us out at www.eventsslot.com</div>
           </div>
         </div>
       ),
@@ -243,10 +255,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       },
     )
 
-    response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300')
+    response.headers.set('Cache-Control', 'private, no-store')
     return response
   } catch (error) {
     console.error('[WALKIN SHARE CARD]', error)
     return NextResponse.json({ error: 'Unable to generate share card.' }, { status: 500 })
   }
 }
+
+

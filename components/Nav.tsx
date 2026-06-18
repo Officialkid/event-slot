@@ -1,32 +1,39 @@
 "use client"
 
-import Link from "next/link"
 import Image from "next/image"
+import Link from "next/link"
+import { Menu, X } from "lucide-react"
 import { usePathname } from "next/navigation"
-import { useSession, signOut } from "next-auth/react"
-import { useState, useRef, useEffect } from "react"
+import { signOut, useSession } from "next-auth/react"
+import { useEffect, useRef, useState } from "react"
 
 const navItems = [
   { title: "Home", href: "/", sectionId: null },
-  { title: "Features", href: "/#how-it-works", sectionId: "how-it-works" },
-  { title: "How it works", href: "/how-it-works", sectionId: null },
-  { title: "For Universities", href: "/for-universities", sectionId: null },
   { title: "Pricing", href: "/pricing", sectionId: null },
-  { title: "Get started", href: "/#get-started", sectionId: "get-started" },
+  { title: "Universities", href: "/for-universities", sectionId: null },
+  { title: "Benefits", href: "/#benefits", sectionId: "benefits" },
 ]
+
+const marketingRoutes = new Set([
+  "/",
+  "/pricing",
+  "/for-universities",
+  "/how-it-works",
+  "/waitlist-system",
+  "/privacy",
+  "/terms",
+  "/signin",
+  "/signup",
+])
 
 export default function Nav() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const isOrganizerRoute = ["/my-events", "/create", "/edit", "/dashboard"].some(
-    p => pathname === p || pathname.startsWith(p + "/")
-  )
-
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -37,10 +44,13 @@ export default function Nav() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  // Track which section is in view on the homepage
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [pathname])
+
   useEffect(() => {
     if (pathname !== "/") return
-    const sectionIds = ["how-it-works", "get-started"]
+    const sectionIds = ["benefits", "get-started"]
     const visible = new Map<string, boolean>()
     const observers: IntersectionObserver[] = []
 
@@ -51,10 +61,10 @@ export default function Nav() {
         ([entry]) => {
           visible.set(id, entry.isIntersecting)
           if (visible.get("get-started")) setActiveSection("get-started")
-          else if (visible.get("how-it-works")) setActiveSection("how-it-works")
+          else if (visible.get("benefits")) setActiveSection("benefits")
           else setActiveSection(null)
         },
-        { threshold: 0.3 }
+        { threshold: 0.35 }
       )
       obs.observe(el)
       observers.push(obs)
@@ -67,167 +77,162 @@ export default function Nav() {
     if (pathname !== "/" || !sectionId) return
     e.preventDefault()
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" })
+    setMenuOpen(false)
   }
 
-  if (isOrganizerRoute) return null
-
   function isActive(item: typeof navItems[number]) {
-    // Standalone page links match by pathname
     if (item.sectionId === null && item.href !== "/") return pathname === item.href
     if (pathname !== "/") return false
     if (item.sectionId === null) return activeSection === null
     return activeSection === item.sectionId
   }
 
+  if (!marketingRoutes.has(pathname)) return null
+
   const initials = session?.user?.name
     ? session.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
     : session?.user?.email?.[0]?.toUpperCase() ?? "?"
 
   return (
-    <nav className="sticky top-0 z-30 bg-[#0A0A0A] border-b border-[rgba(240,237,230,0.1)]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Image 
-            src="/assets/logo.png" 
-            alt="EventSlot logo"
-            width={32}
-            height={32}
-            className="w-8 h-8"
-          />
-          <span className="text-[1.4rem] font-semibold tracking-tight" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-            <span className="text-[#F0EDE6]">Event</span>
-            <span className="text-[#C8F55A]">Slot</span>
-          </span>
-        </Link>
+    <nav className="sticky top-0 z-40 border-b border-[rgba(240,237,230,0.08)] bg-[rgba(10,10,10,0.82)] backdrop-blur-xl">
+      <div className="marketing-shell px-4 py-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[rgba(200,245,90,0.14)] bg-[rgba(8,12,8,0.92)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.22)] sm:px-5">
+          <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/assets/logo.png"
+              alt="EventSlot logo"
+              width={30}
+              height={30}
+              className="h-[30px] w-[30px]"
+            />
+            <span className="text-[1.08rem] font-semibold tracking-tight sm:text-[1.22rem]">
+              <span className="text-[#F0EDE6]">Event</span>
+              <span className="text-[#C8F55A]">Slot</span>
+            </span>
+          </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
-          {navItems.map(item => {
-            const active = isActive(item)
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={(e) => handleNavClick(e, item.sectionId)}
-                className={`inline-flex items-center gap-2 text-sm font-medium transition-colors ${active ? "text-[#C8F55A]" : "text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6]"}`}
-              >
-                {item.title}
-                {active && <span className="h-2 w-2 rounded-full bg-[#C8F55A]" />}
-              </a>
-            )
-          })}
+          <div className="hidden items-center gap-6 lg:flex">
+            {navItems.map(item => {
+              const active = isActive(item)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => handleNavClick(e, item.sectionId)}
+                  className={`text-[0.88rem] font-medium transition-colors ${
+                    active ? "text-[#C8F55A]" : "text-[rgba(240,237,230,0.66)] hover:text-white"
+                  }`}
+                >
+                  {item.title}
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            {session ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="text-[0.9rem] font-medium text-[rgba(240,237,230,0.72)] transition-colors hover:text-white"
+                >
+                  My dashboard
+                </Link>
+                <div ref={dropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen(o => !o)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(200,245,90,0.18)] bg-[rgba(200,245,90,0.12)] text-[0.78rem] font-semibold text-[#C8F55A]"
+                  >
+                    {initials}
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="absolute right-0 top-[115%] min-w-[160px] rounded-[14px] border border-[rgba(240,237,230,0.1)] bg-[#111311] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                      {[
+                        { label: "Profile", href: "/dashboard/profile" },
+                        { label: "Billing", href: "/dashboard/billing" },
+                      ].map(item => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setDropdownOpen(false)}
+                          className="block rounded-[10px] px-3 py-2 text-[0.85rem] text-[rgba(240,237,230,0.72)] transition-colors hover:bg-[rgba(240,237,230,0.05)] hover:text-white"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                      <div className="my-1 h-px bg-[rgba(240,237,230,0.08)]" />
+                      <button
+                        type="button"
+                        onClick={() => signOut({ callbackUrl: "/" })}
+                        className="w-full rounded-[10px] px-3 py-2 text-left text-[0.85rem] text-[rgba(240,237,230,0.72)] transition-colors hover:bg-[rgba(240,237,230,0.05)] hover:text-white"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <Link href="/signup" className="marketing-button-primary h-11 px-5 py-0">
+                Try It Now
+              </Link>
+            )}
+          </div>
+
+          <button
+            type="button"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen(open => !open)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] text-[#F0EDE6] lg:hidden"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
 
-        {session ? (
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6] transition-colors"
-            >
-              My dashboard
-            </Link>
+        {menuOpen && (
+          <div className="mt-3 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#101110] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.32)] lg:hidden">
+            <div className="flex flex-col gap-1">
+              {navItems.map(item => {
+                const active = isActive(item)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={(e) => handleNavClick(e, item.sectionId)}
+                    className={`rounded-[12px] px-3 py-3 text-[0.94rem] font-medium transition-colors ${
+                      active
+                        ? "bg-[rgba(200,245,90,0.1)] text-[#C8F55A]"
+                        : "text-[rgba(240,237,230,0.72)] hover:bg-[rgba(255,255,255,0.03)] hover:text-white"
+                    }`}
+                  >
+                    {item.title}
+                  </Link>
+                )
+              })}
+            </div>
 
-            {/* Avatar + dropdown */}
-            <div ref={dropdownRef} style={{ position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(o => !o)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  background: "rgba(200,245,90,0.15)",
-                  color: "#C8F55A",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                {initials}
-              </button>
-
-              {dropdownOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "110%",
-                    right: 0,
-                    background: "#141414",
-                    border: "0.5px solid rgba(240,237,230,0.1)",
-                    borderRadius: 8,
-                    padding: "0.25rem",
-                    minWidth: 130,
-                    zIndex: 50,
-                  }}
-                >
-
-                  {[
-                    { label: "Profile", href: "/dashboard/profile" },
-                    { label: "Billing", href: "/dashboard/billing" },
-                  ].map(item => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setDropdownOpen(false)}
-                      style={{
-                        display: "block",
-                        padding: "0.5rem 1rem",
-                        fontSize: "0.82rem",
-                        color: "rgba(240,237,230,0.6)",
-                        borderRadius: 6,
-                        fontFamily: "var(--font-dm-sans)",
-                        textDecoration: "none",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,237,230,0.05)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                  <div style={{ height: "0.5px", background: "rgba(240,237,230,0.08)", margin: "0.25rem 0.5rem" }} />
+            <div className="mt-4 flex flex-col gap-3 border-t border-[rgba(240,237,230,0.08)] pt-4">
+              {session ? (
+                <>
+                  <Link href="/dashboard" className="marketing-button-primary w-full justify-center">
+                    My dashboard
+                  </Link>
                   <button
                     type="button"
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "0.5rem 1rem",
-                      fontSize: "0.82rem",
-                      color: "rgba(240,237,230,0.6)",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      borderRadius: 6,
-                      fontFamily: "var(--font-dm-sans)",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,237,230,0.05)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    className="marketing-button-secondary w-full justify-center"
                   >
                     Sign out
                   </button>
-                </div>
+                </>
+              ) : (
+                <Link href="/signup" className="marketing-button-primary w-full justify-center">
+                  Try It Now
+                </Link>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <Link
-              href="/api/auth/signin"
-              className="text-sm font-medium text-[rgba(240,237,230,0.65)] hover:text-[#F0EDE6] transition-colors"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/create"
-              className={`inline-flex items-center justify-center rounded-full px-6 py-2 text-sm font-semibold text-[#0A0A0A] ${pathname === "/create" ? "bg-[#B7E86D]" : "bg-[#C8F55A]"}`}
-            >
-              Create an event
-            </Link>
           </div>
         )}
       </div>

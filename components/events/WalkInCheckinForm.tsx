@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 
@@ -54,7 +54,6 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   const [downloadingCard, setDownloadingCard] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [sharing, setSharing] = useState<"whatsapp" | "story" | null>(null)
-  const shareCardRef = useRef<HTMLDivElement>(null)
 
   const eventLink = useMemo(() => {
     if (typeof window === "undefined") return ""
@@ -64,11 +63,21 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   const communityLink = normalizeCommunityLink(event.communityLink)
   const shareText = useMemo(() => {
     if (!result) return ""
-    const attendedLine = result.day.title
-      ? `${result.day.title} - ${result.day.label}`
+    const attendedLine = result.day.total > 1
+      ? `${result.day.title} on ${result.day.label}`
       : result.day.label
-    return `I attended ${result.event.title} on ${attendedLine}. ${result.todayCount.toLocaleString()} people are here today on EventSlot. ${eventLink}`
+    return `Hey there, I attended ${result.event.title} ${attendedLine}. Check us out at www.eventsslot.com ${eventLink}`.trim()
   }, [eventLink, result])
+
+  const shareCardUrl = useMemo(() => {
+    if (!result || typeof window === "undefined") return ""
+    const params = new URLSearchParams({
+      day: String(result.day.index),
+      name: result.attendee.name,
+      spot: String(result.todayCount),
+    })
+    return `${window.location.origin}/api/walkin/${event.slug}/share-card?${params.toString()}`
+  }, [event.slug, result])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -106,19 +115,24 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     }
   }
 
+  async function getShareCardFile() {
+    if (!result || !shareCardUrl) return null
+    const response = await fetch(shareCardUrl, { cache: "no-store" })
+    if (!response.ok) throw new Error("Unable to prepare share card.")
+    const blob = await response.blob()
+    return new File([blob], `${event.slug}-checkin-poster.png`, { type: blob.type || "image/png" })
+  }
+
   async function handleDownloadShareCard() {
-    if (!shareCardRef.current) return
     setDownloadingCard(true)
     try {
-      const html2canvas = (await import("html2canvas")).default
-      const canvas = await html2canvas(shareCardRef.current, {
-        backgroundColor: "#0F141C",
-        scale: 2,
-      })
+      const file = await getShareCardFile()
+      if (!file) return
       const link = document.createElement("a")
-      link.href = canvas.toDataURL("image/png")
-      link.download = `${event.slug}-checkin-card.png`
+      link.href = URL.createObjectURL(file)
+      link.download = file.name
       link.click()
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
     } finally {
       setDownloadingCard(false)
     }
@@ -128,6 +142,35 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     if (!result) return
     setSharing(target)
     try {
+      const file = await getShareCardFile()
+
+      if (
+        file &&
+        typeof navigator !== "undefined" &&
+        "canShare" in navigator &&
+        navigator.canShare({ files: [file] }) &&
+        navigator.share
+      ) {
+        try {
+          await navigator.share({
+            title: `${result.event.title} - ${result.day.label}`,
+            text: shareText,
+            files: [file],
+          })
+          return
+        } catch {
+          // Fall through to channel-specific fallback.
+        }
+      }
+
+      if (target === "whatsapp" && typeof window !== "undefined") {
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer")
+        if (file) {
+          await handleDownloadShareCard()
+        }
+        return
+      }
+
       if (typeof navigator !== "undefined" && navigator.share) {
         try {
           await navigator.share({
@@ -137,17 +180,11 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
           })
           return
         } catch {
-          // Fall through to channel-specific fallback.
+          // Fall through to local download fallback.
         }
       }
 
-      if (target === "whatsapp") {
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer")
-        return
-      }
-
       await handleDownloadShareCard()
-      await handleCopyLink()
     } finally {
       setSharing(null)
     }
@@ -157,10 +194,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     return (
       <div className="mx-auto w-full max-w-[520px]">
         <div className="space-y-4">
-          <div
-            ref={shareCardRef}
-            className="rounded-[20px] border border-[rgba(240,237,230,0.12)] bg-[linear-gradient(145deg,#101722_0%,#121b29_55%,#0D1117_100%)] p-7 shadow-[0_18px_48px_rgba(0,0,0,0.35)]"
-          >
+          <div className="rounded-[20px] border border-[rgba(240,237,230,0.12)] bg-[linear-gradient(145deg,#101722_0%,#121b29_55%,#0D1117_100%)] p-7 shadow-[0_18px_48px_rgba(0,0,0,0.35)]">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[rgba(240,237,230,0.45)]">
                 EventSlot
@@ -169,30 +203,35 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 {result.duplicate ? "Already checked in" : "Checked in"}
               </span>
             </div>
-            <h2 className="mt-5 text-[1.8rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-              {result.attendee.name}
+            <p className="mt-5 text-[0.8rem] uppercase tracking-[0.14em] text-[#C8F55A]">Welcome to</p>
+            <h2 className="mt-2 text-[1.8rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+              {result.event.title}
             </h2>
-            <p className="mt-2 text-[0.95rem] text-[rgba(240,237,230,0.65)]">
-              {result.duplicate ? "You were already checked in for today, so we kept your original entry." : "Your walk-in check-in is complete."}
+            <p className="mt-3 text-[0.98rem] text-[rgba(240,237,230,0.72)]">
+              {result.duplicate ? `We already had ${result.attendee.name} checked in for today.` : `We are glad to have ${result.attendee.name} here.`}
             </p>
             <div className="mt-6 rounded-[14px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.03)] p-4">
-              <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Event</p>
-              <p className="mt-1 text-[1rem] font-medium text-[#F0EDE6]">{result.event.title}</p>
-              <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Day session</p>
+              <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Attendee</p>
+              <p className="mt-1 text-[1rem] font-medium text-[#F0EDE6]">{result.attendee.name}</p>
+              <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Day attended</p>
               {result.day.title && (
                 <p className="mt-1 text-[0.82rem] font-semibold uppercase tracking-[0.08em] text-[#C8F55A]">{result.day.title}</p>
               )}
-              <p className={`${result.day.title ? "mt-1" : "mt-1"} text-[0.9rem] text-[rgba(240,237,230,0.82)]`}>{result.day.label}</p>
-              <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Check-ins today</p>
+              <p className="mt-1 text-[0.9rem] text-[rgba(240,237,230,0.82)]">{result.day.label}</p>
+              <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Check-in number</p>
               <p className="mt-1 text-[1.35rem] text-[#C8F55A]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-                {result.todayCount}
+                #{result.todayCount.toLocaleString()}
               </p>
+            </div>
+            <div className="mt-6 text-center text-[0.78rem] text-[rgba(240,237,230,0.52)]">
+              Powered by EventSlot
+              <div className="mt-1 text-[rgba(200,245,90,0.66)]">Check us out at www.eventsslot.com</div>
             </div>
           </div>
 
           <div className="rounded-[16px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)] p-5">
             <p className="text-[0.8rem] text-[rgba(240,237,230,0.55)]">
-              {result.duplicate ? "You can still share the event link with someone else attending today." : "Invite someone else by sharing the same event link or your check-in card."}
+              {result.duplicate ? "You can still share your poster or the event link with someone else attending today." : "Share your poster or download it to post anywhere you like."}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button
@@ -209,7 +248,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 disabled={sharing !== null}
                 className="rounded-full border border-[rgba(200,245,90,0.28)] bg-[rgba(200,245,90,0.08)] px-5 py-2.5 text-[0.82rem] font-medium text-[#C8F55A] disabled:opacity-60"
               >
-                {sharing === "story" ? "Preparing..." : "Share story"}
+                {sharing === "story" ? "Preparing..." : "Share poster"}
               </button>
             </div>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -219,7 +258,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 disabled={downloadingCard}
                 className="rounded-full border border-[rgba(240,237,230,0.15)] px-5 py-2.5 text-[0.82rem] font-medium text-[rgba(240,237,230,0.68)] disabled:opacity-60"
               >
-                {downloadingCard ? "Preparing..." : "Download share card"}
+                {downloadingCard ? "Preparing..." : "Download my poster"}
               </button>
               <button
                 type="button"
@@ -240,6 +279,13 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 {getCommunityLinkLabel(communityLink)}
               </a>
             )}
+            <button
+              type="button"
+              onClick={() => setResult(null)}
+              className="mt-4 text-[0.86rem] font-medium text-[rgba(240,237,230,0.58)]"
+            >
+              Check in another person
+            </button>
           </div>
         </div>
         {showBranding && <BrandingFooter />}
@@ -253,10 +299,10 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
         <div>
           <p className="text-[0.72rem] uppercase tracking-[0.1em] text-[rgba(240,237,230,0.6)]">Walk-in check-in</p>
           <h2 className="mt-2 text-[1.45rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-            Check in for today
+            Welcome to {event.title}
           </h2>
           <p className="mt-2 text-[0.86rem] text-[rgba(240,237,230,0.48)]">
-            {dayTitle ? `${dayTitle} - ${dayLabel}` : dayLabel}. It only takes your name and phone number.
+            We are glad to have you here. Please help us track everyone who attended by filling in your details for {dayTitle ? `${dayTitle} - ${dayLabel}` : dayLabel}.
           </p>
         </div>
 
@@ -291,7 +337,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
 
         <div className="rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-4 py-3">
           <p className="text-[0.76rem] text-[rgba(240,237,230,0.42)]">
-            We use your phone number to prevent duplicate check-ins for the same event day.
+            Your data is protected under Kenya&apos;s Data Protection Act 2019. We use your phone number only to prevent duplicate check-ins for the same event day.
           </p>
         </div>
 
@@ -300,7 +346,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
           disabled={loading}
           className="w-full rounded-full bg-[#C8F55A] px-5 py-3 text-[0.875rem] font-semibold text-[#0A0A0A] shadow-[0_8px_20px_rgba(200,245,90,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Checking in..." : "Check in now"}
+          {loading ? "Checking in..." : "I am here"}
         </button>
 
         {error && <div className="text-center text-[0.82rem] text-[#FF6B6B]">{error}</div>}

@@ -937,10 +937,11 @@ export default function DashboardEventsPage() {
           <h1
             style={{
               fontFamily: "var(--font-instrument-serif)",
-              fontSize: "1.6rem",
+              fontSize: "1.45rem",
               fontWeight: 400,
               color: "#F0EDE6",
               margin: 0,
+              lineHeight: 1.1,
             }}
           >
             Your events

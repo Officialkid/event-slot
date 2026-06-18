@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { cancelCalendarEvent, removeCalendarEvent } from '@/lib/googleCalendar'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
+import { promoteNextFreeWaitlistSpot } from '@/lib/freeEventWaitlist'
+import { sendWaitlistPromotedEmail } from '@/lib/email'
+import { APP_URL } from '@/lib/config'
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 
@@ -131,6 +134,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const waitlistPosition = registration.waitlistPosition
     await prisma.registration.delete({ where: { id: params.registrationId } })
 
     // Update attendee's Google Calendar entry based on registration status
@@ -181,10 +185,39 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
           data: { waitlistCount: { decrement: 1 } },
         }).catch(() => {})
       }
+
+      await prisma.registration.updateMany({
+        where: {
+          eventId: registration.eventId,
+          status: 'waitlist',
+          ...(registration.ticketTierId
+            ? { ticketTierId: registration.ticketTierId }
+            : { ticketTierId: null }),
+          waitlistPosition: { gt: waitlistPosition ?? 0 },
+        },
+        data: {
+          waitlistPosition: { decrement: 1 },
+        },
+      }).catch(() => {})
     }
 
     if (registration.event.isPaid && registration.ticketTierId && registration.status === 'confirmed') {
       await offerNextPaidWaitlistSpot(registration.eventId, registration.ticketTierId).catch(() => {})
+    } else if (!registration.event.isPaid && registration.status === 'confirmed') {
+      const promoted = await promoteNextFreeWaitlistSpot(registration.eventId).catch(() => null)
+
+      if (promoted?.attendeeEmail && promoted.consentTransactional) {
+        await sendWaitlistPromotedEmail({
+          to: promoted.attendeeEmail,
+          eventTitle: registration.event.title,
+          eventDate: null,
+          eventEndAt: null,
+          eventLocation: null,
+          communityLink: null,
+          ticketUrl: promoted.confirmationCode ? `${APP_URL}/register/success/${promoted.confirmationCode}` : null,
+          eventSlug: null,
+        }).catch(() => {})
+      }
     }
 
     return NextResponse.json({ success: true })
