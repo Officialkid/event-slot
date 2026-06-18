@@ -54,6 +54,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   const [downloadingCard, setDownloadingCard] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [sharing, setSharing] = useState<"whatsapp" | "story" | null>(null)
+  const [shareError, setShareError] = useState("")
 
   const eventLink = useMemo(() => {
     if (typeof window === "undefined") return ""
@@ -66,7 +67,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     const attendedLine = result.day.total > 1
       ? `${result.day.title} on ${result.day.label}`
       : result.day.label
-    return `Hey there, I attended ${result.event.title} ${attendedLine}. Check us out at www.eventsslot.com ${eventLink}`.trim()
+    return `Hello guys, I attended ${result.event.title} ${attendedLine}. Check us out at www.eventsslot.com ${eventLink}`.trim()
   }, [eventLink, result])
 
   const shareCardUrl = useMemo(() => {
@@ -109,9 +110,10 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     try {
       await navigator.clipboard.writeText(eventLink)
       setCopiedLink(true)
+      setShareError("")
       window.setTimeout(() => setCopiedLink(false), 1800)
     } catch {
-      // Ignore clipboard failures to preserve current app behavior.
+      setShareError("Could not copy the link on this browser. Please press and hold the address bar link instead.")
     }
   }
 
@@ -128,11 +130,17 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     try {
       const file = await getShareCardFile()
       if (!file) return
+      setShareError("")
       const link = document.createElement("a")
       link.href = URL.createObjectURL(file)
       link.download = file.name
+      link.rel = "noopener"
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
       window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+    } catch {
+      setShareError("We could not generate your poster just now. Please try again.")
     } finally {
       setDownloadingCard(false)
     }
@@ -142,6 +150,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     if (!result) return
     setSharing(target)
     try {
+      setShareError("")
       const file = await getShareCardFile()
 
       if (
@@ -164,10 +173,20 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
       }
 
       if (target === "whatsapp" && typeof window !== "undefined") {
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer")
-        if (file) {
-          await handleDownloadShareCard()
+        if (typeof navigator !== "undefined" && navigator.share) {
+          try {
+            await navigator.share({
+              title: `${result.event.title} - ${result.day.label}`,
+              text: shareText,
+              url: eventLink,
+            })
+            return
+          } catch {
+            // Fall through to WhatsApp text fallback.
+          }
         }
+
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${eventLink}`.trim())}`, "_blank", "noopener,noreferrer")
         return
       }
 
@@ -185,6 +204,8 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
       }
 
       await handleDownloadShareCard()
+    } catch {
+      setShareError("Sharing is not available right now. Please try Download my poster instead.")
     } finally {
       setSharing(null)
     }
@@ -203,14 +224,21 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 {result.duplicate ? "Already checked in" : "Checked in"}
               </span>
             </div>
-            <p className="mt-5 text-[0.8rem] uppercase tracking-[0.14em] text-[#C8F55A]">Welcome to</p>
+            <p className="mt-5 text-[0.8rem] uppercase tracking-[0.14em] text-[#C8F55A]">Congratulations</p>
             <h2 className="mt-2 text-[1.8rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
-              {result.event.title}
+              {result.duplicate ? "You have checked in" : "You have checked in"}
             </h2>
             <p className="mt-3 text-[0.98rem] text-[rgba(240,237,230,0.72)]">
-              {result.duplicate ? `We already had ${result.attendee.name} checked in for today.` : `We are glad to have ${result.attendee.name} here.`}
+              {result.duplicate
+                ? `We already had ${result.attendee.name} checked in for today.`
+                : `We are glad to have ${result.attendee.name} here today.`}
+            </p>
+            <p className="mt-2 text-[0.92rem] text-[rgba(240,237,230,0.58)]">
+              Celebrate a little, then tell someone you attended.
             </p>
             <div className="mt-6 rounded-[14px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.03)] p-4">
+              <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Event</p>
+              <p className="mt-1 text-[1rem] font-medium text-[#F0EDE6]">{result.event.title}</p>
               <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Attendee</p>
               <p className="mt-1 text-[1rem] font-medium text-[#F0EDE6]">{result.attendee.name}</p>
               <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.4)]">Day attended</p>
@@ -231,7 +259,9 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
 
           <div className="rounded-[16px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)] p-5">
             <p className="text-[0.8rem] text-[rgba(240,237,230,0.55)]">
-              {result.duplicate ? "You can still share your poster or the event link with someone else attending today." : "Share your poster or download it to post anywhere you like."}
+              {result.duplicate
+                ? "Share your poster or the event link with your friends and tell them you attended."
+                : "Share this with your friends and tell them you attended, or download your poster and post it anywhere you like."}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button
@@ -268,6 +298,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 {copiedLink ? "Link copied" : "Copy event link"}
               </button>
             </div>
+            {shareError && <p className="mt-3 text-[0.8rem] text-[#FFB84D]">{shareError}</p>}
             {communityLink && (
               <a
                 href={communityLink}

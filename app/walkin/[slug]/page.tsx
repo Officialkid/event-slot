@@ -1,12 +1,11 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { unstable_cache } from "next/cache"
 import prisma from "@/lib/prisma"
 import PublicWalkInEventPage from "@/components/events/PublicWalkInEventPage"
 import { APP_URL } from "@/lib/config"
 
-const getWalkInEventMetaBySlug = unstable_cache(
-  async (slug: string) => prisma.event.findUnique({
+async function getWalkInEventMetaBySlug(slug: string) {
+  return prisma.event.findUnique({
     where: { slug },
     select: {
       title: true,
@@ -16,13 +15,11 @@ const getWalkInEventMetaBySlug = unstable_cache(
       eventDate: true,
       imageUrl: true,
     },
-  }),
-  ["public-walkin-event-meta"],
-  { revalidate: 60 }
-)
+  })
+}
 
-const getWalkInEventBySlug = unstable_cache(
-  async (slug: string) => prisma.event.findUnique({
+async function getWalkInEventBySlug(slug: string) {
+  return prisma.event.findUnique({
     where: { slug },
     select: {
       id: true,
@@ -41,10 +38,8 @@ const getWalkInEventBySlug = unstable_cache(
       faqs: { orderBy: { order: "asc" }, select: { id: true, question: true, answer: true } },
       organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
-  }),
-  ["public-walkin-event-detail"],
-  { revalidate: 60 }
-)
+  })
+}
 
 export async function generateMetadata({
   params,
