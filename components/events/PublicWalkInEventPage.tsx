@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
 import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
+import PublicEventTopBar from "@/components/events/PublicEventTopBar"
 import WalkInCheckinForm from "@/components/events/WalkInCheckinForm"
 import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
 import { parseEventContact } from "@/lib/eventContact"
@@ -94,6 +95,7 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
   return (
     <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 pb-24 sm:px-6 sm:py-10 sm:pb-12">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
+        <PublicEventTopBar />
         <EventInvitationCard
           title={event.title}
           description={event.description}
@@ -143,6 +145,17 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
                   dayLabel={statusData.dayLabel}
                   dayTitle={dayTitle}
                   showBranding={showBranding}
+                  onCheckinComplete={(result) => {
+                    setStatusData((current) => current
+                      ? {
+                          ...current,
+                          countToday: result.todayCount,
+                          dayNumber: result.day.index,
+                          totalDays: result.day.total,
+                          dayLabel: result.day.label,
+                        }
+                      : current)
+                  }}
                 />
               ) : statusData?.status === "NOT_STARTED" ? (
                 <div className="mt-4 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 text-center">

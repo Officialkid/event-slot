@@ -1,11 +1,11 @@
-﻿"use client"
+"use client"
 
 import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { TEAM_MEMBER_LIMIT } from "@/lib/plans"
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Types ---
 
 type EventSummary = { id: string; title: string; slug: string; status: string }
 
@@ -18,7 +18,7 @@ type TeamMemberRecord = {
   eventAccess?: Array<{ event: EventSummary }>
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Helpers ---
 
 function getInitials(name: string | null, email: string): string {
   if (name) {
@@ -30,7 +30,7 @@ function getInitials(name: string | null, email: string): string {
 }
 
 
-// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Page ---
 
 export default function TeamPage() {
   useSession()
@@ -189,7 +189,7 @@ export default function TeamPage() {
     }
   }
 
-  // â”€â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Loading ---
 
   if (loading) {
     return (
@@ -204,7 +204,7 @@ export default function TeamPage() {
     )
   }
 
-  // â”€â”€â”€ Confirm remove dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // --- Confirm remove dialog ---
 
   const confirmTarget = confirmRemoveId ? members.find(m => m.id === confirmRemoveId) : null
 
@@ -252,7 +252,7 @@ export default function TeamPage() {
                 disabled={removingId === confirmTarget.id}
                 style={{ background: "rgba(239,68,68,0.12)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, color: "#EF4444", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
               >
-                {removingId === confirmTarget.id ? "Removing…" : "Remove"}
+                {removingId === confirmTarget.id ? "Removing..." : "Remove"}
               </button>
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function TeamPage() {
                 disabled={assignSaving}
                 style={{ background: "#C8F55A", color: "#0A0A0A", fontWeight: 600, fontSize: "0.8125rem", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", cursor: assignSaving ? "not-allowed" : "pointer", opacity: assignSaving ? 0.7 : 1 }}
               >
-                {assignSaving ? "Saving…" : "Save access"}
+                {assignSaving ? "Saving..." : "Save access"}
               </button>
             </div>
           </div>
@@ -656,7 +656,7 @@ export default function TeamPage() {
                     transition: "color 0.2s",
                   }}
                 >
-                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sending…" : "Resend invite"}
+                  {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sending..." : "Resend invite"}
                 </button>                {/* Copy link (shown when resend email failed) */}
                 {resendFailedUrls[m.id] && (
                   <button
@@ -791,7 +791,7 @@ export default function TeamPage() {
                     marginTop: "0.125rem",
                   }}
                 >
-                  {inviting ? "Sending…" : "Send invites"}
+                  {inviting ? "Sending..." : "Send invites"}
                 </button>
             </form>
           )}
@@ -807,7 +807,7 @@ export default function TeamPage() {
                     {r.ok ? (
                       <div>
                         <p style={{ fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: r.emailFailed ? "0.375rem" : 0 }}>
-                          {r.emailFailed ? `Invite created for ${r.email} — email failed, share the link:` : `Invite sent to ${r.email}`}
+                          {r.emailFailed ? `Invite created for ${r.email} - email failed, share the link:` : `Invite sent to ${r.email}`}
                         </p>
                         {r.emailFailed && r.acceptUrl && (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>

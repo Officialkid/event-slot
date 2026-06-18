@@ -8,8 +8,9 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { RegistrationResponsesPdf } from '@/components/pdf/RegistrationResponsesPdf'
 
-// Force Node.js runtime — @react-pdf/renderer is not Edge-compatible
+// Force Node.js runtime because @react-pdf/renderer is not Edge-compatible.
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 function cleanValue(value: unknown): string {
   if (value === null || value === undefined) return ''
@@ -17,7 +18,7 @@ function cleanValue(value: unknown): string {
   return String(value)
 }
 
-/** First non-empty answer — conventionally the attendee's name. */
+/** First non-empty answer, conventionally the attendee's name. */
 function extractName(answers: Array<{ value?: unknown }>): string {
   for (const a of answers) {
     const v = cleanValue(a.value).trim()
@@ -91,7 +92,7 @@ export async function GET(
 
     const total = registrations.length
 
-    // ── Transform for PDF component ───────────────────────────────────────────
+    // Transform for PDF component.
     const pdfRegistrations = registrations.map((reg, index) => {
       const rawAnswers = reg.answers as Array<{ questionId?: string; value?: unknown }>
       const sortedAnswers = Array.isArray(rawAnswers) ? rawAnswers : []
@@ -135,7 +136,7 @@ export async function GET(
       }
     })
 
-    // ── Event metadata for PDF header ─────────────────────────────────────────
+    // Event metadata for PDF header.
     const eatDate = (date: Date, opts: Intl.DateTimeFormatOptions) =>
       new Intl.DateTimeFormat('en-GB', { ...opts, timeZone: 'Africa/Nairobi' }).format(date)
 
@@ -148,7 +149,7 @@ export async function GET(
       hour: '2-digit', minute: '2-digit', hour12: false,
     })
 
-    // ── Render PDF ────────────────────────────────────────────────────────────
+    // Render PDF.
     const pdfBuffer = await renderToBuffer(
       React.createElement(RegistrationResponsesPdf, {
         eventTitle:    event.title,

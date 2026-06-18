@@ -1,4 +1,4 @@
-﻿import { Resend } from 'resend'
+import { Resend } from 'resend'
 import { getOrCreateReferralLink } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { env } from '@/lib/env'
@@ -39,9 +39,25 @@ type InternalEmailOptions = {
   html?: string
   text?: string
   from?: string
+  replyTo?: string
 }
 
-async function sendEmail(options: InternalEmailOptions) {
+function extractEmailErrorMessage(error: unknown): string {
+  if (error && typeof error === "object") {
+    const maybeMessage = (error as { message?: unknown }).message
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage
+    }
+  }
+  if (typeof error === "string" && error.trim()) return error
+  return "Failed to send email"
+}
+
+function shouldRetryWithFallbackSender(message: string | null, from: string) {
+  return Boolean(message) && /verify|domain|sender/i.test(message ?? "") && from !== "EventSlot <onboarding@resend.dev>"
+}
+
+export async function sendEmail(options: InternalEmailOptions) {
   const resend = getResendClient()
   const verifiedFrom = getVerifiedSender(options.from)
   const payload = {
@@ -50,19 +66,24 @@ async function sendEmail(options: InternalEmailOptions) {
     from: verifiedFrom,
   } as Parameters<Resend['emails']['send']>[0]
 
-  let { error } = await resend.emails.send(payload)
+  let error: { message?: string } | null = null
+  try {
+    const result = await resend.emails.send(payload)
+    error = result.error ?? null
+  } catch (sendError) {
+    error = { message: extractEmailErrorMessage(sendError) }
+  }
 
-  const retryMessage = error?.message ?? null
-  const shouldRetryWithFallback =
-    Boolean(retryMessage) &&
-    /verify|domain|sender/i.test(retryMessage ?? '') &&
-    verifiedFrom !== 'EventSlot <onboarding@resend.dev>'
-
-  if (shouldRetryWithFallback) {
-    ;({ error } = await resend.emails.send({
-      ...payload,
-      from: 'EventSlot <onboarding@resend.dev>',
-    }))
+  if (shouldRetryWithFallbackSender(error?.message ?? null, verifiedFrom)) {
+    try {
+      const retryResult = await resend.emails.send({
+        ...payload,
+        from: "EventSlot <onboarding@resend.dev>",
+      })
+      error = retryResult.error ?? null
+    } catch (retryError) {
+      error = { message: extractEmailErrorMessage(retryError) }
+    }
   }
 
   if (error) {
@@ -102,7 +123,7 @@ export async function sendFeedbackRequestEmail({
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
         <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
         <h2 style="color:#F0EDE6;font-size:1.3rem;font-weight:400;margin:0 0 1rem">How was ${eventTitle}?</h2>
-        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Thanks for attending. We'd love to hear what you thought â€” it only takes a minute and helps organisers improve future events.</p>
+        <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1rem">Thanks for attending. We'd love to hear what you thought - it only takes a minute and helps organisers improve future events.</p>
         <p style="margin-top:1.5rem">
           <a href="${feedbackUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
             Leave feedback
@@ -215,7 +236,7 @@ export async function sendWaitlistPromotedEmail({
     : ''
   const ticketSection = ticketUrl
     ? `<div style="margin-top:24px;padding:16px;background:#f8f8f8;border-radius:8px;text-align:center">
-         <p style="margin:0 0 12px;font-size:0.875rem;color:#555">Your ticket is ready — download it below:</p>
+         <p style="margin:0 0 12px;font-size:0.875rem;color:#555">Your ticket is ready - download it below:</p>
          <a href="${ticketUrl}" style="display:inline-block;background:#0A0A0A;color:#C8F55A;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:0.9rem;font-weight:600">
            View &amp; Download Ticket &rarr;
          </a>
@@ -546,7 +567,7 @@ export async function sendWelcomeEmail({
         <div style="color:#C8F55A;font-size:1.2rem;margin-bottom:1rem">EventSlot</div>
         <h2 style="color:#F0EDE6">Welcome, ${name}</h2>
         <p style="color:rgba(240,237,230,0.6)">
-          You are all set. Create your first event and share the link â€”
+          You are all set. Create your first event and share the link -
           registrations and waitlists are handled automatically from here.
         </p>
         <a href="${BASE_URL}/create"
@@ -556,16 +577,16 @@ export async function sendWelcomeEmail({
           Create your first event
         </a>
         <p style="margin-top:2rem;color:rgba(240,237,230,0.25);font-size:0.75rem">
-          Questions? Reply to this email â€” we read everything.
+          Questions? Reply to this email - we read everything.
         </p>
       </div>
     `,
   })
 }
 
-// ────────────────────────────────────────────────────────────
-// Organizer system emails — only sent if consentSystemEmails = true
-// ────────────────────────────────────────────────────────────
+// ---
+// Organizer system emails - only sent if consentSystemEmails = true
+// ---
 
 export async function sendOrganizerCapacity90Email({
   to,
@@ -656,7 +677,7 @@ export async function sendOrganizerFirstWaitlistEmail({
         <div style="color:#C8F55A;font-size:1rem;font-weight:600;margin-bottom:1.5rem">EventSlot</div>
         <h2 style="color:#F0EDE6;font-size:1.2rem;font-weight:400;margin:0 0 1rem">Your waitlist has started</h2>
         <p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">
-          People have started joining the waitlist for <strong style="color:#F0EDE6">${eventTitle}</strong>. If you'd like to let them in, increase your event capacity from the dashboard — waitlisted attendees will be confirmed automatically.
+          People have started joining the waitlist for <strong style="color:#F0EDE6">${eventTitle}</strong>. If you'd like to let them in, increase your event capacity from the dashboard - waitlisted attendees will be confirmed automatically.
         </p>
         <a href="${dashUrl}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:0.65rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem">
           Add more slots
@@ -906,7 +927,7 @@ export async function sendPostEventSummaryEmail({
         </table>
         <a href="${BASE_URL}/dashboard/events/${eventSlug}"
           style="background:#C8F55A;color:#0A0A0A;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">
-          View Full Analytics →
+          View Full Analytics ->
         </a>
         <p style="color:#525252;font-size:12px;margin-top:32px;">
           Smarter Events. Better Experiences. - EventSlot

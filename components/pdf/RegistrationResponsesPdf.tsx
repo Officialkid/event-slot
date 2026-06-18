@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 interface QuestionAnswer {
   questionId: string;
   label: string;
@@ -34,7 +34,7 @@ interface RegistrationResponsesPdfProps {
   registrations: RegistrationEntry[];
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 // Mirrors the Google Forms response sheet: white page, grey question labels,
 // black answer text, thin dividers, minimal chrome.
 const styles = StyleSheet.create({
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     color: '#202124',
   },
 
-  // Top bar — matches Google Forms header style
+  // Top bar, matched to a Google Forms-style header.
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     color: '#5F6368',
   },
 
-  // Respondent counter — "1 / 57"
+  // Respondent counter, for example "1 / 57".
   counterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ── Single response page ──────────────────────────────────────────────────────
+// Single response page
 const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; exportedAt: string }> = ({
   reg,
   eventTitle,
@@ -213,7 +213,7 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
           {reg.status.toUpperCase()}
         </Text>
       </View>
-      <Text style={styles.brandLine}>EventSlot · eventsslot.com</Text>
+      <Text style={styles.brandLine}>EventSlot - eventsslot.com</Text>
     </View>
 
     {/* Questions and answers */}
@@ -242,7 +242,7 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
     {/* Page footer */}
     <View style={styles.footer} fixed>
       <Text style={styles.footerText}>
-        Confidential · Personal data protected under Kenya Data Protection Act 2019
+        Confidential - Personal data protected under Kenya Data Protection Act 2019
       </Text>
       <Text
         style={styles.footerRight}
@@ -253,7 +253,7 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
   </Page>
 );
 
-// ── Document ─────────────────────────────────────────────────────────────────
+// Document
 export const RegistrationResponsesPdf: React.FC<RegistrationResponsesPdfProps> = ({
   eventTitle,
   eventDate,
@@ -261,7 +261,7 @@ export const RegistrationResponsesPdf: React.FC<RegistrationResponsesPdfProps> =
   registrations,
 }) => (
   <Document
-    title={`${eventTitle} — Individual Responses`}
+    title={`${eventTitle} - Individual Responses`}
     author="EventSlot"
     subject="Individual registration responses"
   >
@@ -269,7 +269,7 @@ export const RegistrationResponsesPdf: React.FC<RegistrationResponsesPdfProps> =
       <ResponsePage
         key={reg.index}
         reg={reg}
-        eventTitle={`${eventTitle} · ${eventDate}`}
+        eventTitle={`${eventTitle} - ${eventDate}`}
         exportedAt={exportedAt}
       />
     ))}

@@ -20,7 +20,7 @@ import {
   PieChart, Pie, Cell, type PieLabelRenderProps,
 } from "recharts"
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Types ---
 
 type Question = {
   id: string
@@ -214,7 +214,7 @@ const REPORT_PROGRESS_STEPS = [
   'Generating insights...',
 ]
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Helpers ---
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return ""
@@ -295,7 +295,7 @@ function toIsoFromDatetimeLocal(value: string): string | null {
   return parsed.toISOString()
 }
 
-// â”€â”€â”€ Status badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Status badge ---
 
 function StatusBadge({ event }: { event: EventData }) {
   if (isEventArchived(event)) {
@@ -326,7 +326,7 @@ function StatusBadge({ event }: { event: EventData }) {
   )
 }
 
-// â”€â”€â”€ Three-dot menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Three-dot menu ---
 
 interface HeaderMenuProps {
   onRename: () => void
@@ -365,7 +365,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
         style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "rgba(240,237,230,0.5)", fontSize: "1rem", letterSpacing: "0.1em" }}
         aria-label="Event options"
       >
-        Â·Â·Â·
+        ---
       </button>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
@@ -387,7 +387,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
   )
 }
 
-// â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Modals ---
 
 function Backdrop({ onClick }: { onClick: () => void }) {
   return <div onClick={onClick} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 60 }} />
@@ -417,7 +417,7 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Savingâ€¦" : "Save"}</button>
+          <button onClick={handleSave} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save"}</button>
         </div>
       </div>
     </>
@@ -442,7 +442,7 @@ function ArchiveConfirm({ onClose, onConfirm }: { onClose: () => void; onConfirm
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handle} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Archivingâ€¦" : "Archive"}</button>
+          <button onClick={handle} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Archiving..." : "Archive"}</button>
         </div>
       </div>
     </>
@@ -480,14 +480,14 @@ function DeleteModal({ title, slug, token, onClose, onSuccess }: { title: string
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handle} disabled={deleting} style={{ background: "#FF6B6B", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: deleting ? 0.7 : 1 }}>{deleting ? "Deletingâ€¦" : "Delete permanently"}</button>
+          <button onClick={handle} disabled={deleting} style={{ background: "#FF6B6B", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: deleting ? 0.7 : 1 }}>{deleting ? "Deleting..." : "Delete permanently"}</button>
         </div>
       </div>
     </>
   )
 }
 
-// â”€â”€â”€ Registration tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Registration tables ---
 
 function EditRegModal({
   registration, questions, token, onClose, onSaved,
@@ -545,7 +545,7 @@ function EditRegModal({
         </div>
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
           <button type="button" onClick={onClose} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Savingâ€¦" : "Save changes"}</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving..." : "Save changes"}</button>
         </div>
       </div>
     </div>
@@ -645,7 +645,7 @@ function RegTable({
                     style={{ fontSize: "0.72rem", color: "#C8F55A", textDecoration: "none", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}
                     onClick={e => e.stopPropagation()}
                   >
-                    View â†’
+                    View
                   </Link>
                 </td>
                 <td style={{ ...tdStyle, width: 120 }}>
@@ -656,7 +656,7 @@ function RegTable({
                         disabled={removingId === reg.id}
                         style={{ background: "#FF6B6B", border: "none", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", fontWeight: 600, color: "#fff", cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: removingId === reg.id ? 0.6 : 1 }}
                       >
-                        {removingId === reg.id ? "â€¦" : "Yes"}
+                        {removingId === reg.id ? "..." : "Yes"}
                       </button>
                       <button
                         onClick={() => setConfirmingId(null)}
@@ -711,7 +711,7 @@ const tdStyle: React.CSSProperties = {
   fontFamily: "var(--font-dm-sans)",
 }
 
-// â”€â”€â”€ Settings tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Settings tab ---
 
 function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; hasRegistrations: boolean; onSaved: (updates: Partial<EventData>) => void }) {
   const [description, setDescription] = useState(event.description ?? "")
@@ -862,7 +862,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={4}
-            placeholder="Tell attendees what this event is aboutâ€¦"
+            placeholder="Tell attendees what this event is about..."
             style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
           />
         </div>
@@ -907,7 +907,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         {/* Community link */}
         <div>
           <label style={fieldLabel}>Community link</label>
-          <input type="url" value={communityLink} onChange={e => setCommunityLink(e.target.value)} placeholder="https://chat.whatsapp.com/â€¦" style={inputStyle} />
+          <input type="url" value={communityLink} onChange={e => setCommunityLink(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputStyle} />
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
             Sent to confirmed attendees automatically.
           </p>
@@ -974,7 +974,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
                   <textarea value={tier.description ?? ""} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, description: e.target.value } : item))} placeholder="Optional tier description" rows={2} style={{ ...inputStyle, marginTop: "0.75rem", resize: "vertical" }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.65rem" }}>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                      Sold: {tier.soldCount} Â· Waiting: {tier.waitlistCount}
+                      Sold: {tier.soldCount} - Waiting: {tier.waitlistCount}
                     </p>
                     <button type="button" onClick={() => setTicketTiers(items => items.filter(item => item.id !== tier.id))} style={{ background: "transparent", border: "none", color: "#FF6B6B", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                       Remove
@@ -991,7 +991,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
                 disabled={saving}
                 style={{ background: "#FFB84D", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
               >
-                {saving ? "Saving tiersâ€¦" : "Save ticket tiers"}
+                {saving ? "Saving tiers..." : "Save ticket tiers"}
               </button>
             </div>
           </div>
@@ -1006,11 +1006,11 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           disabled={saving}
           style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
         >
-          {saving ? "Savingâ€¦" : "Save changes"}
+          {saving ? "Saving..." : "Save changes"}
         </button>
         {saved && (
           <span style={{ fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
-            âœ“ Saved
+            Saved
           </span>
         )}
       </div>
@@ -1018,7 +1018,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   )
 }
 
-// â”€â”€â”€ Manual Registration Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Manual Registration Modal ---
 
 type ManualAttendee = Record<string, string>
 
@@ -1157,13 +1157,13 @@ function ManualRegModal({
             {results.map((r, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#101010", borderRadius: 8, padding: "0.6rem 0.875rem" }}>
                 <span style={{ fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
-                <span style={{ fontSize: "0.72rem", color: r.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "capitalize" }}>#{r.registrationNumber} Â· {r.status}</span>
+                <span style={{ fontSize: "0.72rem", color: r.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "capitalize" }}>#{r.registrationNumber} - {r.status}</span>
               </div>
             ))}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Closing automaticallyâ€¦</span>
+              <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Closing automatically...</span>
               <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
             </div>
           </div>
@@ -1192,7 +1192,7 @@ function ManualRegModal({
 
         {atCapacity && regStatus === 'confirmed' && (
           <div style={{ background: "rgba(255,168,0,0.08)", border: "0.5px solid rgba(255,168,0,0.25)", borderRadius: 8, padding: "0.6rem 0.875rem", marginBottom: "1rem", fontSize: "0.78rem", color: "rgba(255,168,0,0.9)", fontFamily: "var(--font-dm-sans)" }}>
-            Event is at capacity â€” people will be added to the waitlist.
+            Event is at capacity - people will be added to the waitlist.
           </div>
         )}
         {!atCapacity && slotsLeft !== null && slotsLeft <= 5 && (
@@ -1229,7 +1229,7 @@ function ManualRegModal({
                   </label>
                   {q.type === "select" && q.options ? (
                     <select value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={{ ...inputStyle }}>
-                      <option value="">Selectâ€¦</option>
+                      <option value="">Select...</option>
                       {q.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   ) : q.type === "checkbox" && q.options ? (
@@ -1277,14 +1277,14 @@ function ManualRegModal({
             ))}
           </div>
           <p style={{ marginTop: "0.4rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
-            {atCapacity && regStatus === 'confirmed' ? "Capacity full â€” will be added to waitlist." : "Confirmed adds directly to your attendee list. Capacity rules apply."}
+            {atCapacity && regStatus === 'confirmed' ? "Capacity full - will be added to waitlist." : "Confirmed adds directly to your attendee list. Capacity rules apply."}
           </p>
         </div>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Registeringâ€¦" : attendees.length > 1 ? `Register ${attendees.length} people` : "Add registration"}
+            {saving ? "Registering..." : attendees.length > 1 ? `Register ${attendees.length} people` : "Add registration"}
           </button>
         </div>
       </div>
@@ -1292,7 +1292,7 @@ function ManualRegModal({
   )
 }
 
-// â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Page ---
 
 export default function EventDashboardPage() {
   const params = useParams()
@@ -1567,7 +1567,7 @@ export default function EventDashboardPage() {
         setTimeout(() => setShareFeedback(""), 2500)
         return
       } catch {
-        // user cancelled or not supported â€” fall through to copy
+        // user cancelled or not supported - fall through to copy
       }
     }
     await handleCopy()
@@ -1646,7 +1646,7 @@ export default function EventDashboardPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.success) { setCapacityError(data.error || "Unable to update capacity."); return }
-      setCapacityMessage(`âœ“ ${data.promoted} ${data.promoted === 1 ? "person" : "people"} moved from waitlist to confirmed`)
+      setCapacityMessage(`OK ${data.promoted} ${data.promoted === 1 ? "person" : "people"} moved from waitlist to confirmed`)
       if (data.emailDiagnostics) {
         setWaitlistEmailDiagnostics(data.emailDiagnostics)
       }
@@ -1823,11 +1823,49 @@ export default function EventDashboardPage() {
       const a = document.createElement("a")
       a.href = url
       const extension = exportFormat === 'pdf' ? 'pdf' : 'csv'
-      a.download = `registrations-${slug}.${extension}`
+      a.download = getFilenameFromDisposition(res.headers.get("content-disposition"), `registrations-${slug}.${extension}`)
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch {
       setCsvError("Unable to export registrations.")
+    } finally {
+      setCsvExporting(false)
+    }
+  }
+
+  const getFilenameFromDisposition = (disposition: string | null, fallback: string) => {
+    if (!disposition) return fallback
+    const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1].replace(/"/g, ""))
+    const regularMatch = disposition.match(/filename="?([^";]+)"?/i)
+    return regularMatch?.[1] ?? fallback
+  }
+
+  const downloadExportFile = async (url: string, fallbackFilename: string) => {
+    setCsvExporting(true)
+    setCsvError("")
+    try {
+      const res = await fetch(url)
+      if (!res.ok) {
+        const contentType = res.headers.get("content-type") ?? ""
+        const data = contentType.includes("application/json") ? await res.json().catch(() => null) : null
+        setCsvError(data?.error || "Export failed. Please try again.")
+        return
+      }
+
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = objectUrl
+      a.download = getFilenameFromDisposition(res.headers.get("content-disposition"), fallbackFilename)
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      setCsvError("Unable to download export. Please try again.")
     } finally {
       setCsvExporting(false)
     }
@@ -1985,7 +2023,7 @@ export default function EventDashboardPage() {
     return () => clearInterval(interval)
   }, [slug, token])
 
-  // â”€â”€ Renders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Renders ---
 
   if (accessDenied) {
     return (
@@ -1993,7 +2031,7 @@ export default function EventDashboardPage() {
         <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
           <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: "#F0EDE6", marginBottom: "0.75rem" }}>Access denied</h1>
           <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>Invalid or missing access credentials.</p>
-          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>â† Back to My Events</Link>
+          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to My Events</Link>
         </div>
       </div>
     )
@@ -2103,7 +2141,7 @@ export default function EventDashboardPage() {
       setTeamInviteEmails(["", ""])
       const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string; error?: string }>
       if (data.emailFailed) {
-        // DB records created but email delivery failed â€” surface the accept links
+        // DB records created but email delivery failed - surface the accept links
         const failureReason = results.find(r => r.emailFailed && r.error)?.error
         setTeamInviteError(buildDomainVerificationHelp(failureReason))
         setTeamInviteAcceptLinks(
@@ -2267,7 +2305,7 @@ export default function EventDashboardPage() {
                 onClick={() => setShowQrModal(false)}
                 style={{ background: "none", border: "none", color: "rgba(240,237,230,0.4)", fontSize: "1.2rem", cursor: "pointer" }}
               >
-                Ã—
+                X
               </button>
             </div>
 
@@ -2307,18 +2345,18 @@ export default function EventDashboardPage() {
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
-              â†“ Download High-Res PNG
+              Download High-Res PNG
             </button>
 
             <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
-              1024x1024px Â· Print-ready resolution
+              1024x1024px - Print-ready resolution
             </p>
           </div>
         </div>
       )}
 
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        {/* â”€â”€ Back breadcrumb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Back breadcrumb --- */}
         <Link
           href="/dashboard/events"
           style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", marginBottom: "1.5rem" }}
@@ -2330,7 +2368,7 @@ export default function EventDashboardPage() {
           My Events
         </Link>
 
-        {/* â”€â”€ Cover image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Cover image --- */}
         {eventData.imageUrl && (
           <div className="md:hidden" style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0, minHeight: 220 }}>
             <EventImageWithFallback
@@ -2347,7 +2385,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Event header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Event header --- */}
         <div style={{ marginBottom: "1.75rem" }}>
           {/* Title row */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
@@ -2487,12 +2525,12 @@ export default function EventDashboardPage() {
                 opacity: qrGenerating ? 0.6 : 1,
               }}
             >
-              â–¦ {qrGenerating ? "Generating..." : "QR Code"}
+              QR {qrGenerating ? "Generating..." : "QR Code"}
             </button>
           </div>
         </div>
 
-        {/* â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tabs --- */}
         <div style={{ display: "flex", borderBottom: "0.5px solid rgba(240,237,230,0.08)", marginBottom: "2rem", overflowX: "auto" }}>
           {tabs.map(tab => (
             <button
@@ -2518,7 +2556,7 @@ export default function EventDashboardPage() {
               {tab.label}
             </button>
           ))}
-          {/* Email Attendees â€” navigates to the dedicated email campaigns page */}
+          {/* Email Attendees - navigates to the dedicated email campaigns page */}
           {!isWalkInEvent && (
             <Link
               href={`/dashboard/events/${slug}/emails`}
@@ -2547,7 +2585,7 @@ export default function EventDashboardPage() {
           )}
         </div>
 
-        {/* â”€â”€ Tab: Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Overview --- */}
         {activeTab === "overview" && isWalkInEvent && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
@@ -2757,7 +2795,7 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
-                    âœ¦ Event Report
+                    Event Report
                   </div>
                   <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
                     {reportDescription}
@@ -2781,7 +2819,7 @@ export default function EventDashboardPage() {
                         width: '100%',
                       }}
                     >
-                      {reportLoading ? reportLoadingText || 'Generating insights...' : 'âœ¦ Generate Report'}
+                      {reportLoading ? reportLoadingText || 'Generating insights...' : 'Generate Report'}
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
@@ -2854,7 +2892,7 @@ export default function EventDashboardPage() {
                         opacity: downloadingReport ? 0.6 : 1,
                       }}
                     >
-                      {downloadingReport ? 'Preparing...' : 'â†“ Download Word'}
+                      {downloadingReport ? 'Preparing...' : 'Download Word'}
                     </button>
                     <button
                       onClick={() => void downloadReport()}
@@ -2872,7 +2910,7 @@ export default function EventDashboardPage() {
                         opacity: downloadingReport ? 0.6 : 1,
                       }}
                     >
-                      {downloadingReport ? 'Preparing...' : 'ðŸ–¨ Print / Save PDF'}
+                      {downloadingReport ? 'Preparing...' : 'Print / Save PDF'}
                     </button>
                   </div>
                 </div>
@@ -2885,7 +2923,7 @@ export default function EventDashboardPage() {
                 Increase Capacity
               </h2>
               <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.125rem" }}>
-                Increase the number of confirmed spots â€” waitlisted attendees are promoted automatically.
+                Increase the number of confirmed spots - waitlisted attendees are promoted automatically.
               </p>
               <div style={{ display: "flex", gap: "0.625rem", alignItems: "center", flexWrap: "wrap" }}>
                 <input
@@ -2901,7 +2939,7 @@ export default function EventDashboardPage() {
                   disabled={updatingCapacity}
                   style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: updatingCapacity ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: updatingCapacity ? 0.7 : 1 }}
                 >
-                  {updatingCapacity ? "Updatingâ€¦" : "Update capacity"}
+                  {updatingCapacity ? "Updating..." : "Update capacity"}
                 </button>
               </div>
               {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
@@ -2933,7 +2971,7 @@ export default function EventDashboardPage() {
                       disabled={csvExporting || confirmed.length === 0}
                       style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
                     >
-                      {csvExporting ? "Exportingâ€¦" : `Export ${exportFormat === 'pdf' ? 'PDF' : 'CSV'}`}
+                      {csvExporting ? "Exporting..." : `Export ${exportFormat === 'pdf' ? 'PDF' : 'CSV'}`}
                     </button>
                   </div>
                 )}
@@ -2949,7 +2987,7 @@ export default function EventDashboardPage() {
                       disabled={csvUnlockLoading}
                       style={{ background: csvUnlockLoading ? "rgba(200,245,90,0.4)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A", cursor: csvUnlockLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
                     >
-                      {csvUnlockLoading ? "Processingâ€¦" : "Buy & Export"}
+                      {csvUnlockLoading ? "Processing..." : "Buy & Export"}
                     </button>
                     <button
                       onClick={() => { setCsvCost(null); setCsvEventId(null) }}
@@ -2975,12 +3013,12 @@ export default function EventDashboardPage() {
                   disabled={scanning}
                   style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
                 >
-                  {scanning ? "Scanningâ€¦" : "Run scan"}
+                  {scanning ? "Scanning..." : "Run scan"}
                 </button>
               </div>
               {scanError && <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{scanError}</p>}
               {dupGroups !== null && dupGroups.length === 0 && (
-                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>âœ“ No duplicates found</p>
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
               )}
               {dupGroups !== null && dupGroups.length > 0 && (
                 <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
@@ -2990,7 +3028,7 @@ export default function EventDashboardPage() {
                   {dupGroups.map((group, gi) => (
                     <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
                       <div style={{ padding: "0.5rem 0.875rem", background: "rgba(255,168,0,0.08)", borderBottom: "0.5px solid rgba(255,168,0,0.15)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,168,0,0.6)", fontFamily: "var(--font-dm-sans)" }}>
-                        Group {gi + 1} â€” {group.length} identical submissions
+                        Group {gi + 1} - {group.length} identical submissions
                       </div>
                       {group.map((reg, ri) => {
                         const firstName = reg.answers[0]?.value || `#${reg.registrationNumber ?? ri + 1}`
@@ -3009,7 +3047,7 @@ export default function EventDashboardPage() {
                             </div>
                             <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
                               <button onClick={() => keepDupReg(reg.id)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Keep</button>
-                              <button onClick={() => removeDupReg(reg.id)} disabled={isRemoving} style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}>{isRemoving ? "â€¦" : "Remove"}</button>
+                              <button onClick={() => removeDupReg(reg.id)} disabled={isRemoving} style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}>{isRemoving ? "..." : "Remove"}</button>
                             </div>
                           </div>
                         )
@@ -3020,17 +3058,17 @@ export default function EventDashboardPage() {
               )}
             </div>
 
-            {/* M2 â€” Waitlist Intelligence */}
+            {/* M2 - Waitlist Intelligence */}
             {eventData.waitlistCount > 0 && (
               <div style={{ border: "0.5px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "1rem 1.25rem", background: "rgba(245,158,11,0.05)" }}>
-                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F59E0B", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>âœ¦ WAITLIST INTELLIGENCE</div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F59E0B", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Featured WAITLIST INTELLIGENCE</div>
                 <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.375rem 0" }}>
                   {eventData.waitlistCount} {eventData.waitlistCount === 1 ? 'person is' : 'people are'} on the waitlist
                 </p>
                 <p style={{ fontSize: "0.8rem", color: "#A3A3A3", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.875rem 0", lineHeight: 1.5 }}>
                   {eventData.capacity
                     ? `Increasing capacity by ${Math.min(eventData.waitlistCount, 10)} would automatically promote the next ${Math.min(eventData.waitlistCount, 10)} attendees.`
-                    : 'You have unlimited capacity â€” all waitlisted attendees can be promoted.'}
+                    : 'You have unlimited capacity - all waitlisted attendees can be promoted.'}
                 </p>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   <button
@@ -3049,10 +3087,10 @@ export default function EventDashboardPage() {
               </div>
             )}
 
-            {/* M3 â€” Recent Registrations Ticker */}
+            {/* M3 - Recent Registrations Ticker */}
             {recentRegs.length > 0 && (
               <div style={{ border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem", background: "#141414" }}>
-                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>âœ¦ RECENT REGISTRATIONS</div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>Featured RECENT REGISTRATIONS</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {recentRegs.map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -3083,7 +3121,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Confirmed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Confirmed --- */}
         {activeTab === "confirmed" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -3103,45 +3141,69 @@ export default function EventDashboardPage() {
                 </button>
                 <a
                   href={`/api/events/${slug}/export?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ Confirmed CSV
+                  Download Confirmed CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/excel?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.xlsx`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.07)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ Excel
+                  Download Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all.csv`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ All CSV
+                  Download All CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/excel?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all.xlsx`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.55)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ All Excel
+                  Download All Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed-responses.pdf`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ PDF (Individual responses)
+                  Download PDF (Individual responses)
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all-responses.pdf`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
-                  â†“ All PDF (Individual responses)
+                  Download All PDF (Individual responses)
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {confirmed.length} confirmed
@@ -3183,7 +3245,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Waitlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Waitlist --- */}
         {activeTab === "waitlist" && (
           <div data-tutorial="waitlist-section">
             {waitlistEmailDiagnostics && waitlistEmailDiagnostics.attempted > 0 && (
@@ -3202,7 +3264,7 @@ export default function EventDashboardPage() {
               </div>
             )}
 
-            {/* â”€â”€ Duplicate Scanner panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* -- Duplicate Scanner panel --- */}
             <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
@@ -3216,7 +3278,7 @@ export default function EventDashboardPage() {
                   disabled={scanning}
                   style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
                 >
-                  {scanning ? "Scanningâ€¦" : "Run scan"}
+                  {scanning ? "Scanning..." : "Run scan"}
                 </button>
               </div>
 
@@ -3225,7 +3287,7 @@ export default function EventDashboardPage() {
               )}
 
               {dupGroups !== null && dupGroups.length === 0 && (
-                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>âœ“ No duplicates found</p>
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
               )}
 
               {dupGroups !== null && dupGroups.length > 0 && (
@@ -3236,7 +3298,7 @@ export default function EventDashboardPage() {
                   {dupGroups.map((group, gi) => (
                     <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
                       <div style={{ padding: "0.5rem 0.875rem", background: "rgba(255,168,0,0.08)", borderBottom: "0.5px solid rgba(255,168,0,0.15)", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,168,0,0.6)", fontFamily: "var(--font-dm-sans)" }}>
-                        Group {gi + 1} â€” {group.length} identical submissions
+                        Group {gi + 1} - {group.length} identical submissions
                       </div>
                       {group.map((reg, ri) => {
                         const firstName = reg.answers[0]?.value || `#${reg.registrationNumber ?? ri + 1}`
@@ -3267,7 +3329,7 @@ export default function EventDashboardPage() {
                                 disabled={isRemoving}
                                 style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
                               >
-                                {isRemoving ? "â€¦" : "Remove"}
+                                {isRemoving ? "..." : "Remove"}
                               </button>
                             </div>
                           </div>
@@ -3286,24 +3348,36 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 <a
                   href={`/api/events/${slug}/export?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist.csv`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
                 >
-                  â†“ Waitlisted CSV
+                  Download Waitlisted CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/excel?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist.xlsx`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.65)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.05)" }}
                 >
-                  â†“ Waitlisted Excel
+                  Download Waitlisted Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist-responses.pdf`)
+                  }}
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
                 >
-                  â†“ Waitlisted PDF (Individual responses)
+                  Download Waitlisted PDF (Individual responses)
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
                   {waitlist.length} waiting
@@ -3326,7 +3400,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Analytics --- */}
         {activeTab === "analytics" && isWalkInEvent && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -3396,7 +3470,7 @@ export default function EventDashboardPage() {
                 download
                 style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: "rgba(240,237,230,0.72)", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
               >
-                <span>â¬‡</span>
+                <span>Download</span>
                 Export CSV
               </a>
             </div>
@@ -3419,7 +3493,7 @@ export default function EventDashboardPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>AI Insights</span>
                       {insightsGeneratedAt && (
-                        <span style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>Â· {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
+                        <span style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>- {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
                       )}
                     </div>
                     {!insightsLoading && (
@@ -3428,17 +3502,17 @@ export default function EventDashboardPage() {
                         style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
                         {analyticsData.aiInsightsFreeUsed
-                          ? `Regenerate â€” ${insightsRequiredCredits} credits`
-                          : "Generate AI Insights â€” Free"}
+                          ? `Regenerate - ${insightsRequiredCredits} credits`
+                          : "Generate AI Insights - Free"}
                       </button>
                     )}
                   </div>
 
                   {insightsLocked && (
                     <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "1rem" }}>ðŸ”’</span>
+                      <span style={{ fontSize: "1rem" }}>Locked</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights â€” {insightsRequiredCredits} credits</p>
+                        <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights - {insightsRequiredCredits} credits</p>
                         <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Get 3 personalised insights about your event performance.</p>
                       </div>
                       {reportCreditBalance >= insightsRequiredCredits ? (
@@ -3447,7 +3521,7 @@ export default function EventDashboardPage() {
                           disabled={insightsUnlockLoading}
                           style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", border: "none", cursor: insightsUnlockLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: insightsUnlockLoading ? 0.6 : 1 }}
                         >
-                          {insightsUnlockLoading ? "Generatingâ€¦" : `Regenerate (${insightsRequiredCredits} credits)`}
+                          {insightsUnlockLoading ? "Generating..." : `Regenerate (${insightsRequiredCredits} credits)`}
                         </button>
                       ) : (
                         <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
@@ -3502,7 +3576,7 @@ export default function EventDashboardPage() {
                             card.type === 'info'    ? 'rgba(240,237,230,0.35)' :
                             '#C8F55A',
                             fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>
-                            {card.type === 'action' ? 'â†’ action' : card.type}
+                            {card.type === 'action' ? '-> action' : card.type}
                           </div>
                           <div style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
                           <div style={{ fontSize: "0.76rem", fontWeight: 300, color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
@@ -3518,7 +3592,7 @@ export default function EventDashboardPage() {
                     { label: "Total Views", value: analyticsData.totalViews },
                     { label: "Total Registrations", value: analyticsData.totalRegistrations },
                     { label: "Conversion Rate", value: `${analyticsData.conversionRate}%` },
-                    { label: "Confirmed â†’ Waitlist", value: `${analyticsData.waitlistConversionRate}%` },
+                    { label: "Confirmed -> Waitlist", value: `${analyticsData.waitlistConversionRate}%` },
                   ].map(stat => (
                     <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
                       <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
@@ -3532,10 +3606,10 @@ export default function EventDashboardPage() {
                       {analyticsData.checkedInCount} of {analyticsData.confirmedCount} confirmed
                     </div>
                     {analyticsData.checkInRate >= 70 && (
-                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#22C55E", fontFamily: "var(--font-dm-sans)" }}>â†‘ Strong turnout</div>
+                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#22C55E", fontFamily: "var(--font-dm-sans)" }}>Strong turnout</div>
                     )}
                     {analyticsData.checkInRate < 50 && analyticsData.confirmedCount > 0 && (
-                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#F59E0B", fontFamily: "var(--font-dm-sans)" }}>â†“ Low turnout</div>
+                      <div style={{ fontSize: "0.72rem", marginTop: "0.35rem", color: "#F59E0B", fontFamily: "var(--font-dm-sans)" }}>Low turnout</div>
                     )}
                   </div>
                   {analyticsData.feedbackScore !== null && (
@@ -3545,12 +3619,12 @@ export default function EventDashboardPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: "0.18rem", marginTop: "0.35rem" }}>
                         {[1, 2, 3, 4, 5].map((n) => (
                           <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? '#C8F55A' : 'rgba(240,237,230,0.15)' }}>
-                            â˜…
+                            Star
                           </span>
                         ))}
                       </div>
                       <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                        {analyticsData.feedbackCount} response{analyticsData.feedbackCount !== 1 ? 's' : ''} Â·{' '}
+                        {analyticsData.feedbackCount} response{analyticsData.feedbackCount !== 1 ? 's' : ''} -{' '}
                         <button
                           onClick={() => setActiveTab('feedback')}
                           style={{ background: "transparent", border: "none", padding: 0, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "0.75rem" }}
@@ -3590,8 +3664,8 @@ export default function EventDashboardPage() {
                             <div>
                               <div style={{ color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>{tier.name}</div>
                               <div style={{ color: "rgba(240,237,230,0.4)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
-                                KES {tier.priceKes.toLocaleString()} Â· {tier.soldCount} sold Â· {tier.waitlistCount} waitlist
-                                {tier.bundleSize > 1 ? ` Â· ${tier.bundleSize} entries each` : ""}
+                                KES {tier.priceKes.toLocaleString()} - {tier.soldCount} sold - {tier.waitlistCount} waitlist
+                                {tier.bundleSize > 1 ? ` - ${tier.bundleSize} entries each` : ""}
                               </div>
                             </div>
                             <div style={{ textAlign: "right" }}>
@@ -3608,7 +3682,7 @@ export default function EventDashboardPage() {
                 {(analyticsData.waitlistedCount > 0 || analyticsData.promotedCount > 0) && (
                   <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
-                      âœ¦ Waitlist Funnel
+                      Featured Waitlist Funnel
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }}>
@@ -3638,7 +3712,7 @@ export default function EventDashboardPage() {
                           onClick={() => setActiveTab("settings")}
                           style={{ marginTop: "0.3rem", background: "transparent", border: "none", padding: 0, color: "#C8F55A", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
                         >
-                          Adjust capacity â†’
+                          Adjust capacity
                         </button>
                       </div>
                     )}
@@ -3648,7 +3722,7 @@ export default function EventDashboardPage() {
                 {analyticsData.sourceBreakdown?.length > 0 && (
                   <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
-                      âœ¦ Registration Sources
+                      Featured Registration Sources
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
@@ -3676,7 +3750,7 @@ export default function EventDashboardPage() {
 
                 {/* Registrations by day */}
                 <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations â€” last 30 days</div>
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations - last 30 days</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={analyticsData.registrationsByDay} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
@@ -3702,7 +3776,7 @@ export default function EventDashboardPage() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* M1 â€” Comparative performance vs own average */}
+                {/* M1 - Comparative performance vs own average */}
                 {analyticsData.vsAverage !== null && analyticsData.avgRegistrations !== null && (
                   <div style={{ borderLeft: `4px solid ${analyticsData.vsAverage >= 0 ? '#22C55E' : '#F59E0B'}`, paddingLeft: "1rem", paddingTop: "0.625rem", paddingBottom: "0.625rem", background: analyticsData.vsAverage >= 0 ? "rgba(34,197,94,0.05)" : "rgba(245,158,11,0.05)", borderTopRightRadius: 12, borderBottomRightRadius: 12 }}>
                     <p style={{ color: "#A3A3A3", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.25rem 0", lineHeight: 1.5 }}>
@@ -3738,16 +3812,16 @@ export default function EventDashboardPage() {
               </div>
             )}
 
-            {/* â”€â”€ AI Q&A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* -- AI Q&A --- */}
             <div style={{ marginTop: "2rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", paddingTop: "1.75rem" }}>
               <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.25rem 0" }}>Ask about your event</h3>
               <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem 0" }}>Ask anything about your registration data.</p>
 
               {qaLocked ? (
                 <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "1rem" }}>ðŸ”’</span>
+                  <span style={{ fontSize: "1rem" }}>Locked</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A â€” 1 credit per question</p>
+                    <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A - 1 credit per question</p>
                     <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
                   </div>
                   <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
@@ -3790,7 +3864,7 @@ export default function EventDashboardPage() {
                       disabled={qaLoading || !qaInput.trim()}
                       style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.65rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: qaLoading || !qaInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qaLoading || !qaInput.trim() ? 0.55 : 1, whiteSpace: "nowrap", flexShrink: 0 }}
                     >
-                      {qaLoading ? "â€¦" : "Ask"}
+                      {qaLoading ? "..." : "Ask"}
                     </button>
                   </div>
 
@@ -3801,7 +3875,7 @@ export default function EventDashboardPage() {
                         <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
                       </div>
                       <div style={{ background: "#141414", borderRadius: "2px 12px 12px 12px", padding: "0.55rem 0.875rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
-                        Thinkingâ€¦
+                        Thinking...
                       </div>
                     </div>
                   )}
@@ -3837,7 +3911,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Feedback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Feedback --- */}
         {activeTab === "feedback" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -3876,7 +3950,7 @@ export default function EventDashboardPage() {
                   <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Average Rating</div>
                     <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>
-                      {feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "â€”"}
+                      {feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "-"}
                     </div>
                   </div>
                 </div>
@@ -3892,7 +3966,7 @@ export default function EventDashboardPage() {
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: fb.enjoyed || fb.improve || fb.complaint ? "1rem" : 0, flexWrap: "wrap", gap: "0.5rem" }}>
                           <div style={{ display: "flex", gap: "2px" }}>
                             {[1, 2, 3, 4, 5].map(s => (
-                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "rgba(240,237,230,0.15)" }}>â˜…</span>
+                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "rgba(240,237,230,0.15)" }}>Star</span>
                             ))}
                           </div>
                           <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
@@ -3936,7 +4010,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Check-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Check-in --- */}
         {activeTab === "checkin" && (
           <div data-tutorial="confirm-attendance">
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
@@ -3957,7 +4031,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Settings --- */}
         {activeTab === "settings" && (
           <div>
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
@@ -3967,7 +4041,7 @@ export default function EventDashboardPage() {
           </div>
         )}
 
-        {/* â”€â”€ Tab: Team â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* -- Tab: Team --- */}
         {activeTab === "team" && eventData.canEdit && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             {/* Current team members */}
@@ -4008,7 +4082,7 @@ export default function EventDashboardPage() {
                             disabled={resendingTeamMember === m.teamMemberId}
                             style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 7, color: resendTeamSuccessId === m.teamMemberId ? "#C8F55A" : "rgba(240,237,230,0.55)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer", opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1 }}
                           >
-                            {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sendingâ€¦" : "Resend"}
+                            {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sending..." : "Resend"}
                           </button>
                         )}
                         {m.status === "pending" && resendTeamFailedUrls[m.teamMemberId] && (
@@ -4024,7 +4098,7 @@ export default function EventDashboardPage() {
                           disabled={removingTeamMember === m.teamMemberId}
                           style={{ background: "transparent", border: m.status === "pending" ? "0.5px solid rgba(239,68,68,0.2)" : "none", cursor: "pointer", color: "rgba(239,68,68,0.75)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "4px 8px", borderRadius: 6 }}
                         >
-                          {removingTeamMember === m.teamMemberId ? "â€¦" : m.status === "pending" ? "Cancel" : "Remove"}
+                          {removingTeamMember === m.teamMemberId ? "..." : m.status === "pending" ? "Cancel" : "Remove"}
                         </button>
                       </div>
                     </div>
@@ -4077,7 +4151,7 @@ export default function EventDashboardPage() {
                 disabled={teamInviting || teamInviteEmails.every(e => !e.trim()) || invalidTeamInviteEntries.length > 0}
                 style={{ marginTop: "0.875rem", background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting || invalidTeamInviteEntries.length > 0 ? 0.6 : 1 }}
               >
-                {teamInviting ? "Sendingâ€¦" : "Send Invite"}
+                {teamInviting ? "Sending..." : "Send Invite"}
               </button>
               <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                 Invited members receive an email with a link to accept. If delivery is paused, copy the direct invite link and resend after the sender domain is verified.

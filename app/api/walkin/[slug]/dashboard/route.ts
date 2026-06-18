@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { hasOrganiserAccess } from '@/lib/adminMode'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 import {
   formatWalkInShortDayLabel,
   getEventEndDayKey,
@@ -28,13 +30,12 @@ function resolveStatus(todayKey: string, startDayKey: string, endDayKey: string)
   return 'ACTIVE'
 }
 
-export async function GET(_req: Request, props: { params: Promise<{ slug: string }> }) {
+export async function GET(req: Request, props: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await props.params
+    const requestUrl = new URL(req.url)
+    const token = requestUrl.searchParams.get('token')
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
 
     const event = await prisma.event.findUnique({
       where: { slug },
@@ -43,6 +44,7 @@ export async function GET(_req: Request, props: { params: Promise<{ slug: string
         title: true,
         accessType: true,
         organizerId: true,
+        dashboardToken: true,
         eventDate: true,
         eventEndAt: true,
       },
@@ -52,7 +54,22 @@ export async function GET(_req: Request, props: { params: Promise<{ slug: string
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    if (event.organizerId !== session.user.id) {
+    const hasValidToken = !!(token && event.dashboardToken === token)
+    if (!session?.user?.id && !hasValidToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
+    const hasTeamAccess = session?.user?.id
+      ? await hasTeamEventAccess({
+          userId: session.user.id,
+          organizerId: event.organizerId,
+          eventId: event.id,
+        })
+      : false
+    const adminAccess = session ? await hasOrganiserAccess(session, event.id) : false
+
+    if (!isOwner && !hasValidToken && !hasTeamAccess && !adminAccess) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 

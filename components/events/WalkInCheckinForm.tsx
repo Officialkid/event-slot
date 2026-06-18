@@ -17,6 +17,7 @@ type WalkInCheckinFormProps = {
   dayLabel: string
   dayTitle?: string | null
   showBranding?: boolean
+  onCheckinComplete?: (result: CheckinResponse) => void
 }
 
 type CheckinResponse = {
@@ -45,7 +46,7 @@ function BrandingFooter() {
   )
 }
 
-export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, showBranding = false }: WalkInCheckinFormProps) {
+export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, showBranding = false, onCheckinComplete }: WalkInCheckinFormProps) {
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [loading, setLoading] = useState(false)
@@ -101,6 +102,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
         return
       }
       setResult(data)
+      onCheckinComplete?.(data)
       setName("")
       setPhone("")
     } catch {

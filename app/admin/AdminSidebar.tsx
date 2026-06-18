@@ -86,7 +86,7 @@ export default function AdminSidebar() {
             Admin Console
           </div>
         </div>
-        {/* Close button — mobile only */}
+        {/* Close button: mobile only */}
         <button
           className="admin-sidebar-close-btn"
           onClick={() => setDrawerOpen(false)}
@@ -101,7 +101,7 @@ export default function AdminSidebar() {
             fontSize: "1.4rem",
           }}
         >
-          ✕
+          X
         </button>
       </div>
 
@@ -174,7 +174,7 @@ export default function AdminSidebar() {
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10 9 9 9 8 9"/>
           </svg>
-          Documentation ↗
+          Documentation
         </a>
         <Link
           href="/"
@@ -185,7 +185,7 @@ export default function AdminSidebar() {
             fontFamily: "var(--font-dm-sans)",
           }}
         >
-          ← Back to site
+          Back to site
         </Link>
       </div>
     </>
@@ -194,7 +194,7 @@ export default function AdminSidebar() {
   return (
     <>
       <style>{`
-        /* ── Desktop sidebar ── */
+        /* Desktop sidebar */
         .admin-sidebar-desktop {
           width: 220px;
           flex-shrink: 0;
@@ -214,12 +214,12 @@ export default function AdminSidebar() {
           display: none !important;
         }
 
-        /* ── Mobile top bar ── */
+        /* Mobile top bar */
         .admin-mobile-topbar {
           display: none;
         }
 
-        /* ── Mobile drawer overlay ── */
+        /* Mobile drawer overlay */
         .admin-drawer-overlay {
           display: none;
         }
@@ -285,7 +285,7 @@ export default function AdminSidebar() {
         }
       `}</style>
 
-      {/* ── Mobile top bar ── */}
+      {/* Mobile top bar */}
       <div className="admin-mobile-topbar">
         <button
           onClick={() => setDrawerOpen(true)}
@@ -301,7 +301,7 @@ export default function AdminSidebar() {
             lineHeight: 1,
           }}
         >
-          ☰
+          Menu
         </button>
         <Link
           href="/admin"
@@ -317,7 +317,7 @@ export default function AdminSidebar() {
         <div style={{ width: 36 }} /> {/* spacer to centre logo */}
       </div>
 
-      {/* ── Drawer (mobile) ── */}
+      {/* Drawer (mobile) */}
       {drawerOpen && (
         <div
           className="admin-drawer-overlay"
@@ -332,7 +332,7 @@ export default function AdminSidebar() {
         </div>
       )}
 
-      {/* ── Desktop sidebar ── */}
+      {/* Desktop sidebar */}
       <aside className="admin-sidebar-desktop">
         {sidebarContent}
       </aside>

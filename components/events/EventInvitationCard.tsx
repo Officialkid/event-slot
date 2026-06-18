@@ -27,7 +27,7 @@ function formatEventDate(date: Date): string {
   const month = d.toLocaleDateString("en-GB", { month: "long" })
   const year = d.toLocaleDateString("en-GB", { year: "numeric" })
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })
-  return `${dayName}, ${day} ${month} ${year} · ${time.toUpperCase()}`
+  return `${dayName}, ${day} ${month} ${year} - ${time.toUpperCase()}`
 }
 
 function getStatusBadge(
@@ -146,7 +146,7 @@ export default function EventInvitationCard({
       }}
     >
       {hasPoster && (
-        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "#0A0A0A" }} className="sm:h-[300px] lg:h-[340px]">
+        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "#0A0A0A" }} className="sm:h-[300px] lg:h-[420px]">
           <Image
             src={posterSrc}
             alt={title}
@@ -154,14 +154,15 @@ export default function EventInvitationCard({
             sizes="100vw"
             quality={100}
             unoptimized
-            style={{ objectFit: "cover", objectPosition: "center" }}
+            style={{ objectFit: "contain", objectPosition: "center" }}
             onError={handlePosterError}
           />
           <div
             style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(180deg, rgba(10,10,10,0.08) 0%, rgba(10,10,10,0.72) 100%)",
+              pointerEvents: "none",
+              background: "linear-gradient(180deg, rgba(10,10,10,0.02) 0%, rgba(10,10,10,0.28) 100%)",
             }}
           />
         </div>
@@ -254,7 +255,7 @@ export default function EventInvitationCard({
         >
           {eventDate && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>📅</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Date</span>
               <span
                 style={{
                   fontSize: "0.88rem",
@@ -271,7 +272,7 @@ export default function EventInvitationCard({
 
           {location && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>📍</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Place</span>
               <span style={{ fontSize: "0.88rem", color: "rgba(240,237,230,0.82)", fontWeight: 400 }}>
                 {location}
               </span>
@@ -280,7 +281,7 @@ export default function EventInvitationCard({
 
           {organizerName && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.8rem", opacity: 0.5, flexShrink: 0 }}>✦</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Host</span>
               <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
                 Hosted by{" "}
                 <span style={{ color: "rgba(240,237,230,0.8)", fontWeight: 500 }}>{organizerName}</span>
@@ -299,7 +300,7 @@ export default function EventInvitationCard({
                       lineHeight: 1.4,
                     }}
                   >
-                    <span aria-hidden="true">🏆</span> Pioneer
+                    Pioneer
                   </span>
                 ) : null}
               </span>
