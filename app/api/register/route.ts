@@ -6,8 +6,6 @@ import { createNotification } from '@/lib/notifications'
 import {
   sendConfirmationEmail,
   sendWaitlistJoinedEmail,
-  sendOrganizerCapacity90Email,
-  sendOrganizerCapacityFullEmail,
   sendOrganizerFirstWaitlistEmail,
 } from '@/lib/email'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
@@ -16,7 +14,10 @@ import { detectCountry } from '@/lib/geoip'
 import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
-import { canAddAttendee, canUseWaitlist } from '@/lib/planEnforcement'
+import { canUseWaitlist } from '@/lib/planEnforcement'
+import { getEffectivePlanPolicy } from '@/lib/effectivePlanPolicy'
+import { isPricingRolloutActive } from '@/lib/pricingRollout'
+import { sendEventCapacityMilestones } from '@/lib/capacityNotifications'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
@@ -69,11 +70,34 @@ export async function POST(req: NextRequest) {
     }
 
     // Plan enforcement — check organizer's attendee cap for this event
+    const organizerPlanKey = event.organizerId
+      ? (await prisma.user.findUnique({
+          where: { id: event.organizerId },
+          select: {
+            plan: true,
+            paygSettings: {
+              select: {
+                id: true,
+                isEnabled: true,
+                monthlyCapUsd: true,
+              },
+            },
+          },
+        }))
+      : null
+
+    const effectivePlan = getEffectivePlanPolicy(organizerPlanKey?.plan)
     let planWaitlistForced = false
     if (event.organizerId) {
       const organizerEmail = event.organizer?.email ?? ''
-      const attendeeCheck = await canAddAttendee(event.organizerId, event.id, organizerEmail)
-      if (!attendeeCheck.allowed) {
+      const currentCount = event.confirmedCount
+      const paygEnabled = Boolean(organizerPlanKey?.paygSettings?.isEnabled)
+      if (
+        isPricingRolloutActive() &&
+        effectivePlan.maxAttendeesPerEvent !== -1 &&
+        currentCount >= effectivePlan.maxAttendeesPerEvent &&
+        !paygEnabled
+      ) {
         const waitlistCheck = await canUseWaitlist(event.organizerId, organizerEmail)
         if (!waitlistCheck.allowed) {
           return NextResponse.json(
@@ -164,8 +188,15 @@ export async function POST(req: NextRequest) {
           status = 'confirmed'
         }
 
-        // Override to waitlist if organizer's plan attendee cap is reached
-        if (planWaitlistForced) {
+        // Override to waitlist if organizer's plan attendee cap is reached and PAYG is not enabled.
+        const paygEnabled = Boolean(organizerPlanKey?.paygSettings?.isEnabled)
+        if (
+          planWaitlistForced ||
+          (isPricingRolloutActive() &&
+            effectivePlan.maxAttendeesPerEvent !== -1 &&
+            freshEvent.confirmedCount >= effectivePlan.maxAttendeesPerEvent &&
+            !paygEnabled)
+        ) {
           status = 'waitlist'
         }
 
@@ -455,52 +486,48 @@ export async function POST(req: NextRequest) {
       // Non-critical
     }
 
-    // Trigger fill-rate notifications (non-blocking, best-effort)
     if (event.capacity && event.organizerId) {
-      try {
-        const updatedEvent = await prisma.event.findUnique({ where: { slug: eventSlug } })
-        if (updatedEvent) {
-          const oldFill = event.confirmedCount / event.capacity
-          const newFill = updatedEvent.confirmedCount / event.capacity
-          const organizer = await prisma.user.findUnique({
-            where: { id: event.organizerId },
-            select: { email: true, consentSystemEmails: true },
-          })
-          if (newFill >= 1.0 && oldFill < 1.0) {
-            await createNotification({
-              userId: event.organizerId,
-              type: "EVENT",
-              title: "Event Full",
-              message: `Your event "${event.title}" is now full. ${updatedEvent.waitlistCount} ${updatedEvent.waitlistCount === 1 ? "person is" : "people are"} on the waitlist.`,
-              link: `/dashboard/events/${event.slug}#capacity`,
-            })
-            if (organizer?.email && organizer.consentSystemEmails) {
-              sendOrganizerCapacityFullEmail({
-                to: organizer.email,
-                eventTitle: event.title,
-                waitlistCount: updatedEvent.waitlistCount,
-              }).catch(() => {})
-            }
-          } else if (newFill >= 0.8 && oldFill < 0.8) {
-            await createNotification({
-              userId: event.organizerId,
-              type: "EVENT",
-              title: "Capacity Alert",
-              message: `Your event "${event.title}" is 80% full. Consider increasing capacity.`,
-              link: `/dashboard/events/${event.slug}#capacity`,
-            })
-            if (organizer?.email && organizer.consentSystemEmails) {
-              sendOrganizerCapacity90Email({
-                to: organizer.email,
-                eventTitle: event.title,
-                confirmedCount: updatedEvent.confirmedCount,
-                capacity: event.capacity,
-              }).catch(() => {})
-            }
-          }
-        }
-      } catch {
-        // Notifications are non-critical; do not fail the registration
+      await sendEventCapacityMilestones({
+        eventId: event.id,
+        eventSlug: event.slug,
+        eventTitle: event.title,
+        organizerId: event.organizerId,
+        previousConfirmedCount: event.confirmedCount,
+        capacity: event.capacity,
+      }).catch(() => {})
+    }
+
+    if (
+      event.organizerId &&
+      organizerPlanKey?.paygSettings?.id &&
+      organizerPlanKey.paygSettings.isEnabled &&
+      isPricingRolloutActive() &&
+      effectivePlan.maxAttendeesPerEvent !== -1
+    ) {
+      const updatedEvent = await prisma.event.findUnique({
+        where: { id: event.id },
+        select: { confirmedCount: true },
+      })
+
+      const previousOverage = Math.max(0, event.confirmedCount - effectivePlan.maxAttendeesPerEvent)
+      const newOverage = Math.max(0, (updatedEvent?.confirmedCount ?? event.confirmedCount) - effectivePlan.maxAttendeesPerEvent)
+      const overageAdded = newOverage - previousOverage
+
+      if (overageAdded > 0) {
+        const billingMonth = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`
+        await prisma.paygUsage.create({
+          data: {
+            paygSettingsId: organizerPlanKey.paygSettings.id,
+            userId: event.organizerId,
+            billingMonth,
+            usageType: 'EXTRA_ATTENDEE',
+            quantity: overageAdded,
+            unitCostUsd: 0.05,
+            totalCostUsd: overageAdded * 0.05,
+            description: `Extra attendee usage for "${event.title}"`,
+            eventId: event.id,
+          },
+        }).catch(() => {})
       }
     }
 

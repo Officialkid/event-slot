@@ -992,6 +992,13 @@ model PaygSettings {
   monthlyCapUsd   Float        @default(10.0)
   mpesaPhone      String?
   paymentProvider String?
+  billingAuthorizationAccepted Boolean @default(false)
+  billingAuthorizedAt DateTime?
+  cardholderName  String?
+  billingCardBrand String?
+  billingCardLast4 String?
+  billingCardExpiryMonth Int?
+  billingCardExpiryYear Int?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   usageRecords    PaygUsage[]

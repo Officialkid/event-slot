@@ -14,6 +14,8 @@ import { APP_URL } from '@/lib/config'
 import { canCreateEvent } from '@/lib/planEnforcement'
 import { validateAndEncodeEventContact } from '@/lib/eventContact'
 import { normalizeTicketTiers, sumTierCapacity } from '@/lib/paidEvents'
+import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy'
+import { getPricingRolloutLabel } from '@/lib/pricingRollout'
 
 function generateSlug(title: string): string {
   const base = title
@@ -143,6 +145,33 @@ export async function POST(req: NextRequest) {
           data: { name: normalizedOrganizerName },
         })
       }
+    }
+
+    const effectivePlan = getEffectivePlanPolicy(organizer?.plan ?? 'free')
+    const requestedCapacity = isWalkInEvent
+      ? null
+      : isPaid
+        ? sumTierCapacity(normalizedTicketTiers)
+        : capacity
+
+    if (
+      isRegistrationEvent &&
+      !isPaid &&
+      effectivePlan.maxAttendeesPerEvent !== -1 &&
+      requestedCapacity &&
+      requestedCapacity > effectivePlan.maxAttendeesPerEvent
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Your ${effectivePlan.displayName} plan currently includes up to ${effectivePlan.maxAttendeesPerEvent} attendees per event.`,
+          code: 'PLAN_LIMIT_ATTENDEES',
+          upgradeRequired: getNextPlanKey(organizer?.plan ?? 'free'),
+          limit: effectivePlan.maxAttendeesPerEvent,
+          pricingStartsAtLabel: getPricingRolloutLabel(),
+        },
+        { status: 403 }
+      )
     }
 
     const slug = generateSlug(normalizedTitle)

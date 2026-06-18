@@ -18,7 +18,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     name: "Free",
     monthlyPriceUsd: 0,
     annualPriceUsd: 0,
-    attendeesPerEvent: "50",
+    attendeesPerEvent: "55",
     waitlistCap: "None",
     activeEvents: "1",
     organizerSeats: "1",

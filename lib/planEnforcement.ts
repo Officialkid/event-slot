@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getUserPlan, isSuperAdmin } from '@/lib/subscription';
+import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy';
 
 interface EnforcementResult {
   allowed: boolean;
@@ -7,7 +8,12 @@ interface EnforcementResult {
   upgradeRequired?: string; // plan name needed: "standard" | "pro" | "business"
   currentUsage?: number;
   limit?: number;
+  paygAvailable?: boolean;
+  paygEnabled?: boolean;
+  paygUnitCostUsd?: number;
 }
+
+const EXTRA_ATTENDEE_PAYG_USD = 0.05
 
 // ── Check attendee cap ────────────────────────────────────────────────────────
 export async function canAddAttendee(
@@ -19,22 +25,55 @@ export async function canAddAttendee(
 
   const { plan } = await getUserPlan(userId);
   if (!plan) return { allowed: false, reason: 'No active plan found' };
-  if (plan.maxAttendeesPerEvent === -1) return { allowed: true };
+  const policy = getEffectivePlanPolicy(plan.name);
+  if (policy.maxAttendeesPerEvent === -1) return { allowed: true };
 
   const currentCount = await prisma.registration.count({
     where: { eventId, status: 'confirmed' },
   });
 
-  if (currentCount >= plan.maxAttendeesPerEvent) {
+  if (currentCount >= policy.maxAttendeesPerEvent) {
+    const paygSettings = await prisma.paygSettings.findUnique({
+      where: { userId },
+      select: { id: true, isEnabled: true, monthlyCapUsd: true },
+    })
+
+    if (paygSettings?.isEnabled) {
+      const billingMonth = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`
+      const usage = await prisma.paygUsage.aggregate({
+        where: {
+          paygSettingsId: paygSettings.id,
+          billingMonth,
+        },
+        _sum: { totalCostUsd: true },
+      })
+
+      const currentSpend = usage._sum.totalCostUsd ?? 0
+      if (currentSpend + EXTRA_ATTENDEE_PAYG_USD <= paygSettings.monthlyCapUsd) {
+        return {
+          allowed: true,
+          currentUsage: currentCount,
+          limit: policy.maxAttendeesPerEvent,
+          paygAvailable: true,
+          paygEnabled: true,
+          paygUnitCostUsd: EXTRA_ATTENDEE_PAYG_USD,
+        }
+      }
+    }
+
+    const nextPlan = getNextPlanKey(plan.name)
     return {
       allowed: false,
-      reason: `Your ${plan.displayName} plan allows up to ${plan.maxAttendeesPerEvent} confirmed attendees per event.`,
-      upgradeRequired: plan.name === 'free' ? 'standard' : plan.name === 'standard' ? 'pro' : 'business',
+      reason: `Your ${policy.displayName} plan allows up to ${policy.maxAttendeesPerEvent} confirmed attendees per event.`,
+      upgradeRequired: nextPlan ?? undefined,
       currentUsage: currentCount,
-      limit: plan.maxAttendeesPerEvent,
+      limit: policy.maxAttendeesPerEvent,
+      paygAvailable: policy.hasPayg,
+      paygEnabled: false,
+      paygUnitCostUsd: policy.hasPayg ? EXTRA_ATTENDEE_PAYG_USD : undefined,
     };
   }
-  return { allowed: true, currentUsage: currentCount, limit: plan.maxAttendeesPerEvent };
+  return { allowed: true, currentUsage: currentCount, limit: policy.maxAttendeesPerEvent };
 }
 
 // ── Check active event cap ────────────────────────────────────────────────────
@@ -46,7 +85,8 @@ export async function canCreateEvent(
 
   const { plan } = await getUserPlan(userId);
   if (!plan) return { allowed: false, reason: 'No active plan found' };
-  if (plan.maxActiveEvents === -1) return { allowed: true };
+  const policy = getEffectivePlanPolicy(plan.name);
+  if (policy.maxActiveEvents === -1) return { allowed: true };
 
   const now = new Date();
 
@@ -61,16 +101,17 @@ export async function canCreateEvent(
     },
   });
 
-  if (activeCount >= plan.maxActiveEvents) {
+  if (activeCount >= policy.maxActiveEvents) {
+    const nextPlan = getNextPlanKey(plan.name)
     return {
       allowed: false,
-      reason: `Your ${plan.displayName} plan allows up to ${plan.maxActiveEvents} active event${plan.maxActiveEvents === 1 ? '' : 's'}.`,
-      upgradeRequired: plan.name === 'free' ? 'standard' : plan.name === 'standard' ? 'pro' : 'business',
+      reason: `Your ${policy.displayName} plan allows up to ${policy.maxActiveEvents} active event${policy.maxActiveEvents === 1 ? '' : 's'}.`,
+      upgradeRequired: nextPlan ?? undefined,
       currentUsage: activeCount,
-      limit: plan.maxActiveEvents,
+      limit: policy.maxActiveEvents,
     };
   }
-  return { allowed: true, currentUsage: activeCount, limit: plan.maxActiveEvents };
+  return { allowed: true, currentUsage: activeCount, limit: policy.maxActiveEvents };
 }
 
 // ── Check waitlist access ─────────────────────────────────────────────────────
@@ -80,10 +121,11 @@ export async function canUseWaitlist(
 ): Promise<EnforcementResult> {
   if (isSuperAdmin(userEmail)) return { allowed: true };
   const { plan } = await getUserPlan(userId);
-  if (!plan?.hasWaitlist) {
+  const policy = getEffectivePlanPolicy(plan?.name);
+  if (!policy.hasWaitlist) {
     return {
       allowed: false,
-      reason: 'Waitlist is not available on the Free plan.',
+      reason: 'Waitlist is not available on this plan.',
       upgradeRequired: 'standard',
     };
   }

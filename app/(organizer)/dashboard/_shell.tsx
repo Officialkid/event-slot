@@ -9,6 +9,7 @@ import { HintDot } from "@/components/tutorial/HintDot"
 import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
+import { PlanBadge } from "@/components/ui/PlanBadge"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,7 @@ interface SidebarInnerProps {
   pathname: string
   name: string
   email: string
+  plan?: string | null
   image?: string | null
   initials: string
   unreadCount: number
@@ -182,7 +184,7 @@ interface SidebarInnerProps {
   isAdmin?: boolean
 }
 
-function SidebarInner({ pathname, name, email, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -307,6 +309,9 @@ function SidebarInner({ pathname, name, email, image, initials, unreadCount, has
                 </span>
               </div>
             )}
+            <div style={{ marginTop: hasPioneer ? "0.28rem" : "0.2rem" }}>
+              <PlanBadge plan={plan} />
+            </div>
             {email && (
               <div
                 style={{
@@ -807,6 +812,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     pathname,
     name,
     email,
+    plan: session?.user?.plan ?? "free",
     image,
     initials,
     unreadCount,

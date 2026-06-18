@@ -44,11 +44,27 @@ type InternalEmailOptions = {
 async function sendEmail(options: InternalEmailOptions) {
   const resend = getResendClient()
   const verifiedFrom = getVerifiedSender(options.from)
-  const { error } = await resend.emails.send({
+  const payload = {
     ...options,
     // Always use the verified sender address, even if callers pass a branded alias.
     from: verifiedFrom,
-  } as Parameters<Resend['emails']['send']>[0])
+  } as Parameters<Resend['emails']['send']>[0]
+
+  let { error } = await resend.emails.send(payload)
+
+  const retryMessage = error?.message ?? null
+  const shouldRetryWithFallback =
+    Boolean(retryMessage) &&
+    /verify|domain|sender/i.test(retryMessage ?? '') &&
+    verifiedFrom !== 'EventSlot <onboarding@resend.dev>'
+
+  if (shouldRetryWithFallback) {
+    ;({ error } = await resend.emails.send({
+      ...payload,
+      from: 'EventSlot <onboarding@resend.dev>',
+    }))
+  }
+
   if (error) {
     console.error('[email] Resend send error:', error)
     throw new Error(error.message ?? 'Failed to send email')

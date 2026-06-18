@@ -8,6 +8,8 @@ import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import type { EventContactMode } from "@/lib/eventContact"
+import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/effectivePlanPolicy"
+import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -101,6 +103,7 @@ export default function CreateEventPage() {
   const [showQrModal, setShowQrModal] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [qrGenerating, setQrGenerating] = useState(false)
+  const [showCapacityUpgradeHint, setShowCapacityUpgradeHint] = useState(false)
   const [aiPrediction, setAiPrediction] = useState<{
     suggestedCapacity: number
     confidence: 'low' | 'medium' | 'high'
@@ -111,6 +114,12 @@ export default function CreateEventPage() {
   const formRef = useRef<HTMLDivElement>(null)
   const isWalkInEvent = accessType === "WALK_IN"
   const isRegistrationEvent = !isWalkInEvent
+  const organizerPlan = normalizePlanKey(session?.user?.plan)
+  const pricingActive = isPricingRolloutActive()
+  const effectivePlan = getEffectivePlanPolicy(organizerPlan)
+  const attendeeLimit = effectivePlan.maxAttendeesPerEvent
+  const lockedCapacity = pricingActive && isRegistrationEvent && !isPaid && attendeeLimit !== -1
+  const nextPlan = getNextPlanKey(organizerPlan)
 
   // Auto-fill organizer details from signed-in account
   useEffect(() => {
@@ -147,6 +156,12 @@ export default function CreateEventPage() {
     setCapacity("")
     setDeadline("")
   }, [isWalkInEvent])
+
+  useEffect(() => {
+    if (lockedCapacity && !capacity) {
+      setCapacity(String(attendeeLimit))
+    }
+  }, [attendeeLimit, capacity, lockedCapacity])
 
   async function fetchCapacitySuggestion() {
     if (capacitySuggestionFetched) return
@@ -422,6 +437,9 @@ export default function CreateEventPage() {
         setSuccess(true)
       } else {
         setError(data.error || "Failed to create event.")
+        if (data.code === "PLAN_LIMIT_ATTENDEES") {
+          setShowCapacityUpgradeHint(true)
+        }
       }
     } catch {
       setError("Unexpected error. Please try again.")
@@ -520,6 +538,11 @@ export default function CreateEventPage() {
           <p className="mt-2 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
             Set it up once. Share the link. Done.
           </p>
+          <div className="mt-4 rounded-[12px] border border-[rgba(124,199,255,0.18)] bg-[rgba(124,199,255,0.08)] px-4 py-3 text-[0.82rem] leading-6 text-[#D8ECFF]">
+            {pricingActive
+              ? "Plan-based limits are now active. We will guide you with upgrades and PAYG options instead of leaving you stuck."
+              : `Your current event experience stays open until ${getPricingRolloutLabel()}. Plan limits and PAYG billing start then.`}
+          </div>
         </div>
 
         {/* ── Template picker ── */}
@@ -894,11 +917,39 @@ export default function CreateEventPage() {
                     type="number"
                     min="1"
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                    placeholder="Leave empty for unlimited"
+                    placeholder={lockedCapacity ? `Included with your ${effectivePlan.displayName} plan` : "Leave empty for unlimited"}
                     value={capacity}
+                    readOnly={lockedCapacity}
                     onChange={e => setCapacity(e.target.value)}
                     onFocus={fetchCapacitySuggestion}
+                    onClick={() => {
+                      if (lockedCapacity) setShowCapacityUpgradeHint(true)
+                    }}
                   />
+                  {lockedCapacity ? (
+                    <div className="mt-3 rounded-[10px] border border-[rgba(200,245,90,0.16)] bg-[rgba(200,245,90,0.05)] px-4 py-3">
+                      <p className="text-[0.8rem] leading-6 text-[rgba(240,237,230,0.72)]">
+                        Your <span className="font-semibold text-[#F0EDE6]">{effectivePlan.displayName}</span> plan includes{" "}
+                        <span className="font-semibold text-[#C8F55A]">{attendeeLimit.toLocaleString()}</span> attendees per event.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCapacityUpgradeHint((current) => !current)}
+                          className="rounded-full border border-[rgba(200,245,90,0.22)] px-3 py-2 text-[0.78rem] font-semibold text-[#C8F55A]"
+                        >
+                          Need more capacity?
+                        </button>
+                      </div>
+                      {showCapacityUpgradeHint ? (
+                        <div className="mt-3 rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#101010] px-3 py-3 text-[0.78rem] leading-6 text-[rgba(240,237,230,0.58)]">
+                          Upgrade to <span className="font-semibold text-[#F0EDE6]">{nextPlan ? nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) : "a higher plan"}</span> for a larger included capacity.
+                          Once pricing is active, you can also enable PAYG from Billing so extra attendees keep coming in at{" "}
+                          <span className="font-semibold text-[#C8F55A]">$0.05 per person</span>.
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {aiPredictionLoading && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>

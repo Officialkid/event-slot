@@ -5,6 +5,7 @@ import { generateTicketForRegistration } from '@/lib/tickets'
 import { sendConfirmationEmail, sendWaitlistJoinedEmail } from '@/lib/email'
 import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
+import { sendEventCapacityMilestones, sendTierCapacityMilestones } from '@/lib/capacityNotifications'
 
 type SubscriptionIntent = {
   userId?: string
@@ -73,6 +74,9 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
           slug: true,
           eventDate: true,
           location: true,
+          confirmedCount: true,
+          capacity: true,
+          organizerId: true,
           organizer: { select: { plan: true } },
         },
       },
@@ -82,6 +86,8 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
           name: true,
           priceKes: true,
           bundleSize: true,
+          soldCount: true,
+          capacity: true,
         },
       },
     },
@@ -253,6 +259,26 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
         error: error instanceof Error ? error.message : 'Unknown email error',
       }))
   }
+
+  await sendTierCapacityMilestones({
+    eventId: eventOrder.event.id,
+    eventSlug: eventOrder.event.slug,
+    eventTitle: eventOrder.event.title,
+    organizerId: eventOrder.event.organizerId,
+    tierId: eventOrder.ticketTier.id,
+    tierName: eventOrder.ticketTier.name,
+    previousSoldCount: eventOrder.ticketTier.soldCount,
+    capacity: eventOrder.ticketTier.capacity,
+  }).catch(() => {})
+
+  await sendEventCapacityMilestones({
+    eventId: eventOrder.event.id,
+    eventSlug: eventOrder.event.slug,
+    eventTitle: eventOrder.event.title,
+    organizerId: eventOrder.event.organizerId,
+    previousConfirmedCount: eventOrder.event.confirmedCount,
+    capacity: eventOrder.event.capacity,
+  }).catch(() => {})
 }
 
 export async function activateSubscriptionPayment(paymentId: string, providerReference?: string | null) {

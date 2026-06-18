@@ -10,13 +10,15 @@ import { getConfiguredAdminEmails, isAdminEmail } from '@/lib/isAdmin'
 import { checkAndAwardPioneerBadge } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { issueOtpForEmail, normalizeEmailForOtp, verifyOtpForEmail } from '@/lib/emailOtp'
+import { normalizePlanKey } from '@/lib/effectivePlanPolicy'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 const configuredAdminEmails = new Set(getConfiguredAdminEmails())
 
-function normalizeTier(plan: string | null | undefined): 'FREE' | 'PRO' | 'BUSINESS' {
+function normalizeTier(plan: string | null | undefined): 'FREE' | 'STANDARD' | 'PRO' | 'BUSINESS' {
   const value = (plan ?? 'free').toLowerCase()
+  if (value === 'standard') return 'STANDARD'
   if (value === 'pro') return 'PRO'
   if (value === 'business') return 'BUSINESS'
   return 'FREE'
@@ -135,8 +137,10 @@ export const authOptions = {
             select: { plan: true },
           })
           token.tier = normalizeTier(dbUser?.plan)
+          token.plan = normalizePlanKey(dbUser?.plan)
         } catch {
           token.tier = token.tier ?? 'FREE'
+          token.plan = token.plan ?? 'free'
         }
 
         return token
@@ -147,15 +151,17 @@ export const authOptions = {
         token.isAdmin = true
       }
 
-      if (!token.tier && token.sub) {
+      if ((!token.tier || !token.plan) && token.sub) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
             select: { plan: true },
           })
           token.tier = normalizeTier(dbUser?.plan)
+          token.plan = normalizePlanKey(dbUser?.plan)
         } catch {
           token.tier = 'FREE'
+          token.plan = 'free'
         }
       }
 
@@ -181,6 +187,7 @@ export const authOptions = {
         session.user.role = token.role ?? (isAdminEmail(session.user.email) ? 'SUPER_ADMIN' : 'ATTENDEE')
         session.user.isAdmin = session.user.role === 'SUPER_ADMIN'
         session.user.tier = token.tier ?? 'FREE'
+        session.user.plan = token.plan ?? 'free'
 
         try {
           const user = await prisma.user.findUnique({
@@ -203,6 +210,7 @@ export const authOptions = {
             session.user.onboardingSkipped = user.onboardingSkipped ?? false
             session.user.suspended = user.suspended ?? false
             session.user.tier = normalizeTier(user.plan)
+            session.user.plan = normalizePlanKey(user.plan)
           }
         } catch (error) {
           console.error('[NextAuth session callback error]', error)
@@ -249,4 +257,3 @@ export const authOptions = {
     },
   },
 }
-

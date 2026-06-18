@@ -2,6 +2,9 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { SUBSCRIPTION_PLANS, formatCommissionRate, getSubscriptionPlan } from "@/lib/subscriptionPlans"
+import { PaygSettingsCard } from "@/components/billing/PaygSettingsCard"
+import { BillingUpgradeSection } from "@/components/billing/BillingUpgradeSection"
+import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 
 function formatPlanName(plan: string | null | undefined) {
   return getSubscriptionPlan(plan).name
@@ -30,6 +33,7 @@ export default async function BillingPage() {
     : null
 
   const currentPlan = getSubscriptionPlan(user?.plan)
+  const pricingActive = isPricingRolloutActive()
 
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 920 }}>
@@ -58,6 +62,22 @@ export default async function BillingPage() {
           Your plan controls organiser limits and the commission EventSlot charges on paid ticket sales.
         </p>
       </div>
+
+      <section
+        style={{
+          background: pricingActive ? "rgba(200,245,90,0.05)" : "rgba(124,199,255,0.08)",
+          border: pricingActive ? "0.5px solid rgba(200,245,90,0.16)" : "0.5px solid rgba(124,199,255,0.18)",
+          borderRadius: 14,
+          padding: "1rem 1.1rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <p style={{ margin: 0, fontSize: "0.88rem", color: pricingActive ? "rgba(240,237,230,0.72)" : "#D8ECFF", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
+          {pricingActive
+            ? "Plan-based attendee and event limits are now active across EventSlot."
+            : `Your current events remain on open access until ${getPricingRolloutLabel()}. Limits and PAYG billing start then.`}
+        </p>
+      </section>
 
       <section
         style={{
@@ -109,6 +129,10 @@ export default async function BillingPage() {
           </div>
         </div>
       </section>
+
+      <BillingUpgradeSection currentPlanKey={currentPlan.key} plans={SUBSCRIPTION_PLANS} />
+
+      <PaygSettingsCard />
 
       <section
         style={{
