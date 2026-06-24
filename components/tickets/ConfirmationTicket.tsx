@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import QRCode from "qrcode"
+import { TierBadge } from "@/components/TierBadge"
 
 export type TicketData = {
   confirmationCode: string
@@ -12,6 +13,9 @@ export type TicketData = {
   attendeeEmail: string | null
   attendeePhone: string | null
   ticketTierName?: string | null
+  ticketTierBadgeColor?: string | null
+  ticketTierTextColor?: string | null
+  ticketTierMetallic?: boolean | null
   amountPaidKes?: number | null
   verifyUrl: string
 }
@@ -116,9 +120,13 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
           {(ticket.ticketTierName || ticket.amountPaidKes) && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
               {ticket.ticketTierName && (
-                <span style={{ display: "inline-flex", alignItems: "center", border: "1px solid rgba(200,245,90,0.25)", background: "rgba(200,245,90,0.08)", color: "#C8F55A", borderRadius: 999, padding: "0.24rem 0.65rem", fontSize: "0.7rem", fontWeight: 600 }}>
-                  {ticket.ticketTierName}
-                </span>
+                <TierBadge
+                  name={ticket.ticketTierName}
+                  badgeColor={ticket.ticketTierBadgeColor ?? "#A8A9AD"}
+                  textColor={ticket.ticketTierTextColor ?? "#1A1A1A"}
+                  metallic={Boolean(ticket.ticketTierMetallic)}
+                  size="lg"
+                />
               )}
               {ticket.amountPaidKes ? (
                 <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.5)" }}>

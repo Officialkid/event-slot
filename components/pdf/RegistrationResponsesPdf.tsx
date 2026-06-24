@@ -253,6 +253,38 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
   </Page>
 );
 
+const EmptyStatePage: React.FC<{ eventTitle: string; eventDate: string; exportedAt: string }> = ({
+  eventTitle,
+  eventDate,
+  exportedAt,
+}) => (
+  <Page size="A4" style={styles.page}>
+    <View style={styles.topBar}>
+      <Text style={styles.topBarLeft}>{eventTitle}</Text>
+      <Text style={styles.topBarRight}>{exportedAt}</Text>
+    </View>
+
+    <View style={styles.respondentBlock}>
+      <Text style={styles.respondentName}>No registrations matched this export</Text>
+      <Text style={styles.respondentMeta}>{eventDate}</Text>
+      <Text style={styles.brandLine}>EventSlot - eventsslot.com</Text>
+    </View>
+
+    <View style={styles.qaBlock}>
+      <Text style={styles.answerText}>
+        There were no registrations available for the selected export filter at the time this PDF was generated.
+      </Text>
+    </View>
+
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerText}>
+        Confidential - Personal data protected under Kenya Data Protection Act 2019
+      </Text>
+      <Text style={styles.footerRight}>Page 1 of 1</Text>
+    </View>
+  </Page>
+);
+
 // Document
 export const RegistrationResponsesPdf: React.FC<RegistrationResponsesPdfProps> = ({
   eventTitle,
@@ -265,13 +297,21 @@ export const RegistrationResponsesPdf: React.FC<RegistrationResponsesPdfProps> =
     author="EventSlot"
     subject="Individual registration responses"
   >
-    {registrations.map((reg) => (
-      <ResponsePage
-        key={reg.index}
-        reg={reg}
-        eventTitle={`${eventTitle} - ${eventDate}`}
+    {registrations.length > 0 ? (
+      registrations.map((reg) => (
+        <ResponsePage
+          key={reg.index}
+          reg={reg}
+          eventTitle={`${eventTitle} - ${eventDate}`}
+          exportedAt={exportedAt}
+        />
+      ))
+    ) : (
+      <EmptyStatePage
+        eventTitle={eventTitle}
+        eventDate={eventDate}
         exportedAt={exportedAt}
       />
-    ))}
+    )}
   </Document>
 );

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
+import { activateSubscriptionPayment } from '@/lib/paymentFinalizers'
 
 function redirectTo(request: Request, path: string) {
   const current = new URL(request.url)
@@ -82,6 +83,29 @@ export async function GET(request: Request) {
       })
 
       return redirectTo(request, '/dashboard/billing?downloads=added')
+    } else if (type === 'subscription_plan') {
+      const paymentRecordId =
+        typeof data.data.metadata?.paymentRecordId === 'string'
+          ? data.data.metadata.paymentRecordId
+          : null
+
+      if (!paymentRecordId) {
+        return redirectTo(request, '/dashboard/billing?error=missing_payment_record')
+      }
+
+      const existing = await prisma.subscriptionPayment.findUnique({
+        where: { id: paymentRecordId },
+        select: { status: true },
+      })
+
+      if (existing?.status !== 'SUCCESS') {
+        await activateSubscriptionPayment(paymentRecordId, reference)
+      }
+
+      return redirectTo(
+        request,
+        `/dashboard/billing?success=true&plan=${data.data.metadata?.plan ?? 'pro'}`
+      )
     } else {
       const planEndDate = new Date()
       if (billingCycle === 'annual') {

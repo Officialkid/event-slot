@@ -174,6 +174,8 @@ model User {
   calendarEventSyncs         CalendarEventSync[]
   subscriptions              Subscription[]
   paygSettings               PaygSettings?
+  organiserBalance           OrganiserBalance?
+  withdrawals                Withdrawal[]
 }
 
 model ReferralLink {
@@ -389,7 +391,13 @@ model TicketTier {
   eventId            String
   event              Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   name               String
+  presetKey          String?
+  badgeColor         String             @default("#A8A9AD")
+  textColor          String             @default("#1A1A1A")
+  metallic           Boolean            @default(false)
+  prestige           Int                @default(0)
   priceKes           Int
+  currency           String             @default("KES")
   capacity           Int
   description        String?
   sortOrder          Int                @default(0)
@@ -502,6 +510,38 @@ model Payment {
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
+}
+
+model OrganiserBalance {
+  id            String   @id @default(cuid())
+  organiserId   String   @unique
+  organiser     User     @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  grossKES      Float    @default(0)
+  commissionKES Float    @default(0)
+  netKES        Float    @default(0)
+  withdrawnKES  Float    @default(0)
+  grossUSD      Float    @default(0)
+  commissionUSD Float    @default(0)
+  netUSD        Float    @default(0)
+  withdrawnUSD  Float    @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model Withdrawal {
+  id          String           @id @default(cuid())
+  organiserId String
+  organiser   User             @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String
+  method      WithdrawalMethod
+  destination String
+  status      WithdrawalStatus @default(PROCESSING)
+  providerRef String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([organiserId, currency, createdAt])
+  @@index([organiserId, status])
 }
 
 model ErrorLog {
@@ -984,6 +1024,19 @@ enum PaymentStatus {
 }
 
 // ─── PAYG opt-in and settings per user ───────────────────────────────────────
+enum WithdrawalMethod {
+  MPESA
+  PAYBILL
+  BANK
+}
+
+enum WithdrawalStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model PaygSettings {
   id              String       @id @default(cuid())
   userId          String       @unique

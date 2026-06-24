@@ -42,6 +42,20 @@ const styles = StyleSheet.create({
     color: '#A3A3A3',
     marginBottom: 4,
   },
+  tierBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  tierBadgeText: {
+    fontSize: 9,
+    fontWeight: 800,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   ticketId: {
     fontSize: 9,
     color: '#525252',
@@ -102,6 +116,9 @@ export interface TicketPDFData {
   isPaid?: boolean
   ticketPrice?: number
   ticketTierName?: string | null
+  ticketTierBadgeColor?: string | null
+  ticketTierTextColor?: string | null
+  ticketTierMetallic?: boolean | null
 }
 
 export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
@@ -145,6 +162,20 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
 
               <Text style={styles.eventTitle}>{data.eventTitle}</Text>
               <Text style={styles.attendeeName}>{data.attendeeName}</Text>
+              {data.ticketTierName && (
+                <View
+                  style={{
+                    ...styles.tierBadge,
+                    backgroundColor: data.ticketTierBadgeColor ?? '#A8A9AD',
+                    borderWidth: 1,
+                    borderColor: data.ticketTierBadgeColor ?? '#A8A9AD',
+                  }}
+                >
+                  <Text style={{ ...styles.tierBadgeText, color: data.ticketTierTextColor ?? '#1A1A1A' }}>
+                    {data.ticketTierName}
+                  </Text>
+                </View>
+              )}
               <Text style={styles.ticketId}>#{data.ticketId}</Text>
 
               <View style={styles.metaRow}>
@@ -163,12 +194,6 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
                 <Text style={styles.metaLabel}>HOST</Text>
                 <Text style={styles.metaValue}>{data.organizerName}</Text>
               </View>
-              {data.ticketTierName && (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>TIER</Text>
-                  <Text style={styles.metaValue}>{data.ticketTierName}</Text>
-                </View>
-              )}
               {data.ticketPrice ? (
                 <View style={styles.metaRow}>
                   <Text style={styles.metaLabel}>PAID</Text>

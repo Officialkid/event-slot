@@ -64,7 +64,13 @@ providers.push(
         },
       })
 
-      if (!user || !user.password || user.suspended) return null
+      if (!user) return null
+      if (user.suspended) {
+        throw new Error('ACCOUNT_SUSPENDED')
+      }
+      if (!user.password) {
+        throw new Error('PASSWORD_NOT_SET')
+      }
 
       const valid = await bcrypt.compare(credentials.password, user.password)
       if (!valid) return null

@@ -24,6 +24,7 @@ function SignInForm() {
   const [otp, setOtp] = useState('')
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
+  const [isLocalhost, setIsLocalhost] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -49,6 +50,12 @@ function SignInForm() {
       // Ignore storage issues in private mode.
     }
   }, [rememberMe, rememberMeReady])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hostname = window.location.hostname
+    setIsLocalhost(hostname === 'localhost' || hostname === '127.0.0.1')
+  }, [])
 
   async function handleGoogleSignIn() {
     setError('')
@@ -85,6 +92,16 @@ function SignInForm() {
 
       if (result?.error === 'OTP_RATE_LIMIT') {
         setError('Too many code requests. Please wait a few minutes and try again.')
+        return
+      }
+
+      if (result?.error === 'PASSWORD_NOT_SET') {
+        setError('This account does not have an email password yet. Use Google above, or reset your password to enable email sign-in.')
+        return
+      }
+
+      if (result?.error === 'ACCOUNT_SUSPENDED') {
+        setError('This account has been suspended. Please contact support@eventsslot.com for help.')
         return
       }
 
@@ -209,6 +226,12 @@ function SignInForm() {
         {authError && (
           <p style={{ fontSize: '0.8rem', color: '#FF6B6B', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
             Sign-in session expired. Please tap Google again to continue.
+          </p>
+        )}
+
+        {isLocalhost && (
+          <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.42)', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+            Google sign-in on this local preview may be unavailable unless the localhost callback URL is added in the Google OAuth app. The live Cloud Run site uses the production callback.
           </p>
         )}
 

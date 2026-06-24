@@ -208,6 +208,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           })
         : null
 
+      const requiresSignIn = !session?.user?.id
+      const accessNote = isSuperAdmin
+        ? 'Super admin access: preview and download are free.'
+        : requiresSignIn
+        ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
+        : 'Preview is ready. Downloading the full report costs 20 tokens.'
+
       return NextResponse.json({
         success: true,
         event: {
@@ -225,6 +232,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         message: 'Your professional report is ready.',
         isSuperAdmin,
         downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
+        requiresSignIn,
+        downloadCostTokens: 20,
+        accessNote,
       })
     }
 

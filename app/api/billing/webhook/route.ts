@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import prisma from '@/lib/prisma'
+import { activateSubscriptionPayment } from '@/lib/paymentFinalizers'
 
 export async function POST(request: Request) {
   try {
@@ -94,13 +95,22 @@ export async function POST(request: Request) {
     }
 
     case 'charge.success': {
-      const { metadata, amount } = event.data
+      const { metadata, amount, reference, customer } = event.data
       if (metadata?.type === 'credits') {
         const creditsToAdd = amount / 100
         await prisma.user.update({
           where: { id: metadata.userId },
           data: { creditBalance: { increment: creditsToAdd } },
         })
+      } else if (metadata?.type === 'subscription_plan' && metadata?.paymentRecordId) {
+        await activateSubscriptionPayment(metadata.paymentRecordId, reference ?? null)
+
+        if (metadata?.userId && customer?.customer_code) {
+          await prisma.user.update({
+            where: { id: metadata.userId },
+            data: { paystackCustomerCode: customer.customer_code },
+          }).catch(() => {})
+        }
       }
       break
     }

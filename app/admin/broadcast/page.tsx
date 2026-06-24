@@ -119,7 +119,9 @@ export default function AdminBroadcastPage() {
       const data = await res.json() as {
         success?: boolean
         sent?: number
+        failed?: number
         mode?: Mode
+        message?: string
         error?: string
       }
 
@@ -127,7 +129,7 @@ export default function AdminBroadcastPage() {
         throw new Error(data.error ?? "Failed to send")
       }
 
-      setMessage(`Broadcast sent to ${data.sent ?? 0} users`)
+      setMessage(data.message ?? `Broadcast sent to ${data.sent ?? 0} users`)
       setSubject("")
       setHtmlContent("")
 
@@ -164,10 +166,17 @@ export default function AdminBroadcastPage() {
                     : "bg-[#0A0A0A] text-[#A3A3A3] hover:text-white border border-[#2A2A2A]"
                 }`}
               >
-                {m}
+                {m === "ALL" ? "All users" : m === "SUBSCRIBED" ? "Subscribers" : "Individuals"}
               </button>
             ))}
           </div>
+          <p className="mt-2 text-xs text-[#525252]">
+            {mode === "ALL"
+              ? "Sends to every active account with an email address."
+              : mode === "SUBSCRIBED"
+                ? "Sends only to users who allowed marketing or broadcast emails."
+                : "Sends only to the specific users you choose below."}
+          </p>
         </div>
 
         {mode !== "INDIVIDUAL" && (

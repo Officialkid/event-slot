@@ -255,6 +255,8 @@ Rules for every section:
 6. Section 10 must justify the score using the provided rubric context.
 7. Sections 1-8 must each be at least two paragraphs with specific metrics and operational implications.
 8. Do not leave sections shallow; each section should be thorough, precise, and decision-ready.
+9. Optimise the report for organisers making pricing, capacity, marketing, sponsor, and operations decisions.
+10. Explain what the organiser should do next, why it matters, and what result to expect.
 
 Output requirements:
 - Return ONLY valid JSON.
@@ -311,6 +313,13 @@ Timeline and audience context:
 - Waitlist rate: ${waitlistRate}
 - Waitlist section logic context: ${waitlistInsight}
 - Custom-question response coverage: ${questionCoverage}%
+- Event stage: ${
+    event.eventDate
+      ? new Date(event.eventDate).getTime() > Date.now()
+        ? 'upcoming'
+        : 'completed'
+      : 'unspecified'
+  }
 
 Registrant answer intelligence:
 ${answersSummary}
@@ -341,6 +350,12 @@ Section guidance (must follow this exact 10-section intent):
 9) recommendations: exactly 3 recommendations, each with timeframe and expected outcome.
 10) overallScore: provide X/10 and short rationale aligned to attendance, distribution, waitlist, and setup quality.
 
+Organiser priorities:
+- Call out what the numbers mean for demand quality, pricing confidence, seat allocation, and marketing timing.
+- If response coverage is thin, say what decision remains uncertain.
+- If capacity utilisation is high or waitlist exists, include concrete next-cycle capacity guidance.
+- If registrations are concentrated on one day, explain the campaign-risk implication and how to reduce it.
+
 Write with consultant tone. Keep statements data-anchored and direct.`
 
   try {
@@ -348,7 +363,7 @@ Write with consultant tone. Keep statements data-anchored and direct.`
       system: sys,
       prompt,
       taskType: 'report',
-      maxTokens: 2200,
+      maxTokens: 2800,
     })
 
     if (!raw) {

@@ -1,6 +1,9 @@
+import { getServerSession } from "next-auth"
 import Link from "next/link"
-import { ArrowRight, Check, ShieldCheck } from "lucide-react"
+import { ArrowRight, ShieldCheck } from "lucide-react"
 import { MarketingFooter } from "@/components/MarketingFooter"
+import { authOptions } from "@/lib/auth"
+import { PricingPlanSelector } from "@/components/billing/PricingPlanSelector"
 import { SUBSCRIPTION_PLANS, formatCommissionRate } from "@/lib/subscriptionPlans"
 
 const comparisonRows: Array<{
@@ -14,27 +17,28 @@ const comparisonRows: Array<{
   { label: "Data retention", key: "dataRetention" },
 ]
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const session = await getServerSession(authOptions)
+
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
       <section className="marketing-shell px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
         <div className="marketing-panel overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.46fr)] lg:items-end">
-            <div className="max-w-3xl">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="max-w-3xl mx-auto">
               <div className="marketing-eyebrow">
                 <span className="inline-flex h-2 w-2 rounded-full bg-[#C8F55A]" />
                 Pricing
               </div>
               <h1 className="marketing-page-title mt-6 font-semibold text-white">
-                Start free now, then keep more of each paid ticket as you grow.
+                Pricing plans for organisers at every stage.
               </h1>
               <p className="mt-6 max-w-2xl text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
-                EventSlot keeps entry simple for new organizers and rewards teams that run more
-                events with lower commission and stronger account limits.
+                Start free, move into Standard or Pro when your community grows, and use a clean secure checkout when you are ready to pay.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/signup" className="marketing-button-primary">
-                  Try It Now
+                <Link href={session ? "/dashboard/billing" : "/signup"} className="marketing-button-primary">
+                  {session ? "Open billing" : "Try It Now"}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href="/how-it-works" className="marketing-button-secondary">
@@ -42,72 +46,38 @@ export default function PricingPage() {
                 </Link>
               </div>
             </div>
-
-            <div className="marketing-card">
-              <div className="flex items-center gap-3 text-[#C8F55A]">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="text-[0.88rem] font-semibold uppercase tracking-[0.14em]">
-                  Commission bands
-                </span>
-              </div>
-              <div className="mt-5 space-y-4">
-                {SUBSCRIPTION_PLANS.map((plan) => (
-                  <div
-                    key={plan.key}
-                    className="flex items-center justify-between rounded-[14px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-4 py-3"
-                  >
-                    <span className="text-[0.95rem] text-white">{plan.name}</span>
-                    <span className="text-[1.05rem] font-semibold text-[#C8F55A]">
-                      {formatCommissionRate(plan.commissionRate)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
       <section className="marketing-shell px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="grid gap-4 xl:grid-cols-4">
-          {SUBSCRIPTION_PLANS.map((plan) => (
-            <article
-              key={plan.key}
-              className={`marketing-card marketing-fade-up flex h-full flex-col ${
-                plan.key === "pro"
-                  ? "border-[rgba(200,245,90,0.28)] bg-[linear-gradient(180deg,rgba(200,245,90,0.12),rgba(255,255,255,0.03))]"
-                  : ""
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-[1.55rem] font-semibold text-white">{plan.name}</h2>
-                  <p className="mt-2 text-[0.95rem] text-[rgba(240,237,230,0.52)]">
-                    ${plan.monthlyPriceUsd}/month
-                  </p>
-                </div>
-                <span className="rounded-full border border-[rgba(240,237,230,0.12)] px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#C8F55A]">
-                  {formatCommissionRate(plan.commissionRate)}
-                </span>
-              </div>
-
-              <ul className="mt-6 space-y-3 text-[0.96rem] leading-7 text-[rgba(240,237,230,0.72)]">
-                {plan.highlights.map((item) => (
-                  <li key={item} className="flex gap-3">
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-[#C8F55A]" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-8">
-                <Link href="/signup" className="marketing-button-secondary w-full justify-center">
-                  Choose {plan.name}
-                </Link>
-              </div>
-            </article>
-          ))}
+        <div className="mb-8 rounded-[24px] border border-[rgba(124,199,255,0.16)] bg-[linear-gradient(135deg,rgba(124,199,255,0.1),rgba(200,245,90,0.04))] px-5 py-5 text-sm leading-7 text-[rgba(240,237,230,0.72)]">
+          <div className="flex items-center gap-3 text-[#C8F55A]">
+            <ShieldCheck className="h-5 w-5" />
+            <span className="font-semibold uppercase tracking-[0.14em]">Commission bands</span>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {SUBSCRIPTION_PLANS.map((plan) => (
+              <span
+                key={plan.key}
+                className="rounded-full border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-sm text-white"
+              >
+                {plan.name}: <span className="font-semibold text-[#C8F55A]">{formatCommissionRate(plan.commissionRate)}</span>
+              </span>
+            ))}
+          </div>
         </div>
+
+        <div className="mb-5 rounded-[22px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-5 py-4 text-sm text-[rgba(240,237,230,0.68)]">
+          Free plan stays available for testing and small organisers. Paid plans below unlock lower commission, larger event limits, and cleaner upgrade billing.
+        </div>
+
+        <PricingPlanSelector
+          plans={SUBSCRIPTION_PLANS}
+          signedIn={Boolean(session?.user?.id)}
+          currentPlanKey={session?.user?.plan ?? null}
+          mode="marketing"
+        />
       </section>
 
       <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0D0F0C] px-4 py-16 sm:px-6 lg:px-8">

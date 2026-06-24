@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { TierBadge } from "@/components/TierBadge"
 
 interface Props {
   eventId: string
@@ -14,6 +15,10 @@ type VerifyResult = {
   success: boolean
   attendeeName?: string
   meetingLink?: string
+  ticketTierName?: string
+  badgeColor?: string | null
+  textColor?: string | null
+  metallic?: boolean | null
   message: string
   reason?: string
   minutesUntil?: number
@@ -164,9 +169,20 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
         >
           <div className="mb-3 flex items-center gap-2">
             <span className="text-2xl">{result.success ? "✓" : "✕"}</span>
-            <p className="font-semibold text-white">
-              {result.success ? `Welcome, ${result.attendeeName ?? "Attendee"}!` : "Access Denied"}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold text-white">
+                {result.success ? `Welcome, ${result.attendeeName ?? "Attendee"}!` : "Access Denied"}
+              </p>
+              {result.success && result.ticketTierName ? (
+                <TierBadge
+                  name={result.ticketTierName}
+                  badgeColor={result.badgeColor ?? "#A8A9AD"}
+                  textColor={result.textColor ?? "#1A1A1A"}
+                  metallic={Boolean(result.metallic)}
+                  size="sm"
+                />
+              ) : null}
+            </div>
           </div>
           <p className="mb-4 text-sm text-[#A3A3A3]">{result.message}</p>
 

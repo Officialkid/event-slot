@@ -83,6 +83,14 @@ const sections: Array<{
   },
   {
     id: 9,
+    title: "Paid Events, Commission, and Refunds",
+    paragraphs: [
+      "For paid events, EventSlot deducts a platform commission from each successful ticket payment based on the organiser's active plan.",
+      "EventSlot's platform commission is non-refundable. If an organiser refunds an attendee for any reason, the refunded amount is deducted from the organiser's own net earnings and the commission remains retained by EventSlot.",
+    ],
+  },
+  {
+    id: 10,
     title: "Platform Availability",
     paragraphs: [
       "We aim for reliable availability, but we do not guarantee uninterrupted service.",
@@ -90,7 +98,7 @@ const sections: Array<{
     ],
   },
   {
-    id: 10,
+    id: 11,
     title: "Intellectual Property",
     paragraphs: [
       "EventSlot branding, software, and platform content are owned by EventSlot or its licensors.",
@@ -98,7 +106,7 @@ const sections: Array<{
     ],
   },
   {
-    id: 11,
+    id: 12,
     title: "Account Suspension or Termination",
     paragraphs: [
       "EventSlot may suspend or terminate accounts that violate these terms, create legal risk, or harm users or platform integrity.",
@@ -106,7 +114,7 @@ const sections: Array<{
     ],
   },
   {
-    id: 12,
+    id: 13,
     title: "Limitation of Liability",
     paragraphs: [
       "EventSlot is provided on an as available basis. To the extent permitted by law, EventSlot is not liable for indirect or consequential losses resulting from platform use.",
@@ -114,7 +122,7 @@ const sections: Array<{
     ],
   },
   {
-    id: 13,
+    id: 14,
     title: "Changes to the Platform and Terms",
     paragraphs: [
       "EventSlot is an evolving platform in an early growth stage. We may introduce new features, retire features, or update workflows.",
@@ -122,7 +130,7 @@ const sections: Array<{
     ],
   },
   {
-    id: 14,
+    id: 15,
     title: "Contact Information",
     paragraphs: [
       "If you have legal or policy questions, contact us at info@eventsslot.com.",
