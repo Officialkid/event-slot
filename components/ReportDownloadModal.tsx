@@ -1,34 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function ReportDownloadModal({ onClose }: { onClose: () => void }) {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+type ReportDownloadModalProps = {
+  currentBalance?: number | null
+  onClose: () => void
+}
 
-  const handleJoinWaitlist = async () => {
-    if (!email) return
-    setError('')
-    setLoading(true)
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, feature: 'Report Download' }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.error ?? 'Something went wrong.')
-      } else {
-        setSubmitted(true)
-      }
-    } catch {
-      setError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+export default function ReportDownloadModal({
+  currentBalance,
+  onClose,
+}: ReportDownloadModalProps) {
+  const router = useRouter()
+
+  const goToBilling = () => {
+    onClose()
+    router.push('/dashboard/billing')
   }
 
   return (
@@ -43,42 +30,26 @@ export default function ReportDownloadModal({ onClose }: { onClose: () => void }
         justifyContent: 'center',
         padding: '1.5rem',
       }}
+      onClick={onClose}
     >
       <div
+        onClick={(event) => event.stopPropagation()}
         style={{
           background: '#141414',
           border: '0.5px solid rgba(240,237,230,0.1)',
           borderRadius: '16px',
           padding: '2rem',
-          maxWidth: '440px',
+          maxWidth: '460px',
           width: '100%',
         }}
       >
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <p style={{ fontSize: '0.7rem', color: '#C8F55A', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
-                Download Report
-              </p>
-              <span
-                style={{
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  background: 'rgba(200,245,90,0.12)',
-                  color: '#C8F55A',
-                  border: '0.5px solid rgba(200,245,90,0.3)',
-                  borderRadius: '100px',
-                  padding: '0.15rem 0.5rem',
-                }}
-              >
-                Coming Soon
-              </span>
-            </div>
+            <p style={{ fontSize: '0.7rem', color: '#C8F55A', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 0.35rem' }}>
+              Report Download
+            </p>
             <h2 style={{ fontFamily: 'var(--font-instrument-serif)', fontSize: '1.4rem', color: '#F0EDE6', margin: 0 }}>
-              Payment integration
+              More tokens needed
             </h2>
           </div>
           <button
@@ -90,87 +61,78 @@ export default function ReportDownloadModal({ onClose }: { onClose: () => void }
           </button>
         </div>
 
-        <p style={{ fontSize: '0.85rem', color: 'rgba(240,237,230,0.5)', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-          We&apos;re working on a seamless token-based payment system for report downloads.
-          Join the waitlist and we&apos;ll notify you the moment it goes live.
+        <p style={{ fontSize: '0.85rem', color: 'rgba(240,237,230,0.55)', marginBottom: '1rem', lineHeight: '1.65' }}>
+          Downloading the full Word report uses <strong style={{ color: '#F0EDE6' }}>20 tokens</strong>.
+          The preview stays free, but the file download needs enough balance on the organiser account.
         </p>
 
-        {!submitted ? (
-          <>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: error ? '0.5rem' : '1rem' }}>
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleJoinWaitlist()}
-                style={{
-                  flex: 1,
-                  background: 'rgba(240,237,230,0.04)',
-                  border: '0.5px solid rgba(240,237,230,0.15)',
-                  borderRadius: '8px',
-                  padding: '0.65rem 0.9rem',
-                  color: '#F0EDE6',
-                  fontSize: '0.85rem',
-                  fontFamily: 'var(--font-dm-sans)',
-                  outline: 'none',
-                }}
-              />
-              <button
-                onClick={handleJoinWaitlist}
-                disabled={loading || !email}
-                style={{
-                  background: email && !loading ? '#C8F55A' : 'rgba(200,245,90,0.25)',
-                  color: '#0A0A0A',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '0.65rem 1.1rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-dm-sans)',
-                  cursor: email && !loading ? 'pointer' : 'not-allowed',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {loading ? 'Saving…' : 'Notify me'}
-              </button>
-            </div>
-            {error && (
-              <p style={{ fontSize: '0.75rem', color: '#f87171', margin: '0 0 1rem' }}>{error}</p>
-            )}
-          </>
-        ) : (
+        {typeof currentBalance === 'number' && (
           <div
             style={{
-              background: 'rgba(200,245,90,0.07)',
-              border: '0.5px solid rgba(200,245,90,0.25)',
+              background: 'rgba(240,237,230,0.04)',
+              border: '0.5px solid rgba(240,237,230,0.1)',
               borderRadius: '10px',
               padding: '0.85rem 1rem',
               marginBottom: '1rem',
             }}
           >
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#C8F55A', fontFamily: 'var(--font-dm-sans)' }}>
-              ✓ You&apos;re on the list! We&apos;ll email <strong>{email}</strong> when it goes live.
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(240,237,230,0.72)' }}>
+              Current balance: <strong style={{ color: '#F0EDE6' }}>{currentBalance}</strong> tokens
             </p>
           </div>
         )}
 
-        <button
-          onClick={onClose}
+        <div
           style={{
-            width: '100%',
-            background: 'none',
-            border: '0.5px solid rgba(240,237,230,0.1)',
-            borderRadius: '8px',
-            padding: '0.65rem',
-            color: 'rgba(240,237,230,0.4)',
-            fontSize: '0.82rem',
-            fontFamily: 'var(--font-dm-sans)',
-            cursor: 'pointer',
+            background: 'rgba(200,245,90,0.06)',
+            border: '0.5px solid rgba(200,245,90,0.2)',
+            borderRadius: '10px',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.25rem',
           }}
         >
-          Close
-        </button>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#C8F55A', lineHeight: '1.6' }}>
+            Standard and higher plans can use AI insights in the analytics area. Super admins use everything for free.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={goToBilling}
+            style={{
+              flex: 1,
+              minWidth: 180,
+              background: '#C8F55A',
+              color: '#0A0A0A',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              fontFamily: 'var(--font-dm-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            Go to billing
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              minWidth: 140,
+              background: 'transparent',
+              border: '0.5px solid rgba(240,237,230,0.12)',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem',
+              color: 'rgba(240,237,230,0.55)',
+              fontSize: '0.82rem',
+              fontFamily: 'var(--font-dm-sans)',
+              cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   )

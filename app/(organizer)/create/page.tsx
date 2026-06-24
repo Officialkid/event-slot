@@ -10,6 +10,8 @@ import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import type { EventContactMode } from "@/lib/eventContact"
 import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/effectivePlanPolicy"
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
+import { TierBadge } from "@/components/TierBadge"
+import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
 
@@ -25,7 +27,13 @@ type Question = {
 type TicketTierDraft = {
   id: string
   name: string
+  presetKey: string
+  badgeColor: string
+  textColor: string
+  metallic: boolean
+  prestige: number
   priceKes: string
+  currency: string
   capacity: string
   description: string
   bundleSize: string
@@ -49,14 +57,23 @@ const defaultQuestion = (): Question => ({
 
 const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
 
-const defaultTicketTier = (): TicketTierDraft => ({
-  id: uuidv4(),
-  name: "Standard",
-  priceKes: "500",
-  capacity: "",
-  description: "",
-  bundleSize: "1",
-})
+const defaultTicketTier = (): TicketTierDraft => {
+  const badge = resolveTierBadgeFields({ name: "Standard", presetKey: "STANDARD" })
+  return {
+    id: uuidv4(),
+    name: badge.name,
+    presetKey: badge.presetKey ?? "",
+    badgeColor: badge.badgeColor,
+    textColor: badge.textColor,
+    metallic: badge.metallic,
+    prestige: badge.prestige,
+    priceKes: "500",
+    currency: "KES",
+    capacity: "",
+    description: "",
+    bundleSize: "1",
+  }
+}
 
 export default function CreateEventPage() {
   const { data: session, status } = useSession()
@@ -322,23 +339,55 @@ export default function CreateEventPage() {
       return qs.filter((_, i) => i !== idx)
     })
 
-  const updateTicketTier = (id: string, field: keyof TicketTierDraft, value: string) => {
-    setTicketTiers((tiers) => tiers.map((tier) => (tier.id === id ? { ...tier, [field]: value } : tier)))
+  const updateTicketTier = (id: string, field: keyof TicketTierDraft, value: string | boolean | number) => {
+    setTicketTiers((tiers) =>
+      tiers.map((tier) => {
+        if (tier.id !== id) return tier
+
+        if (field === "presetKey") {
+          const preset = getTierPreset(String(value))
+          if (!preset) {
+            const badgeColor = tier.badgeColor || TIER_PRESET_COLOR_PALETTE[0]
+            return {
+              ...tier,
+              presetKey: "",
+              badgeColor,
+              textColor: getBadgeTextColor(badgeColor),
+              metallic: false,
+              prestige: 0,
+            }
+          }
+          return {
+            ...tier,
+            presetKey: preset.key,
+            name: preset.defaultName,
+            badgeColor: preset.badgeColor,
+            textColor: preset.textColor,
+            metallic: preset.metallic,
+            prestige: preset.prestige,
+          }
+        }
+
+        if (field === "badgeColor") {
+          const badgeColor = String(value)
+          return {
+            ...tier,
+            presetKey: "",
+            badgeColor,
+            textColor: getBadgeTextColor(badgeColor),
+            metallic: false,
+            prestige: 0,
+          }
+        }
+
+        return { ...tier, [field]: value }
+      })
+    )
   }
 
   const addTicketTier = () => {
     if (ticketTiers.length >= 10) return
-    setTicketTiers((tiers) => [
-      ...tiers,
-      {
-        id: uuidv4(),
-        name: "",
-        priceKes: "",
-        capacity: "",
-        description: "",
-        bundleSize: "1",
-      },
-    ])
+    setTicketTiers((tiers) => [...tiers, defaultTicketTier()])
   }
 
   const removeTicketTier = (id: string) => {
@@ -407,7 +456,13 @@ export default function CreateEventPage() {
           ticketTiers: isRegistrationEvent && isPaid
             ? ticketTiers.map((tier) => ({
                 name: tier.name.trim(),
+                presetKey: tier.presetKey || null,
+                badgeColor: tier.badgeColor,
+                textColor: tier.textColor,
+                metallic: tier.metallic,
+                prestige: tier.prestige,
                 priceKes: Number(tier.priceKes),
+                currency: tier.currency,
                 capacity: Number(tier.capacity || capacity),
                 description: tier.description || undefined,
                 bundleSize: Number(tier.bundleSize || "1"),
@@ -823,6 +878,11 @@ export default function CreateEventPage() {
                   </div>
                   {isPaid && (
                     <div className="mt-3 space-y-3 rounded-[10px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
+                      <div className="rounded-[10px] border border-[rgba(255,184,77,0.18)] bg-[rgba(255,184,77,0.04)] px-3 py-3">
+                        <p className="text-[0.75rem] leading-6 text-[rgba(240,237,230,0.7)]">
+                          EventSlot&apos;s platform commission is non-refundable. If you refund an attendee later, the commission is still deducted from your net balance.
+                        </p>
+                      </div>
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Ticket tiers</p>
@@ -856,6 +916,38 @@ export default function CreateEventPage() {
                               )}
                             </div>
 
+                            <div className="mb-3 grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
+                              <div>
+                                <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                                  Preset tier
+                                </label>
+                                <select
+                                  value={tier.presetKey}
+                                  onChange={(e) => updateTicketTier(tier.id, "presetKey", e.target.value)}
+                                  className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                >
+                                  <option value="">Custom tier</option>
+                                  {TIER_PRESETS.map((preset) => (
+                                    <option key={preset.key} value={preset.key}>
+                                      {preset.defaultName}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#101010] px-3 py-3">
+                                <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                                  Preview
+                                </p>
+                                <TierBadge
+                                  name={tier.name || "Tier"}
+                                  badgeColor={tier.badgeColor}
+                                  textColor={tier.textColor}
+                                  metallic={tier.metallic}
+                                  size="md"
+                                />
+                              </div>
+                            </div>
+
                             <div className="grid gap-3 sm:grid-cols-2">
                               <input
                                 type="text"
@@ -875,6 +967,29 @@ export default function CreateEventPage() {
                                   if (index === 0) setTicketPrice(e.target.value)
                                 }}
                               />
+                              <div className="rounded-[8px] border border-[rgba(240,237,230,0.12)] bg-[#141414] px-3 py-2">
+                                <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                                  Badge colour
+                                </label>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <input
+                                    type="color"
+                                    value={tier.badgeColor}
+                                    onChange={(e) => updateTicketTier(tier.id, "badgeColor", e.target.value)}
+                                    className="h-9 w-11 rounded border border-[rgba(240,237,230,0.12)] bg-transparent"
+                                  />
+                                  {TIER_PRESET_COLOR_PALETTE.map((color) => (
+                                    <button
+                                      key={color}
+                                      type="button"
+                                      onClick={() => updateTicketTier(tier.id, "badgeColor", color)}
+                                      className="h-6 w-6 rounded-full border border-[rgba(240,237,230,0.16)]"
+                                      style={{ background: color }}
+                                      aria-label={`Use ${color} badge colour`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
                               <input
                                 type="number"
                                 min="1"

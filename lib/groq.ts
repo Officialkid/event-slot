@@ -18,16 +18,16 @@ const _groq = process.env.GROQ_API_KEY ? groq : null
 
 type AITaskType = 'insights' | 'qa' | 'capacity' | 'tracker' | 'report'
 
-const TASK_MODELS: Record<AITaskType, string> = {
-  insights: 'llama-3.3-70b-versatile',
-  qa: 'llama-3.1-8b-instant',
-  capacity: 'llama-3.1-8b-instant',
-  tracker: 'llama-3.3-70b-versatile',
-  report: 'llama-3.3-70b-versatile',
+const TASK_MODELS: Record<AITaskType, string[]> = {
+  insights: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
+  qa: ['llama-3.1-8b-instant'],
+  capacity: ['llama-3.1-8b-instant'],
+  tracker: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
+  report: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
 }
 
 export function getGroqModelByTask(taskType: AITaskType): string {
-  return TASK_MODELS[taskType] ?? TASK_MODELS.insights
+  return (TASK_MODELS[taskType] ?? TASK_MODELS.insights)[0]
 }
 
 export async function askGroq({
@@ -45,20 +45,31 @@ export async function askGroq({
     throw new Error('GROQ_API_KEY is not configured')
   }
 
-  const completion = await _groq.chat.completions.create({
-    model: getGroqModelByTask(taskType),
-    temperature: 0.3,
-    max_tokens: maxTokens,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: prompt },
-    ],
-  })
+  const models = TASK_MODELS[taskType] ?? TASK_MODELS.insights
+  let lastError: Error | null = null
 
-  const content = completion.choices?.[0]?.message?.content
-  if (!content) {
-    throw new Error('Groq returned empty response')
+  for (const model of models) {
+    try {
+      const completion = await _groq.chat.completions.create({
+        model,
+        temperature: 0.3,
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+      })
+
+      const content = completion.choices?.[0]?.message?.content
+      if (!content) {
+        throw new Error(`Groq model ${model} returned empty response`)
+      }
+
+      return content
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(`Groq model ${model} failed`)
+    }
   }
 
-  return content
+  throw lastError ?? new Error('Groq returned empty response')
 }

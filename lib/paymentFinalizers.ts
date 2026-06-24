@@ -12,8 +12,14 @@ type SubscriptionIntent = {
   planId?: string
   billingCycle?: 'MONTHLY' | 'ANNUAL' | string
   priceUsd?: number
+  planAmountUsd?: number
+  taxAmountUsd?: number
+  totalUsd?: number
+  totalKes?: number
   amountKes?: number
   phone?: string
+  paymentProvider?: string
+  paymentMethod?: string
 }
 
 async function logPaidTicketEmail(orderId: string, data: {
@@ -33,6 +39,51 @@ async function logPaidTicketEmail(orderId: string, data: {
       }),
     },
   }).catch(() => {})
+}
+
+async function updateOrganiserBalance(input: {
+  organiserId: string | null
+  currency: string | null | undefined
+  gross: number
+  commission: number
+  net: number
+}) {
+  if (!input.organiserId) return
+
+  const currency = (input.currency ?? "").trim().toUpperCase() === "USD" ? "USD" : "KES"
+  const createData =
+    currency === "USD"
+      ? {
+          organiserId: input.organiserId,
+          grossUSD: input.gross,
+          commissionUSD: input.commission,
+          netUSD: input.net,
+        }
+      : {
+          organiserId: input.organiserId,
+          grossKES: input.gross,
+          commissionKES: input.commission,
+          netKES: input.net,
+        }
+
+  const updateData =
+    currency === "USD"
+      ? {
+          grossUSD: { increment: input.gross },
+          commissionUSD: { increment: input.commission },
+          netUSD: { increment: input.net },
+        }
+      : {
+          grossKES: { increment: input.gross },
+          commissionKES: { increment: input.commission },
+          netKES: { increment: input.net },
+        }
+
+  await prisma.organiserBalance.upsert({
+    where: { organiserId: input.organiserId },
+    create: createData,
+    update: updateData,
+  })
 }
 
 export async function failPaidEventOrderPayment(orderId: string, status: 'FAILED' | 'CANCELLED') {
@@ -76,6 +127,7 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
           location: true,
           confirmedCount: true,
           capacity: true,
+          currency: true,
           organizerId: true,
           organizer: { select: { plan: true } },
         },
@@ -238,6 +290,14 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
     },
   })
 
+  await updateOrganiserBalance({
+    organiserId: eventOrder.event.organizerId,
+    currency: eventOrder.currency || eventOrder.event.currency,
+    gross: eventOrder.amountKes,
+    commission: commission.commissionAmount,
+    net: commission.organizerAmount,
+  })
+
   if (eventOrder.attendeeEmail && confirmationCode) {
     sendConfirmationEmail({
       to: eventOrder.attendeeEmail,
@@ -290,6 +350,7 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
       amountUsd: true,
       description: true,
       status: true,
+      provider: true,
     },
   })
 
@@ -305,7 +366,7 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
     throw new Error(`Could not parse payment intent for subscription payment ${payment.id}`)
   }
 
-  const { userId, planId, billingCycle, priceUsd, phone } = intent
+  const { userId, planId, billingCycle, priceUsd, totalUsd, phone, paymentProvider } = intent
   if (!userId || !planId) {
     throw new Error(`Subscription payment ${payment.id} is missing userId or planId`)
   }
@@ -318,6 +379,17 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
   } else {
     periodEnd.setMonth(periodEnd.getMonth() + 1)
   }
+
+  const plan = await prisma.plan.findUnique({
+    where: { id: planId },
+    select: { name: true },
+  })
+  if (!plan) {
+    throw new Error(`Subscription payment ${payment.id} is referencing a missing plan`)
+  }
+
+  const effectiveProvider = paymentProvider ?? payment.provider ?? 'intasend'
+  const effectiveAmount = totalUsd ?? priceUsd ?? payment.amountUsd
 
   const existingSub = await prisma.subscription.findFirst({
     where: { userId },
@@ -332,10 +404,10 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
         status: 'ACTIVE',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
-        paymentProvider: 'intasend',
+        paymentProvider: effectiveProvider,
         mpesaPhone: phone,
         lastPaymentRef: providerReference ?? existingSub.lastPaymentRef,
-        lastPaymentAmount: priceUsd ?? payment.amountUsd,
+        lastPaymentAmount: effectiveAmount,
         lastPaymentAt: now,
       },
     })
@@ -348,10 +420,10 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
         status: 'ACTIVE',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
-        paymentProvider: 'intasend',
+        paymentProvider: effectiveProvider,
         mpesaPhone: phone,
         lastPaymentRef: providerReference ?? null,
-        lastPaymentAmount: priceUsd ?? payment.amountUsd,
+        lastPaymentAmount: effectiveAmount,
         lastPaymentAt: now,
       },
     })
@@ -368,6 +440,16 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
       status: 'SUCCESS',
       providerRef: providerReference ?? undefined,
       paidAt: now,
+    },
+  })
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      plan: plan.name,
+      billingCycle: isAnnual ? 'annual' : 'monthly',
+      planStartDate: now,
+      planEndDate: periodEnd,
     },
   })
 }

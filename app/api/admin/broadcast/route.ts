@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { Resend } from 'resend'
 import { isAdminEmail } from '@/lib/isAdmin'
+import { sendEmail } from '@/lib/email'
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <hello@eventsslot.com>'
 const BATCH_SIZE = 50
@@ -16,14 +16,6 @@ function parseMode(value: string | null): BroadcastMode {
     return value
   }
   return 'SUBSCRIBED'
-}
-
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not configured')
-  }
-  return new Resend(apiKey)
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -127,8 +119,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const resend = getResendClient()
-
     const session = await getServerSession(authOptions)
     if (!canManageBroadcast(session)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -179,12 +169,14 @@ export async function POST(req: NextRequest) {
     const validRecipients = recipients.filter((u): u is typeof u & { email: string } => Boolean(u.email))
     const batches = chunk(validRecipients, BATCH_SIZE)
     let sent = 0
+    let failed = 0
+    const failedRecipients: string[] = []
 
     for (let i = 0; i < batches.length; i += 1) {
       const batch = batches[i]
-      await Promise.all(
+      const results = await Promise.allSettled(
         batch.map((user) =>
-          resend.emails.send({
+          sendEmail({
             from: EMAIL_FROM,
             to: user.email,
             replyTo: 'eventslot.co@gmail.com',
@@ -193,18 +185,36 @@ export async function POST(req: NextRequest) {
               htmlContent.replace(/\{\{name\}\}/g, user.name ?? 'there'),
               user.id
             ),
-          }).catch((err: unknown) => {
-            console.error(`Failed to send to ${user.email}:`, err)
           })
         )
       )
 
-      sent += batch.length
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          sent += 1
+          return
+        }
+
+        failed += 1
+        const failedEmail = batch[index]?.email
+        if (failedEmail) failedRecipients.push(failedEmail)
+        console.error(`Failed to send broadcast to ${failedEmail ?? 'unknown recipient'}:`, result.reason)
+      })
 
       if (i < batches.length - 1) {
         await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
       }
     }
+
+    await prisma.message.create({
+      data: {
+        type: 'ADMIN_BROADCAST',
+        authorId: session?.user?.id ?? null,
+        subject: subject.trim(),
+        content: htmlContent.trim(),
+        isPublic: true,
+      },
+    })
 
     if (session?.user?.id) {
       await prisma.auditLog.create({
@@ -214,7 +224,10 @@ export async function POST(req: NextRequest) {
           metadata: {
             subject,
             mode,
-            recipientCount: sent,
+            recipientCount: validRecipients.length,
+            sentCount: sent,
+            failedCount: failed,
+            failedRecipients,
           },
         },
       })
@@ -223,7 +236,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       sent,
+      failed,
       mode,
+      message: failed > 0
+        ? `Broadcast sent to ${sent} recipients. ${failed} failed.`
+        : `Broadcast sent to ${sent} recipients.`,
     })
   } catch (err) {
     console.error('[admin/broadcast] POST error:', err)

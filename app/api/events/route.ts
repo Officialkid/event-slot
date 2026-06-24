@@ -219,7 +219,13 @@ export async function POST(req: NextRequest) {
           ? {
               create: normalizedTicketTiers.map((tier, index) => ({
                 name: tier.name,
+                presetKey: tier.presetKey ?? undefined,
+                badgeColor: tier.badgeColor ?? undefined,
+                textColor: tier.textColor ?? undefined,
+                metallic: tier.metallic ?? undefined,
+                prestige: tier.prestige ?? undefined,
                 priceKes: tier.priceKes,
+                currency: tier.currency ?? "KES",
                 capacity: tier.capacity,
                 description: tier.description ?? undefined,
                 bundleSize: tier.bundleSize ?? 1,

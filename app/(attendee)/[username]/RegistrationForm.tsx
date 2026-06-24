@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import CountdownTimer from "@/components/CountdownTimer"
+import { TierBadge } from "@/components/TierBadge"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 
 type EventQuestion = {
@@ -16,7 +17,13 @@ type EventQuestion = {
 type EventTicketTier = {
   id: string
   name: string
+  presetKey?: string | null
+  badgeColor: string
+  textColor: string
+  metallic: boolean
+  prestige: number
   priceKes: number
+  currency: string
   capacity: number
   description?: string | null
   soldCount: number
@@ -715,7 +722,16 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[0.9rem] font-semibold text-[#F0EDE6]">{tier.name}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[0.9rem] font-semibold text-[#F0EDE6]">{tier.name}</p>
+                          <TierBadge
+                            name={tier.name}
+                            badgeColor={tier.badgeColor}
+                            textColor={tier.textColor}
+                            metallic={tier.metallic}
+                            size="sm"
+                          />
+                        </div>
                         {tier.description && (
                           <p className="mt-1 text-[0.76rem] text-[rgba(240,237,230,0.45)]">{tier.description}</p>
                         )}

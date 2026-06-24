@@ -93,6 +93,9 @@ export default async function TicketSuccessPage({
     attendeeEmail: attendeeEmail || null,
     attendeePhone: attendeePhone || null,
     ticketTierName: registration.ticket?.ticketTierName ?? registration.ticketTier?.name ?? null,
+    ticketTierBadgeColor: registration.ticketTier?.badgeColor ?? null,
+    ticketTierTextColor: registration.ticketTier?.textColor ?? null,
+    ticketTierMetallic: registration.ticketTier?.metallic ?? null,
     amountPaidKes: registration.ticket?.amountPaidKes ?? null,
     verifyUrl: `${BASE_URL}/verify/${confirmationCode}`,
   }

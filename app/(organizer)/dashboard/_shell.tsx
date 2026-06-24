@@ -95,6 +95,15 @@ function IconBilling() {
   )
 }
 
+function IconPayments() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.75v12.5" />
+      <path d="M10.75 4.25c0-.966-1.23-1.75-2.75-1.75s-2.75.784-2.75 1.75S6.48 6 8 6s2.75.784 2.75 1.75S9.52 9.5 8 9.5s-2.75.784-2.75 1.75S6.48 13 8 13s2.75-.784 2.75-1.75" />
+    </svg>
+  )
+}
+
 function IconFeedback() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -151,6 +160,7 @@ function IconAdmin() {
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { label: "My Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { label: "Community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
   { label: "Assistant", href: "/dashboard/assistant", icon: <IconChat />, exact: false },
@@ -182,10 +192,13 @@ interface SidebarInnerProps {
   onOpenTourSelector?: () => void
   collapsed?: boolean
   isAdmin?: boolean
+  paymentsNavVisible?: boolean
+  paymentsBadgeCount?: number
 }
 
-function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, paymentsNavVisible = false, paymentsBadgeCount = 0 }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" || paymentsNavVisible)
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -341,7 +354,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           gap: 2,
         }}
       >
-        {NAV_ITEMS.map(item => {
+        {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
           const tutorialTarget =
             item.href === "/dashboard/events"
@@ -425,6 +438,21 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   }}
                 >
                   {unreadCount}
+                </span>
+              )}
+              {item.href === "/dashboard/payments" && paymentsBadgeCount > 0 && (
+                <span
+                  style={{
+                    background: "rgba(200,245,90,0.14)",
+                    color: "#C8F55A",
+                    borderRadius: 100,
+                    fontSize: "0.6rem",
+                    padding: "1px 6px",
+                    fontWeight: 600,
+                    marginLeft: "auto",
+                  }}
+                >
+                  {paymentsBadgeCount}
                 </span>
               )}
             </Link>
@@ -665,6 +693,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasPioneer, setHasPioneer] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [paymentsNavVisible, setPaymentsNavVisible] = useState(false)
+  const [paymentsBadgeCount, setPaymentsBadgeCount] = useState(0)
   const [usedFeatures, setUsedFeatures] = useState<string[]>([])
   const [showTourSelector, setShowTourSelector] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -713,6 +743,21 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .catch(() => { /* ignore */ })
     }
   }, [status])
+
+  useEffect(() => {
+    if (status !== "authenticated") return
+
+    fetch("/api/organizer/payments/summary", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        setPaymentsNavVisible(Boolean(data?.visible))
+        setPaymentsBadgeCount(typeof data?.badgeCount === "number" ? data.badgeCount : 0)
+      })
+      .catch(() => {
+        setPaymentsNavVisible(false)
+        setPaymentsBadgeCount(0)
+      })
+  }, [pathname, status])
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -819,6 +864,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     hasPioneer,
     usedFeatures,
     onOpenTourSelector: () => setShowTourSelector(true),
+    paymentsNavVisible,
+    paymentsBadgeCount,
   }
   sidebarProps.isAdmin = isAdmin
 
@@ -1304,6 +1351,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {([
                   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
+                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: paymentsNavVisible },
                   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: true },
                   { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
                   { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: true },

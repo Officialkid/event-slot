@@ -11,7 +11,13 @@ const questionSchema = z.object({
 
 const ticketTierSchema = z.object({
   name: z.string().min(1, 'Tier name is required').max(120),
+  presetKey: z.string().max(40).optional().nullable(),
+  badgeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Badge colour must be a valid hex value'),
+  textColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Text colour must be a valid hex value'),
+  metallic: z.boolean().optional().default(false),
+  prestige: z.number().int().min(0).max(99).optional().default(0),
   priceKes: z.number().int().positive('Tier price must be positive'),
+  currency: z.string().max(8).optional().default('KES'),
   capacity: z.number().int().positive('Tier capacity must be positive'),
   description: z.string().max(500).optional().nullable(),
   bundleSize: z.number().int().positive().max(100).optional().nullable(),

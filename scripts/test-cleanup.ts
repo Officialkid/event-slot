@@ -53,6 +53,12 @@ async function main() {
     },
   })
 
+  const paidOrdersDeleted = await prisma.paidEventOrder.deleteMany({
+    where: {
+      eventId: { in: testEventIds },
+    },
+  })
+
   const ticketsDeleted = await prisma.ticket.deleteMany({
     where: {
       OR: [
@@ -92,6 +98,7 @@ async function main() {
   console.log("🧹 EventSlot Test Data Cleaned")
   console.log("───────────────────────────────")
   console.log(`Payments deleted:      ${paymentsDeleted.count}`)
+  console.log(`Paid orders deleted:   ${paidOrdersDeleted.count}`)
   console.log(`Tickets deleted:       ${ticketsDeleted.count}`)
   console.log(`Registrations deleted: ${registrationsDeleted.count}`)
   console.log(`Ticket tiers deleted:  ${ticketTiersDeleted.count}`)

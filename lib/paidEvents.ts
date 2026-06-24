@@ -1,6 +1,14 @@
+import { resolveTierBadgeFields } from "@/lib/tierPresets"
+
 export type TicketTierInput = {
   name: string
+  presetKey?: string | null
+  badgeColor?: string | null
+  textColor?: string | null
+  metallic?: boolean | null
+  prestige?: number | null
   priceKes: number
+  currency?: string | null
   capacity: number
   description?: string | null
   bundleSize?: number | null
@@ -24,8 +32,15 @@ export function normalizeTicketTiers(
 ): TicketTierInput[] {
   const normalized = (tiers ?? [])
     .map((tier) => ({
-      name: normalizeTierName(tier.name),
+      ...resolveTierBadgeFields({
+        name: normalizeTierName(tier.name),
+        presetKey: tier.presetKey,
+        badgeColor: tier.badgeColor,
+        metallic: tier.metallic,
+        prestige: tier.prestige,
+      }),
       priceKes: Number(tier.priceKes),
+      currency: (tier.currency ?? "KES").trim().toUpperCase() || "KES",
       capacity: Number(tier.capacity),
       description: tier.description?.trim() || null,
       bundleSize: tier.bundleSize ? Number(tier.bundleSize) : 1,
@@ -33,14 +48,22 @@ export function normalizeTicketTiers(
     .filter((tier) => tier.name)
 
   if (normalized.length > 0) {
-    return normalized
+    return normalized.sort((a, b) => {
+      const aRank = a.prestige > 0 ? a.prestige : 1000
+      const bRank = b.prestige > 0 ? b.prestige : 1000
+      if (aRank !== bRank) return aRank - bRank
+      if (a.prestige === 0 && b.prestige === 0 && a.priceKes !== b.priceKes) return a.priceKes - b.priceKes
+      return a.name.localeCompare(b.name)
+    })
   }
 
   if (fallback.ticketPrice && fallback.capacity) {
+    const badge = resolveTierBadgeFields({ name: "Standard", presetKey: "STANDARD" })
     return [
       {
-        name: "Standard",
+        ...badge,
         priceKes: Number(fallback.ticketPrice),
+        currency: "KES",
         capacity: Number(fallback.capacity),
         description: null,
         bundleSize: 1,

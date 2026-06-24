@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { Resend } from 'resend'
+import { sendEmail } from '@/lib/email'
 
 const DIGEST_FROM =
   process.env.RESEND_DIGEST_FROM?.trim() ||
@@ -24,14 +24,6 @@ function parseDigestRecipients(): string[] {
     .split(/[;,\s]+/)
     .map((value) => value.trim())
     .filter(Boolean)
-}
-
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not configured')
-  }
-  return new Resend(apiKey)
 }
 
 async function getWaitlistPromotionsThisWeek(oneWeekAgo: Date): Promise<number> {
@@ -198,25 +190,19 @@ export async function POST(req: NextRequest) {
       </div>
     `
 
-    const resend = getResendClient()
     const recipients = parseDigestRecipients()
 
     if (recipients.length === 0) {
       return NextResponse.json({ error: 'No digest recipients configured' }, { status: 500 })
     }
 
-    const sendResult = await resend.emails.send({
+    await sendEmail({
       from: DIGEST_FROM.trim(),
       to: recipients,
       subject: `EventSlot Weekly Digest - ${weekStr}`,
       html,
       text,
     })
-
-    if (sendResult.error) {
-      console.error('[cron/weekly-digest] Resend error:', sendResult.error)
-      return NextResponse.json({ error: 'Failed to send digest email' }, { status: 500 })
-    }
 
     return NextResponse.json({
       success: true,

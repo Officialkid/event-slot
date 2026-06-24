@@ -57,11 +57,11 @@ Attendees do NOT need an account:
 
 ## Pricing and Access
 
-- All core features are free with no subscription tiers.
-- Event creation, waitlist automation, analytics, insight cards, tracker, feedback, CSV export, duplicate event, and predictive capacity are available without plan gates.
-- Report generation and in-browser report preview are free.
-- Downloading a Word report uses paid download bundles.
-- EventSlot does not require a subscription for core features.
+- EventSlot has Free, Standard, Pro, and Business plans, with rollout controls that may keep some accounts on open access temporarily.
+- Core event creation, waitlist automation, and registration management remain available without attendee accounts.
+- AI insights are available to eligible organiser plans; super admins always have free access.
+- Event report preview is free.
+- Downloading the full Word report uses 20 tokens on the organiser account unless the account has super admin access.
 
 ---
 
@@ -86,8 +86,8 @@ You can only increase capacity — decreasing is not supported to protect confir
 A: Yes, they receive an email notification if they consented to notifications during registration.
 
 **Q: How do I download an attendee report?**
-A: Go to your event dashboard and click Download Report.
-You can generate and view the report in-browser for free. Downloading the Word file uses a paid download bundle.
+A: Go to your event dashboard and generate the report preview first.
+The preview is free. Downloading the full Word file requires a signed-in organiser or team member and uses 20 tokens unless the account has super admin access.
 
 **Q: Can I export my attendees to a spreadsheet?**
 A: Yes, via the Export CSV button in the Overview tab of your event dashboard.
@@ -134,14 +134,14 @@ A: Use the feedback button in your dashboard or email support@eventsslot.com.
 
 | Feature | Status |
 |---------|--------|
-| Event creation | Free |
-| Waitlist automation | Free |
-| Analytics & AI insights | Free |
-| CSV export | Free |
-| AI report generation/preview | Free |
-| Report file download | Paid bundles |
-| Team members | Free |
-| Duplicate events | Free |
-| Feedback forms | Free |
-| Analytics Q&A | Free |
+| Event creation | Available |
+| Waitlist automation | Available |
+| Analytics & AI insights | Plan-dependent |
+| CSV export | Available |
+| AI report generation/preview | Free preview |
+| Report file download | 20 tokens unless super admin |
+| Team members | Available |
+| Duplicate events | Available |
+| Feedback forms | Available |
+| Analytics Q&A | Available |
 `.trim()

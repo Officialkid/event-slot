@@ -55,7 +55,8 @@ ORGANISER DASHBOARD
 - Real-time stats: total registrations, active events, waitlist count
 - Toggle ticket generation on or off
 - View and manage attendee list
-- Download event reports (costs 20 tokens)
+- Generate event report previews for free
+- Download full event reports (costs 20 tokens unless super admin)
 
 TOKEN SYSTEM
 - EventSlot uses tokens for premium features
@@ -71,10 +72,9 @@ WHAT COSTS TOKENS
   - Free voice quota resets on the 1st of every month at 12:00 AM EAT
 
 PRICING MODEL
-- EventSlot is free to use for all core features
-- Token purchases are optional — only needed for premium features (reports, extra voice)
-- No subscription required
-- No Pro or Business plan — token-based only
+- EventSlot supports Free, Standard, Pro, and Business plans
+- Some accounts may remain on open access temporarily before full pricing rollout
+- Token purchases are still used for premium actions like full report downloads and extra voice usage
 
 KENYA DATA PROTECTION ACT COMPLIANCE
 - Users can request their data: Account Settings → Data Export
@@ -132,9 +132,9 @@ A: You get 5 free voice transcriptions per month. These reset on the 1st of
    voice message costs 10 tokens (KSh 50).
 
 Q: How do I generate an event report?
-A: From your event dashboard, click "Generate Report". This costs 20 tokens.
-   The report is downloaded as a Word document with full registration details,
-   charts, and AI analysis.
+A: From your event dashboard, click "Generate Report" to open the free preview.
+   Downloading the full Word document uses 20 tokens unless the account has
+   super admin access.
 
 Q: Can I delete my account?
 A: Yes. Go to Account Settings → scroll to the bottom → Delete Account.

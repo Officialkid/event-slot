@@ -49,6 +49,13 @@ export async function POST(
             scannedAt: true,
           },
         },
+        ticketTier: {
+          select: {
+            badgeColor: true,
+            textColor: true,
+            metallic: true,
+          },
+        },
         event: {
           select: {
             id: true,
@@ -232,6 +239,13 @@ export async function POST(
           scannedAt: true,
         },
       },
+      ticketTier: {
+        select: {
+          badgeColor: true,
+          textColor: true,
+          metallic: true,
+        },
+      },
       event: {
         select: {
           id: true,
@@ -366,6 +380,9 @@ export async function POST(
     isPaid: registration.event.isPaid,
     ticketPrice: registration.ticket?.amountPaidKes ?? registration.event.ticketPrice,
     ticketTierName: registration.ticket?.ticketTierName ?? null,
+    badgeColor: registration.ticketTier?.badgeColor ?? null,
+    textColor: registration.ticketTier?.textColor ?? null,
+    metallic: registration.ticketTier?.metallic ?? null,
     alreadyVerifiedAt: registration.ticket?.scannedAt?.toISOString() ?? alreadyScanned?.scannedAt?.toISOString() ?? null,
     isDuplicateScan,
     message: successMessage,

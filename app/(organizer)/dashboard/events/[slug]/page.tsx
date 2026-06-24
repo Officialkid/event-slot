@@ -5,7 +5,6 @@ import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { useToast } from "@/components/Toast"
 import CountdownTimer from "@/components/CountdownTimer"
 import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { EventExpiryBanner } from "@/components/EventExpiryBanner"
@@ -206,6 +205,9 @@ type ReportPreviewData = {
   message?: string
   isSuperAdmin?: boolean
   downloadsRemaining: number
+  requiresSignIn?: boolean
+  downloadCostTokens?: number
+  accessNote?: string
 }
 
 const REPORT_PROGRESS_STEPS = [
@@ -1301,7 +1303,6 @@ export default function EventDashboardPage() {
   const token = searchParams?.get("token") || ""
   const router = useRouter()
   const { data: session, status } = useSession()
-  const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -1343,14 +1344,12 @@ export default function EventDashboardPage() {
   const [downloadBalance, setDownloadBalance] = useState<number | null>(null)
   const [reportCreditBalance, setReportCreditBalance] = useState(0)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [reportError, setReportError] = useState("")
+  const [reportNotice, setReportNotice] = useState("")
 
-  // CSV export
+  // Export downloads
   const [csvExporting, setCsvExporting] = useState(false)
-  const [csvCost, setCsvCost] = useState<number | null>(null)
-  const [csvEventId, setCsvEventId] = useState<string | null>(null)
-  const [csvUnlockLoading, setCsvUnlockLoading] = useState(false)
   const [csvError, setCsvError] = useState("")
-  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('pdf')
 
   // Analytics
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -1530,15 +1529,13 @@ export default function EventDashboardPage() {
     : ""
 
   const reportDescription = (() => {
-    if (isSuperAdmin) return "Generate report for this event. Free for super admins."
-
-    const normalizedPlan = (eventData?.organizerPlan ?? "").toLowerCase()
-    if (normalizedPlan === "pro" || normalizedPlan === "business") {
-      return "Generate report for this event. Included in your plan."
-    }
-
-    return "Generate report for this event. Downloading uses your token balance."
+    if (isSuperAdmin) return "Preview and download are free for super admins."
+    return "Preview is free. Download requires a signed-in organiser or team member and uses 20 tokens per report."
   })()
+
+  const aiInsightsAccessNote = isSuperAdmin
+    ? "Super admins can generate and regenerate AI insights freely."
+    : "Standard plan and above can generate AI insights. The first insight for an event is free while your monthly quota lasts; regenerations use 20 credits."
 
   const handleCopy = async () => {
     if (!regLink) return
@@ -1716,6 +1713,8 @@ export default function EventDashboardPage() {
 
   const generateReportPreview = async () => {
     if (!eventData || reportLoading) return
+    setReportError("")
+    setReportNotice("")
     let progressIndex = 0
     setReportLoadingText(REPORT_PROGRESS_STEPS[0])
     setReportProgress(12)
@@ -1734,14 +1733,18 @@ export default function EventDashboardPage() {
       const minWait = new Promise((resolve) => setTimeout(resolve, 3200))
       const resPromise = fetch(`/api/events/${slug}/report?${params.toString()}`)
       const [res] = await Promise.all([resPromise, minWait])
-      const data = await res.json()
-      if (!res.ok || !data?.success) return
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) {
+        setReportError(data?.error || "Unable to prepare the report preview right now.")
+        return
+      }
       setReportProgress(100)
       setReportData(data)
       setIsSuperAdmin(Boolean(data.isSuperAdmin))
       setDownloadBalance(typeof data.downloadsRemaining === 'number' ? data.downloadsRemaining : 0)
+      setReportNotice(typeof data.accessNote === "string" ? data.accessNote : "")
     } catch {
-      // Silent fail for now to match surrounding dashboard behavior.
+      setReportError("Unable to prepare the report preview right now.")
     } finally {
       window.clearInterval(progressTimer)
       setReportLoadingText('')
@@ -1752,6 +1755,17 @@ export default function EventDashboardPage() {
 
   const downloadReport = async () => {
     if (!eventData || downloadingReport) return
+    setReportError("")
+    setReportNotice("")
+
+    if (!session?.user?.id) {
+      const callbackUrl = typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : `/dashboard/events/${slug}`
+      router.push(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+      return
+    }
+
     setDownloadingReport(true)
     try {
       const params = new URLSearchParams({
@@ -1761,25 +1775,38 @@ export default function EventDashboardPage() {
       const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
 
       if (res.status === 402) {
+        const data = await res.json().catch(() => null)
+        setReportError(data?.message || "You need more tokens before this report can be downloaded.")
         setShowReportPaymentModal(true)
         return
       }
 
+      if (res.status === 401) {
+        const data = await res.json().catch(() => null)
+        setReportError(data?.error || "Sign in again to download this report.")
+        return
+      }
+
       if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setReportError(data?.error || "The report could not be downloaded right now.")
         return
       }
 
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url
-      a.download = `event-report-${slug}.docx`
+      a.href = objectUrl
+      a.download = getFilenameFromDisposition(res.headers.get("content-disposition"), `event-report-${slug}.docx`)
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
 
       setDownloadBalance((prev) => (prev !== null ? Math.max(0, prev - 1) : prev))
+      setReportNotice("Report download started.")
     } catch {
-      // Silent fail for now to match surrounding dashboard behavior.
+      setReportError("The report could not be downloaded right now.")
     } finally {
       setDownloadingReport(false)
     }
@@ -1794,45 +1821,6 @@ export default function EventDashboardPage() {
         .filter(grp => grp.length >= 2)
       return next.length > 0 ? next : []
     })
-  }
-
-  const handleExportData = async () => {
-    if (!eventData) return
-    setCsvExporting(true)
-    setCsvError("")
-    setCsvCost(null)
-    try {
-      const params = new URLSearchParams({ format: exportFormat })
-      if (token) {
-        params.set('token', token)
-      }
-      const res = await fetch(`/api/events/${slug}/export?${params.toString()}`)
-      if (res.status === 403) {
-        const data = await res.json()
-        setCsvCost(data.creditsRequired ?? null)
-        setCsvEventId(data.eventId ?? null)
-        return
-      }
-      if (!res.ok) {
-        const data = await res.json()
-        setCsvError(data.error || "Export failed.")
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      const extension = exportFormat === 'pdf' ? 'pdf' : 'csv'
-      a.download = getFilenameFromDisposition(res.headers.get("content-disposition"), `registrations-${slug}.${extension}`)
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch {
-      setCsvError("Unable to export registrations.")
-    } finally {
-      setCsvExporting(false)
-    }
   }
 
   const getFilenameFromDisposition = (disposition: string | null, fallback: string) => {
@@ -1868,36 +1856,6 @@ export default function EventDashboardPage() {
       setCsvError("Unable to download export. Please try again.")
     } finally {
       setCsvExporting(false)
-    }
-  }
-
-  const handleBuyAndExport = async () => {
-    if (!csvEventId) return
-    setCsvUnlockLoading(true)
-    setCsvError("")
-    try {
-      const res = await fetch("/api/features/unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feature: "export_csv", eventId: csvEventId }),
-      })
-      const data = await res.json()
-      if (res.status === 402) {
-        router.push("/dashboard/billing")
-        return
-      }
-      if (!res.ok || !data.success) {
-        setCsvError(data.error || "Failed to unlock CSV export.")
-        return
-      }
-      setCsvCost(null)
-      setCsvEventId(null)
-      showToast({ featureName: "Registration Export", creditsUsed: 15, creditsRemaining: data.creditsRemaining })
-      await handleExportData()
-    } catch {
-      setCsvError("Unable to complete purchase.")
-    } finally {
-      setCsvUnlockLoading(false)
     }
   }
 
@@ -2268,7 +2226,10 @@ export default function EventDashboardPage() {
       )}
 
       {showReportPaymentModal && (
-        <ReportDownloadModal onClose={() => setShowReportPaymentModal(false)} />
+        <ReportDownloadModal
+          currentBalance={reportCreditBalance}
+          onClose={() => setShowReportPaymentModal(false)}
+        />
       )}
 
       {showQrModal && qrDataUrl && (
@@ -2853,6 +2814,16 @@ export default function EventDashboardPage() {
                   <p style={{ marginTop: "0.9rem", marginBottom: 0, fontSize: "0.86rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
                     {reportData.message || 'Your professional report is ready.'}
                   </p>
+                  {(reportNotice || reportData.accessNote) && (
+                    <p style={{ marginTop: "0.75rem", marginBottom: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                      {reportNotice || reportData.accessNote}
+                    </p>
+                  )}
+                  {reportError && (
+                    <p style={{ marginTop: "0.75rem", marginBottom: 0, fontSize: "0.78rem", color: "#FFB3B3", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                      {reportError}
+                    </p>
+                  )}
 
                   <div style={{
                     borderTop: "0.5px solid rgba(240,237,230,0.08)",
@@ -2867,12 +2838,19 @@ export default function EventDashboardPage() {
                     <div>
                       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
                         {reportData.reportReady
-                          ? 'Download to access full insights.'
+                          ? 'Download the full report as a Word document.'
                           : 'Preparing your report document...'}
                       </p>
-                      {!isSuperAdmin && (downloadBalance === null || downloadBalance < 1) && (
+                      {!isSuperAdmin && (
                         <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
-                          Download pricing: 20 tokens per report (approx. KSh 100)
+                          {reportData.requiresSignIn
+                            ? "Sign in first, then use 20 tokens to download this report."
+                            : `Download pricing: ${(reportData.downloadCostTokens ?? 20)} tokens per report (approx. KSh 100)`}
+                        </p>
+                      )}
+                      {!isSuperAdmin && !reportData.requiresSignIn && downloadBalance !== null && (
+                        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.38)", marginTop: "0.24rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
+                          Remaining paid report downloads on this account: {downloadBalance}
                         </p>
                       )}
                     </div>
@@ -2892,25 +2870,11 @@ export default function EventDashboardPage() {
                         opacity: downloadingReport ? 0.6 : 1,
                       }}
                     >
-                      {downloadingReport ? 'Preparing...' : 'Download Word'}
-                    </button>
-                    <button
-                      onClick={() => void downloadReport()}
-                      disabled={downloadingReport}
-                      style={{
-                        background: 'transparent',
-                        color: '#C8F55A',
-                        border: '0.5px solid rgba(200,245,90,0.4)',
-                        borderRadius: '100px',
-                        padding: '0.6rem 1.2rem',
-                        fontSize: '0.84rem',
-                        fontWeight: 500,
-                        cursor: downloadingReport ? 'not-allowed' : 'pointer',
-                        fontFamily: 'var(--font-dm-sans)',
-                        opacity: downloadingReport ? 0.6 : 1,
-                      }}
-                    >
-                      {downloadingReport ? 'Preparing...' : 'Print / Save PDF'}
+                      {downloadingReport
+                        ? 'Preparing...'
+                        : reportData.requiresSignIn
+                        ? 'Sign in to download'
+                        : 'Download report (.docx)'}
                     </button>
                   </div>
                 </div>
@@ -2944,61 +2908,6 @@ export default function EventDashboardPage() {
               </div>
               {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
               {capacityError && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{capacityError}</p>}
-            </div>
-
-            {/* Export Registrations */}
-            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Export Registrations</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Choose PDF or CSV and download all confirmed registrations</div>
-                </div>
-                {csvCost === null && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <select
-                      value={exportFormat}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        setExportFormat(v === 'pdf' ? 'pdf' : 'csv')
-                      }}
-                      style={{ background: '#0A0A0A', border: '0.5px solid rgba(240,237,230,0.15)', borderRadius: 8, padding: '0.48rem 0.6rem', color: 'rgba(240,237,230,0.7)', fontSize: '0.78rem', fontFamily: 'var(--font-dm-sans)' }}
-                    >
-                      <option value="pdf">PDF</option>
-                      <option value="csv">CSV</option>
-                    </select>
-                    <button
-                      onClick={handleExportData}
-                      disabled={csvExporting || confirmed.length === 0}
-                      style={{ background: csvExporting ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: csvExporting ? "#C8F55A" : "#0A0A0A", cursor: (csvExporting || confirmed.length === 0) ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: (confirmed.length === 0 || csvExporting) ? 0.5 : 1 }}
-                    >
-                      {csvExporting ? "Exporting..." : `Export ${exportFormat === 'pdf' ? 'PDF' : 'CSV'}`}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {csvCost !== null && (
-                <div style={{ marginTop: "0.875rem", background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 10, padding: "0.875rem 1rem" }}>
-                  <p style={{ margin: "0 0 0.625rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)" }}>
-                    Export this data for <strong style={{ color: "#C8F55A" }}>${csvCost.toFixed(2)} credits</strong>
-                  </p>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <button
-                      onClick={handleBuyAndExport}
-                      disabled={csvUnlockLoading}
-                      style={{ background: csvUnlockLoading ? "rgba(200,245,90,0.4)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.8rem", fontWeight: 600, color: "#0A0A0A", cursor: csvUnlockLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      {csvUnlockLoading ? "Processing..." : "Buy & Export"}
-                    </button>
-                    <button
-                      onClick={() => { setCsvCost(null); setCsvEventId(null) }}
-                      style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              {csvError && <p style={{ marginTop: "0.5rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: "0.5rem 0 0" }}>{csvError}</p>}
             </div>
 
             {/* Duplicate Scanner */}
@@ -3146,42 +3055,9 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Confirmed CSV
-                </a>
-                <a
-                  href={`/api/events/${slug}/export/excel?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.xlsx`)
-                  }}
-                  download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.07)", flexShrink: 0, whiteSpace: "nowrap" }}
-                >
-                  Download Excel
-                </a>
-                <a
-                  href={`/api/events/${slug}/export?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all.csv`)
-                  }}
-                  download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
-                >
-                  Download All CSV
-                </a>
-                <a
-                  href={`/api/events/${slug}/export/excel?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all.xlsx`)
-                  }}
-                  download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.55)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)", flexShrink: 0, whiteSpace: "nowrap" }}
-                >
-                  Download All Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3190,7 +3066,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download PDF (Individual responses)
                 </a>
@@ -3201,7 +3077,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download All PDF (Individual responses)
                 </a>
@@ -3210,8 +3086,13 @@ export default function EventDashboardPage() {
                 </span>
                 </div>
                 <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                  Swipe sideways on mobile to reveal the rest of the actions.
+                  {csvExporting ? "Preparing your export..." : "Swipe sideways on mobile to reveal the rest of the actions."}
                 </p>
+                {csvError && (
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#FFB3B3", fontFamily: "var(--font-dm-sans)" }}>
+                    {csvError}
+                  </p>
+                )}
               </div>
             </div>
             {confirmed.length === 0 ? (
@@ -3353,20 +3234,9 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist.csv`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Waitlisted CSV
-                </a>
-                <a
-                  href={`/api/events/${slug}/export/excel?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist.xlsx`)
-                  }}
-                  download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.65)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.05)" }}
-                >
-                  Download Waitlisted Excel
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3375,7 +3245,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Waitlisted PDF (Individual responses)
                 </a>
@@ -3384,6 +3254,11 @@ export default function EventDashboardPage() {
                 </span>
               </div>
             </div>
+            {csvError && (
+              <p style={{ margin: "0 0 1rem", fontSize: "0.72rem", color: "#FFB3B3", fontFamily: "var(--font-dm-sans)" }}>
+                {csvError}
+              </p>
+            )}
             <RegTable
               rows={waitlist}
               questions={eventData.questions}
@@ -3507,6 +3382,10 @@ export default function EventDashboardPage() {
                       </button>
                     )}
                   </div>
+
+                  <p style={{ margin: "0 0 0.85rem", fontSize: "0.74rem", color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                    {aiInsightsAccessNote}
+                  </p>
 
                   {insightsLocked && (
                     <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>

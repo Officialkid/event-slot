@@ -8,7 +8,13 @@ import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 type TierInput = {
   id?: string
   name: string
+  presetKey?: string | null
+  badgeColor: string
+  textColor: string
+  metallic?: boolean
+  prestige?: number
   priceKes: number
+  currency?: string
   capacity: number
   description?: string | null
   bundleSize?: number
@@ -68,7 +74,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           where: { id: tier.id },
           data: {
             name: tier.name.trim(),
+            presetKey: tier.presetKey || null,
+            badgeColor: tier.badgeColor,
+            textColor: tier.textColor,
+            metallic: Boolean(tier.metallic),
+            prestige: Number(tier.prestige || 0),
             priceKes: Number(tier.priceKes),
+            currency: (tier.currency || 'KES').trim().toUpperCase(),
             capacity: Number(tier.capacity),
             description: tier.description?.trim() || null,
             bundleSize: Number(tier.bundleSize || 1),
@@ -84,7 +96,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           data: {
             eventId: event.id,
             name: tier.name.trim(),
+            presetKey: tier.presetKey || null,
+            badgeColor: tier.badgeColor,
+            textColor: tier.textColor,
+            metallic: Boolean(tier.metallic),
+            prestige: Number(tier.prestige || 0),
             priceKes: Number(tier.priceKes),
+            currency: (tier.currency || 'KES').trim().toUpperCase(),
             capacity: Number(tier.capacity),
             description: tier.description?.trim() || null,
             bundleSize: Number(tier.bundleSize || 1),
@@ -128,7 +146,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     select: {
       id: true,
       name: true,
+      presetKey: true,
+      badgeColor: true,
+      textColor: true,
+      metallic: true,
+      prestige: true,
       priceKes: true,
+      currency: true,
       capacity: true,
       description: true,
       bundleSize: true,

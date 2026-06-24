@@ -7,6 +7,7 @@ import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
 import ConfirmAttendance from "@/components/attendance/ConfirmAttendance"
 import EventInvitationCard from "@/components/events/EventInvitationCard"
 import PublicWalkInEventPage from "@/components/events/PublicWalkInEventPage"
+import PublicEventTopBar from "@/components/events/PublicEventTopBar"
 import { JoinEventButton } from "@/components/JoinEventButton"
 import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
 import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
@@ -24,7 +25,13 @@ type EventQuestion = {
 type PublicTicketTier = {
   id: string
   name: string
+  presetKey?: string | null
+  badgeColor: string
+  textColor: string
+  metallic: boolean
+  prestige: number
   priceKes: number
+  currency: string
   capacity: number
   description?: string | null
   soldCount: number
@@ -146,7 +153,13 @@ const getEventBySlug = unstable_cache(
         select: {
           id: true,
           name: true,
+          presetKey: true,
+          badgeColor: true,
+          textColor: true,
+          metallic: true,
+          prestige: true,
           priceKes: true,
+          currency: true,
           capacity: true,
           description: true,
           soldCount: true,
@@ -310,6 +323,7 @@ export default async function PublicProfilePage({
     return (
       <div className={`min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`}>
         <div className="mx-auto max-w-[1120px]">
+          <PublicEventTopBar />
           {/* Invitation card */}
           <EventInvitationCard
             title={event.title}

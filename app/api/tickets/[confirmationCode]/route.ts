@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { generateTicketPDF } from '@/lib/ticket'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 type EventQuestion = { id: string; type: string; label: string }
 type Answer = { questionId: string; value: string }
 
@@ -32,6 +35,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
     where: { confirmationCode },
     include: {
       ticket: true,
+      ticketTier: true,
       event: {
         select: {
           id: true,
@@ -85,7 +89,10 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
       organizerName: registration.event.organizer?.name ?? 'Organizer',
       isPaid: registration.event.isPaid,
       ticketPrice: registration.ticket?.amountPaidKes ?? undefined,
-      ticketTierName: registration.ticket?.ticketTierName ?? undefined,
+      ticketTierName: registration.ticket?.ticketTierName ?? registration.ticketTier?.name ?? undefined,
+      ticketTierBadgeColor: registration.ticketTier?.badgeColor ?? undefined,
+      ticketTierTextColor: registration.ticketTier?.textColor ?? undefined,
+      ticketTierMetallic: registration.ticketTier?.metallic ?? undefined,
     })
   } catch (err) {
     console.error('[ticket-api] PDF generation failed:', err)

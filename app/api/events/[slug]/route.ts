@@ -37,7 +37,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           select: {
             id: true,
             name: true,
+            presetKey: true,
+            badgeColor: true,
+            textColor: true,
+            metallic: true,
+            prestige: true,
             priceKes: true,
+            currency: true,
             capacity: true,
             description: true,
             bundleSize: true,
