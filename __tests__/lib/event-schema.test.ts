@@ -17,8 +17,15 @@ const virtualBase = {
 
 const paidTierBase = {
   name: 'Regular',
+  presetKey: 'REGULAR',
+  badgeColor: '#A8A9AD',
+  textColor: '#1A1A1A',
+  metallic: false,
+  prestige: 1,
   priceKes: 1500,
+  currency: 'KES',
   capacity: 100,
+  description: 'Standard entry tier',
 }
 
 describe('createEventSchema â€” physical events', () => {
