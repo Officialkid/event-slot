@@ -230,7 +230,7 @@ export function SubscriptionCheckoutPage({
                 {
                   key: "card" as const,
                   title: "Card checkout",
-                  description: "Secure hosted checkout for Visa, Mastercard, and international cards.",
+                  description: "Secure hosted checkout for Visa, Mastercard, and international cards charged in KES.",
                   icon: <CreditCard className="h-5 w-5" />,
                 },
                 {
@@ -268,7 +268,7 @@ export function SubscriptionCheckoutPage({
 
             <div className="mt-5 rounded-[20px] border border-[rgba(124,199,255,0.18)] bg-[rgba(124,199,255,0.06)] p-4 text-sm text-[#D8ECFF]">
               {paymentMethod === "card"
-                ? "You will continue to a secure hosted payment page to enter your real card details. EventSlot does not store raw card numbers."
+                ? "You will continue to a secure hosted payment page to enter your real card details. International cards are supported and settled in KES using today's billing rate."
                 : "You will continue to a secure hosted payment page to complete M-Pesa checkout. The payable amount is shown in KES for mobile-money settlement."}
             </div>
           </section>
@@ -315,11 +315,11 @@ export function SubscriptionCheckoutPage({
           <div className="mt-3 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] p-4 text-sm text-[rgba(240,237,230,0.62)]">
             <p className="font-semibold text-white">{accountName}</p>
             <p className="mt-1">{accountEmail}</p>
-            {paymentMethod === "mpesa" ? (
-              <p className="mt-3 text-[#C8F55A]">M-Pesa settlement estimate: {formatKes(quote.totalKes)}</p>
-            ) : (
-              <p className="mt-3 text-[#C8F55A]">Card checkout uses your plan&apos;s original USD pricing.</p>
-            )}
+            <p className="mt-3 text-[#C8F55A]">
+              {paymentMethod === "mpesa"
+                ? `M-Pesa settlement estimate: ${formatKes(quote.totalKes)}`
+                : `Card checkout settles in KES today: ${formatKes(quote.totalKes)}`}
+            </p>
           </div>
 
           {error ? (

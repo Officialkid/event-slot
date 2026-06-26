@@ -50,9 +50,8 @@ export async function POST(request: NextRequest) {
     }
 
     const quote = getSubscriptionBillingQuote(plan, billingCycle)
-    const checkoutCurrency = paymentMethod === "mpesa" ? "KES" : "USD"
-    const checkoutAmount =
-      checkoutCurrency === "KES" ? quote.totalKes : Math.round(quote.totalUsd * 100) / 100
+    const checkoutCurrency = "KES"
+    const checkoutAmount = quote.totalKes
 
     const now = new Date()
     const existingSubscription = await prisma.subscription.findFirst({
@@ -112,6 +111,7 @@ export async function POST(request: NextRequest) {
           plan: selectedPlan.key,
           billingCycle,
           paymentMethod,
+          settlementCurrency: checkoutCurrency,
           subtotalUsd: quote.subtotalUsd,
           taxUsd: quote.taxUsd,
           totalUsd: quote.totalUsd,
