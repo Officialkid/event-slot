@@ -2,13 +2,38 @@ import NextAuth from 'next-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
 import { loginRatelimit } from '@/lib/ratelimit'
+import { APP_URL } from '@/lib/config'
 
 function getClientIp(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for')
   return forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1'
 }
 
-const handler = NextAuth(authOptions)
+function isLocalHost(value: string | null | undefined): boolean {
+  if (!value) return false
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(value)
+}
+
+function getAuthBaseUrl(req: NextRequest): string {
+  const forwardedHost = req.headers.get('x-forwarded-host')
+  const host = forwardedHost ?? req.headers.get('host') ?? req.nextUrl.host
+  const forwardedProto = req.headers.get('x-forwarded-proto')
+  const protocol = forwardedProto ?? req.nextUrl.protocol.replace(/:$/, '') ?? (isLocalHost(host) ? 'http' : 'https')
+
+  if (host && !isLocalHost(host)) {
+    return `${protocol}://${host}`.replace(/\/$/, '')
+  }
+
+  return APP_URL
+}
+
+function getAuthHandler(req: NextRequest) {
+  const resolvedUrl = getAuthBaseUrl(req)
+  if (!process.env.NEXTAUTH_URL || process.env.NEXTAUTH_URL !== resolvedUrl) {
+    process.env.NEXTAUTH_URL = resolvedUrl
+  }
+  return NextAuth(authOptions)
+}
 
 async function POST(req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) {
   // Only rate-limit the credentials callback (not OAuth callbacks)
@@ -24,11 +49,13 @@ async function POST(req: NextRequest, context: { params: Promise<{ nextauth: str
       )
     }
   }
+  const handler = getAuthHandler(req)
   return handler(req, context)
 }
 
 async function GET(req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) {
   try {
+    const handler = getAuthHandler(req)
     return await handler(req, context)
   } catch (err) {
     const { nextauth } = await context.params
