@@ -127,7 +127,8 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     const response = await fetch(shareCardUrl, { cache: "no-store" })
     if (!response.ok) throw new Error("Unable to prepare share card.")
     const blob = await response.blob()
-    return new File([blob], `${event.slug}-checkin-poster.png`, { type: blob.type || "image/png" })
+    const extension = blob.type === "image/svg+xml" ? "svg" : "png"
+    return new File([blob], `${event.slug}-checkin-poster.${extension}`, { type: blob.type || "image/svg+xml" })
   }
 
   async function handleDownloadShareCard() {
@@ -138,7 +139,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
 
       const link = document.createElement("a")
       link.href = shareCardDownloadUrl
-      link.download = `${event.slug}-checkin-poster.png`
+      link.download = `${event.slug}-checkin-poster.svg`
       link.target = "_blank"
       link.rel = "noopener noreferrer"
       document.body.appendChild(link)
