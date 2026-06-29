@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 
 type WalkInCheckinFormProps = {
@@ -54,7 +53,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   const [result, setResult] = useState<CheckinResponse | null>(null)
   const [downloadingCard, setDownloadingCard] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
-  const [sharing, setSharing] = useState<"whatsapp" | "story" | null>(null)
+  const [sharing, setSharing] = useState<"poster" | null>(null)
   const [shareError, setShareError] = useState("")
 
   const eventLink = useMemo(() => {
@@ -62,7 +61,6 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     return getPublicEventUrl(window.location.origin, event.slug, "WALK_IN")
   }, [event.slug])
 
-  const communityLink = normalizeCommunityLink(event.communityLink)
   const shareText = useMemo(() => {
     if (!result) return ""
     const attendedLine = result.day.total > 1
@@ -153,13 +151,9 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     }
   }
 
-  async function handleShare(target: "whatsapp" | "story") {
+  async function handleShare() {
     if (!result) return
-    setSharing(target)
-    const whatsappWindow =
-      target === "whatsapp" && typeof window !== "undefined"
-        ? window.open("", "_blank", "noopener,noreferrer")
-        : null
+    setSharing("poster")
 
     try {
       setShareError("")
@@ -178,35 +172,10 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
             text: shareText,
             files: [file],
           })
-          if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
           return
         } catch {
-          // Fall through to channel-specific fallback.
+          // Fall through to link-based native share or local download fallback.
         }
-      }
-
-      if (target === "whatsapp" && typeof window !== "undefined") {
-        if (typeof navigator !== "undefined" && navigator.share) {
-          try {
-            await navigator.share({
-              title: `${result.event.title} - ${result.day.label}`,
-              text: shareText,
-              url: eventLink,
-            })
-            if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
-            return
-          } catch {
-            // Fall through to WhatsApp text fallback.
-          }
-        }
-
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${eventLink}`.trim())}`
-        if (whatsappWindow && !whatsappWindow.closed) {
-          whatsappWindow.location.href = whatsappUrl
-        } else {
-          window.location.href = whatsappUrl
-        }
-        return
       }
 
       if (typeof navigator !== "undefined" && navigator.share) {
@@ -216,7 +185,6 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
             text: shareText,
             url: eventLink,
           })
-          if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
           return
         } catch {
           // Fall through to local download fallback.
@@ -225,7 +193,6 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
 
       await handleDownloadShareCard()
     } catch {
-      if (whatsappWindow && !whatsappWindow.closed) whatsappWindow.close()
       setShareError("Sharing is not available right now. Please try Download my poster instead.")
     } finally {
       setSharing(null)
@@ -287,19 +254,11 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => void handleShare("whatsapp")}
+                onClick={() => void handleShare()}
                 disabled={sharing !== null}
                 className="rounded-full bg-[#C8F55A] px-5 py-2.5 text-[0.82rem] font-semibold text-[#0A0A0A] disabled:opacity-60"
               >
-                {sharing === "whatsapp" ? "Opening..." : "Share on WhatsApp"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleShare("story")}
-                disabled={sharing !== null}
-                className="rounded-full border border-[rgba(200,245,90,0.28)] bg-[rgba(200,245,90,0.08)] px-5 py-2.5 text-[0.82rem] font-medium text-[#C8F55A] disabled:opacity-60"
-              >
-                {sharing === "story" ? "Preparing..." : "Share poster"}
+                {sharing === "poster" ? "Preparing..." : "Share poster"}
               </button>
             </div>
             <div className="mt-3 flex flex-wrap gap-3">
@@ -320,24 +279,6 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
               </button>
             </div>
             {shareError && <p className="mt-3 text-[0.8rem] text-[#FFB84D]">{shareError}</p>}
-            {communityLink && (
-              <a
-                href={communityLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.08)] px-5 py-2.5 text-[0.82rem] font-medium text-[#C8F55A]"
-                style={{ textDecoration: "none" }}
-              >
-                {getCommunityLinkLabel(communityLink)}
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => setResult(null)}
-              className="mt-4 text-[0.86rem] font-medium text-[rgba(240,237,230,0.58)]"
-            >
-              Check in another person
-            </button>
           </div>
         </div>
         {showBranding && <BrandingFooter />}

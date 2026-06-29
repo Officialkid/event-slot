@@ -29,8 +29,10 @@ function getAuthBaseUrl(req: NextRequest): string {
 
 function getAuthHandler(req: NextRequest) {
   const resolvedUrl = getAuthBaseUrl(req)
-  if (!process.env.NEXTAUTH_URL || process.env.NEXTAUTH_URL !== resolvedUrl) {
-    process.env.NEXTAUTH_URL = resolvedUrl
+  const envKey = 'NEXTAUTH_URL'
+  const currentValue = process.env[envKey]
+  if (!currentValue || currentValue !== resolvedUrl) {
+    process.env[envKey] = resolvedUrl
   }
   return NextAuth(authOptions)
 }

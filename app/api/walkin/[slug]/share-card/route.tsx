@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og"
 import { NextRequest, NextResponse } from "next/server"
-import { readFile } from "fs/promises"
-import path from "path"
 import prisma from "@/lib/prisma"
 import {
   formatWalkInLongDayLabel,
@@ -13,11 +11,6 @@ import {
 export const runtime = "nodejs"
 
 const WALK_IN_TIME_ZONE = "Africa/Nairobi"
-
-async function loadFont(fileName: string) {
-  const fontPath = path.join(process.cwd(), "app", "fonts", fileName)
-  return readFile(fontPath)
-}
 
 async function loadRemoteImageAsDataUrl(url: string) {
   try {
@@ -93,11 +86,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       timeZone: WALK_IN_TIME_ZONE,
     })
 
-    const [geistRegular, geistBold, coverImageDataUrl] = await Promise.all([
-      loadFont("GeistVF.woff"),
-      loadFont("GeistVF.woff"),
-      event.imageUrl ? loadRemoteImageAsDataUrl(event.imageUrl) : Promise.resolve(null),
-    ])
+    const coverImageDataUrl = event.imageUrl
+      ? await loadRemoteImageAsDataUrl(event.imageUrl)
+      : null
 
     const response = new ImageResponse(
       (
@@ -266,10 +257,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       {
         width: 1080,
         height: 1920,
-        fonts: [
-          { name: "Geist", data: geistRegular, style: "normal", weight: 400 },
-          { name: "Geist", data: geistBold, style: "normal", weight: 700 },
-        ],
       },
     )
 
