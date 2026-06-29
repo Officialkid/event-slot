@@ -12,20 +12,6 @@ export const runtime = "nodejs"
 
 const WALK_IN_TIME_ZONE = "Africa/Nairobi"
 
-async function loadRemoteImageAsDataUrl(url: string) {
-  try {
-    const response = await fetch(url, { cache: "no-store" })
-    if (!response.ok) return null
-
-    const contentType = response.headers.get("content-type") || "image/jpeg"
-    const arrayBuffer = await response.arrayBuffer()
-    const base64 = Buffer.from(arrayBuffer).toString("base64")
-    return `data:${contentType};base64,${base64}`
-  } catch {
-    return null
-  }
-}
-
 function parseDayIndex(rawDay: string | null, totalDays: number) {
   if (!rawDay) return null
   const parsed = Number(rawDay)
@@ -86,10 +72,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       timeZone: WALK_IN_TIME_ZONE,
     })
 
-    const coverImageDataUrl = event.imageUrl
-      ? await loadRemoteImageAsDataUrl(event.imageUrl)
-      : null
-
     const response = new ImageResponse(
       (
         <div
@@ -104,30 +86,15 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
             fontFamily: "Geist, system-ui, sans-serif",
           }}
         >
-          {coverImageDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={coverImageDataUrl}
-              alt=""
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage:
-                  "linear-gradient(135deg, rgba(200,245,90,0.12) 0 2px, transparent 2px 32px), linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 28px), linear-gradient(160deg, #0A0A0A 0%, #111722 100%)",
-                opacity: 0.95,
-              }}
-            />
-          )}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage:
+                "linear-gradient(135deg, rgba(200,245,90,0.12) 0 2px, transparent 2px 32px), linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 28px), linear-gradient(160deg, #0A0A0A 0%, #111722 100%)",
+              opacity: 0.95,
+            }}
+          />
 
           <div
             style={{
