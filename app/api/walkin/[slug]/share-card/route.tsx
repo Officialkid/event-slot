@@ -76,99 +76,53 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       (
         <div
           style={{
-            width: "100%",
-            height: "100%",
+            background: "#0A0A0A",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            background: "#0A0A0A",
+            justifyContent: "center",
+            width: "100%",
+            height: "100%",
             color: "#F0EDE6",
             padding: "72px",
             fontFamily: "sans-serif",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-                color: "#C8F55A",
-                fontSize: "26px",
-                fontWeight: 700,
-              }}
-            >
-              <div
-                style={{
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "999px",
-                  background: "#C8F55A",
-                }}
-              />
-              <div>EventSlot</div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "18px",
-              }}
-            >
-              <div style={{ color: "#C8F55A", fontSize: "28px", fontWeight: 700 }}>
-                Welcome to
-              </div>
-              <div style={{ fontSize: "72px", fontWeight: 700, lineHeight: 1.08 }}>
-                {event.title}
-              </div>
-              <div style={{ color: "#C8F55A", fontSize: "34px", fontWeight: 600 }}>
-                {dayPosition && dayPosition.total > 1 ? `Day ${dayPosition.index} of ${dayPosition.total} - ` : ""}
-                {formatWalkInLongDayLabel(dayKey, WALK_IN_TIME_ZONE)}
-              </div>
-            </div>
+          <div style={{ color: "#C8F55A", fontSize: 24, marginBottom: 24 }}>
+            EventSlot
           </div>
-
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-              padding: "36px",
-              borderRadius: "32px",
-              border: "1px solid rgba(200,245,90,0.25)",
-              background: "rgba(255,255,255,0.04)",
+              fontSize: 78,
+              fontWeight: 700,
+              lineHeight: 1.1,
+              marginBottom: 24,
             }}
           >
-            <div style={{ fontSize: "26px", color: "rgba(240,237,230,0.72)" }}>
-              Checked in attendee
-            </div>
-            <div style={{ fontSize: "54px", fontWeight: 700 }}>
-              {attendeeName || "Event guest"}
-            </div>
-            {checkinNumber ? (
-              <div style={{ fontSize: "34px", color: "#C8F55A", fontWeight: 700 }}>
-                Check-in number #{checkinNumber}
-              </div>
-            ) : null}
-            <div style={{ fontSize: "28px", color: "rgba(240,237,230,0.82)" }}>
-              Thanks for being part of this moment.
-            </div>
+            {event.title}
           </div>
-
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              alignItems: "center",
-              textAlign: "center",
+              color: "#C8F55A",
+              fontSize: 34,
+              marginBottom: 20,
             }}
           >
-            <div style={{ fontSize: "24px", fontWeight: 700 }}>Powered by EventSlot</div>
-            <div style={{ fontSize: "22px", color: "rgba(240,237,230,0.78)" }}>
-              Check us out at www.eventsslot.com
+            {dayPosition && dayPosition.total > 1 ? `Day ${dayPosition.index} of ${dayPosition.total} - ` : ""}
+            {formatWalkInLongDayLabel(dayKey, WALK_IN_TIME_ZONE)}
+          </div>
+          <div style={{ fontSize: 32, marginBottom: 16 }}>
+            Checked in attendee: {attendeeName || "Event guest"}
+          </div>
+          {checkinNumber ? (
+            <div style={{ color: "#C8F55A", fontSize: 28, marginBottom: 16 }}>
+              Check-in number #{checkinNumber}
             </div>
+          ) : null}
+          <div style={{ fontSize: 24 }}>
+            Powered by EventSlot
+          </div>
+          <div style={{ fontSize: 20, marginTop: 8 }}>
+            Check us out at www.eventsslot.com
           </div>
         </div>
       ),
