@@ -16,3 +16,40 @@
 ○ Compiling middleware ...
 prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
 prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+○ Compiling /signin ...
+ GET /signin?callbackUrl=%2Fdashboard%2Fbilling%3Fsuccess%3Dtrue%26plan%3Dpro 200 in 14.1s (next.js: 9.4s, application-code: 4.7s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET / 200 in 12.8s (next.js: 9.1s, application-code: 3.6s)
+ GET /api/auth/session 200 in 29.3s (next.js: 28.1s, application-code: 1230ms)
+ GET /signin?callbackUrl=%2Fdashboard%2Fbilling%3Fsuccess%3Dtrue%26plan%3Dpro 200 in 11.8s (next.js: 87ms, application-code: 11.7s)
+ GET / 200 in 3.2s (next.js: 13ms, application-code: 3.2s)
+ GET /signin?callbackUrl=%2Fdashboard%2Fbilling%3Fsuccess%3Dtrue%26plan%3Dpro 200 in 2.4s (next.js: 17ms, application-code: 2.4s)
+ GET /api/auth/session 200 in 273ms (next.js: 186ms, application-code: 87ms)
+ GET /api/auth/providers 200 in 191ms (next.js: 145ms, application-code: 46ms)
+ GET /api/auth/csrf 200 in 41ms (next.js: 21ms, application-code: 21ms)
+ POST /api/auth/callback/credentials 401 in 870ms (next.js: 7ms, application-code: 864ms)
+○ Compiling /signup ...
+ GET /signin?callbackUrl=%2Fdashboard%2Fbilling%3Fsuccess%3Dtrue%26plan%3Dpro 200 in 2.5s (next.js: 63ms, application-code: 2.4s)
+ GET /signup 200 in 13.0s (next.js: 6.9s, application-code: 6.1s)
+ GET /api/auth/session 200 in 399ms (next.js: 308ms, application-code: 91ms)
+ POST /api/auth/signup 201 in 10.7s (next.js: 3.1s, application-code: 7.6s)
+ GET /api/auth/providers 200 in 304ms (next.js: 262ms, application-code: 42ms)
+ GET /api/auth/csrf 200 in 37ms (next.js: 5ms, application-code: 32ms)
+ POST /api/auth/callback/credentials 401 in 3.5s (next.js: 6ms, application-code: 3.5s)
+ GET /api/auth/providers 200 in 413ms (next.js: 387ms, application-code: 26ms)
+ GET /api/auth/csrf 200 in 28ms (next.js: 6ms, application-code: 23ms)
+ POST /api/auth/signin/google 200 in 549ms (next.js: 6ms, application-code: 543ms)
+ GET /api/auth/providers 200 in 55ms (next.js: 9ms, application-code: 47ms)
+ POST /api/auth/_log 200 in 35ms (next.js: 8ms, application-code: 27ms)
+ GET /api/auth/session 200 in 208ms (next.js: 160ms, application-code: 49ms)
+ GET /signin 200 in 5.7s (next.js: 654ms, application-code: 5.0s)
+ GET /api/auth/session 200 in 265ms (next.js: 233ms, application-code: 32ms)
+ GET /signin?callbackUrl=%2Fmy-events 200 in 2.6s (next.js: 16ms, application-code: 2.5s)
+ GET /api/auth/session 200 in 224ms (next.js: 199ms, application-code: 25ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ GET /signin?callbackUrl=%2Fmy-events 200 in 7.1s (next.js: 1534ms, application-code: 5.6s)
+ GET /signin 200 in 3.3s (next.js: 12ms, application-code: 3.3s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /api/auth/session 200 in 11.6s (next.js: 11.3s, application-code: 287ms)
+ GET /signin 200 in 3.2s (next.js: 545ms, application-code: 2.7s)

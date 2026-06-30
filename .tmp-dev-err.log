@@ -10,3 +10,30 @@ Warning: Custom Cache-Control headers detected for the following routes:
 
 Setting a custom Cache-Control header can break Next.js development behavior.
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[NextAuth error] JWT_SESSION_ERROR JWEDecryptionFailed: decryption operation failed
+    at async GET (app\api\auth\[...nextauth]\route.ts:61:12)
+  59 |   try {
+  60 |     const handler = getAuthHandler(req)
+> 61 |     return await handler(req, context)
+     |            ^
+  62 |   } catch (err) {
+  63 |     const { nextauth } = await context.params
+  64 |     const isSessionRoute = nextauth.join('/') === 'session' {
+  code: 'ERR_JWE_DECRYPTION_FAILED'
+}
+[email] Resend send error: {
+  statusCode: 403,
+  name: 'validation_error',
+  message: 'You can only send testing emails to your own email address (danielmwaliliofficial@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.'
+}
+[email] Resend send error: {
+  statusCode: 403,
+  name: 'validation_error',
+  message: 'You can only send testing emails to your own email address (danielmwaliliofficial@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.'
+}
+[NextAuth error] CLIENT_FETCH_ERROR {
+  error: '[object Object]',
+  url: '/api/auth/providers',
+  message: 'Failed to fetch',
+  client: 'true'
+}
