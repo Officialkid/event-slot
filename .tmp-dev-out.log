@@ -53,3 +53,4 @@ prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
 ○ Compiling /api/auth/[...nextauth] ...
  GET /api/auth/session 200 in 11.6s (next.js: 11.3s, application-code: 287ms)
  GET /signin 200 in 3.2s (next.js: 545ms, application-code: 2.7s)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

@@ -1644,7 +1644,7 @@ export default function EventDashboardPage() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000)
     } catch {
       window.location.assign(`/api/events/${eventData.slug}/qr`)
     }
