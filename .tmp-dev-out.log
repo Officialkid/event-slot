@@ -1,0 +1,18 @@
+
+> eventslot@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.2.9 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.151:3000
+- Environments: .env.local, .env
+✓ Ready in 3.0s
+ ○ (pwa) PWA support is disabled.
+
+○ Compiling / ...
+○ Compiling /api/events/[slug]/qr ...
+ GET /api/walkin/test-3-llyf/share-card?day=1&name=Daniel+Mwalili&spot=1&download=1 200 in 14.3s (next.js: 13.3s, application-code: 1009ms)
+ GET /api/events/test-3-llyf/qr 200 in 17.5s (next.js: 13.2s, application-code: 4.3s)
+○ Compiling middleware ...
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

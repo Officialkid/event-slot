@@ -129,14 +129,6 @@ function IconX() {
   )
 }
 
-function IconChat() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  )
-}
-
 function IconLogOut() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -163,7 +155,6 @@ const NAV_ITEMS = [
   { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { label: "Community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
-  { label: "Assistant", href: "/dashboard/assistant", icon: <IconChat />, exact: false },
   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
   { label: "Calendar", href: "/dashboard/profile#calendar", icon: <IconCalendar />, exact: false },
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
@@ -196,9 +187,9 @@ interface SidebarInnerProps {
   paymentsBadgeCount?: number
 }
 
-function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, paymentsNavVisible = false, paymentsBadgeCount = 0 }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, paymentsBadgeCount = 0 }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
-  const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" || paymentsNavVisible)
+  const visibleNavItems = NAV_ITEMS
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -749,14 +740,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
     fetch("/api/organizer/payments/summary", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        setPaymentsNavVisible(Boolean(data?.visible))
-        setPaymentsBadgeCount(typeof data?.badgeCount === "number" ? data.badgeCount : 0)
-      })
-      .catch(() => {
-        setPaymentsNavVisible(false)
-        setPaymentsBadgeCount(0)
-      })
+        .then((data) => {
+          setPaymentsNavVisible(data?.visible !== false)
+          setPaymentsBadgeCount(typeof data?.badgeCount === "number" ? data.badgeCount : 0)
+        })
+        .catch(() => {
+          setPaymentsNavVisible(true)
+          setPaymentsBadgeCount(0)
+        })
   }, [pathname, status])
 
   useEffect(() => {
@@ -1351,7 +1342,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {([
                   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
-                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: paymentsNavVisible },
+                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: true },
                   { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: true },
                   { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
                   { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: true },

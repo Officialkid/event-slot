@@ -1,0 +1,58 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\DANIEL\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\DANIEL\Documents\WebApp Projects\eventslot\event-slot\package-lock.json
+
+Warning: Custom Cache-Control headers detected for the following routes:
+  - /_next/static/:path*
+
+Setting a custom Cache-Control header can break Next.js development behavior.
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[NextAuth error] CLIENT_FETCH_ERROR {
+  error: '[object Object]',
+  url: '/api/auth/session',
+  message: 'Failed to fetch',
+  client: 'true'
+}
+[NextAuth error] CLIENT_FETCH_ERROR {
+  error: '[object Object]',
+  url: '/api/auth/session',
+  message: 'Failed to fetch',
+  client: 'true'
+}
+[NextAuth error] JWT_SESSION_ERROR JWEDecryptionFailed: decryption operation failed
+    at async GET (app\api\auth\[...nextauth]\route.ts:32:12)
+  30 | async function GET(req: NextRequest, context: { params: Promise<{ nextauth: string[] }> }) {
+  31 |   try {
+> 32 |     return await handler(req, context)
+     |            ^
+  33 |   } catch (err) {
+  34 |     console.error('[NextAuth GET error]', err)
+  35 |     throw err {
+  code: 'ERR_JWE_DECRYPTION_FAILED'
+}
+
+<--- Last few GCs --->
+
+[33344:00000174780A7000]     8392 ms: Scavenge 76.0 (94.0) -> 59.8 (86.2) MB, pooled: 0 MB, 17.76 / 0.00 ms  (average mu = 0.999, current mu = 0.999) allocation failure; 
+
+
+<--- JS stacktrace --->
+
+FATAL ERROR: NewSpace::EnsureCurrentCapacity Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF715BB18E7 
+ 2: 00007FF715B1212B 
+ 3: 00007FF71671AE51 
+ 4: 00007FF716707916 
+ 5: 00007FF716564060 
+ 6: 00007FF716540DE0 
+ 7: 00007FF71656ACFB 
+ 8: 00007FF71656D30E 
+ 9: 00007FF71655D12D 
+10: 00007FF716558CE5 
+11: 00007FF715EE273D 

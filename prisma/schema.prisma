@@ -142,6 +142,9 @@ model User {
   marketingConsent         Boolean   @default(false)
   twoFactorEnabled         Boolean   @default(false)
   otpRequired              Boolean   @default(false)
+  paymentPinHash           String?
+  paymentPinEnabled        Boolean   @default(false)
+  paymentPinUpdatedAt      DateTime?
   googleCalendarConnected  Boolean   @default(false)
   onboardingCompleted      Boolean   @default(false)
   onboardingStep           Int       @default(0)

@@ -1,9 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import type {
+  OrganizerPaymentAttemptRow,
+  OrganizerPaymentEventRow,
+  OrganizerPaymentRegistrationRow,
   OrganizerPaymentsDashboardData,
   OrganizerWithdrawalRow,
   SupportedCurrency,
@@ -14,11 +17,15 @@ type PaymentsPageProps = {
   data: OrganizerPaymentsDashboardData
 }
 
+type WorkspaceTab = "overview" | "events" | "transactions" | "withdrawals" | "security"
+type EventPanelTab = "overview" | "registrations" | "payments"
 type WithdrawalMethodKey = "MPESA" | "PAYBILL" | "BANK"
 
 type WithdrawalDraft = {
   amount: string
   method: WithdrawalMethodKey
+  paymentPin: string
+  emailOtp: string
   mpesaPhone: string
   mpesaAccountName: string
   paybillNumber: string
@@ -89,10 +96,11 @@ function statusLabel(status: OrganizerWithdrawalRow["status"]) {
   }
 }
 
-function payoutLabel(status: "ACTIVE" | "ENDED" | "PAID_OUT") {
-  if (status === "PAID_OUT") return "Paid Out"
-  if (status === "ENDED") return "Ended"
-  return "Active"
+function paymentStatusTone(status: OrganizerPaymentRegistrationRow["paymentStatus"] | OrganizerPaymentAttemptRow["status"]) {
+  if (status === "SUCCESS" || status === "PAID") return { color: "#C8F55A", background: "rgba(200,245,90,0.1)" }
+  if (status === "WAITLIST") return { color: "#FFB84D", background: "rgba(255,184,77,0.12)" }
+  if (status === "PENDING" || status === "PAYMENT_PENDING" || status === "PROCESSING") return { color: "#8AB4FF", background: "rgba(138,180,255,0.12)" }
+  return { color: "#FF8A8A", background: "rgba(255,107,107,0.12)" }
 }
 
 function trendIcon(color: string) {
@@ -104,7 +112,7 @@ function trendIcon(color: string) {
   )
 }
 
-function pillStyle(active: boolean): React.CSSProperties {
+function pillStyle(active: boolean): CSSProperties {
   return {
     border: active ? "0.5px solid rgba(200,245,90,0.38)" : "0.5px solid rgba(240,237,230,0.12)",
     background: active ? "rgba(200,245,90,0.08)" : "transparent",
@@ -118,10 +126,47 @@ function pillStyle(active: boolean): React.CSSProperties {
   }
 }
 
+const inputStyle: CSSProperties = {
+  width: "100%",
+  borderRadius: 10,
+  background: "#181818",
+  border: "0.5px solid rgba(240,237,230,0.12)",
+  color: "#F0EDE6",
+  padding: "0.9rem 1rem",
+  fontSize: "0.9rem",
+  fontFamily: "var(--font-dm-sans)",
+}
+
+const primaryButtonStyle: CSSProperties = {
+  border: "none",
+  borderRadius: 999,
+  background: "#C8F55A",
+  color: "#0A0A0A",
+  padding: "0.8rem 1.15rem",
+  fontSize: "0.82rem",
+  fontWeight: 700,
+  fontFamily: "var(--font-dm-sans)",
+  cursor: "pointer",
+}
+
+const secondaryButtonStyle: CSSProperties = {
+  border: "0.5px solid rgba(240,237,230,0.14)",
+  borderRadius: 999,
+  background: "transparent",
+  color: "#F0EDE6",
+  padding: "0.8rem 1.15rem",
+  fontSize: "0.82rem",
+  fontWeight: 600,
+  fontFamily: "var(--font-dm-sans)",
+  cursor: "pointer",
+}
+
 function emptyDraft(): WithdrawalDraft {
   return {
     amount: "",
     method: "MPESA",
+    paymentPin: "",
+    emailOtp: "",
     mpesaPhone: "",
     mpesaAccountName: "",
     paybillNumber: "",
@@ -130,17 +175,86 @@ function emptyDraft(): WithdrawalDraft {
     bankName: KENYAN_BANKS[0],
     bankAccountNumber: "",
     bankAccountName: "",
-      bankBranchCode: "",
+    bankBranchCode: "",
   }
+}
+
+function MetricCard({
+  label,
+  value,
+  accent = "#F0EDE6",
+  hint,
+  icon,
+}: {
+  label: string
+  value: string
+  accent?: string
+  hint?: string
+  icon?: ReactNode
+}) {
+  return (
+    <div className="dashboard-surface" style={{ padding: "1.1rem 1.15rem", background: "#141414" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.7rem" }}>
+        <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.42)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+          {label}
+        </span>
+        {icon}
+      </div>
+      <div style={{ fontSize: "1.55rem", color: accent, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+        {value}
+      </div>
+      {hint ? (
+        <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+          {hint}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function SummaryLine({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.86rem" }}>
+      <span style={{ color: "rgba(240,237,230,0.52)" }}>{label}</span>
+      <span style={{ color: accent ? "#C8F55A" : "#F0EDE6", textAlign: "right" }}>{value}</span>
+    </div>
+  )
+}
+
+function StatusPill({ label, tone }: { label: string; tone: ReturnType<typeof paymentStatusTone> }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        borderRadius: 999,
+        padding: "0.24rem 0.55rem",
+        fontSize: "0.7rem",
+        fontFamily: "var(--font-dm-sans)",
+        fontWeight: 700,
+        letterSpacing: "0.04em",
+        background: tone.background,
+        color: tone.color,
+      }}
+    >
+      {label}
+    </span>
+  )
 }
 
 function WithdrawalModal({
   currency,
   available,
+  paymentPinReady,
+  twoFactorReady,
+  securityEmail,
   onClose,
 }: {
   currency: SupportedCurrency
   available: number
+  paymentPinReady: boolean
+  twoFactorReady: boolean
+  securityEmail: string | null
   onClose: () => void
 }) {
   const router = useRouter()
@@ -148,6 +262,8 @@ function WithdrawalModal({
   const [draft, setDraft] = useState<WithdrawalDraft>(emptyDraft)
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [otpMessage, setOtpMessage] = useState("")
   const [result, setResult] = useState<{ reference: string; destination: string; processingTime: string } | null>(null)
 
   const amount = Number(draft.amount)
@@ -160,12 +276,18 @@ function WithdrawalModal({
     return `${draft.bankName} / ${draft.bankAccountNumber}`
   }, [draft])
 
-  function validateCurrentStep(nextStep: 2 | 3 | 4 | 5) {
-    if (nextStep === 2) {
-      if (!amountIsValid) {
-        setError(`Enter an amount between ${formatMoney(currency, minimum)} and ${formatMoney(currency, available)}.`)
-        return false
-      }
+  function validateStep(nextStep: 2 | 3 | 4 | 5) {
+    if (!twoFactorReady) {
+      setError("Turn on account 2FA in Profile before requesting a withdrawal.")
+      return false
+    }
+    if (!paymentPinReady) {
+      setError("Set your payments PIN in the Security tab before requesting a withdrawal.")
+      return false
+    }
+    if (nextStep === 2 && !amountIsValid) {
+      setError(`Enter an amount between ${formatMoney(currency, minimum)} and ${formatMoney(currency, available)}.`)
+      return false
     }
     if (nextStep === 4) {
       if (draft.method === "MPESA" && !draft.mpesaPhone.trim()) {
@@ -181,9 +303,32 @@ function WithdrawalModal({
         return false
       }
     }
+    if (nextStep === 5 && (!draft.paymentPin.trim() || !draft.emailOtp.trim())) {
+      setError("Enter both your payments PIN and the email verification code.")
+      return false
+    }
     setError("")
     setStep(nextStep)
     return true
+  }
+
+  async function requestOtp() {
+    setSendingOtp(true)
+    setError("")
+    setOtpMessage("")
+    try {
+      const res = await fetch("/api/organizer/payments/security/otp", { method: "POST" })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload.error || "Unable to send verification code.")
+        return
+      }
+      setOtpMessage(payload.message || "Verification code sent.")
+    } catch {
+      setError("Unable to send verification code.")
+    } finally {
+      setSendingOtp(false)
+    }
   }
 
   async function handleSubmit() {
@@ -197,6 +342,8 @@ function WithdrawalModal({
           currency,
           amount,
           method: draft.method,
+          paymentPin: draft.paymentPin,
+          emailOtp: draft.emailOtp,
           destination: {
             mpesaPhone: draft.mpesaPhone,
             mpesaAccountName: draft.mpesaAccountName,
@@ -260,7 +407,7 @@ function WithdrawalModal({
             </p>
           </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontSize: "1.6rem", lineHeight: 1 }}>
-            ×
+            X
           </button>
         </div>
 
@@ -300,15 +447,7 @@ function WithdrawalModal({
               value={draft.amount}
               onChange={(event) => setDraft((current) => ({ ...current, amount: event.target.value }))}
               placeholder={`${currency} ${minimum}`}
-              style={{
-                width: "100%",
-                borderRadius: 10,
-                background: "#181818",
-                border: "0.5px solid rgba(240,237,230,0.12)",
-                color: "#F0EDE6",
-                padding: "0.9rem 1rem",
-                fontSize: "0.98rem",
-              }}
+              style={inputStyle}
             />
             <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
               Maximum: {formatMoney(currency, available)}
@@ -321,7 +460,7 @@ function WithdrawalModal({
             <p style={{ margin: 0, fontSize: "0.9rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>How would you like to receive your funds?</p>
             {([
               { key: "MPESA", title: "M-Pesa", description: "Send to a Safaricom mobile number" },
-              { key: "PAYBILL", title: "PayBill", description: "Send to a business PayBill number" },
+              { key: "PAYBILL", title: "Till / PayBill", description: "Send to a business till or PayBill destination" },
               { key: "BANK", title: "Bank Transfer", description: "Send to a local bank account" },
             ] as const).map((option) => (
               <button
@@ -349,24 +488,14 @@ function WithdrawalModal({
           <div style={{ display: "grid", gap: "0.8rem" }}>
             {draft.method === "MPESA" && (
               <>
-                <input
-                  value={draft.mpesaPhone}
-                  onChange={(event) => setDraft((current) => ({ ...current, mpesaPhone: event.target.value }))}
-                  placeholder="M-Pesa Phone Number"
-                  style={inputStyle}
-                />
-                <input
-                  value={draft.mpesaAccountName}
-                  onChange={(event) => setDraft((current) => ({ ...current, mpesaAccountName: event.target.value }))}
-                  placeholder="Account Name"
-                  style={inputStyle}
-                />
+                <input value={draft.mpesaPhone} onChange={(event) => setDraft((current) => ({ ...current, mpesaPhone: event.target.value }))} placeholder="M-Pesa Phone Number" style={inputStyle} />
+                <input value={draft.mpesaAccountName} onChange={(event) => setDraft((current) => ({ ...current, mpesaAccountName: event.target.value }))} placeholder="Account Name" style={inputStyle} />
               </>
             )}
 
             {draft.method === "PAYBILL" && (
               <>
-                <input value={draft.paybillNumber} onChange={(event) => setDraft((current) => ({ ...current, paybillNumber: event.target.value }))} placeholder="PayBill Number" style={inputStyle} />
+                <input value={draft.paybillNumber} onChange={(event) => setDraft((current) => ({ ...current, paybillNumber: event.target.value }))} placeholder="Till or PayBill Number" style={inputStyle} />
                 <input value={draft.paybillAccountNumber} onChange={(event) => setDraft((current) => ({ ...current, paybillAccountNumber: event.target.value }))} placeholder="Account Number" style={inputStyle} />
                 <input value={draft.paybillBusinessName} onChange={(event) => setDraft((current) => ({ ...current, paybillBusinessName: event.target.value }))} placeholder="Business Name" style={inputStyle} />
               </>
@@ -386,16 +515,39 @@ function WithdrawalModal({
         )}
 
         {step === 4 && (
-          <div style={{ display: "grid", gap: "0.8rem", padding: "0.4rem 0" }}>
-            <SummaryLine label="Amount" value={formatMoney(currency, amount)} />
-            <SummaryLine label="Method" value={draft.method === "MPESA" ? "M-Pesa" : draft.method === "PAYBILL" ? "PayBill" : "Bank Transfer"} />
-            <SummaryLine label="Destination" value={destinationLabel} />
-            <SummaryLine label="Fee" value={formatMoney(currency, 0)} />
-            <SummaryLine label="You receive" value={formatMoney(currency, amount)} accent />
+          <div style={{ display: "grid", gap: "0.8rem" }}>
+            <div style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.16)", borderRadius: 12, padding: "0.95rem 1rem" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.7, color: "rgba(240,237,230,0.72)", fontFamily: "var(--font-dm-sans)" }}>
+                Withdrawals require your payments PIN and a one-time verification code sent to {securityEmail ?? "your email"}.
+              </p>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              value={draft.paymentPin}
+              onChange={(event) => setDraft((current) => ({ ...current, paymentPin: event.target.value }))}
+              placeholder="Payments PIN"
+              style={inputStyle}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.75rem" }}>
+              <input
+                inputMode="numeric"
+                value={draft.emailOtp}
+                onChange={(event) => setDraft((current) => ({ ...current, emailOtp: event.target.value }))}
+                placeholder="Email verification code"
+                style={inputStyle}
+              />
+              <button type="button" onClick={requestOtp} disabled={sendingOtp} style={{ ...secondaryButtonStyle, opacity: sendingOtp ? 0.7 : 1 }}>
+                {sendingOtp ? "Sending..." : "Send code"}
+              </button>
+            </div>
+            {otpMessage ? (
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{otpMessage}</p>
+            ) : null}
           </div>
         )}
 
-        {step === 5 && result && (
+        {step === 5 && result ? (
           <div style={{ display: "grid", gap: "0.8rem", padding: "0.5rem 0" }}>
             <div style={{ fontSize: "1rem", color: "#C8F55A", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>Withdrawal Initiated</div>
             <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.7, color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
@@ -403,6 +555,13 @@ function WithdrawalModal({
             </p>
             <SummaryLine label="Reference" value={result.reference} />
             <SummaryLine label="Processing time" value={result.processingTime} />
+          </div>
+        ) : null}
+
+        {step < 5 && (
+          <div style={{ display: "grid", gap: "0.75rem", marginTop: "1rem" }}>
+            <SummaryLine label="Amount" value={formatMoney(currency, Number.isFinite(amount) ? amount : 0)} accent />
+            <SummaryLine label="Destination" value={destinationLabel || "To be provided"} />
           </div>
         )}
 
@@ -416,9 +575,9 @@ function WithdrawalModal({
                 Back
               </button>
             ) : null}
-            {step === 1 && <button type="button" onClick={() => validateCurrentStep(2)} style={primaryButtonStyle}>Continue</button>}
-            {step === 2 && <button type="button" onClick={() => validateCurrentStep(3)} style={primaryButtonStyle}>Continue</button>}
-            {step === 3 && <button type="button" onClick={() => validateCurrentStep(4)} style={primaryButtonStyle}>Continue</button>}
+            {step === 1 && <button type="button" onClick={() => validateStep(2)} style={primaryButtonStyle}>Continue</button>}
+            {step === 2 && <button type="button" onClick={() => validateStep(3)} style={primaryButtonStyle}>Continue</button>}
+            {step === 3 && <button type="button" onClick={() => validateStep(4)} style={primaryButtonStyle}>Continue</button>}
             {step === 4 && (
               <button type="button" onClick={handleSubmit} disabled={submitting} style={{ ...primaryButtonStyle, opacity: submitting ? 0.65 : 1 }}>
                 {submitting ? "Submitting..." : "Confirm Withdrawal"}
@@ -432,69 +591,258 @@ function WithdrawalModal({
   )
 }
 
-function SummaryLine({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+function SecurityPanel({
+  security,
+}: {
+  security: OrganizerPaymentsDashboardData["security"]
+}) {
+  const router = useRouter()
+  const [pin, setPin] = useState("")
+  const [confirmPin, setConfirmPin] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+
+  async function handleSavePin() {
+    setSaving(true)
+    setError("")
+    setMessage("")
+    try {
+      const res = await fetch("/api/organizer/payments/security", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, confirmPin }),
+      })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload.error || "Could not save your payments PIN.")
+        return
+      }
+      setMessage("Payments PIN saved. Withdrawals will now require your PIN and an email code.")
+      setPin("")
+      setConfirmPin("")
+      router.refresh()
+    } catch {
+      setError("Could not save your payments PIN.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.86rem" }}>
-      <span style={{ color: "rgba(240,237,230,0.52)" }}>{label}</span>
-      <span style={{ color: accent ? "#C8F55A" : "#F0EDE6", textAlign: "right" }}>{value}</span>
+    <div style={{ display: "grid", gap: "1rem" }}>
+      <div className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+        <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+          Payments security
+        </h2>
+        <p style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.7, color: "rgba(240,237,230,0.62)", fontFamily: "var(--font-dm-sans)" }}>
+          Every withdrawal now requires account 2FA, a dedicated payments PIN, and an email OTP. This works separately from your normal sign-in so money movement has its own security wall.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+        <MetricCard label="Account 2FA" value={security.twoFactorEnabled ? "Enabled" : "Off"} accent={security.twoFactorEnabled ? "#C8F55A" : "#FFB84D"} hint="Profile-level sign-in protection" />
+        <MetricCard label="Payments PIN" value={security.paymentPinEnabled ? "Configured" : "Required"} accent={security.paymentPinEnabled ? "#C8F55A" : "#FFB84D"} hint="Needed before any withdrawal" />
+        <MetricCard label="Verification email" value={security.email ?? "Missing"} accent={security.email ? "#F0EDE6" : "#FF8A8A"} hint="Used for every withdrawal OTP" />
+      </div>
+
+      {!security.twoFactorEnabled ? (
+        <div className="dashboard-surface" style={{ padding: "1rem 1.1rem", borderColor: "rgba(255,184,77,0.28)", background: "rgba(255,184,77,0.05)" }}>
+          <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: "#FFB84D", fontFamily: "var(--font-dm-sans)" }}>
+            Turn on two-factor authentication in Profile before any withdrawal can be approved.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+        <div style={{ display: "grid", gap: "0.8rem", maxWidth: 420 }}>
+          <h3 style={{ margin: 0, fontSize: "0.95rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+            {security.paymentPinEnabled ? "Update payments PIN" : "Set payments PIN"}
+          </h3>
+          <input value={pin} onChange={(event) => setPin(event.target.value)} inputMode="numeric" type="password" placeholder="4 to 6 digit PIN" style={inputStyle} />
+          <input value={confirmPin} onChange={(event) => setConfirmPin(event.target.value)} inputMode="numeric" type="password" placeholder="Confirm PIN" style={inputStyle} />
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button type="button" onClick={handleSavePin} disabled={saving} style={{ ...primaryButtonStyle, opacity: saving ? 0.7 : 1 }}>
+              {saving ? "Saving..." : security.paymentPinEnabled ? "Update PIN" : "Save PIN"}
+            </button>
+            <Link href="/dashboard/profile" style={{ ...secondaryButtonStyle, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+              Open profile security
+            </Link>
+          </div>
+          {message ? <p style={{ margin: 0, fontSize: "0.8rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{message}</p> : null}
+          {error ? <p style={{ margin: 0, fontSize: "0.8rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{error}</p> : null}
+        </div>
+      </div>
     </div>
   )
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  borderRadius: 10,
-  background: "#181818",
-  border: "0.5px solid rgba(240,237,230,0.12)",
-  color: "#F0EDE6",
-  padding: "0.9rem 1rem",
-  fontSize: "0.9rem",
-  fontFamily: "var(--font-dm-sans)",
+function EventOverview({
+  event,
+}: {
+  event: OrganizerPaymentEventRow
+}) {
+  return (
+    <div style={{ display: "grid", gap: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+        <MetricCard label="Gross revenue" value={formatMoney(event.currency, event.gross)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
+        <MetricCard label="Net earnings" value={formatMoney(event.currency, event.net)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
+        <MetricCard label="Confirmed" value={String(event.confirmedCount)} hint="Attendees in the event" />
+        <MetricCard label="Waitlist" value={String(event.waitlistCount)} hint="Still waiting for a spot" />
+      </div>
+
+      <div className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+        <div style={{ display: "grid", gap: "0.6rem" }}>
+          <SummaryLine label="Event date" value={formatDate(event.eventDate)} />
+          <SummaryLine label="Ticket revenue" value={formatMoney(event.currency, event.gross)} />
+          <SummaryLine label="Platform commission" value={`${formatMoney(event.currency, event.commission)} · ${Math.round(event.commissionRate * 100)}%`} />
+          <SummaryLine label="Successful payments" value={String(event.successfulPayments)} />
+          <SummaryLine label="Pending payments" value={String(event.pendingPayments)} />
+        </div>
+      </div>
+
+      <div className="dashboard-surface" style={{ padding: "1rem 0" }}>
+        <div style={{ padding: "0 1.1rem 0.9rem" }}>
+          <h3 style={{ margin: 0, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+            Ticket tiers
+          </h3>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Tickets Sold</th>
+                <th>Price</th>
+                <th>Gross</th>
+                <th>Commission</th>
+                <th>Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {event.tiers.map((tier) => (
+                <tr key={tier.id}>
+                  <td>
+                    <TierBadge name={tier.name} badgeColor={tier.badgeColor} textColor={tier.textColor} metallic={tier.metallic} size="sm" />
+                  </td>
+                  <td>{tier.ticketsSold}</td>
+                  <td>{formatMoney(event.currency, tier.price)}</td>
+                  <td>{formatMoney(event.currency, tier.gross)}</td>
+                  <td>{formatMoney(event.currency, tier.commission)}</td>
+                  <td>{formatMoney(event.currency, tier.net)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const primaryButtonStyle: React.CSSProperties = {
-  border: "none",
-  borderRadius: 999,
-  background: "#C8F55A",
-  color: "#0A0A0A",
-  padding: "0.8rem 1.15rem",
-  fontSize: "0.82rem",
-  fontWeight: 700,
-  fontFamily: "var(--font-dm-sans)",
-  cursor: "pointer",
+function EventRegistrationsTable({ rows, currency }: { rows: OrganizerPaymentRegistrationRow[]; currency: SupportedCurrency }) {
+  return (
+    <div className="table-wrapper" style={{ maxHeight: 520 }}>
+      <table>
+        <thead>
+          <tr>
+            <th>Attendee</th>
+            <th>Status</th>
+            <th>Tier</th>
+            <th>Amount</th>
+            <th>Registered</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <span style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
+                  <span style={{ color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
+                </div>
+              </td>
+              <td><StatusPill label={row.paymentStatus} tone={paymentStatusTone(row.paymentStatus)} /></td>
+              <td>{row.tierName}</td>
+              <td>{formatMoney(currency, row.amountPaid)}</td>
+              <td>{formatDateTime(row.submittedAt)}</td>
+              <td>{row.paymentReference ?? row.confirmationCode ?? "—"}</td>
+            </tr>
+          ))}
+          {rows.length === 0 && (
+            <tr>
+              <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                No registrations yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
-const secondaryButtonStyle: React.CSSProperties = {
-  border: "0.5px solid rgba(240,237,230,0.14)",
-  borderRadius: 999,
-  background: "transparent",
-  color: "#F0EDE6",
-  padding: "0.8rem 1.15rem",
-  fontSize: "0.82rem",
-  fontWeight: 600,
-  fontFamily: "var(--font-dm-sans)",
-  cursor: "pointer",
+function EventPaymentsTable({ rows }: { rows: OrganizerPaymentAttemptRow[] }) {
+  return (
+    <div className="table-wrapper" style={{ maxHeight: 520 }}>
+      <table>
+        <thead>
+          <tr>
+            <th>Attendee</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Created</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id}>
+              <td>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <span style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
+                  <span style={{ color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
+                </div>
+              </td>
+              <td><StatusPill label={row.status} tone={paymentStatusTone(row.status)} /></td>
+              <td>{formatMoney(row.currency, row.amount)}</td>
+              <td>{row.paymentMethod}</td>
+              <td>{formatDateTime(row.createdAt)}</td>
+              <td>{row.reference ?? "Pending"}</td>
+            </tr>
+          ))}
+          {rows.length === 0 && (
+            <tr>
+              <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                No payment attempts recorded yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
   const [currency, setCurrency] = useState<SupportedCurrency>(data.defaultCurrency)
-  const [expandedEventIds, setExpandedEventIds] = useState<string[]>([])
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("overview")
+  const [eventPanelTab, setEventPanelTab] = useState<EventPanelTab>("overview")
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(data.events[0]?.id ?? null)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
-  const [activeLedgerTab, setActiveLedgerTab] = useState<"transactions" | "withdrawals">("transactions")
   const [eventFilter, setEventFilter] = useState("all")
   const [tierFilter, setTierFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
 
   const summary = data.summaryByCurrency[currency]
-  const events = useMemo(() => data.events.filter((event) => event.currency === currency), [data.events, currency])
-  const eventOptions = useMemo(() => {
-    return Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.eventTitle)))
-  }, [data.transactions, currency])
-  const tierOptions = useMemo(() => {
-    return Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.tierName)))
-  }, [data.transactions, currency])
-
+  const events = useMemo(() => data.events.filter((event) => event.currency === currency), [currency, data.events])
+  const selectedEvent = useMemo(
+    () => events.find((event) => event.id === selectedEventId) ?? events[0] ?? null,
+    [events, selectedEventId]
+  )
   const filteredTransactions = useMemo(() => {
     return data.transactions.filter((item) => {
       if (item.currency !== currency) return false
@@ -506,29 +854,15 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
     })
   }, [currency, data.transactions, dateFrom, dateTo, eventFilter, tierFilter])
 
-  const withdrawals = useMemo(() => data.withdrawals.filter((item) => item.currency === currency), [data.withdrawals, currency])
-
-  if (!data.sidebar.visible) {
-    return (
-      <div className="dashboard-page-shell" style={{ maxWidth: 960 }}>
-        <div style={{ marginBottom: "1.5rem" }}>
-          <h1 className="dashboard-page-title">My Payments</h1>
-          <p className="dashboard-page-intro">Track your event earnings and withdraw your balance.</p>
-        </div>
-        <section className="dashboard-surface" style={{ padding: "1.3rem" }}>
-          <p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(240,237,230,0.62)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
-            This section appears once your paid events start receiving successful ticket payments.
-          </p>
-        </section>
-      </div>
-    )
-  }
+  const eventOptions = useMemo(() => Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.eventTitle))), [currency, data.transactions])
+  const tierOptions = useMemo(() => Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.tierName))), [currency, data.transactions])
+  const withdrawals = useMemo(() => data.withdrawals.filter((item) => item.currency === currency), [currency, data.withdrawals])
 
   return (
-    <div className="dashboard-page-shell" style={{ maxWidth: 1160 }}>
+    <div className="dashboard-page-shell" style={{ maxWidth: 1220 }}>
       <div style={{ marginBottom: "1.5rem" }}>
-        <h1 className="dashboard-page-title">My Payments</h1>
-        <p className="dashboard-page-intro">Track your event earnings and withdraw your balance.</p>
+        <h1 className="dashboard-page-title">Payments</h1>
+        <p className="dashboard-page-intro">Your payments area brings together every paid event, every payout signal, and the controls that protect withdrawals.</p>
       </div>
 
       {data.availableCurrencies.length > 1 && (
@@ -541,267 +875,338 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
         </div>
       )}
 
-      <section style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: "1rem" }}>
-        {[
-          { label: "Total Gross", value: formatMoney(currency, summary.gross), accent: "#C8F55A", icon: trendIcon("#C8F55A") },
-          { label: "Commission Deducted", value: formatMoney(currency, summary.commission), accent: "rgba(240,237,230,0.72)", icon: null },
-          { label: "Net Earnings", value: formatMoney(currency, summary.net), accent: "#C8F55A", icon: trendIcon("#C8F55A") },
-          { label: "Withdrawable Balance", value: formatMoney(currency, summary.withdrawable), accent: "#C8F55A", icon: null },
-        ].map((card) => (
-          <div key={card.label} className="dashboard-surface" style={{ padding: "1.1rem 1.15rem", background: "#141414" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.7rem" }}>
-              <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.42)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
-                {card.label}
-              </span>
-              {card.icon}
-            </div>
-            <div style={{ fontSize: "1.55rem", color: card.accent, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
-              {card.value}
-            </div>
-          </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: "1rem" }}>
+        {([
+          { key: "overview", label: "Overview" },
+          { key: "events", label: "Events" },
+          { key: "transactions", label: "Transactions" },
+          { key: "withdrawals", label: "Withdrawals" },
+          { key: "security", label: "Security" },
+        ] as const).map((tab) => (
+          <button key={tab.key} type="button" onClick={() => setWorkspaceTab(tab.key)} style={pillStyle(workspaceTab === tab.key)}>
+            {tab.label}
+          </button>
         ))}
-      </section>
+      </div>
 
-      <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>Available</div>
-          <div style={{ marginTop: 4, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
-            {formatMoney(currency, summary.withdrawable)}
-          </div>
-        </div>
-        <button
-          type="button"
-          disabled={summary.withdrawable <= 0}
-          onClick={() => setShowWithdrawModal(true)}
-          style={{
-            border: "none",
-            borderRadius: 999,
-            background: summary.withdrawable > 0 ? "#C8F55A" : "rgba(240,237,230,0.12)",
-            color: summary.withdrawable > 0 ? "#0A0A0A" : "rgba(240,237,230,0.4)",
-            padding: "0.85rem 1.25rem",
-            fontSize: "0.84rem",
-            fontWeight: 700,
-            fontFamily: "var(--font-dm-sans)",
-            cursor: summary.withdrawable > 0 ? "pointer" : "not-allowed",
-          }}
-        >
-          Withdraw Funds
-        </button>
-      </section>
+      {workspaceTab === "overview" && (
+        <div style={{ display: "grid", gap: "1rem" }}>
+          <section style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            <MetricCard label="Total Gross" value={formatMoney(currency, summary.gross)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
+            <MetricCard label="Commission Deducted" value={formatMoney(currency, summary.commission)} accent="rgba(240,237,230,0.72)" />
+            <MetricCard label="Net Earnings" value={formatMoney(currency, summary.net)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
+            <MetricCard label="Withdrawable Balance" value={formatMoney(currency, summary.withdrawable)} accent="#C8F55A" />
+          </section>
 
-      <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", marginBottom: "1rem", background: "rgba(255,184,77,0.05)", borderColor: "rgba(255,184,77,0.18)" }}>
-        <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)" }}>
-          EventSlot&apos;s platform commission is non-refundable. If you issue a refund to an attendee, the commission amount is deducted from your net balance.
-        </p>
-      </section>
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>Available now</div>
+                <div style={{ marginTop: 4, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                  {formatMoney(currency, summary.withdrawable)}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  disabled={summary.withdrawable <= 0}
+                  onClick={() => setShowWithdrawModal(true)}
+                  style={{
+                    ...primaryButtonStyle,
+                    opacity: summary.withdrawable > 0 ? 1 : 0.5,
+                    cursor: summary.withdrawable > 0 ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Withdraw Funds
+                </button>
+                <button type="button" onClick={() => setWorkspaceTab("events")} style={secondaryButtonStyle}>
+                  View all events
+                </button>
+              </div>
+            </div>
+          </section>
 
-      <section className="dashboard-surface" style={{ padding: "1rem 0", marginBottom: "1rem" }}>
-        <div style={{ padding: "0 1.1rem 0.9rem" }}>
-          <h2 style={{ margin: 0, fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>Per-event earnings</h2>
-        </div>
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Date</th>
-                <th>Currency</th>
-                <th>Gross</th>
-                <th>Commission</th>
-                <th>Net</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => {
-                const expanded = expandedEventIds.includes(event.id)
-                return (
-                  <FragmentRow
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", background: "rgba(255,184,77,0.05)", borderColor: "rgba(255,184,77,0.18)" }}>
+            <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)" }}>
+              EventSlot&apos;s platform commission is non-refundable. If you issue a refund to an attendee, the commission amount is deducted from your net balance.
+            </p>
+          </section>
+
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+              <h2 style={{ margin: 0, fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                Paid events
+              </h2>
+              <button type="button" onClick={() => setWorkspaceTab("transactions")} style={secondaryButtonStyle}>
+                View my payments
+              </button>
+            </div>
+
+            {events.length === 0 ? (
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(240,237,230,0.56)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
+                Once your paid events start receiving payments, they will appear here with earnings, attendees, payment attempts, and withdrawal readiness.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: "0.85rem" }}>
+                {events.map((event) => (
+                  <button
                     key={event.id}
-                    summaryRow={
-                      <tr
-                        onClick={() => setExpandedEventIds((current) => current.includes(event.id) ? current.filter((item) => item !== event.id) : [...current, event.id])}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td>
-                          <div style={{ display: "grid", gap: 4 }}>
-                            <Link href={`/dashboard/events/${event.slug}`} style={{ color: "#F0EDE6", textDecoration: "none", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
-                              {event.title}
-                            </Link>
-                            <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)" }}>
-                              {expanded ? "Hide tier breakdown" : "Show tier breakdown"}
-                            </span>
-                          </div>
-                        </td>
-                        <td>{formatDate(event.eventDate)}</td>
-                        <td>{event.currency}</td>
-                        <td>{formatMoney(event.currency, event.gross)}</td>
-                        <td>{formatMoney(event.currency, event.commission)} · {Math.round(event.commissionRate * 100)}%</td>
-                        <td>{formatMoney(event.currency, event.net)}</td>
-                        <td>{payoutLabel(event.status)}</td>
-                      </tr>
-                    }
-                    expanded={expanded}
-                    detailRow={
-                      <tr>
-                        <td colSpan={7} style={{ background: "rgba(240,237,230,0.015)" }}>
-                          <div style={{ padding: "0.35rem 0" }}>
-                            <div className="table-wrapper">
-                              <table>
-                                <thead>
-                                  <tr>
-                                    <th>Tier</th>
-                                    <th>Tickets Sold</th>
-                                    <th>Price</th>
-                                    <th>Gross</th>
-                                    <th>Commission</th>
-                                    <th>Net</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {event.tiers.map((tier) => {
-                                    return (
-                                      <tr key={tier.id}>
-                                        <td>
-                                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                            <TierBadge
-                                              name={tier.name}
-                                              badgeColor={tier.badgeColor}
-                                              textColor={tier.textColor}
-                                              metallic={tier.metallic}
-                                              size="sm"
-                                            />
-                                          </div>
-                                        </td>
-                                        <td>{tier.ticketsSold}</td>
-                                        <td>{formatMoney(event.currency, tier.price)}</td>
-                                        <td>{formatMoney(event.currency, tier.gross)}</td>
-                                        <td>{formatMoney(event.currency, tier.commission)}</td>
-                                        <td>{formatMoney(event.currency, tier.net)}</td>
-                                      </tr>
-                                    )
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  />
-                )
-              })}
-            </tbody>
-          </table>
+                    type="button"
+                    onClick={() => {
+                      setSelectedEventId(event.id)
+                      setWorkspaceTab("events")
+                    }}
+                    style={{
+                      textAlign: "left",
+                      background: "rgba(255,255,255,0.01)",
+                      border: "0.5px solid rgba(240,237,230,0.08)",
+                      borderRadius: 14,
+                      padding: "1rem 1.05rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                      <div>
+                        <div style={{ fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>{event.title}</div>
+                        <div style={{ marginTop: 6, fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                          {formatDate(event.eventDate)} · {event.confirmedCount} confirmed · {event.waitlistCount} waitlisted
+                        </div>
+                      </div>
+                      <div style={{ minWidth: 180 }}>
+                        <div style={{ fontSize: "0.74rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          Net earnings
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: "1.1rem", color: "#C8F55A", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                          {formatMoney(event.currency, event.net)}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-      </section>
+      )}
 
-      <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-          <h2 style={{ margin: 0, fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
-            {activeLedgerTab === "transactions" ? "Transaction log" : "Withdrawal history"}
-          </h2>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={() => setActiveLedgerTab("transactions")} style={pillStyle(activeLedgerTab === "transactions")}>Transactions</button>
-            <button type="button" onClick={() => setActiveLedgerTab("withdrawals")} style={pillStyle(activeLedgerTab === "withdrawals")}>Withdrawals</button>
-          </div>
-        </div>
-
-        {activeLedgerTab === "transactions" && (
-          <>
-            <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: "1rem" }}>
-              <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)} style={inputStyle}>
-                <option value="all">All events</option>
-                {eventOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-              <select value={tierFilter} onChange={(event) => setTierFilter(event.target.value)} style={inputStyle}>
-                <option value="all">All tiers</option>
-                {tierOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
-              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} style={inputStyle} />
-              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} style={inputStyle} />
+      {workspaceTab === "events" && (
+        <div style={{ display: "grid", gridTemplateColumns: "320px minmax(0, 1fr)", gap: "1rem" }}>
+          <aside className="dashboard-surface" style={{ padding: "1rem 0" }}>
+            <div style={{ padding: "0 1rem 0.8rem" }}>
+              <h2 style={{ margin: 0, fontSize: "1.02rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                Paid events
+              </h2>
             </div>
-            <div className="table-wrapper" style={{ maxHeight: 420 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date & Time</th>
-                    <th>Attendee</th>
-                    <th>Event</th>
-                    <th>Tier</th>
-                    <th>Amount Paid</th>
-                    <th>Commission</th>
-                    <th>You Received</th>
-                    <th>M-Pesa Ref</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.map((item) => (
-                    <tr key={item.id}>
-                      <td>{formatDateTime(item.paidAt)}</td>
-                      <td>{item.attendeeName}</td>
-                      <td>{item.eventTitle}</td>
-                      <td>{item.tierName}</td>
-                      <td>{formatMoney(item.currency, item.amount)}</td>
-                      <td>{formatMoney(item.currency, item.commission)}</td>
-                      <td>{formatMoney(item.currency, item.net)}</td>
-                      <td>{item.mpesaRef ?? "—"}</td>
-                    </tr>
+            <div style={{ display: "grid", gap: "0.55rem", padding: "0 0.7rem 0.4rem" }}>
+              {events.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => setSelectedEventId(event.id)}
+                  style={{
+                    textAlign: "left",
+                    borderRadius: 12,
+                    border: selectedEvent?.id === event.id ? "0.5px solid rgba(200,245,90,0.3)" : "0.5px solid rgba(240,237,230,0.08)",
+                    background: selectedEvent?.id === event.id ? "rgba(200,245,90,0.06)" : "rgba(255,255,255,0.01)",
+                    padding: "0.9rem 0.95rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontSize: "0.92rem", color: "#F0EDE6", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{event.title}</div>
+                  <div style={{ marginTop: 4, fontSize: "0.76rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                    {formatMoney(event.currency, event.net)} net · {event.successfulPayments} paid
+                  </div>
+                </button>
+              ))}
+              {events.length === 0 && (
+                <p style={{ margin: "0 0.35rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", lineHeight: 1.7 }}>
+                  No paid events yet.
+                </p>
+              )}
+            </div>
+          </aside>
+
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+            {!selectedEvent ? (
+              <p style={{ margin: 0, color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                Choose an event to inspect its registrations, payments, and revenue.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                      {selectedEvent.title}
+                    </h2>
+                    <p style={{ margin: "0.45rem 0 0", fontSize: "0.84rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
+                      {formatDate(selectedEvent.eventDate)} · {selectedEvent.confirmedCount} confirmed · {selectedEvent.waitlistCount} waitlisted
+                    </p>
+                  </div>
+                  <Link href={`/dashboard/events/${selectedEvent.slug}`} style={{ ...secondaryButtonStyle, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+                    Open event dashboard
+                  </Link>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {([
+                    { key: "overview", label: "Overview" },
+                    { key: "registrations", label: "Registrations" },
+                    { key: "payments", label: "Payments" },
+                  ] as const).map((tab) => (
+                    <button key={tab.key} type="button" onClick={() => setEventPanelTab(tab.key)} style={pillStyle(eventPanelTab === tab.key)}>
+                      {tab.label}
+                    </button>
                   ))}
-                  {filteredTransactions.length === 0 && (
-                    <tr>
-                      <td colSpan={8} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
-                        No transactions match the current filters.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                </div>
 
-        {activeLedgerTab === "withdrawals" && (
-          <div className="table-wrapper">
+                {eventPanelTab === "overview" && <EventOverview event={selectedEvent} />}
+                {eventPanelTab === "registrations" && <EventRegistrationsTable rows={selectedEvent.registrations} currency={selectedEvent.currency} />}
+                {eventPanelTab === "payments" && <EventPaymentsTable rows={selectedEvent.paymentAttempts} />}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {workspaceTab === "transactions" && (
+        <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+          <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+            Transaction log
+          </h2>
+          <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: "1rem" }}>
+            <select value={eventFilter} onChange={(event) => setEventFilter(event.target.value)} style={inputStyle}>
+              <option value="all">All events</option>
+              {eventOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select value={tierFilter} onChange={(event) => setTierFilter(event.target.value)} style={inputStyle}>
+              <option value="all">All tiers</option>
+              {tierOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} style={inputStyle} />
+            <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} style={inputStyle} />
+          </div>
+          <div className="table-wrapper" style={{ maxHeight: 520 }}>
             <table>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Status</th>
-                  <th>Reference</th>
-                  <th>Destination</th>
+                  <th>Date & Time</th>
+                  <th>Attendee</th>
+                  <th>Event</th>
+                  <th>Tier</th>
+                  <th>Amount Paid</th>
+                  <th>Commission</th>
+                  <th>You Received</th>
+                  <th>M-Pesa Ref</th>
                 </tr>
               </thead>
               <tbody>
-                {withdrawals.map((item) => (
+                {filteredTransactions.map((item) => (
                   <tr key={item.id}>
-                    <td>{formatDateTime(item.createdAt)}</td>
+                    <td>{formatDateTime(item.paidAt)}</td>
+                    <td>{item.attendeeName}</td>
+                    <td>{item.eventTitle}</td>
+                    <td>{item.tierName}</td>
                     <td>{formatMoney(item.currency, item.amount)}</td>
-                    <td>{item.method === "MPESA" ? "M-Pesa" : item.method === "PAYBILL" ? "PayBill" : "Bank Transfer"}</td>
-                    <td>{statusLabel(item.status)}</td>
-                    <td>{item.providerRef ?? "Pending"}</td>
-                    <td>{item.destination}</td>
+                    <td>{formatMoney(item.currency, item.commission)}</td>
+                    <td>{formatMoney(item.currency, item.net)}</td>
+                    <td>{item.mpesaRef ?? "—"}</td>
                   </tr>
                 ))}
-                {withdrawals.length === 0 && (
+                {filteredTransactions.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
-                      No withdrawal requests yet.
+                    <td colSpan={8} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                      No transactions match the current filters.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </section>
+      )}
+
+      {workspaceTab === "withdrawals" && (
+        <div style={{ display: "grid", gap: "1rem" }}>
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>Withdrawable now</div>
+              <div style={{ marginTop: 4, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                {formatMoney(currency, summary.withdrawable)}
+              </div>
+              {!data.security.twoFactorEnabled ? (
+                <div style={{ marginTop: 6, fontSize: "0.78rem", color: "#FFB84D", fontFamily: "var(--font-dm-sans)" }}>
+                  Enable account 2FA in Profile to unlock withdrawals.
+                </div>
+              ) : !data.security.paymentPinEnabled ? (
+                <div style={{ marginTop: 6, fontSize: "0.78rem", color: "#FFB84D", fontFamily: "var(--font-dm-sans)" }}>
+                  Set your payments PIN in the Security tab to unlock withdrawals.
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              disabled={summary.withdrawable <= 0 || !data.security.twoFactorEnabled || !data.security.paymentPinEnabled}
+              onClick={() => setShowWithdrawModal(true)}
+              style={{
+                ...primaryButtonStyle,
+                opacity: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? 1 : 0.5,
+                cursor: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? "pointer" : "not-allowed",
+              }}
+            >
+              Withdraw Funds
+            </button>
+          </section>
+
+          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+              Withdrawal history
+            </h2>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Reference</th>
+                    <th>Destination</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawals.map((item) => (
+                    <tr key={item.id}>
+                      <td>{formatDateTime(item.createdAt)}</td>
+                      <td>{formatMoney(item.currency, item.amount)}</td>
+                      <td>{item.method === "MPESA" ? "M-Pesa" : item.method === "PAYBILL" ? "Till / PayBill" : "Bank Transfer"}</td>
+                      <td>{statusLabel(item.status)}</td>
+                      <td>{item.providerRef ?? "Pending"}</td>
+                      <td>{item.destination}</td>
+                    </tr>
+                  ))}
+                  {withdrawals.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                        No withdrawal requests yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {workspaceTab === "security" && <SecurityPanel security={data.security} />}
 
       {showWithdrawModal ? (
         <WithdrawalModal
           currency={currency}
           available={summary.withdrawable}
+          paymentPinReady={data.security.paymentPinEnabled}
+          twoFactorReady={data.security.twoFactorEnabled}
+          securityEmail={data.security.email}
           onClose={() => setShowWithdrawModal(false)}
         />
       ) : null}
@@ -809,19 +1214,3 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
   )
 }
 
-function FragmentRow({
-  summaryRow,
-  detailRow,
-  expanded,
-}: {
-  summaryRow: React.ReactNode
-  detailRow: React.ReactNode
-  expanded: boolean
-}) {
-  return (
-    <>
-      {summaryRow}
-      {expanded ? detailRow : null}
-    </>
-  )
-}

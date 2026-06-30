@@ -46,6 +46,53 @@ async function getProviderAcceptedCountSince(startDate: Date): Promise<number | 
   }).length
 }
 
+type EmailProviderStatus = {
+  configured: boolean
+  healthy: boolean
+  message: string
+}
+
+async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  if (!EMAIL_FROM || !apiKey) {
+    return {
+      configured: false,
+      healthy: false,
+      message: "RESEND_API_KEY or RESEND_FROM missing",
+    }
+  }
+
+  try {
+    const response = await fetch("https://api.resend.com/domains", {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: "no-store",
+    })
+
+    if (response.ok) {
+      return {
+        configured: true,
+        healthy: true,
+        message: "Provider reachable",
+      }
+    }
+
+    const message = await response.text()
+    return {
+      configured: true,
+      healthy: false,
+      message: message || `Provider check failed (${response.status})`,
+    }
+  } catch (error) {
+    return {
+      configured: true,
+      healthy: false,
+      message: error instanceof Error ? error.message : "Provider check failed",
+    }
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -62,7 +109,7 @@ export async function GET() {
       dbOk = true
     } catch { /* fail silently */ }
 
-    const [recentErrors, emailsAcceptedThisMonth] = await Promise.all([
+    const [recentErrors, emailsAcceptedThisMonth, emailProviderStatus] = await Promise.all([
       prisma.errorLog.findMany({
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -76,13 +123,16 @@ export async function GET() {
         })
         return null
       }),
+      getEmailProviderStatus(),
     ])
 
     return NextResponse.json({
       dbOk,
       recentErrors,
       emailsAcceptedThisMonth,
-      emailProviderConfigured: Boolean(process.env.RESEND_API_KEY && EMAIL_FROM),
+      emailProviderConfigured: emailProviderStatus.configured,
+      emailProviderHealthy: emailProviderStatus.healthy,
+      emailProviderMessage: emailProviderStatus.message,
     })
   } catch (err) {
     console.error("[admin/health] GET error:", err)

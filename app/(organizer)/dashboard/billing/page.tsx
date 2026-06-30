@@ -5,6 +5,8 @@ import { SUBSCRIPTION_PLANS, formatCommissionRate, getSubscriptionPlan } from "@
 import { PaygSettingsCard } from "@/components/billing/PaygSettingsCard"
 import { BillingUpgradeSection } from "@/components/billing/BillingUpgradeSection"
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
+import { ReportDownloadsCard } from "@/components/billing/ReportDownloadsCard"
+import { REPORT_DOWNLOAD_PRICING } from "@/lib/plans"
 
 function formatPlanName(plan: string | null | undefined) {
   return getSubscriptionPlan(plan).name
@@ -34,6 +36,15 @@ export default async function BillingPage() {
 
   const currentPlan = getSubscriptionPlan(user?.plan)
   const pricingActive = isPricingRolloutActive()
+  const reportDownloads = session?.user?.id
+    ? await prisma.reportDownload.findUnique({
+        where: { userId: session.user.id },
+        select: {
+          downloadsRemaining: true,
+          totalPurchased: true,
+        },
+      })
+    : null
 
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 920 }}>
@@ -131,6 +142,17 @@ export default async function BillingPage() {
       </section>
 
       <BillingUpgradeSection currentPlanKey={currentPlan.key} plans={SUBSCRIPTION_PLANS} />
+
+      <ReportDownloadsCard
+        bundles={Object.entries(REPORT_DOWNLOAD_PRICING).map(([key, bundle]) => ({
+          key,
+          amount: bundle.amount,
+          downloads: bundle.downloads,
+          label: bundle.label,
+        }))}
+        initialRemaining={reportDownloads?.downloadsRemaining ?? 0}
+        initialTotalPurchased={reportDownloads?.totalPurchased ?? 0}
+      />
 
       <PaygSettingsCard />
 

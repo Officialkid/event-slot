@@ -31,7 +31,7 @@ export async function GET() {
       isEnabled: false,
       monthlyCapUsd: 10,
       mpesaPhone: null,
-      paymentProvider: "intasend",
+      paymentProvider: "mpesa_stk",
       billingAuthorizationAccepted: false,
       billingAuthorizedAt: null,
       cardholderName: null,
@@ -52,6 +52,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json()
   const isEnabled = Boolean(body?.isEnabled)
   const monthlyCapUsd = Number(body?.monthlyCapUsd)
+  const paymentMethod = body?.paymentMethod === "card" ? "card" : "mpesa"
   const mpesaPhone = typeof body?.mpesaPhone === "string" ? body.mpesaPhone.trim() : null
   const billingAuthorizationAccepted = Boolean(body?.billingAuthorizationAccepted)
   const cardholderName = typeof body?.cardholderName === "string" ? body.cardholderName.trim() : ""
@@ -69,16 +70,22 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "You must authorize PAYG billing before enabling it." }, { status: 400 })
     }
 
-    if (!cardholderName || !billingCardBrand || !/^\d{4}$/.test(billingCardLast4)) {
-      return NextResponse.json({ error: "Add the cardholder name, card brand, and card last 4 digits before enabling PAYG." }, { status: 400 })
-    }
+    if (paymentMethod === "mpesa") {
+      if (!mpesaPhone) {
+        return NextResponse.json({ error: "Add the M-Pesa number that should receive the STK push prompt." }, { status: 400 })
+      }
+    } else {
+      if (!cardholderName || !billingCardBrand || !/^\d{4}$/.test(billingCardLast4)) {
+        return NextResponse.json({ error: "Add the cardholder name, card brand, and card last 4 digits before enabling PAYG." }, { status: 400 })
+      }
 
-    if (!Number.isInteger(billingCardExpiryMonth) || billingCardExpiryMonth < 1 || billingCardExpiryMonth > 12) {
-      return NextResponse.json({ error: "Enter a valid card expiry month." }, { status: 400 })
-    }
+      if (!Number.isInteger(billingCardExpiryMonth) || billingCardExpiryMonth < 1 || billingCardExpiryMonth > 12) {
+        return NextResponse.json({ error: "Enter a valid card expiry month." }, { status: 400 })
+      }
 
-    if (!Number.isInteger(billingCardExpiryYear) || billingCardExpiryYear < new Date().getFullYear()) {
-      return NextResponse.json({ error: "Enter a valid card expiry year." }, { status: 400 })
+      if (!Number.isInteger(billingCardExpiryYear) || billingCardExpiryYear < new Date().getFullYear()) {
+        return NextResponse.json({ error: "Enter a valid card expiry year." }, { status: 400 })
+      }
     }
   }
 
@@ -88,7 +95,7 @@ export async function PATCH(req: NextRequest) {
       isEnabled,
       monthlyCapUsd,
       mpesaPhone: mpesaPhone || null,
-      paymentProvider: "intasend",
+      paymentProvider: paymentMethod === "card" ? "paystack_card" : "mpesa_stk",
       billingAuthorizationAccepted,
       billingAuthorizedAt: isEnabled && billingAuthorizationAccepted ? new Date() : null,
       cardholderName: cardholderName || null,
@@ -102,7 +109,7 @@ export async function PATCH(req: NextRequest) {
       isEnabled,
       monthlyCapUsd,
       mpesaPhone: mpesaPhone || null,
-      paymentProvider: "intasend",
+      paymentProvider: paymentMethod === "card" ? "paystack_card" : "mpesa_stk",
       billingAuthorizationAccepted,
       billingAuthorizedAt: isEnabled && billingAuthorizationAccepted ? new Date() : null,
       cardholderName: cardholderName || null,

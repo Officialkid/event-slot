@@ -14,6 +14,8 @@ interface HealthData {
   recentErrors: ErrorLog[]
   emailsAcceptedThisMonth: number | null
   emailProviderConfigured: boolean
+  emailProviderHealthy: boolean
+  emailProviderMessage: string
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
@@ -79,10 +81,10 @@ export default function AdminHealthPage() {
             Emails accepted this month
           </div>
           <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
-            {data.emailsAcceptedThisMonth ?? "—"}
+            {data.emailsAcceptedThisMonth ?? "�"}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
-            {data.emailProviderConfigured ? "from email provider" : "RESEND_API_KEY missing"}
+          <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "rgba(240,237,230,0.3)" : "#FF6B6B", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
+            {data.emailProviderConfigured ? data.emailProviderMessage : "RESEND_API_KEY missing"}
           </div>
         </div>
 
@@ -134,3 +136,4 @@ export default function AdminHealthPage() {
     </div>
   )
 }
+

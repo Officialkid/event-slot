@@ -1,0 +1,262 @@
+
+> eventslot@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.2.9 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.200:3000
+- Environments: .env.local, .env
+✓ Ready in 7.9s
+ ○ (pwa) PWA support is disabled.
+
+○ Compiling /signin ...
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 86s (next.js: 79s, application-code: 7.8s)
+○ Compiling /api/auth/[...nextauth] ...
+○ Compiling /signin ...
+ GET /api/auth/session 200 in 39.5s (next.js: 39.0s, application-code: 537ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /api/auth/providers 200 in 29.6s (next.js: 27.9s, application-code: 1675ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 31.7s (next.js: 28.6s, application-code: 3.1s)
+ GET /api/auth/csrf 200 in 286ms (next.js: 7ms, application-code: 278ms)
+prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+The column `User.paymentPinHash` does not exist in the current database.
+ POST /api/auth/callback/credentials 401 in 639ms (next.js: 169ms, application-code: 470ms)
+ GET /api/auth/providers 200 in 60ms (next.js: 9ms, application-code: 51ms)
+ GET /api/auth/csrf 200 in 49ms (next.js: 6ms, application-code: 43ms)
+prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+The column `User.paymentPinHash` does not exist in the current database.
+ POST /api/auth/callback/credentials 401 in 918ms (next.js: 372ms, application-code: 546ms)
+ GET /api/auth/providers 200 in 335ms (next.js: 232ms, application-code: 102ms)
+ GET /api/auth/csrf 200 in 50ms (next.js: 11ms, application-code: 39ms)
+ POST /api/auth/signin/google 200 in 656ms (next.js: 7ms, application-code: 649ms)
+ GET /api/auth/session 200 in 383ms (next.js: 271ms, application-code: 112ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 5.7s (next.js: 15ms, application-code: 5.7s)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1370ms (next.js: 12ms, application-code: 1358ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1258ms (next.js: 10ms, application-code: 1248ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1145ms (next.js: 13ms, application-code: 1131ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1113ms (next.js: 17ms, application-code: 1096ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1201ms (next.js: 9ms, application-code: 1191ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1600ms (next.js: 7ms, application-code: 1592ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1000ms (next.js: 8ms, application-code: 993ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1329ms (next.js: 692ms, application-code: 637ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 3.2s (next.js: 9ms, application-code: 3.2s)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 843ms (next.js: 7ms, application-code: 835ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 1105ms (next.js: 309ms, application-code: 796ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 918ms (next.js: 8ms, application-code: 910ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 841ms (next.js: 9ms, application-code: 832ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 638ms (next.js: 7ms, application-code: 631ms)
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 823ms (next.js: 10ms, application-code: 812ms)
+○ Compiling /signup ...
+ GET /signup 200 in 20.3s (next.js: 18.5s, application-code: 1803ms)
+ GET /signup 200 in 1042ms (next.js: 11ms, application-code: 1031ms)
+ GET /signup 200 in 696ms (next.js: 9ms, application-code: 687ms)
+○ Compiling /api/auth/signup ...
+prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+The column `User.paymentPinHash` does not exist in the current database.
+ POST /api/auth/signup 500 in 7.3s (next.js: 6.1s, application-code: 1266ms)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /api/auth/providers 200 in 10.2s (next.js: 10.1s, application-code: 117ms)
+ GET /api/auth/csrf 200 in 40ms (next.js: 6ms, application-code: 34ms)
+ POST /api/auth/signin/google 200 in 788ms (next.js: 6ms, application-code: 782ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+prisma:error 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+ GET /signin 200 in 3.7s (next.js: 248ms, application-code: 3.5s)

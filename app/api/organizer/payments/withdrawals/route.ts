@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { z } from "zod"
+import bcrypt from "bcryptjs"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { getOrganizerWithdrawableBalance } from "@/lib/organizerPayments"
 import { sendBankPayout, sendMpesaPayout, sendPaybillPayout } from "@/services/payouts"
+import { verifyOtpForEmail } from "@/lib/emailOtp"
 
 const payloadSchema = z.object({
   currency: z.enum(["KES", "USD"]),
   amount: z.number().finite().positive(),
   method: z.enum(["MPESA", "PAYBILL", "BANK"]),
+  paymentPin: z.string().regex(/^\d{4,6}$/),
+  emailOtp: z.string().regex(/^\d{6}$/),
   destination: z.object({
     mpesaPhone: z.string().optional(),
     mpesaAccountName: z.string().optional(),
@@ -57,6 +61,38 @@ export async function POST(req: NextRequest) {
     const available = await getOrganizerWithdrawableBalance(session.user.id, currency)
     if (amount > available) {
       return NextResponse.json({ error: "Withdrawal amount exceeds your available balance." }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        email: true,
+        paymentPinHash: true,
+        paymentPinEnabled: true,
+        twoFactorEnabled: true,
+      },
+    })
+
+    if (!user?.paymentPinEnabled || !user.paymentPinHash) {
+      return NextResponse.json({ error: "Set your payments PIN before requesting withdrawals." }, { status: 400 })
+    }
+
+    if (!user.twoFactorEnabled) {
+      return NextResponse.json({ error: "Turn on account 2FA in Profile before requesting withdrawals." }, { status: 400 })
+    }
+
+    const validPin = await bcrypt.compare(parsed.data.paymentPin, user.paymentPinHash)
+    if (!validPin) {
+      return NextResponse.json({ error: "The payments PIN you entered is incorrect." }, { status: 403 })
+    }
+
+    if (!user.email) {
+      return NextResponse.json({ error: "Your account needs an email address before withdrawals can be approved." }, { status: 400 })
+    }
+
+    const otpRecord = await verifyOtpForEmail(user.email, parsed.data.emailOtp)
+    if (!otpRecord) {
+      return NextResponse.json({ error: "Invalid or expired withdrawal verification code." }, { status: 403 })
     }
 
     const destinationLabel = buildDestinationLabel(method, destination)
@@ -131,6 +167,21 @@ export async function POST(req: NextRequest) {
         },
       })
     })
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: session.user.id,
+        action: "WITHDRAWAL_INITIATED",
+        metadata: {
+          amount,
+          currency,
+          method,
+          destination: destinationLabel,
+          twoFactorEnabled: Boolean(user.twoFactorEnabled),
+          at: new Date().toISOString(),
+        },
+      },
+    }).catch(() => {})
 
     return NextResponse.json({
       success: true,

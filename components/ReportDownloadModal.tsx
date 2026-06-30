@@ -15,7 +15,7 @@ export default function ReportDownloadModal({
 
   const goToBilling = () => {
     onClose()
-    router.push('/dashboard/billing')
+    router.push('/dashboard/billing#report-downloads')
   }
 
   return (
@@ -49,7 +49,7 @@ export default function ReportDownloadModal({
               Report Download
             </p>
             <h2 style={{ fontFamily: 'var(--font-instrument-serif)', fontSize: '1.4rem', color: '#F0EDE6', margin: 0 }}>
-              More tokens needed
+              More report downloads needed
             </h2>
           </div>
           <button
@@ -62,8 +62,8 @@ export default function ReportDownloadModal({
         </div>
 
         <p style={{ fontSize: '0.85rem', color: 'rgba(240,237,230,0.55)', marginBottom: '1rem', lineHeight: '1.65' }}>
-          Downloading the full Word report uses <strong style={{ color: '#F0EDE6' }}>20 tokens</strong>.
-          The preview stays free, but the file download needs enough balance on the organiser account.
+          Downloading the full Word report uses <strong style={{ color: '#F0EDE6' }}>1 paid download slot</strong>.
+          The preview stays free, but the file download needs enough report downloads on the organiser account.
         </p>
 
         {typeof currentBalance === 'number' && (
@@ -75,9 +75,9 @@ export default function ReportDownloadModal({
               padding: '0.85rem 1rem',
               marginBottom: '1rem',
             }}
-          >
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(240,237,230,0.72)' }}>
-              Current balance: <strong style={{ color: '#F0EDE6' }}>{currentBalance}</strong> tokens
+            >
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(240,237,230,0.72)' }}>
+              Current balance: <strong style={{ color: '#F0EDE6' }}>{currentBalance}</strong> report download{currentBalance === 1 ? '' : 's'}
             </p>
           </div>
         )}
@@ -113,7 +113,7 @@ export default function ReportDownloadModal({
               cursor: 'pointer',
             }}
           >
-            Go to billing
+            Buy report downloads
           </button>
           <button
             onClick={onClose}

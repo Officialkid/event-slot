@@ -1,0 +1,696 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\DANIEL\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\DANIEL\Documents\WebApp Projects\eventslot\event-slot\package-lock.json
+
+Warning: Custom Cache-Control headers detected for the following routes:
+  - /_next/static/:path*
+
+Setting a custom Cache-Control header can break Next.js development behavior.
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed danielmwaliliofficial@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}
+[seed] Failed to seed eventslot.co@gmail.com: Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.user.upsert()` invocation:
+
+
+The column `paymentPinEnabled` does not exist in the current database.
+    at async seedPrivilegedAccounts (lib\seedAdmins.ts:16:7)
+    at async RootLayout (app\layout.tsx:171:7)
+  14 |   for (const account of getPrivilegedAccounts()) {
+  15 |     try {
+> 16 |       await prisma.user.upsert({
+     |       ^
+  17 |         where: { email: account.email },
+  18 |         update: {
+  19 |           isAdmin: account.isAdmin, {
+  code: 'P2022',
+  clientVersion: '5.22.0',
+  meta: { modelName: 'User', column: 'paymentPinEnabled' }
+}

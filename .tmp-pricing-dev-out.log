@@ -1,0 +1,118 @@
+
+> eventslot@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.2.9 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.200:3000
+- Environments: .env.local, .env
+✓ Ready in 5.6s
+ ○ (pwa) PWA support is disabled.
+
+○ Compiling /pricing ...
+ GET /pricing 200 in 15.4s (next.js: 2.8s, application-code: 12.6s)
+○ Compiling middleware ...
+ GET /signin 200 in 11.9s (next.js: 5.8s, application-code: 6.0s)
+ GET /pricing 200 in 5.1s (next.js: 57ms, application-code: 5.0s)
+ GET /signin 200 in 4.8s (next.js: 9ms, application-code: 4.8s)
+ GET /pricing 200 in 5.1s (next.js: 21ms, application-code: 5.1s)
+ GET /signin 200 in 12.1s (next.js: 8ms, application-code: 12.1s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /api/auth/session 200 in 5.4s
+ GET /signin? 200 in 9.9s (next.js: 13ms, application-code: 9.9s)
+ GET /api/auth/session 200 in 1002ms (next.js: 828ms, application-code: 173ms)
+ POST /api/auth/_log 200 in 6.7s (next.js: 6.5s, application-code: 187ms)
+○ Compiling / ...
+ GET /signin 200 in 7.1s (next.js: 271ms, application-code: 6.9s)
+ GET /pricing 200 in 6.5s (next.js: 86ms, application-code: 6.4s)
+ GET /pricing 200 in 4.9s (next.js: 58ms, application-code: 4.9s)
+ GET /signin 200 in 4.6s (next.js: 44ms, application-code: 4.6s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /signin? 200 in 22.8s (next.js: 14ms, application-code: 22.8s)
+ POST /api/auth/_log 200 in 7.3s (next.js: 6.4s, application-code: 906ms)
+ GET /api/auth/session 200 in 249ms (next.js: 191ms, application-code: 59ms)
+ GET / 200 in 15.1s (next.js: 6.4s, application-code: 8.6s)
+ GET /api/auth/session 200 in 1379ms (next.js: 150ms, application-code: 1229ms)
+○ Compiling /signup ...
+ GET /signup 200 in 18.6s (next.js: 17.4s, application-code: 1179ms)
+ GET /signup 200 in 496ms (next.js: 44ms, application-code: 451ms)
+ GET /api/auth/providers 200 in 571ms (next.js: 489ms, application-code: 82ms)
+ GET /api/auth/csrf 200 in 24ms (next.js: 5ms, application-code: 19ms)
+ POST /api/auth/signin/google 200 in 600ms (next.js: 5ms, application-code: 595ms)
+ GET /signup 200 in 3.3s (next.js: 11ms, application-code: 3.2s)
+ GET /signup 200 in 6.7s (next.js: 8ms, application-code: 6.7s)
+ GET /api/auth/session 200 in 266ms (next.js: 237ms, application-code: 28ms)
+ GET /signup 200 in 211ms (next.js: 10ms, application-code: 201ms)
+ GET /signin 200 in 281ms (next.js: 48ms, application-code: 233ms)
+ GET /api/auth/providers 200 in 270ms (next.js: 244ms, application-code: 26ms)
+ GET /api/auth/csrf 200 in 28ms (next.js: 6ms, application-code: 22ms)
+ POST /api/auth/callback/credentials 401 in 5.3s (next.js: 5ms, application-code: 5.3s)
+ GET /api/auth/providers 200 in 128ms (next.js: 80ms, application-code: 48ms)
+ GET /api/auth/csrf 200 in 31ms (next.js: 7ms, application-code: 24ms)
+ POST /api/auth/callback/credentials 401 in 3.7s (next.js: 8ms, application-code: 3.6s)
+ GET /api/auth/providers 200 in 396ms (next.js: 292ms, application-code: 104ms)
+ GET /api/auth/csrf 200 in 31ms (next.js: 5ms, application-code: 26ms)
+ POST /api/auth/callback/credentials 401 in 3.8s (next.js: 6ms, application-code: 3.8s)
+ GET /api/auth/providers 200 in 483ms (next.js: 439ms, application-code: 44ms)
+ GET /api/auth/csrf 200 in 23ms (next.js: 6ms, application-code: 18ms)
+ POST /api/auth/signin/google 200 in 537ms (next.js: 5ms, application-code: 532ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+○ Compiling /api/events/[slug]/report ...
+ GET /signin 200 in 9.8s (next.js: 12ms, application-code: 9.8s)
+ GET /api/events/not-a-real-slug/report?mode=preview 404 in 34.9s (next.js: 32.6s, application-code: 2.4s)
+ GET /api/events/not-a-real-slug/export/pdf?status=confirmed 404 in 36.9s (next.js: 34.7s, application-code: 2.1s)
+ GET /pricing 200 in 38.7s (next.js: 25.7s, application-code: 13.0s)
+ GET /pricing 200 in 8.1s (next.js: 10ms, application-code: 8.1s)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+○ Compiling /api/events/[slug]/export/pdf ...
+ GET /signin 200 in 6.5s (next.js: 886ms, application-code: 5.6s)
+ GET /api/events/not-a-real-slug/report?mode=preview 404 in 14.0s (next.js: 10.9s, application-code: 3.1s)
+ GET /api/events/not-a-real-slug/export/pdf?status=confirmed 404 in 14.0s (next.js: 11.1s, application-code: 2.9s)
+ GET /pricing 200 in 14.2s (next.js: 10.8s, application-code: 3.4s)
+ GET /pricing 200 in 4.1s (next.js: 5ms, application-code: 4.1s)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ GET /signin 200 in 11.5s (next.js: 90ms, application-code: 11.5s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /api/auth/session 200 in 12.7s (next.js: 12.6s, application-code: 153ms)
+ GET /signin 200 in 7.7s (next.js: 339ms, application-code: 7.3s)
+ GET /api/auth/providers 200 in 354ms (next.js: 303ms, application-code: 52ms)
+ GET /api/auth/csrf 200 in 22ms (next.js: 5ms, application-code: 17ms)
+ POST /api/auth/callback/credentials 401 in 3.6s (next.js: 7ms, application-code: 3.6s)
+○ Compiling /forgot-password ...
+ GET /forgot-password 200 in 17.6s (next.js: 17.2s, application-code: 335ms)
+ GET /signin 200 in 883ms (next.js: 140ms, application-code: 743ms)
+ GET /api/auth/providers 200 in 508ms (next.js: 437ms, application-code: 71ms)
+ GET /api/auth/csrf 200 in 32ms (next.js: 5ms, application-code: 27ms)
+ POST /api/auth/signin/google 200 in 587ms (next.js: 5ms, application-code: 581ms)
+ GET /signin 200 in 5.3s (next.js: 9ms, application-code: 5.2s)
+ GET /api/auth/session 200 in 137ms (next.js: 115ms, application-code: 22ms)
+ GET /api/auth/providers 200 in 135ms (next.js: 102ms, application-code: 33ms)
+ GET /api/auth/csrf 200 in 37ms (next.js: 4ms, application-code: 33ms)
+ POST /api/auth/callback/credentials 401 in 510ms (next.js: 4ms, application-code: 506ms)
+ GET /api/auth/providers 200 in 170ms (next.js: 137ms, application-code: 33ms)
+ GET /api/auth/csrf 200 in 27ms (next.js: 5ms, application-code: 22ms)
+ POST /api/auth/signin/google 200 in 1067ms (next.js: 5ms, application-code: 1062ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ GET /signin 200 in 7.7s (next.js: 1210ms, application-code: 6.5s)
+○ Compiling /api/auth/[...nextauth] ...
+ GET /signin 200 in 4.9s (next.js: 9ms, application-code: 4.9s)
+ GET /api/auth/session 200 in 13.0s (next.js: 12.9s, application-code: 130ms)
+ GET /signin 200 in 4.9s (next.js: 278ms, application-code: 4.6s)
+ GET /api/auth/session 200 in 354ms (next.js: 329ms, application-code: 25ms)
+ GET /api/auth/providers 200 in 132ms (next.js: 57ms, application-code: 75ms)
+ GET /api/auth/csrf 200 in 25ms (next.js: 5ms, application-code: 20ms)
+ POST /api/auth/signin/google 200 in 599ms (next.js: 5ms, application-code: 594ms)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ GET /signin 200 in 8.5s (next.js: 16ms, application-code: 8.5s)
+ GET /api/auth/session 200 in 414ms (next.js: 344ms, application-code: 70ms)
+○ Compiling /pricing ...
+ GET /pricing 200 in 15.5s (next.js: 8.7s, application-code: 6.8s)
+ GET /api/auth/session 200 in 3.1s (next.js: 3.1s, application-code: 65ms)
+ GET /pricing 200 in 5.8s (next.js: 220ms, application-code: 5.6s)
+ GET /pricing 200 in 6.3s (next.js: 6ms, application-code: 6.3s)
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

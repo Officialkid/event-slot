@@ -6,9 +6,8 @@ import { EventReportData, generateEventReport, IRegistration, ReportTheme } from
 import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { reportDownloadRatelimit } from '@/lib/ratelimit'
-import { consumeFeature, creditTokens } from '@/lib/tokens'
-import { PAYMENTS_ENABLED } from '@/lib/payments'
 import { rateLimit } from '@/lib/rate-limit'
+import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 
 function extractDisplayNameFromEmail(email: string): string {
   const local = email.split('@')[0] || 'Organiser'
@@ -114,7 +113,7 @@ function buildEventReportData(eventPayload: {
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+  const params = await props.params
   try {
     const { slug } = params
     const mode = req.nextUrl.searchParams.get('mode')
@@ -124,7 +123,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const session = await getServerSession(authOptions)
     const isSuperAdmin = isAdminEmail(session?.user?.email)
 
-    // Rate limit report downloads (per user or IP)
     const rlKey = session?.user?.id ?? (req.headers.get('x-forwarded-for') ?? '127.0.0.1').split(',')[0].trim()
     const { success: rlOk } = await reportDownloadRatelimit.limit(`report:${rlKey}`)
     if (!rlOk) {
@@ -142,7 +140,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    // Validate access
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
     const hasTeamAccess = !!(session?.user?.id && await hasTeamEventAccess({
@@ -155,50 +152,49 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch all registrations
     const registrations = await prisma.registration.findMany({
       where: { eventId: event.id },
       orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
     })
 
     const confirmed: IRegistration[] = registrations
-      .filter(r => r.status === 'confirmed')
-      .map(r => ({
-        id: r.id,
-        answers: r.answers as Array<{ questionId: string; value: string }>,
-        registrationNumber: r.registrationNumber,
-        submittedAt: r.submittedAt.toISOString(),
-        waitlistPosition: r.waitlistPosition,
+      .filter((registration) => registration.status === 'confirmed')
+      .map((registration) => ({
+        id: registration.id,
+        answers: registration.answers as Array<{ questionId: string; value: string }>,
+        registrationNumber: registration.registrationNumber,
+        submittedAt: registration.submittedAt.toISOString(),
+        waitlistPosition: registration.waitlistPosition,
       }))
 
     const waitlist: IRegistration[] = registrations
-      .filter(r => r.status === 'waitlist')
+      .filter((registration) => registration.status === 'waitlist')
       .sort((a, b) => (a.waitlistPosition ?? 0) - (b.waitlistPosition ?? 0))
-      .map(r => ({
-        id: r.id,
-        answers: r.answers as Array<{ questionId: string; value: string }>,
-        registrationNumber: r.registrationNumber,
-        submittedAt: r.submittedAt.toISOString(),
-        waitlistPosition: r.waitlistPosition,
+      .map((registration) => ({
+        id: registration.id,
+        answers: registration.answers as Array<{ questionId: string; value: string }>,
+        registrationNumber: registration.registrationNumber,
+        submittedAt: registration.submittedAt.toISOString(),
+        waitlistPosition: registration.waitlistPosition,
       }))
 
     const eventPayload = {
-        title: event.title,
-        slug: event.slug,
-        organizerEmail: event.organizerEmail,
-        confirmedCount: event.confirmedCount,
-        waitlistCount: event.waitlistCount,
-        capacity: event.capacity,
-        eventDate: event.eventDate?.toISOString() ?? null,
-        location: event.location,
-        deadline: event.deadline?.toISOString() ?? null,
-        createdAt: event.createdAt.toISOString(),
-        questions: (event.questions as Array<{ id: string; label: string; type: string }>).map(q => ({
-          id: q.id,
-          label: q.label,
-          type: q.type,
-        })),
-      }
+      title: event.title,
+      slug: event.slug,
+      organizerEmail: event.organizerEmail,
+      confirmedCount: event.confirmedCount,
+      waitlistCount: event.waitlistCount,
+      capacity: event.capacity,
+      eventDate: event.eventDate?.toISOString() ?? null,
+      location: event.location,
+      deadline: event.deadline?.toISOString() ?? null,
+      createdAt: event.createdAt.toISOString(),
+      questions: (event.questions as Array<{ id: string; label: string; type: string }>).map((question) => ({
+        id: question.id,
+        label: question.label,
+        type: question.type,
+      })),
+    }
 
     if (mode === 'preview' || !mode) {
       const downloadBalance = session?.user?.id
@@ -209,11 +205,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         : null
 
       const requiresSignIn = !session?.user?.id
+      const singleDownloadPrice = REPORT_DOWNLOAD_PRICING.single
       const accessNote = isSuperAdmin
         ? 'Super admin access: preview and download are free.'
         : requiresSignIn
-        ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
-        : 'Preview is ready. Downloading the full report costs 20 tokens.'
+          ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
+          : `Preview is ready. Each full report download uses 1 paid download slot (KSh ${singleDownloadPrice.amount}).`
 
       return NextResponse.json({
         success: true,
@@ -233,7 +230,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         isSuperAdmin,
         downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
         requiresSignIn,
-        downloadCostTokens: 20,
+        downloadCostDownloads: 1,
+        downloadPriceKsh: singleDownloadPrice.amount,
         accessNote,
       })
     }
@@ -242,38 +240,43 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       if (!session?.user?.id) {
         return NextResponse.json(
           { error: 'Sign in to download', code: 'AUTH_REQUIRED' },
-          { status: 401 }
+          { status: 401 },
         )
       }
 
-      // ── Per-user document generation rate limit (10/hr) ─
       const docRl = await rateLimit(session.user.id, 'DOCUMENT_GENERATION', 10, 60)
       if (!docRl.allowed) {
         return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 })
       }
 
-      // ── Token gate ──────────────────────────────────────
-      const access = await consumeFeature(
-        session.user.id,
-        session.user.email!,
-        'DOCUMENT_GENERATION',
-        `Document report — event ${slug}`,
-        slug
-      )
+      const downloadAccess = isSuperAdmin
+        ? { allowed: true, remaining: Number.POSITIVE_INFINITY }
+        : await prisma.$transaction(async (tx) => {
+            const current = await tx.reportDownload.findUnique({
+              where: { userId: session.user.id },
+              select: { downloadsRemaining: true },
+            })
 
-      if (!access.allowed) {
+            const remaining = current?.downloadsRemaining ?? 0
+            if (remaining <= 0) {
+              return { allowed: false, remaining }
+            }
+
+            await tx.reportDownload.update({
+              where: { userId: session.user.id },
+              data: { downloadsRemaining: { decrement: 1 } },
+            })
+
+            return { allowed: true, remaining: remaining - 1 }
+          })
+
+      if (!downloadAccess.allowed) {
+        const singleDownloadPrice = REPORT_DOWNLOAD_PRICING.single
         return NextResponse.json({
-          error: 'INSUFFICIENT_TOKENS',
-          message: PAYMENTS_ENABLED
-            ? `Generating a report costs 20 tokens (KSh 100). Your current balance is ${
-                access.newBalance ?? 0
-              } tokens. Purchase tokens to continue.`
-            : `Generating a report costs 20 tokens (KSh 100). Your current balance is ${
-                access.newBalance ?? 0
-              } tokens. Token purchases are coming very soon!`,
-          required: 20,
-          currentBalance: access.newBalance ?? 0,
-          paymentsEnabled: PAYMENTS_ENABLED,
+          error: 'INSUFFICIENT_DOWNLOADS',
+          message: `Downloading a full report costs 1 paid download slot (KSh ${singleDownloadPrice.amount}). Your current balance is ${downloadAccess.remaining}. Buy more report downloads to continue.`,
+          required: 1,
+          currentBalance: downloadAccess.remaining,
         }, { status: 402 })
       }
 
@@ -281,18 +284,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       let buffer: Buffer | ArrayBuffer
       try {
         buffer = await generateEventReport(reportData)
-      } catch (genErr) {
-        // Refund tokens if generation fails
+      } catch (error) {
         if (!isSuperAdmin) {
-          await creditTokens(
-            session.user.id,
-            20,
-            'REFUND',
-            `Report generation failed — event ${slug}`,
-            slug
-          )
+          await prisma.reportDownload.upsert({
+            where: { userId: session.user.id },
+            create: {
+              userId: session.user.id,
+              downloadsRemaining: 1,
+              totalPurchased: 0,
+            },
+            update: {
+              downloadsRemaining: { increment: 1 },
+            },
+          })
         }
-        throw genErr
+        throw error
       }
 
       const reportBytes = new Uint8Array(buffer)
@@ -307,8 +313,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 })
-  } catch (err) {
-    console.error('[report]', err)
+  } catch (error) {
+    console.error('[report]', error)
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
   }
 }

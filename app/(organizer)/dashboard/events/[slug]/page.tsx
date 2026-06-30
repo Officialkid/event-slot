@@ -206,7 +206,8 @@ type ReportPreviewData = {
   isSuperAdmin?: boolean
   downloadsRemaining: number
   requiresSignIn?: boolean
-  downloadCostTokens?: number
+  downloadCostDownloads?: number
+  downloadPriceKsh?: number
   accessNote?: string
 }
 
@@ -1530,7 +1531,12 @@ export default function EventDashboardPage() {
 
   const reportDescription = (() => {
     if (isSuperAdmin) return "Preview and download are free for super admins."
-    return "Preview is free. Download requires a signed-in organiser or team member and uses 20 tokens per report."
+    if (reportData?.requiresSignIn) {
+      return "Preview is free. Download requires a signed-in organiser or team member."
+    }
+    const downloadCount = reportData?.downloadCostDownloads ?? 1
+    const priceLabel = reportData?.downloadPriceKsh ? ` (KSh ${reportData.downloadPriceKsh})` : ""
+    return `Preview is free. Download uses ${downloadCount} paid report download${downloadCount === 1 ? "" : "s"}${priceLabel}.`
   })()
 
   const aiInsightsAccessNote = isSuperAdmin
@@ -1591,17 +1597,14 @@ export default function EventDashboardPage() {
   const handleDownloadQR = async () => {
     if (!eventData) return
     try {
-      const response = await fetch(`/api/events/${eventData.slug}/qr`, { cache: "no-store" })
-      if (!response.ok) throw new Error("Unable to generate QR code")
-      const blob = await response.blob()
-      const objectUrl = URL.createObjectURL(blob)
+      const qrUrl = `/api/events/${eventData.slug}/qr`
       const link = document.createElement("a")
-      link.href = objectUrl
+      link.href = qrUrl
       link.download = `qr-${eventData.slug}.png`
+      link.rel = "noopener"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     } catch {
       window.location.assign(`/api/events/${eventData.slug}/qr`)
     }
@@ -1790,7 +1793,7 @@ export default function EventDashboardPage() {
 
       if (res.status === 402) {
         const data = await res.json().catch(() => null)
-        setReportError(data?.message || "You need more tokens before this report can be downloaded.")
+        setReportError(data?.message || "You need more paid report downloads before this report can be downloaded.")
         setShowReportPaymentModal(true)
         return
       }
@@ -2858,8 +2861,8 @@ export default function EventDashboardPage() {
                       {!isSuperAdmin && (
                         <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
                           {reportData.requiresSignIn
-                            ? "Sign in first, then use 20 tokens to download this report."
-                            : `Download pricing: ${(reportData.downloadCostTokens ?? 20)} tokens per report (approx. KSh 100)`}
+                            ? "Sign in first, then buy report downloads from billing to download this report."
+                            : `Download pricing: ${reportData.downloadCostDownloads ?? 1} paid report download${(reportData.downloadCostDownloads ?? 1) === 1 ? "" : "s"}${reportData.downloadPriceKsh ? ` (KSh ${reportData.downloadPriceKsh})` : ""}`}
                         </p>
                       )}
                       {!isSuperAdmin && !reportData.requiresSignIn && downloadBalance !== null && (
@@ -3417,7 +3420,7 @@ export default function EventDashboardPage() {
                           {insightsUnlockLoading ? "Generating..." : `Regenerate (${insightsRequiredCredits} credits)`}
                         </button>
                       ) : (
-                        <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                        <a href="/dashboard/billing#report-downloads" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy report downloads</a>
                       )}
                     </div>
                   )}
@@ -3717,7 +3720,7 @@ export default function EventDashboardPage() {
                     <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A - 1 credit per question</p>
                     <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
                   </div>
-                  <a href="/dashboard/billing#credits" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy credits</a>
+                  <a href="/dashboard/billing#report-downloads" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy report downloads</a>
                 </div>
               ) : (
                 <>
