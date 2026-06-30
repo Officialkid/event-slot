@@ -84,6 +84,22 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     return `${shareCardUrl}&download=1`
   }, [shareCardUrl])
 
+  async function downloadFromUrl(url: string, fallbackBaseName: string) {
+    const response = await fetch(url, { cache: "no-store" })
+    if (!response.ok) throw new Error("Unable to prepare download.")
+
+    const blob = await response.blob()
+    const extension = blob.type === "image/png" ? "png" : "svg"
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = objectUrl
+    link.download = `${fallbackBaseName}.${extension}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -136,15 +152,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     try {
       setShareError("")
       if (!shareCardDownloadUrl) return
-
-      const link = document.createElement("a")
-      link.href = shareCardDownloadUrl
-      link.download = `${event.slug}-checkin-poster.svg`
-      link.target = "_blank"
-      link.rel = "noopener noreferrer"
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      await downloadFromUrl(shareCardDownloadUrl, `${event.slug}-checkin-poster`)
     } catch {
       setShareError("We could not generate your poster just now. Please try again.")
     } finally {

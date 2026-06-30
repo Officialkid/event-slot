@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
     const paymentMethod = normalizePaymentMethod(
       typeof body.paymentMethod === "string" ? body.paymentMethod : ""
     )
+    const payerName = typeof body.payerName === "string" ? body.payerName.trim().slice(0, 120) : ""
+    const mpesaPhone = typeof body.mpesaPhone === "string" ? body.mpesaPhone.trim().slice(0, 32) : ""
 
     const selectedPlan = getSubscriptionPlan(planKey)
     if (!selectedPlan || selectedPlan.key === "free") {
@@ -92,6 +94,8 @@ export async function POST(request: NextRequest) {
           exchangeRate: quote.exchangeRate,
           paymentProvider: "paystack",
           paymentMethod,
+          payerName,
+          mpesaPhone,
         }),
       },
     })
@@ -111,6 +115,8 @@ export async function POST(request: NextRequest) {
           plan: selectedPlan.key,
           billingCycle,
           paymentMethod,
+          payerName,
+          mpesaPhone,
           settlementCurrency: checkoutCurrency,
           subtotalUsd: quote.subtotalUsd,
           taxUsd: quote.taxUsd,

@@ -260,9 +260,23 @@ export default function CreateEventPage() {
     }
   }
 
-  const handleDownloadSuccessQR = () => {
+  const handleDownloadSuccessQR = async () => {
     if (!eventInfo) return
-    window.open(`/api/events/${eventInfo.slug}/qr`, "_blank")
+    try {
+      const response = await fetch(`/api/events/${eventInfo.slug}/qr`, { cache: "no-store" })
+      if (!response.ok) throw new Error("Unable to generate QR code")
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = objectUrl
+      link.download = `qr-${eventInfo.slug}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+    } catch {
+      window.location.assign(`/api/events/${eventInfo.slug}/qr`)
+    }
   }
 
   if (status === 'loading' || status === 'unauthenticated') {

@@ -36,6 +36,8 @@ export function SubscriptionCheckoutPage({
     normalizeBillingCycle(initialBillingCycle)
   )
   const [paymentMethod, setPaymentMethod] = useState<SubscriptionPaymentMethod>("card")
+  const [payerName, setPayerName] = useState(accountName)
+  const [mpesaPhone, setMpesaPhone] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -55,6 +57,18 @@ export function SubscriptionCheckoutPage({
     setSubmitting(true)
     setError("")
 
+    if (!payerName.trim()) {
+      setError("Please enter the account holder name for this checkout.")
+      setSubmitting(false)
+      return
+    }
+
+    if (paymentMethod === "mpesa" && !mpesaPhone.trim()) {
+      setError("Please enter the M-Pesa number that should receive the STK push.")
+      setSubmitting(false)
+      return
+    }
+
     try {
       const response = await fetch("/api/billing/subscriptions/checkout", {
         method: "POST",
@@ -63,6 +77,8 @@ export function SubscriptionCheckoutPage({
           planKey: selectedPlan.key,
           billingCycle,
           paymentMethod,
+          payerName,
+          mpesaPhone: paymentMethod === "mpesa" ? mpesaPhone : "",
         }),
       })
 
@@ -270,6 +286,64 @@ export function SubscriptionCheckoutPage({
               {paymentMethod === "card"
                 ? "You will continue to a secure hosted payment page to enter your real card details. International cards are supported and settled in KES using today's billing rate."
                 : "You will continue to a secure hosted payment page to complete M-Pesa checkout. The payable amount is shown in KES for mobile-money settlement."}
+            </div>
+          </section>
+
+          <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+            <div className="mb-5">
+              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.45)]">
+                Checkout details
+              </p>
+              <h2 className="mt-3 text-[1.5rem] font-semibold text-white">
+                {paymentMethod === "card" ? "Secure card checkout" : "M-Pesa checkout"}
+              </h2>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="sm:col-span-2">
+                <span className="mb-2 block text-sm font-medium text-[rgba(240,237,230,0.78)]">Account holder name</span>
+                <input
+                  value={payerName}
+                  onChange={(event) => setPayerName(event.target.value)}
+                  placeholder="Alpha Tech Solutions"
+                  className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
+                />
+              </label>
+
+              {paymentMethod === "mpesa" ? (
+                <>
+                  <label className="sm:col-span-2">
+                    <span className="mb-2 block text-sm font-medium text-[rgba(240,237,230,0.78)]">M-Pesa number</span>
+                    <input
+                      value={mpesaPhone}
+                      onChange={(event) => setMpesaPhone(event.target.value)}
+                      inputMode="tel"
+                      placeholder="07XX XXX XXX"
+                      className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
+                    />
+                  </label>
+                  <div className="sm:col-span-2 rounded-[20px] border border-[rgba(200,245,90,0.12)] bg-[rgba(200,245,90,0.05)] p-4 text-sm text-[rgba(240,237,230,0.66)]">
+                    We will send the checkout prompt to this number after you continue. Use the Safaricom line that should approve the payment.
+                  </div>
+                </>
+              ) : (
+                <div className="sm:col-span-2 rounded-[20px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] p-4">
+                  <p className="text-sm font-semibold text-white">Accepted cards</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {["Visa", "Mastercard", "American Express", "Discover"].map((brand) => (
+                      <span
+                        key={brand}
+                        className="rounded-full border border-[rgba(240,237,230,0.12)] px-3 py-1 text-xs font-semibold text-[rgba(240,237,230,0.72)]"
+                      >
+                        {brand}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[rgba(240,237,230,0.58)]">
+                    Your real card number, expiry date, and CVC are collected on the secure Paystack card page after you continue. That keeps EventSlot out of raw card handling while still supporting prepaid and postpaid cards.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
         </div>
