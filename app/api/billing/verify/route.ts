@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
-import { activateEventPassPayment, activateSubscriptionPayment } from '@/lib/paymentFinalizers'
+import { activateEventPassPayment, activateSubscriptionPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
 
 function redirectTo(request: Request, path: string) {
   const current = new URL(request.url)
@@ -133,6 +133,56 @@ export async function GET(request: Request) {
         request,
         `/dashboard/events/${eventSlug}?passSuccess=true`
       )
+    } else if (type === 'paid_event_checkout') {
+      const paymentRecordId =
+        typeof data.data.metadata?.paymentRecordId === 'string'
+          ? data.data.metadata.paymentRecordId
+          : null
+      const orderId =
+        typeof data.data.metadata?.orderId === 'string'
+          ? data.data.metadata.orderId
+          : paymentRecordId
+      const eventSlug =
+        typeof data.data.metadata?.eventSlug === 'string'
+          ? data.data.metadata.eventSlug
+          : null
+
+      if (!orderId) {
+        return redirectTo(request, '/?error=missing_paid_event_order')
+      }
+
+      if (paymentRecordId) {
+        const existing = await prisma.payment.findUnique({
+          where: { paidEventOrderId: paymentRecordId },
+          select: { status: true },
+        })
+
+        if (existing?.status !== 'SUCCESS') {
+          await finalizePaidEventOrderPayment(paymentRecordId, reference ?? null)
+        }
+      } else {
+        await finalizePaidEventOrderPayment(orderId, reference ?? null)
+      }
+
+      const order = await prisma.paidEventOrder.findUnique({
+        where: { id: orderId },
+        select: {
+          registrations: {
+            take: 1,
+            select: { confirmationCode: true },
+          },
+          event: {
+            select: { slug: true },
+          },
+        },
+      })
+
+      const confirmationCode = order?.registrations[0]?.confirmationCode
+      if (confirmationCode) {
+        return redirectTo(request, `/register/success/${confirmationCode}`)
+      }
+
+      return redirectTo(request, `/events/${eventSlug ?? order?.event.slug ?? ''}`)
     } else {
       const planEndDate = new Date()
       if (billingCycle === 'annual') {

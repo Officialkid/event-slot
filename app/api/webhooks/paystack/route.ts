@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createHmac } from "crypto"
 import { prisma } from "@/lib/prisma"
 import { creditTokens } from "@/lib/tokens"
+import { finalizePaidEventOrderPayment } from "@/lib/paymentFinalizers"
 
 function verifySignature(body: string, sig: string): boolean {
   const hash = createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!)
@@ -11,13 +12,12 @@ function verifySignature(body: string, sig: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  // Hard gate — webhook does nothing until payments are enabled
   if (process.env.PAYMENTS_ENABLED !== "true") {
     return NextResponse.json({ message: "Payments not active" }, { status: 200 })
   }
 
   const rawBody = await req.text()
-  const sig     = req.headers.get("x-paystack-signature") ?? ""
+  const sig = req.headers.get("x-paystack-signature") ?? ""
 
   if (!verifySignature(rawBody, sig)) {
     console.error("[EventSlot] Invalid Paystack webhook signature")
@@ -28,14 +28,18 @@ export async function POST(req: NextRequest) {
 
   if (event.event === "charge.success") {
     const { reference, metadata } = event.data
-    const { userId, tokens } = metadata ?? {}
+    const { userId, tokens, paymentRecordId, orderId, type } = metadata ?? {}
+
+    if (type === "paid_event_checkout" && (paymentRecordId || orderId)) {
+      await finalizePaidEventOrderPayment(paymentRecordId ?? orderId, reference ?? null)
+      return NextResponse.json({ message: "OK" })
+    }
 
     if (!userId || !tokens) {
       console.error("[EventSlot] Missing metadata in Paystack event", metadata)
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 })
     }
 
-    // Idempotency — never double-credit
     const exists = await prisma.tokenTransaction.findFirst({
       where: { referenceId: reference, type: "PURCHASE" },
     })
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
       userId,
       parseInt(tokens),
       "PURCHASE",
-      `Token purchase — ${tokens} tokens via Paystack`,
+      `Token purchase - ${tokens} tokens via Paystack`,
       reference
     )
 

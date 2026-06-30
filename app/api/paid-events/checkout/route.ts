@@ -3,7 +3,9 @@ import prisma from '@/lib/prisma'
 import { detectCountry } from '@/lib/geoip'
 import { parseAttendeeIdentity } from '@/lib/paidEvents'
 import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
-import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend'
+import { normalizeMpesaPhone } from '@/lib/intasend'
+import { paystackFetch } from '@/lib/paystack'
+import { APP_URL } from '@/lib/config'
 import { joinPaidEventWaitlist } from '@/lib/paymentFinalizers'
 
 type AttendeePayload = {
@@ -42,12 +44,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required checkout details' }, { status: 400 })
     }
 
-    if (paymentMethod !== 'mpesa') {
-      return NextResponse.json({ success: false, error: 'Card payments are coming soon. Please use M-Pesa for now.' }, { status: 400 })
-    }
-
     if (!mpesaPhone?.trim()) {
       return NextResponse.json({ success: false, error: 'M-Pesa phone number is required' }, { status: 400 })
+    }
+
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return NextResponse.json({ success: false, error: 'Payment service is not configured.' }, { status: 503 })
     }
 
     const event = await prisma.event.findUnique({
@@ -166,7 +168,7 @@ export async function POST(req: NextRequest) {
         eventId: event.id,
         ticketTierId: ticketTier.id,
         status: 'PENDING',
-        paymentMethod: 'MPESA',
+        paymentMethod: paymentMethod === 'card' ? 'CARD' : 'MPESA',
         attendeePayload: attendee.answers,
         attendeeEmail,
         attendeeName,
@@ -195,33 +197,68 @@ export async function POST(req: NextRequest) {
     })
 
     try {
-      const apiRef = `order_${order.id}`
-      const stk = await startIntaSendStkPush({
-        apiRef,
-        phone: normalizedMpesaPhone,
-        amountKes: ticketTier.priceKes,
-        email: attendeeEmail,
-        name: attendeeName,
+      const apiRef = `paid_event_${order.id}`
+      const paystack = await paystackFetch('/transaction/initialize', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: attendeeEmail,
+          amount: Math.round(ticketTier.priceKes * 100),
+          currency: 'KES',
+          callback_url: `${APP_URL}/api/billing/verify`,
+          channels: paymentMethod === 'card' ? ['card'] : ['mobile_money'],
+          metadata: {
+            type: 'paid_event_checkout',
+            eventId: event.id,
+            eventSlug: event.slug,
+            paymentRecordId: order.id,
+            orderId: order.id,
+            ticketTierId: ticketTier.id,
+            paymentMethod,
+            mpesaPhone: normalizedMpesaPhone,
+            apiRef,
+          },
+        }),
       })
 
-      await prisma.paidEventOrder.update({
-        where: { id: order.id },
-        data: {
-          status: 'PAYMENT_PENDING',
-          checkoutRequestId: stk.invoiceId,
-          providerReference: apiRef,
-        },
-      })
+      if (!paystack.status || !paystack.data?.authorization_url || !paystack.data?.reference) {
+        await prisma.paidEventOrder.update({
+          where: { id: order.id },
+          data: { status: 'FAILED' },
+        })
+        return NextResponse.json(
+          { success: false, error: paystack.message ?? 'Unable to start checkout.' },
+          { status: 502 }
+        )
+      }
+
+      await prisma.$transaction([
+        prisma.paidEventOrder.update({
+          where: { id: order.id },
+          data: {
+            status: 'PAYMENT_PENDING',
+            checkoutRequestId: paystack.data.reference,
+            providerReference: `paystack:${paystack.data.reference}`,
+            mpesaPhone: paymentMethod === 'mpesa' ? normalizedMpesaPhone : null,
+          },
+        }),
+        prisma.payment.updateMany({
+          where: { paidEventOrderId: order.id },
+          data: {
+            status: 'PENDING',
+          },
+        }),
+      ])
 
       return NextResponse.json({
         success: true,
         orderId: order.id,
-        checkoutRequestId: stk.invoiceId,
-        customerMessage: 'Check your phone to complete payment.',
+        checkoutRequestId: paystack.data.reference,
+        url: paystack.data.authorization_url,
+        customerMessage: 'Continue to secure payment checkout.',
         amountKes: ticketTier.priceKes,
         eventTitle: event.title,
         ticketTierName: ticketTier.name,
-        paymentMethod: 'mpesa',
+        paymentMethod: 'paystack',
       })
     } catch (error) {
       await prisma.paidEventOrder.update({

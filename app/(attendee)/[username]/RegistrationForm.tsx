@@ -131,11 +131,12 @@ type PaidCheckoutResponse = {
   success: true
   orderId: string
   checkoutRequestId: string
+  url?: string
   customerMessage: string
   amountKes: number
   eventTitle: string
   ticketTierName: string
-  paymentMethod: "mpesa"
+  paymentMethod: "mpesa" | "paystack"
 }
 
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
@@ -305,10 +306,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         setError("Please choose a ticket tier.")
         return
       }
-      if (paymentMethod === "card") {
-        setError("Card payments are coming soon. Please use M-Pesa for now.")
-        return
-      }
       if (!mpesaPhone.trim()) {
         setError("Please enter the M-Pesa phone number to pay with.")
         return
@@ -341,7 +338,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         })
         const data = await res.json()
 
-        if (data.success && data.checkoutRequestId) {
+        if (data.success && data.url) {
+          window.location.href = data.url
+        } else if (data.success && data.checkoutRequestId) {
           setPaidCheckout(data)
         } else if (data.success && data.results) {
           setBulkResult(data)
@@ -771,7 +770,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   </button>
                 </div>
                 {paymentMethod === "card" && (
-                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">Card checkout is coming soon. Use M-Pesa for now.</p>
+                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">Card checkout continues on a secure hosted Paystack page.</p>
                 )}
               </div>
 

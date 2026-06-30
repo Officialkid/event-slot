@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { failPaidEventOrderPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
+import { paystackFetch } from '@/lib/paystack'
 import { extractInvoiceState, extractProviderReference, getIntaSendPaymentStatus } from '@/lib/intasend'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
@@ -69,7 +70,21 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
       select: { checkoutRequestId: true, providerReference: true },
     })
 
-    if (paymentOrder?.checkoutRequestId) {
+    if (paymentOrder?.providerReference?.startsWith('paystack:')) {
+      const reference = paymentOrder.checkoutRequestId ?? paymentOrder.providerReference.slice('paystack:'.length)
+      try {
+        const paystack = await paystackFetch(`/transaction/verify/${reference}`)
+        if (paystack.status && paystack.data?.status === 'success') {
+          await finalizePaidEventOrderPayment(order.id, reference)
+          status = 'PAID'
+        } else if (paystack.data?.status === 'failed' || paystack.data?.status === 'abandoned') {
+          await failPaidEventOrderPayment(order.id, 'FAILED')
+          status = 'FAILED'
+        }
+      } catch {
+        // Keep polling if the provider check is temporarily unavailable.
+      }
+    } else if (paymentOrder?.checkoutRequestId) {
       try {
         const providerStatus = await getIntaSendPaymentStatus(paymentOrder.checkoutRequestId)
         const state = extractInvoiceState(providerStatus)
