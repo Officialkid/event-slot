@@ -11,7 +11,7 @@ import { aiRatelimit } from '@/lib/ratelimit'
 import { getCountryFlag, getCountryName } from '@/lib/geoip'
 import { spendCredits, CREDIT_COSTS } from '@/lib/credits'
 import { isSuperAdmin } from '@/lib/tokens'
-import { canGenerateAiInsight } from '@/lib/planEnforcement'
+import { canUseEventFeature } from '@/lib/planEnforcement'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
 
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     // Plan enforcement — check AI insight quota before generating fresh insights
     if (session?.user?.id) {
-      const insightCheck = await canGenerateAiInsight(session.user.id, session.user.email ?? '')
+      const insightCheck = await canUseEventFeature(session.user.id, session.user.email ?? '', event.id, 'hasAiInsights')
       if (!insightCheck.allowed) {
         return NextResponse.json(
           { error: insightCheck.reason, upgradeRequired: insightCheck.upgradeRequired, code: 'PLAN_LIMIT_AI' },

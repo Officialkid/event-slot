@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import ExcelJS from 'exceljs'
 import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { canUseFeature } from '@/lib/planEnforcement'
+import { canUseEventFeature } from '@/lib/planEnforcement'
 
 function csvCell(value: unknown): string {
   const raw = value == null ? '' : String(value)
@@ -63,7 +63,12 @@ async function buildAccess(req: NextRequest, slug: string) {
     return { ok: false as const, response: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  const exportAccess = await canUseFeature(session?.user?.id ?? '', session?.user?.email ?? '', 'hasBasicAnalytics')
+  const exportAccess = await canUseEventFeature(
+    session?.user?.id ?? '',
+    session?.user?.email ?? '',
+    event.id,
+    'hasBasicAnalytics'
+  )
   if (!exportAccess.allowed) {
     return {
       ok: false as const,

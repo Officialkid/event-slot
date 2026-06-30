@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { eventListCache } from '@/lib/cache'
+import { syncEventPassStatusForEvent } from '@/lib/eventPasses'
 
 export async function GET(req: Request) {
   try {
@@ -84,6 +85,13 @@ export async function GET(req: Request) {
           eventDate: true,
           location: true,
           dataExpired: true,
+          eventPass: {
+            select: {
+              tier: true,
+              status: true,
+              expiresAt: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -92,9 +100,16 @@ export async function GET(req: Request) {
       prisma.event.count({ where }),
     ])
 
+    await Promise.all(events.map((event) => syncEventPassStatusForEvent(event.id).catch(() => null)))
+
     const payload = {
       success: true as const,
-      events,
+      events: events.map((event) => ({
+        ...event,
+        eventPassTier: event.eventPass?.tier?.toLowerCase() ?? null,
+        eventPassStatus: event.eventPass?.status ?? null,
+        eventPassExpiresAt: event.eventPass?.expiresAt ?? null,
+      })),
       pagination: {
         page,
         limit,

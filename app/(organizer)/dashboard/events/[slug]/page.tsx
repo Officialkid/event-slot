@@ -12,6 +12,7 @@ import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
 import { EntryDashboard } from "@/components/EntryDashboard"
 import { ScannerHome } from "@/components/scanner/ScannerHome"
+import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 import {
@@ -77,6 +78,12 @@ type EventData = {
   expiresAt?: string | null
   dashboardToken: string
   organizerPlan: string
+  eventEffectivePlan?: string
+  eventEffectivePlanSource?: "event_pass" | "subscription" | "free"
+  eventPassTier?: string | null
+  eventPassStatus?: string | null
+  eventPassExpiresAt?: string | null
+  eventEffectiveCommissionRate?: number
   canEdit?: boolean
   imageUrl?: string | null
   calendarSynced?: boolean
@@ -1302,6 +1309,7 @@ export default function EventDashboardPage() {
   const searchParams = useSearchParams()
   const slug = params?.slug as string
   const token = searchParams?.get("token") || ""
+  const passSuccess = searchParams?.get("passSuccess") === "true"
   const router = useRouter()
   const { data: session, status } = useSession()
 
@@ -2454,6 +2462,12 @@ export default function EventDashboardPage() {
             plan={eventData.organizerPlan}
           />
 
+          {passSuccess ? (
+            <div style={{ marginTop: "0.9rem", marginBottom: "0.9rem", borderRadius: 12, padding: "0.85rem 1rem", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.18)", color: "#C8F55A", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
+              One-time event pass activated. Premium event features are now unlocked for this event.
+            </div>
+          ) : null}
+
           {/* Registration link row */}
           <div data-tutorial="event-link" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 200px", display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
@@ -3044,6 +3058,19 @@ export default function EventDashboardPage() {
                 </div>
               </div>
             )}
+            {eventData.canEdit ? (
+            <div style={{ marginTop: "1rem" }}>
+              <EventPassSelector
+                eventId={eventData.id}
+                eventTitle={eventData.title}
+                activeTier={eventData.eventPassTier ?? null}
+                activeStatus={eventData.eventPassStatus ?? null}
+                activeExpiresAt={eventData.eventPassExpiresAt ?? null}
+                purchaseCountHint={eventData.eventEffectivePlanSource === "event_pass"}
+                compact
+              />
+            </div>
+            ) : null}
           </div>
         )}
 

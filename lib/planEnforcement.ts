@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getUserPlan, isSuperAdmin } from '@/lib/subscription';
 import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy';
+import { canUseEventScopedFeature } from '@/lib/eventPasses';
 
 interface EnforcementResult {
   allowed: boolean;
@@ -134,6 +135,7 @@ export async function canUseWaitlist(
 
 // ── Check feature flags ───────────────────────────────────────────────────────
 type PlanFeatureFlag =
+  | 'hasWaitlist'
   | 'hasPdfTickets'
   | 'hasQrCheckin'
   | 'hasBasicAnalytics'
@@ -149,6 +151,7 @@ type PlanFeatureFlag =
   | 'hasPrioritySupport';
 
 const FEATURE_UPGRADE_MAP: Record<PlanFeatureFlag, string> = {
+  hasWaitlist: 'standard',
   hasPdfTickets: 'standard',
   hasQrCheckin: 'standard',
   hasBasicAnalytics: 'standard',
@@ -181,6 +184,35 @@ export async function canUseFeature(
     };
   }
   return { allowed: true };
+}
+
+export async function canUseEventFeature(
+  userId: string,
+  userEmail: string,
+  eventId: string,
+  feature: PlanFeatureFlag
+): Promise<EnforcementResult> {
+  if (isSuperAdmin(userEmail)) return { allowed: true };
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { organizerId: true },
+  })
+
+  if (!event || event.organizerId !== userId) {
+    return { allowed: false, reason: 'Event not found or unavailable.' }
+  }
+
+  const access = await canUseEventScopedFeature(eventId, event.organizerId, feature)
+  if (!access.allowed) {
+    return {
+      allowed: false,
+      reason: `This feature requires the ${FEATURE_UPGRADE_MAP[feature]} plan or higher for this event.`,
+      upgradeRequired: FEATURE_UPGRADE_MAP[feature],
+    }
+  }
+
+  return { allowed: true }
 }
 
 // ── Check AI insight quota ────────────────────────────────────────────────────

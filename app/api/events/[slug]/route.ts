@@ -10,6 +10,7 @@ import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
 import { parseEventContact, validateAndEncodeEventContact } from '@/lib/eventContact'
+import { getEffectiveEventPlan, syncEventPassStatusForEvent } from '@/lib/eventPasses'
 
 const CONFIRMED_STATUSES = new Set(['confirmed', 'CONFIRMED'])
 const WAITLIST_STATUSES = new Set(['waitlist', 'WAITLISTED', 'waitlisted'])
@@ -59,6 +60,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
+
+    await syncEventPassStatusForEvent(event.id)
+    const effectiveEventPlan = await getEffectiveEventPlan(event.id, event.organizerId)
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
     const hasValidToken = !!(token && event.dashboardToken === token)
@@ -150,6 +154,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         expiresAt: event.expiresAt,
         dashboardToken: event.dashboardToken,
         organizerPlan: event.organizer?.plan ?? 'free',
+        eventEffectivePlan: effectiveEventPlan.planKey,
+        eventEffectivePlanSource: effectiveEventPlan.source,
+        eventPassTier: effectiveEventPlan.eventPassTier,
+        eventPassStatus: effectiveEventPlan.eventPassStatus,
+        eventPassExpiresAt: effectiveEventPlan.eventPassExpiresAt,
+        eventEffectiveCommissionRate: effectiveEventPlan.commissionRate,
         imageUrl: event.imageUrl ?? null,
         ticketTiers: event.ticketTiers,
         canEdit: adminAccess || hasTeamAccess,
@@ -199,6 +209,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
 
     if (action === 'archive') {
       await prisma.event.update({ where: { slug }, data: { archived: !!archived } })
+      await syncEventPassStatusForEvent(event.id)
 
       // Cancel calendar entries when archiving
       if (archived === true && event.organizerId) {
@@ -271,6 +282,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       },
       select: { id: true, title: true, slug: true },
     })
+
+    await syncEventPassStatusForEvent(event.id)
 
     // Sync changes to organiser's Google Calendar (fire-and-forget)
     if (event.organizerId) {

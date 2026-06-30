@@ -6,6 +6,8 @@ import { sendConfirmationEmail, sendWaitlistJoinedEmail } from '@/lib/email'
 import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { sendEventCapacityMilestones, sendTierCapacityMilestones } from '@/lib/capacityNotifications'
+import { getEffectiveEventPlan } from '@/lib/eventPasses'
+import { getEventPassExpiryDate } from '@/lib/oneTimePassCatalog'
 
 type SubscriptionIntent = {
   userId?: string
@@ -20,6 +22,18 @@ type SubscriptionIntent = {
   phone?: string
   paymentProvider?: string
   paymentMethod?: string
+}
+
+type EventPassIntent = {
+  eventId?: string
+  organizerId?: string
+  tier?: string
+  priceUsd?: number
+  priceKes?: number
+  exchangeRate?: number
+  paymentProvider?: string
+  paymentMethod?: string
+  mpesaPhone?: string
 }
 
 async function logPaidTicketEmail(orderId: string, data: {
@@ -274,7 +288,8 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
     }).catch(() => {})
   }
 
-  const commission = calculatePaidEventCommission(eventOrder.amountKes, eventOrder.event.organizer?.plan ?? 'free')
+  const effectiveEventPlan = await getEffectiveEventPlan(eventOrder.event.id, eventOrder.event.organizerId)
+  const commission = calculatePaidEventCommission(eventOrder.amountKes, effectiveEventPlan.planKey)
   await prisma.payment.updateMany({
     where: { paidEventOrderId: eventOrder.id },
     data: {
@@ -451,6 +466,63 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
       planStartDate: now,
       planEndDate: periodEnd,
     },
+  })
+}
+
+export async function activateEventPassPayment(paymentId: string, providerReference?: string | null) {
+  const payment = await prisma.eventPassPayment.findUnique({
+    where: { id: paymentId },
+    include: {
+      eventPass: {
+        include: {
+          event: {
+            select: {
+              id: true,
+              eventDate: true,
+              eventEndAt: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!payment || payment.status === 'SUCCESS') return
+
+  let intent: EventPassIntent = {}
+  try {
+    const parsed = JSON.parse(payment.description ?? '{}') as unknown
+    if (parsed && typeof parsed === 'object') {
+      intent = parsed as EventPassIntent
+    }
+  } catch {
+    throw new Error(`Could not parse payment intent for event pass payment ${payment.id}`)
+  }
+
+  const now = new Date()
+  const expiry = getEventPassExpiryDate(payment.eventPass.event.eventDate, payment.eventPass.event.eventEndAt) ?? now
+
+  await prisma.$transaction(async (tx) => {
+    await tx.eventPass.update({
+      where: { id: payment.eventPassId },
+      data: {
+        status: expiry.getTime() <= now.getTime() ? 'EXPIRED' : 'ACTIVE',
+        paymentProvider: intent.paymentProvider ?? payment.provider,
+        paymentReference: providerReference ?? payment.providerRef,
+        checkoutRequestId: payment.checkoutRequestId ?? payment.providerRef ?? providerReference ?? undefined,
+        activatedAt: now,
+        expiresAt: expiry,
+      },
+    })
+
+    await tx.eventPassPayment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'SUCCESS',
+        providerRef: providerReference ?? payment.providerRef ?? undefined,
+        paidAt: now,
+      },
+    })
   })
 }
 

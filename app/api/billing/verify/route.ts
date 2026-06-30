@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
-import { activateSubscriptionPayment } from '@/lib/paymentFinalizers'
+import { activateEventPassPayment, activateSubscriptionPayment } from '@/lib/paymentFinalizers'
 
 function redirectTo(request: Request, path: string) {
   const current = new URL(request.url)
@@ -105,6 +105,33 @@ export async function GET(request: Request) {
       return redirectTo(
         request,
         `/dashboard/billing?success=true&plan=${data.data.metadata?.plan ?? 'pro'}`
+      )
+    } else if (type === 'event_pass') {
+      const paymentRecordId =
+        typeof data.data.metadata?.paymentRecordId === 'string'
+          ? data.data.metadata.paymentRecordId
+          : null
+      const eventSlug =
+        typeof data.data.metadata?.eventSlug === 'string'
+          ? data.data.metadata.eventSlug
+          : null
+
+      if (!paymentRecordId || !eventSlug) {
+        return redirectTo(request, '/dashboard/billing?error=missing_event_pass_record')
+      }
+
+      const existing = await prisma.eventPassPayment.findUnique({
+        where: { id: paymentRecordId },
+        select: { status: true },
+      })
+
+      if (existing?.status !== 'SUCCESS') {
+        await activateEventPassPayment(paymentRecordId, reference)
+      }
+
+      return redirectTo(
+        request,
+        `/dashboard/events/${eventSlug}?passSuccess=true`
       )
     } else {
       const planEndDate = new Date()

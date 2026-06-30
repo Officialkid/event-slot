@@ -67,6 +67,7 @@ model Event {
   emailCampaigns   EmailCampaign[]
   faqs             EventFAQ[]
   calendarSyncs    CalendarEventSync[]
+  eventPass        EventPass?
 }
 
 model EventFAQ {
@@ -176,6 +177,7 @@ model User {
   googleCalendarToken        GoogleCalendarToken?
   calendarEventSyncs         CalendarEventSync[]
   subscriptions              Subscription[]
+  eventPasses                EventPass[]
   paygSettings               PaygSettings?
   organiserBalance           OrganiserBalance?
   withdrawals                Withdrawal[]
@@ -513,6 +515,52 @@ model Payment {
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
+}
+
+model EventPass {
+  id               String            @id @default(cuid())
+  eventId           String            @unique
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizerId       String
+  organizer         User              @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  tier              OneTimePassTier
+  status            EventPassStatus   @default(PENDING)
+  priceUsd          Float
+  priceKes          Int
+  commissionRate    Float
+  paymentMethod     PaidOrderPaymentMethod
+  paymentProvider   String?
+  paymentReference  String?
+  checkoutRequestId String?           @unique
+  activatedAt       DateTime?
+  expiresAt         DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  payments          EventPassPayment[]
+
+  @@index([organizerId, status])
+  @@index([status, expiresAt])
+}
+
+model EventPassPayment {
+  id                String        @id @default(cuid())
+  eventPassId       String
+  eventPass         EventPass     @relation(fields: [eventPassId], references: [id], onDelete: Cascade)
+  amountKes         Float
+  amountUsd         Float
+  exchangeRate      Float
+  provider          String
+  providerRef       String?
+  checkoutRequestId String?
+  status            PaymentStatus @default(PENDING)
+  phone             String?
+  description       String?       @db.Text
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([eventPassId])
+  @@index([checkoutRequestId])
 }
 
 model OrganiserBalance {
@@ -996,6 +1044,19 @@ enum SubscriptionStatus {
   CANCELLED
   EXPIRED
   PAST_DUE
+}
+
+enum OneTimePassTier {
+  STANDARD
+  PRO
+  BUSINESS
+}
+
+enum EventPassStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }
 
 // ─── Individual payment records ───────────────────────────────────────────────

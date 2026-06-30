@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import prisma from '@/lib/prisma'
-import { activateSubscriptionPayment } from '@/lib/paymentFinalizers'
+import { activateEventPassPayment, activateSubscriptionPayment } from '@/lib/paymentFinalizers'
 
 export async function POST(request: Request) {
   try {
@@ -111,6 +111,8 @@ export async function POST(request: Request) {
             data: { paystackCustomerCode: customer.customer_code },
           }).catch(() => {})
         }
+      } else if (metadata?.type === 'event_pass' && metadata?.paymentRecordId) {
+        await activateEventPassPayment(metadata.paymentRecordId, reference ?? null)
       }
       break
     }

@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { hasOrganiserAccess } from '@/lib/adminMode'
-import { canUseFeature } from '@/lib/planEnforcement'
+import { canUseEventFeature } from '@/lib/planEnforcement'
 
 type EventQuestion = { id: string; label: string; type: string }
 type AnswerRow = { questionId: string; value: string }
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
     // Plan enforcement — analytics export requires Basic Analytics
     if (session?.user?.id) {
-      const check = await canUseFeature(session.user.id, session.user.email ?? '', 'hasBasicAnalytics')
+      const check = await canUseEventFeature(session.user.id, session.user.email ?? '', event.id, 'hasBasicAnalytics')
       if (!check.allowed) {
         return NextResponse.json(
           { error: check.reason, upgradeRequired: check.upgradeRequired, code: 'PLAN_LIMIT_FEATURE' },

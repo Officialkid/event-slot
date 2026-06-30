@@ -14,10 +14,11 @@ import { detectCountry } from '@/lib/geoip'
 import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
-import { canUseWaitlist } from '@/lib/planEnforcement'
+import { canUseEventFeature } from '@/lib/planEnforcement'
 import { getEffectivePlanPolicy } from '@/lib/effectivePlanPolicy'
 import { isPricingRolloutActive } from '@/lib/pricingRollout'
 import { sendEventCapacityMilestones } from '@/lib/capacityNotifications'
+import { getEffectiveEventPlan } from '@/lib/eventPasses'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
@@ -86,7 +87,8 @@ export async function POST(req: NextRequest) {
         }))
       : null
 
-    const effectivePlan = getEffectivePlanPolicy(organizerPlanKey?.plan)
+    const effectiveEventPlan = await getEffectiveEventPlan(event.id, event.organizerId)
+    const effectivePlan = getEffectivePlanPolicy(effectiveEventPlan.planKey)
     let planWaitlistForced = false
     if (event.organizerId) {
       const organizerEmail = event.organizer?.email ?? ''
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
         currentCount >= effectivePlan.maxAttendeesPerEvent &&
         !paygEnabled
       ) {
-        const waitlistCheck = await canUseWaitlist(event.organizerId, organizerEmail)
+        const waitlistCheck = await canUseEventFeature(event.organizerId, organizerEmail, event.id, 'hasWaitlist')
         if (!waitlistCheck.allowed) {
           return NextResponse.json(
             { success: false, error: 'This event is full and the waitlist is not available.', code: 'EVENT_FULL' },

@@ -23,6 +23,9 @@ type OrgEvent = {
   eventDate: string | null
   location: string | null
   dataExpired: boolean
+  eventPassTier?: string | null
+  eventPassStatus?: string | null
+  eventPassExpiresAt?: string | null
 }
 
 type TabKey = "active" | "past" | "archived"
@@ -721,6 +724,12 @@ function EventCard({
             )}
           </div>
 
+          {event.eventPassStatus === "ACTIVE" && event.eventPassTier ? (
+            <p style={{ margin: "0.3rem 0 0", fontSize: "0.74rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+              {event.eventPassTier.charAt(0).toUpperCase() + event.eventPassTier.slice(1)} Pass Active
+              {event.eventPassExpiresAt ? ` - Expires ${formatDate(event.eventPassExpiresAt)}` : ""}
+            </p>
+          ) : null}
           <ThreeDotMenu
             event={event}
             onRename={() => setModal("rename")}

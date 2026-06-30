@@ -11,6 +11,7 @@ import type { EventContactMode } from "@/lib/eventContact"
 import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/effectivePlanPolicy"
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 import { TierBadge } from "@/components/TierBadge"
+import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
@@ -1193,6 +1194,14 @@ export default function CreateEventPage() {
                   )}
                 </div>
                 )}
+                {isRegistrationEvent && organizerPlan === "free" ? (
+                <div className="md:col-span-2">
+                  <EventPassSelector
+                    eventTitle={title.trim() || "this event"}
+                    compact
+                  />
+                </div>
+                ) : null}
                 {isRegistrationEvent && (
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
