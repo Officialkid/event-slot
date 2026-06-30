@@ -306,7 +306,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         setError("Please choose a ticket tier.")
         return
       }
-      if (!mpesaPhone.trim()) {
+      if (paymentMethod === "mpesa" && !mpesaPhone.trim()) {
         setError("Please enter the M-Pesa phone number to pay with.")
         return
       }
@@ -770,20 +770,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   </button>
                 </div>
                 {paymentMethod === "card" && (
-                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">Card checkout continues on a secure hosted Paystack page.</p>
+                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">
+                    Card checkout continues on a secure hosted Paystack page.
+                  </p>
                 )}
               </div>
 
-              <div>
-                <label className={subtleLabelClassName}>M-Pesa phone</label>
-                <input
-                  type="tel"
-                  value={mpesaPhone}
-                  onChange={(e) => setMpesaPhone(e.target.value)}
-                  placeholder="e.g. 0712345678 or 254712345678"
-                  className={fieldClassName}
-                />
-              </div>
+              {paymentMethod === "mpesa" ? (
+                <div>
+                  <label className={subtleLabelClassName}>M-Pesa phone</label>
+                  <input
+                    type="tel"
+                    value={mpesaPhone}
+                    onChange={(e) => setMpesaPhone(e.target.value)}
+                    placeholder="e.g. 0712345678 or 254712345678"
+                    className={fieldClassName}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-[12px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] p-4">
+                  <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.52)]">
+                    Card checkout
+                  </p>
+                  <p className="mt-1 text-[0.78rem] text-[rgba(240,237,230,0.42)]">
+                    We&apos;ll send you to Paystack to complete the one-time payment securely.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

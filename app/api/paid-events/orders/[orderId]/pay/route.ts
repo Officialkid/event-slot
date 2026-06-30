@@ -8,10 +8,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ orderId:
   const { orderId } = await props.params
   const body = await req.json().catch(() => ({}))
   const rawPhone = typeof body.mpesaPhone === 'string' ? body.mpesaPhone : ''
-
-  if (!rawPhone.trim()) {
-    return NextResponse.json({ success: false, error: 'M-Pesa phone number is required' }, { status: 400 })
-  }
+  const requestedPaymentMethod = typeof body.paymentMethod === 'string' ? body.paymentMethod : ''
 
   const order = await prisma.paidEventOrder.findUnique({
     where: { id: orderId },
@@ -37,9 +34,22 @@ export async function POST(req: NextRequest, props: { params: Promise<{ orderId:
     return NextResponse.json({ success: false, error: 'This payment link has expired' }, { status: 400 })
   }
 
-  const phone = normalizeMpesaPhone(rawPhone)
-  if (!/^2547\d{8}$/.test(phone) && !/^2541\d{8}$/.test(phone)) {
-    return NextResponse.json({ success: false, error: 'Invalid M-Pesa phone number' }, { status: 400 })
+  const paymentMethod = requestedPaymentMethod === 'card'
+    ? 'card'
+    : requestedPaymentMethod === 'mpesa'
+      ? 'mpesa'
+      : order.paymentMethod === 'CARD'
+        ? 'card'
+        : 'mpesa'
+
+  const phone = paymentMethod === 'mpesa' ? normalizeMpesaPhone(rawPhone) : null
+  if (paymentMethod === 'mpesa') {
+    if (!rawPhone.trim()) {
+      return NextResponse.json({ success: false, error: 'M-Pesa phone number is required' }, { status: 400 })
+    }
+    if (!/^2547\d{8}$/.test(phone ?? '') && !/^2541\d{8}$/.test(phone ?? '')) {
+      return NextResponse.json({ success: false, error: 'Invalid M-Pesa phone number' }, { status: 400 })
+    }
   }
 
   try {
@@ -59,8 +69,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ orderId:
           paymentRecordId: order.id,
           orderId: order.id,
           ticketTierId: order.ticketTierId,
-          paymentMethod: 'mpesa',
-          mpesaPhone: phone,
+          paymentMethod,
+          ...(phone ? { mpesaPhone: phone } : {}),
           apiRef,
         },
       }),

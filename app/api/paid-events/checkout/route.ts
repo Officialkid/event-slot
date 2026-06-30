@@ -44,10 +44,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required checkout details' }, { status: 400 })
     }
 
-    if (!mpesaPhone?.trim()) {
-      return NextResponse.json({ success: false, error: 'M-Pesa phone number is required' }, { status: 400 })
-    }
-
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ success: false, error: 'Payment service is not configured.' }, { status: 503 })
     }
@@ -111,12 +107,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email is required for paid event registrations' }, { status: 400 })
     }
 
+    if (paymentMethod === 'mpesa' && !mpesaPhone?.trim()) {
+      return NextResponse.json({ success: false, error: 'M-Pesa phone number is required' }, { status: 400 })
+    }
+
     const normalizedSource = typeof source === 'string' && source.trim() ? source.trim().toLowerCase() : 'unknown'
     const normalizedRefCode = typeof refCode === 'string' && refCode.trim() ? refCode.trim() : null
     const normalizedUtmSource = typeof utmSource === 'string' && utmSource.trim() ? utmSource.trim() : null
-    const normalizedMpesaPhone = normalizeMpesaPhone(mpesaPhone)
+    const normalizedMpesaPhone = paymentMethod === 'mpesa' ? normalizeMpesaPhone(mpesaPhone ?? '') : null
 
-    if (!/^2547\d{8}$/.test(normalizedMpesaPhone) && !/^2541\d{8}$/.test(normalizedMpesaPhone)) {
+    if (paymentMethod === 'mpesa' && !/^2547\d{8}$/.test(normalizedMpesaPhone ?? '') && !/^2541\d{8}$/.test(normalizedMpesaPhone ?? '')) {
       return NextResponse.json({ success: false, error: 'Invalid M-Pesa phone number' }, { status: 400 })
     }
 
@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
             orderId: order.id,
             ticketTierId: ticketTier.id,
             paymentMethod,
-            mpesaPhone: normalizedMpesaPhone,
+            ...(normalizedMpesaPhone ? { mpesaPhone: normalizedMpesaPhone } : {}),
             apiRef,
           },
         }),
@@ -235,12 +235,12 @@ export async function POST(req: NextRequest) {
         prisma.paidEventOrder.update({
           where: { id: order.id },
           data: {
-            status: 'PAYMENT_PENDING',
-            checkoutRequestId: paystack.data.reference,
-            providerReference: `paystack:${paystack.data.reference}`,
-            mpesaPhone: paymentMethod === 'mpesa' ? normalizedMpesaPhone : null,
-          },
-        }),
+          status: 'PAYMENT_PENDING',
+          checkoutRequestId: paystack.data.reference,
+          providerReference: `paystack:${paystack.data.reference}`,
+          mpesaPhone: normalizedMpesaPhone,
+        },
+      }),
         prisma.payment.updateMany({
           where: { paidEventOrderId: order.id },
           data: {
