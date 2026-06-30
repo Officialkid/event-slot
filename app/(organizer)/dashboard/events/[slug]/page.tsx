@@ -1551,10 +1551,37 @@ export default function EventDashboardPage() {
     ? "Super admins can generate and regenerate AI insights freely."
     : "Standard plan and above can generate AI insights. The first insight for an event is free while your monthly quota lasts; regenerations use 20 credits."
 
+  const copyTextToClipboard = async (text: string) => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      // Fall back to the legacy clipboard path below.
+    }
+
+    try {
+      const textarea = document.createElement("textarea")
+      textarea.value = text
+      textarea.setAttribute("readonly", "true")
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body.appendChild(textarea)
+      textarea.select()
+      const copied = document.execCommand("copy")
+      document.body.removeChild(textarea)
+      return copied
+    } catch {
+      return false
+    }
+  }
+
   const handleCopy = async () => {
     if (!regLink) return
     try {
-      await navigator.clipboard.writeText(regLink)
+      const copied = await copyTextToClipboard(regLink)
+      if (!copied) throw new Error("copy failed")
       setCopied(true)
       setShareFeedback(eventData?.accessType === "WALK_IN" ? "Check-in link copied." : "Registration link copied.")
       setTimeout(() => setCopied(false), 2000)
@@ -1606,13 +1633,18 @@ export default function EventDashboardPage() {
     if (!eventData) return
     try {
       const qrUrl = `/api/events/${eventData.slug}/qr`
+      const response = await fetch(qrUrl, { cache: "no-store" })
+      if (!response.ok) throw new Error("Unable to generate QR code")
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement("a")
-      link.href = qrUrl
+      link.href = objectUrl
       link.download = `qr-${eventData.slug}.png`
       link.rel = "noopener"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     } catch {
       window.location.assign(`/api/events/${eventData.slug}/qr`)
     }
