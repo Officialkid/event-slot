@@ -89,7 +89,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     if (!response.ok) throw new Error("Unable to prepare download.")
 
     const blob = await response.blob()
-    const extension = blob.type === "image/png" ? "png" : "svg"
+    const extension = blob.type === "image/png" ? "png" : "jpg"
     const objectUrl = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = objectUrl
@@ -143,8 +143,8 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     const response = await fetch(shareCardUrl, { cache: "no-store" })
     if (!response.ok) throw new Error("Unable to prepare share card.")
     const blob = await response.blob()
-    const extension = blob.type === "image/svg+xml" ? "svg" : "png"
-    return new File([blob], `${event.slug}-checkin-poster.${extension}`, { type: blob.type || "image/svg+xml" })
+    const extension = blob.type === "image/jpeg" ? "jpg" : "png"
+    return new File([blob], `${event.slug}-checkin-poster.${extension}`, { type: blob.type || "image/png" })
   }
 
   async function handleDownloadShareCard() {

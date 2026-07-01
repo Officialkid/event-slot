@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import sharp from "sharp"
 import prisma from "@/lib/prisma"
 import {
   formatWalkInLongDayLabel,
@@ -55,56 +56,118 @@ function wrapSvgText(text: string, maxCharsPerLine: number) {
   return lines.slice(0, 4)
 }
 
+function truncateText(text: string, maxLength: number) {
+  const normalized = text.trim()
+  return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength - 3).trimEnd()}...`
+}
+
+async function preparePosterDataUri(imageUrl: string | null) {
+  if (!imageUrl) return null
+
+  try {
+    const url = new URL(imageUrl)
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(8_000) })
+    if (!response.ok) return null
+
+    const source = Buffer.from(await response.arrayBuffer())
+    if (source.byteLength > 12 * 1024 * 1024) return null
+
+    const poster = await sharp(source)
+      .rotate()
+      .resize(936, 760, { fit: "cover", position: "centre" })
+      .jpeg({ quality: 86 })
+      .toBuffer()
+
+    return `data:image/jpeg;base64,${poster.toString("base64")}`
+  } catch {
+    return null
+  }
+}
+
 function buildShareCardSvg(params: {
   title: string
   dayLabel: string
   attendeeName: string
   checkinNumber: number | null
+  location: string | null
+  posterDataUri: string | null
 }) {
-  const titleLines = wrapSvgText(params.title, 18)
+  const titleLines = wrapSvgText(params.title, 24).slice(0, 3)
   const titleTspans = titleLines
     .map((line, index) => {
-      const dy = index === 0 ? 0 : 86
-      return `<tspan x="72" dy="${dy}">${escapeXml(line)}</tspan>`
+      const dy = index === 0 ? 0 : 66
+      return `<tspan x="96" dy="${dy}">${escapeXml(line)}</tspan>`
     })
     .join("")
 
-  const attendeeName = escapeXml(params.attendeeName || "Event guest")
-  const dayLabel = escapeXml(params.dayLabel)
-  const checkinLine = params.checkinNumber
-    ? `<text x="72" y="1328" fill="#C8F55A" font-size="30" font-weight="700">Check-in number #${params.checkinNumber}</text>`
-    : ""
+  const attendeeName = escapeXml(truncateText(params.attendeeName || "Event guest", 28))
+  const dayLabel = escapeXml(truncateText(params.dayLabel, 62))
+  const location = escapeXml(truncateText(params.location || "See event page for venue details", 58))
+  const checkinNumber = params.checkinNumber ? `#${params.checkinNumber}` : "Confirmed"
+  const poster = params.posterDataUri
+    ? `<image href="${params.posterDataUri}" x="72" y="182" width="936" height="760" preserveAspectRatio="xMidYMid slice" />`
+    : `<rect x="72" y="182" width="936" height="760" fill="url(#posterFallback)" />
+       <circle cx="862" cy="318" r="230" fill="#FF725E" opacity="0.45" />
+       <circle cx="214" cy="804" r="260" fill="#18A999" opacity="0.4" />
+       <text x="540" y="560" fill="#FFF8EB" font-size="58" font-weight="800" text-anchor="middle">${escapeXml(params.title)}</text>`
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="Walk-in share card">
-  <rect width="1080" height="1920" fill="#0A0A0A" />
-  <rect x="0" y="0" width="1080" height="1920" fill="url(#bg)" />
-  <rect x="60" y="60" width="960" height="1800" rx="36" fill="none" stroke="rgba(200,245,90,0.18)" />
-
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0A0A0A" />
-      <stop offset="100%" stop-color="#111722" />
+      <stop offset="0%" stop-color="#FF725E" />
+      <stop offset="46%" stop-color="#F5B942" />
+      <stop offset="100%" stop-color="#18A999" />
     </linearGradient>
+    <linearGradient id="posterFallback" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#143642" />
+      <stop offset="100%" stop-color="#0B132B" />
+    </linearGradient>
+    <linearGradient id="posterShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="55%" stop-color="#071013" stop-opacity="0" />
+      <stop offset="100%" stop-color="#071013" stop-opacity="0.82" />
+    </linearGradient>
+    <clipPath id="posterClip"><rect x="72" y="182" width="936" height="760" rx="42" /></clipPath>
+    <filter id="shadow"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#18201D" flood-opacity="0.28" /></filter>
   </defs>
 
-  <circle cx="84" cy="98" r="10" fill="#C8F55A" />
-  <text x="110" y="106" fill="#C8F55A" font-size="26" font-weight="700">EventSlot</text>
+  <rect width="1080" height="1920" fill="url(#bg)" />
+  <circle cx="1010" cy="80" r="230" fill="#FFF4D6" opacity="0.22" />
+  <circle cx="50" cy="1880" r="260" fill="#0B5D5B" opacity="0.18" />
 
-  <text x="72" y="236" fill="#C8F55A" font-size="30" font-weight="700">Welcome to</text>
-  <text x="72" y="348" fill="#F0EDE6" font-size="78" font-weight="700">
-    ${titleTspans}
-  </text>
-  <text x="72" y="690" fill="#C8F55A" font-size="34" font-weight="600">${dayLabel}</text>
+  <text x="72" y="108" fill="#132A2F" font-family="Arial, sans-serif" font-size="30" font-weight="900" letter-spacing="2">EVENTSLOT</text>
+  <text x="1008" y="108" fill="#132A2F" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="end">I WAS HERE</text>
 
-  <rect x="72" y="1038" width="936" height="380" rx="28" fill="rgba(255,255,255,0.05)" stroke="rgba(200,245,90,0.2)" />
-  <text x="72" y="1112" fill="rgba(240,237,230,0.72)" font-size="26">Checked in attendee</text>
-  <text x="72" y="1196" fill="#F0EDE6" font-size="52" font-weight="700">${attendeeName}</text>
-  ${checkinLine}
-  <text x="72" y="1392" fill="rgba(240,237,230,0.82)" font-size="28">Thanks for being part of this moment.</text>
+  <g clip-path="url(#posterClip)" filter="url(#shadow)">
+    ${poster}
+    <rect x="72" y="182" width="936" height="760" fill="url(#posterShade)" />
+  </g>
+  <rect x="72" y="182" width="936" height="760" rx="42" fill="none" stroke="#FFF8EB" stroke-width="5" />
+  <rect x="96" y="836" width="330" height="58" rx="29" fill="#F7FF58" />
+  <text x="261" y="875" fill="#143642" font-family="Arial, sans-serif" font-size="25" font-weight="900" text-anchor="middle">CHECKED IN</text>
 
-  <text x="540" y="1738" fill="#F0EDE6" font-size="24" font-weight="700" text-anchor="middle">Powered by EventSlot</text>
-  <text x="540" y="1780" fill="rgba(240,237,230,0.78)" font-size="20" text-anchor="middle">Check us out at www.eventsslot.com</text>
+  <rect x="48" y="990" width="984" height="750" rx="52" fill="#FFF8EB" filter="url(#shadow)" />
+  <text x="96" y="1070" fill="#DB4D3F" font-family="Arial, sans-serif" font-size="24" font-weight="900" letter-spacing="3">I ATTENDED</text>
+  <text x="96" y="1150" fill="#132A2F" font-family="Arial, sans-serif" font-size="54" font-weight="900">${titleTspans}</text>
+
+  <line x1="96" y1="1320" x2="984" y2="1320" stroke="#132A2F" stroke-opacity="0.14" stroke-width="3" />
+  <text x="96" y="1380" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">ATTENDEE</text>
+  <text x="96" y="1436" fill="#132A2F" font-family="Arial, sans-serif" font-size="42" font-weight="900">${attendeeName}</text>
+
+  <text x="780" y="1380" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">REG. NUMBER</text>
+  <text x="780" y="1436" fill="#DB4D3F" font-family="Arial, sans-serif" font-size="42" font-weight="900">${checkinNumber}</text>
+
+  <text x="96" y="1532" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">WHEN</text>
+  <text x="96" y="1576" fill="#132A2F" font-family="Arial, sans-serif" font-size="27" font-weight="800">${dayLabel}</text>
+  <text x="96" y="1652" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">WHERE</text>
+  <text x="96" y="1696" fill="#132A2F" font-family="Arial, sans-serif" font-size="27" font-weight="800">${location}</text>
+
+  <text x="72" y="1810" fill="#132A2F" font-family="Arial, sans-serif" font-size="28" font-weight="900">Create. Share. Fill every slot.</text>
+  <text x="72" y="1860" fill="#132A2F" font-family="Arial, sans-serif" font-size="25" font-weight="700">Create your event at www.eventsslot.com</text>
+  <circle cx="970" cy="1830" r="48" fill="#132A2F" />
+  <text x="970" y="1841" fill="#F7FF58" font-family="Arial, sans-serif" font-size="34" font-weight="900" text-anchor="middle">E</text>
 </svg>`
 }
 
@@ -124,6 +187,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         accessType: true,
         eventDate: true,
         eventEndAt: true,
+        imageUrl: true,
+        location: true,
       },
     })
 
@@ -154,23 +219,27 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     })
 
     const dayLabel = `${dayPosition && dayPosition.total > 1 ? `Day ${dayPosition.index} of ${dayPosition.total} - ` : ""}${formatWalkInLongDayLabel(dayKey, WALK_IN_TIME_ZONE)}`
+    const posterDataUri = await preparePosterDataUri(event.imageUrl)
     const svg = buildShareCardSvg({
       title: event.title,
       dayLabel,
       attendeeName,
       checkinNumber,
+      location: event.location,
+      posterDataUri,
     })
+    const png = await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer()
 
-    const response = new NextResponse(svg, {
+    const response = new NextResponse(new Uint8Array(png), {
       status: 200,
       headers: {
-        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Content-Type": "image/png",
         "Cache-Control": "private, no-store",
       },
     })
 
     if (shouldDownload) {
-      response.headers.set("Content-Disposition", `attachment; filename="${slug}-walkin-poster.svg"`)
+      response.headers.set("Content-Disposition", `attachment; filename="${slug}-walkin-poster.png"`)
     }
 
     return response
