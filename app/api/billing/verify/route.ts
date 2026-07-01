@@ -4,10 +4,11 @@ import { paystackFetch } from '@/lib/paystack'
 import { addCredits } from '@/lib/credits'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { activateEventPassPayment, activateSubscriptionPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
+import { APP_URL } from '@/lib/config'
 
 function redirectTo(request: Request, path: string) {
-  const current = new URL(request.url)
-  return NextResponse.redirect(new URL(path, current.origin))
+  const baseUrl = APP_URL || new URL(request.url).origin
+  return NextResponse.redirect(new URL(path, baseUrl))
 }
 
 export async function GET(request: Request) {
