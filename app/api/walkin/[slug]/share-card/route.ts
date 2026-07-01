@@ -11,6 +11,7 @@ import {
 export const runtime = "nodejs"
 
 const WALK_IN_TIME_ZONE = "Africa/Nairobi"
+const SHARE_CARD_FONT_STACK = "'DejaVu Sans', Arial, sans-serif"
 
 function parseDayIndex(rawDay: string | null, totalDays: number) {
   if (!rawDay) return null
@@ -68,8 +69,16 @@ async function preparePosterDataUri(imageUrl: string | null) {
     const url = new URL(imageUrl)
     if (url.protocol !== "https:" && url.protocol !== "http:") return null
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(8_000) })
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "User-Agent": "EventSlot Share Card Renderer/1.0",
+      },
+    })
     if (!response.ok) return null
+    const contentType = response.headers.get("content-type") ?? ""
+    if (!contentType.toLowerCase().startsWith("image/")) return null
 
     const source = Buffer.from(await response.arrayBuffer())
     if (source.byteLength > 12 * 1024 * 1024) return null
@@ -81,7 +90,9 @@ async function preparePosterDataUri(imageUrl: string | null) {
       .toBuffer()
 
     return `data:image/jpeg;base64,${poster.toString("base64")}`
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error"
+    console.error("[walkin/share-card] poster fetch failed:", { imageUrl, message })
     return null
   }
 }
@@ -111,7 +122,7 @@ function buildShareCardSvg(params: {
     : `<rect x="72" y="182" width="936" height="760" fill="url(#posterFallback)" />
        <circle cx="862" cy="318" r="230" fill="#FF725E" opacity="0.45" />
        <circle cx="214" cy="804" r="260" fill="#18A999" opacity="0.4" />
-       <text x="540" y="560" fill="#FFF8EB" font-size="58" font-weight="800" text-anchor="middle">${escapeXml(params.title)}</text>`
+       <text x="540" y="560" fill="#FFF8EB" font-family="${SHARE_CARD_FONT_STACK}" font-size="58" font-weight="800" text-anchor="middle">${escapeXml(params.title)}</text>`
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="Walk-in share card">
@@ -137,8 +148,8 @@ function buildShareCardSvg(params: {
   <circle cx="1010" cy="80" r="230" fill="#FFF4D6" opacity="0.22" />
   <circle cx="50" cy="1880" r="260" fill="#0B5D5B" opacity="0.18" />
 
-  <text x="72" y="108" fill="#132A2F" font-family="Arial, sans-serif" font-size="30" font-weight="900" letter-spacing="2">EVENTSLOT</text>
-  <text x="1008" y="108" fill="#132A2F" font-family="Arial, sans-serif" font-size="24" font-weight="700" text-anchor="end">I WAS HERE</text>
+  <text x="72" y="108" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="30" font-weight="900" letter-spacing="2">EVENTSLOT</text>
+  <text x="1008" y="108" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="24" font-weight="700" text-anchor="end">I WAS HERE</text>
 
   <g clip-path="url(#posterClip)" filter="url(#shadow)">
     ${poster}
@@ -146,28 +157,28 @@ function buildShareCardSvg(params: {
   </g>
   <rect x="72" y="182" width="936" height="760" rx="42" fill="none" stroke="#FFF8EB" stroke-width="5" />
   <rect x="96" y="836" width="330" height="58" rx="29" fill="#F7FF58" />
-  <text x="261" y="875" fill="#143642" font-family="Arial, sans-serif" font-size="25" font-weight="900" text-anchor="middle">CHECKED IN</text>
+  <text x="261" y="875" fill="#143642" font-family="${SHARE_CARD_FONT_STACK}" font-size="25" font-weight="900" text-anchor="middle">CHECKED IN</text>
 
   <rect x="48" y="990" width="984" height="750" rx="52" fill="#FFF8EB" filter="url(#shadow)" />
-  <text x="96" y="1070" fill="#DB4D3F" font-family="Arial, sans-serif" font-size="24" font-weight="900" letter-spacing="3">I ATTENDED</text>
-  <text x="96" y="1150" fill="#132A2F" font-family="Arial, sans-serif" font-size="54" font-weight="900">${titleTspans}</text>
+  <text x="96" y="1070" fill="#DB4D3F" font-family="${SHARE_CARD_FONT_STACK}" font-size="24" font-weight="900" letter-spacing="3">I ATTENDED</text>
+  <text x="96" y="1150" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="54" font-weight="900">${titleTspans}</text>
 
   <line x1="96" y1="1320" x2="984" y2="1320" stroke="#132A2F" stroke-opacity="0.14" stroke-width="3" />
-  <text x="96" y="1380" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">ATTENDEE</text>
-  <text x="96" y="1436" fill="#132A2F" font-family="Arial, sans-serif" font-size="42" font-weight="900">${attendeeName}</text>
+  <text x="96" y="1380" fill="#6B6058" font-family="${SHARE_CARD_FONT_STACK}" font-size="22" font-weight="700">ATTENDEE</text>
+  <text x="96" y="1436" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="42" font-weight="900">${attendeeName}</text>
 
-  <text x="780" y="1380" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">REG. NUMBER</text>
-  <text x="780" y="1436" fill="#DB4D3F" font-family="Arial, sans-serif" font-size="42" font-weight="900">${checkinNumber}</text>
+  <text x="780" y="1380" fill="#6B6058" font-family="${SHARE_CARD_FONT_STACK}" font-size="22" font-weight="700">REG. NUMBER</text>
+  <text x="780" y="1436" fill="#DB4D3F" font-family="${SHARE_CARD_FONT_STACK}" font-size="42" font-weight="900">${checkinNumber}</text>
 
-  <text x="96" y="1532" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">WHEN</text>
-  <text x="96" y="1576" fill="#132A2F" font-family="Arial, sans-serif" font-size="27" font-weight="800">${dayLabel}</text>
-  <text x="96" y="1652" fill="#6B6058" font-family="Arial, sans-serif" font-size="22" font-weight="700">WHERE</text>
-  <text x="96" y="1696" fill="#132A2F" font-family="Arial, sans-serif" font-size="27" font-weight="800">${location}</text>
+  <text x="96" y="1532" fill="#6B6058" font-family="${SHARE_CARD_FONT_STACK}" font-size="22" font-weight="700">WHEN</text>
+  <text x="96" y="1576" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="27" font-weight="800">${dayLabel}</text>
+  <text x="96" y="1652" fill="#6B6058" font-family="${SHARE_CARD_FONT_STACK}" font-size="22" font-weight="700">WHERE</text>
+  <text x="96" y="1696" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="27" font-weight="800">${location}</text>
 
-  <text x="72" y="1810" fill="#132A2F" font-family="Arial, sans-serif" font-size="28" font-weight="900">Create. Share. Fill every slot.</text>
-  <text x="72" y="1860" fill="#132A2F" font-family="Arial, sans-serif" font-size="25" font-weight="700">Create your event at www.eventsslot.com</text>
+  <text x="72" y="1810" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="28" font-weight="900">Create. Share. Fill every slot.</text>
+  <text x="72" y="1860" fill="#132A2F" font-family="${SHARE_CARD_FONT_STACK}" font-size="25" font-weight="700">Create your event at www.eventsslot.com</text>
   <circle cx="970" cy="1830" r="48" fill="#132A2F" />
-  <text x="970" y="1841" fill="#F7FF58" font-family="Arial, sans-serif" font-size="34" font-weight="900" text-anchor="middle">E</text>
+  <text x="970" y="1841" fill="#F7FF58" font-family="${SHARE_CARD_FONT_STACK}" font-size="34" font-weight="900" text-anchor="middle">E</text>
 </svg>`
 }
 

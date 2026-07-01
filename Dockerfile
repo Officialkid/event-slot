@@ -8,7 +8,7 @@ RUN npm ci --legacy-peer-deps
 
 # Stage 2: Builder
 FROM node:22-alpine AS builder
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl fontconfig ttf-dejavu
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -24,7 +24,7 @@ RUN npm run build
 
 # Stage 3: Runner (production image)
 FROM node:22-alpine AS runner
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl fontconfig ttf-dejavu
 WORKDIR /app
 
 ENV NODE_ENV=production

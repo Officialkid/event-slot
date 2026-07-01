@@ -8,6 +8,15 @@ import { v4 as uuidv4 } from 'uuid'
 import { teamInviteSchema } from '@/lib/schemas/team.schema'
 import { APP_URL } from '@/lib/config'
 
+type InviteResult = {
+  email: string
+  ok: boolean
+  alreadyInvited?: boolean
+  emailFailed?: boolean
+  acceptUrl?: string
+  error?: string
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -33,7 +42,6 @@ export async function POST(req: NextRequest) {
     const emails = parsed.data.emails
     const eventId = parsed.data.eventId
 
-    // If eventId is provided, verify it belongs to the caller
     if (eventId) {
       const eventCheck = await prisma.event.findFirst({
         where: { id: eventId, organizerId: session.user.id },
@@ -44,9 +52,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Reject if any email is the inviter's own address
     const selfEmail = session.user.email?.toLowerCase()
-    if (emails.some(e => e === selfEmail)) {
+    if (emails.some((email) => email === selfEmail)) {
       return NextResponse.json({ error: 'You cannot invite yourself' }, { status: 400 })
     }
 
@@ -61,23 +68,17 @@ export async function POST(req: NextRequest) {
     ])
 
     if (currentMembers >= TEAM_MEMBER_LIMIT) {
-      return NextResponse.json({
-        success: false,
-        error: `You can have up to ${TEAM_MEMBER_LIMIT} team members. Remove one to invite another.`,
-      }, { status: 403 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: `You can have up to ${TEAM_MEMBER_LIMIT} team members. Remove one to invite another.`,
+        },
+        { status: 403 }
+      )
     }
 
     const inviterName = owner?.name || owner?.email || 'Someone'
-    const BASE_URL = APP_URL
-
-    type InviteResult = {
-      email: string
-      ok: boolean
-      alreadyInvited?: boolean
-      emailFailed?: boolean
-      acceptUrl?: string
-      error?: string
-    }
+    const baseUrl = APP_URL
 
     const settled = await Promise.allSettled(
       emails.map(async (email): Promise<InviteResult> => {
@@ -93,14 +94,15 @@ export async function POST(req: NextRequest) {
           data: { ownerId: session.user.id, email, status: 'pending', inviteToken },
         })
 
-        // If invite is for a specific event, pre-create the event access record
         if (eventId) {
           await prisma.teamMemberEvent.create({
             data: { teamMemberId: newMember.id, eventId },
-          }).catch(() => {/* ignore if already exists */})
+          }).catch(() => {
+            // Ignore duplicate event access records so the invite still succeeds.
+          })
         }
 
-        const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
+        const acceptUrl = `${baseUrl}/team/accept?token=${inviteToken}`
         try {
           await sendTeamInviteEmail({ to: email, inviterName, inviteToken })
           return { email, ok: true, emailFailed: false, acceptUrl }
@@ -119,28 +121,29 @@ export async function POST(req: NextRequest) {
       return { email: emails[index] ?? 'unknown', ok: false, error: reason }
     })
 
-    const sentCount = results.filter(r => r.ok && !r.emailFailed).length
+    const sentCount = results.filter((result) => result.ok && !result.emailFailed).length
     const failedCount = results.length - sentCount
     const failedReasons = results
-      .filter(r => r.emailFailed || (!r.ok && !r.alreadyInvited))
-      .map(r => r.error)
+      .filter((result) => result.emailFailed || (!result.ok && !result.alreadyInvited))
+      .map((result) => result.error)
       .filter(Boolean) as string[]
 
     if (failedReasons.length > 0) {
       console.error('[team-invite] Some invites failed:', failedReasons)
     }
 
-    // If all DB records were created but email delivery failed, return 201 with
-    // emailFailed=true so the client can show the "Copy link" fallback instead of
-    // a generic error. The team member record already exists and the accept URL works.
-    const allDbCreated = results.every(r => r.ok || r.alreadyInvited)
-    if (sentCount === 0 && allDbCreated && results.some(r => r.emailFailed)) {
+    const allDbCreated = results.every((result) => result.ok || result.alreadyInvited)
+    const linkableResults = results.filter((result) => !!result.acceptUrl)
+
+    if (sentCount === 0 && linkableResults.length > 0 && allDbCreated) {
       return NextResponse.json(
         {
           sent: 0,
           failed: failedCount,
           emailFailed: true,
-          message: 'Invite created but email delivery failed — share the link below directly.',
+          message: results.some((result) => result.emailFailed)
+            ? 'Invite created but email delivery failed - share the link below directly.'
+            : 'Invites were created, but delivery could not be confirmed. Share the direct invite link below.',
           results,
         },
         { status: 201 }

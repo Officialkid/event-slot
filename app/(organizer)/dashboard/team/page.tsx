@@ -92,10 +92,15 @@ export default function TeamPage() {
         body: JSON.stringify({ emails }),
       })
       const data = await res.json()
+      const results = data.results ?? []
       if (!res.ok) {
-        setInviteErrors([data.error ?? "Failed to send invites"])
+        if (Array.isArray(results) && results.some((result: { acceptUrl?: string }) => result.acceptUrl)) {
+          setInviteErrors(["Invite links were created, but email delivery failed. Copy the direct invite link below."])
+        } else {
+          setInviteErrors([data.error ?? "Failed to send invites"])
+        }
       }
-      setInviteResults(data.results ?? [])
+      setInviteResults(results)
       // Clear the form on success OR when DB record was created but email failed
       if (res.ok || data.emailFailed) {
         setInviteEmails(["", ""])

@@ -2149,19 +2149,26 @@ export default function EventDashboardPage() {
         body: JSON.stringify({ emails: uniqueEmails, eventId: eventData?.id }),
       })
       const data = await res.json()
+      const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string; error?: string }>
+      const acceptLinks = results.filter(r => r.acceptUrl).map(r => ({ email: r.email, acceptUrl: r.acceptUrl! }))
+
       if (!res.ok) {
+        if (acceptLinks.length > 0) {
+          const failureReason = results.find(r => r.emailFailed && r.error)?.error ?? data.error
+          setTeamInviteError(buildDomainVerificationHelp(failureReason))
+          setTeamInviteAcceptLinks(acceptLinks)
+          await loadEventTeam()
+          return
+        }
         setTeamInviteError(data.error || 'Failed to send invites')
         return
       }
       setTeamInviteEmails(["", ""])
-      const results = (data.results ?? []) as Array<{ ok: boolean; email: string; emailFailed?: boolean; acceptUrl?: string; error?: string }>
       if (data.emailFailed) {
         // DB records created but email delivery failed - surface the accept links
         const failureReason = results.find(r => r.emailFailed && r.error)?.error
         setTeamInviteError(buildDomainVerificationHelp(failureReason))
-        setTeamInviteAcceptLinks(
-          results.filter(r => r.acceptUrl).map(r => ({ email: r.email, acceptUrl: r.acceptUrl! }))
-        )
+        setTeamInviteAcceptLinks(acceptLinks)
       } else {
         const sent = results.filter(r => r.ok && !r.emailFailed).length
         setTeamInviteSuccess(`Invite${sent !== 1 ? 's' : ''} sent to ${sent} email${sent !== 1 ? 's' : ''}.`)

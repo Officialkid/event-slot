@@ -28,11 +28,10 @@ export async function GET(request: Request) {
 
     const { userId, plan, billingCycle, type, creditAmount, bundleKey } = data.data.metadata ?? {}
 
-    if (!userId) {
-      return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
-    }
-
     if (type === 'credits') {
+      if (!userId) {
+        return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
+      }
       const amount = typeof creditAmount === 'number' ? creditAmount : Math.round(data.data.amount / 100)
       await addCredits({
         userId,
@@ -42,6 +41,9 @@ export async function GET(request: Request) {
       })
       return redirectTo(request, '/dashboard/billing?credits=added')
     } else if (type === 'report_download') {
+      if (!userId) {
+        return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
+      }
       const bundle = bundleKey ? REPORT_DOWNLOAD_PRICING[bundleKey as keyof typeof REPORT_DOWNLOAD_PRICING] : null
       if (!bundle) {
         return redirectTo(request, '/dashboard/billing?error=invalid_bundle')
@@ -84,6 +86,9 @@ export async function GET(request: Request) {
 
       return redirectTo(request, '/dashboard/billing?downloads=added')
     } else if (type === 'subscription_plan') {
+      if (!userId) {
+        return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
+      }
       const paymentRecordId =
         typeof data.data.metadata?.paymentRecordId === 'string'
           ? data.data.metadata.paymentRecordId
@@ -184,6 +189,9 @@ export async function GET(request: Request) {
 
       return redirectTo(request, `/events/${eventSlug ?? order?.event.slug ?? ''}`)
     } else {
+      if (!userId) {
+        return redirectTo(request, '/dashboard/billing?error=invalid_metadata')
+      }
       const planEndDate = new Date()
       if (billingCycle === 'annual') {
         planEndDate.setFullYear(planEndDate.getFullYear() + 1)
