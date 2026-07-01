@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 
 type WalkInCheckinFormProps = {
@@ -27,6 +27,8 @@ type CheckinResponse = {
   day: { key: string; title: string | null; label: string; index: number; total: number }
   todayCount: number
   totalCount: number
+  returnToken?: string
+  returnLink?: string
 }
 
 function BrandingFooter() {
@@ -52,9 +54,11 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
   const [error, setError] = useState("")
   const [result, setResult] = useState<CheckinResponse | null>(null)
   const [downloadingCard, setDownloadingCard] = useState(false)
-  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedEventLink, setCopiedEventLink] = useState(false)
+  const [copiedReturnLink, setCopiedReturnLink] = useState(false)
   const [sharing, setSharing] = useState<"poster" | null>(null)
   const [shareError, setShareError] = useState("")
+  const [autoCheckinAttempted, setAutoCheckinAttempted] = useState(false)
 
   const eventLink = useMemo(() => {
     if (typeof window === "undefined") return ""
@@ -83,6 +87,38 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     if (!shareCardUrl) return ""
     return `${shareCardUrl}&download=1`
   }, [shareCardUrl])
+
+  const oneClickReturnLink = useMemo(() => {
+    if (!result?.returnToken || typeof window === "undefined") return ""
+    const params = new URLSearchParams({ recheck: result.returnToken })
+    return `${window.location.origin}/walkin/${event.slug}?${params.toString()}`
+  }, [event.slug, result])
+
+  useEffect(() => {
+    if (result || autoCheckinAttempted || loading) return
+    const token = new URLSearchParams(window.location.search).get("recheck")
+    if (!token) return
+    setAutoCheckinAttempted(true)
+    setLoading(true)
+    setError("")
+    fetch(`/api/walkin/${event.slug}/checkin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ returnToken: token }),
+    })
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Unable to complete your quick return check-in.")
+        }
+        setResult(data)
+        onCheckinComplete?.(data)
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Unable to complete your quick return check-in.")
+      })
+      .finally(() => setLoading(false))
+  }, [autoCheckinAttempted, event.slug, loading, onCheckinComplete, result])
 
   async function downloadFromUrl(url: string, fallbackBaseName: string) {
     const response = await fetch(url, { cache: "no-store" })
@@ -130,9 +166,9 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     if (!eventLink) return
     try {
       await navigator.clipboard.writeText(eventLink)
-      setCopiedLink(true)
+      setCopiedEventLink(true)
       setShareError("")
-      window.setTimeout(() => setCopiedLink(false), 1800)
+      window.setTimeout(() => setCopiedEventLink(false), 1800)
     } catch {
       setShareError("Could not copy the link on this browser. Please press and hold the address bar link instead.")
     }
@@ -145,6 +181,18 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     const blob = await response.blob()
     const extension = blob.type === "image/jpeg" ? "jpg" : "png"
     return new File([blob], `${event.slug}-checkin-poster.${extension}`, { type: blob.type || "image/png" })
+  }
+
+  async function handleCopyReturnLink() {
+    if (!oneClickReturnLink) return
+    try {
+      await navigator.clipboard.writeText(oneClickReturnLink)
+      setCopiedReturnLink(true)
+      setShareError("")
+      window.setTimeout(() => setCopiedReturnLink(false), 1800)
+    } catch {
+      setShareError("Could not copy the return link on this browser. Please copy the address manually.")
+    }
   }
 
   async function handleDownloadShareCard() {
@@ -257,8 +305,8 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
           <div className="rounded-[16px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)] p-5">
             <p className="text-[0.8rem] text-[rgba(240,237,230,0.55)]">
               {result.duplicate
-                ? "Share your poster or the event link with your friends and tell them you attended."
-                : "Share this with your friends and tell them you attended, or download your poster and post it anywhere you like."}
+                ? "Share your poster or keep your quick return link handy for tomorrow."
+                : "Share this with your friends, download your poster, or keep your quick return link handy for tomorrow."}
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <button
@@ -284,8 +332,17 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
                 onClick={() => void handleCopyLink()}
                 className="rounded-full border border-[rgba(240,237,230,0.15)] px-5 py-2.5 text-[0.82rem] font-medium text-[rgba(240,237,230,0.68)]"
               >
-                {copiedLink ? "Link copied" : "Copy event link"}
+                {copiedEventLink ? "Link copied" : "Copy event link"}
               </button>
+              {oneClickReturnLink ? (
+                <button
+                  type="button"
+                  onClick={() => void handleCopyReturnLink()}
+                  className="rounded-full border border-[rgba(200,245,90,0.26)] px-5 py-2.5 text-[0.82rem] font-medium text-[#C8F55A]"
+                >
+                  {copiedReturnLink ? "Return link copied" : "Copy quick return link"}
+                </button>
+              ) : null}
             </div>
             {shareError && <p className="mt-3 text-[0.8rem] text-[#FFB84D]">{shareError}</p>}
           </div>

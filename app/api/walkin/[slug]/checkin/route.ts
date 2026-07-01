@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { normalizeInternationalPhoneNumber } from '@/lib/eventContact'
 import { walkInCheckinRatelimit } from '@/lib/ratelimit'
+import { buildWalkInReturnLink, createWalkInReturnToken, verifyWalkInReturnToken } from '@/lib/walkInReturnLink'
 import {
   formatWalkInLongDayLabel,
   getEventEndDayKey,
@@ -29,9 +30,12 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
     }
 
     const { slug } = await props.params
+    const requestOrigin = new URL(req.url).origin
     const body = await req.json().catch(() => null)
-    const name = typeof body?.name === 'string' ? body.name.trim() : ''
-    const rawPhone = typeof body?.phone === 'string' ? body.phone.trim() : ''
+    const returnToken = typeof body?.returnToken === 'string' ? body.returnToken.trim() : ''
+    const returnPayload = returnToken ? verifyWalkInReturnToken(returnToken) : null
+    const name = returnPayload ? returnPayload.name : typeof body?.name === 'string' ? body.name.trim() : ''
+    const rawPhone = returnPayload ? returnPayload.phone : typeof body?.phone === 'string' ? body.phone.trim() : ''
 
     if (name.length < 2) {
       return NextResponse.json({ success: false, error: 'Please enter the attendee name.' }, { status: 400 })
@@ -46,6 +50,7 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       where: { slug },
       select: {
         id: true,
+        slug: true,
         title: true,
         accessType: true,
         eventDate: true,
@@ -141,6 +146,12 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       }),
     ])
 
+    const returnTokenValue = createWalkInReturnToken({
+      slug: event.slug,
+      name: attendeeEntry.name,
+      phone: phone.number,
+    })
+
     return NextResponse.json({
       success: true,
       duplicate,
@@ -151,6 +162,8 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       eventTitle: event.title,
       attendeeName: attendeeEntry.name,
       checkinNumber,
+      returnToken: returnTokenValue,
+      returnLink: buildWalkInReturnLink(requestOrigin, slug, returnTokenValue),
     })
   } catch (error) {
     console.error('[WALKIN CHECKIN]', error)
