@@ -120,6 +120,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Each ticket tier must be between KSh 50 and KSh 500,000' }, { status: 400 })
     }
 
+    if (isWalkInEvent && !imageUrl?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Walk-in events need a poster image so the share card always includes one.' },
+        { status: 400 }
+      )
+    }
+
     for (const question of isRegistrationEvent ? questions : []) {
       const usesOptions = question.type === 'select' || question.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {

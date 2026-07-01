@@ -132,33 +132,20 @@ export async function POST(req: NextRequest) {
       console.error('[team-invite] Some invites failed:', failedReasons)
     }
 
-    const allDbCreated = results.every((result) => result.ok || result.alreadyInvited)
     const linkableResults = results.filter((result) => !!result.acceptUrl)
 
-    if (sentCount === 0 && linkableResults.length > 0 && allDbCreated) {
+    if (linkableResults.length > 0) {
       return NextResponse.json(
         {
-          sent: 0,
+          sent: sentCount,
           failed: failedCount,
-          emailFailed: true,
-          message: results.some((result) => result.emailFailed)
-            ? 'Invite created but email delivery failed - share the link below directly.'
-            : 'Invites were created, but delivery could not be confirmed. Share the direct invite link below.',
+          emailFailed: sentCount === 0 || results.some((result) => result.emailFailed),
+          message: sentCount > 0
+            ? `Invite${sentCount > 1 ? 's' : ''} sent successfully.`
+            : 'Invite created, but email delivery is paused. Share the direct invite link below.',
           results,
         },
         { status: 201 }
-      )
-    }
-
-    if (sentCount === 0) {
-      return NextResponse.json(
-        {
-          error: 'Failed to send invites. Please check your email configuration.',
-          sent: 0,
-          failed: failedCount,
-          results,
-        },
-        { status: 500 }
       )
     }
 

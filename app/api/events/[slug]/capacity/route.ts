@@ -59,16 +59,49 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       }, { status: 400 })
     }
 
-    if (event.capacity !== null && newCapacity <= event.capacity) {
-      return NextResponse.json({ success: false, error: 'New capacity must be greater than current capacity' }, { status: 400 })
+    if (event.capacity !== null && newCapacity === event.capacity) {
+      return NextResponse.json({ success: false, error: 'Capacity is already set to that number.' }, { status: 400 })
+    }
+
+    if (newCapacity < event.confirmedCount) {
+      return NextResponse.json({
+        success: false,
+        error: `Capacity cannot be lower than the ${event.confirmedCount} people already confirmed.`,
+      }, { status: 400 })
     }
 
     const addedSlots = event.capacity === null
-      ? newCapacity - event.confirmedCount
-      : newCapacity - event.capacity
+      ? Math.max(0, newCapacity - event.confirmedCount)
+      : Math.max(0, newCapacity - event.capacity)
+
+    if (event.capacity !== null && newCapacity < event.capacity) {
+      const updatedEvent = await prisma.event.update({
+        where: { id: event.id },
+        data: { capacity: newCapacity },
+        select: {
+          capacity: true,
+          confirmedCount: true,
+          waitlistCount: true,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        promoted: 0,
+        newConfirmedCount: updatedEvent.confirmedCount,
+        newWaitlistCount: updatedEvent.waitlistCount,
+        remainingSlots: Math.max(0, newCapacity - updatedEvent.confirmedCount),
+        emailDiagnostics: {
+          attempted: 0,
+          sent: 0,
+          failed: 0,
+          skippedNoEmail: 0,
+        },
+      })
+    }
 
     if (addedSlots <= 0) {
-      return NextResponse.json({ success: false, error: 'New capacity must be greater than current capacity' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Capacity update did not create any new slots.' }, { status: 400 })
     }
 
     const result = await prisma.$transaction(async tx => {

@@ -7,6 +7,8 @@ import { BillingUpgradeSection } from "@/components/billing/BillingUpgradeSectio
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 import { ReportDownloadsCard } from "@/components/billing/ReportDownloadsCard"
 import { REPORT_DOWNLOAD_PRICING } from "@/lib/plans"
+import { EventPassSelector } from "@/components/billing/EventPassSelector"
+import { normalizeOneTimePassTier } from "@/lib/oneTimePassCatalog"
 
 function formatPlanName(plan: string | null | undefined) {
   return getSubscriptionPlan(plan).name
@@ -14,6 +16,15 @@ function formatPlanName(plan: string | null | undefined) {
 
 function formatRenewalDate(value: Date | null | undefined) {
   if (!value) return "Not scheduled"
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(value)
+}
+
+function formatEventDate(value: Date | null | undefined) {
+  if (!value) return "No event date set yet"
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
@@ -45,6 +56,32 @@ export default async function BillingPage() {
         },
       })
     : null
+  const eventPassCandidates = session?.user?.id
+    ? await prisma.event.findMany({
+        where: {
+          organizerId: session.user.id,
+          archived: false,
+          accessType: { not: "WALK_IN" },
+          status: { notIn: ["ARCHIVED", "CANCELLED"] },
+        },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          eventDate: true,
+          eventEndAt: true,
+          eventPass: {
+            select: {
+              tier: true,
+              status: true,
+              expiresAt: true,
+            },
+          },
+        },
+        orderBy: [{ eventDate: "asc" }, { createdAt: "desc" }],
+        take: 6,
+      })
+    : []
 
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 920 }}>
@@ -165,6 +202,69 @@ export default async function BillingPage() {
           marginBottom: "1rem",
         }}
       >
+        <div style={{ marginBottom: "1rem" }}>
+          <h2 style={{ margin: "0 0 0.45rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6" }}>
+            One-time event passes
+          </h2>
+          <p style={{ margin: 0, color: "rgba(240,237,230,0.56)", fontSize: "0.84rem", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)", maxWidth: 700 }}>
+            If you only want premium tools for one event instead of upgrading the whole account, pick that event here and activate a one-time pass directly from billing.
+          </p>
+        </div>
+
+        {eventPassCandidates.length === 0 ? (
+          <p style={{ margin: 0, color: "rgba(240,237,230,0.45)", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>
+            No registration events are available yet. Create one first, then you can activate a one-time pass for it here.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gap: "0.9rem" }}>
+            {eventPassCandidates.map((event) => {
+              const activeTier = normalizeOneTimePassTier(event.eventPass?.tier ?? null)
+              return (
+                <div
+                  key={event.id}
+                  style={{
+                    border: "0.5px solid rgba(240,237,230,0.08)",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.02)",
+                    padding: "1rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
+                    <div>
+                      <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.98rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
+                        {event.title}
+                      </p>
+                      <p style={{ margin: "0.25rem 0 0", color: "rgba(240,237,230,0.45)", fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}>
+                        {formatEventDate(event.eventDate)} · <a href={`/dashboard/events/${event.slug}`} style={{ color: "#C8F55A", textDecoration: "none" }}>Open event dashboard</a>
+                      </p>
+                    </div>
+                  </div>
+
+                  <EventPassSelector
+                    eventId={event.id}
+                    eventTitle={event.title}
+                    activeTier={activeTier}
+                    activeStatus={event.eventPass?.status ?? null}
+                    activeExpiresAt={event.eventPass?.expiresAt?.toISOString() ?? null}
+                    purchaseCountHint
+                    compact
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section
+        style={{
+          background: "#141414",
+          border: "0.5px solid rgba(240,237,230,0.08)",
+          borderRadius: 14,
+          padding: "1.25rem",
+          marginBottom: "1rem",
+        }}
+      >
         <h2 style={{ margin: "0 0 0.9rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6" }}>
           Plan overview
         </h2>
@@ -220,6 +320,7 @@ export default async function BillingPage() {
         <ul style={{ margin: 0, paddingLeft: "1.1rem", color: "rgba(240,237,230,0.58)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", lineHeight: 1.75 }}>
           <li>Free events remain free to run.</li>
           <li>Paid events use your plan&apos;s commission rate: Free 10%, Standard 8%, Pro 5%, Business 3%.</li>
+          <li>One-time event passes unlock premium tools for a single event without changing your whole account plan.</li>
           <li>Higher plans increase attendee limits, active events, retention windows, and organiser seats.</li>
           <li>Billing settings are shown here so you always know what rate applies before you launch paid ticketing.</li>
         </ul>

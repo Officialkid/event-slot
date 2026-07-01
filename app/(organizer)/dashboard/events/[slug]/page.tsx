@@ -294,6 +294,9 @@ function extractResendVerificationDomain(message: string | null | undefined): st
 }
 
 function buildDomainVerificationHelp(message: string | null | undefined): string {
+  if (message && /only send testing emails to your own email address/i.test(message)) {
+    return "Resend is still in testing mode, so it can only send to your own verified address. Verify a domain in Resend or share the direct invite link below."
+  }
   const domain = extractResendVerificationDomain(message) ?? "eventsslot.com"
   return `Email delivery is paused because ${domain} is not verified in Resend. Verify the domain, then resend the invite or share the direct invite link below.`
 }
@@ -1690,7 +1693,8 @@ export default function EventDashboardPage() {
     setCapacityError("")
     const parsed = Number(newCapacity)
     if (!Number.isInteger(parsed) || parsed <= 0) { setCapacityError("Please enter a valid positive number."); return }
-    if (eventData.capacity !== null && parsed <= eventData.capacity) { setCapacityError("New capacity must be greater than current capacity."); return }
+    if (eventData.capacity !== null && parsed === eventData.capacity) { setCapacityError("Capacity is already set to that number."); return }
+    if (parsed < eventData.confirmedCount) { setCapacityError(`Capacity cannot be lower than the ${eventData.confirmedCount} people already confirmed.`); return }
     setUpdatingCapacity(true)
     try {
       const res = await fetch(`/api/events/${slug}/capacity`, {
@@ -1700,7 +1704,13 @@ export default function EventDashboardPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.success) { setCapacityError(data.error || "Unable to update capacity."); return }
-      setCapacityMessage(`OK ${data.promoted} ${data.promoted === 1 ? "person" : "people"} moved from waitlist to confirmed`)
+      if (eventData.capacity !== null && parsed < eventData.capacity) {
+        setCapacityMessage(`Capacity reduced to ${parsed}. Confirmed attendees stayed intact.`)
+      } else if (data.promoted > 0) {
+        setCapacityMessage(`OK ${data.promoted} ${data.promoted === 1 ? "person" : "people"} moved from waitlist to confirmed`)
+      } else {
+        setCapacityMessage(`Capacity updated to ${parsed}.`)
+      }
       if (data.emailDiagnostics) {
         setWaitlistEmailDiagnostics(data.emailDiagnostics)
       }
@@ -2957,7 +2967,7 @@ export default function EventDashboardPage() {
                 Increase Capacity
               </h2>
               <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.125rem" }}>
-                Increase the number of confirmed spots - waitlisted attendees are promoted automatically.
+                Increase or reduce the event capacity here. If you increase it, waitlisted attendees are promoted automatically.
               </p>
               <div style={{ display: "flex", gap: "0.625rem", alignItems: "center", flexWrap: "wrap" }}>
                 <input

@@ -429,6 +429,12 @@ export default function CreateEventPage() {
       return
     }
 
+    if (isWalkInEvent && !imageUrl.trim()) {
+      setLoading(false)
+      setError("Walk-in events need a poster image so the share card always includes one.")
+      return
+    }
+
     if (isPaid) {
       const invalidTier = ticketTiers.find((tier) => {
         const price = Number(tier.priceKes)
@@ -1046,11 +1052,21 @@ export default function CreateEventPage() {
                   <input
                     type="number"
                     min="1"
+                    max={lockedCapacity ? attendeeLimit : undefined}
                     className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                    placeholder={lockedCapacity ? `Included with your ${effectivePlan.displayName} plan` : "Leave empty for unlimited"}
+                    placeholder={lockedCapacity ? `Choose any number up to ${attendeeLimit.toLocaleString()}` : "Leave empty for unlimited"}
                     value={capacity}
-                    readOnly={lockedCapacity}
-                    onChange={e => setCapacity(e.target.value)}
+                    onChange={e => {
+                      const nextValue = e.target.value
+                      if (lockedCapacity && nextValue) {
+                        const parsed = Number(nextValue)
+                        if (Number.isFinite(parsed) && parsed > attendeeLimit) {
+                          setCapacity(String(attendeeLimit))
+                          return
+                        }
+                      }
+                      setCapacity(nextValue)
+                    }}
                     onFocus={fetchCapacitySuggestion}
                     onClick={() => {
                       if (lockedCapacity) setShowCapacityUpgradeHint(true)
@@ -1059,8 +1075,8 @@ export default function CreateEventPage() {
                   {lockedCapacity ? (
                     <div className="mt-3 rounded-[10px] border border-[rgba(200,245,90,0.16)] bg-[rgba(200,245,90,0.05)] px-4 py-3">
                       <p className="text-[0.8rem] leading-6 text-[rgba(240,237,230,0.72)]">
-                        Your <span className="font-semibold text-[#F0EDE6]">{effectivePlan.displayName}</span> plan includes{" "}
-                        <span className="font-semibold text-[#C8F55A]">{attendeeLimit.toLocaleString()}</span> attendees per event.
+                        Your <span className="font-semibold text-[#F0EDE6]">{effectivePlan.displayName}</span> plan includes up to{" "}
+                        <span className="font-semibold text-[#C8F55A]">{attendeeLimit.toLocaleString()}</span> attendees per event. You can set this specific event lower if you want.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -1352,7 +1368,9 @@ export default function CreateEventPage() {
                 Event Poster
               </h2>
               <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
-                Optional flyer or banner. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved.
+                {isWalkInEvent
+                  ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved."
+                  : "Optional flyer or banner. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved."}
               </p>
               {imageUrl && (
                 <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>

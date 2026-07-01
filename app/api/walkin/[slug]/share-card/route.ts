@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import sharp from "sharp"
 import prisma from "@/lib/prisma"
 import {
@@ -11,7 +13,8 @@ import {
 export const runtime = "nodejs"
 
 const WALK_IN_TIME_ZONE = "Africa/Nairobi"
-const SHARE_CARD_FONT_STACK = "'DejaVu Sans', Arial, sans-serif"
+const SHARE_CARD_FONT_STACK = "'EventSlotPosterSans', 'Geist', 'DejaVu Sans', Arial, sans-serif"
+const POSTER_FONT_DATA_URI = `data:font/woff;base64,${readFileSync(join(process.cwd(), "app/fonts/GeistVF.woff")).toString("base64")}`
 
 function parseDayIndex(rawDay: string | null, totalDays: number) {
   if (!rawDay) return null
@@ -85,7 +88,7 @@ async function preparePosterDataUri(imageUrl: string | null) {
 
     const poster = await sharp(source)
       .rotate()
-      .resize(936, 760, { fit: "cover", position: "centre" })
+      .resize(936, 760, { fit: "cover", position: "center" })
       .jpeg({ quality: 86 })
       .toBuffer()
 
@@ -126,6 +129,16 @@ function buildShareCardSvg(params: {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="Walk-in share card">
+  <style>
+    @font-face {
+      font-family: 'EventSlotPosterSans';
+      src: url('${POSTER_FONT_DATA_URI}') format('woff');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: block;
+    }
+    text { font-kerning: normal; }
+  </style>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#FF725E" />

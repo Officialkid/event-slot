@@ -247,6 +247,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ success: false, error: 'At least one question is required' }, { status: 400 })
     }
 
+    const nextImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : ''
+    if (isWalkInEvent && !nextImageUrl) {
+      return NextResponse.json(
+        { success: false, error: 'Walk-in events need a poster image so the share card always includes one.' },
+        { status: 400 }
+      )
+    }
+
     for (const question of isWalkInEvent ? [] : questions) {
       const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
@@ -275,7 +283,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
         location: location || null,
         communityLink: normalizeCommunityLink(communityLink),
-        imageUrl: imageUrl || null,
+        imageUrl: nextImageUrl || null,
         questions: isWalkInEvent ? [] : questions,
         category: category ? String(category).toUpperCase() : null,
         whatsappNumber: storedEventContact,
