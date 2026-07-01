@@ -101,7 +101,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     // Keep the dashboard analytics query lightweight enough to resolve quickly on live pages.
-    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate, payments, ticketTiers] = await Promise.all([
+    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate] = await Promise.all([
       prisma.eventView.count({ where: { eventId: event.id } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
@@ -139,29 +139,34 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         _avg: { rating: true },
         _count: { id: true },
       }),
-      prisma.payment.findMany({
-        where: { eventId: event.id },
-        select: {
-          amount: true,
-          commissionAmount: true,
-          organizerAmount: true,
-          status: true,
-          ticketTierId: true,
-        },
-      }),
-      prisma.ticketTier.findMany({
-        where: { eventId: event.id },
-        select: {
-          id: true,
-          name: true,
-          priceKes: true,
-          soldCount: true,
-          waitlistCount: true,
-          bundleSize: true,
-        },
-        orderBy: { sortOrder: 'asc' },
-      }),
     ])
+
+    const [payments, ticketTiers] = event.isPaid
+      ? await Promise.all([
+          prisma.payment.findMany({
+            where: { eventId: event.id },
+            select: {
+              amount: true,
+              commissionAmount: true,
+              organizerAmount: true,
+              status: true,
+              ticketTierId: true,
+            },
+          }),
+          prisma.ticketTier.findMany({
+            where: { eventId: event.id },
+            select: {
+              id: true,
+              name: true,
+              priceKes: true,
+              soldCount: true,
+              waitlistCount: true,
+              bundleSize: true,
+            },
+            orderBy: { sortOrder: 'asc' },
+          }),
+        ])
+      : [[], []]
 
     const totalRegistrations = registrations.length
     const waitlistCount = waitlistedCount
