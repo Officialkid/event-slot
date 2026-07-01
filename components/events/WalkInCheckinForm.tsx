@@ -141,7 +141,7 @@ export default function WalkInCheckinForm({ event, dayLabel, dayTitle = null, sh
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`/api/events/${event.slug}/walk-in-checkins`, {
+      const res = await fetch(`/api/walkin/${event.slug}/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone }),
