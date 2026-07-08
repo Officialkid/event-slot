@@ -50,14 +50,30 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     // Prevent deleting the super admin account
     const target = await prisma.user.findUnique({ where: { id: params.id }, select: { email: true } })
+    if (!target) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
     if (isAdminEmail(target?.email)) {
       return NextResponse.json({ error: "Cannot delete super admin" }, { status: 400 })
     }
 
-    await prisma.user.delete({ where: { id: params.id } })
+    await prisma.$transaction(async (tx) => {
+      // Referral rows are one of the few user-linked records that do not cascade on delete.
+      await tx.referral.deleteMany({
+        where: {
+          OR: [
+            { referrerId: params.id },
+            { referredUserId: params.id },
+          ],
+        },
+      })
+
+      await tx.user.delete({ where: { id: params.id } })
+    })
+
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error("[admin/users/[id]] DELETE error:", err)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Unable to delete this user right now." }, { status: 500 })
   }
 }

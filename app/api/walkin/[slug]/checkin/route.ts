@@ -55,6 +55,11 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
         accessType: true,
         eventDate: true,
         eventEndAt: true,
+        organizer: {
+          select: {
+            name: true,
+          },
+        },
       },
     })
 
@@ -123,8 +128,9 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       throw new Error('Walk-in check-in could not be loaded after save.')
     }
 
-    const [countToday, dayPosition, checkinNumber] = await Promise.all([
+    const [countToday, totalCount, dayPosition, checkinNumber] = await Promise.all([
       prisma.walkInCheckin.count({ where: { eventId: event.id, dayDate: todayDate } }),
+      prisma.walkInCheckin.count({ where: { eventId: event.id } }),
       Promise.resolve(getWalkInDayPosition({
         dayKey: todayKey,
         eventDate: event.eventDate,
@@ -152,9 +158,31 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       phone: phone.number,
     })
 
+    const dayTitle = dayPosition && dayPosition.total > 1
+      ? `Day ${dayPosition.index} of ${dayPosition.total}`
+      : null
+
     return NextResponse.json({
       success: true,
       duplicate,
+      attendee: {
+        name: attendeeEntry.name,
+        phone: phone.number,
+      },
+      event: {
+        title: event.title,
+        slug: event.slug,
+        organizerName: event.organizer?.name ?? null,
+      },
+      day: {
+        key: todayKey,
+        title: dayTitle,
+        label: formatWalkInLongDayLabel(todayKey, WALK_IN_TIME_ZONE),
+        index: dayPosition?.index ?? 1,
+        total: dayPosition?.total ?? 1,
+      },
+      todayCount: countToday,
+      totalCount,
       dayNumber: dayPosition?.index ?? 1,
       totalDays: dayPosition?.total ?? 1,
       dayLabel: formatWalkInLongDayLabel(todayKey, WALK_IN_TIME_ZONE),

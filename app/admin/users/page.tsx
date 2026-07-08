@@ -142,6 +142,7 @@ export default function AdminUsersPage() {
   const [planFilter, setPlanFilter] = useState("all")
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState("")
   const [editUser, setEditUser] = useState<EditUserState | null>(null)
 
   const fetchUsers = useCallback(() => {
@@ -181,7 +182,13 @@ export default function AdminUsersPage() {
   }
 
   async function deleteUser(id: string) {
-    await fetch(`/api/admin/users/${id}`, { method: "DELETE" })
+    setDeleteError("")
+    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null)
+      setDeleteError(payload?.error ?? "Unable to delete this user right now.")
+      return
+    }
     setConfirmDelete(null)
     fetchUsers()
   }
@@ -343,6 +350,7 @@ export default function AdminUsersPage() {
                         <button
                           type="button"
                           onClick={() => {
+                            setDeleteError("")
                             setConfirmDelete(user.id)
                             setOpenMenu(null)
                           }}
@@ -380,8 +388,13 @@ export default function AdminUsersPage() {
             <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.55 }}>
               This will permanently delete the user and all their data. This cannot be undone.
             </p>
+            {deleteError && (
+              <p style={{ fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: "0 0 1rem" }}>
+                {deleteError}
+              </p>
+            )}
             <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => setConfirmDelete(null)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>
+              <button type="button" onClick={() => { setConfirmDelete(null); setDeleteError("") }} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>
                 Cancel
               </button>
               <button type="button" onClick={() => deleteUser(confirmDelete)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: "#FF6B6B", color: "#fff", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>

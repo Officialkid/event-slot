@@ -72,8 +72,8 @@ const getUserMetaByUsername = unstable_cache(
   { revalidate: 60 }
 )
 
-const getEventMetaBySlug = unstable_cache(
-  async (slug: string) => prisma.event.findUnique({
+async function getEventMetaBySlug(slug: string) {
+  return prisma.event.findUnique({
     where: { slug },
     select: {
       title: true,
@@ -85,10 +85,8 @@ const getEventMetaBySlug = unstable_cache(
       eventDate: true,
       accessType: true,
     },
-  }),
-  ["public-event-meta"],
-  { revalidate: 60 }
-)
+  })
+}
 
 const getPublicUserProfile = unstable_cache(
   async (username: string) => prisma.user.findUnique({
@@ -122,8 +120,8 @@ const getPublicUserProfile = unstable_cache(
   { revalidate: 60 }
 )
 
-const getEventBySlug = unstable_cache(
-  async (slug: string) => prisma.event.findUnique({
+async function getEventBySlug(slug: string) {
+  return prisma.event.findUnique({
     where: { slug },
     select: {
       id: true,
@@ -170,10 +168,8 @@ const getEventBySlug = unstable_cache(
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
       organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
-  }),
-  ["public-event-detail"],
-  { revalidate: 60 }
-)
+  })
+}
 
 export async function generateMetadata({
   params,
