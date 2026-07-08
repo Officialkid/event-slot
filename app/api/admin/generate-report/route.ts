@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import prisma from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { isAdminEmail } from '@/lib/isAdmin'
+import { hasAdminAccess } from '@/lib/isAdmin'
 import { EventReportData, generateEventReport, IRegistration } from '@/lib/generateEventReport'
 import { generateAIReportContent } from '@/lib/generateAIReportContent'
 
@@ -42,6 +42,22 @@ type PreparedReportData = {
   }
   confirmed: IRegistration[]
   waitlist: IRegistration[]
+  paymentSummary?: EventReportData["paymentSummary"]
+}
+
+function buildReportPreviewPaymentSummary(paymentSummary: EventReportData["paymentSummary"]) {
+  if (!paymentSummary) return undefined
+  return {
+    currency: paymentSummary.currency,
+    grossRevenue: paymentSummary.grossRevenue,
+    commissionTotal: paymentSummary.commissionTotal,
+    netRevenue: paymentSummary.netRevenue,
+    successfulPayments: paymentSummary.successfulPayments,
+    pendingPayments: paymentSummary.pendingPayments,
+    failedPayments: paymentSummary.failedPayments,
+    ticketsSold: paymentSummary.ticketsSold,
+    paymentMethodBreakdown: paymentSummary.paymentMethodBreakdown,
+  }
 }
 
 function extractDisplayNameFromEmail(email: string): string {
@@ -123,6 +139,7 @@ function buildEventReportData(prepared: PreparedReportData): EventReportData {
     dailyRegistrationCounts,
     peakDate: peak.date,
     peakDayCount: peak.count,
+    paymentSummary: prepared.paymentSummary,
     customQuestionResponses: prepared.eventPayload.questions.map((question) => ({
       question: question.label,
       answers: allRegistrations
@@ -157,6 +174,27 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
     where: { eventId: event.id },
     orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
   })
+
+  const [payments, paidOrders] = event.isPaid
+    ? await Promise.all([
+        prisma.payment.findMany({
+          where: { eventId: event.id },
+          select: {
+            amount: true,
+            commissionAmount: true,
+            organizerAmount: true,
+            status: true,
+            method: true,
+          },
+        }),
+        prisma.paidEventOrder.findMany({
+          where: { eventId: event.id },
+          select: {
+            status: true,
+          },
+        }),
+      ])
+    : [[], []]
 
   const confirmed: IRegistration[] = registrations
     .filter(r => r.status === 'confirmed')
@@ -197,18 +235,48 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
     })),
   }
 
+  const successfulPayments = payments.filter((payment) => payment.status === 'SUCCESS')
+  const pendingPayments = paidOrders.filter((order) => order.status === 'PENDING' || order.status === 'PAYMENT_PENDING')
+  const failedPayments = paidOrders.filter((order) => order.status === 'FAILED' || order.status === 'EXPIRED' || order.status === 'CANCELLED')
+  const methodTotals = new Map<string, { count: number; grossRevenue: number }>()
+
+  for (const payment of successfulPayments) {
+    const key = payment.method
+    const current = methodTotals.get(key) ?? { count: 0, grossRevenue: 0 }
+    current.count += 1
+    current.grossRevenue += payment.amount
+    methodTotals.set(key, current)
+  }
+
   return {
     slug: event.slug,
     eventPayload,
     confirmed,
     waitlist,
+    paymentSummary: event.isPaid
+      ? {
+          currency: event.currency,
+          grossRevenue: successfulPayments.reduce((sum, payment) => sum + payment.amount, 0),
+          commissionTotal: successfulPayments.reduce((sum, payment) => sum + payment.commissionAmount, 0),
+          netRevenue: successfulPayments.reduce((sum, payment) => sum + payment.organizerAmount, 0),
+          successfulPayments: successfulPayments.length,
+          pendingPayments: pendingPayments.length,
+          failedPayments: failedPayments.length,
+          ticketsSold: successfulPayments.length,
+          paymentMethodBreakdown: Array.from(methodTotals.entries()).map(([method, value]) => ({
+            method,
+            count: value.count,
+            grossRevenue: value.grossRevenue,
+          })),
+        }
+      : undefined,
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -245,6 +313,7 @@ export async function POST(req: NextRequest) {
       },
       reportReady: true,
       aiContent,
+      paymentSummary: buildReportPreviewPaymentSummary(prepared.paymentSummary),
       message: 'Premium AI strategy report is ready for download.',
       downloadUrl: `/api/admin/generate-report?slug=${encodeURIComponent(prepared.slug)}`,
     })
@@ -257,7 +326,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

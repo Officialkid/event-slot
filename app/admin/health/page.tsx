@@ -18,6 +18,22 @@ interface HealthData {
   emailProviderMessage: string
 }
 
+type IssueStatus = "open" | "config" | "resolved" | "info"
+
+type ClassifiedIssue = {
+  id: string
+  route: string
+  message: string
+  createdAt: string
+  status: IssueStatus
+  label: string
+  summary: string
+  hint: string
+  stale: boolean
+}
+
+const STALE_AFTER_HOURS = 72
+
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
@@ -29,13 +45,112 @@ function StatusDot({ ok }: { ok: boolean }) {
   )
 }
 
+function issueIsStale(createdAt: string) {
+  const created = new Date(createdAt).getTime()
+  if (Number.isNaN(created)) return false
+  return Date.now() - created > STALE_AFTER_HOURS * 60 * 60 * 1000
+}
+
+function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
+  const stale = issueIsStale(error.createdAt)
+  const emailHealthy = data.emailProviderConfigured && data.emailProviderHealthy
+
+  if (error.route.startsWith("paid-ticket-email:") && error.message.includes("verify a domain at resend.com/domains")) {
+    return {
+      ...error,
+      status: emailHealthy ? "resolved" : "config",
+      label: "Email domain setup",
+      summary: emailHealthy
+        ? "Paid ticket email failures came from the old Resend testing-mode setup and should now be cleared."
+        : "Paid ticket confirmations are blocked by Resend testing-mode restrictions.",
+      hint: emailHealthy
+        ? "This is now historical. Send a fresh paid-ticket confirmation to confirm live delivery."
+        : "Verify a sending domain in Resend and use that domain in RESEND_FROM.",
+      stale,
+    }
+  }
+
+  if (error.route === "AI-report" || error.route === "AI-capacity") {
+    if (error.message.includes("credit balance is too low")) {
+      return {
+        ...error,
+        status: stale ? "info" : "config",
+        label: stale ? "Claude fallback history" : "Claude credits",
+        summary: stale
+          ? "Claude fallback failed previously because the Anthropic account had no usable credits."
+          : "Claude requests are failing because the Anthropic account has no usable credits.",
+        hint: stale
+          ? "Historical only unless you still want Claude enabled as a live fallback."
+          : "Top up Anthropic credits or keep Claude fallback disabled for now.",
+        stale,
+      }
+    }
+
+    if (error.message.includes("mistralai/mistral-7b-instruct") || error.message.includes("mixtral-8x7b-32768")) {
+      return {
+        ...error,
+        status: "resolved",
+        label: "Old AI model log",
+        summary: "This came from outdated provider model IDs.",
+        hint: "Current code has already moved Groq and OpenRouter off those old model slugs.",
+        stale,
+      }
+    }
+  }
+
+  if (error.route === "/api/admin/health" && error.message.includes("Cannot read properties of undefined (reading 'resend')")) {
+    return {
+      ...error,
+      status: "resolved",
+      label: "Old health-check bug",
+      summary: "This was created by the previous Resend health-check implementation.",
+      hint: "The current health route no longer uses that broken code path.",
+      stale,
+    }
+  }
+
+  if (error.route.startsWith("waitlist-promotion-email:")) {
+    return {
+      ...error,
+      status: "info",
+      label: "No-op promotion",
+      summary: "The waitlist promotion job ran but nobody was eligible for promotion.",
+      hint: "This is informational unless you expected waiting attendees with email addresses.",
+      stale,
+    }
+  }
+
+  return {
+    ...error,
+    status: "open",
+    label: "Needs review",
+    summary: "This log still needs manual review.",
+    hint: "Trace the route or background job and confirm whether the failure is still reproducible.",
+    stale,
+  }
+}
+
+function getStatusColor(status: IssueStatus) {
+  if (status === "resolved") return "#7DD3FC"
+  if (status === "info") return "#A3A3A3"
+  if (status === "config") return "#FFB84D"
+  return "#FF6B6B"
+}
+
+function getStatusText(status: IssueStatus) {
+  if (status === "resolved") return "Likely fixed in code"
+  if (status === "info") return "Informational"
+  if (status === "config") return "Needs configuration"
+  return "Needs investigation"
+}
+
 export default function AdminHealthPage() {
   const [data, setData] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch("/api/admin/health")
-      .then(r => r.json())
+      .then((r) => r.json())
       .then(setData)
       .finally(() => setLoading(false))
   }, [])
@@ -56,7 +171,20 @@ export default function AdminHealthPage() {
       </div>
     )
   }
+
   if (!data) return null
+
+  const issues = data.recentErrors.map((error) => classifyIssue(error, data))
+  const actionableIssues = issues.filter(
+    (issue) => (issue.status === "open" || issue.status === "config") && !issue.stale
+  )
+  const resolvedIssues = issues.filter((issue) => issue.status === "resolved")
+  const informationalIssues = issues.filter((issue) => issue.status === "info")
+  const activeIssues = Array.from(
+    new Map(
+      actionableIssues.map((issue) => [`${issue.status}:${issue.label}:${issue.summary}`, issue])
+    ).values()
+  )
 
   return (
     <div>
@@ -67,8 +195,7 @@ export default function AdminHealthPage() {
         System status and error monitoring.
       </p>
 
-      {/* Status cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: "2.5rem" }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: "2rem" }}>
         <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
           <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
             Database (Neon)
@@ -81,7 +208,7 @@ export default function AdminHealthPage() {
             Emails accepted this month
           </div>
           <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
-            {data.emailsAcceptedThisMonth ?? "�"}
+            {data.emailsAcceptedThisMonth ?? "--"}
           </div>
           <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "rgba(240,237,230,0.3)" : "#FF6B6B", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
             {data.emailProviderConfigured ? data.emailProviderMessage : "RESEND_API_KEY missing"}
@@ -90,29 +217,51 @@ export default function AdminHealthPage() {
 
         <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
           <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
-            Recent API errors
+            Actionable issues
           </div>
-          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: data.recentErrors.length > 0 ? "#FF6B6B" : "#C8F55A", lineHeight: 1 }}>
-            {data.recentErrors.length}
+          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: activeIssues.length > 0 ? "#FF6B6B" : "#C8F55A", lineHeight: 1 }}>
+            {activeIssues.length}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>last 10 logged</div>
+          <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
+            {resolvedIssues.length} likely fixed, {informationalIssues.length} informational
+          </div>
         </div>
       </div>
 
-      {/* Error log */}
+      {activeIssues.length > 0 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          {activeIssues.slice(0, 4).map((issue) => (
+            <div key={issue.id} style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.65rem" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: getStatusColor(issue.status), flexShrink: 0 }} />
+                <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: getStatusColor(issue.status), fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                  {issue.label}
+                </span>
+              </div>
+              <div style={{ color: "#F0EDE6", fontSize: "0.92rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, marginBottom: "0.5rem" }}>
+                {issue.summary}
+              </div>
+              <div style={{ color: "rgba(240,237,230,0.55)", fontSize: "0.78rem", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+                {issue.hint}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1rem" }}>
         Recent API Errors
       </h2>
-      {data.recentErrors.length === 0 ? (
+      {issues.length === 0 ? (
         <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.07)", borderRadius: 12, padding: "2rem", textAlign: "center", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
           No errors logged. All clear.
         </div>
       ) : (
         <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
             <thead>
               <tr style={{ borderBottom: "0.5px solid rgba(240,237,230,0.08)", background: "#111" }}>
-                {["Route", "Error", "Time"].map(h => (
+                {["Route", "Error", "Time"].map((h) => (
                   <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
                     {h}
                   </th>
@@ -120,12 +269,23 @@ export default function AdminHealthPage() {
               </tr>
             </thead>
             <tbody>
-              {data.recentErrors.map((e, i) => (
-                <tr key={e.id} style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)", background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{e.route}</td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)" }}>{e.message}</td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
-                    {new Date(e.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              {issues.map((issue, i) => (
+                <tr key={issue.id} style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)", background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                    <div>{issue.route}</div>
+                    <div style={{ marginTop: "0.35rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.64rem", letterSpacing: "0.04em", textTransform: "uppercase", color: getStatusColor(issue.status) }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: getStatusColor(issue.status), flexShrink: 0 }} />
+                      {getStatusText(issue.status)}
+                      {issue.stale ? " | Historical" : ""}
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", verticalAlign: "top" }}>
+                    <div style={{ color: "#F0EDE6", marginBottom: "0.35rem" }}>{issue.summary}</div>
+                    <div style={{ marginBottom: "0.45rem", wordBreak: "break-word" }}>{issue.message}</div>
+                    <div style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.72rem", lineHeight: 1.45 }}>{issue.hint}</div>
+                  </td>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                    {new Date(issue.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
                 </tr>
               ))}
@@ -136,4 +296,3 @@ export default function AdminHealthPage() {
     </div>
   )
 }
-

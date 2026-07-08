@@ -86,6 +86,22 @@ interface Revenue {
   creditsByMonth: Array<{ month: string; revenue: number }>
 }
 
+type ReportPaymentSummary = {
+  currency: string
+  grossRevenue: number
+  commissionTotal: number
+  netRevenue: number
+  successfulPayments: number
+  pendingPayments: number
+  failedPayments: number
+  ticketsSold: number
+  paymentMethodBreakdown: Array<{
+    method: string
+    count: number
+    grossRevenue: number
+  }>
+}
+
 type LinkReportPreview = {
   success: boolean
   event: {
@@ -111,7 +127,29 @@ type LinkReportPreview = {
     recommendations: string
     overallScore: string
   }
+  paymentSummary?: ReportPaymentSummary
   downloadUrl: string
+}
+
+function formatReportMoney(currency: string, amount: number) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "KES",
+      maximumFractionDigits: 0,
+    }).format(amount)
+  } catch {
+    return `${currency || "KES"} ${amount.toLocaleString("en-US")}`
+  }
+}
+
+function formatPaymentMethodLabel(method: string) {
+  return method
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
 }
 
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
@@ -463,6 +501,62 @@ export default function AdminOverviewPage() {
               </div>
             )}
 
+            {linkReportPreview.paymentSummary && (() => {
+              const paymentSummary = linkReportPreview.paymentSummary
+              return (
+              <div style={{ marginTop: "0.8rem", display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                <div style={{ background: "#0A0A0A", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.75rem" }}>
+                  <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                    Commercial Performance
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+                    Gross revenue {formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue)}, net revenue {formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue)}, and platform commission {formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal)}.
+                  </p>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem" }}>
+                  {[
+                    { label: "Gross Revenue", value: formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue) },
+                    { label: "Net Revenue", value: formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue) },
+                    { label: "Commission", value: formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal) },
+                    { label: "Tickets Sold", value: paymentSummary.ticketsSold.toLocaleString("en-US") },
+                    { label: "Successful Payments", value: paymentSummary.successfulPayments.toLocaleString("en-US") },
+                    { label: "Pending Payments", value: paymentSummary.pendingPayments.toLocaleString("en-US") },
+                  ].map((item) => (
+                    <div key={item.label} style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.7rem" }}>
+                      <div style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                        {item.label}
+                      </div>
+                      <div style={{ fontSize: "0.88rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                        {item.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {paymentSummary.paymentMethodBreakdown.length > 0 && (
+                  <div style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.75rem" }}>
+                    <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.45)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                      Payment Methods
+                    </div>
+                    <div style={{ display: "grid", gap: "0.4rem" }}>
+                      {paymentSummary.paymentMethodBreakdown.map((method) => (
+                        <div key={method.method} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                          <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.7)" }}>
+                            {formatPaymentMethodLabel(method.method)} · {method.count} sale{method.count === 1 ? "" : "s"}
+                          </span>
+                          <span style={{ fontSize: "0.78rem", color: "#F0EDE6" }}>
+                            {formatReportMoney(paymentSummary.currency, method.grossRevenue)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              )
+            })()}
+
             <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <a
                 href={linkReportPreview.downloadUrl}
@@ -540,7 +634,8 @@ export default function AdminOverviewPage() {
       {revenue && (
         <>
           {/* Revenue cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" style={{ marginBottom: "1.25rem" }}>
+          <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-4" style={{ marginBottom: "2.5rem" }}>
+            <div style={{ display: "grid", gap: "1rem" }}>
             {/* Estimated MRR */}
             <div
               style={{
@@ -585,13 +680,12 @@ export default function AdminOverviewPage() {
               border: "0.5px solid rgba(240,237,230,0.08)",
               borderRadius: 12,
               padding: "1.5rem",
-              marginBottom: "2.5rem",
             }}
           >
             <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
               Credit Revenue · Last 12 Months
             </div>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={240}>
               <BarChart data={revenue.creditsByMonth} barCategoryGap="30%">
                 <XAxis
                   dataKey="month"
@@ -628,6 +722,7 @@ export default function AdminOverviewPage() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
           </div>
         </>
       )}

@@ -11,6 +11,7 @@ interface MessageAuthor {
 interface Message {
   id: string
   type: "USER_FEEDBACK" | "ADMIN_BROADCAST"
+  kind: "feedback" | "announcement" | "email_broadcast"
   subject: string
   content: string
   isPublic: boolean
@@ -22,7 +23,9 @@ export default function AdminMessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [feedbackCount, setFeedbackCount] = useState(0)
-  const [broadcastCount, setBroadcastCount] = useState(0)
+  const [platformCount, setPlatformCount] = useState(0)
+  const [announcementCount, setAnnouncementCount] = useState(0)
+  const [emailBroadcastCount, setEmailBroadcastCount] = useState(0)
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
 
@@ -34,7 +37,9 @@ export default function AdminMessagesPage() {
         setMessages(d.messages ?? [])
         setTotalCount(d.totalCount ?? 0)
         setFeedbackCount(d.feedbackCount ?? 0)
-        setBroadcastCount(d.broadcastCount ?? 0)
+        setPlatformCount(d.platformCount ?? 0)
+        setAnnouncementCount(d.announcementCount ?? 0)
+        setEmailBroadcastCount(d.emailBroadcastCount ?? 0)
       })
       .finally(() => setLoading(false))
   }, [filter])
@@ -46,13 +51,17 @@ export default function AdminMessagesPage() {
   const filterTabs = [
     { key: "all", label: `All (${totalCount})` },
     { key: "feedback", label: `User feedback (${feedbackCount})` },
-    { key: "broadcast", label: `Announcements (${broadcastCount})` },
+    { key: "announcement", label: `Announcements (${announcementCount})` },
+    { key: "email-broadcast", label: `Email broadcasts (${emailBroadcastCount})` },
+    { key: "platform", label: `Platform messages (${platformCount})` },
   ]
 
-  const badgeFor = (type: Message["type"]) =>
-    type === "ADMIN_BROADCAST"
+  const badgeFor = (message: Message) =>
+    message.kind === "announcement"
       ? { label: "Announcement", bg: "rgba(200,245,90,0.12)", color: "#C8F55A" }
-      : { label: "Feedback", bg: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.55)" }
+      : message.kind === "email_broadcast"
+        ? { label: "Email Broadcast", bg: "rgba(138,180,255,0.14)", color: "#8AB4FF" }
+        : { label: "Feedback", bg: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.55)" }
 
   const skeletonCards = [1, 2, 3]
 
@@ -64,7 +73,7 @@ export default function AdminMessagesPage() {
         </h1>
       </div>
       <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
-        Public announcements and user feedback submitted through the comms channel.
+        Public announcements, email broadcasts, and user feedback submitted through the platform.
       </p>
 
       <div style={{ display: "flex", gap: "0.35rem", marginBottom: "1.75rem", flexWrap: "wrap" }}>
@@ -118,7 +127,7 @@ export default function AdminMessagesPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {messages.map(msg => {
-            const badge = badgeFor(msg.type)
+            const badge = badgeFor(msg)
             return (
               <article
                 key={msg.id}

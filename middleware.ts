@@ -25,7 +25,7 @@ export default withAuth(
     ].join('; '))
 
     // ── Route protection ──────────────────────────────────
-    const isSuperAdmin = token?.role === 'SUPER_ADMIN' || isAdminEmail(token?.email)
+    const isSuperAdmin = token?.role === 'SUPER_ADMIN' || token?.isAdmin === true || isAdminEmail(token?.email)
 
     if (req.nextUrl.pathname.startsWith('/admin') && !isSuperAdmin) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))

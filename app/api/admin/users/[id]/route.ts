@@ -2,19 +2,27 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { hasAdminAccess, isAdminEmail } from "@/lib/isAdmin"
+
+const ALLOWED_PLANS = new Set(["free", "standard", "pro", "business"])
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
     const body = await req.json()
     const data: Record<string, unknown> = {}
-    if (body.plan !== undefined) data.plan = 'free'
+    if (body.plan !== undefined) {
+      const normalizedPlan = typeof body.plan === "string" ? body.plan.trim().toLowerCase() : ""
+      if (!ALLOWED_PLANS.has(normalizedPlan)) {
+        return NextResponse.json({ error: "Invalid plan" }, { status: 400 })
+      }
+      data.plan = normalizedPlan
+    }
     if (body.suspended !== undefined) data.suspended = body.suspended
     if (body.name !== undefined) data.name = body.name || null
     if (body.email !== undefined && body.email) data.email = body.email
@@ -36,7 +44,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   const params = await props.params;
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 

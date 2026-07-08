@@ -8,6 +8,12 @@ interface EnvCheck {
   ok: boolean
 }
 
+interface AIProviderCheck {
+  provider: "groq" | "openrouter" | "claude"
+  label: string
+  configured: boolean
+}
+
 interface ChecklistData {
   envChecks: EnvCheck[]
   dbOk: boolean
@@ -17,6 +23,15 @@ interface ChecklistData {
   recentErrorCount: number
   userCount: number
   eventCount: number
+  trackedUsers: number
+  unknownUsers: number
+  countryCoveragePercent: number
+  paymentTestSeedReady: boolean
+  googleCalendarConfigured: boolean
+  googleCalendarRedirectUri: string
+  aiProviders: AIProviderCheck[]
+  aiPrimaryReady: boolean
+  aiClaudeFallbackEnabled: boolean
   checkedAt: string
 }
 
@@ -151,7 +166,16 @@ export default function LaunchChecklistPage() {
     { label: "Feedback cron (vercel.json)", ok: true },
   ]
 
-  const allServiceChecks = [data.dbOk, data.redisOk, data.adminUserExists, data.recentErrorCount === 0]
+  const allServiceChecks = [
+    data.dbOk,
+    data.redisOk,
+    data.adminUserExists,
+    data.recentErrorCount === 0,
+    data.paymentTestSeedReady,
+    data.countryCoveragePercent >= 80,
+    data.googleCalendarConfigured,
+    data.aiPrimaryReady,
+  ]
 
   const totalChecks = data.envChecks.length + staticChecks.length + allServiceChecks.length
   const passedChecks =
@@ -247,6 +271,7 @@ export default function LaunchChecklistPage() {
         {[
           { label: "Registered Users", value: data.userCount },
           { label: "Total Events", value: data.eventCount },
+          { label: "Country Coverage", value: `${data.countryCoveragePercent}%`, warn: data.countryCoveragePercent < 80 },
           { label: "Errors (24h)", value: data.recentErrorCount, warn: data.recentErrorCount > 0 },
         ].map(stat => (
           <div
@@ -302,6 +327,38 @@ export default function LaunchChecklistPage() {
           ok={data.recentErrorCount === 0}
           label={`API error log clean (last 24h)`}
           note={data.recentErrorCount > 0 ? `${data.recentErrorCount} errors — check Platform Health` : undefined}
+        />
+      </Section>
+
+      <Section title="Product Readiness">
+        <Check
+          ok={data.googleCalendarConfigured}
+          label="Google Calendar credentials configured"
+          note={data.googleCalendarConfigured ? `Redirect URI: ${data.googleCalendarRedirectUri || "derived from APP_URL"}` : "Google Calendar connect cannot work until OAuth credentials are present."}
+        />
+        <Check
+          ok={false}
+          label="Google OAuth consent screen published for public users"
+          note="This cannot be auto-verified from app config. If users still see Google testing / approved tester errors, publish the consent screen in Google Cloud."
+        />
+        <Check
+          ok={data.paymentTestSeedReady}
+          label="Admin payment test fixtures available"
+          note={data.paymentTestSeedReady ? "Seeded test paid events exist for the live payment test panel." : "The Payment Tests screen will stay unavailable until the test fixtures are seeded in this environment."}
+        />
+        <Check
+          ok={data.countryCoveragePercent >= 80}
+          label="Country intelligence coverage is usable"
+          note={`${data.trackedUsers} tracked, ${data.unknownUsers} unknown (${data.countryCoveragePercent}% coverage).`}
+        />
+        <Check
+          ok={data.aiPrimaryReady}
+          label="Primary AI providers are configured"
+          note={
+            data.aiPrimaryReady
+              ? `Configured: ${data.aiProviders.filter((provider) => provider.configured).map((provider) => provider.label).join(", ")}${data.aiClaudeFallbackEnabled ? " · Claude fallback enabled" : " · Claude fallback disabled"}`
+              : "At least one primary provider (Groq or OpenRouter) should be configured before relying on AI reports and insights."
+          }
         />
       </Section>
 

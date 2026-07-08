@@ -59,6 +59,12 @@ Create Artifact Registry repository (if not already created):
 gcloud artifacts repositories create eventslot --repository-format=docker --location=us-central1
 ```
 
+Apply the repo cleanup policy after the repository exists:
+
+```powershell
+./scripts/set-artifact-registry-cleanup-policy.ps1 -ProjectId eventslot -Region us-central1 -Repository eventslot
+```
+
 ### Deploy from local machine
 
 PowerShell helper:
@@ -99,7 +105,8 @@ For Phase 4 signed ticket QR payloads, ensure Secret Manager contains:
 
 - Canonical Google Cloud project: `eventslot` (`458973844514`)
 - Primary deployment target: Google Cloud Run
-- Production scaling baseline: 1 minimum instance, 20 maximum instances
+- Production scaling baseline: 0 minimum instances, 20 maximum instances
+- Artifact Registry cleanup: keep recent tagged images and prune old untagged images via `infra/artifact-registry-cleanup-policy.json`
 - Build pipeline: Cloud Build (`cloudbuild.yaml`)
 - Container source: `Dockerfile`
 - Local Docker Compose files are kept for local workflows, but production hosting should use Cloud Run.

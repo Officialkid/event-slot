@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { hasAdminAccess } from "@/lib/isAdmin"
 import { prisma } from "@/lib/prisma"
 import { generateStakeholderReport } from "@/lib/generateStakeholderReport"
 import { env } from "@/lib/env"
@@ -107,7 +107,7 @@ function buildMonthlySnapshotsSinceLaunch(
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return new Response(null, { status: 404 })
     }
 

@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           type: "PLATFORM",
           title: subject,
-          message: content.length > 120 ? `${content.slice(0, 120).trim()}…` : content,
+          message: content.length > 120 ? `${content.slice(0, 120).trim()}...` : content,
           link: "/comms",
         })),
       })

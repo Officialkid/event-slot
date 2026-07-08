@@ -30,7 +30,7 @@ export default function AdminCommsPage() {
 
   const snippet = useMemo(() => {
     const trimmed = content.trim()
-    return trimmed.length > 120 ? `${trimmed.slice(0, 120).trim()}…` : trimmed
+    return trimmed.length > 120 ? `${trimmed.slice(0, 120).trim()}...` : trimmed
   }, [content])
 
   const fetchAnnouncements = useCallback(async () => {

@@ -84,7 +84,7 @@ export default function ConversationsPage() {
                              : "border-[#2A2A2A] text-[#525252]"
                            }`}
               >
-                {f === "flagged" ? `🚩 Flagged (${flagged})` : `All (${total})`}
+                {f === "flagged" ? `Flagged (${flagged})` : `All (${total})`}
               </button>
             ))}
           </div>
@@ -106,7 +106,7 @@ export default function ConversationsPage() {
           )}
           {!loading && sessions.length === 0 && (
             <p className="p-4 text-[#525252] text-sm">
-              {filter === "flagged" ? "No flagged conversations ✅" : "No conversations yet."}
+              {filter === "flagged" ? "No flagged conversations yet." : "No conversations yet."}
             </p>
           )}
           {sessions.map(s => (
@@ -119,7 +119,7 @@ export default function ConversationsPage() {
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-white text-xs font-medium">
-                  {s.channel === "VOICE" ? "🎙️" : "💬"} Anonymous User
+                  {s.channel === "VOICE" ? "Voice" : "Text"} Anonymous User
                 </span>
                 {s.flagged && (
                   <span className="text-xs bg-red-900/30 text-red-400 px-2 py-0.5 rounded">
@@ -134,7 +134,7 @@ export default function ConversationsPage() {
                 <span className="text-[#525252] text-xs">
                   {new Date(s.startedAt).toLocaleDateString("en-KE")}
                 </span>
-                <span className="text-[#525252] text-xs">· {s.messageCount} msgs</span>
+                <span className="text-[#525252] text-xs">- {s.messageCount} msgs</span>
                 <span className={`text-xs ml-auto ${
                   s.status === "FLAGGED" ? "text-red-400" :
                   s.status === "ENDED"   ? "text-[#525252]" : "text-[#22C55E]"
@@ -153,7 +153,7 @@ export default function ConversationsPage() {
           <>
             <div className="p-4 border-b border-[#2A2A2A]">
               <h2 className="text-white font-semibold text-sm">
-                {selected.channel === "VOICE" ? "🎙️ Voice" : "💬 Text"} Session
+                {selected.channel === "VOICE" ? "Voice" : "Text"} Session
               </h2>
               <p className="text-[#525252] text-xs">
                 {new Date(selected.startedAt).toLocaleString("en-KE")}
@@ -177,7 +177,7 @@ export default function ConversationsPage() {
                     }`}>
                     <p className="text-[#525252] text-xs mb-1">
                       {msg.role === "USER" ? "User" : "EventSlot Assistant"}
-                      {msg.isVoice && " 🎙️"}
+                      {msg.isVoice && " (voice)"}
                     </p>
                     <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
                   </div>

@@ -24,6 +24,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 })
     }
 
+    if (String(password).length < 8) {
+      return NextResponse.json(
+        {
+          error: 'Password must be at least 8 characters.',
+          code: 'WEAK_PASSWORD',
+        },
+        { status: 400 }
+      )
+    }
+
     if (!privacyAccepted) {
       return NextResponse.json(
         {
@@ -34,7 +44,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const normalizedEmail = email.trim()
+    const normalizedEmail = email.trim().toLowerCase()
     const existing = await prisma.user.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
     })
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
     const hashed = await bcrypt.hash(password, 12)
     const newUser = await prisma.user.create({
       data: {
-        name,
+        name: String(name).trim(),
         email: normalizedEmail,
         password: hashed,
         consentSystemEmails: true,
@@ -99,7 +109,7 @@ export async function POST(req: Request) {
     await checkAndAwardPioneerBadge(newUser.id)
 
     // Fire-and-forget welcome email — don't block the response
-    sendWelcomeEmail({ to: email, name }).catch(() => {})
+    sendWelcomeEmail({ to: normalizedEmail, name: String(name).trim() }).catch(() => {})
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch {

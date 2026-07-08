@@ -205,8 +205,35 @@ type WaitlistEmailDiagnosticsSummary = {
   skippedNoEmail: number
 }
 
+type ReportPaymentSummary = {
+  currency: string
+  grossRevenue: number
+  commissionTotal: number
+  netRevenue: number
+  successfulPayments: number
+  pendingPayments: number
+  failedPayments: number
+  ticketsSold: number
+  paymentMethodBreakdown: Array<{
+    method: string
+    count: number
+    grossRevenue: number
+  }>
+}
+
 type ReportPreviewData = {
   success: boolean
+  event?: {
+    title: string
+    slug: string
+    confirmedCount: number
+    waitlistCount: number
+    capacity: number | null
+    eventDate: string | null
+    location: string | null
+    deadline?: string | null
+  }
+  paymentSummary?: ReportPaymentSummary
   reportReady?: boolean
   generatedAt?: string
   message?: string
@@ -299,6 +326,27 @@ function buildDomainVerificationHelp(message: string | null | undefined): string
   }
   const domain = extractResendVerificationDomain(message) ?? "eventsslot.com"
   return `Email delivery is paused because ${domain} is not verified in Resend. Verify the domain, then resend the invite or share the direct invite link below.`
+}
+
+function formatReportMoney(currency: string, amount: number): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "KES",
+      maximumFractionDigits: 0,
+    }).format(amount)
+  } catch {
+    return `${currency || "KES"} ${amount.toLocaleString("en-US")}`
+  }
+}
+
+function formatPaymentMethodLabel(method: string): string {
+  return method
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
 }
 
 function toIsoFromDatetimeLocal(value: string): string | null {
@@ -2904,6 +2952,62 @@ export default function EventDashboardPage() {
                       {reportError}
                     </p>
                   )}
+
+                  {reportData.paymentSummary && (() => {
+                    const paymentSummary = reportData.paymentSummary
+                    return (
+                    <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      <div style={{ background: "#0F0F0F", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
+                        <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                          Commercial Performance
+                        </div>
+                        <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
+                          Gross revenue {formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue)}, net revenue {formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue)}, and platform commission {formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal)} are now included in the downloaded report.
+                        </p>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.6rem" }}>
+                        {[
+                          { label: "Gross Revenue", value: formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue) },
+                          { label: "Net Revenue", value: formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue) },
+                          { label: "Commission", value: formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal) },
+                          { label: "Tickets Sold", value: paymentSummary.ticketsSold.toLocaleString("en-US") },
+                          { label: "Successful Payments", value: paymentSummary.successfulPayments.toLocaleString("en-US") },
+                          { label: "Pending Payments", value: paymentSummary.pendingPayments.toLocaleString("en-US") },
+                        ].map((item) => (
+                          <div key={item.label} style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem 0.9rem" }}>
+                            <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                              {item.label}
+                            </div>
+                            <div style={{ fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                              {item.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {paymentSummary.paymentMethodBreakdown.length > 0 && (
+                        <div style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
+                          <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.45)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.55rem" }}>
+                            Payment Methods
+                          </div>
+                          <div style={{ display: "grid", gap: "0.45rem" }}>
+                            {paymentSummary.paymentMethodBreakdown.map((method) => (
+                              <div key={method.method} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+                                <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.68)", fontFamily: "var(--font-dm-sans)" }}>
+                                  {formatPaymentMethodLabel(method.method)} · {method.count} sale{method.count === 1 ? "" : "s"}
+                                </span>
+                                <span style={{ fontSize: "0.8rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                                  {formatReportMoney(paymentSummary.currency, method.grossRevenue)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    )
+                  })()}
 
                   <div style={{
                     borderTop: "0.5px solid rgba(240,237,230,0.08)",

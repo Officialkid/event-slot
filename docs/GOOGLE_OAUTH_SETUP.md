@@ -100,6 +100,28 @@ Once the OAuth 2.0 Client ID settings are open:
 
 ---
 
+## Step 4B: Make The App Usable By Real Users
+
+If Google shows:
+
+- `Access blocked`
+- `has not completed the Google verification process`
+- `can only be accessed by developer-approved testers`
+
+then the redirect URI is not the main problem anymore. The OAuth consent screen is still in **Testing** mode.
+
+To fix this for all users:
+
+1. In Google Cloud Console, go to **APIs & Services** → **OAuth consent screen**
+2. Check the **Publishing status**
+3. Choose one of these paths:
+   - **Short-term:** add every allowed email under **Test users**
+   - **Real production fix:** click **Publish App** if Google allows it, or complete verification if Google requires brand/app verification
+
+Until this is done, only approved test users can connect Google Calendar.
+
+---
+
 ## Step 5: Verify OAuth Configuration
 
 Once saved, verify that OAuth is working:

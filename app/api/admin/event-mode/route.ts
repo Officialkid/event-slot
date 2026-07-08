@@ -1,7 +1,7 @@
 // app/api/admin/event-mode/route.ts
-// POST   — enter Admin Mode for a specific event
-// DELETE — exit Admin Mode
-// GET    — return current Admin Mode state (used by the banner component)
+// POST   - enter Admin Mode for a specific event
+// DELETE - exit Admin Mode
+// GET    - return current Admin Mode state (used by the banner component)
 
 import { NextRequest, NextResponse }                      from 'next/server'
 import { getServerSession }                               from 'next-auth'
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  // Audit trail — fire-and-forget
+  // Audit trail - fire-and-forget
   if (session?.user?.id) {
     prisma.auditLog.create({
       data: {
@@ -97,7 +97,7 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Audit trail — fire-and-forget
+  // Audit trail - fire-and-forget
   if (session?.user?.id) {
     prisma.auditLog.create({
       data: {

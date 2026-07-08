@@ -8,8 +8,8 @@ export const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY ?? '',
 })
 
-// Llama 3.1 8B — fast, free, excellent for support use cases
-export const ASSISTANT_MODEL = 'llama-3.1-8b-instant'
+// Keep defaults aligned with Groq's current replacement guidance.
+export const ASSISTANT_MODEL = 'openai/gpt-oss-20b'
 export const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
 export const VISION_MODEL_FALLBACK = 'meta-llama/llama-4-maverick-17b-128e-instruct'
 
@@ -19,11 +19,11 @@ const _groq = process.env.GROQ_API_KEY ? groq : null
 type AITaskType = 'insights' | 'qa' | 'capacity' | 'tracker' | 'report'
 
 const TASK_MODELS: Record<AITaskType, string[]> = {
-  insights: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  qa: ['llama-3.1-8b-instant'],
-  capacity: ['llama-3.1-8b-instant'],
-  tracker: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  report: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
+  insights: ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'],
+  qa: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  capacity: ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  tracker: ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'],
+  report: ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'],
 }
 
 export function getGroqModelByTask(taskType: AITaskType): string {

@@ -26,19 +26,43 @@ export default function AdminSidebar() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
-    fetch("/api/admin/assistant-sessions?filter=flagged")
-      .then(async (r) => {
-        const bodyText = await r.text()
-        if (!bodyText) return {}
-        try {
-          return JSON.parse(bodyText) as { flaggedCount?: number }
-        } catch {
-          return {}
+    let cancelled = false
+
+    const loadFlaggedCount = async () => {
+      try {
+        const response = await fetch("/api/admin/assistant-sessions?filter=flagged", { cache: "no-store" })
+        const bodyText = await response.text()
+
+        if (!bodyText) {
+          if (!cancelled) setFlaggedCount(0)
+          return
         }
-      })
-      .then(d => setFlaggedCount(typeof d.flaggedCount === "number" ? d.flaggedCount : 0))
-      .catch(() => {})
-  }, [])
+
+        let payload: { flaggedCount?: number } = {}
+        try {
+          payload = JSON.parse(bodyText) as { flaggedCount?: number }
+        } catch {
+          payload = {}
+        }
+
+        if (!cancelled) {
+          setFlaggedCount(typeof payload.flaggedCount === "number" ? payload.flaggedCount : 0)
+        }
+      } catch {
+        if (!cancelled) {
+          setFlaggedCount(0)
+        }
+      }
+    }
+
+    loadFlaggedCount()
+    const intervalId = window.setInterval(loadFlaggedCount, 30000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [pathname])
 
   // Close drawer on route change
   useEffect(() => {

@@ -21,6 +21,10 @@ export interface AskAIMeta {
   retryRecommended: boolean
 }
 
+function isClaudeFallbackEnabled() {
+  return process.env.AI_ENABLE_CLAUDE_FALLBACK?.trim().toLowerCase() === 'true'
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -62,7 +66,7 @@ export function getAIProviderStatus(): AIProviderStatus[] {
   return [
     {
       provider: 'groq',
-      label: 'Groq (Grok-compatible)',
+      label: 'Groq',
       configured: Boolean(process.env.GROQ_API_KEY),
     },
     {
@@ -111,9 +115,10 @@ export async function askAIWithMeta({
   const runGroq = async () => askGroq({ system, prompt, taskType, maxTokens })
   const runOpenRouter = async () => askOpenRouter({ system, prompt, taskType, maxTokens })
 
-  const providerChain: AIProviderName[] = taskType === 'report'
-    ? ['claude', 'groq', 'openrouter']
-    : ['groq', 'openrouter', 'claude']
+  const providerChain: AIProviderName[] = ['groq', 'openrouter']
+  if (isClaudeFallbackEnabled()) {
+    providerChain.push('claude')
+  }
 
   const runners: Record<AIProviderName, () => Promise<string>> = {
     groq: runGroq,

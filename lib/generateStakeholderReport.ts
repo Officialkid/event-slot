@@ -630,13 +630,13 @@ Use these facts:
 - Pro users: ${data.proUsers}
 - Business users: ${data.businessUsers}
 - Product context: freemium, free-beta phase, conversion focus
-- Pro features include advanced analytics, extended data retention, and custom branding
+- Planned premium value drivers include advanced analytics, extended data retention, and branding controls
 
 Rules:
 1. Never say "no revenue".
 2. Frame current user base as top of monetisation funnel.
 3. State that free-beta is intentional for organiser-base growth.
-4. Mention Pro features are live and available for upgrade.
+4. Do not claim premium features are already live unless the data explicitly proves paid conversion exists.
 5. End by naming first Pro conversion as the next commercial milestone.
 6. Tone: confident and forward-looking.
 
@@ -653,7 +653,7 @@ Output a single paragraph only.`
     return aiText.replace(/\s+/g, " ").trim()
   }
 
-  return `EventSlot's ${data.totalUsers.toLocaleString()} registered organisers represent the top of the monetisation funnel. The platform is in free-beta phase, building the organiser base before activating conversion triggers. Pro tier features - advanced analytics, extended data retention, and custom branding - are live and available for upgrade. The next commercial milestone is first Pro conversion.`
+  return `EventSlot's ${data.totalUsers.toLocaleString()} registered organisers represent the top of the monetisation funnel. The platform is in free-beta phase, intentionally building the organiser base before activating conversion triggers. The premium roadmap is anchored around advanced analytics, extended data retention, and branding controls, with first Pro conversion remaining the next commercial milestone.`
 }
 
 async function renderChartBuffer(config: unknown, width = 1200, height = 560): Promise<Buffer | null> {

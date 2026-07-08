@@ -2,7 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { getConfiguredAdminEmails, isAdminEmail } from "@/lib/isAdmin"
+import { getConfiguredAdminEmails, hasAdminAccess } from "@/lib/isAdmin"
+import { getAIProviderStatus } from "@/lib/ai"
 
 const REQUIRED_ENV_VARS = [
   { key: "DATABASE_URL", label: "Database URL (Neon)" },
@@ -21,7 +22,7 @@ const REQUIRED_ENV_VARS = [
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -82,14 +83,60 @@ export async function GET() {
     // 6 — Total registered users and events
     let userCount = 0
     let eventCount = 0
+    let trackedUsers = 0
+    let unknownUsers = 0
+    let paymentTestSeedReady = false
     if (dbOk) {
       try {
         ;[userCount, eventCount] = await Promise.all([
           prisma.user.count(),
           prisma.event.count(),
         ])
+
+        trackedUsers = await prisma.user.count({
+          where: {
+            OR: [
+              { signupCountry: { not: null } },
+              { countryCode: { not: null } },
+            ],
+            NOT: [
+              { signupCountry: "UNKNOWN" },
+              { countryCode: "UNKNOWN" },
+            ],
+          },
+        })
+        unknownUsers = Math.max(userCount - trackedUsers, 0)
+
+        const paymentFixtureCount = await prisma.event.count({
+          where: {
+            isTestData: true,
+            title: {
+              in: [
+                "Test Paid Event - Single Tier",
+                "Test Paid Event - Multi Tier",
+              ],
+            },
+          },
+        })
+        paymentTestSeedReady = paymentFixtureCount >= 2
       } catch { /* fail silently */ }
     }
+
+    const googleCalendarConfigured = Boolean(
+      (process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID) &&
+      (process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET)
+    )
+
+    const googleCalendarRedirectUri =
+      process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
+      process.env.NEXTAUTH_URL ||
+      ""
+
+    const aiProviders = getAIProviderStatus()
+    const aiPrimaryReady = aiProviders.some(
+      (provider) => provider.configured && (provider.provider === "groq" || provider.provider === "openrouter")
+    )
+    const aiClaudeFallbackEnabled = process.env.AI_ENABLE_CLAUDE_FALLBACK?.trim().toLowerCase() === "true"
 
     return NextResponse.json({
       envChecks,
@@ -100,6 +147,15 @@ export async function GET() {
       recentErrorCount,
       userCount,
       eventCount,
+      trackedUsers,
+      unknownUsers,
+      countryCoveragePercent: userCount > 0 ? Math.round((trackedUsers / userCount) * 100) : 0,
+      paymentTestSeedReady,
+      googleCalendarConfigured,
+      googleCalendarRedirectUri,
+      aiProviders,
+      aiPrimaryReady,
+      aiClaudeFallbackEnabled,
       checkedAt: new Date().toISOString(),
     })
   } catch (err) {

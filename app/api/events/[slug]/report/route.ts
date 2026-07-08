@@ -55,11 +55,14 @@ function buildEventReportData(eventPayload: {
   confirmedCount: number
   waitlistCount: number
   capacity: number | null
+  isPaid: boolean
+  currency: string
   eventDate: string | null
   location: string | null
   deadline: string | null
   createdAt: string
   questions: Array<{ id: string; label: string; type: string }>
+  paymentSummary?: EventReportData["paymentSummary"]
 }, confirmed: IRegistration[], waitlist: IRegistration[], theme: ReportTheme): EventReportData {
   const allRegistrations = [...confirmed, ...waitlist]
   const dailyRegistrationCounts = buildDailyRegistrationCounts(allRegistrations)
@@ -98,6 +101,7 @@ function buildEventReportData(eventPayload: {
     dailyRegistrationCounts,
     peakDate: peak.date,
     peakDayCount: peak.count,
+    paymentSummary: eventPayload.paymentSummary,
     customQuestionResponses: eventPayload.questions.map((question) => ({
       question: question.label,
       answers: allRegistrations
@@ -109,6 +113,21 @@ function buildEventReportData(eventPayload: {
         .filter((value) => value.length > 0),
     })),
     theme,
+  }
+}
+
+function buildReportPreviewPaymentSummary(paymentSummary: EventReportData["paymentSummary"]) {
+  if (!paymentSummary) return undefined
+  return {
+    currency: paymentSummary.currency,
+    grossRevenue: paymentSummary.grossRevenue,
+    commissionTotal: paymentSummary.commissionTotal,
+    netRevenue: paymentSummary.netRevenue,
+    successfulPayments: paymentSummary.successfulPayments,
+    pendingPayments: paymentSummary.pendingPayments,
+    failedPayments: paymentSummary.failedPayments,
+    ticketsSold: paymentSummary.ticketsSold,
+    paymentMethodBreakdown: paymentSummary.paymentMethodBreakdown,
   }
 }
 
@@ -157,6 +176,27 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
     })
 
+    const [payments, paidOrders] = event.isPaid
+      ? await Promise.all([
+          prisma.payment.findMany({
+            where: { eventId: event.id },
+            select: {
+              amount: true,
+              commissionAmount: true,
+              organizerAmount: true,
+              status: true,
+              method: true,
+            },
+          }),
+          prisma.paidEventOrder.findMany({
+            where: { eventId: event.id },
+            select: {
+              status: true,
+            },
+          }),
+        ])
+      : [[], []]
+
     const confirmed: IRegistration[] = registrations
       .filter((registration) => registration.status === 'confirmed')
       .map((registration) => ({
@@ -185,6 +225,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       confirmedCount: event.confirmedCount,
       waitlistCount: event.waitlistCount,
       capacity: event.capacity,
+      isPaid: event.isPaid,
+      currency: event.currency,
       eventDate: event.eventDate?.toISOString() ?? null,
       location: event.location,
       deadline: event.deadline?.toISOString() ?? null,
@@ -194,6 +236,37 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         label: question.label,
         type: question.type,
       })),
+      paymentSummary: (() => {
+        if (!event.isPaid) return undefined
+        const successfulPayments = payments.filter((payment) => payment.status === 'SUCCESS')
+        const pendingPayments = paidOrders.filter((order) => order.status === 'PENDING' || order.status === 'PAYMENT_PENDING')
+        const failedPayments = paidOrders.filter((order) => order.status === 'FAILED' || order.status === 'EXPIRED' || order.status === 'CANCELLED')
+        const methodTotals = new Map<string, { count: number; grossRevenue: number }>()
+
+        for (const payment of successfulPayments) {
+          const key = payment.method
+          const current = methodTotals.get(key) ?? { count: 0, grossRevenue: 0 }
+          current.count += 1
+          current.grossRevenue += payment.amount
+          methodTotals.set(key, current)
+        }
+
+        return {
+          currency: event.currency,
+          grossRevenue: successfulPayments.reduce((sum, payment) => sum + payment.amount, 0),
+          commissionTotal: successfulPayments.reduce((sum, payment) => sum + payment.commissionAmount, 0),
+          netRevenue: successfulPayments.reduce((sum, payment) => sum + payment.organizerAmount, 0),
+          successfulPayments: successfulPayments.length,
+          pendingPayments: pendingPayments.length,
+          failedPayments: failedPayments.length,
+          ticketsSold: successfulPayments.length,
+          paymentMethodBreakdown: Array.from(methodTotals.entries()).map(([method, value]) => ({
+            method,
+            count: value.count,
+            grossRevenue: value.grossRevenue,
+          })),
+        }
+      })(),
     }
 
     if (mode === 'preview' || !mode) {
@@ -224,6 +297,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           location: event.location,
           deadline: event.deadline?.toISOString() ?? null,
         },
+        paymentSummary: buildReportPreviewPaymentSummary(eventPayload.paymentSummary),
         reportReady: true,
         generatedAt: new Date().toISOString(),
         message: 'Your professional report is ready.',

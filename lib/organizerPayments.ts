@@ -189,7 +189,46 @@ function fallbackAttendeeName(input: { attendeeName?: string | null; attendeeEma
   return "Attendee"
 }
 
-async function buildOrganizerBalanceSnapshot(userId: string): Promise<OrganizerBalanceSnapshot> {
+function buildOrganizerBalanceSnapshotFromRecords(
+  payments: Array<{
+    amount: number
+    commissionAmount: number
+    organizerAmount: number
+    event: { currency: string | null }
+    paidEventOrder: { currency: string | null } | null
+  }>,
+  withdrawals: Array<{
+    amount: number
+    currency: string
+    status: WithdrawalStatus
+  }>
+): OrganizerBalanceSnapshot {
+  const snapshot = emptyBalanceSnapshot()
+
+  for (const payment of payments) {
+    const currency = normalizeCurrency(payment.paidEventOrder?.currency || payment.event.currency)
+    if (currency === "USD") {
+      snapshot.grossUSD += payment.amount
+      snapshot.commissionUSD += payment.commissionAmount
+      snapshot.netUSD += payment.organizerAmount
+    } else {
+      snapshot.grossKES += payment.amount
+      snapshot.commissionKES += payment.commissionAmount
+      snapshot.netKES += payment.organizerAmount
+    }
+  }
+
+  for (const withdrawal of withdrawals) {
+    if (withdrawal.status !== "PROCESSING" && withdrawal.status !== "COMPLETED") continue
+    const currency = normalizeCurrency(withdrawal.currency)
+    if (currency === "USD") snapshot.withdrawnUSD += withdrawal.amount
+    else snapshot.withdrawnKES += withdrawal.amount
+  }
+
+  return snapshot
+}
+
+async function ensureOrganizerBalanceSnapshot(userId: string): Promise<OrganizerBalanceSnapshot> {
   const [payments, withdrawals] = await Promise.all([
     prisma.payment.findMany({
       where: {
@@ -220,36 +259,12 @@ async function buildOrganizerBalanceSnapshot(userId: string): Promise<OrganizerB
       select: {
         amount: true,
         currency: true,
+        status: true,
       },
     }),
   ])
 
-  const snapshot = emptyBalanceSnapshot()
-
-  for (const payment of payments) {
-    const currency = normalizeCurrency(payment.paidEventOrder?.currency || payment.event.currency)
-    if (currency === "USD") {
-      snapshot.grossUSD += payment.amount
-      snapshot.commissionUSD += payment.commissionAmount
-      snapshot.netUSD += payment.organizerAmount
-    } else {
-      snapshot.grossKES += payment.amount
-      snapshot.commissionKES += payment.commissionAmount
-      snapshot.netKES += payment.organizerAmount
-    }
-  }
-
-  for (const withdrawal of withdrawals) {
-    const currency = normalizeCurrency(withdrawal.currency)
-    if (currency === "USD") snapshot.withdrawnUSD += withdrawal.amount
-    else snapshot.withdrawnKES += withdrawal.amount
-  }
-
-  return snapshot
-}
-
-async function ensureOrganizerBalanceSnapshot(userId: string): Promise<OrganizerBalanceSnapshot> {
-  const snapshot = await buildOrganizerBalanceSnapshot(userId)
+  const snapshot = buildOrganizerBalanceSnapshotFromRecords(payments, withdrawals)
   const hasAnyValues = Object.values(snapshot).some((value) => value > 0)
   if (!hasAnyValues) return snapshot
 
@@ -266,26 +281,13 @@ async function ensureOrganizerBalanceSnapshot(userId: string): Promise<Organizer
 }
 
 export async function getOrganizerPaymentsDashboardData(userId: string): Promise<OrganizerPaymentsDashboardData> {
-  const [user, storedBalance, payments, withdrawals, paidEvents] = await Promise.all([
+  const [user, payments, withdrawals, paidEvents] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
         email: true,
         twoFactorEnabled: true,
         paymentPinEnabled: true,
-      },
-    }),
-    prisma.organiserBalance.findUnique({
-      where: { organiserId: userId },
-      select: {
-        grossKES: true,
-        commissionKES: true,
-        netKES: true,
-        withdrawnKES: true,
-        grossUSD: true,
-        commissionUSD: true,
-        netUSD: true,
-        withdrawnUSD: true,
       },
     }),
     prisma.payment.findMany({
@@ -425,11 +427,21 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
           },
         },
       },
-    }),
+      }),
   ])
 
-  const needsBalanceBackfill = !storedBalance && (payments.length > 0 || withdrawals.length > 0)
-  const balance = needsBalanceBackfill ? await ensureOrganizerBalanceSnapshot(userId) : storedBalance
+  const balance = buildOrganizerBalanceSnapshotFromRecords(payments, withdrawals)
+  const hasAnyBalanceActivity = Object.values(balance).some((value) => value > 0)
+  if (hasAnyBalanceActivity) {
+    await prisma.organiserBalance.upsert({
+      where: { organiserId: userId },
+      create: {
+        organiserId: userId,
+        ...balance,
+      },
+      update: balance,
+    })
+  }
   const summaryByCurrency = getBalanceSummaries(balance)
 
   const transactions: OrganizerPaymentTransactionRow[] = payments.map((payment) => {
@@ -633,17 +645,7 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
 }
 
 export async function getOrganizerPaymentsSidebarSummary(userId: string): Promise<OrganizerPaymentsSidebarSummary> {
-  const [balance] = await Promise.all([
-    prisma.organiserBalance.findUnique({
-      where: { organiserId: userId },
-      select: {
-        netKES: true,
-        withdrawnKES: true,
-        netUSD: true,
-        withdrawnUSD: true,
-      },
-    }),
-  ])
+  const balance = await ensureOrganizerBalanceSnapshot(userId)
 
   const withdrawableKes = Math.max((balance?.netKES ?? 0) - (balance?.withdrawnKES ?? 0), 0)
   const withdrawableUsd = Math.max((balance?.netUSD ?? 0) - (balance?.withdrawnUSD ?? 0), 0)
@@ -657,17 +659,7 @@ export async function getOrganizerPaymentsSidebarSummary(userId: string): Promis
 }
 
 export async function getOrganizerWithdrawableBalance(userId: string, currency: SupportedCurrency) {
-  const storedBalance = await prisma.organiserBalance.findUnique({
-    where: { organiserId: userId },
-    select: {
-      netKES: true,
-      withdrawnKES: true,
-      netUSD: true,
-      withdrawnUSD: true,
-    },
-  })
-
-  const balance = storedBalance ?? ((await ensureOrganizerBalanceSnapshot(userId)) satisfies OrganizerBalanceSnapshot)
+  const balance = await ensureOrganizerBalanceSnapshot(userId)
 
   if (currency === "USD") {
     return Math.max((balance?.netUSD ?? 0) - (balance?.withdrawnUSD ?? 0), 0)

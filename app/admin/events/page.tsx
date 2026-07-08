@@ -94,7 +94,7 @@ export default function AdminEventsPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
         <input
           type="text"
-          placeholder="Search by title or organizer email…"
+          placeholder="Search by title or organizer email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 1rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", maxWidth: 400 }}
@@ -166,7 +166,7 @@ export default function AdminEventsPage() {
                         rel="noopener noreferrer"
                         style={{ fontSize: "0.75rem", color: "rgba(200,245,90,0.6)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}
                       >
-                        View ↗
+                        {'View ->'}
                       </a>
                       <button
                         type="button"
@@ -174,7 +174,7 @@ export default function AdminEventsPage() {
                         disabled={entering === ev.id}
                         style={{ fontSize: "0.72rem", color: "#0A0A0A", background: entering === ev.id ? "rgba(200,245,90,0.5)" : "#C8F55A", border: "none", cursor: entering === ev.id ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", padding: "0.2rem 0.55rem", borderRadius: 6, fontWeight: 700 }}
                       >
-                        {entering === ev.id ? "Entering…" : "Admin Mode"}
+                        {entering === ev.id ? "Entering..." : "Admin Mode"}
                       </button>
                       <button
                         type="button"

@@ -16,6 +16,17 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
 const configuredAdminEmails = new Set(getConfiguredAdminEmails())
 
+async function getUserAccessSnapshot(userId: string) {
+  try {
+    return await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, isAdmin: true },
+    })
+  } catch {
+    return null
+  }
+}
+
 function normalizeTier(plan: string | null | undefined): 'FREE' | 'STANDARD' | 'PRO' | 'BUSINESS' {
   const value = (plan ?? 'free').toLowerCase()
   if (value === 'standard') return 'STANDARD'
@@ -143,10 +154,10 @@ export const authOptions = {
         token.isAdmin = token.role === 'SUPER_ADMIN'
 
         try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { plan: true },
-          })
+          const dbUser = await getUserAccessSnapshot(user.id)
+          const dbIsAdmin = Boolean(dbUser?.isAdmin)
+          token.isAdmin = token.isAdmin || dbIsAdmin
+          token.role = token.isAdmin ? 'SUPER_ADMIN' : 'ATTENDEE'
           token.tier = normalizeTier(dbUser?.plan)
           token.plan = normalizePlanKey(dbUser?.plan)
         } catch {
@@ -157,23 +168,26 @@ export const authOptions = {
         return token
       }
 
-      if (!token.role && isAdminEmail(token.email)) {
-        token.role = 'SUPER_ADMIN'
-        token.isAdmin = true
-      }
-
-      if ((!token.tier || !token.plan) && token.sub) {
+      if (token.sub) {
         try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.sub },
-            select: { plan: true },
-          })
+          const dbUser = await getUserAccessSnapshot(token.sub)
+          const envIsAdmin = isAdminEmail(token.email)
+          const dbIsAdmin = Boolean(dbUser?.isAdmin)
+          token.isAdmin = Boolean(token.isAdmin || envIsAdmin || dbIsAdmin)
+          token.role = token.isAdmin ? 'SUPER_ADMIN' : 'ATTENDEE'
           token.tier = normalizeTier(dbUser?.plan)
           token.plan = normalizePlanKey(dbUser?.plan)
         } catch {
+          if (!token.role && isAdminEmail(token.email)) {
+            token.role = 'SUPER_ADMIN'
+            token.isAdmin = true
+          }
           token.tier = 'FREE'
           token.plan = 'free'
         }
+      } else if (!token.role && isAdminEmail(token.email)) {
+        token.role = 'SUPER_ADMIN'
+        token.isAdmin = true
       }
 
       return token

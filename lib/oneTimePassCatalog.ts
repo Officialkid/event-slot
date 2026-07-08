@@ -11,7 +11,7 @@ const PASS_FEATURE_SUMMARIES: Record<OneTimePassTier, string[]> = {
     "Standard commission for paid tickets",
   ],
   pro: [
-    "Full analytics, AI reports, and branding for this event",
+    "Full analytics and AI reports for this event",
     "Advanced event tools and lower commission",
     "Best for premium one-off launches",
   ],

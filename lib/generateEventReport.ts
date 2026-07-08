@@ -91,6 +91,21 @@ export interface EventReportData {
   dailyRegistrationCounts: { date: string; count: number }[]
   peakDate: string
   peakDayCount: number
+  paymentSummary?: {
+    currency: string
+    grossRevenue: number
+    commissionTotal: number
+    netRevenue: number
+    successfulPayments: number
+    pendingPayments: number
+    failedPayments: number
+    ticketsSold: number
+    paymentMethodBreakdown: {
+      method: string
+      count: number
+      grossRevenue: number
+    }[]
+  }
   customQuestionResponses?: { question: string; answers: string[] }[]
   theme?: ReportTheme
 }
@@ -134,6 +149,27 @@ function todayStr(): string {
 function fmtLongDate(iso: string | null | undefined, def = 'Not specified'): string {
   if (!iso) return def
   try { return format(new Date(iso), 'd MMMM yyyy') } catch { return def }
+}
+
+function normalizeReportCurrency(currency: string | null | undefined): string {
+  const normalized = (currency ?? '').trim().toUpperCase()
+  if (normalized === 'USD') return 'USD'
+  if (normalized === 'KES' || normalized === 'KSH') return 'KES'
+  return normalized || 'KES'
+}
+
+function formatReportMoney(currency: string | null | undefined, amount: number): string {
+  const normalized = normalizeReportCurrency(currency)
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: normalized,
+      minimumFractionDigits: normalized === 'USD' ? 2 : 0,
+      maximumFractionDigits: normalized === 'USD' ? 2 : 0,
+    }).format(amount)
+  } catch {
+    return `${normalized} ${amount.toLocaleString('en-US')}`
+  }
 }
 
 function fmtDeadlineEAT(iso: string | null | undefined): string {
@@ -997,6 +1033,125 @@ async function summaryPage(
   ]
 }
 
+function buildCommercialPerformanceSection(paymentSummary: NonNullable<EventReportData['paymentSummary']>): (Paragraph | Table)[] {
+  const currency = normalizeReportCurrency(paymentSummary.currency)
+  const successfulRate = paymentSummary.ticketsSold > 0
+    ? Math.round((paymentSummary.successfulPayments / paymentSummary.ticketsSold) * 100)
+    : 0
+
+  const paymentMethodRows = paymentSummary.paymentMethodBreakdown.length > 0
+    ? paymentSummary.paymentMethodBreakdown
+    : [{ method: 'No completed payments yet', count: 0, grossRevenue: 0 }]
+
+  const performanceTable = new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: thinBorder(),
+    columnWidths: [2250, 2250, 2250, TABLE_WIDTH - 6750],
+    rows: [
+      new TableRow({
+        children: [
+          ['Gross revenue', formatReportMoney(currency, paymentSummary.grossRevenue)],
+          ['Platform commission', formatReportMoney(currency, paymentSummary.commissionTotal)],
+          ['Net revenue', formatReportMoney(currency, paymentSummary.netRevenue)],
+          ['Tickets sold', paymentSummary.ticketsSold.toLocaleString('en-US')],
+        ].map(([label, value]) =>
+          new TableCell({
+            shading: { type: ShadingType.CLEAR, fill: 'F5F5F5', color: 'auto' },
+            margins: { top: 160, bottom: 160, left: 140, right: 140 },
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: String(label), font: 'Arial', size: 18, bold: true, color: '333333' })],
+                spacing: { after: 60 },
+              }),
+              new Paragraph({
+                children: [new TextRun({ text: String(value), font: 'Arial', size: 24, bold: true, color: '111111' })],
+              }),
+            ],
+          })
+        ),
+      }),
+    ],
+  })
+
+  const methodTable = new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: thinBorder(),
+    columnWidths: [3600, 1800, TABLE_WIDTH - 5400],
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: ['Payment method', 'Successful payments', 'Gross revenue'].map((title, index) =>
+          new TableCell({
+            width: { size: [3600, 1800, TABLE_WIDTH - 5400][index], type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: '111111', color: 'auto' },
+            margins: CELL_MARGINS,
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' })],
+              }),
+            ],
+          })
+        ),
+      }),
+      ...paymentMethodRows.map((row, index) =>
+        new TableRow({
+          children: [
+            row.method,
+            row.count.toLocaleString('en-US'),
+            formatReportMoney(currency, row.grossRevenue),
+          ].map((value, columnIndex) =>
+            new TableCell({
+              width: { size: [3600, 1800, TABLE_WIDTH - 5400][columnIndex], type: WidthType.DXA },
+              shading: index % 2 === 1
+                ? { type: ShadingType.CLEAR, fill: 'F8F8F8', color: 'auto' }
+                : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
+              margins: CELL_MARGINS,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: String(value), font: 'Arial', size: 19, color: '1F1F1F' })],
+                }),
+              ],
+            })
+          ),
+        })
+      ),
+    ],
+  })
+
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({ text: 'Commercial Performance', font: 'Arial', bold: true, size: 32 })],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `This paid event generated ${formatReportMoney(currency, paymentSummary.grossRevenue)} in successful ticket sales, with ${formatReportMoney(currency, paymentSummary.netRevenue)} retained after platform commission. ${paymentSummary.successfulPayments} successful payments were recorded, while ${paymentSummary.pendingPayments} remained pending and ${paymentSummary.failedPayments} failed or expired at report time.`,
+          font: 'Arial',
+          size: 20,
+          color: '444444',
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+    performanceTable,
+    spacer(),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Revenue-quality signal: completed-payment conversion is currently ${successfulRate}% across ${paymentSummary.ticketsSold.toLocaleString('en-US')} sold ticket orders. Use the breakdown below to see which checkout methods are converting and where follow-up or retry nudges may still be needed.`,
+          font: 'Arial',
+          size: 20,
+          color: '444444',
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+    methodTable,
+    spacer(),
+  ]
+}
+
 // ── Registration Table ────────────────────────────────────────────────────────
 
 function confirmedAttendeesTable(event: IEvent, registrations: IRegistration[]): Table {
@@ -1584,7 +1739,7 @@ function footerNotePage(): Paragraph[] {
     new Paragraph({
       children: [
         new TextRun({
-          text: 'It reflects registration data at the time of download.',
+          text: 'It reflects registration and payment data at the time of download.',
           font: 'Arial',
           size: 20,
         }),
@@ -1655,6 +1810,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     data.registrationOpenDate.toISOString(),
     data.registrationDeadline.toISOString(),
   )
+  const commercialSections = data.paymentSummary ? buildCommercialPerformanceSection(data.paymentSummary) : []
   const postEventActionsSections = buildPostEventActionsSection(data)
   const doc = new Document({
     styles: {
@@ -1689,6 +1845,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
         children: [
           ...buildEventReportHeader(event),
           ...summarySections,
+          ...commercialSections,
           ...aiInsightsPage(aiContent, palette, data),
           ...confirmedPage(event, confirmed),
           ...waitlistPage(event, waitlist),

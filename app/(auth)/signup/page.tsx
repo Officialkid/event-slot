@@ -19,6 +19,7 @@ export default function SignUpPage() {
   const [otp, setOtp] = useState('')
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
+  const [resendingOtp, setResendingOtp] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -30,58 +31,87 @@ export default function SignUpPage() {
     return null
   }
 
+  async function continueWithCredentials(nextOtp?: string) {
+    const result = await signIn('credentials', {
+      email: email.trim(),
+      password,
+      otp: nextOtp ?? '',
+      callbackUrl: '/my-events',
+      redirect: false,
+    })
+
+    if (result?.error === 'OTP_REQUIRED') {
+      setOtpRequired(true)
+      setOtpHint('We sent a 6-digit code to your email. Enter it below to finish creating your account.')
+      return { ok: false }
+    }
+
+    if (result?.error === 'INVALID_OTP') {
+      setError('That verification code is invalid or expired. Request a new code and try again.')
+      return { ok: false }
+    }
+
+    if (result?.error === 'OTP_RATE_LIMIT') {
+      setError('Too many code requests were made recently. Please wait 10 minutes and try again.')
+      return { ok: false }
+    }
+
+    if (result?.error) {
+      setError('Account created, but sign-in could not be completed right now. Please try again in a moment.')
+      return { ok: false }
+    }
+
+    if (result?.url) {
+      window.location.href = result.url
+      return { ok: true }
+    }
+
+    setError('Account created, but sign-in could not be completed right now. Please try again in a moment.')
+    return { ok: false }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, privacyAccepted }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        const errorMessages: Record<string, string> = {
-          USE_GOOGLE_AUTH:
-            'This email is already linked to Google Sign-In. Continue with Google, or use Forgot password to set a password for this account.',
-          EMAIL_EXISTS: 'An account with this email already exists. Please sign in or reset your password.',
-          MISSING_FIELDS: 'Name, email, and password are required.',
-          WEAK_PASSWORD: 'Password must be at least 8 characters.',
-          PRIVACY_NOT_ACCEPTED: 'You must accept the Privacy Policy to create an account.',
+      if (!otpRequired) {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, privacyAccepted }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          const errorMessages: Record<string, string> = {
+            USE_GOOGLE_AUTH:
+              'This email is already linked to Google Sign-In. Continue with Google, or use Forgot password to set a password for this account.',
+            EMAIL_EXISTS: 'An account with this email already exists. Please sign in or reset your password.',
+            MISSING_FIELDS: 'Name, email, and password are required.',
+            WEAK_PASSWORD: 'Password must be at least 8 characters.',
+            PRIVACY_NOT_ACCEPTED: 'You must accept the Privacy Policy to create an account.',
+          }
+          setError(errorMessages[data?.code] ?? data?.error ?? 'Something went wrong.')
+          return
         }
-        setError(errorMessages[data?.code] ?? data?.error ?? 'Something went wrong.')
-        setLoading(false)
-        return
-      }
-      const result = await signIn('credentials', {
-        email,
-        password,
-        otp: otpRequired ? otp : '',
-        callbackUrl: '/my-events',
-        redirect: false,
-      })
-
-      if (result?.error === 'OTP_REQUIRED') {
-        setOtpRequired(true)
-        setOtpHint('We sent a 6-digit code to your email. Enter it below to finish creating your account.')
-        setLoading(false)
-        return
       }
 
-      if (result?.error) {
-        setError('Account created, but automatic sign-in failed. Please sign in manually.')
-        setLoading(false)
-        return
-      }
-      if (result?.url) {
-        window.location.href = result.url
-        return
-      }
-      setLoading(false)
+      await continueWithCredentials(otpRequired ? otp : '')
     } catch {
       setError('Something went wrong. Please try again.')
+    } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendingOtp || !otpRequired) return
+    setError('')
+    setResendingOtp(true)
+    try {
+      await continueWithCredentials('')
+    } finally {
+      setResendingOtp(false)
     }
   }
 
@@ -230,9 +260,30 @@ export default function SignUpPage() {
                 style={inputStyle}
               />
               {otpHint && (
-                <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
-                  {otpHint}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', margin: '-0.25rem 0 0' }}>
+                  <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: 0, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                    {otpHint}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendingOtp || loading}
+                    style={{
+                      border: '0.5px solid rgba(200,245,90,0.35)',
+                      borderRadius: 999,
+                      background: 'transparent',
+                      color: '#C8F55A',
+                      padding: '0.45rem 0.8rem',
+                      fontSize: '0.75rem',
+                      fontFamily: 'var(--font-dm-sans)',
+                      cursor: resendingOtp || loading ? 'not-allowed' : 'pointer',
+                      opacity: resendingOtp || loading ? 0.6 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {resendingOtp ? 'Sending...' : 'Resend code'}
+                  </button>
+                </div>
               )}
             </>
           )}
@@ -316,7 +367,7 @@ export default function SignUpPage() {
               marginTop: '0.25rem',
             }}
           >
-            {loading ? 'Creating account...' : otpRequired ? 'Verify code and continue' : 'Create account'}
+            {loading ? (otpRequired ? 'Verifying...' : 'Creating account...') : otpRequired ? 'Verify code and continue' : 'Create account'}
           </button>
         </form>
 

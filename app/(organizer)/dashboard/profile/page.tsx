@@ -311,6 +311,7 @@ export default function ProfilePage() {
       connected: "Google Calendar connected successfully.",
       denied: "Google Calendar connection was cancelled.",
       error: "Google Calendar could not be connected. Please try again.",
+      testing: "Google Calendar is still restricted by Google OAuth testing. Add the user as a test user or publish the consent screen for public access.",
       unavailable: "Google Calendar is not fully configured yet.",
     }
     setCalendarFeedback(messageMap[calendarParam] ?? "")

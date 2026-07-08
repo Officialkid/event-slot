@@ -17,11 +17,20 @@ export async function GET(req: NextRequest) {
   const error            = searchParams.get('error');
   const state            = searchParams.get('state');
 
-  // User denied access
+  function redirectWithCalendarStatus(status: string) {
+    return NextResponse.redirect(`${APP_URL}/dashboard/profile?calendar=${status}#calendar`);
+  }
+
+  // User denied access or Google blocked the app before consent could complete.
   if (error || !code) {
-    return NextResponse.redirect(
-      `${APP_URL}/dashboard/profile?calendar=denied`
-    );
+    const errorDescription = searchParams.get('error_description')?.toLowerCase() ?? '';
+    if (
+      error === 'access_denied' &&
+      /verification|testing|test user|approved tester|access blocked/.test(errorDescription)
+    ) {
+      return redirectWithCalendarStatus('testing');
+    }
+    return redirectWithCalendarStatus('denied');
   }
 
   // Verify state matches (CSRF protection)
@@ -31,19 +40,19 @@ export async function GET(req: NextRequest) {
       throw new Error('State mismatch');
     }
   } catch {
-    return NextResponse.redirect(`${APP_URL}/dashboard/profile?calendar=error`);
+    return redirectWithCalendarStatus('error');
   }
 
   try {
     await connectGoogleCalendar(session.user.id, code);
-    return NextResponse.redirect(
-      `${APP_URL}/dashboard/profile?calendar=connected`
-    );
+    return redirectWithCalendarStatus('connected');
   } catch (err: unknown) {
     const e = err as { message?: string };
     console.error('[calendar/callback] Error:', e.message);
-    return NextResponse.redirect(
-      `${APP_URL}/dashboard/profile?calendar=error`
-    );
+    const message = e.message?.toLowerCase() ?? '';
+    if (/access blocked|verification|testing|test user|access_denied/.test(message)) {
+      return redirectWithCalendarStatus('testing');
+    }
+    return redirectWithCalendarStatus('error');
   }
 }

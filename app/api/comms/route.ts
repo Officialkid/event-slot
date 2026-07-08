@@ -19,6 +19,7 @@ export async function GET() {
     const messages = await prisma.message.findMany({
       where: {
         type: "ADMIN_BROADCAST",
+        authorId: null,
         isPublic: true,
         ...(userCreatedAt ? { createdAt: { gte: userCreatedAt } } : {}),
       },

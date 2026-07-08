@@ -33,12 +33,12 @@ const OPEN_LIMITS = {
   maxBulkRegistration: Infinity,
   canExportCSV: true,
   canDownloadReport: true,
-  canRemoveBranding: true,
+  canRemoveBranding: false,
   canDuplicateEvent: true,
   canViewAnalytics: true,
   canAccessInsightTracker: true,
   canSendFeedbackForm: true,
-  canUseCustomDomain: true,
+  canUseCustomDomain: false,
   payAsYouGo: false,
 }
 

@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import type {
   OrganizerPaymentAttemptRow,
   OrganizerPaymentEventRow,
@@ -20,6 +20,9 @@ type PaymentsPageProps = {
 type WorkspaceTab = "overview" | "events" | "transactions" | "withdrawals" | "security"
 type EventPanelTab = "overview" | "registrations" | "payments"
 type WithdrawalMethodKey = "MPESA" | "PAYBILL" | "BANK"
+
+const WORKSPACE_TABS: WorkspaceTab[] = ["overview", "events", "transactions", "withdrawals", "security"]
+const EVENT_PANEL_TABS: EventPanelTab[] = ["overview", "registrations", "payments"]
 
 type WithdrawalDraft = {
   amount: string
@@ -177,6 +180,14 @@ function emptyDraft(): WithdrawalDraft {
     bankAccountName: "",
     bankBranchCode: "",
   }
+}
+
+function resolveWorkspaceTab(value: string | null): WorkspaceTab {
+  return WORKSPACE_TABS.includes(value as WorkspaceTab) ? (value as WorkspaceTab) : "overview"
+}
+
+function resolveEventPanelTab(value: string | null): EventPanelTab {
+  return EVENT_PANEL_TABS.includes(value as EventPanelTab) ? (value as EventPanelTab) : "overview"
 }
 
 function MetricCard({
@@ -827,9 +838,14 @@ function EventPaymentsTable({ rows }: { rows: OrganizerPaymentAttemptRow[] }) {
 }
 
 export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const initialWorkspaceTab = resolveWorkspaceTab(searchParams.get("tab"))
+  const initialEventPanelTab = resolveEventPanelTab(searchParams.get("eventTab"))
   const [currency, setCurrency] = useState<SupportedCurrency>(data.defaultCurrency)
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("overview")
-  const [eventPanelTab, setEventPanelTab] = useState<EventPanelTab>("overview")
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>(initialWorkspaceTab)
+  const [eventPanelTab, setEventPanelTab] = useState<EventPanelTab>(initialEventPanelTab)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(data.events[0]?.id ?? null)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [eventFilter, setEventFilter] = useState("all")
@@ -858,6 +874,42 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
   const tierOptions = useMemo(() => Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.tierName))), [currency, data.transactions])
   const withdrawals = useMemo(() => data.withdrawals.filter((item) => item.currency === currency), [currency, data.withdrawals])
 
+  useEffect(() => {
+    const nextWorkspaceTab = resolveWorkspaceTab(searchParams.get("tab"))
+    if (workspaceTab !== nextWorkspaceTab) {
+      setWorkspaceTab(nextWorkspaceTab)
+    }
+  }, [searchParams, workspaceTab])
+
+  useEffect(() => {
+    const nextEventPanelTab = resolveEventPanelTab(searchParams.get("eventTab"))
+    if (eventPanelTab !== nextEventPanelTab) {
+      setEventPanelTab(nextEventPanelTab)
+    }
+  }, [eventPanelTab, searchParams])
+
+  function updateWorkspaceTab(nextTab: WorkspaceTab) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", nextTab)
+    if (nextTab !== "events") {
+      params.delete("eventTab")
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    setWorkspaceTab(nextTab)
+    if (nextTab !== "events") {
+      setEventPanelTab("overview")
+    }
+  }
+
+  function updateEventPanel(nextTab: EventPanelTab) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", "events")
+    params.set("eventTab", nextTab)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+    setWorkspaceTab("events")
+    setEventPanelTab(nextTab)
+  }
+
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 1220 }}>
       <div style={{ marginBottom: "1.5rem" }}>
@@ -883,7 +935,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
           { key: "withdrawals", label: "Withdrawals" },
           { key: "security", label: "Security" },
         ] as const).map((tab) => (
-          <button key={tab.key} type="button" onClick={() => setWorkspaceTab(tab.key)} style={pillStyle(workspaceTab === tab.key)}>
+          <button key={tab.key} type="button" onClick={() => updateWorkspaceTab(tab.key)} style={pillStyle(workspaceTab === tab.key)}>
             {tab.label}
           </button>
         ))}
@@ -919,7 +971,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                 >
                   Withdraw Funds
                 </button>
-                <button type="button" onClick={() => setWorkspaceTab("events")} style={secondaryButtonStyle}>
+                <button type="button" onClick={() => updateWorkspaceTab("events")} style={secondaryButtonStyle}>
                   View all events
                 </button>
               </div>
@@ -937,7 +989,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
               <h2 style={{ margin: 0, fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
                 Paid events
               </h2>
-              <button type="button" onClick={() => setWorkspaceTab("transactions")} style={secondaryButtonStyle}>
+              <button type="button" onClick={() => updateWorkspaceTab("transactions")} style={secondaryButtonStyle}>
                 View my payments
               </button>
             </div>
@@ -954,7 +1006,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                     type="button"
                     onClick={() => {
                       setSelectedEventId(event.id)
-                      setWorkspaceTab("events")
+                      updateWorkspaceTab("events")
                     }}
                     style={{
                       textAlign: "left",
@@ -969,7 +1021,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                       <div>
                         <div style={{ fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>{event.title}</div>
                         <div style={{ marginTop: 6, fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
-                          {formatDate(event.eventDate)} · {event.confirmedCount} confirmed · {event.waitlistCount} waitlisted
+                          {formatDate(event.eventDate)} | {event.confirmedCount} confirmed | {event.waitlistCount} waitlisted
                         </div>
                       </div>
                       <div style={{ minWidth: 180 }}>
@@ -1014,7 +1066,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                 >
                   <div style={{ fontSize: "0.92rem", color: "#F0EDE6", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{event.title}</div>
                   <div style={{ marginTop: 4, fontSize: "0.76rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
-                    {formatMoney(event.currency, event.net)} net · {event.successfulPayments} paid
+                    {formatMoney(event.currency, event.net)} net | {event.successfulPayments} paid
                   </div>
                 </button>
               ))}
@@ -1039,7 +1091,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                       {selectedEvent.title}
                     </h2>
                     <p style={{ margin: "0.45rem 0 0", fontSize: "0.84rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
-                      {formatDate(selectedEvent.eventDate)} · {selectedEvent.confirmedCount} confirmed · {selectedEvent.waitlistCount} waitlisted
+                      {formatDate(selectedEvent.eventDate)} | {selectedEvent.confirmedCount} confirmed | {selectedEvent.waitlistCount} waitlisted
                     </p>
                   </div>
                   <Link href={`/dashboard/events/${selectedEvent.slug}`} style={{ ...secondaryButtonStyle, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
@@ -1053,7 +1105,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                     { key: "registrations", label: "Registrations" },
                     { key: "payments", label: "Payments" },
                   ] as const).map((tab) => (
-                    <button key={tab.key} type="button" onClick={() => setEventPanelTab(tab.key)} style={pillStyle(eventPanelTab === tab.key)}>
+                    <button key={tab.key} type="button" onClick={() => updateEventPanel(tab.key)} style={pillStyle(eventPanelTab === tab.key)}>
                       {tab.label}
                     </button>
                   ))}
@@ -1109,7 +1161,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                     <td>{formatMoney(item.currency, item.amount)}</td>
                     <td>{formatMoney(item.currency, item.commission)}</td>
                     <td>{formatMoney(item.currency, item.net)}</td>
-                    <td>{item.mpesaRef ?? "—"}</td>
+                    <td>{item.mpesaRef ?? "-"}</td>
                   </tr>
                 ))}
                 {filteredTransactions.length === 0 && (

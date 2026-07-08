@@ -66,6 +66,7 @@ type ConfigResponse = {
   scenarios: Scenario[]
   liveProvider: string
   note: string
+  error?: string
 }
 
 function formatRate(rate: number) {
@@ -84,7 +85,7 @@ function labelForStatus(item: RunItem) {
   if (item.status === "success") return "SUCCESS"
   if (item.status === "failed") return "FAILED"
   if (item.status === "timed_out") return "TIMED OUT (60s)"
-  if (item.status === "pending") return `Pending STK Push${typeof item.secondsLeft === "number" ? ` · ${item.secondsLeft}s` : ""}`
+  if (item.status === "pending") return `Pending STK Push${typeof item.secondsLeft === "number" ? ` | ${item.secondsLeft}s` : ""}`
   return "Waiting"
 }
 
@@ -102,6 +103,10 @@ export default function AdminPaymentTestPage() {
       .then((res) => res.json())
       .then((data: ConfigResponse) => {
         setConfig(data)
+        if (!data.success) {
+          setError(data.error || "Unable to load payment test config.")
+          return
+        }
         const initialCounts = Object.fromEntries((data.scenarios ?? []).map((scenario) => [scenario.key, scenario.defaultCount]))
         setCounts(initialCounts)
       })
@@ -283,11 +288,24 @@ export default function AdminPaymentTestPage() {
   }
 
   if (loading) {
-    return <div className="text-[#F0EDE6]">Loading payment test panel…</div>
+    return <div className="text-[#F0EDE6]">Loading payment test panel...</div>
   }
 
   if (!config?.success) {
-    return <div className="text-[#f87171]">{error || "Unable to load payment test panel."}</div>
+    return (
+      <div className="mx-auto max-w-3xl rounded-2xl border border-[rgba(248,113,113,0.25)] bg-[rgba(248,113,113,0.07)] p-5 text-[#F0EDE6]">
+        <div className="text-sm uppercase tracking-[0.18em] text-[#fca5a5]">Payment Tests Unavailable</div>
+        <div className="mt-3 text-lg font-medium text-[#fca5a5]">
+          {error || config?.error || "Unable to load payment test panel."}
+        </div>
+        <p className="mt-3 text-sm text-[rgba(240,237,230,0.72)]">
+          This usually means the production project does not have the seeded payment test fixtures that this admin tool expects.
+        </p>
+        <p className="mt-2 text-xs text-[rgba(240,237,230,0.5)]">
+          Safe next step: run the payment test seed in the target environment before using this panel.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -295,7 +313,7 @@ export default function AdminPaymentTestPage() {
       <div className="mb-8 flex items-start gap-4 rounded-2xl border border-[rgba(250,204,21,0.28)] bg-[rgba(250,204,21,0.06)] p-5">
         <AlertTriangle className="mt-0.5 text-[#facc15]" size={20} />
         <div>
-          <h1 className="text-2xl font-semibold">EventSlot · Payment Test Panel</h1>
+          <h1 className="text-2xl font-semibold">EventSlot | Payment Test Panel</h1>
           <p className="mt-1 text-sm text-[rgba(240,237,230,0.72)]">
             This fires real M-Pesa STK Push requests. The live codebase currently uses the IntaSend-backed M-Pesa flow.
           </p>
@@ -339,7 +357,7 @@ export default function AdminPaymentTestPage() {
                   <div className="text-xs uppercase tracking-[0.18em] text-[rgba(240,237,230,0.4)]">{scenario.label}</div>
                   <h2 className="mt-2 text-xl font-medium">{scenario.eventTitle}</h2>
                   <p className="mt-1 text-sm text-[rgba(240,237,230,0.62)]">
-                    Tier: {scenario.tierName} · KES {scenario.amountKes.toLocaleString()} · Organiser plan: {scenario.organizerPlan} ({formatRate(scenario.expectedCommissionRate)})
+                    Tier: {scenario.tierName} | KES {scenario.amountKes.toLocaleString()} | Organiser plan: {scenario.organizerPlan} ({formatRate(scenario.expectedCommissionRate)})
                   </p>
                 </div>
 
@@ -364,7 +382,7 @@ export default function AdminPaymentTestPage() {
                     className="inline-flex items-center gap-2 rounded-full bg-[#C8F55A] px-4 py-2 text-sm font-semibold text-[#0A0A0A] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Play size={16} />
-                    {isRunning ? "Running…" : "Start Test"}
+                    {isRunning ? "Running..." : "Start Test"}
                   </button>
                 </div>
               </div>
@@ -384,7 +402,7 @@ export default function AdminPaymentTestPage() {
                         <div className="flex items-center gap-3">
                           {statusIcon(item.status)}
                           <div className="text-sm font-medium">
-                            Payment {item.step} — {labelForStatus(item)}
+                            Payment {item.step} - {labelForStatus(item)}
                           </div>
                         </div>
 
@@ -430,7 +448,7 @@ export default function AdminPaymentTestPage() {
 
                 <div className="rounded-2xl border border-[rgba(240,237,230,0.08)] bg-[#0A0A0A] p-4">
                   <div className="mb-4 text-xs uppercase tracking-[0.18em] text-[rgba(240,237,230,0.4)]">
-                    Gap Report{scenarioResults.length > 0 ? ` — ${scenarioResults.filter((item) => item.gapChecks).length} Payments Tested` : ""}
+                    Gap Report{scenarioResults.length > 0 ? ` - ${scenarioResults.filter((item) => item.gapChecks).length} Payments Tested` : ""}
                   </div>
                   {summary.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-[rgba(240,237,230,0.12)] p-4 text-sm text-[rgba(240,237,230,0.48)]">

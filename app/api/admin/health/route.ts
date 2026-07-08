@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { hasAdminAccess } from "@/lib/isAdmin"
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ""
 
@@ -52,6 +52,16 @@ type EmailProviderStatus = {
   message: string
 }
 
+type ResendDomainRow = {
+  name?: string
+  status?: string
+}
+
+function extractDomain(email: string) {
+  const atIndex = email.lastIndexOf("@")
+  return atIndex >= 0 ? email.slice(atIndex + 1).trim().toLowerCase() : ""
+}
+
 async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!EMAIL_FROM || !apiKey) {
@@ -63,6 +73,8 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
   }
 
   try {
+    const senderEmail = extractSenderEmail(EMAIL_FROM)
+    const senderDomain = extractDomain(senderEmail)
     const response = await fetch("https://api.resend.com/domains", {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -71,10 +83,43 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
     })
 
     if (response.ok) {
+      const payload = await response.json() as { data?: unknown }
+      const domains = Array.isArray(payload.data) ? payload.data as ResendDomainRow[] : []
+      const matchingDomain = domains.find((row) => {
+        const domainName = row.name?.trim().toLowerCase()
+        if (!domainName) return false
+        return domainName === senderDomain || senderDomain.endsWith(`.${domainName}`)
+      })
+      const domainVerified = matchingDomain?.status?.toLowerCase() === "verified"
+
+      if (senderDomain === "resend.dev") {
+        return {
+          configured: true,
+          healthy: false,
+          message: "Testing sender only: verify a Resend domain to email real attendees.",
+        }
+      }
+
+      if (!matchingDomain) {
+        return {
+          configured: true,
+          healthy: false,
+          message: `Sender domain ${senderDomain || "unknown"} is not added in Resend.`,
+        }
+      }
+
+      if (!domainVerified) {
+        return {
+          configured: true,
+          healthy: false,
+          message: `Sender domain ${senderDomain} is not verified in Resend yet.`,
+        }
+      }
+
       return {
         configured: true,
         healthy: true,
-        message: "Provider reachable",
+        message: `Provider reachable with verified sender ${senderEmail}`,
       }
     }
 
@@ -96,7 +141,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!isAdminEmail(session?.user?.email)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
@@ -114,13 +159,8 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         take: 10,
       }),
-      getProviderAcceptedCountSince(startOfMonth).catch(async (err) => {
-        await prisma.errorLog.create({
-          data: {
-            route: "/api/admin/health",
-            message: `Resend list error: ${err instanceof Error ? err.message : "unknown error"}`,
-          },
-        })
+      getProviderAcceptedCountSince(startOfMonth).catch((err) => {
+        console.error("[admin/health] Resend list error:", err)
         return null
       }),
       getEmailProviderStatus(),

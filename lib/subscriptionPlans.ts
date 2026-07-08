@@ -60,7 +60,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     commissionRate: 0.05,
     highlights: [
       "Full analytics, AI reports, and email campaigns",
-      "Custom branding and event FAQ system",
+      "Expanded analytics and AI tooling for active organisers",
       "Designed to be the default home for active communities",
     ],
   },
@@ -76,7 +76,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     dataRetention: "Indefinite",
     commissionRate: 0.03,
     highlights: [
-      "Custom domain, recurring events, API access",
+      "Advanced event operations and higher team capacity",
       "Priority support for teams and agencies",
       "Built for organisations managing many events at once",
     ],
