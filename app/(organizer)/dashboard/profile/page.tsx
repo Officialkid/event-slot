@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 
@@ -258,6 +259,7 @@ function DeleteModal({
 export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { update: updateSession } = useSession()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -393,7 +395,9 @@ export default function ProfilePage() {
         setDetailsError(err.error ?? "Failed to save changes")
         return
       }
-      setProfile(prev => (prev ? { ...prev, name } : prev))
+      const trimmedName = name.trim()
+      setProfile(prev => (prev ? { ...prev, name: trimmedName } : prev))
+      await updateSession({ name: trimmedName })
       setDetailsSuccess(true)
       setTimeout(() => setDetailsSuccess(false), 3000)
     } catch {
