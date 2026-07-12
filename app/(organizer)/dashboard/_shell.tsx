@@ -10,6 +10,8 @@ import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
+import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
+import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -314,7 +316,30 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               </div>
             )}
             <div style={{ marginTop: hasPioneer ? "0.28rem" : "0.2rem" }}>
-              <PlanBadge plan={plan} />
+              {isAdmin ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: "0.62rem",
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    color: "#C8F55A",
+                    background: "rgba(200,245,90,0.12)",
+                    border: "0.5px solid rgba(200,245,90,0.28)",
+                    fontFamily: "var(--font-dm-sans)",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    width: "fit-content",
+                    fontWeight: 700,
+                  }}
+                >
+                  Super Admin
+                </span>
+              ) : (
+                <PlanBadge plan={plan} />
+              )}
             </div>
             {email && (
               <div
@@ -356,97 +381,99 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   ? "profile-nav"
                   : undefined
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              data-tutorial={tutorialTarget}
-              onClick={onNavClick}
-              onMouseEnter={e => {
-                if (collapsed) {
-                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                  setTooltip({ label: item.label, y: rect.top + rect.height / 2 })
-                }
-              }}
-              onMouseLeave={() => setTooltip(null)}
-              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "0.6rem 1rem",
-                borderRadius: 8,
-                fontSize: "0.875rem",
-                fontFamily: "var(--font-dm-sans)",
-                textDecoration: "none",
-                background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
-              }}
-            >
-              {item.icon}
-              <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
-                {item.label}
-                {item.href === "/dashboard/events" && (
-                  <HintDot
-                    show={!usedFeatures.includes("view_events")}
-                    message="See all your events, manage registrations, and share your event link here."
-                  />
-                )}
-                {item.href === "/dashboard/notifications" && (
-                  <HintDot
-                    show={!usedFeatures.includes("notifications")}
-                    message="Stay updated when registrations, waitlist changes, and key activity happen."
-                  />
-                )}
-                {item.href === "/dashboard/billing" && (
-                  <HintDot
-                    show={!usedFeatures.includes("billing")}
-                    message="Manage plans, credits, and usage in one place."
-                  />
-                )}
-                {item.href === "/dashboard/profile" && (
-                  <HintDot
-                    show={!usedFeatures.includes("profile")}
-                    message="Complete your profile so attendees recognize your events."
-                  />
-                )}
-                {item.href === "/dashboard/feedback" && (
-                  <HintDot
-                    show={!usedFeatures.includes("feedback")}
-                    message="Send product feedback and track your previous submissions here."
-                  />
-                )}
-              </span>
-              {item.href === "/dashboard/notifications" && unreadCount > 0 && (
-                <span
-                  style={{
-                    background: "#C8F55A",
-                    color: "#0A0A0A",
-                    borderRadius: 100,
-                    fontSize: "0.6rem",
-                    padding: "1px 6px",
-                    fontWeight: 500,
-                    marginLeft: "auto",
-                  }}
-                >
-                  {unreadCount}
+            <React.Fragment key={item.href}>
+              <Link
+                href={item.href}
+                data-tutorial={tutorialTarget}
+                onClick={onNavClick}
+                onMouseEnter={e => {
+                  if (collapsed) {
+                    const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                    setTooltip({ label: item.label, y: rect.top + rect.height / 2 })
+                  }
+                }}
+                onMouseLeave={() => setTooltip(null)}
+                className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "0.6rem 1rem",
+                  borderRadius: 8,
+                  fontSize: "0.875rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  textDecoration: "none",
+                  background: active ? "rgba(200,245,90,0.08)" : "transparent",
+                  color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                }}
+              >
+                {item.icon}
+                <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
+                  {item.label}
+                  {item.href === "/dashboard/events" && (
+                    <HintDot
+                      show={!usedFeatures.includes("view_events")}
+                      message="See all your events, manage registrations, and share your event link here."
+                    />
+                  )}
+                  {item.href === "/dashboard/notifications" && (
+                    <HintDot
+                      show={!usedFeatures.includes("notifications")}
+                      message="Stay updated when registrations, waitlist changes, and key activity happen."
+                    />
+                  )}
+                  {item.href === "/dashboard/billing" && (
+                    <HintDot
+                      show={!usedFeatures.includes("billing")}
+                      message="Manage plans, credits, and usage in one place."
+                    />
+                  )}
+                  {item.href === "/dashboard/profile" && (
+                    <HintDot
+                      show={!usedFeatures.includes("profile")}
+                      message="Complete your profile so attendees recognize your events."
+                    />
+                  )}
+                  {item.href === "/dashboard/feedback" && (
+                    <HintDot
+                      show={!usedFeatures.includes("feedback")}
+                      message="Send product feedback and track your previous submissions here."
+                    />
+                  )}
                 </span>
-              )}
-              {item.href === "/dashboard/payments" && paymentsBadgeCount > 0 && (
-                <span
-                  style={{
-                    background: "rgba(200,245,90,0.14)",
-                    color: "#C8F55A",
-                    borderRadius: 100,
-                    fontSize: "0.6rem",
-                    padding: "1px 6px",
-                    fontWeight: 600,
-                    marginLeft: "auto",
-                  }}
-                >
-                  {paymentsBadgeCount}
-                </span>
-              )}
-            </Link>
+                {item.href === "/dashboard/notifications" && unreadCount > 0 && (
+                  <span
+                    style={{
+                      background: "#C8F55A",
+                      color: "#0A0A0A",
+                      borderRadius: 100,
+                      fontSize: "0.6rem",
+                      padding: "1px 6px",
+                      fontWeight: 500,
+                      marginLeft: "auto",
+                    }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
+                {item.href === "/dashboard/payments" && paymentsBadgeCount > 0 && (
+                  <span
+                    style={{
+                      background: "rgba(200,245,90,0.14)",
+                      color: "#C8F55A",
+                      borderRadius: 100,
+                      fontSize: "0.6rem",
+                      padding: "1px 6px",
+                      fontWeight: 600,
+                      marginLeft: "auto",
+                    }}
+                  >
+                    {paymentsBadgeCount}
+                  </span>
+                )}
+              </Link>
+              {item.href === "/dashboard" ? <SidebarInstallPrompt collapsed={collapsed} /> : null}
+            </React.Fragment>
           )
         })}
         {(() => {
@@ -1205,6 +1232,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="dash-content md:pb-0"
             style={{ flex: 1, background: "#0A0A0A", paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
+            <div style={{ padding: "1rem 1rem 0" }}>
+              <BillingComingSoonBanner isAdmin={isAdmin} compact />
+            </div>
             {children}
           </main>
         </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { isAdminEmail } from '@/lib/isAdmin'
+import { hasAdminAccess } from '@/lib/isAdmin'
 import prisma from '@/lib/prisma'
 import { decrypt, encrypt } from '@/lib/encrypt'
 
@@ -12,9 +12,7 @@ function hasValidEncryptionKey(): boolean {
 
 export async function POST() {
   const session = await getServerSession(authOptions)
-  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN' || isAdminEmail(session?.user?.email)
-
-  if (!isSuperAdmin) {
+  if (!hasAdminAccess(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

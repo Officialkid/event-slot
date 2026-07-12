@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 
 type ReportBundle = {
   key: string
@@ -22,8 +23,14 @@ export function ReportDownloadsCard({
 }: ReportDownloadsCardProps) {
   const [submittingKey, setSubmittingKey] = useState<string | null>(null)
   const [error, setError] = useState("")
+  const billingEnabled = isBillingCheckoutEnabled()
 
   async function handleBuy(bundleKey: string) {
+    if (!billingEnabled) {
+      setError("Report-download purchases are paused while EventSlot prepares the payments launch.")
+      return
+    }
+
     setSubmittingKey(bundleKey)
     setError("")
 
@@ -111,7 +118,7 @@ export function ReportDownloadsCard({
             <button
               type="button"
               onClick={() => void handleBuy(bundle.key)}
-              disabled={submittingKey === bundle.key}
+              disabled={submittingKey === bundle.key || !billingEnabled}
               style={{
                 marginTop: "0.9rem",
                 width: "100%",
@@ -123,15 +130,25 @@ export function ReportDownloadsCard({
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "0.88rem",
                 fontWeight: 700,
-                cursor: submittingKey === bundle.key ? "default" : "pointer",
-                opacity: submittingKey === bundle.key ? 0.7 : 1,
+                cursor: submittingKey === bundle.key || !billingEnabled ? "default" : "pointer",
+                opacity: submittingKey === bundle.key || !billingEnabled ? 0.7 : 1,
               }}
             >
-              {submittingKey === bundle.key ? "Starting checkout..." : "Buy this bundle"}
+              {!billingEnabled
+                ? "Coming soon"
+                : submittingKey === bundle.key
+                  ? "Starting checkout..."
+                  : "Buy this bundle"}
             </button>
           </div>
         ))}
       </div>
+
+      {!billingEnabled ? (
+        <p style={{ margin: "0.9rem 0 0", color: "#D8ECFF", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>
+          Paid report-download bundles are temporarily disabled. Everyone keeps access while the payment system is being introduced.
+        </p>
+      ) : null}
 
       {error ? (
         <p style={{ margin: "0.9rem 0 0", color: "#FF8E7D", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>

@@ -3,13 +3,12 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { hasAdminAccess } from "@/lib/isAdmin"
 
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const isSuperAdmin = session?.user?.role === "SUPER_ADMIN" || isAdminEmail(session?.user?.email)
-    if (!isSuperAdmin) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

@@ -2,8 +2,9 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { isAdminEmail } from "@/lib/isAdmin"
+import { hasAdminAccess } from "@/lib/isAdmin"
 import AdminSidebar from "./AdminSidebar"
+import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -12,8 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/signin?callbackUrl=/admin&reason=admin')
   }
 
-  const isAdmin = session.user.role === 'SUPER_ADMIN' || session.user.isAdmin || isAdminEmail(session?.user?.email)
-  if (!isAdmin) {
+  if (!hasAdminAccess(session)) {
     redirect('/unauthorized')
   }
 
@@ -91,6 +91,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/" className="admin-topbar-link primary">View site</Link>
             </div>
           </div>
+          <BillingComingSoonBanner isAdmin compact />
           {children}
         </main>
       </div>

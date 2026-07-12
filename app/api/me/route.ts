@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { isAdminEmail } from '@/lib/isAdmin'
+import { hasAdminAccess } from '@/lib/isAdmin'
 import { getEffectivePlanPolicy } from '@/lib/effectivePlanPolicy'
 import { getPricingRolloutLabel, isPricingRolloutActive } from '@/lib/pricingRollout'
 
@@ -33,7 +33,7 @@ export async function GET() {
         },
       },
     })
-    const isAdmin = isAdminEmail(session.user.email)
+    const isAdmin = hasAdminAccess(session)
     const plan = user?.plan ?? 'free'
     const policy = getEffectivePlanPolicy(plan)
     return NextResponse.json({

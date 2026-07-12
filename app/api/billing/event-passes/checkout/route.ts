@@ -10,6 +10,7 @@ import {
   normalizeOneTimePassTier,
 } from "@/lib/oneTimePassCatalog"
 import { syncEventPassStatusForEvent } from "@/lib/eventPasses"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 
 function normalizePassPaymentMethod(value: string | null | undefined) {
   return value === "mpesa" ? "mpesa" : "card"
@@ -17,6 +18,13 @@ function normalizePassPaymentMethod(value: string | null | undefined) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isBillingCheckoutEnabled()) {
+      return NextResponse.json(
+        { error: "One-time event pass checkout is coming soon. Everyone currently keeps full access." },
+        { status: 503 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

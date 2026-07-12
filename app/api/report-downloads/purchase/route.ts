@@ -4,9 +4,17 @@ import { prisma } from '@/lib/prisma'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { billingRatelimit } from '@/lib/ratelimit'
 import { APP_URL } from '@/lib/config'
+import { isBillingCheckoutEnabled } from '@/lib/pricingRollout'
 
 export async function POST(request: Request) {
   try {
+    if (!isBillingCheckoutEnabled()) {
+      return Response.json(
+        { error: 'Report-download checkout is coming soon. Everyone currently keeps full access.' },
+        { status: 503 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return Response.json({ error: 'Sign in required' }, { status: 401 })

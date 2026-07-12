@@ -14,11 +14,21 @@ export type AdminUpdateItem = {
   version?: string
 }
 
+export type AdminDeployStatus = {
+  documentedAt: string | null
+  documentedCommit: string | null
+  documentedRevision: string | null
+  latestDeployEntry: AdminUpdateItem | null
+  notes: string[]
+}
+
 const CHANGELOG_PATH = path.join(process.cwd(), "docs", "CHANGELOG.md")
 const DEPLOY_LOG_PATH = path.join(process.cwd(), "docs-site", "pages", "appendix", "changelog.mdx")
-const DASH_SEPARATOR_PATTERN = "(?:—|â€”|-)"
+const SYSTEM_DOC_PATH = path.join(process.cwd(), "docs", "EVENTSLOT_SYSTEM_DOCUMENTATION.md")
+const DASH_SEPARATOR_PATTERN = "(?:â€”|Ã¢â‚¬â€|-)"
 const CHANGELOG_HEADER_REGEX = new RegExp(`^##\\s+\\[([^\\]]+)\\]\\s+${DASH_SEPARATOR_PATTERN}\\s+(.+)$`)
 const DEPLOY_HEADER_REGEX = new RegExp(`^##\\s+Deploy\\s+${DASH_SEPARATOR_PATTERN}\\s+(.+)\\s+\\(([^)]+)\\)$`)
+const SYSTEM_DOC_STATUS_REGEX = /\*\*Last Updated:\*\*\s*(.+?)\s*(?:â€”|Ã¢â‚¬â€|-)\s*Commit:\s*([A-Za-z0-9]+)\s*(?:â€”|Ã¢â‚¬â€|-)\s*Revision:\s*([^\s]+)/i
 
 function monthIndex(month: string) {
   const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
@@ -34,6 +44,16 @@ function parseDateLabel(label: string) {
   if (monthNumber < 0) return new Date(0)
 
   return new Date(Date.UTC(Number(year), monthNumber, Number(day)))
+}
+
+function parseFlexibleDate(label: string | null | undefined) {
+  if (!label) return new Date(0)
+
+  const fallback = parseDateLabel(label)
+  if (fallback.getTime() > 0) return fallback
+
+  const timestamp = Date.parse(label)
+  return Number.isNaN(timestamp) ? new Date(0) : new Date(timestamp)
 }
 
 function slugify(value: string) {
@@ -156,9 +176,56 @@ async function parseDeployLog() {
   return items
 }
 
+async function parseSystemDocStatus() {
+  const text = await fs.readFile(SYSTEM_DOC_PATH, "utf8")
+  const match = text.match(SYSTEM_DOC_STATUS_REGEX)
+
+  if (!match) {
+    return {
+      documentedAt: null,
+      documentedCommit: null,
+      documentedRevision: null,
+    }
+  }
+
+  return {
+    documentedAt: match[1]?.trim() ?? null,
+    documentedCommit: match[2]?.trim() ?? null,
+    documentedRevision: match[3]?.trim() ?? null,
+  }
+}
+
 export async function getAdminUpdates() {
   const [changelog, deploys] = await Promise.all([parseChangelog(), parseDeployLog()])
   return [...deploys, ...changelog]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 25)
+}
+
+export async function getAdminDeployStatus(): Promise<AdminDeployStatus> {
+  const [systemDocStatus, deploys] = await Promise.all([parseSystemDocStatus(), parseDeployLog()])
+  const latestDeployEntry = [...deploys].sort((a, b) => b.date.getTime() - a.date.getTime())[0] ?? null
+  const notes: string[] = []
+
+  if (!systemDocStatus.documentedRevision || !systemDocStatus.documentedCommit) {
+    notes.push("The canonical system document is missing deploy metadata.")
+  }
+
+  if (latestDeployEntry?.version && systemDocStatus.documentedRevision && latestDeployEntry.version !== systemDocStatus.documentedRevision) {
+    notes.push("The latest deploy log entry does not match the revision stamped into the main system document.")
+  }
+
+  if (latestDeployEntry && systemDocStatus.documentedAt && parseFlexibleDate(latestDeployEntry.dateLabel).getTime() > parseFlexibleDate(systemDocStatus.documentedAt).getTime()) {
+    notes.push("The deploy timeline looks newer than the canonical system document header, so production status may be stale.")
+  }
+
+  if (notes.length === 0) {
+    notes.push("Deploy metadata is internally consistent across the changelog sources currently checked in the repo.")
+  }
+
+  return {
+    ...systemDocStatus,
+    latestDeployEntry,
+    notes,
+  }
 }

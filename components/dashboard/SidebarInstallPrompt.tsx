@@ -1,0 +1,172 @@
+"use client"
+
+import { useState } from "react"
+import { usePWAInstall } from "@/hooks/usePWAInstall"
+
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alphatech.eventslot"
+
+type SidebarInstallPromptProps = {
+  collapsed?: boolean
+}
+
+function IconInstall() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v11" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  )
+}
+
+export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPromptProps) {
+  const { method, promptInstall, isInstalled } = usePWAInstall()
+  const [showIosTip, setShowIosTip] = useState(false)
+
+  if (isInstalled || method === "already-installed") {
+    return null
+  }
+
+  const ctaLabel =
+    method === "play-store"
+      ? "Get the app"
+      : method === "ios-manual"
+        ? "How to install"
+        : "Install now"
+
+  const helperText =
+    method === "play-store"
+      ? "Install EventSlot on your phone for faster access and all-time updates."
+      : method === "ios-manual"
+        ? "Add EventSlot to your Home Screen so updates and access stay close."
+        : "Install EventSlot for faster access, app-like speed, and easier event updates."
+
+  async function handleInstallClick() {
+    if (method === "play-store") {
+      window.open(PLAY_STORE_URL, "_blank", "noopener,noreferrer")
+      return
+    }
+
+    if (method === "ios-manual") {
+      setShowIosTip((current) => !current)
+      return
+    }
+
+    if (method === "pwa-prompt" && promptInstall) {
+      await promptInstall()
+      return
+    }
+
+    window.alert("Open your browser menu and choose Install App or Add to Home Screen to keep EventSlot on your device.")
+  }
+
+  if (collapsed) {
+    return (
+      <div style={{ padding: "0.2rem 0 0.45rem", display: "flex", justifyContent: "center" }}>
+        <button
+          type="button"
+          onClick={() => {
+            void handleInstallClick()
+          }}
+          title="Install EventSlot"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 12,
+            border: "0.5px solid rgba(200,245,90,0.22)",
+            background: "linear-gradient(180deg, rgba(200,245,90,0.18), rgba(200,245,90,0.06))",
+            color: "#C8F55A",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <IconInstall />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ padding: "0.35rem 0.35rem 0.55rem", position: "relative" }}>
+      <div
+        style={{
+          borderRadius: 16,
+          border: "0.5px solid rgba(200,245,90,0.18)",
+          background: "linear-gradient(160deg, rgba(200,245,90,0.12), rgba(138,180,255,0.06) 58%, rgba(255,255,255,0.03))",
+          padding: "0.85rem 0.9rem",
+          boxShadow: "0 14px 26px rgba(0,0,0,0.18)",
+        }}
+      >
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 12,
+              border: "0.5px solid rgba(200,245,90,0.24)",
+              background: "rgba(10,10,10,0.28)",
+              color: "#C8F55A",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <IconInstall />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.8rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+              Install EventSlot
+            </p>
+            <p style={{ margin: "0.3rem 0 0", color: "rgba(240,237,230,0.66)", fontSize: "0.72rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
+              {helperText}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            void handleInstallClick()
+          }}
+          style={{
+            marginTop: "0.75rem",
+            width: "100%",
+            borderRadius: 999,
+            border: "0.5px solid rgba(200,245,90,0.22)",
+            background: "#C8F55A",
+            color: "#0A0A0A",
+            padding: "0.62rem 0.9rem",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "0.78rem",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          {ctaLabel}
+        </button>
+      </div>
+
+      {showIosTip ? (
+        <div
+          style={{
+            marginTop: "0.55rem",
+            borderRadius: 14,
+            border: "0.5px solid rgba(240,237,230,0.08)",
+            background: "#121212",
+            padding: "0.8rem 0.9rem",
+          }}
+        >
+          <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            Install on iPhone
+          </p>
+          <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.62)", fontSize: "0.7rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
+            Tap Share in Safari, choose <strong style={{ color: "#F0EDE6" }}>Add to Home Screen</strong>, then tap <strong style={{ color: "#F0EDE6" }}>Add</strong>.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  )
+}

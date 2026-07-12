@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 
 type PaygSettings = {
   isEnabled: boolean
@@ -57,6 +58,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export function PaygSettingsCard() {
+  const billingEnabled = isBillingCheckoutEnabled()
   const [settings, setSettings] = useState<PaygSettings>({
     isEnabled: false,
     monthlyCapUsd: 10,
@@ -126,6 +128,11 @@ export function PaygSettingsCard() {
   }
 
   async function handleSave() {
+    if (!billingEnabled) {
+      setError("PAYG is temporarily disabled while EventSlot prepares the payments launch.")
+      return
+    }
+
     setSaving(true)
     setMessage("")
     setError("")
@@ -200,7 +207,7 @@ export function PaygSettingsCard() {
           <input
             type="checkbox"
             checked={settings.isEnabled}
-            disabled={loading || saving}
+            disabled={loading || saving || !billingEnabled}
             onChange={(event) => setSettings((current) => ({ ...current, isEnabled: event.target.checked }))}
           />
           Enable PAYG
@@ -214,7 +221,7 @@ export function PaygSettingsCard() {
             type="number"
             min="1"
             max="5000"
-            disabled={loading || saving}
+            disabled={loading || saving || !billingEnabled}
             value={settings.monthlyCapUsd}
             onChange={(event) => setSettings((current) => ({ ...current, monthlyCapUsd: Number(event.target.value || 0) }))}
             style={inputStyle}
@@ -229,7 +236,7 @@ export function PaygSettingsCard() {
         <div style={{ display: "grid", gap: "0.85rem", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
           <button
             type="button"
-            disabled={loading || saving}
+            disabled={loading || saving || !billingEnabled}
             onClick={() => setPaymentMethod("mpesa")}
             style={{
               borderRadius: 12,
@@ -248,7 +255,7 @@ export function PaygSettingsCard() {
 
           <button
             type="button"
-            disabled={loading || saving}
+            disabled={loading || saving || !billingEnabled}
             onClick={() => setPaymentMethod("card")}
             style={{
               borderRadius: 12,
@@ -273,7 +280,7 @@ export function PaygSettingsCard() {
             <label style={sectionLabelStyle}>M-Pesa number</label>
             <input
               type="tel"
-              disabled={loading || saving}
+              disabled={loading || saving || !billingEnabled}
               value={settings.mpesaPhone ?? ""}
               onChange={(event) => setSettings((current) => ({ ...current, mpesaPhone: event.target.value }))}
               placeholder="07XXXXXXXX or 2547XXXXXXXX"
@@ -288,7 +295,7 @@ export function PaygSettingsCard() {
               <label style={sectionLabelStyle}>Card holder name</label>
               <input
                 type="text"
-                disabled={loading || saving}
+                disabled={loading || saving || !billingEnabled}
                 value={settings.cardholderName ?? ""}
                 onChange={(event) => setSettings((current) => ({ ...current, cardholderName: event.target.value }))}
                 placeholder="Name on card"
@@ -300,7 +307,7 @@ export function PaygSettingsCard() {
               <input
                 type="text"
                 inputMode="numeric"
-                disabled={loading || saving}
+                disabled={loading || saving || !billingEnabled}
                 value={cardNumber}
                 onChange={(event) => handleCardNumberChange(event.target.value)}
                 placeholder={settings.billingCardLast4 ? `Saved card ending ${settings.billingCardLast4}` : "1234 5678 9012 3456"}
@@ -334,7 +341,7 @@ export function PaygSettingsCard() {
                 type="number"
                 min="1"
                 max="12"
-                disabled={loading || saving}
+                disabled={loading || saving || !billingEnabled}
                 value={settings.billingCardExpiryMonth ?? ""}
                 onChange={(event) => setSettings((current) => ({ ...current, billingCardExpiryMonth: Number(event.target.value || 0) || null }))}
                 placeholder="MM"
@@ -346,7 +353,7 @@ export function PaygSettingsCard() {
               <input
                 type="number"
                 min={new Date().getFullYear()}
-                disabled={loading || saving}
+                disabled={loading || saving || !billingEnabled}
                 value={settings.billingCardExpiryYear ?? ""}
                 onChange={(event) => setSettings((current) => ({ ...current, billingCardExpiryYear: Number(event.target.value || 0) || null }))}
                 placeholder="YYYY"
@@ -358,7 +365,7 @@ export function PaygSettingsCard() {
               <input
                 type="password"
                 inputMode="numeric"
-                disabled={loading || saving}
+                disabled={loading || saving || !billingEnabled}
                 value={cardCvc}
                 onChange={(event) => setCardCvc(event.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="123"
@@ -377,7 +384,7 @@ export function PaygSettingsCard() {
         <input
           type="checkbox"
           checked={settings.billingAuthorizationAccepted}
-          disabled={loading || saving}
+          disabled={loading || saving || !billingEnabled}
           onChange={(event) => setSettings((current) => ({ ...current, billingAuthorizationAccepted: event.target.checked }))}
         />
         <span>
@@ -391,13 +398,19 @@ export function PaygSettingsCard() {
         </p>
       ) : null}
 
+      {!billingEnabled ? (
+        <p style={{ margin: "0.8rem 0 0", color: "#D8ECFF", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+          PAYG overflow billing is paused for now. EventSlot is keeping registrations open without charging overage while payments are introduced.
+        </p>
+      ) : null}
+
       {message ? <p style={{ margin: "0.8rem 0 0", color: "#C8F55A", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>{message}</p> : null}
       {error ? <p style={{ margin: "0.8rem 0 0", color: "#FF8E7D", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p> : null}
 
       <button
         type="button"
         onClick={handleSave}
-        disabled={loading || saving}
+        disabled={loading || saving || !billingEnabled}
         style={{
           marginTop: "1rem",
           borderRadius: 999,
@@ -408,11 +421,11 @@ export function PaygSettingsCard() {
           fontFamily: "var(--font-dm-sans)",
           fontSize: "0.88rem",
           fontWeight: 700,
-          cursor: loading || saving ? "default" : "pointer",
-          opacity: loading || saving ? 0.7 : 1,
+          cursor: loading || saving || !billingEnabled ? "default" : "pointer",
+          opacity: loading || saving || !billingEnabled ? 0.7 : 1,
         }}
       >
-        {saving ? "Saving..." : "Save PAYG settings"}
+        {!billingEnabled ? "Coming soon" : saving ? "Saving..." : "Save PAYG settings"}
       </button>
     </section>
   )

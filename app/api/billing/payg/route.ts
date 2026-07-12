@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import prisma from "@/lib/prisma"
 import { authOptions } from "@/lib/auth"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -44,6 +45,13 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
+  if (!isBillingCheckoutEnabled()) {
+    return NextResponse.json(
+      { error: "PAYG setup is coming soon. Everyone currently keeps full access." },
+      { status: 503 }
+    )
+  }
+
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

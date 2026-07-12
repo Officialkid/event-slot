@@ -14,6 +14,7 @@ const navItems = [
   { label: "Broadcast", href: "/admin/broadcast" },
   { label: "Platform Health", href: "/admin/health" },
   { label: "Launch Checklist", href: "/admin/launch" },
+  { label: "Billing Interest", href: "/admin/billing-launch-interest" },
   { label: "Conversations", href: "/admin/conversations" },
   { label: "System Updates", href: "/admin/updates" },
   { label: "Countries", href: "/admin/countries" },

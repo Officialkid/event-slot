@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Check } from "lucide-react"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 import type { SubscriptionPlanDefinition } from "@/lib/subscriptionPlans"
 import { normalizeBillingCycle, type SubscriptionBillingCycle } from "@/lib/subscriptionBilling"
 
@@ -32,8 +33,10 @@ export function PricingPlanSelector({
     () => plans.filter((plan) => paidPlanKeys.has(plan.key)),
     [plans]
   )
+  const billingEnabled = isBillingCheckoutEnabled()
 
   const handleChoosePlan = (planKey: string) => {
+    if (!billingEnabled) return
     if (mode === "dashboard" || signedIn) {
       router.push(`/dashboard/billing/checkout?plan=${planKey}&cycle=${billingCycle}`)
       return
@@ -149,9 +152,9 @@ export function PricingPlanSelector({
                 <button
                   type="button"
                   onClick={() => handleChoosePlan(plan.key)}
-                  disabled={isCurrent}
+                  disabled={isCurrent || !billingEnabled}
                   className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3 text-sm font-semibold transition ${
-                    isCurrent
+                    isCurrent || !billingEnabled
                       ? "cursor-default border border-[rgba(200,245,90,0.18)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
                       : featured
                         ? "bg-[#C8F55A] text-[#0A0A0A] hover:bg-[#d3ff67]"
@@ -160,10 +163,12 @@ export function PricingPlanSelector({
                 >
                   {isCurrent
                     ? "Current plan"
+                    : !billingEnabled
+                      ? "Coming soon"
                     : mode === "dashboard" || signedIn
                       ? "Continue"
                       : "Get started"}
-                  {!isCurrent ? <ArrowRight className="h-4 w-4" /> : null}
+                  {!isCurrent && billingEnabled ? <ArrowRight className="h-4 w-4" /> : null}
                 </button>
               </div>
             </article>

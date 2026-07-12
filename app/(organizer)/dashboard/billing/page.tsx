@@ -4,11 +4,13 @@ import prisma from "@/lib/prisma"
 import { SUBSCRIPTION_PLANS, formatCommissionRate, getSubscriptionPlan } from "@/lib/subscriptionPlans"
 import { PaygSettingsCard } from "@/components/billing/PaygSettingsCard"
 import { BillingUpgradeSection } from "@/components/billing/BillingUpgradeSection"
+import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 import { ReportDownloadsCard } from "@/components/billing/ReportDownloadsCard"
 import { REPORT_DOWNLOAD_PRICING } from "@/lib/plans"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { normalizeOneTimePassTier } from "@/lib/oneTimePassCatalog"
+import { isAdminEmail } from "@/lib/isAdmin"
 
 function formatPlanName(plan: string | null | undefined) {
   return getSubscriptionPlan(plan).name
@@ -34,6 +36,7 @@ function formatEventDate(value: Date | null | undefined) {
 
 export default async function BillingPage() {
   const session = await getServerSession(authOptions)
+  const isAdmin = isAdminEmail(session?.user?.email)
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
@@ -45,7 +48,7 @@ export default async function BillingPage() {
       })
     : null
 
-  const currentPlan = getSubscriptionPlan(user?.plan)
+  const currentPlan = getSubscriptionPlan(isAdmin ? "business" : user?.plan)
   const pricingActive = isPricingRolloutActive()
   const reportDownloads = session?.user?.id
     ? await prisma.reportDownload.findUnique({
@@ -111,6 +114,8 @@ export default async function BillingPage() {
         </p>
       </div>
 
+      <BillingComingSoonBanner isAdmin={isAdmin} compact />
+
       <section
         style={{
           background: pricingActive ? "rgba(200,245,90,0.05)" : "rgba(124,199,255,0.08)",
@@ -148,7 +153,7 @@ export default async function BillingPage() {
               Current plan
             </p>
             <p style={{ margin: "0.45rem 0 0", fontSize: "1.4rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)" }}>
-              {formatPlanName(user?.plan)}
+              {isAdmin ? "Super Admin Access" : formatPlanName(user?.plan)}
             </p>
           </div>
           <div>
@@ -156,7 +161,7 @@ export default async function BillingPage() {
               Billing cycle
             </p>
             <p style={{ margin: "0.45rem 0 0", fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
-              {(user?.billingCycle ?? "MONTHLY").toString()}
+              {isAdmin ? "Not applicable" : (user?.billingCycle ?? "MONTHLY").toString()}
             </p>
           </div>
           <div>
@@ -164,7 +169,7 @@ export default async function BillingPage() {
               Paid-event commission
             </p>
             <p style={{ margin: "0.45rem 0 0", fontSize: "1rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
-              {formatCommissionRate(currentPlan.commissionRate)}
+              {isAdmin ? "Full system access" : formatCommissionRate(currentPlan.commissionRate)}
             </p>
           </div>
           <div>
@@ -172,7 +177,7 @@ export default async function BillingPage() {
               Next renewal
             </p>
             <p style={{ margin: "0.45rem 0 0", fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
-              {formatRenewalDate(user?.planEndDate)}
+              {isAdmin ? "Not applicable" : formatRenewalDate(user?.planEndDate)}
             </p>
           </div>
         </div>

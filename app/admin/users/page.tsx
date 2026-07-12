@@ -13,6 +13,22 @@ interface User {
   _count: { events: number }
 }
 
+type DeleteEventPreview = {
+  id: string
+  title: string
+  slug: string
+  archived: boolean
+  status: string
+}
+
+type DeleteHandlingMode = "archive" | "delete" | "transfer"
+
+type DeleteBlocker = {
+  code?: string
+  ownedEventCount: number
+  ownedEvents: DeleteEventPreview[]
+}
+
 const AVAILABLE_PLANS = ["free", "standard", "pro", "business"] as const
 
 function PlanBadge({ plan }: { plan: string }) {
@@ -141,8 +157,12 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("")
   const [planFilter, setPlanFilter] = useState("all")
   const [openMenu, setOpenMenu] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<User | null>(null)
   const [deleteError, setDeleteError] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteBlocker, setDeleteBlocker] = useState<DeleteBlocker | null>(null)
+  const [deleteMode, setDeleteMode] = useState<DeleteHandlingMode>("archive")
+  const [transferUserId, setTransferUserId] = useState("")
   const [editUser, setEditUser] = useState<EditUserState | null>(null)
 
   const fetchUsers = useCallback(() => {
@@ -181,18 +201,52 @@ export default function AdminUsersPage() {
     fetchUsers()
   }
 
-  async function deleteUser(id: string) {
+  function resetDeleteState() {
+    setConfirmDelete(null)
     setDeleteError("")
-    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" })
+    setDeleteLoading(false)
+    setDeleteBlocker(null)
+    setDeleteMode("archive")
+    setTransferUserId("")
+  }
+
+  async function deleteUser(user: User, mode?: DeleteHandlingMode) {
+    setDeleteError("")
+    setDeleteLoading(true)
+
+    const payload = mode
+      ? {
+          eventHandling: mode,
+          ...(mode === "transfer" ? { transferUserId } : {}),
+        }
+      : undefined
+
+    const res = await fetch(`/api/admin/users/${user.id}`, {
+      method: "DELETE",
+      headers: payload ? { "Content-Type": "application/json" } : undefined,
+      body: payload ? JSON.stringify(payload) : undefined,
+    })
+
+    const responsePayload = await res.json().catch(() => null)
+    setDeleteLoading(false)
+
     if (!res.ok) {
-      const payload = await res.json().catch(() => null)
-      setDeleteError(payload?.error ?? "Unable to delete this user right now.")
+      if (res.status === 409) {
+        setDeleteBlocker({
+          code: responsePayload?.code,
+          ownedEventCount: responsePayload?.ownedEventCount ?? user._count.events,
+          ownedEvents: responsePayload?.ownedEvents ?? [],
+        })
+      }
+      setDeleteError(responsePayload?.error ?? "Unable to delete this user right now.")
       return
     }
-    setConfirmDelete(null)
+
+    resetDeleteState()
     fetchUsers()
   }
 
+  const transferCandidates = users.filter((user) => user.id !== confirmDelete?.id && Boolean(user.email))
   const planTabs = ["all", ...AVAILABLE_PLANS]
   const skeletonRows = [1, 2, 3, 4]
 
@@ -351,7 +405,10 @@ export default function AdminUsersPage() {
                           type="button"
                           onClick={() => {
                             setDeleteError("")
-                            setConfirmDelete(user.id)
+                            setDeleteBlocker(null)
+                            setDeleteMode("archive")
+                            setTransferUserId("")
+                            setConfirmDelete(user)
                             setOpenMenu(null)
                           }}
                           style={{ display: "block", width: "100%", textAlign: "left", padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "#FF6B6B", background: "transparent", border: "none", cursor: "pointer", borderRadius: 6, fontFamily: "var(--font-dm-sans)" }}
@@ -381,24 +438,97 @@ export default function AdminUsersPage() {
 
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 380, width: "90%" }}>
+          <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 560, width: "92%" }}>
             <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "0.75rem" }}>
               Delete account?
             </h3>
-            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.55 }}>
-              This will permanently delete the user and all their data. This cannot be undone.
+            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem", lineHeight: 1.55 }}>
+              This permanently deletes <span style={{ color: "#F0EDE6" }}>{confirmDelete.email ?? confirmDelete.name ?? "this account"}</span>. If the account still owns events, choose what should happen to them first.
             </p>
+
+            {deleteBlocker ? (
+              <div style={{ borderRadius: 12, border: "0.5px solid rgba(255,142,125,0.25)", background: "rgba(255,142,125,0.08)", padding: "1rem", marginBottom: "1rem" }}>
+                <p style={{ margin: 0, color: "#FFD1C8", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                  This user still owns {deleteBlocker.ownedEventCount} event{deleteBlocker.ownedEventCount === 1 ? "" : "s"}. Pick an action below before deleting the account.
+                </p>
+                {deleteBlocker.ownedEvents.length > 0 ? (
+                  <div style={{ marginTop: "0.75rem", display: "grid", gap: "0.45rem" }}>
+                    {deleteBlocker.ownedEvents.map((event) => (
+                      <div key={event.id} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.72)", fontFamily: "var(--font-dm-sans)" }}>
+                        <span>{event.title}</span>
+                        <span style={{ color: "rgba(240,237,230,0.4)" }}>{event.archived ? "Archived" : event.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {deleteBlocker ? (
+              <div style={{ display: "grid", gap: "0.75rem", marginBottom: "1rem" }}>
+                {([
+                  { value: "archive", label: "Archive events and delete user", detail: "Keeps event records, removes the organiser from ownership, and archives them first." },
+                  { value: "transfer", label: "Transfer events and delete user", detail: "Moves event ownership to another account before deleting this one." },
+                  { value: "delete", label: "Delete events and delete user", detail: "Permanently removes the owned events together with this account." },
+                ] as const).map((option) => (
+                  <label key={option.value} style={{ borderRadius: 12, border: deleteMode === option.value ? "0.5px solid rgba(200,245,90,0.35)" : "0.5px solid rgba(240,237,230,0.08)", background: deleteMode === option.value ? "rgba(200,245,90,0.06)" : "#111", padding: "0.9rem 1rem", cursor: "pointer" }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                      <input
+                        type="radio"
+                        checked={deleteMode === option.value}
+                        onChange={() => setDeleteMode(option.value)}
+                        style={{ marginTop: 2 }}
+                      />
+                      <div>
+                        <div style={{ color: "#F0EDE6", fontSize: "0.86rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                          {option.label}
+                        </div>
+                        <div style={{ color: "rgba(240,237,230,0.5)", fontSize: "0.78rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)", marginTop: "0.2rem" }}>
+                          {option.detail}
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            ) : null}
+
+            {deleteBlocker && deleteMode === "transfer" ? (
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>
+                  Transfer events to
+                </label>
+                <select
+                  value={transferUserId}
+                  onChange={(e) => setTransferUserId(e.target.value)}
+                  style={{ width: "100%", background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.7rem 0.9rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                >
+                  <option value="">Choose another account</option>
+                  {transferCandidates.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {(user.name ?? "Unnamed user") + " - " + (user.email ?? "No email")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             {deleteError && (
               <p style={{ fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: "0 0 1rem" }}>
                 {deleteError}
               </p>
             )}
             <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => { setConfirmDelete(null); setDeleteError("") }} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>
+              <button type="button" onClick={resetDeleteState} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>
                 Cancel
               </button>
-              <button type="button" onClick={() => deleteUser(confirmDelete)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: "#FF6B6B", color: "#fff", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
-                Delete
+              <button
+                type="button"
+                disabled={deleteLoading || Boolean(deleteBlocker && deleteMode === "transfer" && !transferUserId)}
+                onClick={() => void deleteUser(confirmDelete, deleteBlocker ? deleteMode : undefined)}
+                style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: "#FF6B6B", color: "#fff", cursor: deleteLoading ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", opacity: deleteLoading ? 0.75 : 1 }}
+              >
+                {deleteLoading ? "Deleting..." : deleteBlocker ? "Continue delete" : "Delete"}
               </button>
             </div>
           </div>

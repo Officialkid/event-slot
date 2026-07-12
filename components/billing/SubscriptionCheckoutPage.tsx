@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { CreditCard, Loader2, ShieldCheck, Smartphone } from "lucide-react"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 import type { SubscriptionPlanDefinition } from "@/lib/subscriptionPlans"
 import {
   formatKes,
@@ -31,6 +32,7 @@ export function SubscriptionCheckoutPage({
   accountName,
   accountEmail,
 }: SubscriptionCheckoutPageProps) {
+  const billingEnabled = isBillingCheckoutEnabled()
   const [planKey, setPlanKey] = useState(initialPlanKey)
   const [billingCycle, setBillingCycle] = useState<SubscriptionBillingCycle>(
     normalizeBillingCycle(initialBillingCycle)
@@ -54,6 +56,11 @@ export function SubscriptionCheckoutPage({
   const planIsCurrent = currentPlanKey === selectedPlan.key
 
   const handleCheckout = async () => {
+    if (!billingEnabled) {
+      setError("Subscription checkout is temporarily disabled while EventSlot prepares the payments launch.")
+      return
+    }
+
     setSubmitting(true)
     setError("")
 
@@ -142,6 +149,12 @@ export function SubscriptionCheckoutPage({
         </Link>
       </div>
 
+      {!billingEnabled ? (
+        <div className="mb-6 rounded-[24px] border border-[rgba(124,199,255,0.2)] bg-[rgba(124,199,255,0.08)] p-5 text-sm leading-7 text-[#D8ECFF]">
+          Subscription checkout is paused right now. Everyone still keeps full EventSlot access while we prepare the official payments launch.
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
@@ -159,7 +172,7 @@ export function SubscriptionCheckoutPage({
                   <button
                     key={plan.key}
                     type="button"
-                    onClick={() => setPlanKey(plan.key)}
+                    onClick={() => billingEnabled && setPlanKey(plan.key)}
                     className={`rounded-[22px] border p-5 text-left transition ${
                       active
                         ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)]"
@@ -203,7 +216,7 @@ export function SubscriptionCheckoutPage({
                   <button
                     key={cycle}
                     type="button"
-                    onClick={() => setBillingCycle(cycle)}
+                    onClick={() => billingEnabled && setBillingCycle(cycle)}
                     className={`rounded-[22px] border p-6 text-left transition ${
                       active
                         ? "border-[#C8F55A] bg-[rgba(200,245,90,0.08)]"
@@ -261,7 +274,7 @@ export function SubscriptionCheckoutPage({
                   <button
                     key={option.key}
                     type="button"
-                    onClick={() => setPaymentMethod(normalizePaymentMethod(option.key))}
+                    onClick={() => billingEnabled && setPaymentMethod(normalizePaymentMethod(option.key))}
                     className={`rounded-[22px] border p-5 text-left transition ${
                       active
                         ? "border-[#C8F55A] bg-[rgba(200,245,90,0.08)]"
@@ -305,6 +318,7 @@ export function SubscriptionCheckoutPage({
                 <input
                   value={payerName}
                   onChange={(event) => setPayerName(event.target.value)}
+                  disabled={!billingEnabled}
                   placeholder="Alpha Tech Solutions"
                   className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
                 />
@@ -317,6 +331,7 @@ export function SubscriptionCheckoutPage({
                     <input
                       value={mpesaPhone}
                       onChange={(event) => setMpesaPhone(event.target.value)}
+                      disabled={!billingEnabled}
                       inputMode="tel"
                       placeholder="07XX XXX XXX"
                       className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
@@ -405,15 +420,17 @@ export function SubscriptionCheckoutPage({
           <button
             type="button"
             onClick={handleCheckout}
-            disabled={submitting || planIsCurrent}
+            disabled={submitting || planIsCurrent || !billingEnabled}
             className={`mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[16px] px-4 py-3 text-sm font-semibold transition ${
-              planIsCurrent
+              planIsCurrent || !billingEnabled
                 ? "cursor-default border border-[rgba(200,245,90,0.18)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
                 : "bg-[#C8F55A] text-[#0A0A0A] hover:bg-[#d4ff68]"
             }`}
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {planIsCurrent
+            {!billingEnabled
+              ? "Coming soon"
+              : planIsCurrent
               ? "You are already on this plan"
               : paymentMethod === "card"
                 ? "Continue to secure card checkout"

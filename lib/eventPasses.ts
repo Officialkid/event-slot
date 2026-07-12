@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma"
 import { getPaidEventCommissionRate } from "@/lib/paidEventCommission"
 import { normalizePlanKey, type PlanKey } from "@/lib/effectivePlanPolicy"
+import { isBillingComingSoonMode } from "@/lib/pricingRollout"
 import {
   getEventPassExpiryDate,
   getOneTimePassQuote,
@@ -106,6 +107,17 @@ export async function syncEventPassStatusForEvent(eventId: string, now: Date = n
 }
 
 export async function getEffectiveEventPlan(eventId: string, organizerId: string | null | undefined): Promise<EffectiveEventPlan> {
+  if (isBillingComingSoonMode()) {
+    return {
+      planKey: "business",
+      source: "subscription",
+      commissionRate: 0,
+      eventPassTier: null,
+      eventPassStatus: null,
+      eventPassExpiresAt: null,
+    }
+  }
+
   await syncEventPassStatusForEvent(eventId).catch(() => null)
 
   const event = await prisma.event.findUnique({

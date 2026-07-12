@@ -2,23 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/isAdmin'
-
-type SessionLike = {
-  user?: {
-    role?: string | null
-    email?: string | null
-  }
-} | null
-
-function canManageBroadcast(session: SessionLike): boolean {
-  return Boolean(session?.user?.role === 'SUPER_ADMIN' || isAdminEmail(session?.user?.email))
-}
+import { hasAdminAccess } from '@/lib/isAdmin'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
 
-  if (!canManageBroadcast(session)) {
+  if (!hasAdminAccess(session)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

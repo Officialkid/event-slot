@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import { paystackFetch } from "@/lib/paystack"
 import { APP_URL } from "@/lib/config"
 import { billingRatelimit } from "@/lib/ratelimit"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 import { getSubscriptionPlan } from "@/lib/subscriptionPlans"
 import {
   getSubscriptionBillingQuote,
@@ -14,6 +15,13 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isBillingCheckoutEnabled()) {
+      return NextResponse.json(
+        { error: "Subscription checkout is coming soon. Everyone currently keeps full access." },
+        { status: 503 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

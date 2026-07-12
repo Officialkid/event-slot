@@ -1,7 +1,7 @@
-import { getAdminUpdates } from "@/lib/adminUpdates"
+import { getAdminDeployStatus, getAdminUpdates } from "@/lib/adminUpdates"
 
 export default async function AdminUpdatesPage() {
-  const updates = await getAdminUpdates()
+  const [updates, deployStatus] = await Promise.all([getAdminUpdates(), getAdminDeployStatus()])
 
   return (
     <div className="p-6 max-w-5xl">
@@ -9,6 +9,40 @@ export default async function AdminUpdatesPage() {
       <p className="text-[#8A8A8A] text-sm mb-8">
         Live timeline pulled from the internal changelog and deploy history.
       </p>
+
+      <section className="rounded-xl border border-[rgba(138,180,255,0.18)] bg-[rgba(138,180,255,0.06)] p-5 mb-8">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <h2 className="text-[#D8ECFF] text-lg font-semibold">Deploy Status Check</h2>
+          <span className="inline-flex items-center rounded-full bg-[rgba(138,180,255,0.12)] px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#8AB4FF]">
+            Internal Signal
+          </span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3 mb-4">
+          <div className="rounded-lg border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
+            <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(240,237,230,0.4)] mb-2">System Doc Revision</p>
+            <p className="text-[#F0EDE6] text-sm font-mono">{deployStatus.documentedRevision ?? "Missing"}</p>
+            <p className="text-[rgba(240,237,230,0.45)] text-xs mt-2">{deployStatus.documentedAt ?? "No timestamp found"}</p>
+          </div>
+          <div className="rounded-lg border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
+            <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(240,237,230,0.4)] mb-2">Documented Commit</p>
+            <p className="text-[#F0EDE6] text-sm font-mono">{deployStatus.documentedCommit ?? "Missing"}</p>
+          </div>
+          <div className="rounded-lg border border-[rgba(240,237,230,0.08)] bg-[#141414] p-4">
+            <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[rgba(240,237,230,0.4)] mb-2">Latest Deploy Log Entry</p>
+            <p className="text-[#F0EDE6] text-sm font-mono">{deployStatus.latestDeployEntry?.version ?? "Missing"}</p>
+            <p className="text-[rgba(240,237,230,0.45)] text-xs mt-2">{deployStatus.latestDeployEntry?.dateLabel ?? "No deploy entry found"}</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {deployStatus.notes.map((note) => (
+            <p key={note} className="text-sm text-[#B9C6D3]">
+              {note}
+            </p>
+          ))}
+        </div>
+      </section>
 
       <div className="space-y-6">
         {updates.length === 0 ? (

@@ -3,20 +3,45 @@
  * Uses Cloudflare/Vercel headers first; falls back to ip-api.com for bare Cloud Run.
  */
 
-export async function detectCountry(req: Request): Promise<string> {
-  // Cloudflare sets this automatically when behind Cloudflare
-  const cfCountry = req.headers.get('CF-IPCountry') ?? req.headers.get('cf-ipcountry')
-  if (cfCountry && cfCountry !== 'XX') return cfCountry.toUpperCase()
+function normalizeCountryHeader(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toUpperCase()
+  if (!normalized || normalized === 'XX' || normalized === 'UNKNOWN') return null
+  return normalized
+}
 
-  // Vercel edge
-  const vercelCountry = req.headers.get('x-vercel-ip-country')
-  if (vercelCountry && vercelCountry !== 'XX') return vercelCountry.toUpperCase()
+function isLocalIp(ip: string): boolean {
+  return (
+    !ip ||
+    ip === '0.0.0.0' ||
+    ip === '::1' ||
+    ip.startsWith('127.') ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    ip.startsWith('169.254.') ||
+    ip.startsWith('fc') ||
+    ip.startsWith('fd') ||
+    ip.startsWith('fe80:') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)
+  )
+}
+
+export async function detectCountry(req: Request): Promise<string> {
+  const edgeCountry =
+    normalizeCountryHeader(req.headers.get('CF-IPCountry') ?? req.headers.get('cf-ipcountry')) ??
+    normalizeCountryHeader(req.headers.get('x-vercel-ip-country')) ??
+    normalizeCountryHeader(req.headers.get('x-appengine-country')) ??
+    normalizeCountryHeader(req.headers.get('cloudfront-viewer-country')) ??
+    normalizeCountryHeader(req.headers.get('x-geo-country')) ??
+    normalizeCountryHeader(req.headers.get('fly-country')) ??
+    normalizeCountryHeader(req.headers.get('x-country-code'))
+
+  if (edgeCountry) return edgeCountry
 
   const forwarded = req.headers.get('x-forwarded-for') ?? ''
   const ip = forwarded.split(',')[0]?.trim() ?? '0.0.0.0'
 
   // Local / dev
-  if (!ip || ip === '0.0.0.0' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip === '::1') {
+  if (isLocalIp(ip)) {
     return 'KE' // default to Kenya in dev
   }
 

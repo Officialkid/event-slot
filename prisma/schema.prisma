@@ -162,6 +162,7 @@ model User {
   organizerFeedback  OrganizerFeedback[]
   messages           Message[]
   reportDownload     ReportDownload?
+  billingLaunchInterests BillingLaunchInterest[]
   tokenBalance       TokenBalance?
   tokenTransactions  TokenTransaction[]
   voiceQuota         VoiceQuota?
@@ -745,6 +746,22 @@ model FeatureInterest {
   createdAt   DateTime @default(now())
 
   @@unique([email, featureName])
+}
+
+model BillingLaunchInterest {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email       String   @unique
+  name        String?
+  accountType String?
+  previewMode String?
+  source      String   @default("billing_coming_soon_banner")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
 }
 
 model ReportDownload {

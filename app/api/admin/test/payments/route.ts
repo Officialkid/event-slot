@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/isAdmin'
+import { hasAdminAccess } from '@/lib/isAdmin'
 import { calculatePaidEventCommission, getPaidEventCommissionRate } from '@/lib/paidEventCommission'
 import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend'
 
@@ -58,12 +58,7 @@ function isValidLocalMpesaPhone(phone: string) {
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
-  const isAdmin =
-    session?.user?.role === 'SUPER_ADMIN' ||
-    session?.user?.isAdmin ||
-    isAdminEmail(session?.user?.email)
-
-  if (!session || !isAdmin) {
+  if (!session || !hasAdminAccess(session)) {
     return null
   }
 

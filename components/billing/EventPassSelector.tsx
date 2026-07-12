@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 import { formatKes, formatUsd } from "@/lib/subscriptionBilling"
 import { getOneTimePassTiers, type OneTimePassTier } from "@/lib/oneTimePassCatalog"
 
@@ -24,6 +25,7 @@ export function EventPassSelector({
   compact = false,
 }: Props) {
   const options = useMemo(() => getOneTimePassTiers(), [])
+  const billingEnabled = isBillingCheckoutEnabled()
   const [selectedTier, setSelectedTier] = useState<OneTimePassTier>("pro")
   const [paymentMethod, setPaymentMethod] = useState<"card" | "mpesa">("card")
   const [mpesaPhone, setMpesaPhone] = useState("")
@@ -33,6 +35,11 @@ export function EventPassSelector({
   const active = activeStatus === "ACTIVE"
 
   async function handleCheckout() {
+    if (!billingEnabled) {
+      setError("One-time event passes are temporarily disabled while EventSlot prepares the payments launch.")
+      return
+    }
+
     if (!eventId) {
       setError("Save the event first, then start checkout from the event dashboard.")
       return
@@ -108,14 +115,15 @@ export function EventPassSelector({
             <button
               key={option.tier}
               type="button"
-              onClick={() => setSelectedTier(option.tier)}
+              onClick={() => billingEnabled && setSelectedTier(option.tier)}
               style={{
                 textAlign: "left",
                 borderRadius: 14,
                 border: selected ? "0.5px solid rgba(200,245,90,0.35)" : "0.5px solid rgba(240,237,230,0.08)",
                 background: selected ? "rgba(200,245,90,0.06)" : "rgba(255,255,255,0.02)",
                 padding: "0.95rem",
-                cursor: "pointer",
+                cursor: billingEnabled ? "pointer" : "default",
+                opacity: billingEnabled ? 1 : 0.78,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", alignItems: "flex-start" }}>
@@ -152,7 +160,7 @@ export function EventPassSelector({
             <button
               key={method}
               type="button"
-              onClick={() => setPaymentMethod(method)}
+              onClick={() => billingEnabled && setPaymentMethod(method)}
               style={{
                 borderRadius: 999,
                 border: activeMethod ? "0.5px solid rgba(255,184,77,0.35)" : "0.5px solid rgba(240,237,230,0.08)",
@@ -161,7 +169,8 @@ export function EventPassSelector({
                 padding: "0.5rem 0.9rem",
                 fontSize: "0.8rem",
                 fontWeight: 600,
-                cursor: "pointer",
+                cursor: billingEnabled ? "pointer" : "default",
+                opacity: billingEnabled ? 1 : 0.72,
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
@@ -177,6 +186,7 @@ export function EventPassSelector({
             type="tel"
             value={mpesaPhone}
             onChange={(event) => setMpesaPhone(event.target.value)}
+            disabled={!billingEnabled}
             placeholder="M-Pesa number"
             style={{
               width: "100%",
@@ -200,6 +210,12 @@ export function EventPassSelector({
         </p>
       )}
 
+      {!billingEnabled ? (
+        <p style={{ margin: "0 0 0.85rem", color: "#D8ECFF", fontSize: "0.78rem", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+          Event-pass checkout is paused for now. Premium event tools stay open during the payment-system preview.
+        </p>
+      ) : null}
+
       {purchaseCountHint ? (
         <p style={{ margin: "0 0 0.85rem", color: "rgba(255,184,77,0.7)", fontSize: "0.76rem", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
           If you find yourself buying passes repeatedly, a normal subscription may be cheaper.
@@ -215,7 +231,7 @@ export function EventPassSelector({
       <button
         type="button"
         onClick={handleCheckout}
-        disabled={submitting || active}
+        disabled={submitting || active || !billingEnabled}
         style={{
           width: compact ? "100%" : "auto",
           border: "none",
@@ -225,11 +241,19 @@ export function EventPassSelector({
           padding: "0.8rem 1.25rem",
           fontSize: "0.84rem",
           fontWeight: 700,
-          cursor: submitting || active ? "not-allowed" : "pointer",
+          cursor: submitting || active || !billingEnabled ? "not-allowed" : "pointer",
           fontFamily: "var(--font-dm-sans)",
         }}
       >
-        {active ? "Pass already active" : submitting ? "Starting checkout..." : paymentMethod === "card" ? "Continue to secure card checkout" : "Continue to secure M-Pesa checkout"}
+        {!billingEnabled
+          ? "Coming soon"
+          : active
+            ? "Pass already active"
+            : submitting
+              ? "Starting checkout..."
+              : paymentMethod === "card"
+                ? "Continue to secure card checkout"
+                : "Continue to secure M-Pesa checkout"}
       </button>
     </div>
   )

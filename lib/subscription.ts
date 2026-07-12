@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { isAdminEmail } from '@/lib/isAdmin';
 
 export async function getUserPlan(userId: string) {
   const subscription = await prisma.subscription.findFirst({
@@ -30,12 +31,6 @@ export async function isSubscriptionActive(userId: string): Promise<boolean> {
   return !!subscription;
 }
 
-// Super admins bypass all plan limits
-export const SUPER_ADMIN_EMAILS = [
-  process.env.SUPERADMIN_EMAIL_1 ?? '',
-  process.env.SUPERADMIN_EMAIL_2 ?? '',
-];
-
 export function isSuperAdmin(email: string | null | undefined): boolean {
-  return SUPER_ADMIN_EMAILS.includes(email ?? '');
+  return isAdminEmail(email);
 }

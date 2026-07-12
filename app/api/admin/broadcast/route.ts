@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { isAdminEmail } from '@/lib/isAdmin'
+import { hasAdminAccess } from '@/lib/isAdmin'
 import { sendEmail } from '@/lib/email'
 
 const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <hello@eventsslot.com>'
@@ -22,17 +22,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
   return out
-}
-
-type SessionLike = {
-  user?: {
-    role?: string | null
-    email?: string | null
-  }
-} | null
-
-function canManageBroadcast(session: SessionLike): boolean {
-  return Boolean(session?.user?.role === 'SUPER_ADMIN' || isAdminEmail(session?.user?.email))
 }
 
 function buildEmailHtml(content: string, userId: string): string {
@@ -76,7 +65,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!canManageBroadcast(session)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
@@ -120,7 +109,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!canManageBroadcast(session)) {
+    if (!hasAdminAccess(session)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
