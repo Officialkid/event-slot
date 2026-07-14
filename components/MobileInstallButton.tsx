@@ -1,45 +1,36 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
-
-// Package ID must match keystore + assetlinks.json
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.alphatech.eventslot"
 
 export function MobileInstallButton() {
   const { method, isMobile, promptInstall } = usePWAInstall()
-  const [showIOSTip, setShowIOSTip]         = useState(false)
+  const [showIOSTip, setShowIOSTip] = useState(false)
 
-  // Only render on mobile — completely invisible on desktop
   if (!isMobile) return null
-
-  // Already installed as PWA / TWA — show nothing
   if (method === "already-installed") return null
 
-  // ── Android → Google Play Store badge ──────────────────────────────────
-  if (method === "play-store") {
+  if (method === "android-manual") {
     return (
-      <a
-        href={PLAY_STORE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Get EventSlot on Google Play"
-        style={{ display: "inline-flex", alignItems: "center" }}
+      <button
+        onClick={() => window.alert("On Android, open your browser menu and tap Install app or Add to Home Screen to install the EventSlot PWA.")}
+        aria-label="Install EventSlot app"
+        style={{ maxHeight: "48px" }}
+        className="inline-flex items-center gap-2 border border-[#2A2A2A]
+                   text-white font-semibold px-4 py-2.5 rounded-full text-sm
+                   hover:border-[#C8F55A]/50 transition-colors"
       >
-        <Image
-          src="/images/google-play-badge.png"
-          alt="Get it on Google Play"
-          height={48}
-          width={180}
-          style={{ display: "block" }}
-        />
-      </a>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v11" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </svg>
+        Install App
+      </button>
     )
   }
 
-  // ── PWA install prompt (Chrome on non-Android / desktop) ───────────────
   if (method === "pwa-prompt" && promptInstall) {
     return (
       <button
@@ -61,12 +52,11 @@ export function MobileInstallButton() {
     )
   }
 
-  // ── iOS → Add to Home Screen tooltip ───────────────────────────────────
   if (method === "ios-manual") {
     return (
       <div className="relative inline-block">
         <button
-          onClick={() => setShowIOSTip(v => !v)}
+          onClick={() => setShowIOSTip((v) => !v)}
           aria-label="Add EventSlot to home screen"
           style={{ maxHeight: "48px" }}
           className="inline-flex items-center gap-2 border border-[#2A2A2A]
@@ -93,7 +83,7 @@ export function MobileInstallButton() {
               <li className="flex items-start gap-2">
                 <span className="text-[#C8F55A] text-xs font-bold shrink-0 mt-0.5">1.</span>
                 <span className="text-[#A3A3A3] text-xs leading-relaxed">
-                  Tap the <strong className="text-white">Share</strong> button (□↑) at the bottom of Safari
+                  Tap the <strong className="text-white">Share</strong> button at the bottom of Safari
                 </span>
               </li>
               <li className="flex items-start gap-2">
@@ -114,7 +104,7 @@ export function MobileInstallButton() {
               className="absolute top-2 right-2 text-[#525252] hover:text-white text-xs"
               aria-label="Close"
             >
-              ✕
+              x
             </button>
           </div>
         )}

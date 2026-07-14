@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 
 export type InstallMethod =
-  | "play-store"
   | "pwa-prompt"
   | "ios-manual"
+  | "android-manual"
   | "already-installed"
   | null
 
@@ -62,12 +62,7 @@ export function usePWAInstall(): PWAInstallState {
     return { method: "already-installed", isAndroid, isIOS, isMobile, isInstalled: true, promptInstall: null }
   }
 
-  // Android — direct to Play Store (primary path for TWA users)
-  if (isAndroid) {
-    return { method: "play-store", isAndroid, isIOS, isMobile, isInstalled: false, promptInstall: null }
-  }
-
-  // PWA install prompt available (desktop Chrome / non-Android)
+  // PWA install prompt available
   if (deferredPrompt) {
     const promptInstall = async () => {
       deferredPrompt.prompt()
@@ -76,6 +71,10 @@ export function usePWAInstall(): PWAInstallState {
       setDeferredPrompt(null)
     }
     return { method: "pwa-prompt", isAndroid, isIOS, isMobile, isInstalled: false, promptInstall }
+  }
+
+  if (isAndroid) {
+    return { method: "android-manual", isAndroid, isIOS, isMobile, isInstalled: false, promptInstall: null }
   }
 
   // iOS — manual Add to Home Screen

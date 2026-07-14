@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { getOrganizerPaymentsSidebarSummary } from "@/lib/organizerPayments"
 
 export async function GET() {
   try {
@@ -10,8 +9,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const summary = await getOrganizerPaymentsSidebarSummary(session.user.id)
-    return NextResponse.json(summary)
+    return NextResponse.json({
+      visible: false,
+      hasWithdrawableBalance: false,
+      badgeCount: 0,
+    })
   } catch (error) {
     console.error("[organizer-payments-summary] GET error:", error)
     return NextResponse.json({

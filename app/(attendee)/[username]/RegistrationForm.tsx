@@ -302,14 +302,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     }
 
     if (event.isPaid) {
-      if (!selectedTierId) {
-        setError("Please choose a ticket tier.")
-        return
-      }
-      if (paymentMethod === "mpesa" && !mpesaPhone.trim()) {
-        setError("Please enter the M-Pesa phone number to pay with.")
-        return
-      }
+      setError("Paid-event checkout is under maintenance right now. Please try again once payments return.")
+      return
     }
 
     setLoading(true)
@@ -704,99 +698,17 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             <div>
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[#FFB84D]">Paid Ticket</p>
               <p className="mt-1 text-[0.82rem] text-[rgba(240,237,230,0.5)]">
-                Choose a tier and pay before your ticket is issued.
+                Sorry, this service is under maintenance and will be coming soon.
               </p>
             </div>
 
-            <div className="space-y-2">
-              {event.ticketTiers?.map((tier) => {
-                const available = Math.max(0, tier.capacity - tier.soldCount)
-                const selected = selectedTierId === tier.id
-                return (
-                  <button
-                    key={tier.id}
-                    type="button"
-                    onClick={() => setSelectedTierId(tier.id)}
-                    className={`w-full rounded-[10px] border px-4 py-3 text-left transition ${selected ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)]" : "border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)]"}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[0.9rem] font-semibold text-[#F0EDE6]">{tier.name}</p>
-                          <TierBadge
-                            name={tier.name}
-                            badgeColor={tier.badgeColor}
-                            textColor={tier.textColor}
-                            metallic={tier.metallic}
-                            size="sm"
-                          />
-                        </div>
-                        {tier.description && (
-                          <p className="mt-1 text-[0.76rem] text-[rgba(240,237,230,0.45)]">{tier.description}</p>
-                        )}
-                        <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.4)]">
-                          {available > 0 ? `${available} spot${available === 1 ? "" : "s"} left` : "Tier is full - waitlist available"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[0.95rem] font-semibold text-[#FFB84D]">KES {tier.priceKes.toLocaleString()}</p>
-                        {tier.bundleSize > 1 && (
-                          <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">{tier.bundleSize} entries</p>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={subtleLabelClassName}>Payment method</label>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("mpesa")}
-                    className={`rounded-[10px] border px-3 py-2 text-[0.82rem] ${paymentMethod === "mpesa" ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]" : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.6)]"}`}
-                  >
-                    M-Pesa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("card")}
-                    className={`rounded-[10px] border px-3 py-2 text-[0.82rem] ${paymentMethod === "card" ? "border-[rgba(255,184,77,0.45)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]" : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.6)]"}`}
-                  >
-                    Card
-                  </button>
-                </div>
-                {paymentMethod === "card" && (
-                  <p className="mt-2 text-[0.72rem] text-[rgba(240,237,230,0.38)]">
-                    Card checkout continues on a secure hosted Paystack page.
-                  </p>
-                )}
-              </div>
-
-              {paymentMethod === "mpesa" ? (
-                <div>
-                  <label className={subtleLabelClassName}>M-Pesa phone</label>
-                  <input
-                    type="tel"
-                    value={mpesaPhone}
-                    onChange={(e) => setMpesaPhone(e.target.value)}
-                    placeholder="e.g. 0712345678 or 254712345678"
-                    className={fieldClassName}
-                  />
-                </div>
-              ) : (
-                <div className="rounded-[12px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] p-4">
-                  <p className="text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.52)]">
-                    Card checkout
-                  </p>
-                  <p className="mt-1 text-[0.78rem] text-[rgba(240,237,230,0.42)]">
-                    We&apos;ll send you to Paystack to complete the one-time payment securely.
-                  </p>
-                </div>
-              )}
+            <div className="rounded-[12px] border border-[rgba(255,184,77,0.18)] bg-[rgba(10,10,10,0.18)] p-4">
+              <p className="text-[0.84rem] font-semibold text-[#F0EDE6]">
+                Paid-event checkout is temporarily unavailable.
+              </p>
+              <p className="mt-2 text-[0.78rem] leading-7 text-[rgba(240,237,230,0.62)]">
+                We are still working on the live payment setup. To avoid failed payments or confusion, paid registrations are paused for now.
+              </p>
             </div>
           </div>
         )}
@@ -1037,7 +949,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         className={`w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${(loading || deadlineExpired) ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
         disabled={loading || deadlineExpired}
       >
-        {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : event.isPaid ? "Proceed to payment" : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
+        {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : event.isPaid ? "Paid registration paused" : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
       </button>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
       </form>

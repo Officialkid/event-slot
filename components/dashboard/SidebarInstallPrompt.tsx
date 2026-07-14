@@ -3,8 +3,6 @@
 import { useState } from "react"
 import { usePWAInstall } from "@/hooks/usePWAInstall"
 
-const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.alphatech.eventslot"
-
 type SidebarInstallPromptProps = {
   collapsed?: boolean
 }
@@ -28,27 +26,25 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
   }
 
   const ctaLabel =
-    method === "play-store"
-      ? "Get the app"
-      : method === "ios-manual"
+    method === "ios-manual" || method === "android-manual"
         ? "How to install"
         : "Install now"
 
   const helperText =
-    method === "play-store"
-      ? "Install EventSlot on your phone for faster access and all-time updates."
-      : method === "ios-manual"
+    method === "ios-manual"
         ? "Add EventSlot to your Home Screen so updates and access stay close."
+        : method === "android-manual"
+          ? "Use your browser menu to install EventSlot directly to your device as a web app."
         : "Install EventSlot for faster access, app-like speed, and easier event updates."
 
   async function handleInstallClick() {
-    if (method === "play-store") {
-      window.open(PLAY_STORE_URL, "_blank", "noopener,noreferrer")
+    if (method === "ios-manual") {
+      setShowIosTip((current) => !current)
       return
     }
 
-    if (method === "ios-manual") {
-      setShowIosTip((current) => !current)
+    if (method === "android-manual") {
+      window.alert("On Android, open your browser menu and tap Install app or Add to Home Screen to install the EventSlot PWA.")
       return
     }
 
