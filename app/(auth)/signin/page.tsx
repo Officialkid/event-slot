@@ -105,8 +105,13 @@ function SignInForm() {
         return
       }
 
+      if (result?.error === 'ACCOUNT_LOCKED') {
+        setError('This sign-in is temporarily locked after repeated failed attempts. Reset your password or wait 15 minutes before trying again.')
+        return
+      }
+
       if (result?.status === 429) {
-        setError('Too many login attempts. Please wait 10 minutes before trying again.')
+        setError('Too many login attempts from this network. Please wait 1 minute before trying again.')
         return
       }
 
@@ -190,6 +195,18 @@ function SignInForm() {
           }}
         >
           Sign in to manage your events.
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--font-dm-sans)',
+            fontWeight: 300,
+            fontSize: '0.78rem',
+            color: 'rgba(240,237,230,0.4)',
+            margin: '-0.85rem 0 1.5rem',
+            lineHeight: 1.55,
+          }}
+        >
+          To protect accounts, repeated failed sign-ins trigger slowdowns and a temporary lock.
         </p>
 
         <button

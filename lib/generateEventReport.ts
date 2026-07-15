@@ -17,6 +17,7 @@ import {
   PageBreak,
   ImageRun,
   SimpleField,
+  TableOfContents,
 } from 'docx'
 import { format } from 'date-fns'
 import { AIReportContent, generateAIReportContent } from './generateAIReportContent'
@@ -116,6 +117,8 @@ type ActionItem = {
   owner: 'Organiser' | 'EventSlot platform'
   timeframe: string
 }
+
+type ReportChild = Paragraph | Table | TableOfContents
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -356,19 +359,42 @@ function buildMetadataTable(event: IEvent): Table {
   })
 }
 
-function buildEventReportHeader(event: IEvent): (Paragraph | Table)[] {
+function buildEventReportHeader(event: IEvent, palette: { banner: string; accent: string; sub: string }): ReportChild[] {
   return [
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Event', bold: true, size: 36, color: '000000', font: 'Arial' }),
-        new TextRun({ text: 'Slot', bold: true, size: 36, color: 'C8F55A', font: 'Arial' }),
+    new Table({
+      width: { size: TABLE_WIDTH, type: WidthType.DXA },
+      borders: noBorder(),
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: TABLE_WIDTH, type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
+              margins: { top: 320, bottom: 320, left: 260, right: 260 },
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: 'Event', bold: true, size: 36, color: 'FFFFFF', font: 'Arial' }),
+                    new TextRun({ text: 'Slot', bold: true, size: 36, color: palette.accent, font: 'Arial' }),
+                  ],
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: 'Event intelligence report',
+                      size: 18,
+                      color: 'D7D7D7',
+                      allCaps: true,
+                      font: 'Arial',
+                    }),
+                  ],
+                  spacing: { before: 70 },
+                }),
+              ],
+            }),
+          ],
+        }),
       ],
-      spacing: { before: 0, after: 120 },
-    }),
-    new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: 'C8F55A' } },
-      spacing: { after: 120 },
-      children: [new TextRun('')],
     }),
     new Paragraph({
       children: [
@@ -385,14 +411,13 @@ function buildEventReportHeader(event: IEvent): (Paragraph | Table)[] {
     new Paragraph({
       children: [
         new TextRun({
-          text: 'EVENT INTELLIGENCE REPORT',
+          text: 'Prepared for the event owner and authorised stakeholders.',
           size: 20,
-          color: '888888',
-          allCaps: true,
+          color: '666666',
           font: 'Arial',
         }),
       ],
-      spacing: { after: 200 },
+      spacing: { after: 120 },
     }),
     buildMetadataTable(event),
     new Paragraph({
@@ -406,8 +431,34 @@ function buildEventReportHeader(event: IEvent): (Paragraph | Table)[] {
           font: 'Arial',
         }),
       ],
-      border: { left: { style: BorderStyle.SINGLE, size: 8, color: 'C8F55A', space: 140 } },
+      border: { left: { style: BorderStyle.SINGLE, size: 8, color: palette.accent, space: 140 } },
       indent: { left: 280 },
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ]
+}
+
+function buildTableOfContentsPage(): ReportChild[] {
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({ text: 'Table of Contents', font: 'Arial', bold: true, size: 32 })],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Open this file in Microsoft Word or another compatible editor and update the table if prompted to refresh page numbers.',
+          font: 'Arial',
+          size: 19,
+          color: '666666',
+        }),
+      ],
+      spacing: { after: 180 },
+    }),
+    new TableOfContents('Contents', {
+      hyperlink: true,
+      headingStyleRange: '1-2',
+      useAppliedParagraphOutlineLevel: true,
     }),
     new Paragraph({ children: [new PageBreak()] }),
   ]
@@ -1843,7 +1894,8 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
         },
         footers: { default: makeFooter(event.title) },
         children: [
-          ...buildEventReportHeader(event),
+          ...buildEventReportHeader(event, palette),
+          ...buildTableOfContentsPage(),
           ...summarySections,
           ...commercialSections,
           ...aiInsightsPage(aiContent, palette, data),

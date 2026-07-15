@@ -46,8 +46,8 @@ async function POST(req: NextRequest, context: { params: Promise<{ nextauth: str
     const { success } = await loginRatelimit.limit(ip)
     if (!success) {
       return new Response(
-        JSON.stringify({ error: 'Too many login attempts. Please try again in 10 minutes.' }),
-        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '600' } }
+        JSON.stringify({ error: 'Too many login attempts. Please try again in 1 minute.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
       )
     }
   }

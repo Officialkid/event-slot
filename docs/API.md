@@ -178,9 +178,9 @@ Ask a natural language question about event data.
 ### GET /api/events/[slug]/report
 Download Word report (.docx) for an event.  
 **Auth:** Session ownership OR `?token=` dashboard token  
-**Query:** `?ai=true` to request AI-narrative version  
-**Plan/credits check:** Standard report (100 credits or Pro/Business), AI version (150 credits or Pro/Business)  
-**Returns:** Binary .docx file
+**Modes:** `?mode=preview` for browser preview, `?mode=download` for file download  
+**Billing check:** Download mode consumes paid report-download balance unless the requester is a super admin  
+**Returns:** Binary `.docx` file with branded cover page, clickable table of contents, analytics sections, attendee tables, and AI narrative content
 
 ### GET /api/events/[slug]/export
 Download CSV of all confirmed registrations.  

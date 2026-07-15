@@ -30,7 +30,8 @@ const sections: Array<{
       "Authentication information: account data from Google Sign-In when selected by the user.",
       "Event information: event details created by organizers (title, date, location, capacity, settings).",
       "Registration information: attendee-provided registration details and form responses.",
-      "Usage and security information: activity logs, abuse-prevention signals, and technical metadata.",
+      "Usage and security information: activity logs, abuse-prevention signals, rate-limit records, temporary lockout state, and technical metadata.",
+      "Country and regional information: sign-up country, login/request-derived country signals, and related analytics used for aggregate growth reporting.",
       "Billing/token information: transaction references and balance data. We do not store card numbers.",
     ],
   },
@@ -44,6 +45,7 @@ const sections: Array<{
       "Operate referral, community, badge, and token features.",
       "Improve product reliability, user experience, and support quality.",
       "Detect fraud, abuse, and unauthorized access.",
+      "Measure regional growth trends and aggregate user distribution by country.",
       "Meet legal, operational, and accounting obligations.",
     ],
   },
@@ -67,6 +69,7 @@ const sections: Array<{
       "Google Authentication support.",
       "Verified email workflows for account and security communication.",
       "Authentication checks and rate limiting on sensitive endpoints.",
+      "Sign-in slowdowns and temporary account lockouts after repeated failed credential attempts.",
     ],
   },
   {
@@ -79,6 +82,7 @@ const sections: Array<{
       "Email delivery providers",
       "Managed database and storage providers",
       "Payment processors",
+      "Managed security and rate-limiting providers",
     ],
   },
   {
@@ -96,6 +100,7 @@ const sections: Array<{
     title: "Email Communications and Consent",
     paragraphs: [
       "By creating an account, users agree that EventSlot may occasionally send important platform updates, feature announcements, security notifications, event-related communications, and major upgrade notices.",
+      "Attendee registration forms may also require an explicit event-level data-processing consent checkbox before submission, especially where organisers need a clear record of consent for event operations.",
       "We keep communication relevant and limited. Users can unsubscribe from non-essential emails at any time.",
     ],
   },
@@ -114,6 +119,7 @@ const sections: Array<{
     title: "Data Retention",
     paragraphs: [
       "We retain data for as long as necessary to provide services, maintain security, and satisfy legal obligations.",
+      "Security records such as login-attempt counters, temporary lockouts, and abuse-prevention logs may be retained for fraud prevention and incident response.",
       "Retention controls may be updated over time as EventSlot evolves.",
     ],
   },
@@ -151,7 +157,7 @@ export default function PrivacyPage() {
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="mb-10">
           <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Privacy Policy</h1>
-          <p className="text-sm text-text-muted">Last updated: May 2026</p>
+          <p className="text-sm text-text-muted">Last updated: July 2026</p>
         </header>
 
         <p className="mb-8 text-sm leading-relaxed text-text-secondary">

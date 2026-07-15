@@ -186,7 +186,7 @@ The active design tokens are defined in `app/globals.css`.
 | AI insights | `/dashboard/insights` and event-level API | Live |
 | QR code export | `/dashboard/events/[slug]` | Live |
 | CSV export | `/dashboard/events/[slug]` | Live |
-| Report preview and paid DOCX download | `/dashboard/events/[slug]` and `/dashboard/billing` | Live |
+| Report preview and paid DOCX download | `/dashboard/events/[slug]` and `/dashboard/billing` | Live — branded cover, TOC, analytics, attendee sections |
 | Billing and download balance | `/dashboard/billing` | Live |
 | Notifications inbox | `/dashboard/notifications` | Live |
 | Team management | `/dashboard/team` | Live |
@@ -439,6 +439,13 @@ Operationally, the current product stance is:
 | Email/password | NextAuth credentials provider backed by hashed passwords |
 | Session strategy | JWT session via NextAuth |
 
+### Login Abuse Controls
+
+- IP-based login rate limiting is enforced before the credentials callback.
+- Repeated failed email/password attempts trigger progressive sign-in slowdowns.
+- After 5 failed attempts for the same email identifier, EventSlot applies a temporary 15-minute lockout.
+- Successful login clears the accumulated failure state for that identifier.
+
 ### Session Enrichment
 
 The session callback adds:
@@ -491,7 +498,7 @@ The session callback adds:
 | Workflow | `.github/workflows/deploy.yml` |
 | Database secrets | Cloud Run secret bindings |
 | Public asset host | Cloudflare R2 |
-| Rate limiting backend | Upstash Redis when configured, in-memory fallback otherwise |
+| Rate limiting backend | Upstash Redis when configured, in-memory fallback otherwise; Redis failure now falls back to bounded in-memory throttling instead of failing open |
 
 ### Config Notes
 
@@ -509,10 +516,12 @@ This section documents the current code-level privacy posture. It should not be 
 | Requirement Area | Current Repo Status | Notes |
 |---|---|---|
 | Registration consent capture | Implemented | `Registration` stores `consentTransactional` and `consentMarketing` |
+| Required attendee data-processing consent | Implemented | Public registration form now blocks submission until the attendee accepts the organiser data-processing consent checkbox |
 | Public privacy notice | Implemented | `/privacy` is public |
 | Terms access | Implemented | `/terms` is public |
 | Account deletion | Implemented | `DELETE /api/profile` |
 | Retention cleanup | Implemented | `/api/cron/expire-data` exists |
+| Abuse-prevention controls | Implemented | Sign-in throttling, temporary lockouts, and endpoint rate limits |
 | Self-service personal data export | Partial / not exposed as dedicated current route | No current equivalent to the older `data-export` draft endpoint |
 | Formal audit log model | Partial | Current operational history is distributed across notifications, messages, error logs, and admin views; there is no dedicated `AuditLog` model in the active schema |
 

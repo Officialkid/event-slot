@@ -41,9 +41,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { eventSlug, attendees, consentTransactional, consentMarketing, forceDuplicate, source, refCode, utmSource } = body as {
+    const { eventSlug, attendees, consentDataProcessing, consentTransactional, consentMarketing, forceDuplicate, source, refCode, utmSource } = body as {
       eventSlug: string
       attendees: AttendeePayload[]
+      consentDataProcessing?: boolean
       consentTransactional?: boolean
       consentMarketing?: boolean
       forceDuplicate?: boolean
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
 
     if (!eventSlug || !Array.isArray(attendees) || attendees.length === 0) {
       return NextResponse.json({ success: false, error: 'Missing eventSlug or attendees' }, { status: 400 })
+    }
+    if (!consentDataProcessing) {
+      return NextResponse.json({ success: false, error: 'You must consent to data processing before registering.' }, { status: 400 })
     }
     if (attendees.length > 20) {
       return NextResponse.json({ success: false, error: 'Maximum 20 attendees per submission' }, { status: 400 })
@@ -225,6 +229,7 @@ export async function POST(req: NextRequest) {
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              consentDataProcessing: true,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
@@ -258,6 +263,7 @@ export async function POST(req: NextRequest) {
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              consentDataProcessing: true,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,

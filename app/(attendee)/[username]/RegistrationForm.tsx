@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
-import { TierBadge } from "@/components/TierBadge"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 
 type EventQuestion = {
@@ -144,6 +144,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
   const [error, setError] = useState("")
+  const [consentDataProcessing, setConsentDataProcessing] = useState(false)
   const [consentTransactional, setConsentTransactional] = useState(false)
   const [consentMarketing, setConsentMarketing] = useState(false)
   // Duplicate detection
@@ -159,9 +160,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [registrationSource, setRegistrationSource] = useState<string>("unknown")
   const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
   const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)
-  const [selectedTierId, setSelectedTierId] = useState<string>(event.ticketTiers?.[0]?.id ?? "")
-  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa")
-  const [mpesaPhone, setMpesaPhone] = useState("")
+  const [selectedTierId] = useState<string>(event.ticketTiers?.[0]?.id ?? "")
+  const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
+  const [mpesaPhone] = useState("")
   const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
   const [paymentPolling, setPaymentPolling] = useState(false)
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
@@ -285,6 +286,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       setError("Registration has closed.")
       return
     }
+    if (!consentDataProcessing) {
+      setError("Please confirm the data-processing consent before submitting.")
+      return
+    }
 
     // Client-side required field validation
     for (let i = 0; i < attendees.length; i++) {
@@ -321,6 +326,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             eventSlug: event.slug,
             ticketTierId: selectedTierId,
             attendee: attendeesPayload[0],
+            consentDataProcessing,
             consentTransactional,
             consentMarketing,
             paymentMethod,
@@ -348,6 +354,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           body: JSON.stringify({
             eventSlug: event.slug,
             attendees: attendeesPayload,
+            consentDataProcessing,
             consentTransactional,
             consentMarketing,
             source: registrationSource,
@@ -368,6 +375,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           setPendingPayload({
             eventSlug: event.slug,
             attendeesPayload,
+            consentDataProcessing,
             consentTransactional,
             consentMarketing,
             source: registrationSource,
@@ -688,10 +696,73 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="w-full rounded-[16px] border border-[rgba(240,237,230,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] p-5 sm:p-7 space-y-6 shadow-[0_16px_36px_rgba(0,0,0,0.25)] backdrop-blur-sm">
-        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-          Registration form
-        </p>
+      <form onSubmit={handleSubmit} className="w-full overflow-hidden rounded-[18px] border border-[rgba(240,237,230,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.01)_100%)] shadow-[0_16px_36px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+        {event.imageUrl && (
+          <div className="border-b border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] px-4 pt-4 sm:px-6 sm:pt-6">
+            <div className="mx-auto max-w-[320px] overflow-hidden rounded-[14px] border border-[rgba(240,237,230,0.12)] bg-[#FFFFFF] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+              <div className="relative h-[180px] w-full overflow-hidden rounded-[10px]">
+                <Image
+                  src={event.imageUrl}
+                  alt={`${event.title} event visual`}
+                  fill
+                  sizes="320px"
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="h-3 w-full bg-[linear-gradient(90deg,rgba(200,245,90,0.92)_0%,rgba(200,245,90,0.28)_50%,rgba(200,245,90,0.08)_100%)]" />
+
+        <div className="space-y-6 p-5 sm:p-7">
+          <div className="space-y-4">
+            <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              Registration form
+            </p>
+            <div className="space-y-3">
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.65rem,4vw,2.3rem)", color: "#F0EDE6", lineHeight: 1.12, margin: 0 }}>
+                {event.title}
+              </h2>
+              {event.description && (
+                <p style={{ fontSize: "1rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.75, margin: 0 }}>
+                  {event.description}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {event.eventDate && (
+                <div className="rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.45)]">Date</p>
+                  <p className="m-0 text-[0.96rem] text-[#F0EDE6]">{new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                </div>
+              )}
+              {event.location && (
+                <div className="rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.45)]">Location</p>
+                  <p className="m-0 text-[0.96rem] text-[#F0EDE6]">{event.location}</p>
+                </div>
+              )}
+              <div className="rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+                <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.45)]">Entry</p>
+                <p className="m-0 text-[0.96rem] text-[#F0EDE6]">{event.isPaid ? "Paid event" : "Free"}</p>
+              </div>
+              {event.organizerName && (
+                <div className="rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em] text-[rgba(240,237,230,0.45)]">Hosted by</p>
+                  <p className="m-0 text-[0.96rem] text-[#F0EDE6]">{event.organizerName}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-3">
+              <p className="m-0 text-[0.92rem] leading-7 text-[rgba(240,237,230,0.72)]">
+                Kindly fill in your details below to secure your spot.
+              </p>
+            </div>
+          </div>
 
         {event.isPaid && (
           <div className="space-y-4 rounded-[12px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
@@ -874,74 +945,113 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       ))}
 
-      {/* Consent checkboxes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.25rem" }}>
-        {/* Checkbox 1 — Optional */}
-        <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
-          <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
-            <input
-              type="checkbox"
-              checked={consentTransactional}
-              onChange={e => setConsentTransactional(e.target.checked)}
-              style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
-            />
-            <span style={{
-              display: "block",
-              width: 16,
-              height: 16,
-              borderRadius: 3,
-              border: consentTransactional ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
-              background: consentTransactional ? "#C8F55A" : "transparent",
-              flexShrink: 0,
-              transition: "background 0.15s, border 0.15s",
-            }}>
-              {consentTransactional && (
-                <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
-                  <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </span>
-          </span>
-          <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
-            I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Optional)
-          </span>
-        </label>
+      <div className="rounded-[14px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.025)] p-4 sm:p-5">
+        <div className="mb-4">
+          <p className="m-0 text-[1rem] font-semibold text-[#F0EDE6]">Consent for Data Processing</p>
+          <p className="mt-2 text-[0.92rem] leading-8 text-[rgba(240,237,230,0.72)]">
+            Do you consent to {event.organizerName ?? "the organiser"} collecting and using your personal information for registration, event communication, attendee coordination, and event-day planning purposes?
+          </p>
+        </div>
 
-        {/* Checkbox 2 — Optional */}
-        <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
-          <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
-            <input
-              type="checkbox"
-              checked={consentMarketing}
-              onChange={e => setConsentMarketing(e.target.checked)}
-              style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
-            />
-            <span style={{
-              display: "block",
-              width: 16,
-              height: 16,
-              borderRadius: 3,
-              border: consentMarketing ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
-              background: consentMarketing ? "#C8F55A" : "transparent",
-              flexShrink: 0,
-              transition: "background 0.15s, border 0.15s",
-            }}>
-              {consentMarketing && (
-                <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
-                  <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+          <label style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", cursor: "pointer" }}>
+            <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
+              <input
+                type="checkbox"
+                checked={consentDataProcessing}
+                onChange={e => setConsentDataProcessing(e.target.checked)}
+                style={{ position: "absolute", opacity: 0, width: 18, height: 18, margin: 0, cursor: "pointer" }}
+              />
+              <span style={{
+                display: "block",
+                width: 18,
+                height: 18,
+                borderRadius: 4,
+                border: consentDataProcessing ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.22)",
+                background: consentDataProcessing ? "#C8F55A" : "transparent",
+                transition: "background 0.15s, border 0.15s",
+              }}>
+                {consentDataProcessing && (
+                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "5px auto 0" }}>
+                    <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </span>
             </span>
-          </span>
-          <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
-            I would like to hear about future events from this organiser. (Optional)
-          </span>
-        </label>
+            <span style={{ fontSize: "0.9rem", color: "rgba(240,237,230,0.82)", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
+              I consent to my data being collected and used for event registration, communication, and event planning purposes.
+              <span className="ml-1 text-[#C8F55A]">*</span>
+            </span>
+          </label>
 
-        {/* Privacy note */}
-        <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", lineHeight: 1.5, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
-          Your data is protected under Kenya&apos;s Data Protection Act 2019. We never sell your information.
-        </p>
+          <div style={{ height: 1, background: "rgba(240,237,230,0.08)" }} />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.1rem" }}>
+            <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
+              <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
+                <input
+                  type="checkbox"
+                  checked={consentTransactional}
+                  onChange={e => setConsentTransactional(e.target.checked)}
+                  style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
+                />
+                <span style={{
+                  display: "block",
+                  width: 16,
+                  height: 16,
+                  borderRadius: 3,
+                  border: consentTransactional ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
+                  background: consentTransactional ? "#C8F55A" : "transparent",
+                  flexShrink: 0,
+                  transition: "background 0.15s, border 0.15s",
+                }}>
+                  {consentTransactional && (
+                    <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
+                      <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+              </span>
+              <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.6)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+                I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Optional)
+              </span>
+            </label>
+
+            <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
+              <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
+                <input
+                  type="checkbox"
+                  checked={consentMarketing}
+                  onChange={e => setConsentMarketing(e.target.checked)}
+                  style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
+                />
+                <span style={{
+                  display: "block",
+                  width: 16,
+                  height: 16,
+                  borderRadius: 3,
+                  border: consentMarketing ? "1.5px solid #C8F55A" : "1.5px solid rgba(240,237,230,0.2)",
+                  background: consentMarketing ? "#C8F55A" : "transparent",
+                  flexShrink: 0,
+                  transition: "background 0.15s, border 0.15s",
+                }}>
+                  {consentMarketing && (
+                    <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
+                      <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+              </span>
+              <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+                I would like to hear about future events from this organiser. (Optional)
+              </span>
+            </label>
+
+            <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", lineHeight: 1.5, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
+              Your data is protected under Kenya&apos;s Data Protection Act 2019. We never sell your information.
+            </p>
+          </div>
+        </div>
       </div>
 
       <button
@@ -951,7 +1061,16 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       >
         {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : event.isPaid ? "Paid registration paused" : attendees.length > 1 ? `Register ${attendees.length} attendees` : "Register"}
       </button>
+      <div className="flex flex-col gap-2 text-center">
+        <p className="m-0 text-[0.76rem] text-[rgba(240,237,230,0.34)]">
+          Never submit passwords or sensitive financial credentials through this form.
+        </p>
+        <p className="m-0 text-[0.76rem] leading-6 text-[rgba(240,237,230,0.28)]">
+          By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Terms of Service</a>.
+        </p>
+      </div>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
+        </div>
       </form>
       {showBranding && <BrandingFooter />}
     </div>

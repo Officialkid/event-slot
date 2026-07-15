@@ -20,6 +20,7 @@ type Limiter = { limit: (key: string) => Promise<LimitResult> }
 
 function makeUpstashLimiter(maxRequests: number, windowSeconds: number): Limiter {
   // Dynamic import keeps the build from failing when env vars are absent
+  const memoryFallback = makeMemoryLimiter(maxRequests, windowSeconds * 1000)
   const limiterPromise = import('@upstash/ratelimit').then(({ Ratelimit }) =>
     import('@upstash/redis').then(({ Redis }) => {
       const redis = new Redis({ url: upstashUrl!, token: upstashToken! })
@@ -43,9 +44,9 @@ function makeUpstashLimiter(maxRequests: number, windowSeconds: number): Limiter
           reset: result.reset,
         }
       } catch {
-        // If Redis is unavailable, fail open (allow the request) to avoid blocking
-        // legitimate traffic. Log errors are intentionally silent here.
-        return { success: true, limit: maxRequests, remaining: maxRequests, reset: Date.now() + windowSeconds * 1000 }
+        // If Redis is unavailable, fall back to an in-memory limiter instead of
+        // allowing unlimited traffic through sensitive endpoints.
+        return memoryFallback.limit(key)
       }
     },
   }
@@ -88,8 +89,8 @@ export const ratelimit = makeLimiter(20, 60)
 /** Signup: 5 attempts / hr per IP */
 export const signupRatelimit = makeLimiter(5, 3600)
 
-/** Login: 5 attempts / 10 min per IP */
-export const loginRatelimit = makeLimiter(5, 600)
+/** Login: 5 attempts / min per IP */
+export const loginRatelimit = makeLimiter(5, 60)
 
 /** Attendance lookup: 5 req / 10 min per IP */
 export const attendanceLookupRatelimit = makeLimiter(5, 600)

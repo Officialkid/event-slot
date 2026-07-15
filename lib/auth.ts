@@ -11,6 +11,12 @@ import { checkAndAwardPioneerBadge } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { issueOtpForEmail, normalizeEmailForOtp, verifyOtpForEmail } from '@/lib/emailOtp'
 import { normalizePlanKey } from '@/lib/effectivePlanPolicy'
+import {
+  clearFailedLoginAttempts,
+  getLoginSecuritySnapshot,
+  recordFailedLoginAttempt,
+  waitForLoginBackoff,
+} from '@/lib/authSecurity'
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
@@ -74,13 +80,23 @@ providers.push(
       if (!credentials?.email || !credentials?.password) return null
 
       const normalizedEmail = normalizeEmailForOtp(credentials.email)
+      const security = await getLoginSecuritySnapshot(normalizedEmail)
+      if (security.lockedUntil && security.lockedUntil.getTime() > Date.now()) {
+        throw new Error('ACCOUNT_LOCKED')
+      }
+
       const user = await prisma.user.findFirst({
         where: {
           email: { equals: normalizedEmail, mode: 'insensitive' },
         },
       })
 
-      if (!user) return null
+      if (!user) {
+        const failed = await recordFailedLoginAttempt(normalizedEmail)
+        await waitForLoginBackoff(failed.failedAttempts)
+        if (failed.lockedUntil) throw new Error('ACCOUNT_LOCKED')
+        return null
+      }
       if (user.suspended) {
         throw new Error('ACCOUNT_SUSPENDED')
       }
@@ -89,7 +105,14 @@ providers.push(
       }
 
       const valid = await bcrypt.compare(credentials.password, user.password)
-      if (!valid) return null
+      if (!valid) {
+        const failed = await recordFailedLoginAttempt(normalizedEmail)
+        await waitForLoginBackoff(failed.failedAttempts)
+        if (failed.lockedUntil) throw new Error('ACCOUNT_LOCKED')
+        return null
+      }
+
+      await clearFailedLoginAttempts(normalizedEmail)
 
       const requiresOtp = !isLocalTestAccount(normalizedEmail) && Boolean(user.twoFactorEnabled || user.otpRequired)
       const submittedOtp = typeof credentials.otp === 'string' ? credentials.otp.trim() : ''

@@ -23,6 +23,7 @@ const withPWAConfig = withPWA({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
 
   // @react-pdf/renderer uses native Node.js modules that webpack cannot bundle.
   // Marking it as external causes Next.js to require() it at runtime instead.

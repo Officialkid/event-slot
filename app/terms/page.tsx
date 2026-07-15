@@ -26,6 +26,7 @@ const sections: Array<{
     paragraphs: [
       "By creating an account, you agree to our Privacy Policy and Terms & Conditions.",
       "If you do not agree, do not create an account or use the platform.",
+      "Where a registration or event workflow asks for explicit data-processing consent, you must provide that consent before the submission can be accepted.",
     ],
   },
   {
@@ -42,8 +43,8 @@ const sections: Array<{
     id: 4,
     title: "Authentication and Security",
     paragraphs: [
-      "EventSlot may use Google Authentication, secure hosting, verified emails, and protected infrastructure controls to improve security and trust.",
-      "No system is completely risk free, but we continuously improve safeguards as the platform grows.",
+      "EventSlot may use Google Authentication, secure hosting, verified emails, rate limiting, sign-in slowdowns, temporary account lockouts, and protected infrastructure controls to improve security and trust.",
+      "No system is completely risk free, but we continuously improve safeguards as the platform grows and may introduce additional verification steps where abuse patterns are detected.",
     ],
   },
   {
@@ -70,6 +71,7 @@ const sections: Array<{
       "Do not use EventSlot to spam, scam, or impersonate others.",
       "Do not attempt unauthorized access to data, systems, or accounts.",
       "Do not interfere with normal platform operation.",
+      "Do not automate abusive sign-in, scraping, scanning, or AI-usage activity intended to exhaust credits, traffic, or infrastructure.",
       "Do not use EventSlot for unlawful activity.",
     ],
   },
@@ -87,6 +89,7 @@ const sections: Array<{
     paragraphs: [
       "For paid events, EventSlot deducts a platform commission from each successful ticket payment based on the organiser's active plan.",
       "EventSlot's platform commission is non-refundable. If an organiser refunds an attendee for any reason, the refunded amount is deducted from the organiser's own net earnings and the commission remains retained by EventSlot.",
+      "EventSlot may temporarily disable, limit, or place billing and payment features into maintenance mode before full commercial rollout, including where test-mode processors or infrastructure approval steps are still being finalised.",
     ],
   },
   {
@@ -145,7 +148,7 @@ export default function TermsPage() {
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="mb-10">
           <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Terms &amp; Conditions</h1>
-          <p className="text-sm text-text-muted">Last updated: May 2026</p>
+          <p className="text-sm text-text-muted">Last updated: July 2026</p>
         </header>
 
         <div className="space-y-10">
