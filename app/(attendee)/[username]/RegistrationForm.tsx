@@ -120,6 +120,7 @@ type DuplicateInfo = {
 type PendingPayload = {
   eventSlug: string
   attendeesPayload: Array<{ answers: Array<{ questionId: string; value: string }>; baseEmail?: string }>
+  consentDataProcessing: boolean
   consentTransactional: boolean
   consentMarketing: boolean
   source: string
