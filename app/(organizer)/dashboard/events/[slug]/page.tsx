@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import CountdownTimer from "@/components/CountdownTimer"
-import ReportDownloadModal from "@/components/ReportDownloadModal"
 import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
@@ -238,7 +237,7 @@ type ReportPreviewData = {
   generatedAt?: string
   message?: string
   isSuperAdmin?: boolean
-  downloadsRemaining: number
+  downloadsRemaining: number | null
   requiresSignIn?: boolean
   downloadCostDownloads?: number
   downloadPriceKsh?: number
@@ -1410,8 +1409,6 @@ export default function EventDashboardPage() {
   const [reportLoadingText, setReportLoadingText] = useState('')
   const [reportProgress, setReportProgress] = useState(0)
   const [downloadingReport, setDownloadingReport] = useState(false)
-  const [showReportPaymentModal, setShowReportPaymentModal] = useState(false)
-  const [downloadBalance, setDownloadBalance] = useState<number | null>(null)
   const [reportCreditBalance, setReportCreditBalance] = useState(0)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [reportError, setReportError] = useState("")
@@ -1599,13 +1596,10 @@ export default function EventDashboardPage() {
     : ""
 
   const reportDescription = (() => {
-    if (isSuperAdmin) return "Preview and download are free for super admins."
     if (reportData?.requiresSignIn) {
       return "Preview is free. Download requires a signed-in organiser or team member."
     }
-    const downloadCount = reportData?.downloadCostDownloads ?? 1
-    const priceLabel = reportData?.downloadPriceKsh ? ` (KSh ${reportData.downloadPriceKsh})` : ""
-    return `Preview is free. Download uses ${downloadCount} paid report download${downloadCount === 1 ? "" : "s"}${priceLabel}.`
+    return "Generate a free event intelligence report with attendee details, event performance, and AI recommendations."
   })()
 
   const aiInsightsAccessNote = isSuperAdmin
@@ -1866,7 +1860,6 @@ export default function EventDashboardPage() {
       setReportProgress(100)
       setReportData(data)
       setIsSuperAdmin(Boolean(data.isSuperAdmin))
-      setDownloadBalance(typeof data.downloadsRemaining === 'number' ? data.downloadsRemaining : 0)
       setReportNotice(typeof data.accessNote === "string" ? data.accessNote : "")
     } catch {
       setReportError("Unable to prepare the report preview right now.")
@@ -1899,13 +1892,6 @@ export default function EventDashboardPage() {
       })
       const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
 
-      if (res.status === 402) {
-        const data = await res.json().catch(() => null)
-        setReportError(data?.message || "You need more paid report downloads before this report can be downloaded.")
-        setShowReportPaymentModal(true)
-        return
-      }
-
       if (res.status === 401) {
         const data = await res.json().catch(() => null)
         setReportError(data?.error || "Sign in again to download this report.")
@@ -1928,7 +1914,6 @@ export default function EventDashboardPage() {
       document.body.removeChild(a)
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
 
-      setDownloadBalance((prev) => (prev !== null ? Math.max(0, prev - 1) : prev))
       setReportNotice("Report download started.")
     } catch {
       setReportError("The report could not be downloaded right now.")
@@ -2146,7 +2131,6 @@ export default function EventDashboardPage() {
   if (!eventData) return null
 
   const isWalkInEvent = eventData.accessType === "WALK_IN"
-  const isFreePlan = (eventData.organizerPlan ?? "free").toLowerCase() === "free"
   const capacityDisplay = eventData.capacity === null ? "Unlimited" : eventData.capacity
   const slotsRemaining = eventData.capacity === null ? "Unlimited" : Math.max(0, eventData.capacity - eventData.confirmedCount)
   const hasRegistrations = confirmed.length + waitlist.length > 0
@@ -2354,13 +2338,6 @@ export default function EventDashboardPage() {
           capacity={eventData.capacity ?? null}
           onClose={() => setShowManualReg(false)}
           onSuccess={() => { fetchDashboard() }}
-        />
-      )}
-
-      {showReportPaymentModal && (
-        <ReportDownloadModal
-          currentBalance={reportCreditBalance}
-          onClose={() => setShowReportPaymentModal(false)}
         />
       )}
 
@@ -2799,32 +2776,20 @@ export default function EventDashboardPage() {
                 >
                   Download QR Code
                 </button>
-                {isFreePlan ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowReportPaymentModal(true)}
-                    style={{ background: "transparent", border: "0.5px solid rgba(124,198,255,0.22)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "#7CC6FF", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
-                  >
-                    Export Attendance Data (Locked)
-                  </button>
-                ) : (
-                  <>
-                    <select
-                      value={walkInExportFormat}
-                      onChange={(e) => setWalkInExportFormat(e.target.value === "xlsx" ? "xlsx" : "csv")}
-                      style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.48rem 0.6rem", color: themeTextSecondary, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      <option value="xlsx">XLSX</option>
-                      <option value="csv">CSV</option>
-                    </select>
-                    <a
-                      href={`/api/walkin/${slug}/export?format=${walkInExportFormat}`}
-                      style={{ background: "transparent", border: "0.5px solid rgba(124,198,255,0.22)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "#7CC6FF", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      Export Attendance Data
-                    </a>
-                  </>
-                )}
+                <select
+                  value={walkInExportFormat}
+                  onChange={(e) => setWalkInExportFormat(e.target.value === "xlsx" ? "xlsx" : "csv")}
+                  style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.48rem 0.6rem", color: themeTextSecondary, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  <option value="xlsx">XLSX</option>
+                  <option value="csv">CSV</option>
+                </select>
+                <a
+                  href={`/api/walkin/${slug}/export?format=${walkInExportFormat}`}
+                  style={{ background: "transparent", border: "0.5px solid rgba(124,198,255,0.22)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "#7CC6FF", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Export Attendance Data
+                </a>
               </div>
             </div>
           </div>
@@ -2894,7 +2859,7 @@ export default function EventDashboardPage() {
               }}
             />
 
-            {/* Report preview + paid download */}
+            {/* Report preview + free download */}
             <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
@@ -3043,13 +3008,8 @@ export default function EventDashboardPage() {
                       {!isSuperAdmin && (
                         <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
                           {reportData.requiresSignIn
-                            ? "Sign in first, then buy report downloads from billing to download this report."
-                            : `Download pricing: ${reportData.downloadCostDownloads ?? 1} paid report download${(reportData.downloadCostDownloads ?? 1) === 1 ? "" : "s"}${reportData.downloadPriceKsh ? ` (KSh ${reportData.downloadPriceKsh})` : ""}`}
-                        </p>
-                      )}
-                      {!isSuperAdmin && !reportData.requiresSignIn && downloadBalance !== null && (
-                        <p style={{ fontSize: "0.72rem", color: themeTextMuted, marginTop: "0.24rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
-                          Remaining paid report downloads on this account: {downloadBalance}
+                            ? "Sign in first to download this report."
+                            : "Free download is enabled while premium reporting is being introduced."}
                         </p>
                       )}
                     </div>
@@ -3615,7 +3575,7 @@ export default function EventDashboardPage() {
                           {insightsUnlockLoading ? "Generating..." : `Regenerate (${insightsRequiredCredits} credits)`}
                         </button>
                       ) : (
-                        <a href="/dashboard/billing#report-downloads" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy report downloads</a>
+                        <span style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>More AI credits coming soon</span>
                       )}
                     </div>
                   )}
@@ -3913,9 +3873,9 @@ export default function EventDashboardPage() {
                   <span style={{ fontSize: "1rem" }}>Locked</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: "0.82rem", fontWeight: 500, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A - 1 credit per question</p>
-                    <p style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
+                    <p style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>Extra AI questions are temporarily paused while premium access is being introduced.</p>
                   </div>
-                  <a href="/dashboard/billing#report-downloads" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy report downloads</a>
+                  <span style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>Coming soon</span>
                 </div>
               ) : (
                 <>

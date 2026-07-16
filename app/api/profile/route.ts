@@ -120,6 +120,18 @@ export async function DELETE() {
       // These relations are not guaranteed to cascade in every deployed schema.
       await tx.organizerFeedback.deleteMany({ where: { organizerId: user.id } })
       await tx.eventUnlock.deleteMany({ where: { userId: user.id } })
+      await tx.referral.deleteMany({
+        where: {
+          OR: [
+            { referrerId: user.id },
+            { referredUserId: user.id },
+          ],
+        },
+      })
+      await tx.message.updateMany({
+        where: { authorId: user.id },
+        data: { authorId: null },
+      })
 
       await tx.user.delete({ where: { id: user.id } })
     })

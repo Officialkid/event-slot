@@ -7,7 +7,6 @@ import { isAdminEmail } from '@/lib/isAdmin'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { reportDownloadRatelimit } from '@/lib/ratelimit'
 import { rateLimit } from '@/lib/rate-limit'
-import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 
 function extractDisplayNameFromEmail(email: string): string {
   const local = email.split('@')[0] || 'Organiser'
@@ -270,20 +269,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     if (mode === 'preview' || !mode) {
-      const downloadBalance = session?.user?.id
-        ? await prisma.reportDownload.findUnique({
-            where: { userId: session.user.id },
-            select: { downloadsRemaining: true },
-          })
-        : null
-
       const requiresSignIn = !session?.user?.id
-      const singleDownloadPrice = REPORT_DOWNLOAD_PRICING.single
-      const accessNote = isSuperAdmin
-        ? 'Super admin access: preview and download are free.'
-        : requiresSignIn
-          ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
-          : `Preview is ready. Each full report download uses 1 paid download slot (KSh ${singleDownloadPrice.amount}).`
+      const accessNote = requiresSignIn
+        ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
+        : 'Preview and download are free while EventSlot completes the premium report rollout.'
 
       return NextResponse.json({
         success: true,
@@ -302,10 +291,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         generatedAt: new Date().toISOString(),
         message: 'Your professional report is ready.',
         isSuperAdmin,
-        downloadsRemaining: downloadBalance?.downloadsRemaining ?? 0,
+        downloadsRemaining: null,
         requiresSignIn,
-        downloadCostDownloads: 1,
-        downloadPriceKsh: singleDownloadPrice.amount,
+        downloadCostDownloads: 0,
+        downloadPriceKsh: 0,
         accessNote,
       })
     }
@@ -323,55 +312,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 })
       }
 
-      const downloadAccess = isSuperAdmin
-        ? { allowed: true, remaining: Number.POSITIVE_INFINITY }
-        : await prisma.$transaction(async (tx) => {
-            const current = await tx.reportDownload.findUnique({
-              where: { userId: session.user.id },
-              select: { downloadsRemaining: true },
-            })
-
-            const remaining = current?.downloadsRemaining ?? 0
-            if (remaining <= 0) {
-              return { allowed: false, remaining }
-            }
-
-            await tx.reportDownload.update({
-              where: { userId: session.user.id },
-              data: { downloadsRemaining: { decrement: 1 } },
-            })
-
-            return { allowed: true, remaining: remaining - 1 }
-          })
-
-      if (!downloadAccess.allowed) {
-        const singleDownloadPrice = REPORT_DOWNLOAD_PRICING.single
-        return NextResponse.json({
-          error: 'INSUFFICIENT_DOWNLOADS',
-          message: `Downloading a full report costs 1 paid download slot (KSh ${singleDownloadPrice.amount}). Your current balance is ${downloadAccess.remaining}. Buy more report downloads to continue.`,
-          required: 1,
-          currentBalance: downloadAccess.remaining,
-        }, { status: 402 })
-      }
-
       const reportData = buildEventReportData(eventPayload, confirmed, waitlist, theme)
       let buffer: Buffer | ArrayBuffer
       try {
         buffer = await generateEventReport(reportData)
       } catch (error) {
-        if (!isSuperAdmin) {
-          await prisma.reportDownload.upsert({
-            where: { userId: session.user.id },
-            create: {
-              userId: session.user.id,
-              downloadsRemaining: 1,
-              totalPurchased: 0,
-            },
-            update: {
-              downloadsRemaining: { increment: 1 },
-            },
-          })
-        }
         throw error
       }
 

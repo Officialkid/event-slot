@@ -359,7 +359,7 @@ function buildMetadataTable(event: IEvent): Table {
   })
 }
 
-function buildEventReportHeader(event: IEvent, palette: { banner: string; accent: string; sub: string }): ReportChild[] {
+function buildEventReportHeader(event: IEvent & { organizerName?: string }, palette: { banner: string; accent: string; sub: string }): ReportChild[] {
   return [
     new Table({
       width: { size: TABLE_WIDTH, type: WidthType.DXA },
@@ -399,7 +399,7 @@ function buildEventReportHeader(event: IEvent, palette: { banner: string; accent
     new Paragraph({
       children: [
         new TextRun({
-          text: event.title,
+          text: `Report for ${event.title}`,
           bold: true,
           size: 44,
           color: '000000',
@@ -411,9 +411,31 @@ function buildEventReportHeader(event: IEvent, palette: { banner: string; accent
     new Paragraph({
       children: [
         new TextRun({
-          text: 'Prepared for the event owner and authorised stakeholders.',
+          text: `Generated on ${todayStr()} for ${event.organizerName ?? event.organizerEmail}.`,
           size: 20,
           color: '666666',
+          font: 'Arial',
+        }),
+      ],
+      spacing: { after: 60 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Event date: ${fmtLongDate(event.eventDate)} | Location: ${event.location || 'Not specified'}`,
+          size: 20,
+          color: '666666',
+          font: 'Arial',
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Prepared for the event owner and authorised stakeholders. This document summarises registrations, capacity, attendee signals, operational risks, and practical recommendations for improving the event.',
+          size: 20,
+          color: '333333',
           font: 'Arial',
         }),
       ],

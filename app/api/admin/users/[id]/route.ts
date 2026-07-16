@@ -180,6 +180,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
           ],
         },
       })
+      await tx.organizerFeedback.deleteMany({ where: { organizerId: params.id } })
+      await tx.eventUnlock.deleteMany({ where: { userId: params.id } })
+      await tx.message.updateMany({
+        where: { authorId: params.id },
+        data: { authorId: null },
+      })
 
       await tx.user.delete({ where: { id: params.id } })
     })

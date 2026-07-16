@@ -44,11 +44,20 @@ const TYPE_LABELS: Record<CampaignType, string> = {
   CUSTOM: 'Custom',
 }
 
+const emailSurface = 'var(--surface)'
+const emailSurfaceAlt = 'var(--surface-2)'
+const emailInput = 'var(--bg-input)'
+const emailBorder = '0.5px solid var(--border-subtle)'
+const emailTextPrimary = 'var(--text-primary)'
+const emailTextSecondary = 'var(--text-secondary)'
+const emailTextMuted = 'var(--text-muted)'
+const emailSoftAccent = 'color-mix(in srgb, var(--accent) 12%, transparent)'
+
 const STATUS_COLORS: Record<CampaignStatus, string> = {
   SENT: '#C8F55A',
-  SENDING: '#F0EDE6',
+  SENDING: 'var(--text-secondary)',
   FAILED: '#FF6B6B',
-  DRAFT: 'rgba(240,237,230,0.4)',
+  DRAFT: 'var(--text-muted)',
 }
 
 function extractResendVerificationDomain(message: string | null | undefined): string | null {
@@ -148,8 +157,8 @@ export default function EmailDashboardPage() {
   if (loading) {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '3rem 1rem' }}>
-        <div style={{ height: 20, width: '40%', borderRadius: 8, background: '#141414', animation: 'pulse 1.4s ease-in-out infinite', marginBottom: '1rem' }} />
-        <div style={{ height: 300, borderRadius: 12, background: '#141414', animation: 'pulse 1.4s ease-in-out infinite' }} />
+        <div style={{ height: 20, width: '40%', borderRadius: 8, background: emailSurfaceAlt, animation: 'pulse 1.4s ease-in-out infinite', marginBottom: '1rem' }} />
+        <div style={{ height: 300, borderRadius: 12, background: emailSurfaceAlt, animation: 'pulse 1.4s ease-in-out infinite' }} />
       </div>
     )
   }
@@ -159,7 +168,7 @@ export default function EmailDashboardPage() {
       {/* Back link */}
       <Link
         href={`/dashboard/events/${slug}`}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.78rem', color: 'rgba(240,237,230,0.35)', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none', marginBottom: '1.75rem' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.78rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none', marginBottom: '1.75rem' }}
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
           <path d="M8.5 2.5L4 7l4.5 4.5" />
@@ -169,10 +178,10 @@ export default function EmailDashboardPage() {
 
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontFamily: 'var(--font-instrument-serif)', fontSize: '1.6rem', fontWeight: 400, color: '#F0EDE6', margin: '0 0 0.35rem' }}>
+        <h1 style={{ fontFamily: 'var(--font-instrument-serif)', fontSize: '1.6rem', fontWeight: 400, color: emailTextPrimary, margin: '0 0 0.35rem' }}>
           Email Attendees
         </h1>
-        <p style={{ fontSize: '0.82rem', color: 'rgba(240,237,230,0.4)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
+        <p style={{ fontSize: '0.82rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
           {confirmedCount > 0
             ? `Send a message to all ${confirmedCount} confirmed attendee${confirmedCount === 1 ? '' : 's'} of ${eventTitle || 'this event'}`
             : `No confirmed attendees yet for ${eventTitle || 'this event'}`}
@@ -180,10 +189,10 @@ export default function EmailDashboardPage() {
       </div>
 
       {/* Compose card */}
-      <div style={{ background: '#141414', border: '0.5px solid rgba(240,237,230,0.08)', borderRadius: 14, padding: '1.5rem', marginBottom: '1.25rem' }}>
+      <div style={{ background: emailSurface, border: emailBorder, borderRadius: 14, padding: '1.5rem', marginBottom: '1.25rem' }}>
         {/* Template picker */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
             Compose
           </span>
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
@@ -192,12 +201,12 @@ export default function EmailDashboardPage() {
                 key={t}
                 onClick={() => applyTemplate(t)}
                 style={{
-                  background: type === t ? 'rgba(200,245,90,0.12)' : 'transparent',
-                  border: type === t ? '0.5px solid rgba(200,245,90,0.5)' : '0.5px solid rgba(240,237,230,0.12)',
+                  background: type === t ? emailSoftAccent : 'transparent',
+                  border: type === t ? '0.5px solid color-mix(in srgb, var(--accent) 55%, transparent)' : emailBorder,
                   borderRadius: 8,
                   padding: '0.3rem 0.7rem',
                   fontSize: '0.75rem',
-                  color: type === t ? '#C8F55A' : 'rgba(240,237,230,0.45)',
+                  color: type === t ? 'var(--accent)' : emailTextSecondary,
                   cursor: 'pointer',
                   fontFamily: 'var(--font-dm-sans)',
                   transition: 'all 0.15s',
@@ -217,12 +226,12 @@ export default function EmailDashboardPage() {
           placeholder="Subject line"
           style={{
             width: '100%',
-            background: '#0A0A0A',
-            border: '0.5px solid rgba(240,237,230,0.12)',
+            background: emailInput,
+            border: emailBorder,
             borderRadius: 8,
             padding: '0.65rem 0.875rem',
             fontSize: '0.875rem',
-            color: '#F0EDE6',
+            color: emailTextPrimary,
             fontFamily: 'var(--font-dm-sans)',
             outline: 'none',
             boxSizing: 'border-box',
@@ -238,12 +247,12 @@ export default function EmailDashboardPage() {
           rows={8}
           style={{
             width: '100%',
-            background: '#0A0A0A',
-            border: '0.5px solid rgba(240,237,230,0.12)',
+            background: emailInput,
+            border: emailBorder,
             borderRadius: 8,
             padding: '0.65rem 0.875rem',
             fontSize: '0.875rem',
-            color: '#F0EDE6',
+            color: emailTextPrimary,
             fontFamily: 'var(--font-dm-sans)',
             outline: 'none',
             resize: 'vertical',
@@ -260,11 +269,11 @@ export default function EmailDashboardPage() {
               onClick={() => setPreview((p) => !p)}
               style={{
                 background: 'transparent',
-                border: '0.5px solid rgba(240,237,230,0.15)',
+                border: emailBorder,
                 borderRadius: 8,
                 padding: '0.4rem 0.875rem',
                 fontSize: '0.78rem',
-                color: 'rgba(240,237,230,0.5)',
+                color: emailTextSecondary,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-dm-sans)',
               }}
@@ -278,21 +287,21 @@ export default function EmailDashboardPage() {
         {preview && (
           <div
             style={{
-              background: '#0A0A0A',
-              border: '0.5px solid rgba(240,237,230,0.1)',
+              background: emailSurfaceAlt,
+              border: emailBorder,
               borderRadius: 10,
               padding: '1.25rem',
               marginBottom: '0.75rem',
             }}
           >
-            <div style={{ fontSize: '0.7rem', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.5rem' }}>
+            <div style={{ fontSize: '0.7rem', letterSpacing: '0.07em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', marginBottom: '0.5rem' }}>
               Email preview (sample name: &quot;Attendee&quot;)
             </div>
-            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F0EDE6', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.35rem' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: emailTextPrimary, fontFamily: 'var(--font-dm-sans)', marginBottom: '0.35rem' }}>
               {subject.replace(/\{\{event\}\}/g, eventTitle || '[Event]').replace(/\{\{name\}\}/g, 'Attendee')}
             </div>
             <div
-              style={{ fontSize: '0.82rem', color: 'rgba(240,237,230,0.65)', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.75 }}
+              style={{ fontSize: '0.82rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.75 }}
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           </div>
@@ -300,9 +309,9 @@ export default function EmailDashboardPage() {
 
         {/* Tip + Send row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <p style={{ margin: 0, fontSize: '0.73rem', color: 'rgba(240,237,230,0.28)', fontFamily: 'var(--font-dm-sans)' }}>
-            Use <code style={{ background: 'rgba(240,237,230,0.06)', padding: '0 4px', borderRadius: 4 }}>{'{{name}}'}</code> and{' '}
-            <code style={{ background: 'rgba(240,237,230,0.06)', padding: '0 4px', borderRadius: 4 }}>{'{{event}}'}</code> to personalise
+          <p style={{ margin: 0, fontSize: '0.73rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
+            Use <code style={{ background: emailSurfaceAlt, padding: '0 4px', borderRadius: 4 }}>{'{{name}}'}</code> and{' '}
+            <code style={{ background: emailSurfaceAlt, padding: '0 4px', borderRadius: 4 }}>{'{{event}}'}</code> to personalise
           </p>
           <button
             onClick={handleSend}
@@ -343,18 +352,18 @@ export default function EmailDashboardPage() {
       </div>
 
       {/* Advanced features — Coming Up */}
-      <div style={{ background: 'rgba(240,237,230,0.02)', border: '0.5px solid rgba(240,237,230,0.06)', borderRadius: 14, padding: '1.25rem', marginBottom: '1.25rem', opacity: 0.6 }}>
+      <div style={{ background: emailSurface, border: emailBorder, borderRadius: 14, padding: '1.25rem', marginBottom: '1.25rem', opacity: 0.86 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
             Advanced Email Features
           </span>
-          <span style={{ background: 'rgba(240,237,230,0.07)', border: '0.5px solid rgba(240,237,230,0.12)', borderRadius: 100, padding: '0.15rem 0.6rem', fontSize: '0.65rem', color: 'rgba(240,237,230,0.35)', fontFamily: 'var(--font-dm-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <span style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 100, padding: '0.15rem 0.6rem', fontSize: '0.65rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Coming Up
           </span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
           {['Scheduled Sends', 'Segmented Lists', 'Open Rate Analytics'].map((f) => (
-            <div key={f} style={{ background: 'rgba(240,237,230,0.03)', border: '0.5px solid rgba(240,237,230,0.07)', borderRadius: 8, padding: '0.65rem', fontSize: '0.75rem', textAlign: 'center', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)' }}>
+            <div key={f} style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 8, padding: '0.65rem', fontSize: '0.75rem', textAlign: 'center', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)' }}>
               {f}
             </div>
           ))}
@@ -363,7 +372,7 @@ export default function EmailDashboardPage() {
 
       {/* Sent history */}
       <div>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)', marginBottom: '0.875rem' }}>
+        <div style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', marginBottom: '0.875rem' }}>
           Sent History
         </div>
         {failedVerificationDomain && (
@@ -372,7 +381,7 @@ export default function EmailDashboardPage() {
               <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)', fontWeight: 600 }}>
                 Email sending is paused for {failedVerificationDomain}.
               </p>
-              <p style={{ margin: 0, fontSize: '0.76rem', color: 'rgba(240,237,230,0.5)', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: '0.76rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
                 Verify the sender domain in Resend, then send the campaign again. Until that is done, organizer emails can keep failing even when the rest of the dashboard works.
               </p>
             </div>
@@ -387,7 +396,7 @@ export default function EmailDashboardPage() {
           </div>
         )}
         {campaigns.length === 0 ? (
-          <p style={{ fontSize: '0.82rem', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
+          <p style={{ fontSize: '0.82rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
             No emails sent yet for this event.
           </p>
         ) : (
@@ -398,8 +407,8 @@ export default function EmailDashboardPage() {
                 <div
                   key={c.id}
                   style={{
-                    background: '#141414',
-                    border: '0.5px solid rgba(240,237,230,0.07)',
+                    background: emailSurface,
+                    border: emailBorder,
                     borderRadius: 10,
                     padding: '0.875rem 1rem',
                     display: 'flex',
@@ -410,16 +419,16 @@ export default function EmailDashboardPage() {
                   }}
                 >
                 <div>
-                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.875rem', color: '#F0EDE6', fontFamily: 'var(--font-dm-sans)', fontWeight: 500 }}>
+                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.875rem', color: emailTextPrimary, fontFamily: 'var(--font-dm-sans)', fontWeight: 500 }}>
                     {c.subject}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.73rem', color: 'rgba(240,237,230,0.35)', fontFamily: 'var(--font-dm-sans)' }}>
+                  <p style={{ margin: 0, fontSize: '0.73rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
                     {new Date(c.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     {c.recipientCount != null && ` · ${c.recipientCount} recipient${c.recipientCount === 1 ? '' : 's'}`}
                     {' · '}<span style={{ textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.04em' }}>{TYPE_LABELS[c.type]}</span>
                   </p>
                   {c.status === 'FAILED' && c.failureReason && (
-                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: '#A3A3A3', fontFamily: 'var(--font-dm-sans)' }}>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.73rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)' }}>
                       {c.failureReason}
                     </p>
                   )}
@@ -432,7 +441,7 @@ export default function EmailDashboardPage() {
                         href='https://resend.com/domains'
                         target='_blank'
                         rel='noreferrer'
-                        style={{ fontSize: '0.72rem', color: '#C8F55A', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
+                        style={{ fontSize: '0.72rem', color: 'var(--accent)', fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
                       >
                         View domains
                       </a>
@@ -445,7 +454,7 @@ export default function EmailDashboardPage() {
                       ? 'rgba(200,245,90,0.1)'
                       : c.status === 'FAILED'
                         ? 'rgba(255,107,107,0.1)'
-                        : 'rgba(240,237,230,0.05)',
+                        : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
                     border: `0.5px solid ${STATUS_COLORS[c.status]}40`,
                     borderRadius: 100,
                     padding: '0.2rem 0.65rem',

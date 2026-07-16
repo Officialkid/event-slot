@@ -38,15 +38,9 @@ export async function GET(req: Request) {
         status: 'accepted',
       },
       select: {
-        ownerId: true,
-        _count: { select: { eventAccess: true } },
         eventAccess: { select: { eventId: true } },
       },
     })
-
-    const ownerIdsWithGlobalAccess = memberships
-      .filter((m) => m._count.eventAccess === 0)
-      .map((m) => m.ownerId)
 
     const explicitlyAssignedEventIds = memberships.flatMap((m) => m.eventAccess.map((ea) => ea.eventId))
 
@@ -54,7 +48,6 @@ export async function GET(req: Request) {
       OR: [
         { organizerId: userId },
         ...(email ? [{ organizerEmail: email }] : []),
-        ...(ownerIdsWithGlobalAccess.length > 0 ? [{ organizerId: { in: ownerIdsWithGlobalAccess } }] : []),
         ...(explicitlyAssignedEventIds.length > 0 ? [{ id: { in: explicitlyAssignedEventIds } }] : []),
       ],
     }

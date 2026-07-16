@@ -28,8 +28,6 @@ export async function hasTeamEventAccess({ userId, organizerId, eventId }: TeamA
 
   if (!membership) return false
 
-  // If no specific event assignments exist for this member, treat as full owner-team access.
-  if (membership._count.eventAccess === 0) return true
-
+  // Team members only access events explicitly assigned to them.
   return membership.eventAccess.length > 0
 }

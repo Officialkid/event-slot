@@ -4,7 +4,6 @@ import { useMemo, useState } from "react"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
-import { formatKes, formatUsd } from "@/lib/subscriptionBilling"
 import { getOneTimePassTiers, type OneTimePassTier } from "@/lib/oneTimePassCatalog"
 
 type Props = {
@@ -96,6 +95,40 @@ export function EventPassSelector({
     >
       <div
         style={{
+          border: "1px solid color-mix(in srgb, var(--accent) 26%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 8%, var(--surface) 92%)",
+          borderRadius: 14,
+          padding: "0.85rem 1rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div
+          style={{
+            color: "var(--accent)",
+            fontSize: "0.68rem",
+            fontWeight: 800,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            fontFamily: "var(--font-dm-sans)",
+            marginBottom: "0.28rem",
+          }}
+        >
+          Coming soon
+        </div>
+        <p
+          style={{
+            margin: 0,
+            color: "var(--text-secondary)",
+            fontSize: "0.8rem",
+            lineHeight: 1.55,
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Premium features are being introduced gradually. Soon, organisers will be able to unlock advanced tools for one specific event with a single event pass.
+        </p>
+      </div>
+      <div
+        style={{
           display: "flex",
           justifyContent: "space-between",
           gap: "1rem",
@@ -140,7 +173,7 @@ export function EventPassSelector({
             >
               Unlock premium tools for{" "}
               {eventTitle ? <strong style={{ color: "var(--text-primary)" }}>{eventTitle}</strong> : "one event"}{" "}
-              with a single event-only pass. Your account plan stays the same.
+              with a single event-only pass when this feature launches. Your account plan stays the same.
             </p>
           )}
         </div>
@@ -220,7 +253,7 @@ export function EventPassSelector({
                   whiteSpace: "nowrap",
                 }}
               >
-                {selectedOption ? formatKes(selectedOption.priceKes) : ""}
+                Coming soon
               </div>
             </div>
             <div
@@ -334,11 +367,11 @@ export function EventPassSelector({
                       </div>
                     </div>
                     <div style={{ color: selected ? "#C8F55A" : "var(--text-secondary)", fontSize: "0.82rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
-                      {formatKes(option.priceKes)}
+                      Coming soon
                     </div>
                   </div>
                   <div style={{ color: "var(--text-muted)", fontSize: "0.72rem", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
-                    {formatUsd(option.priceUsd)} one-time
+                    Premium pricing is not active yet.
                   </div>
                   <div style={{ color: "var(--text-secondary)", fontSize: "0.76rem", marginTop: "0.7rem", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
                     {option.features[0]}
@@ -351,7 +384,7 @@ export function EventPassSelector({
             })}
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
+          {billingEnabled ? <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
             {(["card", "mpesa"] as const).map((method) => {
               const activeMethod = paymentMethod === method
               return (
@@ -376,9 +409,9 @@ export function EventPassSelector({
                 </button>
               )
             })}
-          </div>
+          </div> : null}
 
-          {paymentMethod === "mpesa" ? (
+          {billingEnabled && paymentMethod === "mpesa" ? (
             <div style={{ marginBottom: "0.85rem" }}>
               <input
                 type="tel"
@@ -402,11 +435,11 @@ export function EventPassSelector({
                 We will send the payment prompt to this Safaricom line after you continue.
               </p>
             </div>
-          ) : (
+          ) : billingEnabled ? (
             <p style={{ margin: "0 0 0.85rem", color: "var(--text-secondary)", fontSize: "0.78rem", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
               Card checkout continues on our secure hosted payment page. Prepaid and postpaid cards are both supported by the hosted provider flow.
             </p>
-          )}
+          ) : null}
 
           {!billingEnabled ? (
             <div style={{ marginBottom: "0.85rem" }}>

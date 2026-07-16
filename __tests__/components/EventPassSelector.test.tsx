@@ -26,6 +26,7 @@ describe("EventPassSelector", () => {
     expect(screen.getByRole("button", { name: /hide details/i })).toBeInTheDocument()
     expect(screen.getByText("Standard Pass")).toBeInTheDocument()
     expect(screen.getByText("Business Pass")).toBeInTheDocument()
-    expect(screen.getByText(/continue using card/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/coming soon/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/continue using card/i)).not.toBeInTheDocument()
   })
 })
