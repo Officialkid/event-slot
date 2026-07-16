@@ -229,9 +229,9 @@ _Last updated: May 26, 2026_
 **Where:** `app/api/admin/comms/route.ts`, `app/admin/comms/page.tsx`  
 **What it does:** Adds robust super-admin checks and schema-drift-safe error responses for comms publishing. The page now handles error responses gracefully without client-side JSON parse crashes.
 
-### Resend Provider Readiness Requirement
+### Email Provider Readiness Requirement
 **Where:** `lib/email.ts`, `app/api/admin/broadcast/route.ts`, `app/api/admin/health/route.ts`  
-**What it does:** Email features depend on valid Resend configuration. Production email/broadcast flows require both `RESEND_API_KEY` and verified `RESEND_FROM`. Admin health reports provider configuration status, and broadcast route fails fast with a clear error when sender configuration is missing.
+**What it does:** Email features prefer SMTP via Nodemailer and can fall back to Resend while migration is in progress. Production email/broadcast flows require a verified sender configuration. Admin health reports provider configuration status, and broadcast routes fail fast with a clear error when sender configuration is missing.
 
 ## Documentation Platform
 
@@ -474,25 +474,17 @@ _Last updated: May 26, 2026_
 **Where:** `POST /api/billing/checkout`, `POST /api/billing/webhook`, admin user plan controls  
 **What it does:** Pro/Business subscriptions are disabled. Accounts are normalized to `free`, and paid access is handled only through report-download bundles.
 
-### Report Download Pricing
-**Where:** `lib/plans.ts`, `/dashboard/billing`  
-**What it does:** Report downloads are the only paid action. Packages are exposed through `REPORT_DOWNLOAD_PRICING` and displayed on the billing/downloads page.
-
-### Free Report Preview + Paid Word Download
+### Free Report Preview + Word Download During Premium Rollout
 **Where:** `GET /api/events/[slug]/report`, `/dashboard/events/[slug]` overview  
-**What it does:** Organizers can generate and read AI report content in the browser for free using `mode=preview`. Downloading a DOCX file uses `mode=download` and consumes one paid report download from the organizer balance.
+**What it does:** Organizers can generate and read AI report content in the browser for free using `mode=preview`. Downloading a DOCX file uses `mode=download` and is currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused.
 
-### Report Download Wallet + Transactions
+### Report Download Wallet + Transactions (Paused)
 **Where:** `prisma/schema.prisma` (`ReportDownload`, `ReportDownloadTransaction`), `POST /api/billing/report-downloads`, `GET /api/billing/verify`  
-**What it does:** Tracks purchased report download bundles and remaining download count per user. Purchases are recorded per unique payment reference and balances are incremented after payment verification.
+**What it does:** Legacy data structures remain in the schema for compatibility, but report-download purchases are not part of the active user flow while premium billing is paused.
 
-### Dedicated Report Download Payment Endpoints
+### Dedicated Report Download Payment Endpoints (Paused)
 **Where:** `POST /api/report-downloads/purchase`, `GET /api/report-downloads/verify`  
-**What it does:** Provides a report-specific purchase and verification flow that initializes Paystack transactions for report bundles and credits report download balances after successful verification.
-
-### Report Download Modal
-**Where:** `components/ReportDownloadModal.tsx`, `/dashboard/events/[slug]`  
-**What it does:** Shows report download bundle choices in a focused payment modal and redirects users to Paystack checkout for the selected package.
+**What it does:** Legacy endpoints exist for compatibility, but active UI should not direct normal users to buy report bundles until premium billing is launched.
 
 ### Team Member Safety Limit
 **Where:** `lib/plans.ts`, `POST /api/team/invite`  
@@ -504,9 +496,9 @@ _Last updated: May 26, 2026_
 **Where:** Event creation, registration, waitlist, analytics, insights, tracker, feedback, exports, team, duplicate, predictive capacity  
 **What it does:** All core product capabilities are available as **Free — no restrictions**.
 
-### Paid Action Scope
-**Where:** Report download purchase/verify flow and report DOCX download action  
-**What it does:** Payment applies only when downloading report files. Report generation and in-browser preview remain free.
+### Premium Rollout Scope
+**Where:** Billing surfaces, event-pass UI, report DOCX download action  
+**What it does:** Payment collection, report bundles, subscriptions, and one-time event-pass checkout are paused. Users should see coming-soon messaging instead of active checkout prompts.
 
 ---
 
@@ -542,10 +534,10 @@ organizer has 3+ completed past events.
 **Who:** Organizers and super admins  
 **What it does:** Generates structured consultant-style event analysis using Claude with strategic sections including event overview, strengths, weaknesses/risks, audience profile, registration behavior, competitive positioning, waitlist analysis, actionable recommendations, and overall score. The same content is embedded in downloadable Word reports. Includes deterministic data-driven fallback sections when AI providers are unavailable.
 
-### Super Admin Free Report Download
+### Free Report Download Rollout
 **Where:** `app/api/events/[slug]/report/route.ts`, organizer event dashboard report controls  
-**Who:** Super admins  
-**What it does:** Bypasses paid report-download gating for super admins server-side. Super admins can preview and download Word reports without consuming download bundles, while non-admin organizers retain standard payment-gated download behavior.
+**Who:** Organizers, assigned team members, and super admins  
+**What it does:** Report downloads are free during the premium rollout. Access remains restricted to authorised event users so attendee data is not exposed publicly.
 
 ### Super Admin Report by Link
 **Where:** Admin overview page (`/admin`), `app/api/admin/generate-report/route.ts`  

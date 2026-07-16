@@ -59,9 +59,9 @@ Attendees do NOT need an account:
 
 - EventSlot has Free, Standard, Pro, and Business plans, with rollout controls that may keep some accounts on open access temporarily.
 - Core event creation, waitlist automation, and registration management remain available without attendee accounts.
-- AI insights are available to eligible organiser plans; super admins always have free access.
+- AI insights and extra AI Q&A may be limited during the premium rollout.
 - Event report preview is free.
-- Downloading the full Word report uses 20 tokens on the organiser account unless the account has super admin access.
+- Downloading the full Word report is currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused.
 
 ---
 
@@ -87,14 +87,14 @@ A: Yes, they receive an email notification if they consented to notifications du
 
 **Q: How do I download an attendee report?**
 A: Go to your event dashboard and generate the report preview first.
-The preview is free. Downloading the full Word file requires a signed-in organiser or team member and uses 20 tokens unless the account has super admin access.
+The preview is free. Downloading the full Word file requires a signed-in organiser or assigned team member and is currently free while premium report billing is paused.
 
 **Q: Can I export my attendees to a spreadsheet?**
 A: Yes, via the Export CSV button in the Overview tab of your event dashboard.
 
 **Q: How do I add a team member?**
 A: Go to /dashboard/team, enter their email, and send an invite.
-They receive an email with a link to accept.
+They receive an email with a link to accept. Team members can only access events explicitly assigned to them.
 
 **Q: Can I delete an event?**
 A: Yes. In My Events, click the three-dot menu on any event and select Delete.
@@ -121,7 +121,7 @@ A: Use the feedback button in your dashboard or email support@eventsslot.com.
 
 ## What EventSlot Does NOT Do (Currently)
 
-- Payment collection for ticketed/paid events
+- Payment collection for ticketed/paid events. Paid-event setup and one-time event-pass checkout are coming soon.
 - Live streaming or video integration
 - Custom email domain
 - Following organizer profiles
@@ -138,9 +138,10 @@ A: Use the feedback button in your dashboard or email support@eventsslot.com.
 | Waitlist automation | Available |
 | Analytics & AI insights | Plan-dependent |
 | CSV export | Available |
-| AI report generation/preview | Free preview |
-| Report file download | 20 tokens unless super admin |
+| AI report generation/preview | Free |
+| Report file download | Free during premium rollout |
 | Team members | Available |
+| Ticket verification | Available from event dashboard |
 | Duplicate events | Available |
 | Feedback forms | Available |
 | Analytics Q&A | Available |

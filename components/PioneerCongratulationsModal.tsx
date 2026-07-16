@@ -64,7 +64,7 @@ export function PioneerCongratulationsModal() {
             Invite 2 friends to EventSlot. When both create their first event, your next AI report is{" "}
             <span className="font-bold text-[#C8F55A]">completely free</span>.
           </p>
-          <p className="mt-1 text-xs text-[#525252]">Each referral earns tokens. 20 tokens = 1 free report.</p>
+          <p className="mt-1 text-xs text-[#525252]">Referral rewards are being updated while premium billing is paused.</p>
         </div>
 
         <div className="space-y-3">

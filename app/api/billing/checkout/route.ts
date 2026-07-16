@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(
       {
-        error: 'Subscription plans are disabled. Use report download bundles instead.',
+        error: 'Subscription plans and report bundles are temporarily disabled while premium billing is being introduced.',
         code: 'ENDPOINT_DEPRECATED',
       },
       { status: 410 }

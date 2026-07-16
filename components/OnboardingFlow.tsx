@@ -135,14 +135,13 @@ export function OnboardingFlow() {
               <div className="w-14 h-14 rounded-full bg-[#C8F55A]/10 border-2 border-[#C8F55A]/30 flex items-center justify-center mb-5">
                 <span className="text-lg font-bold text-[#C8F55A]">3</span>
               </div>
-              <h2 className="text-white font-bold text-xl mb-3">Invite a friend, earn tokens</h2>
+              <h2 className="text-white font-bold text-xl mb-3">Invite a friend</h2>
               <p className="text-[#A3A3A3] text-sm leading-relaxed mb-4">
-                Know someone who organizes events? Invite them to EventSlot. When they sign up, you earn 5 tokens.
-                When they create their first event, you earn 5 more.
+                Know someone who organizes events? Invite them to EventSlot. Referral rewards are being updated while premium billing is paused.
               </p>
               <div className="bg-[#C8F55A]/10 border border-[#C8F55A]/20 rounded-xl p-4 mb-6">
                 <p className="text-[#C8F55A] text-xs font-semibold mb-1">Invite 2 people who create events</p>
-                <p className="text-[#A3A3A3] text-xs">You will earn 20 tokens, enough for a free AI report.</p>
+                <p className="text-[#A3A3A3] text-xs">Reports are currently free while premium reporting is being introduced.</p>
               </div>
               <div className="space-y-3">
                 <button

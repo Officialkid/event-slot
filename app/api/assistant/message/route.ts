@@ -15,7 +15,7 @@ import { Prisma } from "@prisma/client"
 const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024
 const MAX_IMAGES_PER_MESSAGE = 3
 const FULL_REPORT_CTA =
-  "For the full AI analysis and downloadable report, use Generate Report from your event dashboard (costs 20 tokens)."
+  "For the full AI analysis and downloadable report, use Generate Report from your event dashboard. Report downloads are currently free while premium billing is paused."
 const LATEST_UPDATES_REPLY =
   "For the latest EventSlot updates, check your notification bell in the dashboard or visit www.eventsslot.com. Is there something specific about the platform I can help you with?"
 

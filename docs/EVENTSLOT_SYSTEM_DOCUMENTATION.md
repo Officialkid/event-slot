@@ -311,7 +311,7 @@ The current schema models core behavior with string status fields and JSON paylo
 | `GET` | `/api/events/[slug]/analytics` | Event analytics |
 | `GET` | `/api/events/[slug]/insights` | AI-generated insight cards |
 | `POST` | `/api/events/[slug]/ask` | Natural-language analytics question |
-| `GET` | `/api/events/[slug]/report` | Free preview or paid report download |
+| `GET` | `/api/events/[slug]/report` | Free preview or authorised report download |
 | `GET` | `/api/events/[slug]/export` | CSV export |
 | `GET` | `/api/events/[slug]/feedback` | Event feedback results |
 | `GET` | `/api/events/[slug]/duplicates` | Duplicate registration view |

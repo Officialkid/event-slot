@@ -22,10 +22,10 @@ export const DOCS_PAGES: { title: string; url: string; content: string }[] = [
       "Organisers can enable or disable ticket generation per event from their dashboard. When enabled, confirmed attendees can download a PDF ticket containing their name, confirmation number, event details, and a QR code for entry verification.",
   },
   {
-    title: "Token system",
+    title: "Premium rollout and reports",
     url: "https://docs.eventsslot.com/business/monetization",
     content:
-      "EventSlot uses a token system for premium features. 1 token = KSh 5. Minimum purchase is 10 tokens. Tokens never expire. Document generation costs 20 tokens. Voice transcription: 5 free per month, then 10 tokens each.",
+      "Payments and premium billing are paused while EventSlot completes the rollout. Event report previews and Word downloads are currently free for authorised organisers, assigned team members, and super admins. One-time event passes are shown as coming soon and should not be described as active checkout.",
   },
   {
     title: "Kenya Data Protection Act compliance",
@@ -38,6 +38,12 @@ export const DOCS_PAGES: { title: string; url: string; content: string }[] = [
     url: "https://docs.eventsslot.com/guides/attendee",
     content:
       "Attendees can check their registration status at any time by going to the event page and entering their name or email in the Check Your Registration section. The system returns Confirmed, Waitlisted, or Not Found along with a confirmation number.",
+  },
+  {
+    title: "Ticket verification",
+    url: "https://docs.eventsslot.com/product/ticket-verification",
+    content:
+      "EventSlot supports ticket verification from the event dashboard using QR scan, uploaded ticket image/PDF, or manual lookup by name, email, ticket number, or confirmation code. Accepted team members only access events explicitly assigned to them. A future standalone verify.eventsslot.com experience is planned for temporary event verifiers.",
   },
 ]
 
