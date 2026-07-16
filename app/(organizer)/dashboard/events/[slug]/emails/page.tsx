@@ -60,7 +60,7 @@ const STATUS_COLORS: Record<CampaignStatus, string> = {
   DRAFT: 'var(--text-muted)',
 }
 
-function extractResendVerificationDomain(message: string | null | undefined): string | null {
+function extractEmailVerificationDomain(message: string | null | undefined): string | null {
   if (!message) return null
   const match = message.match(/(?:the\s+)?([a-z0-9.-]+\.[a-z]{2,})\s+domain is not verified/i)
   return match?.[1]?.toLowerCase() ?? null
@@ -84,7 +84,7 @@ export default function EmailDashboardPage() {
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const failedVerificationDomain = campaigns
-    .map((campaign) => extractResendVerificationDomain(campaign.failureReason))
+    .map((campaign) => extractEmailVerificationDomain(campaign.failureReason))
     .find(Boolean) ?? null
 
   const fetchData = useCallback(async () => {
@@ -382,16 +382,16 @@ export default function EmailDashboardPage() {
                 Email sending is paused for {failedVerificationDomain}.
               </p>
               <p style={{ margin: 0, fontSize: '0.76rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
-                Verify the sender domain in Resend, then send the campaign again. Until that is done, organizer emails can keep failing even when the rest of the dashboard works.
+                Configure SMTP or verify the sender domain with the active email provider, then send the campaign again. Until that is done, organizer emails can keep failing even when the rest of the dashboard works.
               </p>
             </div>
             <a
-              href='https://resend.com/domains'
+              href='/admin/health'
               target='_blank'
               rel='noreferrer'
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '0.5px solid rgba(255,107,107,0.3)', borderRadius: 8, padding: '0.45rem 0.8rem', textDecoration: 'none', color: '#FF6B6B', fontSize: '0.75rem', fontFamily: 'var(--font-dm-sans)', whiteSpace: 'nowrap' }}
             >
-              Open Resend domains
+              Open email health
             </a>
           </div>
         )}
@@ -402,7 +402,7 @@ export default function EmailDashboardPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {campaigns.map((c) => {
-              const failedDomain = extractResendVerificationDomain(c.failureReason)
+              const failedDomain = extractEmailVerificationDomain(c.failureReason)
               return (
                 <div
                   key={c.id}

@@ -68,7 +68,7 @@ Next.js App Router (Cloud Run)
    |
    +--> Neon PostgreSQL
    +--> Paystack (report-download payments)
-   +--> Resend (transactional email)
+   +--> SMTP via Nodemailer, with Resend fallback during migration
    +--> Cloudflare R2 (uploaded images)
    +--> Upstash Redis (distributed rate limiting)
    +--> Groq / OpenRouter / Anthropic (AI features and reports)
@@ -83,7 +83,7 @@ Next.js App Router (Cloud Run)
 | ORM | Prisma | Typed data access and migration workflow |
 | Auth | NextAuth v4 | Supports Google OAuth and credentials in one stack |
 | Payments | Paystack | KES-native checkout for report-download purchases |
-| Email | Resend | Transactional email delivery |
+| Email | SMTP via Nodemailer, Resend fallback | Transactional email delivery with provider health checks |
 | Storage | Cloudflare R2 | Public asset hosting for event and profile imagery |
 | AI Providers | Groq, OpenRouter, Anthropic | Multi-provider fallback model for insights and reports |
 | CI/CD | GitHub Actions + Cloud Build + Cloud Run | Automated checks and container deployment |

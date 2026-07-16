@@ -66,13 +66,25 @@ Repeat for each value.
 
 ## 5. Cloud Run Deployment
 
-After the secrets exist, update `cloudbuild.yaml` to set:
+After the secrets exist, switch the existing Cloud Run service to SMTP:
+
+```powershell
+.\scripts\configure-cloudrun-smtp.ps1 -ProjectId eventslot -Service eventslot-web -Region us-central1
+```
+
+To preview the command without changing Cloud Run:
+
+```powershell
+.\scripts\configure-cloudrun-smtp.ps1 -DryRun
+```
+
+The script checks that every required SMTP secret exists first, then updates Cloud Run with:
 
 ```text
 EMAIL_PROVIDER=smtp
 ```
 
-And add these secret mappings:
+And these secret mappings:
 
 ```text
 SMTP_HOST=SMTP_HOST:latest
@@ -83,7 +95,7 @@ SMTP_PASSWORD=SMTP_PASSWORD:latest
 SMTP_FROM=SMTP_FROM:latest
 ```
 
-Do not add those mappings before the secrets exist, because Cloud Run deployment will fail if a referenced secret is missing.
+Do not add those mappings before the secrets exist, because Cloud Run deployment will fail if a referenced secret is missing. Keep `cloudbuild.yaml` on the Resend fallback until SMTP secrets are present and verified, otherwise normal deployments can fail.
 
 ## 6. Features That Depend On SMTP
 

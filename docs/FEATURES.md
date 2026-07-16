@@ -902,9 +902,9 @@ credit bundle cards, FAQ accordion.
 
 ---
 
-## Email Templates (Resend)
+## Email Templates (SMTP / Resend Fallback)
 
-All emails use dark-themed HTML with lime CTA buttons:
+All emails use the shared provider layer in `lib/email.ts`. Production prefers SMTP through Nodemailer, with Resend available as a fallback while migration is in progress. Templates use dark-themed HTML with lime CTA buttons:
 - **Welcome email** — sent after new account signup
 - **Password reset** — token link, 1-hour expiry, SHA-256 secured
 - **Slot confirmed** — sent when attendee is registered as confirmed

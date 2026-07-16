@@ -323,7 +323,7 @@ function isValidEmailAddress(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
 
-function extractResendVerificationDomain(message: string | null | undefined): string | null {
+function extractEmailVerificationDomain(message: string | null | undefined): string | null {
   if (!message) return null
   const match = message.match(/(?:the\s+)?([a-z0-9.-]+\.[a-z]{2,})\s+domain is not verified/i)
   return match?.[1]?.toLowerCase() ?? null
@@ -331,10 +331,10 @@ function extractResendVerificationDomain(message: string | null | undefined): st
 
 function buildDomainVerificationHelp(message: string | null | undefined): string {
   if (message && /only send testing emails to your own email address/i.test(message)) {
-    return "Resend is still in testing mode, so it can only send to your own verified address. Verify a domain in Resend or share the direct invite link below."
+    return "Email delivery is still in provider testing mode, so it can only send to approved addresses. Configure SMTP or verify the sender domain, then resend the invite or share the direct invite link below."
   }
-  const domain = extractResendVerificationDomain(message) ?? "eventsslot.com"
-  return `Email delivery is paused because ${domain} is not verified in Resend. Verify the domain, then resend the invite or share the direct invite link below.`
+  const domain = extractEmailVerificationDomain(message) ?? "eventsslot.com"
+  return `Email delivery is paused because ${domain} is not verified by the active email provider. Configure SMTP or verify the sender domain, then resend the invite or share the direct invite link below.`
 }
 
 function formatReportMoney(currency: string, amount: number): string {

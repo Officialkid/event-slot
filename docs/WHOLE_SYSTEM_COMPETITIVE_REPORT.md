@@ -84,7 +84,7 @@ A complete audit of every surface in EventSlot today. Status: ✅ Live | ⚠️ 
 ### 1.5 Email & Communication
 | Feature | Status | Notes |
 |---|---|---|
-| Transactional emails (confirmation, waitlist, promotion) | ✅ | Via Resend |
+| Transactional emails (confirmation, waitlist, promotion) | ✅ | SMTP via Nodemailer, with Resend fallback during migration |
 | Email campaigns dashboard per event | ✅ | |
 | Campaign types: Reminder, Update, Thank You, Custom | ✅ | |
 | Campaign history / status tracking | ✅ | |
