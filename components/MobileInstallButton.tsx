@@ -15,11 +15,10 @@ export function MobileInstallButton() {
       <button
         onClick={() => window.alert("On Android, open your browser menu and tap Install app or Add to Home Screen to install the EventSlot PWA.")}
         aria-label="Install EventSlot app"
-        style={{ maxHeight: "48px" }}
         className="inline-flex items-center gap-2 border
                    font-semibold px-4 py-2.5 rounded-full text-sm
                    hover:border-[#C8F55A]/50 transition-colors"
-        style={{ color: "var(--text-primary)", borderColor: "var(--border)" }}
+        style={{ maxHeight: "48px", color: "var(--text-primary)", borderColor: "var(--border)" }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,11 +58,10 @@ export function MobileInstallButton() {
         <button
           onClick={() => setShowIOSTip((v) => !v)}
           aria-label="Add EventSlot to home screen"
-          style={{ maxHeight: "48px" }}
           className="inline-flex items-center gap-2 border
                      font-semibold px-4 py-2.5 rounded-full text-sm
                      hover:border-[#C8F55A]/50 transition-colors"
-          style={{ color: "var(--text-primary)", borderColor: "var(--border)" }}
+          style={{ maxHeight: "48px", color: "var(--text-primary)", borderColor: "var(--border)" }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

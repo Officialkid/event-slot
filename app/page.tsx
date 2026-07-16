@@ -50,7 +50,7 @@ const workflowSteps = [
   {
     step: "01",
     title: "Create the event",
-    text: "Set the format, dates, venue, ticketing, and any attendee questions in one place.",
+    text: "Set the format, dates, venue, capacity, and any attendee questions in one place.",
   },
   {
     step: "02",
@@ -69,7 +69,7 @@ const audiencePills = [
   "Church gatherings",
   "Workshops",
   "Conferences",
-  "Paid ticketing",
+  "Limited-capacity events",
   "Open walk-ins",
 ]
 
@@ -143,8 +143,8 @@ export default function Home() {
               </h1>
 
               <p className="mt-6 max-w-xl text-[1rem] leading-7 text-[rgba(240,237,230,0.68)] sm:text-[1.05rem]">
-                EventSlot helps teams launch events quickly, control capacity, collect payments,
-                and keep the day moving with a clean organizer dashboard that works on mobile too.
+                EventSlot helps teams launch events quickly, control capacity, and keep the day
+                moving with a clean organizer dashboard that works on mobile too.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -223,7 +223,7 @@ export default function Home() {
       <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0D0F0C] px-4 py-5 sm:px-6 lg:px-8">
         <div className="marketing-shell flex flex-wrap items-center justify-between gap-4">
           <div className="text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.4)]">
-            Registration events, paid ticketing, and walk-in attendance
+            Registration events, waitlists, and walk-in attendance
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.92rem] text-[rgba(240,237,230,0.7)]">
             <span>Free events</span>
@@ -338,8 +338,8 @@ export default function Home() {
                 Launch the next event with a better front door.
               </h2>
               <p className="mt-5 text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
-                Start free, publish the event page, and only pay when you choose premium actions
-                like report downloads or lower commission plans.
+                Start free, publish the event page, and give your team a cleaner way to manage
+                registrations, attendance, and follow-up after the event.
               </p>
             </div>
 

@@ -424,12 +424,6 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                       message="Stay updated when registrations, waitlist changes, and key activity happen."
                     />
                   )}
-                  {item.href === "/dashboard/billing" && (
-                    <HintDot
-                      show={!usedFeatures.includes("billing")}
-                      message="Manage plans, credits, and usage in one place."
-                    />
-                  )}
                   {item.href === "/dashboard/profile" && (
                     <HintDot
                       show={!usedFeatures.includes("profile")}
@@ -456,21 +450,6 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                     }}
                   >
                     {unreadCount}
-                  </span>
-                )}
-                {item.href === "/dashboard/payments" && paymentsBadgeCount > 0 && (
-                  <span
-                    style={{
-                      background: "rgba(200,245,90,0.14)",
-                      color: "#C8F55A",
-                      borderRadius: 100,
-                      fontSize: "0.6rem",
-                      padding: "1px 6px",
-                      fontWeight: 600,
-                      marginLeft: "auto",
-                    }}
-                  >
-                    {paymentsBadgeCount}
                   </span>
                 )}
               </Link>
