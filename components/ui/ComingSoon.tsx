@@ -112,7 +112,7 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
         }}
       >
         {description ??
-          "We're working hard on this. Premium and Business features will be available once our payment system goes live. You'll be the first to know."}
+          "We're working hard on this. This area is still being prepared for the live rollout, and you'll be among the first to know when it is ready."}
       </p>
 
       <div
