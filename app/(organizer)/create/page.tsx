@@ -12,6 +12,7 @@ import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/
 import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
 import { TierBadge } from "@/components/TierBadge"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
+import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 
 type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
@@ -980,22 +981,19 @@ export default function CreateEventPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setIsPaid(true)
-                        setTicketPrice((previous) => previous || "500")
-                        setTicketTiers((previous) => previous.length ? previous : [defaultTicketTier()])
-                      }}
-                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
-                        isPaid
-                          ? "border-[rgba(255,184,77,0.6)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]"
-                          : ""
-                      }`}
-                      style={isPaid ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      disabled
+                      className="rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium opacity-70"
+                      style={{ borderColor: "rgba(255,184,77,0.3)", background: "var(--surface-2)", color: "#FFB84D", cursor: "not-allowed" }}
                     >
                       💳 Paid
                     </button>
                   </div>
-                  {isPaid && (
+                  <PaymentMaintenanceBanner
+                    compact
+                    title="Paid events are coming soon"
+                    message="We are working on this. Paid-event setup and ticket-tier creation are hidden for now, so please continue creating free events until the payment rollout is ready."
+                  />
+                  {false && isPaid && (
                     <div className="mt-3 space-y-3 p-4" style={warningCardStyle}>
                       <div className="px-3 py-3" style={warningInsetStyle}>
                         <p className="text-[0.75rem] leading-6" style={{ color: "var(--text-secondary)" }}>

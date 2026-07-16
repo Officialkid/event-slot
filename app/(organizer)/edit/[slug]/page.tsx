@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
 import { EventFAQEditor } from "@/components/events/EventFAQEditor"
 import { EventWhatsAppInput } from "@/components/events/EventWhatsAppInput"
+import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import type { EventContactMode } from "@/lib/eventContact"
 import { TierBadge } from "@/components/TierBadge"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
@@ -559,6 +560,13 @@ export default function EditEventPage() {
               </div>
               <div>
                 {isPaid && (
+                  <PaymentMaintenanceBanner
+                    compact
+                    title="Paid events are coming soon"
+                    message="We are working on this. Paid ticket-tier editing is hidden for now while the payment rollout is still paused."
+                  />
+                )}
+                {false && isPaid && (
                   <div className="mb-4 p-4" style={warningCardStyle}>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
