@@ -66,6 +66,12 @@ const sectionHeadingStyle: React.CSSProperties = {
   marginBottom: "1rem",
 }
 
+const itemDivider = "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)"
+const subtleDivider = "0.5px solid color-mix(in srgb, var(--text-primary) 6%, transparent)"
+const mutedButtonBorder = "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)"
+const mutedCardBg = "color-mix(in srgb, var(--surface) 94%, transparent)"
+const softFillBg = "color-mix(in srgb, var(--text-primary) 4%, transparent)"
+
 // ─── Greeting ─────────────────────────────────────────────────────────────────
 
 function getGreeting(): string {
@@ -559,7 +565,7 @@ export default function DashboardOverviewPage() {
                         padding: "1rem 1.25rem",
                         borderBottom:
                           i < stats.eventsNearCapacity.length - 1
-                            ? "0.5px solid rgba(240,237,230,0.06)"
+                            ? subtleDivider
                             : "none",
                       }}
                     >
@@ -576,7 +582,7 @@ export default function DashboardOverviewPage() {
                           style={{
                             fontSize: "0.875rem",
                             fontWeight: 500,
-                            color: "#F0EDE6",
+                            color: "var(--text-primary)",
                             fontFamily: "var(--font-dm-sans)",
                           }}
                         >
@@ -586,12 +592,12 @@ export default function DashboardOverviewPage() {
                           onClick={() => setCapacityEvent(event)}
                           style={{
                             background: "transparent",
-                            border: "0.5px solid rgba(240,237,230,0.15)",
+                            border: mutedButtonBorder,
                             borderRadius: 6,
                             padding: "0.3rem 0.75rem",
                             fontSize: "0.72rem",
                             fontWeight: 500,
-                            color: "rgba(240,237,230,0.55)",
+                            color: "var(--text-secondary)",
                             cursor: "pointer",
                             fontFamily: "var(--font-dm-sans)",
                             whiteSpace: "nowrap",
@@ -606,7 +612,7 @@ export default function DashboardOverviewPage() {
                       <div
                         style={{
                           height: 4,
-                          background: "rgba(240,237,230,0.06)",
+                          background: softFillBg,
                           borderRadius: 100,
                           overflow: "hidden",
                           marginBottom: "0.4rem",
@@ -625,7 +631,7 @@ export default function DashboardOverviewPage() {
                       <span
                         style={{
                           fontSize: "0.72rem",
-                          color: "rgba(240,237,230,0.35)",
+                          color: "var(--text-muted)",
                           fontFamily: "var(--font-dm-sans)",
                         }}
                       >
@@ -642,13 +648,7 @@ export default function DashboardOverviewPage() {
           {/* Upcoming events */}
           <section>
             <h2
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.1rem",
-                fontWeight: 400,
-                color: "#F0EDE6",
-                marginBottom: "1rem",
-              }}
+              style={sectionHeadingStyle}
             >
               Upcoming events
             </h2>
@@ -656,8 +656,7 @@ export default function DashboardOverviewPage() {
             {loading ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "1.25rem",
                   display: "flex",
@@ -671,7 +670,7 @@ export default function DashboardOverviewPage() {
                     style={{
                       height: 52,
                       borderRadius: 8,
-                      background: "rgba(240,237,230,0.04)",
+                      background: softFillBg,
                       animation: "pulse 1.5s ease-in-out infinite",
                     }}
                   />
@@ -680,8 +679,7 @@ export default function DashboardOverviewPage() {
             ) : !stats?.upcomingEvents?.length ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "2rem 1.5rem",
                   display: "flex",
@@ -696,14 +694,14 @@ export default function DashboardOverviewPage() {
                     width: 36,
                     height: 36,
                     borderRadius: 8,
-                    background: "rgba(240,237,230,0.04)",
+                    background: softFillBg,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     marginBottom: "0.25rem",
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.25)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" />
                     <path d="M16 2v4M8 2v4M3 10h18" />
                   </svg>
@@ -712,7 +710,7 @@ export default function DashboardOverviewPage() {
                   style={{
                     margin: 0,
                     fontSize: "0.875rem",
-                    color: "rgba(240,237,230,0.35)",
+                    color: "var(--text-secondary)",
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
@@ -722,7 +720,7 @@ export default function DashboardOverviewPage() {
                   style={{
                     margin: 0,
                     fontSize: "0.78rem",
-                    color: "rgba(240,237,230,0.2)",
+                    color: "var(--text-muted)",
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
@@ -748,8 +746,7 @@ export default function DashboardOverviewPage() {
             ) : (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   overflow: "hidden",
                 }}
@@ -769,7 +766,7 @@ export default function DashboardOverviewPage() {
                         padding: "0.875rem 1.25rem",
                         borderBottom:
                           i < stats.upcomingEvents.length - 1
-                            ? "0.5px solid rgba(240,237,230,0.06)"
+                            ? subtleDivider
                             : "none",
                       }}
                     >
@@ -787,7 +784,7 @@ export default function DashboardOverviewPage() {
                             style={{
                               fontSize: "0.875rem",
                               fontWeight: 500,
-                              color: "#F0EDE6",
+                              color: "var(--text-primary)",
                               fontFamily: "var(--font-dm-sans)",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -799,7 +796,7 @@ export default function DashboardOverviewPage() {
                           <div
                             style={{
                               fontSize: "0.72rem",
-                              color: "rgba(240,237,230,0.35)",
+                              color: "var(--text-muted)",
                               fontFamily: "var(--font-dm-sans)",
                               marginTop: "0.15rem",
                             }}
@@ -812,11 +809,11 @@ export default function DashboardOverviewPage() {
                           style={{
                             flexShrink: 0,
                             background: "transparent",
-                            border: "0.5px solid rgba(240,237,230,0.15)",
+                            border: mutedButtonBorder,
                             borderRadius: 6,
                             padding: "0.28rem 0.65rem",
                             fontSize: "0.72rem",
-                            color: "rgba(240,237,230,0.5)",
+                            color: "var(--text-secondary)",
                             textDecoration: "none",
                             fontFamily: "var(--font-dm-sans)",
                             whiteSpace: "nowrap",
@@ -829,7 +826,7 @@ export default function DashboardOverviewPage() {
                         <div
                           style={{
                             height: 4,
-                            background: "rgba(240,237,230,0.06)",
+                            background: softFillBg,
                             borderRadius: 100,
                             overflow: "hidden",
                           }}
@@ -916,7 +913,7 @@ export default function DashboardOverviewPage() {
                         padding: "0.875rem 1.25rem",
                         borderBottom:
                           i < arr.length - 1
-                            ? "0.5px solid rgba(240,237,230,0.06)"
+                            ? subtleDivider
                             : "none",
                         display: "flex",
                         alignItems: "baseline",
@@ -932,8 +929,8 @@ export default function DashboardOverviewPage() {
                           lineHeight: 1.5,
                         }}
                       >
-                        <span style={{ color: "#F0EDE6", fontWeight: 500 }}>{item.name}</span>
-                        <span style={{ color: "rgba(240,237,230,0.4)" }}> registered for </span>
+                        <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{item.name}</span>
+                        <span style={{ color: "var(--text-secondary)" }}> registered for </span>
                         <Link
                           href={`/dashboard/${item.eventSlug}`}
                           style={{
@@ -948,7 +945,7 @@ export default function DashboardOverviewPage() {
                       <span
                         style={{
                           fontSize: "0.72rem",
-                          color: "rgba(240,237,230,0.3)",
+                          color: "var(--text-muted)",
                           fontFamily: "var(--font-dm-sans)",
                           whiteSpace: "nowrap",
                           flexShrink: 0,
@@ -961,7 +958,7 @@ export default function DashboardOverviewPage() {
                 </div>
                 <Link
                   href="/dashboard/events"
-                  style={{ display: "block", padding: "0.75rem 1.25rem", textAlign: "center", fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", borderTop: "0.5px solid rgba(240,237,230,0.06)" }}
+                  style={{ display: "block", padding: "0.75rem 1.25rem", textAlign: "center", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", borderTop: subtleDivider }}
                 >
                   View all activity
                 </Link>
@@ -985,7 +982,7 @@ export default function DashboardOverviewPage() {
                       <path d="M8 1.5L2 4v4c0 3.3 2.5 5.5 6 6 3.5-.5 6-2.7 6-6V4L8 1.5z" />
                     </svg>
                   </span>
-                  <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+                  <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "var(--text-primary)", margin: 0 }}>
                     Admin Overview
                   </h2>
                 </div>
@@ -1000,22 +997,22 @@ export default function DashboardOverviewPage() {
               {/* Mini stat cards */}
               <div className="admin-stat-grid" style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1rem" }}>
                 <style>{`.admin-stat-grid { grid-template-columns: repeat(3, 1fr) !important; }`}</style>
-                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Total Users</div>
-                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "#F0EDE6", lineHeight: 1 }}>
+                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Total Users</div>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "var(--text-primary)", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminStats?.totalUsers ?? 0)}
                   </div>
                 </div>
-                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>New Signups</div>
+                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>New Signups</div>
                   <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "#C8F55A", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminStats?.newUsersThisMonth ?? 0)}
                   </div>
-                  <div style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginTop: "0.2rem" }}>this month</div>
+                  <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginTop: "0.2rem" }}>this month</div>
                 </div>
-                <div style={{ background: "#141414", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Unread Feedback</div>
-                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: adminFeedback && adminFeedback.unreadCount > 0 ? "#FAC775" : "#F0EDE6", lineHeight: 1 }}>
+                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Unread Feedback</div>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: adminFeedback && adminFeedback.unreadCount > 0 ? "#FAC775" : "var(--text-primary)", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminFeedback?.unreadCount ?? 0)}
                   </div>
                 </div>
@@ -1026,17 +1023,17 @@ export default function DashboardOverviewPage() {
                 <style>{`@media (min-width: 640px) { .admin-two-col { grid-template-columns: 1fr 1fr !important; } }`}</style>
 
                 {/* Recent signups */}
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Recent Signups</span>
+                <div style={{ ...surfaceStyle, borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: subtleDivider, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>Recent Signups</span>
                     <Link href="/admin/users" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
                   </div>
                   {adminLoading ? (
                     <div style={{ padding: "0.75rem 1rem" }}>
-                      {[1,2,3].map(i => <div key={i} style={{ height: 28, borderRadius: 6, background: "rgba(240,237,230,0.04)", marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
+                      {[1,2,3].map(i => <div key={i} style={{ height: 28, borderRadius: 6, background: softFillBg, marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
                     </div>
                   ) : !adminStats?.recentSignups?.length ? (
-                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>No signups yet.</div>
+                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>No signups yet.</div>
                   ) : (
                     adminStats.recentSignups.map((u, i, arr) => (
                       <div key={u.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none", display: "flex", alignItems: "center", gap: "0.625rem", justifyContent: "space-between" }}>
@@ -1057,17 +1054,17 @@ export default function DashboardOverviewPage() {
                 </div>
 
                 {/* Unread Feedback */}
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Unread Feedback</span>
+                <div style={{ ...surfaceStyle, borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: subtleDivider, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>Unread Feedback</span>
                     <Link href="/admin/feedback" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
                   </div>
                   {adminLoading ? (
                     <div style={{ padding: "0.75rem 1rem" }}>
-                      {[1,2,3].map(i => <div key={i} style={{ height: 42, borderRadius: 6, background: "rgba(240,237,230,0.04)", marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
+                      {[1,2,3].map(i => <div key={i} style={{ height: 42, borderRadius: 6, background: softFillBg, marginBottom: "0.5rem", animation: "pulse 1.5s ease-in-out infinite" }} />)}
                     </div>
                   ) : !adminFeedback?.items?.length ? (
-                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>No unread feedback.</div>
+                    <div style={{ padding: "1rem", fontSize: "0.8rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>No unread feedback.</div>
                   ) : (
                     adminFeedback.items.map((fb, i, arr) => (
                       <div key={fb.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none" }}>
