@@ -4,7 +4,6 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { hasAdminAccess } from "@/lib/isAdmin"
 import AdminSidebar from "./AdminSidebar"
-import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -91,7 +90,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <Link href="/" className="admin-topbar-link primary">View site</Link>
             </div>
           </div>
-          <BillingComingSoonBanner isAdmin compact />
           {children}
         </main>
       </div>

@@ -281,6 +281,14 @@ export const authOptions = {
     async createUser({ user }: { user: { id?: string } }) {
       if (!user.id) return
       try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { consentSystemEmails: true },
+        })
+      } catch {
+        // non-critical
+      }
+      try {
         await prisma.userOnboarding.upsert({
           where: { userId: user.id },
           update: {},

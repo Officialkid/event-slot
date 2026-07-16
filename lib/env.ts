@@ -22,6 +22,13 @@ export const env = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ?? '',
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? process.env.EMAIL_API_KEY ?? '',
   RESEND_FROM: optionalEnv('RESEND_FROM'),
+  EMAIL_PROVIDER: optionalEnv('EMAIL_PROVIDER'),
+  SMTP_HOST: optionalEnv('SMTP_HOST'),
+  SMTP_PORT: optionalEnv('SMTP_PORT'),
+  SMTP_SECURE: optionalEnv('SMTP_SECURE'),
+  SMTP_USER: optionalEnv('SMTP_USER'),
+  SMTP_PASSWORD: optionalEnv('SMTP_PASSWORD'),
+  SMTP_FROM: optionalEnv('SMTP_FROM'),
 
   GOOGLE_CLIENT_ID: optionalEnv('GOOGLE_CLIENT_ID'),
   GOOGLE_CLIENT_SECRET: optionalEnv('GOOGLE_CLIENT_SECRET'),

@@ -70,6 +70,15 @@ export default function SignUpPage() {
     return { ok: false }
   }
 
+  function handleGoogleSignUp() {
+    setError('')
+    if (!privacyAccepted) {
+      setError('Please agree to the Terms and Privacy Policy before continuing with Google.')
+      return
+    }
+    signIn('google', { callbackUrl: '/my-events' })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -159,7 +168,8 @@ export default function SignUpPage() {
         {/* Google Button */}
         <button
           type="button"
-          onClick={() => signIn('google', { callbackUrl: '/my-events' })}
+          onClick={handleGoogleSignUp}
+          disabled={!privacyAccepted}
           style={{
             width: '100%',
             display: 'flex',
@@ -174,7 +184,8 @@ export default function SignUpPage() {
             fontSize: '0.9rem',
             fontWeight: 500,
             fontFamily: 'var(--font-dm-sans)',
-            cursor: 'pointer',
+            cursor: privacyAccepted ? 'pointer' : 'not-allowed',
+            opacity: privacyAccepted ? 1 : 0.55,
           }}
         >
           {/* Google G SVG */}
@@ -338,6 +349,14 @@ export default function SignUpPage() {
               }}
             >
               I have read and agree to the EventSlot{' '}
+              <Link
+                href="/terms"
+                target="_blank"
+                style={{ color: '#C8F55A', textDecoration: 'underline', fontWeight: 500 }}
+              >
+                Terms of Service
+              </Link>
+              {' '}and{' '}
               <Link
                 href="/privacy"
                 target="_blank"

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { getOrCreateReferralLink } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { env } from '@/lib/env'
@@ -13,7 +14,7 @@ function getResendClient() {
 }
 
 const BASE_URL = APP_URL
-const EMAIL_FROM = env.RESEND_FROM || 'EventSlot <onboarding@resend.dev>'
+const EMAIL_FROM = env.SMTP_FROM || env.RESEND_FROM || 'EventSlot <onboarding@resend.dev>'
 
 function extractEmailAddress(sender: string): string {
   const match = sender.match(/<([^>]+)>/)
@@ -42,6 +43,31 @@ type InternalEmailOptions = {
   replyTo?: string
 }
 
+function smtpIsConfigured() {
+  return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD)
+}
+
+function shouldUseSmtp() {
+  const provider = env.EMAIL_PROVIDER.trim().toLowerCase()
+  return provider === 'smtp' || (!provider && smtpIsConfigured())
+}
+
+function getSmtpTransporter() {
+  if (!smtpIsConfigured()) {
+    throw new Error('SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD must be configured')
+  }
+
+  return nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: Number(env.SMTP_PORT),
+    secure: env.SMTP_SECURE === 'true' || Number(env.SMTP_PORT) === 465,
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASSWORD,
+    },
+  })
+}
+
 function extractEmailErrorMessage(error: unknown): string {
   if (error && typeof error === "object") {
     const maybeMessage = (error as { message?: unknown }).message
@@ -58,6 +84,26 @@ function shouldRetryWithFallbackSender(message: string | null, from: string) {
 }
 
 export async function sendEmail(options: InternalEmailOptions) {
+  if (shouldUseSmtp()) {
+    const transporter = getSmtpTransporter()
+    const verifiedFrom = getVerifiedSender(options.from)
+
+    try {
+      await transporter.sendMail({
+        from: verifiedFrom,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+        replyTo: options.replyTo,
+      })
+      return
+    } catch (error) {
+      console.error('[email] SMTP send error:', error)
+      throw new Error(extractEmailErrorMessage(error))
+    }
+  }
+
   const resend = getResendClient()
   const verifiedFrom = getVerifiedSender(options.from)
   const payload = {

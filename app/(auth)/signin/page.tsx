@@ -25,6 +25,7 @@ function SignInForm() {
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
   const [isLocalhost, setIsLocalhost] = useState(false)
+  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -59,6 +60,10 @@ function SignInForm() {
 
   async function handleGoogleSignIn() {
     setError('')
+    if (!googleTermsAccepted) {
+      setError('Please agree to the Terms and Privacy Policy before continuing with Google.')
+      return
+    }
     setLoading(true)
     try {
       await signIn('google', { callbackUrl: '/my-events' })
@@ -212,7 +217,7 @@ function SignInForm() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || !googleTermsAccepted}
           style={{
             width: '100%',
             display: 'flex',
@@ -227,8 +232,8 @@ function SignInForm() {
             fontSize: '0.9rem',
             fontWeight: 500,
             fontFamily: 'var(--font-dm-sans)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
+            cursor: loading || !googleTermsAccepted ? 'not-allowed' : 'pointer',
+            opacity: loading || !googleTermsAccepted ? 0.55 : 1,
           }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -239,6 +244,38 @@ function SignInForm() {
           </svg>
           {loading ? 'Preparing Google sign-in…' : 'Continue with Google'}
         </button>
+
+        <label
+          style={{
+            display: 'flex',
+            gap: '0.7rem',
+            alignItems: 'flex-start',
+            marginTop: '0.85rem',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-dm-sans)',
+            fontSize: '0.78rem',
+            lineHeight: 1.55,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={googleTermsAccepted}
+            onChange={(event) => setGoogleTermsAccepted(event.target.checked)}
+            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#C8F55A', flexShrink: 0 }}
+          />
+          <span>
+            I agree to EventSlot&apos;s{' '}
+            <Link href="/terms" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
+              Privacy Policy
+            </Link>{' '}
+            before continuing with Google.
+          </span>
+        </label>
 
         {authError && (
           <p style={{ fontSize: '0.8rem', color: '#FF6B6B', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import nodemailer from "nodemailer"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasAdminAccess } from "@/lib/isAdmin"
+import { env } from "@/lib/env"
 
-const EMAIL_FROM = process.env.RESEND_FROM?.trim() || ""
+const EMAIL_FROM = env.SMTP_FROM || env.RESEND_FROM || ""
 
 function extractSenderEmail(sender: string) {
   const match = sender.match(/<([^>]+)>/)
@@ -12,6 +14,7 @@ function extractSenderEmail(sender: string) {
 }
 
 async function getProviderAcceptedCountSince(startDate: Date): Promise<number | null> {
+  if (shouldUseSmtp()) return null
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!EMAIL_FROM || !apiKey) return null
 
@@ -57,12 +60,59 @@ type ResendDomainRow = {
   status?: string
 }
 
+function smtpIsConfigured() {
+  return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD)
+}
+
+function shouldUseSmtp() {
+  const provider = env.EMAIL_PROVIDER.trim().toLowerCase()
+  return provider === "smtp" || (!provider && smtpIsConfigured())
+}
+
+async function getSmtpProviderStatus(): Promise<EmailProviderStatus> {
+  if (!smtpIsConfigured()) {
+    return {
+      configured: false,
+      healthy: false,
+      message: "SMTP_HOST, SMTP_PORT, SMTP_USER, or SMTP_PASSWORD missing",
+    }
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: Number(env.SMTP_PORT),
+      secure: env.SMTP_SECURE === "true" || Number(env.SMTP_PORT) === 465,
+      auth: {
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASSWORD,
+      },
+    })
+    await transporter.verify()
+    return {
+      configured: true,
+      healthy: true,
+      message: `SMTP provider reachable with sender ${extractSenderEmail(EMAIL_FROM) || env.SMTP_USER}`,
+    }
+  } catch (error) {
+    return {
+      configured: true,
+      healthy: false,
+      message: error instanceof Error ? error.message : "SMTP provider check failed",
+    }
+  }
+}
+
 function extractDomain(email: string) {
   const atIndex = email.lastIndexOf("@")
   return atIndex >= 0 ? email.slice(atIndex + 1).trim().toLowerCase() : ""
 }
 
 async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
+  if (shouldUseSmtp()) {
+    return getSmtpProviderStatus()
+  }
+
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!EMAIL_FROM || !apiKey) {
     return {

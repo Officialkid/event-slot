@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef } from "react"
 import { signOut } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { Moon, Sun } from "lucide-react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
+import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 
 const checkboxStyle: React.CSSProperties = {
   position: "absolute",
@@ -298,9 +300,11 @@ export default function ProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState("")
+  const [theme, setTheme] = useState<ThemeMode>("dark")
 
   useEffect(() => {
     markFeatureUsed("profile")
+    setTheme(resolveCurrentTheme())
     fetch("/api/profile")
       .then(r => r.json())
       .then((data: ProfileData) => {
@@ -309,6 +313,11 @@ export default function ProfilePage() {
         setTwoFactorEnabled(!!data.twoFactorEnabled)
       })
   }, [])
+
+  function handleThemeChange(nextTheme: ThemeMode) {
+    applyTheme(nextTheme)
+    setTheme(nextTheme)
+  }
 
   // Handle ?calendar= query param toasts
   useEffect(() => {
@@ -759,6 +768,48 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Change password card (credentials users only) ── */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <Card>
+            <SectionHeading>Appearance</SectionHeading>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.75rem" }}>
+              {([
+                { key: "dark", label: "Custom dark", icon: <Moon size={18} /> },
+                { key: "light", label: "Light mode", icon: <Sun size={18} /> },
+              ] as const).map((option) => {
+                const active = theme === option.key
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => handleThemeChange(option.key)}
+                    aria-pressed={active}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      borderRadius: 8,
+                      border: active
+                        ? "0.5px solid rgba(200,245,90,0.42)"
+                        : "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
+                      background: active ? "rgba(200,245,90,0.12)" : "var(--bg-input)",
+                      color: active ? "#C8F55A" : "var(--text-secondary)",
+                      padding: "0.8rem 0.9rem",
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "0.88rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    {option.icon}
+                    <span>{option.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </Card>
+        </div>
+
         {profile.hasPassword && (
           <div style={{ marginBottom: "1.25rem" }}>
             <Card>

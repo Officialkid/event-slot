@@ -61,11 +61,11 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
       status: emailHealthy ? "resolved" : "config",
       label: "Email domain setup",
       summary: emailHealthy
-        ? "Paid ticket email failures came from the old Resend testing-mode setup and should now be cleared."
-        : "Paid ticket confirmations are blocked by Resend testing-mode restrictions.",
+        ? "Paid ticket email failures came from the old provider setup and should now be cleared."
+        : "Paid ticket confirmations are blocked by email provider configuration.",
       hint: emailHealthy
         ? "This is now historical. Send a fresh paid-ticket confirmation to confirm live delivery."
-        : "Verify a sending domain in Resend and use that domain in RESEND_FROM.",
+        : "Verify SMTP credentials, sender domain DNS, SPF, DKIM, DMARC, and the configured from-address.",
       stale,
     }
   }
@@ -211,7 +211,7 @@ export default function AdminHealthPage() {
             {data.emailsAcceptedThisMonth ?? "--"}
           </div>
           <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "rgba(240,237,230,0.3)" : "#FF6B6B", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
-            {data.emailProviderConfigured ? data.emailProviderMessage : "RESEND_API_KEY missing"}
+            {data.emailProviderConfigured ? data.emailProviderMessage : "Email provider settings missing"}
           </div>
         </div>
 

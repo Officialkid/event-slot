@@ -41,7 +41,7 @@ to confirmed status and notified by email.
 | Database      | Neon (PostgreSQL)                   |
 | ORM           | Prisma                              |
 | Auth          | NextAuth.js (Google OAuth + Email)  |
-| Email         | Resend                              |
+| Email         | SMTP via Nodemailer, Resend fallback |
 | Payments      | Paystack                            |
 | File Storage  | Cloudflare R2 (event/profile images)|
 | AI            | Groq + OpenRouter + Claude fallback |
@@ -136,8 +136,15 @@ to confirmed status and notified by email.
 | NEXTAUTH_SECRET                 | JWT signing secret                    |
 | GOOGLE_CLIENT_ID                | Google OAuth                          |
 | GOOGLE_CLIENT_SECRET            | Google OAuth                          |
-| RESEND_API_KEY                  | Email sending                         |
-| RESEND_FROM                     | Sender email address                  |
+| EMAIL_PROVIDER                  | Email provider selector (`smtp` or `resend`) |
+| SMTP_HOST                       | SMTP server host                      |
+| SMTP_PORT                       | SMTP server port (`465`, `587`, etc.) |
+| SMTP_SECURE                     | Use implicit TLS (`true` for port 465) |
+| SMTP_USER                       | SMTP login username                   |
+| SMTP_PASSWORD                   | SMTP login password                   |
+| SMTP_FROM                       | SMTP sender email address             |
+| RESEND_API_KEY                  | Legacy fallback email sending         |
+| RESEND_FROM                     | Legacy fallback sender email address  |
 | PAYSTACK_SECRET_KEY             | Payment processing                    |
 | PAYSTACK_PRO_MONTHLY_PLAN_CODE  | Paystack plan code                    |
 | PAYSTACK_PRO_ANNUAL_PLAN_CODE   | Paystack plan code                    |
