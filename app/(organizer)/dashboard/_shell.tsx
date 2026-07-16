@@ -1214,9 +1214,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="dash-content md:pb-0"
             style={{ flex: 1, background: pageBg, paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
-            <div style={{ padding: "1rem 1rem 0" }}>
-              <BillingComingSoonBanner isAdmin={isAdmin} compact />
-            </div>
+            {!isAdmin && (
+              <div style={{ padding: "1rem 1rem 0" }}>
+                <BillingComingSoonBanner compact />
+              </div>
+            )}
             {children}
           </main>
         </div>

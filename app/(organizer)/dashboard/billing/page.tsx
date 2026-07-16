@@ -46,7 +46,7 @@ export default async function BillingPage() {
       </div>
 
       <PaymentMaintenanceBanner compact />
-      <BillingComingSoonBanner isAdmin={isAdmin} compact />
+      {!isAdmin && <BillingComingSoonBanner compact />}
 
       <section
         style={{
