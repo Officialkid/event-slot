@@ -5,9 +5,17 @@ import { paystackFetch } from '@/lib/paystack'
 import { CREDIT_BUNDLES } from '@/lib/credits'
 import { billingRatelimit } from '@/lib/ratelimit'
 import { APP_URL } from '@/lib/config'
+import { isBillingCheckoutEnabled } from '@/lib/pricingRollout'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isBillingCheckoutEnabled()) {
+      return NextResponse.json(
+        { error: 'Credit purchases are coming soon while EventSlot finishes the payment rollout.' },
+        { status: 503 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -4,9 +4,17 @@ import { authOptions } from '@/lib/auth'
 import { paystackFetch } from '@/lib/paystack'
 import { REPORT_DOWNLOAD_PRICING } from '@/lib/plans'
 import { APP_URL } from '@/lib/config'
+import { isBillingCheckoutEnabled } from '@/lib/pricingRollout'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isBillingCheckoutEnabled()) {
+      return NextResponse.json(
+        { error: 'Report-download purchases are coming soon. Report downloads are currently free for authorised users.' },
+        { status: 503 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

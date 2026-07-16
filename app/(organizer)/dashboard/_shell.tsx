@@ -11,7 +11,6 @@ import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
-import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 
@@ -1214,11 +1213,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="dash-content md:pb-0"
             style={{ flex: 1, background: pageBg, paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
-            {!isAdmin && (
-              <div style={{ padding: "1rem 1rem 0" }}>
-                <BillingComingSoonBanner compact />
-              </div>
-            )}
             {children}
           </main>
         </div>
