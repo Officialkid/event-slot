@@ -117,22 +117,6 @@ function IconFeedback() {
   )
 }
 
-function IconMenu() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M3 5h14M3 10h14M3 15h14" />
-    </svg>
-  )
-}
-
-function IconX() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M4 4l10 10M14 4L4 14" />
-    </svg>
-  )
-}
-
 function IconLogOut() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -151,6 +135,25 @@ function IconAdmin() {
   )
 }
 
+function IconPlus() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 3.5v11" />
+      <path d="M3.5 9h11" />
+    </svg>
+  )
+}
+
+function IconDotsHorizontal() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+      <circle cx="4" cy="9" r="1.2" />
+      <circle cx="9" cy="9" r="1.2" />
+      <circle cx="14" cy="9" r="1.2" />
+    </svg>
+  )
+}
+
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -164,6 +167,24 @@ const NAV_ITEMS = [
   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
   { label: "Comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
 ] as const
+
+const MOBILE_TAB_ITEMS = [
+  { label: "Home", href: "/dashboard", icon: <IconGrid />, exact: true },
+  { label: "Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { label: "Alerts", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+] as const
+
+function getMobilePageTitle(pathname: string): string {
+  if (pathname === "/dashboard") return "Dashboard"
+  if (pathname.startsWith("/dashboard/events")) return "My Events"
+  if (pathname.startsWith("/dashboard/notifications")) return "Notifications"
+  if (pathname.startsWith("/dashboard/profile")) return "Profile"
+  if (pathname.startsWith("/dashboard/team")) return "Team"
+  if (pathname.startsWith("/dashboard/insights")) return "Insights"
+  if (pathname.startsWith("/dashboard/feedback")) return "Comms"
+  if (pathname.startsWith("/dashboard/community")) return "Community"
+  return "EventSlot"
+}
 
 function getIsActive(pathname: string, href: string, exact: boolean): boolean {
   const normalizedHref = href.split("#")[0].split("?")[0]
@@ -687,7 +708,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const router = useRouter()
   const tutorial = useTutorial()
   const { data: session, status } = useSession()
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasPioneer, setHasPioneer] = useState(false)
@@ -799,7 +819,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   }, [status])
 
   useEffect(() => {
-    setDrawerOpen(false)
     setMoreOpen(false)
     setSignOutConfirm(false)
     if (pathname !== "/dashboard/notifications" && status === "authenticated") {
@@ -848,6 +867,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const name = session?.user?.name || session?.user?.email || "Organizer"
   const email = session?.user?.email ?? ""
   const image = session?.user?.image ?? null
+  const mobilePageTitle = getMobilePageTitle(pathname)
   const initials = session?.user?.name
     ? session.user.name
         .split(" ")
@@ -963,72 +983,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         }
       `}</style>
 
-      {/* Drawer backdrop */}
-      {drawerOpen && (
-        <div
-          onClick={() => setDrawerOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: isLight ? "rgba(23,23,23,0.2)" : "rgba(0,0,0,0.6)",
-            zIndex: 40,
-          }}
-        />
-      )}
-
-      {/* Mobile drawer — slides in from left */}
-      <aside
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          height: "100vh",
-          width: 280,
-          background: sidebarBg,
-          borderRight: `0.5px solid ${shellBorderSoft}`,
-          zIndex: 50,
-          overflowY: "auto",
-          transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            padding: "0.75rem 1rem",
-            borderBottom: `0.5px solid ${shellBorderSoft}`,
-          }}
-        >
-          <button
-            onClick={() => setDrawerOpen(false)}
-            className="dash-icon-btn"
-            style={{
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: secondaryText,
-              padding: "0.35rem",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <IconX />
-          </button>
-        </div>
-        <SidebarInner
-          {...sidebarProps}
-          onNavClick={() => setDrawerOpen(false)}
-          onOpenTourSelector={() => {
-            setDrawerOpen(false)
-            setShowTourSelector(true)
-          }}
-        />
-      </aside>
-
       {/* Page shell */}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         {/* Desktop sidebar — fixed, hidden below md */}
@@ -1125,47 +1079,31 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               zIndex: 20,
             }}
           >
-            {/* Hamburger — mobile only */}
-            <button
-              className="md:hidden dash-icon-btn"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: secondaryText,
-                padding: "0.3rem",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <IconMenu />
-            </button>
-
-            {/* Logo — mobile only */}
-            <Link href="/" className="md:hidden" style={{ textDecoration: "none" }}>
-              <span
+            <div className="md:hidden" style={{ minWidth: 0 }}>
+              <p
                 style={{
+                  margin: 0,
                   fontFamily: "var(--font-instrument-serif)",
-                  fontSize: "1.2rem",
+                  fontSize: "1.06rem",
                   color: primaryText,
+                  lineHeight: 1.1,
                 }}
               >
-                Event
-              </span>
-              <span
+                {mobilePageTitle}
+              </p>
+              <p
                 style={{
-                  fontFamily: "var(--font-instrument-serif)",
-                  fontSize: "1.2rem",
-                  color: "#C8F55A",
+                  margin: "0.12rem 0 0",
+                  fontSize: "0.68rem",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: mutedText,
+                  fontFamily: "var(--font-dm-sans)",
                 }}
               >
-                Slot
-              </span>
-            </Link>
+                EventSlot organizer
+              </p>
+            </div>
 
             {/* Empty spacer — desktop (keeps bell right-aligned) */}
             <div className="hidden md:block" />
@@ -1247,6 +1185,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   />
                 )}
               </Link>
+
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                aria-label="Open more options"
+                className="dash-icon-btn md:hidden"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  color: secondaryText,
+                  background: "transparent",
+                  border: `0.5px solid ${shellBorder}`,
+                  cursor: "pointer",
+                }}
+              >
+                <IconDotsHorizontal />
+              </button>
             </div>
           </header>
 
@@ -1263,29 +1222,51 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      {/* Mobile bottom tab bar — 4 items max: Dashboard, Events, Notifications, More */}
+      <Link
+        href="/create"
+        aria-label="Create event"
+        data-tutorial="create-event-btn"
+        className="md:hidden"
+        style={{
+          position: "fixed",
+          right: 16,
+          bottom: "calc(5.25rem + env(safe-area-inset-bottom))",
+          width: 58,
+          height: 58,
+          borderRadius: 18,
+          background: "#C8F55A",
+          color: "#0A0A0A",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textDecoration: "none",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
+          zIndex: 55,
+        }}
+      >
+        <IconPlus />
+      </Link>
+
+      {/* Mobile bottom tab bar */}
       <nav
         aria-label="Mobile navigation"
         className="flex md:hidden"
         style={{
           position: "fixed",
           bottom: 0,
-          left: 0,
-          right: 0,
-          background: sidebarBg,
-          borderTop: `0.5px solid ${shellBorder}`,
-          justifyContent: "space-evenly",
-          padding: "0.5rem 0",
-          paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
+          left: 12,
+          right: 12,
+          background: elevatedBg,
+          border: `0.5px solid ${shellBorder}`,
+          borderRadius: 20,
+          justifyContent: "space-between",
+          padding: "0.45rem 0.5rem",
+          paddingBottom: "calc(0.45rem + env(safe-area-inset-bottom))",
           zIndex: 50,
-          boxShadow: "0 -6px 20px rgba(0,0,0,0.32)",
+          boxShadow: "0 18px 40px rgba(0,0,0,0.32)",
         }}
       >
-        {([
-          { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
-          { label: "Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
-          { label: "Alerts", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
-        ] as const).map(item => {
+        {MOBILE_TAB_ITEMS.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
           return (
             <Link
@@ -1306,7 +1287,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 3,
-                padding: "0.3rem 0",
+                padding: "0.45rem 0",
+                borderRadius: 14,
+                background: active ? "color-mix(in srgb, #C8F55A 12%, transparent)" : "transparent",
                 color: active ? "#C8F55A" : mutedText,
                 textDecoration: "none",
                 position: "relative",
@@ -1330,10 +1313,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </Link>
           )
         })}
-        {/* Profile quick access */}
-        <Link
-          href="/dashboard/profile"
-          aria-label="Profile"
+        <button
+          type="button"
+          aria-label="More options"
+          onClick={() => setMoreOpen(true)}
           style={{
             flex: 1,
             display: "flex",
@@ -1341,14 +1324,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             alignItems: "center",
             justifyContent: "center",
             gap: 3,
-            padding: "0.3rem 0",
-            color: getIsActive(pathname, "/dashboard/profile", false) ? "#C8F55A" : mutedText,
-            textDecoration: "none",
+            padding: "0.45rem 0",
+            borderRadius: 14,
+            background: moreOpen ? "color-mix(in srgb, #C8F55A 12%, transparent)" : "transparent",
+            color: moreOpen ? "#C8F55A" : mutedText,
+            border: "none",
+            cursor: "pointer",
+            fontFamily: "var(--font-dm-sans)",
           }}
         >
-          <IconUser />
-          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>Profile</span>
-        </Link>
+          <IconDotsHorizontal />
+          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>More</span>
+        </button>
       </nav>
 
       {/* More bottom sheet */}
@@ -1379,7 +1366,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               right: 0,
               background: sidebarBg,
               borderTop: `0.5px solid ${shellBorder}`,
-              borderRadius: "16px 16px 0 0",
+              borderRadius: "24px 24px 0 0",
               zIndex: 61,
               paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
               animation: "moreSheetSlideUp 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -1392,6 +1379,76 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
             {!signOutConfirm ? (
               <div style={{ padding: "0.25rem 0.75rem 0.25rem" }}>
+                <div style={{ padding: "0.5rem 1rem 0.85rem" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-instrument-serif)", fontSize: "1.08rem", color: primaryText }}>
+                    More options
+                  </p>
+                  <p style={{ margin: "0.28rem 0 0", fontSize: "0.82rem", lineHeight: 1.5, color: secondaryText, fontFamily: "var(--font-dm-sans)" }}>
+                    Extra actions, quick links, and organizer tools live here so the main navigation stays simple.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    margin: "0 0.75rem 0.9rem",
+                    padding: "0.85rem",
+                    borderRadius: 16,
+                    background: "color-mix(in srgb, var(--surface) 96%, transparent)",
+                    border: `0.5px solid ${shellBorder}`,
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: mutedText, fontFamily: "var(--font-dm-sans)" }}>
+                    Quick actions
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.65rem", marginTop: "0.75rem" }}>
+                    <Link
+                      href="/create"
+                      onClick={() => setMoreOpen(false)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "0.85rem 0.9rem",
+                        borderRadius: 14,
+                        background: "rgba(200,245,90,0.1)",
+                        border: "0.5px solid rgba(200,245,90,0.18)",
+                        color: "#C8F55A",
+                        textDecoration: "none",
+                        fontSize: "0.84rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <IconPlus />
+                      Create event
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreOpen(false)
+                        tutorial.restartTutorial()
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "0.85rem 0.9rem",
+                        borderRadius: 14,
+                        background: "transparent",
+                        border: `0.5px solid ${shellBorder}`,
+                        color: secondaryText,
+                        cursor: "pointer",
+                        fontSize: "0.84rem",
+                        fontFamily: "var(--font-dm-sans)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ?
+                      Restart tour
+                    </button>
+                  </div>
+                </div>
+
                 {([
                   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
