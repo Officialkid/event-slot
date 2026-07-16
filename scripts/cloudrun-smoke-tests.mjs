@@ -15,6 +15,45 @@ if (!baseUrlRaw) {
 const baseUrl = baseUrlRaw.replace(/\/+$/, "")
 const identityToken = process.env.CLOUD_RUN_ID_TOKEN
 
+async function readText(res) {
+  return await res.text()
+}
+
+function assertIncludes(body, expected, label) {
+  if (!body.includes(expected)) {
+    throw new Error(`Expected ${label} to include '${expected}'`)
+  }
+}
+
+function assertNotIncludes(body, unexpected, label) {
+  if (body.includes(unexpected)) {
+    throw new Error(`Expected ${label} not to include '${unexpected}'`)
+  }
+}
+
+function extractScriptSources(html) {
+  return [...html.matchAll(/<script[^>]+src="([^"]+)"/g)]
+    .map((match) => match[1])
+    .filter((src) => src.startsWith("/_next/static/"))
+}
+
+async function fetchAssetText(src) {
+  const response = await fetch(`${baseUrl}${src}`, {
+    headers: {
+      "user-agent": "eventslot-cloudrun-smoke-tests/1.0",
+      ...(identityToken ? { authorization: `Bearer ${identityToken}` } : {}),
+    },
+  })
+  if (!response.ok) return ""
+  return await response.text()
+}
+
+async function readPageAndChunks(html) {
+  const scripts = extractScriptSources(html)
+  const chunks = await Promise.all(scripts.map((src) => fetchAssetText(src)))
+  return [html, ...chunks].join("\n")
+}
+
 const TESTS = [
   {
     name: "Homepage returns 200",
@@ -23,6 +62,9 @@ const TESTS = [
       if (res.status !== 200) {
         throw new Error(`Expected status 200, got ${res.status}`)
       }
+      const body = await readText(res)
+      assertNotIncludes(body, "collect payments", "homepage")
+      assertNotIncludes(body, "Paid ticketing", "homepage")
     },
   },
   {
@@ -32,6 +74,12 @@ const TESTS = [
       if (res.status !== 200) {
         throw new Error(`Expected status 200, got ${res.status}`)
       }
+      const body = await readText(res)
+      const searchable = await readPageAndChunks(body)
+      assertIncludes(searchable, "Terms", "sign-in page bundle")
+      assertIncludes(searchable, "Privacy", "sign-in page bundle")
+      assertIncludes(searchable, "Google", "sign-in page bundle")
+      assertIncludes(searchable, "Please agree to the Terms and Privacy Policy", "sign-in page bundle")
     },
   },
   {
@@ -41,6 +89,38 @@ const TESTS = [
       if (res.status !== 200) {
         throw new Error(`Expected status 200, got ${res.status}`)
       }
+      const body = await readText(res)
+      const searchable = await readPageAndChunks(body)
+      assertIncludes(searchable, "Terms", "sign-up page bundle")
+      assertIncludes(searchable, "Privacy", "sign-up page bundle")
+      assertIncludes(searchable, "Google", "sign-up page bundle")
+      assertIncludes(searchable, "Please agree to the Terms and Privacy Policy", "sign-up page bundle")
+    },
+  },
+  {
+    name: "Credits purchase endpoint is paused",
+    path: "/api/billing/credits",
+    method: "POST",
+    body: "{}",
+    validate: async (res) => {
+      if (res.status !== 503) {
+        throw new Error(`Expected status 503, got ${res.status}`)
+      }
+      const body = await readText(res)
+      assertIncludes(body, "coming soon", "credits endpoint response")
+    },
+  },
+  {
+    name: "Report purchase endpoint is paused",
+    path: "/api/billing/report-downloads",
+    method: "POST",
+    body: "{}",
+    validate: async (res) => {
+      if (res.status !== 503) {
+        throw new Error(`Expected status 503, got ${res.status}`)
+      }
+      const body = await readText(res)
+      assertIncludes(body, "coming soon", "report-download endpoint response")
     },
   },
   {
@@ -78,13 +158,15 @@ async function runTest(test) {
 
   try {
     const response = await fetch(url, {
-      method: "GET",
+      method: test.method || "GET",
       redirect: "follow",
       signal: controller.signal,
       headers: {
         "user-agent": "eventslot-cloudrun-smoke-tests/1.0",
+        ...(test.body ? { "content-type": "application/json" } : {}),
         ...(identityToken ? { authorization: `Bearer ${identityToken}` } : {}),
       },
+      ...(test.body ? { body: test.body } : {}),
     })
 
     await test.validate(response)
@@ -100,7 +182,7 @@ async function runTest(test) {
 }
 
 async function main() {
-  console.log(`[smoke] Running 5 Cloud Run smoke tests against ${baseUrl}`)
+  console.log(`[smoke] Running ${TESTS.length} Cloud Run smoke tests against ${baseUrl}`)
   if (identityToken) {
     console.log("[smoke] Using CLOUD_RUN_ID_TOKEN for authenticated requests")
   }
