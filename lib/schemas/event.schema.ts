@@ -7,6 +7,8 @@ const questionSchema = z.object({
   type: z.enum(['text', 'email', 'phone', 'select', 'checkbox', 'textarea', 'number']),
   required: z.boolean().optional(),
   options: z.array(z.string()).optional(),
+  optionLimits: z.record(z.string(), z.number().int().positive().nullable()).optional(),
+  allowMultiple: z.boolean().optional(),
 })
 
 const ticketTierSchema = z.object({

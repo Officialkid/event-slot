@@ -19,6 +19,7 @@ type Question = {
   required: boolean
   options: string[]
   allowMultiple?: boolean
+  optionLimits?: Record<string, string>
 }
 
 type TicketTierDraft = {
@@ -55,6 +56,45 @@ function defaultTicketTier(): TicketTierDraft {
     description: "",
     bundleSize: "1",
   }
+}
+
+const cardStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border-subtle)",
+  borderRadius: 12,
+}
+
+const cardMutedStyle: React.CSSProperties = {
+  background: "var(--surface-muted)",
+  border: "1px solid var(--border-subtle)",
+  borderRadius: 12,
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  color: "var(--text-primary)",
+}
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--text-secondary)",
+  letterSpacing: "0.04em",
+}
+
+const helperStyle: React.CSSProperties = {
+  color: "var(--text-muted)",
+}
+
+const warningCardStyle: React.CSSProperties = {
+  background: "rgba(255,184,77,0.05)",
+  border: "1px solid rgba(255,184,77,0.22)",
+  borderRadius: 10,
+}
+
+const warningInsetStyle: React.CSSProperties = {
+  background: "rgba(255,184,77,0.04)",
+  border: "1px solid rgba(255,184,77,0.18)",
+  borderRadius: 10,
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
@@ -175,7 +215,13 @@ export default function EditEventPage() {
         )
         setQuestions(
           Array.isArray(e.questions)
-            ? e.questions.map((q: Question) => ({ ...q, options: q.options ?? [] }))
+            ? e.questions.map((q: Question) => ({
+                ...q,
+                options: q.options ?? [],
+                optionLimits: Object.fromEntries(
+                  Object.entries(q.optionLimits ?? {}).map(([key, value]) => [key, value == null ? "" : String(value)])
+                ),
+              }))
             : []
         )
       })
@@ -210,7 +256,7 @@ export default function EditEventPage() {
                 ...q,
                 [field]: value,
                 ...(field === "type" && typeof value === "string" && !typeUsesOptions(value as QuestionType)
-                  ? { options: [], allowMultiple: false }
+                  ? { options: [], allowMultiple: false, optionLimits: {} }
                   : {}),
               }
             : q
@@ -225,7 +271,11 @@ export default function EditEventPage() {
           const draft = optionDrafts[q.id]?.trim()
           if (!draft) return q
           if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
-          return { ...q, options: [...q.options, draft] }
+          return {
+            ...q,
+            options: [...q.options, draft],
+            optionLimits: { ...(q.optionLimits ?? {}), [draft]: q.optionLimits?.[draft] ?? "" },
+          }
         })
     )
       const id = questions[idx]?.id
@@ -237,14 +287,48 @@ export default function EditEventPage() {
     function removeOption(idx: number, optionIdx: number) {
       setQuestions(qs =>
         qs.map((q, i) =>
-          i === idx ? { ...q, options: q.options.filter((_, j) => j !== optionIdx) } : q
+          i === idx
+            ? {
+                ...q,
+                options: q.options.filter((_, j) => j !== optionIdx),
+                optionLimits: Object.fromEntries(
+                  Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== q.options[optionIdx])
+                ),
+              }
+            : q
         )
       )
-    }
+  }
+
+  function updateOptionLimit(idx: number, option: string, value: string) {
+    setQuestions(qs =>
+      qs.map((q, i) =>
+        i === idx
+          ? {
+              ...q,
+              optionLimits: {
+                ...(q.optionLimits ?? {}),
+                [option]: value.replace(/[^\d]/g, ""),
+              },
+            }
+          : q
+      )
+    )
+  }
+
+  function buildOptionLimitsPayload(question: Question) {
+    const entries = Object.entries(question.optionLimits ?? {})
+      .map(([label, raw]) => [label, raw.trim()] as const)
+      .filter(([, raw]) => raw.length > 0)
+      .map(([label, raw]) => [label, Number(raw)] as const)
+      .filter(([, value]) => Number.isFinite(value) && value > 0)
+
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined
+  }
 
   const addQuestion = () => {
     const id = uuidv4()
-    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false }])
+    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false, optionLimits: {} }])
     setOptionDrafts(prev => ({ ...prev, [id]: "" }))
   }
 
@@ -352,6 +436,7 @@ export default function EditEventPage() {
             type: q.type,
             options: typeUsesOptions(q.type) ? q.options : undefined,
             allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+            optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
             required: q.required,
           })),
         }),
@@ -402,9 +487,9 @@ export default function EditEventPage() {
     return (
       <div className="px-4 py-12">
         <div className="mx-auto max-w-[640px] space-y-3 animate-pulse">
-          <div className="h-6 w-40 rounded bg-[#1A1A1A]" />
-          <div className="h-4 w-64 rounded bg-[#1A1A1A]" />
-          <div className="h-40 rounded-xl bg-[#141414] border border-[#2A2A2A]" />
+          <div className="h-6 w-40 rounded" style={{ background: "var(--surface-muted)" }} />
+          <div className="h-4 w-64 rounded" style={{ background: "var(--surface-muted)" }} />
+          <div className="h-40 rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }} />
         </div>
       </div>
     )
@@ -413,9 +498,9 @@ export default function EditEventPage() {
   if (error && questions.length === 0) {
     return (
       <div className="px-4 py-12">
-        <div className="mx-auto max-w-[640px] rounded-[12px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-8 text-center">
+        <div className="mx-auto max-w-[640px] rounded-[12px] border p-8 text-center" style={cardStyle}>
           <p className="text-[#FF6B6B] text-sm">{error}</p>
-          <a href="/my-events" className="mt-4 inline-block text-sm text-[rgba(240,237,230,0.45)]">← Back to my events</a>
+          <a href="/my-events" className="mt-4 inline-block text-sm" style={{ color: "var(--text-secondary)" }}>← Back to my events</a>
         </div>
       </div>
     )
@@ -426,45 +511,47 @@ export default function EditEventPage() {
       <div className="mx-auto max-w-[640px] space-y-6">
 
         <div>
-          <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
             Edit event
           </h1>
-          <p className="mt-2 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
+          <p className="mt-2 text-[0.9rem] font-[300]" style={{ color: "var(--text-secondary)" }}>
             Changes take effect immediately.
           </p>
         </div>
 
         {success && (
-          <div className="rounded-[8px] bg-[rgba(200,245,90,0.1)] border border-[rgba(200,245,90,0.2)] px-4 py-3 text-[0.82rem] text-[#C8F55A]">
+          <div className="rounded-[8px] border px-4 py-3 text-[0.82rem] text-[#C8F55A]" style={{ background: "rgba(200,245,90,0.1)", borderColor: "rgba(200,245,90,0.24)" }}>
             Changes saved! Redirecting…
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Event Details */}
-          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-            <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <div className="rounded-[12px] p-6" style={cardStyle}>
+            <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Event Details
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Event Title <span className="text-[#C8F55A]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Description
                 </label>
                 <textarea
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   rows={3}
                   value={description}
                   onChange={e => setDescription(e.target.value)}
@@ -472,11 +559,11 @@ export default function EditEventPage() {
               </div>
               <div>
                 {isPaid && (
-                  <div className="mb-4 rounded-[10px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
+                  <div className="mb-4 p-4" style={warningCardStyle}>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Paid ticket tiers</p>
-                        <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
+                        <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
                           Manage prices, capacities, and bundle sizes without changing existing registrations.
                         </p>
                       </div>
@@ -492,12 +579,12 @@ export default function EditEventPage() {
 
                     <div className="space-y-3">
                       {ticketTiers.map((tier, index) => (
-                        <div key={tier.id} className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-3">
+                        <div key={tier.id} className="rounded-[10px] border p-3" style={cardMutedStyle}>
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-[0.78rem] font-semibold text-[#F0EDE6]">Tier {index + 1}</p>
+                              <p className="text-[0.78rem] font-semibold" style={{ color: "var(--text-primary)" }}>Tier {index + 1}</p>
                               {(tier.soldCount || tier.waitlistCount) ? (
-                                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.4)]">
+                                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
                                   {tier.soldCount ?? 0} sold · {tier.waitlistCount ?? 0} on waitlist
                                 </p>
                               ) : null}
@@ -515,13 +602,14 @@ export default function EditEventPage() {
 
                           <div className="mb-3 grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
                             <div>
-                              <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                              <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
                                 Preset tier
                               </label>
                               <select
                                 value={tier.presetKey}
                                 onChange={e => updateTicketTier(tier.id, "presetKey", e.target.value)}
-                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                style={inputStyle}
                               >
                                 <option value="">Custom tier</option>
                                 {TIER_PRESETS.map((preset) => (
@@ -531,8 +619,8 @@ export default function EditEventPage() {
                                 ))}
                               </select>
                             </div>
-                            <div className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#101010] px-3 py-3">
-                              <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">Preview</p>
+                            <div className="rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                              <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Preview</p>
                               <TierBadge
                                 name={tier.name || "Tier"}
                                 badgeColor={tier.badgeColor}
@@ -546,7 +634,8 @@ export default function EditEventPage() {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <input
                               type="text"
-                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              style={inputStyle}
                               placeholder="Tier name"
                               value={tier.name}
                               onChange={e => updateTicketTier(tier.id, "name", e.target.value)}
@@ -554,13 +643,14 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="50"
-                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              style={inputStyle}
                               placeholder="Price (KES)"
                               value={tier.priceKes}
                               onChange={e => updateTicketTier(tier.id, "priceKes", e.target.value)}
                             />
-                            <div className="rounded-[8px] border border-[rgba(240,237,230,0.12)] bg-[#141414] px-3 py-2">
-                              <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                            <div className="rounded-[8px] border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                              <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
                                 Badge colour
                               </label>
                               <div className="flex flex-wrap items-center gap-2">
@@ -568,15 +658,16 @@ export default function EditEventPage() {
                                   type="color"
                                   value={tier.badgeColor}
                                   onChange={e => updateTicketTier(tier.id, "badgeColor", e.target.value)}
-                                  className="h-9 w-11 rounded border border-[rgba(240,237,230,0.12)] bg-transparent"
+                                  className="h-9 w-11 rounded border bg-transparent"
+                                  style={{ borderColor: "var(--border)" }}
                                 />
                                 {TIER_PRESET_COLOR_PALETTE.map((color) => (
                                   <button
                                     key={color}
                                     type="button"
                                     onClick={() => updateTicketTier(tier.id, "badgeColor", color)}
-                                    className="h-6 w-6 rounded-full border border-[rgba(240,237,230,0.16)]"
-                                    style={{ background: color }}
+                                    className="h-6 w-6 rounded-full border"
+                                    style={{ background: color, borderColor: "var(--border-subtle)" }}
                                     aria-label={`Use ${color} badge colour`}
                                   />
                                 ))}
@@ -585,7 +676,8 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              style={inputStyle}
                               placeholder="Tier capacity"
                               value={tier.capacity}
                               onChange={e => updateTicketTier(tier.id, "capacity", e.target.value)}
@@ -593,7 +685,8 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              style={inputStyle}
                               placeholder="Bundle size"
                               value={tier.bundleSize}
                               onChange={e => updateTicketTier(tier.id, "bundleSize", e.target.value)}
@@ -601,7 +694,8 @@ export default function EditEventPage() {
                           </div>
 
                           <textarea
-                            className="mt-3 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                            className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                            style={inputStyle}
                             rows={2}
                             placeholder="Optional description"
                             value={tier.description}
@@ -613,107 +707,115 @@ export default function EditEventPage() {
                   </div>
                 )}
 
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Maximum Capacity
                 </label>
                 <input
                   type="number"
                   min="1"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   placeholder="Leave empty for unlimited"
                   value={capacity}
                   onChange={e => setCapacity(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Registration Deadline (optional)
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={deadline}
                   onChange={e => setDeadline(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Event Start
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={eventDate}
                   onChange={e => setEventDate(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Event End (optional)
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={eventEndAt}
                   onChange={e => setEventEndAt(e.target.value)}
                 />
-                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.35)]">
+                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   If you leave the deadline blank, registration closes when the event ends.
                 </p>
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Link Opens At (optional)
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={joinOpensAt}
                   onChange={e => setJoinOpensAt(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Location / Venue
                 </label>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   placeholder="e.g. iHub, Nairobi"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Community Link (optional)
                 </label>
                 <input
                   type="text"
                   inputMode="url"
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   placeholder="e.g. WhatsApp group, Telegram, website"
                   value={communityLink}
                   onChange={e => setCommunityLink(e.target.value)}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                   Event Category (optional)
                 </label>
                 <select
-                  className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
                   value={category}
                   onChange={e => setCategory(e.target.value)}
                 >
-                  <option value="" className="bg-[#141414]">Select a category…</option>
+                  <option value="">Select a category…</option>
                   {["CONFERENCE","WORKSHOP","NETWORKING","CHURCH","CAMPUS","CONCERT","VIRTUAL"].map(c => (
-                    <option key={c} value={c} className="bg-[#141414]">
+                    <option key={c} value={c}>
                       {c.charAt(0) + c.slice(1).toLowerCase()}
                     </option>
                   ))}
                 </select>
-                <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.35)]">
+                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   Used to suggest relevant FAQ questions
                 </p>
               </div>
@@ -721,22 +823,23 @@ export default function EditEventPage() {
           </div>
 
           {/* Event Poster */}
-          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-            <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-1" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Event Poster
             </h2>
-            <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
-              Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved.
+            <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF, up to 15 MB.
             </p>
 
             {imageUrl && (
-              <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>
+              <div className="mb-4 overflow-hidden rounded-[8px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)", lineHeight: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imageUrl} alt="Event poster" style={{ width: "100%", height: "auto", maxHeight: "480px", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
                 <button
                   type="button"
                   onClick={() => setImageUrl("")}
-                  className="mt-2 rounded-full bg-[rgba(0,0,0,0.6)] px-2 py-1 text-[0.7rem] text-[rgba(240,237,230,0.7)] border border-[rgba(240,237,230,0.15)]"
+                  className="mt-2 rounded-full border px-2 py-1 text-[0.7rem]"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }}
                 >
                   Remove
                 </button>
@@ -754,9 +857,10 @@ export default function EditEventPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={imageUploading}
-              className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-5 py-2 text-[0.82rem] font-medium text-[rgba(240,237,230,0.6)]"
+              className="rounded-full border bg-transparent px-5 py-2 text-[0.82rem] font-medium"
+              style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
             >
-              {imageUploading ? "Uploading…" : imageUrl ? "Replace image" : "Upload image"}
+              {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
             </button>
             {imageError && (
               <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>
@@ -764,37 +868,39 @@ export default function EditEventPage() {
           </div>
 
           {/* Questions */}
-          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-            <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Registration Questions
             </h2>
             <div className="space-y-4">
               {questions.map((q, idx) => (
-                <div key={q.id} className="bg-[#1A1A1A] border border-[rgba(240,237,230,0.08)] rounded-[8px] p-4">
+                <div key={q.id} className="rounded-[8px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                      <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                         Question Label
                       </label>
                       <input
                         type="text"
                         required
-                        className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         value={q.label}
                         onChange={e => handleQuestionChange(idx, "label", e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                      <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                         Type
                       </label>
                       <select
-                        className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         value={q.type}
                         onChange={e => handleQuestionChange(idx, "type", e.target.value)}
                       >
                         {QUESTION_TYPES.map(opt => (
-                          <option key={opt.value} value={opt.value} className="bg-[#141414] text-[#F0EDE6]">
+                          <option key={opt.value} value={opt.value}>
                             {opt.label}
                           </option>
                         ))}
@@ -802,13 +908,14 @@ export default function EditEventPage() {
                     </div>
                     {typeUsesOptions(q.type) && (
                       <div>
-                        <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                        <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                           Options
                         </label>
                         <div className="mt-1 flex gap-2">
                           <input
                             type="text"
-                            className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                            className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                            style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                             placeholder="Add option"
                             value={optionDrafts[q.id] ?? ""}
                             onChange={e => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
@@ -831,22 +938,45 @@ export default function EditEventPage() {
                           {q.options.map((opt, optionIdx) => (
                             <span
                               key={`${q.id}-${opt}-${optionIdx}`}
-                              className="inline-flex items-center gap-2 rounded-full border border-[rgba(240,237,230,0.15)] px-3 py-1 text-[0.78rem] text-[#F0EDE6]"
+                              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.78rem]"
+                              style={{ borderColor: "var(--border)", color: "var(--text-primary)", background: "var(--surface)" }}
                             >
                               {opt}
                               <button
                                 type="button"
-                                className="text-[rgba(240,237,230,0.45)]"
+                                className="text-[0.8rem]"
+                                style={{ color: "var(--text-muted)" }}
                                 onClick={() => removeOption(idx, optionIdx)}
                                 aria-label={`Remove ${opt}`}
                               >
-                                ×
+                                x
                               </button>
                             </span>
                           ))}
                         </div>
+                        {q.options.length > 0 && (
+                          <div className="mt-3 space-y-2 rounded-[10px] border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                            <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                              Optional per-option slots. Leave blank if an option should stay unlimited.
+                            </p>
+                            {q.options.map((opt) => (
+                              <div key={`${q.id}-${opt}-limit`} className="flex items-center gap-3">
+                                <span className="min-w-0 flex-1 truncate text-[0.78rem]" style={{ color: "var(--text-primary)" }}>{opt}</span>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                                  style={{ background: "var(--surface-muted)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                                  placeholder="Slots"
+                                  value={q.optionLimits?.[opt] ?? ""}
+                                  onChange={e => updateOptionLimit(idx, opt, e.target.value)}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {q.options.length === 0 && (
-                          <p className="mt-2 text-[0.75rem] text-[rgba(240,237,230,0.35)]">Add at least one option.</p>
+                          <p className="mt-2 text-[0.75rem]" style={{ color: "var(--text-muted)" }}>Add at least one option.</p>
                         )}
                       </div>
                     )}
@@ -855,11 +985,12 @@ export default function EditEventPage() {
                         <input
                           type="checkbox"
                           id={`allow-multiple-${q.id}`}
-                          className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414]"
+                          className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
                           checked={!!q.allowMultiple}
                           onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                         />
-                        <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">
+                        <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>
                           Allow selecting multiple options
                         </label>
                       </div>
@@ -868,11 +999,12 @@ export default function EditEventPage() {
                       <input
                         type="checkbox"
                         id={`required-${q.id}`}
-                        className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414]"
+                        className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
                         checked={q.required}
                         onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
                       />
-                      <label htmlFor={`required-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">Required</label>
+                      <label htmlFor={`required-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>Required</label>
                     </div>
                     {questions.length > 1 && (
                       <button
@@ -888,7 +1020,8 @@ export default function EditEventPage() {
               ))}
               <button
                 type="button"
-                className="w-full rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-6 py-3 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
+                className="w-full rounded-full border bg-transparent px-6 py-3 text-[0.875rem] font-medium"
+                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
                 onClick={addQuestion}
               >
                 Add Question

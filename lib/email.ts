@@ -221,7 +221,7 @@ export async function sendWaitlistPromotedEmail({
 }: {
   to: string
   eventTitle: string
-  eventDate?: string | null
+  eventDate?: string | Date | null
   eventEndAt?: string | Date | null
   eventLocation?: string | null
   communityLink?: string | null
@@ -544,6 +544,70 @@ export async function sendConfirmationEmail({
           Smarter Events. Better Experiences. -
           <a href="https://www.eventsslot.com" style="color:#525252;">eventsslot.com</a>
         </p>
+      </div>
+    `,
+  })
+}
+
+export async function sendRegistrationResponseCopyEmail({
+  to,
+  eventTitle,
+  attendeeName,
+  status,
+  answers,
+  confirmationCode,
+  registrationId,
+}: {
+  to: string
+  eventTitle: string
+  attendeeName?: string | null
+  status: 'confirmed' | 'waitlist'
+  answers: Array<{ label: string; value: string }>
+  confirmationCode?: string | null
+  registrationId: string
+}) {
+  const answerRows = answers
+    .map(
+      (answer) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid rgba(240,237,230,0.08);color:#A3A3A3;font-size:13px;vertical-align:top;">${answer.label}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid rgba(240,237,230,0.08);color:#F0EDE6;font-size:13px;vertical-align:top;">${answer.value || '-'}</td>
+        </tr>
+      `
+    )
+    .join('')
+
+  const statusLabel = status === 'confirmed' ? 'Confirmed' : 'On the waitlist'
+  const primaryLink = confirmationCode
+    ? `${APP_URL}/register/success/${confirmationCode}`
+    : `${APP_URL}/registration/${registrationId}`
+
+  await sendEmail({
+    from: 'EventSlot <noreply@eventsslot.com>',
+    to,
+    subject: `Your responses for ${eventTitle}`,
+    html: `
+      <div style="background:#0A0A0A;padding:32px;font-family:sans-serif;max-width:560px;">
+        <div style="margin-bottom:24px;">
+          <span style="font-size:20px;font-weight:bold;color:#fff;">Event</span>
+          <span style="font-size:20px;font-weight:bold;color:#C8F55A;">Slot</span>
+        </div>
+        <h2 style="color:#fff;margin:0 0 8px;">Your response copy</h2>
+        <p style="color:#A3A3A3;font-size:14px;line-height:1.6;margin:0 0 20px;">
+          ${attendeeName ? `Hi ${attendeeName}, ` : ''}here is a copy of the responses you submitted for <strong style="color:#fff;">${eventTitle}</strong>.
+        </p>
+        <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 6px;color:#525252;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Registration status</p>
+          <p style="margin:0;color:${status === 'confirmed' ? '#C8F55A' : '#FFB84D'};font-size:15px;font-weight:700;">${statusLabel}</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #2A2A2A;border-radius:12px;overflow:hidden;">
+          <tbody>${answerRows}</tbody>
+        </table>
+        <div style="margin-top:20px;">
+          <a href="${primaryLink}" style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:14px;">
+            ${confirmationCode ? 'View ticket' : 'View registration status'}
+          </a>
+        </div>
       </div>
     `,
   })

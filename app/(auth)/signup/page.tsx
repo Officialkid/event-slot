@@ -126,8 +126,8 @@ export default function SignUpPage() {
       {/* Card */}
       <div
         style={{
-          background: '#141414',
-          border: '0.5px solid rgba(240,237,230,0.08)',
+          background: 'var(--surface)',
+          border: '0.5px solid var(--border)',
           borderRadius: 16,
           padding: '2rem',
         }}
@@ -137,7 +137,7 @@ export default function SignUpPage() {
           style={{
             fontFamily: 'var(--font-instrument-serif)',
             fontSize: '1.8rem',
-            color: '#F0EDE6',
+            color: 'var(--text-primary)',
             margin: '0 0 0.375rem',
             fontWeight: 400,
           }}
@@ -149,7 +149,7 @@ export default function SignUpPage() {
             fontFamily: 'var(--font-dm-sans)',
             fontWeight: 300,
             fontSize: '0.9rem',
-            color: 'rgba(240,237,230,0.5)',
+            color: 'var(--text-secondary)',
             margin: '0 0 1.75rem',
           }}
         >
@@ -166,9 +166,9 @@ export default function SignUpPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.625rem',
-            background: '#F0EDE6',
+            background: 'var(--surface-muted)',
             color: '#0A0A0A',
-            border: 'none',
+            border: '0.5px solid var(--border)',
             borderRadius: 100,
             padding: '0.75rem 1rem',
             fontSize: '0.9rem',
@@ -196,17 +196,17 @@ export default function SignUpPage() {
             margin: '1.5rem 0',
           }}
         >
-          <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
+          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
           <span
             style={{
               fontSize: '0.75rem',
-              color: 'rgba(240,237,230,0.3)',
+              color: 'var(--text-muted)',
               fontFamily: 'var(--font-dm-sans)',
             }}
           >
             or
           </span>
-          <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
+          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
         </div>
 
         {/* Email/Password Form */}
@@ -261,7 +261,7 @@ export default function SignUpPage() {
               />
               {otpHint && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', margin: '-0.25rem 0 0' }}>
-                  <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: 0, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
                     {otpHint}
                   </p>
                   <button
@@ -307,8 +307,8 @@ export default function SignUpPage() {
               gap: '0.75rem',
               alignItems: 'flex-start',
               padding: '0.85rem',
-              background: '#141414',
-              border: '0.5px solid #2A2A2A',
+              background: 'var(--surface-muted)',
+              border: '0.5px solid var(--border)',
               borderRadius: 12,
               marginTop: '0.25rem',
             }}
@@ -331,7 +331,7 @@ export default function SignUpPage() {
               htmlFor="privacy"
               style={{
                 fontSize: '0.8rem',
-                color: '#A3A3A3',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.6,
                 fontFamily: 'var(--font-dm-sans)',
                 cursor: 'pointer',
@@ -375,7 +375,7 @@ export default function SignUpPage() {
         <p
           style={{
             fontSize: '0.82rem',
-            color: 'rgba(240,237,230,0.4)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             marginTop: '1.5rem',
             fontFamily: 'var(--font-dm-sans)',
@@ -384,7 +384,7 @@ export default function SignUpPage() {
           Already have an account?{' '}
           <Link
             href="/signin"
-            style={{ color: 'rgba(240,237,230,0.7)', textDecoration: 'underline' }}
+            style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}
           >
             Sign in
           </Link>
@@ -396,12 +396,12 @@ export default function SignUpPage() {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0A0A0A',
-  border: '0.5px solid rgba(240,237,230,0.12)',
+  background: 'var(--surface-muted)',
+  border: '0.5px solid var(--border)',
   borderRadius: 8,
   padding: '0.75rem 0.875rem',
   fontSize: '0.875rem',
-  color: '#F0EDE6',
+  color: 'var(--text-primary)',
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',
@@ -420,6 +420,6 @@ const passwordToggleStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: 8,
   background: 'transparent',
-  color: 'rgba(240,237,230,0.5)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
 }

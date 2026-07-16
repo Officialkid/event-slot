@@ -48,6 +48,24 @@ interface Stats {
   waitlistEventCount: number
 }
 
+const surfaceStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
+}
+
+const softSurfaceStyle: React.CSSProperties = {
+  background: "color-mix(in srgb, var(--surface) 94%, transparent)",
+  border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
+}
+
+const sectionHeadingStyle: React.CSSProperties = {
+  fontFamily: "var(--font-instrument-serif)",
+  fontSize: "1.1rem",
+  fontWeight: 400,
+  color: "var(--text-primary)",
+  marginBottom: "1rem",
+}
+
 // ─── Greeting ─────────────────────────────────────────────────────────────────
 
 function getGreeting(): string {
@@ -63,8 +81,7 @@ function StatCard({ label, value, trend }: { label: string; value: number | stri
   return (
     <div
       style={{
-        background: "#141414",
-        border: "0.5px solid rgba(240,237,230,0.08)",
+        ...surfaceStyle,
         borderRadius: 12,
         padding: "1.25rem 1.5rem",
         display: "flex",
@@ -77,7 +94,7 @@ function StatCard({ label, value, trend }: { label: string; value: number | stri
           fontSize: "0.7rem",
           fontWeight: 600,
           letterSpacing: "0.04em",
-          color: "rgba(240,237,230,0.4)",
+          color: "var(--text-muted)",
           fontFamily: "var(--font-dm-sans)",
           textTransform: "uppercase",
         }}
@@ -88,7 +105,7 @@ function StatCard({ label, value, trend }: { label: string; value: number | stri
         style={{
           fontSize: "1.8rem",
           fontWeight: 600,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           fontFamily: "var(--font-dm-sans)",
           lineHeight: 1,
         }}
@@ -157,7 +174,7 @@ function CapacityModal({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.6)",
+          background: "color-mix(in srgb, black 56%, transparent)",
           zIndex: 100,
         }}
       />
@@ -169,32 +186,32 @@ function CapacityModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 101,
-          background: "#1A1A1A",
-          border: "0.5px solid rgba(240,237,230,0.1)",
+          background: "color-mix(in srgb, var(--surface) 94%, black 6%)",
+          border: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)",
           borderRadius: 16,
           padding: "1.75rem",
           width: "min(92vw, 420px)",
         }}
       >
         <h3
-          style={{
-            fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.2rem",
-            color: "#F0EDE6",
-            marginBottom: "0.5rem",
-          }}
+        style={{
+          fontFamily: "var(--font-instrument-serif)",
+          fontSize: "1.2rem",
+          color: "var(--text-primary)",
+          marginBottom: "0.5rem",
+        }}
         >
           Increase capacity
         </h3>
         <p
-          style={{
-            fontSize: "0.82rem",
-            color: "rgba(240,237,230,0.45)",
-            fontFamily: "var(--font-dm-sans)",
-            marginBottom: "1.25rem",
-          }}
-        >
-          <strong style={{ color: "rgba(240,237,230,0.7)" }}>{event.title}</strong> currently has{" "}
+        style={{
+          fontSize: "0.82rem",
+          color: "var(--text-secondary)",
+          fontFamily: "var(--font-dm-sans)",
+          marginBottom: "1.25rem",
+        }}
+      >
+          <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong> currently has{" "}
           {event.confirmedCount} of {event.capacity} slots filled.
         </p>
 
@@ -204,7 +221,7 @@ function CapacityModal({
             fontSize: "0.72rem",
             fontWeight: 600,
             letterSpacing: "0.04em",
-            color: "rgba(240,237,230,0.4)",
+            color: "var(--text-muted)",
             fontFamily: "var(--font-dm-sans)",
             marginBottom: "0.4rem",
             textTransform: "uppercase",
@@ -220,12 +237,12 @@ function CapacityModal({
           placeholder={String(event.capacity + 1)}
           style={{
             width: "100%",
-            background: "#141414",
-            border: "0.5px solid rgba(240,237,230,0.15)",
+            background: "var(--bg-input)",
+            border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)",
             borderRadius: 8,
             padding: "0.625rem 0.875rem",
             fontSize: "0.875rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             fontFamily: "var(--font-dm-sans)",
             outline: "none",
             boxSizing: "border-box",
@@ -256,11 +273,11 @@ function CapacityModal({
             onClick={onClose}
             style={{
               background: "transparent",
-              border: "0.5px solid rgba(240,237,230,0.15)",
+              border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)",
               borderRadius: 8,
               padding: "0.5rem 1rem",
               fontSize: "0.82rem",
-              color: "rgba(240,237,230,0.5)",
+              color: "var(--text-secondary)",
               cursor: "pointer",
               fontFamily: "var(--font-dm-sans)",
             }}
@@ -383,7 +400,7 @@ export default function DashboardOverviewPage() {
               style={{
                 fontFamily: "var(--font-instrument-serif)",
                 fontSize: "1.45rem",
-                color: "#F0EDE6",
+                color: "var(--text-primary)",
                 fontWeight: 400,
                 margin: 0,
                 lineHeight: 1.1,
@@ -396,7 +413,7 @@ export default function DashboardOverviewPage() {
                 marginTop: "0.4rem",
                 fontSize: "0.9rem",
                 fontWeight: 300,
-                color: "rgba(240,237,230,0.45)",
+                color: "var(--text-secondary)",
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
@@ -478,24 +495,15 @@ export default function DashboardOverviewPage() {
 
           {/* Needs attention — only rendered when loading or there are near-capacity events */}
           {(loading || (stats?.eventsNearCapacity?.length ?? 0) > 0) && (
-            <section>
-            <h2
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.1rem",
-                fontWeight: 400,
-                color: "#F0EDE6",
-                marginBottom: "1rem",
-              }}
-            >
+          <section>
+            <h2 style={sectionHeadingStyle}>
               Needs attention
             </h2>
 
             {loading ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "1.25rem",
                   display: "flex",
@@ -509,7 +517,7 @@ export default function DashboardOverviewPage() {
                     style={{
                       height: 56,
                       borderRadius: 8,
-                      background: "rgba(240,237,230,0.04)",
+                      background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
                       animation: "pulse 1.5s ease-in-out infinite",
                     }}
                   />
@@ -518,8 +526,7 @@ export default function DashboardOverviewPage() {
             ) : !stats?.eventsNearCapacity?.length ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "1.5rem",
                 }}
@@ -527,7 +534,7 @@ export default function DashboardOverviewPage() {
                 <p
                   style={{
                     fontSize: "0.875rem",
-                    color: "rgba(240,237,230,0.35)",
+                    color: "var(--text-muted)",
                     fontFamily: "var(--font-dm-sans)",
                     margin: 0,
                   }}
@@ -538,8 +545,7 @@ export default function DashboardOverviewPage() {
             ) : (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   overflow: "hidden",
                 }}
@@ -848,23 +854,14 @@ export default function DashboardOverviewPage() {
 
           {/* Recent activity feed */}
           <section>
-            <h2
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                fontSize: "1.1rem",
-                fontWeight: 400,
-                color: "#F0EDE6",
-                marginBottom: "1rem",
-              }}
-            >
+            <h2 style={sectionHeadingStyle}>
               Recent activity
             </h2>
 
             {loading ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "1.25rem",
                   display: "flex",
@@ -878,7 +875,7 @@ export default function DashboardOverviewPage() {
                     style={{
                       height: 38,
                       borderRadius: 8,
-                      background: "rgba(240,237,230,0.04)",
+                      background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
                       animation: "pulse 1.5s ease-in-out infinite",
                     }}
                   />
@@ -887,8 +884,7 @@ export default function DashboardOverviewPage() {
             ) : !stats?.recentActivity?.length ? (
               <div
                 style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  ...surfaceStyle,
                   borderRadius: 12,
                   padding: "1.5rem",
                 }}
@@ -896,7 +892,7 @@ export default function DashboardOverviewPage() {
                 <p
                   style={{
                     fontSize: "0.875rem",
-                    color: "rgba(240,237,230,0.35)",
+                    color: "var(--text-muted)",
                     fontFamily: "var(--font-dm-sans)",
                     margin: 0,
                   }}
@@ -908,8 +904,7 @@ export default function DashboardOverviewPage() {
               <>
                 <div
                   style={{
-                    background: "#141414",
-                    border: "0.5px solid rgba(240,237,230,0.08)",
+                    ...surfaceStyle,
                     borderRadius: 12,
                     overflow: "hidden",
                   }}

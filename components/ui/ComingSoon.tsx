@@ -43,8 +43,8 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
   return (
     <div
       style={{
-        background: "#141414",
-        border: "0.5px solid rgba(240,237,230,0.08)",
+        background: "var(--surface)",
+        border: "0.5px solid var(--border)",
         borderRadius: 16,
         padding: "clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 4vw, 3rem)",
         maxWidth: 560,
@@ -56,7 +56,6 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
       }}
     >
-      {/* Icon */}
       <div
         style={{
           width: 52,
@@ -68,13 +67,14 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
           alignItems: "center",
           justifyContent: "center",
           marginBottom: "1.5rem",
-          fontSize: "1.4rem",
+          fontSize: "1.05rem",
+          color: "#C8F55A",
+          fontWeight: 700,
         }}
       >
-        ✦
+        ES
       </div>
 
-      {/* Feature label */}
       <span
         style={{
           display: "inline-block",
@@ -89,25 +89,23 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
         {featureName}
       </span>
 
-      {/* Heading */}
       <h2
         style={{
           fontFamily: "var(--font-instrument-serif, Georgia, serif)",
           fontSize: "clamp(1.4rem, 4vw, 2rem)",
           fontWeight: 600,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           margin: "0 0 0.875rem",
           lineHeight: 1.2,
         }}
       >
-        Hold tight — this feature is coming soon!
+        Hold tight - this feature is coming soon!
       </h2>
 
-      {/* Body */}
       <p
         style={{
           fontSize: "0.875rem",
-          color: "rgba(240,237,230,0.5)",
+          color: "var(--text-muted)",
           lineHeight: 1.65,
           margin: "0 0 2rem",
           maxWidth: 440,
@@ -117,17 +115,15 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
           "We're working hard on this. Premium and Business features will be available once our payment system goes live. You'll be the first to know."}
       </p>
 
-      {/* Divider */}
       <div
         style={{
           width: "100%",
           height: 1,
-          background: "rgba(240,237,230,0.07)",
+          background: "var(--border)",
           marginBottom: "1.75rem",
         }}
       />
 
-      {/* Opt-in form */}
       {state === "success" ? (
         <div
           style={{
@@ -137,7 +133,7 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
             gap: "0.5rem",
           }}
         >
-          <span style={{ fontSize: "1.4rem" }}>🎉</span>
+          <span style={{ fontSize: "1rem", color: "var(--accent)", fontWeight: 700 }}>Success</span>
           <p
             style={{
               fontSize: "0.875rem",
@@ -151,12 +147,12 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
           <p
             style={{
               fontSize: "0.78rem",
-              color: "rgba(240,237,230,0.4)",
+              color: "var(--text-muted)",
               margin: 0,
             }}
           >
             We&apos;ll notify you at{" "}
-            <strong style={{ color: "rgba(240,237,230,0.65)" }}>{email}</strong>{" "}
+            <strong style={{ color: "var(--text-secondary)" }}>{email}</strong>{" "}
             when {featureName} launches.
           </p>
         </div>
@@ -172,7 +168,7 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
               fontWeight: 600,
               letterSpacing: "0.04em",
               textTransform: "uppercase",
-              color: "rgba(240,237,230,0.35)",
+              color: "var(--text-muted)",
               marginBottom: "0.625rem",
             }}
           >
@@ -199,12 +195,12 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
               style={{
                 flex: 1,
                 minWidth: 180,
-                background: "#0A0A0A",
-                border: `0.5px solid ${errorMessage ? "rgba(255,107,107,0.5)" : "rgba(240,237,230,0.12)"}`,
+                background: "var(--surface-muted)",
+                border: `0.5px solid ${errorMessage ? "rgba(255,107,107,0.5)" : "var(--border)"}`,
                 borderRadius: 8,
                 padding: "0.6rem 0.875rem",
                 fontSize: "0.875rem",
-                color: "#F0EDE6",
+                color: "var(--text-primary)",
                 fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
                 outline: "none",
               }}
@@ -221,22 +217,19 @@ export default function ComingSoon({ featureName, description }: ComingSoonProps
                 fontWeight: 600,
                 color: "#0A0A0A",
                 cursor: state === "loading" ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
-                opacity: state === "loading" ? 0.7 : 1,
-                whiteSpace: "nowrap",
-                flexShrink: 0,
+                opacity: state === "loading" ? 0.65 : 1,
               }}
             >
-              {state === "loading" ? "Sending…" : "Notify Me"}
+              {state === "loading" ? "Saving..." : "Notify me"}
             </button>
           </div>
 
           {errorMessage && (
             <p
               style={{
+                marginTop: "0.7rem",
                 fontSize: "0.78rem",
                 color: "#FF6B6B",
-                marginTop: "0.4rem",
                 textAlign: "left",
               }}
             >

@@ -138,15 +138,15 @@ export default function EventInvitationCard({
         position: "relative",
         borderRadius: 20,
         overflow: "hidden",
-        border: "1px solid rgba(240,237,230,0.1)",
-        background: "#0F141C",
-        boxShadow: "0 18px 48px rgba(0,0,0,0.35)",
+        border: "1px solid var(--border)",
+        background: "var(--surface)",
+        boxShadow: "0 18px 48px rgba(0,0,0,0.12)",
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
         marginBottom: "1.5rem",
       }}
     >
       {hasPoster && (
-        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "#0A0A0A" }} className="sm:h-[300px] lg:h-[420px]">
+        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "var(--surface-muted)" }} className="sm:h-[300px] lg:h-[420px]">
           <Image
             src={posterSrc}
             alt={title}
@@ -178,8 +178,8 @@ export default function EventInvitationCard({
           flexDirection: "column",
           gap: "0.75rem",
           background: hasPoster
-            ? "linear-gradient(180deg, rgba(15,20,28,0) 0%, rgba(15,20,28,0.92) 10%, rgba(15,20,28,0.97) 100%)"
-            : "linear-gradient(140deg, #101722 0%, #121b29 55%, #0D1117 100%)",
+            ? "linear-gradient(180deg, rgba(0,0,0,0) 0%, color-mix(in srgb, var(--surface) 88%, transparent) 10%, var(--surface) 100%)"
+            : "var(--surface)",
         }}
       >
         <div
@@ -194,7 +194,7 @@ export default function EventInvitationCard({
               fontSize: "0.62rem",
               letterSpacing: "0.16em",
               textTransform: "uppercase",
-              color: "rgba(240,237,230,0.5)",
+              color: "var(--text-muted)",
               fontWeight: 700,
             }}
           >
@@ -235,7 +235,7 @@ export default function EventInvitationCard({
           style={{
             fontSize: "clamp(1.45rem, 4.2vw, 2.4rem)",
             fontWeight: 500,
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             margin: 0,
             lineHeight: 1.2,
             letterSpacing: "-0.01em",
@@ -259,7 +259,7 @@ export default function EventInvitationCard({
               <span
                 style={{
                   fontSize: "0.88rem",
-                  color: "rgba(240,237,230,0.88)",
+                  color: "var(--text-primary)",
                   fontWeight: 500,
                   letterSpacing: "0.01em",
                 }}
@@ -273,7 +273,7 @@ export default function EventInvitationCard({
           {location && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Place</span>
-              <span style={{ fontSize: "0.88rem", color: "rgba(240,237,230,0.82)", fontWeight: 400 }}>
+              <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 400 }}>
                 {location}
               </span>
             </div>
@@ -282,9 +282,9 @@ export default function EventInvitationCard({
           {organizerName && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Host</span>
-              <span style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
                 Hosted by{" "}
-                <span style={{ color: "rgba(240,237,230,0.8)", fontWeight: 500 }}>{organizerName}</span>
+                <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{organizerName}</span>
                 {organizerIsPioneer ? (
                   <span
                     title="EventSlot Pioneer - one of our earliest supporters"
@@ -313,13 +313,13 @@ export default function EventInvitationCard({
             <div
               style={{
                 height: 1,
-                background: "rgba(240,237,230,0.12)",
+                background: "var(--border)",
               }}
             />
             <p
               style={{
                 fontSize: "0.88rem",
-                color: "rgba(240,237,230,0.78)",
+                color: "var(--text-secondary)",
                 lineHeight: 1.72,
                 margin: 0,
                 maxWidth: 700,
@@ -360,12 +360,12 @@ export default function EventInvitationCard({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                background: "rgba(240,237,230,0.06)",
-                border: "1px solid rgba(240,237,230,0.14)",
+                background: "var(--surface-muted)",
+                border: "1px solid var(--border)",
                 borderRadius: 999,
                 padding: "0.3rem 0.85rem",
                 fontSize: "0.72rem",
-                color: "rgba(240,237,230,0.55)",
+                color: "var(--text-muted)",
                 fontWeight: 500,
                 gap: "0.35rem",
               }}

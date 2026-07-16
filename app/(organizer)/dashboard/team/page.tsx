@@ -29,6 +29,15 @@ function getInitials(name: string | null, email: string): string {
   return email[0]?.toUpperCase() ?? "?"
 }
 
+const teamSurface = "var(--surface)"
+const teamSurfaceAlt = "var(--surface-2)"
+const teamBorder = "1px solid var(--border-subtle)"
+const teamBorderSoft = "1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent)"
+const teamTextPrimary = "var(--text-primary)"
+const teamTextSecondary = "var(--text-secondary)"
+const teamTextMuted = "var(--text-muted)"
+const teamOverlay = "rgba(10,10,10,0.65)"
+
 
 // --- Page ---
 
@@ -200,10 +209,10 @@ export default function TeamPage() {
     return (
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <style>{`@keyframes tm-pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
-        <div style={{ height: 36, borderRadius: 8, background: "#141414", marginBottom: "0.5rem", animation: "tm-pulse 1.4s ease-in-out infinite", maxWidth: 220 }} />
-        <div style={{ height: 18, borderRadius: 6, background: "#141414", marginBottom: "2rem", animation: "tm-pulse 1.4s ease-in-out infinite", maxWidth: 320 }} />
+        <div style={{ height: 36, borderRadius: 8, background: teamSurfaceAlt, marginBottom: "0.5rem", animation: "tm-pulse 1.4s ease-in-out infinite", maxWidth: 220 }} />
+        <div style={{ height: 18, borderRadius: 6, background: teamSurfaceAlt, marginBottom: "2rem", animation: "tm-pulse 1.4s ease-in-out infinite", maxWidth: 320 }} />
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ height: 68, borderRadius: 10, background: "#141414", marginBottom: "0.75rem", animation: "tm-pulse 1.4s ease-in-out infinite" }} />
+          <div key={i} style={{ height: 68, borderRadius: 10, background: teamSurfaceAlt, marginBottom: "0.75rem", animation: "tm-pulse 1.4s ease-in-out infinite" }} />
         ))}
       </div>
     )
@@ -220,7 +229,7 @@ export default function TeamPage() {
         <>
           <div
             onClick={() => setConfirmRemoveId(null)}
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60 }}
+            style={{ position: "fixed", inset: 0, background: teamOverlay, zIndex: 60 }}
           />
           <div
             style={{
@@ -229,18 +238,19 @@ export default function TeamPage() {
               left: "50%",
               transform: "translate(-50%,-50%)",
               zIndex: 61,
-              background: "#1A1A1A",
-              border: "0.5px solid rgba(240,237,230,0.1)",
+              background: teamSurface,
+              border: teamBorder,
               borderRadius: 16,
               padding: "2rem",
               width: "min(92vw,400px)",
               fontFamily: "var(--font-dm-sans)",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
             }}
           >
-            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.75rem" }}>
+            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: teamTextPrimary, marginBottom: "0.75rem" }}>
               Remove member?
             </h3>
-            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", lineHeight: 1.6, marginBottom: "1.5rem" }}>
+            <p style={{ fontSize: "0.875rem", color: teamTextSecondary, lineHeight: 1.6, marginBottom: "1.5rem" }}>
               {confirmTarget.status === "accepted"
                 ? `${confirmTarget.member?.name ?? confirmTarget.email} will lose access to your events.`
                 : `The pending invite for ${confirmTarget.email} will be cancelled.`}
@@ -248,7 +258,7 @@ export default function TeamPage() {
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setConfirmRemoveId(null)}
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, color: "rgba(240,237,230,0.5)", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer" }}
+                style={{ background: "transparent", border: teamBorderSoft, borderRadius: 8, color: teamTextSecondary, fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer" }}
               >
                 Cancel
               </button>
@@ -269,7 +279,7 @@ export default function TeamPage() {
         <>
           <div
             onClick={() => setAssignModal(null)}
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 60 }}
+            style={{ position: "fixed", inset: 0, background: teamOverlay, zIndex: 60 }}
           />
           <div
             style={{
@@ -278,8 +288,8 @@ export default function TeamPage() {
               left: "50%",
               transform: "translate(-50%,-50%)",
               zIndex: 61,
-              background: "#1A1A1A",
-              border: "0.5px solid rgba(240,237,230,0.1)",
+              background: teamSurface,
+              border: teamBorder,
               borderRadius: 16,
               padding: "1.75rem",
               width: "min(92vw,480px)",
@@ -287,17 +297,18 @@ export default function TeamPage() {
               maxHeight: "80vh",
               display: "flex",
               flexDirection: "column",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
             }}
           >
-            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.25rem" }}>
+            <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: teamTextPrimary, marginBottom: "0.25rem" }}>
               Manage event access
             </h3>
-            <p style={{ fontSize: "0.8125rem", color: "rgba(240,237,230,0.4)", marginBottom: "1.25rem", lineHeight: 1.5 }}>
-              Choose which events <strong style={{ color: "rgba(240,237,230,0.7)" }}>{assignModal.memberLabel}</strong> can access.
+            <p style={{ fontSize: "0.8125rem", color: teamTextSecondary, marginBottom: "1.25rem", lineHeight: 1.5 }}>
+              Choose which events <strong style={{ color: teamTextPrimary }}>{assignModal.memberLabel}</strong> can access.
             </p>
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
               {orgEvents.length === 0 ? (
-                <p style={{ fontSize: "0.8125rem", color: "rgba(240,237,230,0.35)", textAlign: "center", padding: "1rem 0" }}>
+                <p style={{ fontSize: "0.8125rem", color: teamTextMuted, textAlign: "center", padding: "1rem 0" }}>
                   No events found.
                 </p>
               ) : (
@@ -310,8 +321,8 @@ export default function TeamPage() {
                         display: "flex",
                         alignItems: "center",
                         gap: "0.75rem",
-                        background: checked ? "rgba(200,245,90,0.05)" : "rgba(240,237,230,0.03)",
-                        border: `0.5px solid ${checked ? "rgba(200,245,90,0.2)" : "rgba(240,237,230,0.07)"}`,
+                        background: checked ? "rgba(200,245,90,0.05)" : "var(--surface-2)",
+                        border: checked ? "0.5px solid rgba(200,245,90,0.2)" : teamBorderSoft,
                         borderRadius: 8,
                         padding: "0.6875rem 0.875rem",
                         cursor: "pointer",
@@ -328,7 +339,7 @@ export default function TeamPage() {
                         }
                         style={{ accentColor: "#C8F55A", width: 15, height: 15, flexShrink: 0 }}
                       />
-                      <span style={{ flex: 1, fontSize: "0.875rem", color: "rgba(240,237,230,0.85)", lineHeight: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ flex: 1, fontSize: "0.875rem", color: teamTextPrimary, lineHeight: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {ev.title}
                       </span>
                       <span
@@ -337,7 +348,7 @@ export default function TeamPage() {
                           borderRadius: 5,
                           padding: "0.15rem 0.4rem",
                           background: ev.status === "active" ? "rgba(200,245,90,0.1)" : "rgba(240,237,230,0.06)",
-                          color: ev.status === "active" ? "#C8F55A" : "rgba(240,237,230,0.35)",
+                          color: ev.status === "active" ? "#C8F55A" : teamTextMuted,
                           flexShrink: 0,
                         }}
                       >
@@ -351,7 +362,7 @@ export default function TeamPage() {
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setAssignModal(null)}
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, color: "rgba(240,237,230,0.5)", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer" }}
+                style={{ background: "transparent", border: teamBorderSoft, borderRadius: 8, color: teamTextSecondary, fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer" }}
               >
                 Cancel
               </button>
@@ -372,7 +383,7 @@ export default function TeamPage() {
         style={{
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "1.6rem",
-          color: "#F0EDE6",
+          color: teamTextPrimary,
           marginBottom: "0.375rem",
           fontWeight: 400,
         }}
@@ -382,7 +393,7 @@ export default function TeamPage() {
       <p
         style={{
           fontSize: "0.8rem",
-          color: "rgba(240,237,230,0.4)",
+          color: teamTextSecondary,
           fontFamily: "var(--font-dm-sans)",
           marginBottom: "0.75rem",
         }}
@@ -395,7 +406,7 @@ export default function TeamPage() {
         style={{
           height: 3,
           borderRadius: 100,
-          background: "rgba(240,237,230,0.07)",
+          background: "color-mix(in srgb, var(--text-primary) 7%, transparent)",
           marginBottom: "1.5rem",
           overflow: "hidden",
         }}
@@ -420,7 +431,7 @@ export default function TeamPage() {
           padding: "0.875rem 1rem",
           marginBottom: "1.75rem",
           fontSize: "0.82rem",
-          color: "rgba(240,237,230,0.5)",
+          color: teamTextSecondary,
           fontFamily: "var(--font-dm-sans)",
           lineHeight: 1.55,
         }}
@@ -436,7 +447,7 @@ export default function TeamPage() {
               fontSize: "0.8125rem",
               fontFamily: "var(--font-dm-sans)",
               fontWeight: 500,
-              color: "rgba(240,237,230,0.35)",
+              color: teamTextMuted,
               letterSpacing: "0.04em",
               textTransform: "uppercase",
               marginBottom: "0.625rem",
@@ -454,8 +465,8 @@ export default function TeamPage() {
                 <div
                   key={m.id}
                   style={{
-                    background: "#141414",
-                    border: "0.5px solid rgba(240,237,230,0.06)",
+                    background: teamSurface,
+                    border: teamBorderSoft,
                     borderRadius: 10,
                     padding: "0.75rem 1rem",
                   }}
@@ -487,7 +498,7 @@ export default function TeamPage() {
                       <div
                         style={{
                           fontSize: "0.875rem",
-                          color: "rgba(240,237,230,0.85)",
+                          color: teamTextPrimary,
                           fontFamily: "var(--font-dm-sans)",
                           fontWeight: 500,
                           whiteSpace: "nowrap",
@@ -501,7 +512,7 @@ export default function TeamPage() {
                         <div
                           style={{
                             fontSize: "0.75rem",
-                            color: "rgba(240,237,230,0.35)",
+                            color: teamTextMuted,
                             fontFamily: "var(--font-dm-sans)",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
@@ -550,7 +561,7 @@ export default function TeamPage() {
                   {/* Event chips row */}
                   <div style={{ marginTop: "0.5rem", paddingLeft: "2.875rem", display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
                     {events.length === 0 ? (
-                      <span style={{ fontSize: "0.6875rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>
+                      <span style={{ fontSize: "0.6875rem", color: teamTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                         No events assigned
                       </span>
                     ) : (
@@ -562,7 +573,7 @@ export default function TeamPage() {
                             fontFamily: "var(--font-dm-sans)",
                             background: a.event.status === "active" ? "rgba(200,245,90,0.08)" : "rgba(240,237,230,0.05)",
                             border: `0.5px solid ${a.event.status === "active" ? "rgba(200,245,90,0.2)" : "rgba(240,237,230,0.08)"}`,
-                            color: a.event.status === "active" ? "#C8F55A" : "rgba(240,237,230,0.4)",
+                            color: a.event.status === "active" ? "#C8F55A" : teamTextSecondary,
                             borderRadius: 5,
                             padding: "0.2rem 0.5rem",
                             maxWidth: 180,
@@ -592,7 +603,7 @@ export default function TeamPage() {
               fontSize: "0.8125rem",
               fontFamily: "var(--font-dm-sans)",
               fontWeight: 500,
-              color: "rgba(240,237,230,0.35)",
+              color: teamTextMuted,
               letterSpacing: "0.04em",
               textTransform: "uppercase",
               marginBottom: "0.625rem",
@@ -608,8 +619,8 @@ export default function TeamPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: "0.75rem",
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.06)",
+                  background: teamSurface,
+                  border: teamBorderSoft,
                   borderRadius: 10,
                   padding: "0.75rem 1rem",
                   flexWrap: "wrap",
@@ -619,7 +630,7 @@ export default function TeamPage() {
                   style={{
                     flex: 1,
                     fontSize: "0.875rem",
-                    color: "rgba(240,237,230,0.7)",
+                    color: teamTextSecondary,
                     fontFamily: "var(--font-dm-sans)",
                     minWidth: 0,
                     whiteSpace: "nowrap",
@@ -649,9 +660,9 @@ export default function TeamPage() {
                   disabled={resendingId === m.id}
                   style={{
                     background: "transparent",
-                    border: "0.5px solid rgba(240,237,230,0.12)",
+                    border: teamBorderSoft,
                     borderRadius: 7,
-                    color: resendSuccess === m.id ? "#C8F55A" : "rgba(240,237,230,0.5)",
+                    color: resendSuccess === m.id ? "#C8F55A" : teamTextSecondary,
                     fontSize: "0.75rem",
                     fontFamily: "var(--font-dm-sans)",
                     padding: "0.3rem 0.625rem",
@@ -707,15 +718,15 @@ export default function TeamPage() {
       {accepted.length === 0 && pending.length === 0 && (
         <div
           style={{
-            background: "#141414",
-            border: "0.5px solid rgba(240,237,230,0.06)",
+            background: teamSurface,
+            border: teamBorderSoft,
             borderRadius: 12,
             padding: "2rem",
             textAlign: "center",
             marginBottom: "1.75rem",
           }}
         >
-          <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ fontSize: "0.875rem", color: teamTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             No team members yet. Send an invite below.
           </p>
         </div>
@@ -728,7 +739,7 @@ export default function TeamPage() {
             fontSize: "0.8125rem",
             fontFamily: "var(--font-dm-sans)",
             fontWeight: 500,
-            color: "rgba(240,237,230,0.35)",
+            color: teamTextMuted,
             letterSpacing: "0.04em",
             textTransform: "uppercase",
             marginBottom: "0.625rem",
@@ -738,14 +749,14 @@ export default function TeamPage() {
         </h2>
         <div
           style={{
-            background: "#141414",
-            border: "0.5px solid rgba(240,237,230,0.08)",
+            background: teamSurface,
+            border: teamBorder,
             borderRadius: 12,
             padding: "1.25rem",
           }}
         >
           {activeCount >= maxMembers ? (
-            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+            <p style={{ fontSize: "0.875rem", color: teamTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
               You&apos;ve reached your team member limit ({maxMembers}). Remove a member to invite another.
             </p>
           ) : (
@@ -766,11 +777,11 @@ export default function TeamPage() {
                     placeholder={idx === 0 ? "teammate@example.com" : "second@example.com (optional)"}
                     required={idx === 0}
                     style={{
-                      background: "rgba(240,237,230,0.04)",
-                      border: "0.5px solid rgba(240,237,230,0.12)",
+                      background: "var(--surface-2)",
+                      border: teamBorderSoft,
                       borderRadius: 8,
                       padding: "0.5625rem 0.875rem",
-                      color: "#F0EDE6",
+                      color: teamTextPrimary,
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "0.875rem",
                       outline: "none",
@@ -816,7 +827,7 @@ export default function TeamPage() {
                         </p>
                         {r.emailFailed && r.acceptUrl && (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                            <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 6, padding: "0.375rem 0.625rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: teamTextSecondary, fontFamily: "var(--font-dm-sans)", background: "var(--surface-2)", border: teamBorderSoft, borderRadius: 6, padding: "0.375rem 0.625rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {r.acceptUrl}
                             </span>
                             <button onClick={() => copyToClipboard(r.acceptUrl!, `invite-${idx}`)} style={{ background: "#C8F55A", color: "#0A0A0A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, fontSize: "0.75rem", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", cursor: "pointer", flexShrink: 0 }}>

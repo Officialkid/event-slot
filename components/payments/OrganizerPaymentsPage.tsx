@@ -56,6 +56,14 @@ const WITHDRAWAL_MINIMUM: Record<SupportedCurrency, number> = {
   USD: 1,
 }
 
+const paymentsSurface = "var(--surface)"
+const paymentsSurfaceAlt = "var(--surface-hover)"
+const paymentsInputBg = "var(--bg-input)"
+const paymentsBorder = "var(--border)"
+const paymentsTextPrimary = "var(--text-primary)"
+const paymentsTextSecondary = "var(--text-secondary)"
+const paymentsTextMuted = "var(--text-muted)"
+
 function formatMoney(currency: SupportedCurrency, amount: number) {
   return new Intl.NumberFormat("en", {
     style: "currency",
@@ -117,9 +125,9 @@ function trendIcon(color: string) {
 
 function pillStyle(active: boolean): CSSProperties {
   return {
-    border: active ? "0.5px solid rgba(200,245,90,0.38)" : "0.5px solid rgba(240,237,230,0.12)",
+    border: active ? "0.5px solid var(--border-emphasis)" : `0.5px solid ${paymentsBorder}`,
     background: active ? "rgba(200,245,90,0.08)" : "transparent",
-    color: active ? "#C8F55A" : "rgba(240,237,230,0.7)",
+    color: active ? "var(--accent)" : paymentsTextSecondary,
     borderRadius: 999,
     padding: "0.55rem 0.95rem",
     fontSize: "0.82rem",
@@ -132,9 +140,9 @@ function pillStyle(active: boolean): CSSProperties {
 const inputStyle: CSSProperties = {
   width: "100%",
   borderRadius: 10,
-  background: "#181818",
-  border: "0.5px solid rgba(240,237,230,0.12)",
-  color: "#F0EDE6",
+  background: paymentsInputBg,
+  border: `0.5px solid ${paymentsBorder}`,
+  color: paymentsTextPrimary,
   padding: "0.9rem 1rem",
   fontSize: "0.9rem",
   fontFamily: "var(--font-dm-sans)",
@@ -153,10 +161,10 @@ const primaryButtonStyle: CSSProperties = {
 }
 
 const secondaryButtonStyle: CSSProperties = {
-  border: "0.5px solid rgba(240,237,230,0.14)",
+  border: `0.5px solid ${paymentsBorder}`,
   borderRadius: 999,
   background: "transparent",
-  color: "#F0EDE6",
+  color: paymentsTextPrimary,
   padding: "0.8rem 1.15rem",
   fontSize: "0.82rem",
   fontWeight: 600,
@@ -193,7 +201,7 @@ function resolveEventPanelTab(value: string | null): EventPanelTab {
 function MetricCard({
   label,
   value,
-  accent = "#F0EDE6",
+  accent = paymentsTextPrimary,
   hint,
   icon,
 }: {
@@ -204,9 +212,9 @@ function MetricCard({
   icon?: ReactNode
 }) {
   return (
-    <div className="dashboard-surface" style={{ padding: "1.1rem 1.15rem", background: "#141414" }}>
+    <div className="dashboard-surface" style={{ padding: "1.1rem 1.15rem", background: paymentsSurface }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.7rem" }}>
-        <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.42)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+        <span style={{ fontSize: "0.72rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
           {label}
         </span>
         {icon}
@@ -215,7 +223,7 @@ function MetricCard({
         {value}
       </div>
       {hint ? (
-        <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+        <div style={{ marginTop: "0.45rem", fontSize: "0.78rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
           {hint}
         </div>
       ) : null}
@@ -226,8 +234,8 @@ function MetricCard({
 function SummaryLine({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontFamily: "var(--font-dm-sans)", fontSize: "0.86rem" }}>
-      <span style={{ color: "rgba(240,237,230,0.52)" }}>{label}</span>
-      <span style={{ color: accent ? "#C8F55A" : "#F0EDE6", textAlign: "right" }}>{value}</span>
+      <span style={{ color: paymentsTextSecondary }}>{label}</span>
+      <span style={{ color: accent ? "var(--accent)" : paymentsTextPrimary, textAlign: "right" }}>{value}</span>
     </div>
   )
 }
@@ -401,8 +409,8 @@ function WithdrawalModal({
           width: "min(92vw, 560px)",
           maxHeight: "85vh",
           overflowY: "auto",
-          background: "#121212",
-          border: "0.5px solid rgba(240,237,230,0.12)",
+          background: paymentsSurface,
+          border: `0.5px solid ${paymentsBorder}`,
           borderRadius: 18,
           padding: "1.35rem",
           zIndex: 91,
@@ -410,14 +418,14 @@ function WithdrawalModal({
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem" }}>
           <div>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6" }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: paymentsTextPrimary }}>
               Withdraw Funds
             </h2>
-            <p style={{ margin: "0.35rem 0 0", fontSize: "0.86rem", color: "rgba(240,237,230,0.52)", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: "0.35rem 0 0", fontSize: "0.86rem", color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
               Available balance: {formatMoney(currency, available)}
             </p>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontSize: "1.6rem", lineHeight: 1 }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: paymentsTextSecondary, cursor: "pointer", fontSize: "1.6rem", lineHeight: 1 }}>
             X
           </button>
         </div>
@@ -433,9 +441,9 @@ function WithdrawalModal({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: step >= item ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.05)",
-                border: step >= item ? "0.5px solid rgba(200,245,90,0.28)" : "0.5px solid rgba(240,237,230,0.12)",
-                color: step >= item ? "#C8F55A" : "rgba(240,237,230,0.42)",
+                background: step >= item ? "rgba(200,245,90,0.12)" : paymentsSurfaceAlt,
+                border: step >= item ? "0.5px solid var(--border-emphasis)" : `0.5px solid ${paymentsBorder}`,
+                color: step >= item ? "var(--accent)" : paymentsTextMuted,
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "0.78rem",
                 fontWeight: 700,
@@ -448,7 +456,7 @@ function WithdrawalModal({
 
         {step === 1 && (
           <div style={{ display: "grid", gap: "0.85rem" }}>
-            <label style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.72)", fontFamily: "var(--font-dm-sans)" }}>
+            <label style={{ fontSize: "0.82rem", color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
               Amount to withdraw
             </label>
             <input
@@ -460,7 +468,7 @@ function WithdrawalModal({
               placeholder={`${currency} ${minimum}`}
               style={inputStyle}
             />
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
               Maximum: {formatMoney(currency, available)}
             </p>
           </div>
@@ -468,7 +476,7 @@ function WithdrawalModal({
 
         {step === 2 && (
           <div style={{ display: "grid", gap: "0.8rem" }}>
-            <p style={{ margin: 0, fontSize: "0.9rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>How would you like to receive your funds?</p>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>How would you like to receive your funds?</p>
             {([
               { key: "MPESA", title: "M-Pesa", description: "Send to a Safaricom mobile number" },
               { key: "PAYBILL", title: "Till / PayBill", description: "Send to a business till or PayBill destination" },
@@ -481,15 +489,15 @@ function WithdrawalModal({
                 style={{
                   textAlign: "left",
                   borderRadius: 12,
-                  border: draft.method === option.key ? "0.5px solid rgba(200,245,90,0.36)" : "0.5px solid rgba(240,237,230,0.12)",
-                  background: draft.method === option.key ? "rgba(200,245,90,0.07)" : "#181818",
-                  color: "#F0EDE6",
+                  border: draft.method === option.key ? "0.5px solid var(--border-emphasis)" : `0.5px solid ${paymentsBorder}`,
+                  background: draft.method === option.key ? "rgba(200,245,90,0.07)" : paymentsInputBg,
+                  color: paymentsTextPrimary,
                   padding: "0.95rem 1rem",
                   cursor: "pointer",
                 }}
               >
                 <div style={{ fontSize: "0.92rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>{option.title}</div>
-                <div style={{ marginTop: 4, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>{option.description}</div>
+                <div style={{ marginTop: 4, fontSize: "0.8rem", color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>{option.description}</div>
               </button>
             ))}
           </div>
@@ -528,7 +536,7 @@ function WithdrawalModal({
         {step === 4 && (
           <div style={{ display: "grid", gap: "0.8rem" }}>
             <div style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.16)", borderRadius: 12, padding: "0.95rem 1rem" }}>
-              <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.7, color: "rgba(240,237,230,0.72)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.7, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
                 Withdrawals require your payments PIN and a one-time verification code sent to {securityEmail ?? "your email"}.
               </p>
             </div>
@@ -561,7 +569,7 @@ function WithdrawalModal({
         {step === 5 && result ? (
           <div style={{ display: "grid", gap: "0.8rem", padding: "0.5rem 0" }}>
             <div style={{ fontSize: "1rem", color: "#C8F55A", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>Withdrawal Initiated</div>
-            <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.7, color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.7, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
               {formatMoney(currency, amount)} has been queued for {result.destination}.
             </p>
             <SummaryLine label="Reference" value={result.reference} />
@@ -643,10 +651,10 @@ function SecurityPanel({
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       <div className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
-        <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+        <h2 style={{ margin: "0 0 0.4rem", fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
           Payments security
         </h2>
-        <p style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.7, color: "rgba(240,237,230,0.62)", fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ margin: 0, fontSize: "0.86rem", lineHeight: 1.7, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
           Every withdrawal now requires account 2FA, a dedicated payments PIN, and an email OTP. This works separately from your normal sign-in so money movement has its own security wall.
         </p>
       </div>
@@ -654,7 +662,7 @@ function SecurityPanel({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
         <MetricCard label="Account 2FA" value={security.twoFactorEnabled ? "Enabled" : "Off"} accent={security.twoFactorEnabled ? "#C8F55A" : "#FFB84D"} hint="Profile-level sign-in protection" />
         <MetricCard label="Payments PIN" value={security.paymentPinEnabled ? "Configured" : "Required"} accent={security.paymentPinEnabled ? "#C8F55A" : "#FFB84D"} hint="Needed before any withdrawal" />
-        <MetricCard label="Verification email" value={security.email ?? "Missing"} accent={security.email ? "#F0EDE6" : "#FF8A8A"} hint="Used for every withdrawal OTP" />
+        <MetricCard label="Verification email" value={security.email ?? "Missing"} accent={security.email ? paymentsTextPrimary : "#FF8A8A"} hint="Used for every withdrawal OTP" />
       </div>
 
       {!security.twoFactorEnabled ? (
@@ -667,7 +675,7 @@ function SecurityPanel({
 
       <div className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
         <div style={{ display: "grid", gap: "0.8rem", maxWidth: 420 }}>
-          <h3 style={{ margin: 0, fontSize: "0.95rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+          <h3 style={{ margin: 0, fontSize: "0.95rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
             {security.paymentPinEnabled ? "Update payments PIN" : "Set payments PIN"}
           </h3>
           <input value={pin} onChange={(event) => setPin(event.target.value)} inputMode="numeric" type="password" placeholder="4 to 6 digit PIN" style={inputStyle} />
@@ -714,7 +722,7 @@ function EventOverview({
 
       <div className="dashboard-surface" style={{ padding: "1rem 0" }}>
         <div style={{ padding: "0 1.1rem 0.9rem" }}>
-          <h3 style={{ margin: 0, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+          <h3 style={{ margin: 0, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
             Ticket tiers
           </h3>
         </div>
@@ -770,8 +778,8 @@ function EventRegistrationsTable({ rows, currency }: { rows: OrganizerPaymentReg
             <tr key={row.id}>
               <td>
                 <div style={{ display: "grid", gap: 2 }}>
-                  <span style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
-                  <span style={{ color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
+                  <span style={{ color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
+                  <span style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
                 </div>
               </td>
               <td><StatusPill label={row.paymentStatus} tone={paymentStatusTone(row.paymentStatus)} /></td>
@@ -783,7 +791,7 @@ function EventRegistrationsTable({ rows, currency }: { rows: OrganizerPaymentReg
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={6} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 No registrations yet.
               </td>
             </tr>
@@ -813,8 +821,8 @@ function EventPaymentsTable({ rows }: { rows: OrganizerPaymentAttemptRow[] }) {
             <tr key={row.id}>
               <td>
                 <div style={{ display: "grid", gap: 2 }}>
-                  <span style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
-                  <span style={{ color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
+                  <span style={{ color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>{row.attendeeName}</span>
+                  <span style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>{row.attendeeEmail ?? "No email"}</span>
                 </div>
               </td>
               <td><StatusPill label={row.status} tone={paymentStatusTone(row.status)} /></td>
@@ -826,7 +834,7 @@ function EventPaymentsTable({ rows }: { rows: OrganizerPaymentAttemptRow[] }) {
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={6} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 No payment attempts recorded yet.
               </td>
             </tr>
@@ -945,7 +953,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
         <div style={{ display: "grid", gap: "1rem" }}>
           <section style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <MetricCard label="Total Gross" value={formatMoney(currency, summary.gross)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
-            <MetricCard label="Commission Deducted" value={formatMoney(currency, summary.commission)} accent="rgba(240,237,230,0.72)" />
+            <MetricCard label="Commission Deducted" value={formatMoney(currency, summary.commission)} accent={paymentsTextSecondary} />
             <MetricCard label="Net Earnings" value={formatMoney(currency, summary.net)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
             <MetricCard label="Withdrawable Balance" value={formatMoney(currency, summary.withdrawable)} accent="#C8F55A" />
           </section>
@@ -953,8 +961,8 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>Available now</div>
-                <div style={{ marginTop: 4, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                <div style={{ fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>Available now</div>
+                <div style={{ marginTop: 4, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
                   {formatMoney(currency, summary.withdrawable)}
                 </div>
               </div>
@@ -979,14 +987,14 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
           </section>
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", background: "rgba(255,184,77,0.05)", borderColor: "rgba(255,184,77,0.18)" }}>
-            <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
               EventSlot&apos;s platform commission is non-refundable. If you issue a refund to an attendee, the commission amount is deducted from your net balance.
             </p>
           </section>
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-              <h2 style={{ margin: 0, fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+              <h2 style={{ margin: 0, fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
                 Paid events
               </h2>
               <button type="button" onClick={() => updateWorkspaceTab("transactions")} style={secondaryButtonStyle}>
@@ -995,7 +1003,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
             </div>
 
             {events.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(240,237,230,0.56)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
+              <p style={{ margin: 0, fontSize: "0.9rem", color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
                 Once your paid events start receiving payments, they will appear here with earnings, attendees, payment attempts, and withdrawal readiness.
               </p>
             ) : (
@@ -1011,7 +1019,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                     style={{
                       textAlign: "left",
                       background: "rgba(255,255,255,0.01)",
-                      border: "0.5px solid rgba(240,237,230,0.08)",
+                      border: `0.5px solid ${paymentsBorder}`,
                       borderRadius: 14,
                       padding: "1rem 1.05rem",
                       cursor: "pointer",
@@ -1019,13 +1027,13 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
                       <div>
-                        <div style={{ fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>{event.title}</div>
-                        <div style={{ marginTop: 6, fontSize: "0.8rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                        <div style={{ fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>{event.title}</div>
+                        <div style={{ marginTop: 6, fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                           {formatDate(event.eventDate)} | {event.confirmedCount} confirmed | {event.waitlistCount} waitlisted
                         </div>
                       </div>
                       <div style={{ minWidth: 180 }}>
-                        <div style={{ fontSize: "0.74rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        <div style={{ fontSize: "0.74rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                           Net earnings
                         </div>
                         <div style={{ marginTop: 6, fontSize: "1.1rem", color: "#C8F55A", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
@@ -1045,7 +1053,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
         <div style={{ display: "grid", gridTemplateColumns: "320px minmax(0, 1fr)", gap: "1rem" }}>
           <aside className="dashboard-surface" style={{ padding: "1rem 0" }}>
             <div style={{ padding: "0 1rem 0.8rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.02rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+              <h2 style={{ margin: 0, fontSize: "1.02rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
                 Paid events
               </h2>
             </div>
@@ -1058,20 +1066,20 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                   style={{
                     textAlign: "left",
                     borderRadius: 12,
-                    border: selectedEvent?.id === event.id ? "0.5px solid rgba(200,245,90,0.3)" : "0.5px solid rgba(240,237,230,0.08)",
-                    background: selectedEvent?.id === event.id ? "rgba(200,245,90,0.06)" : "rgba(255,255,255,0.01)",
+                    border: selectedEvent?.id === event.id ? "0.5px solid var(--border-emphasis)" : `0.5px solid ${paymentsBorder}`,
+                    background: selectedEvent?.id === event.id ? "rgba(200,245,90,0.06)" : paymentsSurfaceAlt,
                     padding: "0.9rem 0.95rem",
                     cursor: "pointer",
                   }}
                 >
-                  <div style={{ fontSize: "0.92rem", color: "#F0EDE6", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{event.title}</div>
-                  <div style={{ marginTop: 4, fontSize: "0.76rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                  <div style={{ fontSize: "0.92rem", color: paymentsTextPrimary, fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{event.title}</div>
+                  <div style={{ marginTop: 4, fontSize: "0.76rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                     {formatMoney(event.currency, event.net)} net | {event.successfulPayments} paid
                   </div>
                 </button>
               ))}
               {events.length === 0 && (
-                <p style={{ margin: "0 0.35rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", lineHeight: 1.7 }}>
+                <p style={{ margin: "0 0.35rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", lineHeight: 1.7 }}>
                   No paid events yet.
                 </p>
               )}
@@ -1080,17 +1088,17 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
             {!selectedEvent ? (
-              <p style={{ margin: 0, color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ margin: 0, color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 Choose an event to inspect its registrations, payments, and revenue.
               </p>
             ) : (
               <div style={{ display: "grid", gap: "1rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                    <h2 style={{ margin: 0, fontSize: "1.25rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
                       {selectedEvent.title}
                     </h2>
-                    <p style={{ margin: "0.45rem 0 0", fontSize: "0.84rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
+                    <p style={{ margin: "0.45rem 0 0", fontSize: "0.84rem", color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
                       {formatDate(selectedEvent.eventDate)} | {selectedEvent.confirmedCount} confirmed | {selectedEvent.waitlistCount} waitlisted
                     </p>
                   </div>
@@ -1122,7 +1130,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
 
       {workspaceTab === "transactions" && (
         <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
-          <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+          <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
             Transaction log
           </h2>
           <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: "1rem" }}>
@@ -1166,7 +1174,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                 ))}
                 {filteredTransactions.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                    <td colSpan={8} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                       No transactions match the current filters.
                     </td>
                   </tr>
@@ -1181,8 +1189,8 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
         <div style={{ display: "grid", gap: "1rem" }}>
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>Withdrawable now</div>
-              <div style={{ marginTop: 4, fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+              <div style={{ fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>Withdrawable now</div>
+              <div style={{ marginTop: 4, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
                 {formatMoney(currency, summary.withdrawable)}
               </div>
               {!data.security.twoFactorEnabled ? (
@@ -1210,7 +1218,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
           </section>
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: "#F0EDE6", fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
               Withdrawal history
             </h2>
             <div className="table-wrapper">
@@ -1238,7 +1246,7 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                   ))}
                   {withdrawals.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ color: "rgba(240,237,230,0.46)", fontFamily: "var(--font-dm-sans)" }}>
+                      <td colSpan={6} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                         No withdrawal requests yet.
                       </td>
                     </tr>

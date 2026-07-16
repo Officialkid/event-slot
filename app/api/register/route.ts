@@ -19,8 +19,18 @@ import { getEffectivePlanPolicy } from '@/lib/effectivePlanPolicy'
 import { isPricingRolloutActive } from '@/lib/pricingRollout'
 import { sendEventCapacityMilestones } from '@/lib/capacityNotifications'
 import { getEffectiveEventPlan } from '@/lib/eventPasses'
+import { getFullOptions } from '@/lib/registrationQuestionOptions'
+import { sendRegistrationResponseCopyEmail } from '@/lib/email'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
-type EventQuestion = { id: string; type: string; label: string; required?: boolean }
+type EventQuestion = {
+  id: string
+  type: string
+  label: string
+  required?: boolean
+  options?: string[]
+  optionLimits?: Record<string, number | null | undefined>
+  allowMultiple?: boolean
+}
 type AttendeeResult = { status: 'confirmed' | 'waitlist'; waitlistPosition?: number; registrationId: string; registrationNumber: number; confirmationCode?: string }
 
 function getDurationMins(startIso: Date | null | undefined, endIso: Date | null | undefined) {
@@ -41,12 +51,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { eventSlug, attendees, consentDataProcessing, consentTransactional, consentMarketing, forceDuplicate, source, refCode, utmSource } = body as {
+    const { eventSlug, attendees, consentDataProcessing, consentTransactional, consentMarketing, sendResponseCopy, forceDuplicate, source, refCode, utmSource } = body as {
       eventSlug: string
       attendees: AttendeePayload[]
       consentDataProcessing?: boolean
       consentTransactional?: boolean
       consentMarketing?: boolean
+      sendResponseCopy?: boolean
       forceDuplicate?: boolean
       source?: string
       refCode?: string
@@ -173,6 +184,60 @@ export async function POST(req: NextRequest) {
             }, { status: 409 })
           }
         }
+      }
+    }
+
+    const limitedQuestions = eventQuestions.filter((question) => {
+      const limits = question.optionLimits ?? {}
+      return (question.type === 'select' || question.type === 'checkbox') && Object.keys(limits).length > 0
+    })
+
+    if (limitedQuestions.length > 0) {
+      const existingRegistrations = await prisma.registration.findMany({
+        where: {
+          eventId: event.id,
+          status: { in: ['confirmed', 'waitlist'] },
+        },
+        select: { answers: true },
+      })
+
+      const queuedRegistrations = existingRegistrations.map((registration) => ({
+        answers: registration.answers as Array<{ questionId: string; value: string }>,
+      }))
+
+      for (const attendee of attendees) {
+        for (const question of limitedQuestions) {
+          const fullOptions = new Set(getFullOptions(question, queuedRegistrations))
+          if (fullOptions.size === 0) continue
+
+          const rawAnswer = attendee.answers.find((answer) => answer.questionId === question.id)?.value ?? ''
+          const selectedValues = question.type === 'checkbox'
+            ? (() => {
+                try {
+                  const parsed = JSON.parse(rawAnswer)
+                  return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+                } catch {
+                  return rawAnswer.split('|').map((value) => value.trim()).filter(Boolean)
+                }
+              })()
+            : [rawAnswer]
+
+          const blockedOption = selectedValues.find((value) => fullOptions.has(value))
+          if (blockedOption) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `"${blockedOption}" is already full for ${question.label}. Please choose another option.`,
+                code: 'QUESTION_OPTION_FULL',
+                questionId: question.id,
+                option: blockedOption,
+              },
+              { status: 409 }
+            )
+          }
+        }
+
+        queuedRegistrations.push({ answers: attendee.answers })
       }
     }
 
@@ -490,6 +555,72 @@ export async function POST(req: NextRequest) {
           }
         })
       )
+    } catch {
+      // Non-critical
+    }
+
+    if (sendResponseCopy) {
+      try {
+        await Promise.all(
+          results.map(async (reg, index) => {
+            const attendee = attendees[index]
+            const emailQuestion = eventQuestions.find((question) => question.type === 'email')
+            const nameQuestion = eventQuestions.find(
+              (question) => question.type === 'text' && question.label.toLowerCase().includes('name')
+            )
+            const recipient =
+              (emailQuestion
+                ? attendee.answers.find((answer) => answer.questionId === emailQuestion.id)?.value?.trim()
+                : '') || attendee.baseEmail?.trim() || ''
+
+            if (!recipient) return
+
+            const attendeeName =
+              (nameQuestion
+                ? attendee.answers.find((answer) => answer.questionId === nameQuestion.id)?.value?.trim()
+                : '') || null
+
+            await sendRegistrationResponseCopyEmail({
+              to: recipient,
+              eventTitle: event.title,
+              attendeeName,
+              status: reg.status,
+              confirmationCode: reg.confirmationCode,
+              registrationId: reg.registrationId,
+              answers: attendee.answers.map((answer) => ({
+                label: eventQuestions.find((question) => question.id === answer.questionId)?.label ?? 'Response',
+                value: answer.value,
+              })),
+            })
+          })
+        )
+      } catch {
+        // Non-critical
+      }
+    }
+
+    try {
+      const emailQuestion = eventQuestions.find((question) => question.type === 'email')
+      const draftEmails = Array.from(
+        new Set(
+          attendees
+            .map((attendee) => {
+              return (emailQuestion
+                ? attendee.answers.find((answer) => answer.questionId === emailQuestion.id)?.value?.trim().toLowerCase()
+                : '') || attendee.baseEmail?.trim().toLowerCase() || ''
+            })
+            .filter(Boolean)
+        )
+      )
+
+      if (draftEmails.length > 0) {
+        await prisma.registrationDraft.deleteMany({
+          where: {
+            eventId: event.id,
+            email: { in: draftEmails },
+          },
+        })
+      }
     } catch {
       // Non-critical
     }

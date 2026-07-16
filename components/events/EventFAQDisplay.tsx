@@ -21,30 +21,31 @@ export function EventFAQDisplay({ faqs }: Props) {
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
         <HelpCircle className="w-4 h-4 text-[#C8F55A]" />
-        <h3 className="text-[#F0EDE6] font-semibold text-sm">Frequently Asked Questions</h3>
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Frequently Asked Questions</h3>
       </div>
 
       {faqs.map((faq) => (
         <div
           key={faq.id}
-          className="border border-[rgba(240,237,230,0.08)] rounded-[8px] overflow-hidden"
+          className="border rounded-[8px] overflow-hidden"
+          style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}
         >
           <button
             onClick={() => setOpen(open === faq.id ? null : faq.id)}
-            className="w-full flex items-center justify-between px-4 py-3
-                       text-left hover:bg-[rgba(240,237,230,0.03)] transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors"
+            style={{ background: open === faq.id ? "var(--surface)" : "transparent" }}
           >
-            <span className="text-[#F0EDE6] text-sm font-medium pr-4">{faq.question}</span>
+            <span className="text-sm font-medium pr-4" style={{ color: "var(--text-primary)" }}>{faq.question}</span>
             {open === faq.id ? (
               <ChevronUp className="w-4 h-4 text-[#C8F55A] shrink-0" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-[rgba(240,237,230,0.35)] shrink-0" />
+              <ChevronDown className="w-4 h-4 shrink-0" style={{ color: "var(--text-muted)" }} />
             )}
           </button>
 
           {open === faq.id && (
-            <div className="px-4 pb-4 border-t border-[rgba(240,237,230,0.08)]">
-              <p className="text-[rgba(240,237,230,0.6)] text-sm leading-relaxed pt-3">
+            <div className="px-4 pb-4 border-t" style={{ borderColor: "var(--border)" }}>
+              <p className="text-sm leading-relaxed pt-3" style={{ color: "var(--text-secondary)" }}>
                 {faq.answer}
               </p>
             </div>

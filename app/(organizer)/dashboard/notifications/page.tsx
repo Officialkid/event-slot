@@ -22,6 +22,11 @@ interface FeedbackState {
   submitted: boolean
 }
 
+const panelSurfaceStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
+}
+
 function StarRating({
   value,
   onChange,
@@ -46,7 +51,7 @@ function StarRating({
             padding: "0 2px",
             fontSize: "1.4rem",
             lineHeight: 1,
-            color: star <= (hovered || value) ? "#C8F55A" : "rgba(240,237,230,0.2)",
+            color: star <= (hovered || value) ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 20%, transparent)",
             transition: "color 0.1s",
           }}
           aria-label={`${star} star`}
@@ -167,7 +172,7 @@ export default function NotificationsPage() {
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.6rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             fontWeight: 400,
             margin: 0,
           }}
@@ -180,11 +185,11 @@ export default function NotificationsPage() {
             disabled={markingAll}
             style={{
               background: "transparent",
-              border: "0.5px solid rgba(240,237,230,0.15)",
+              border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)",
               borderRadius: 8,
               padding: "0.45rem 1rem",
               fontSize: "0.8rem",
-              color: "rgba(240,237,230,0.55)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               cursor: markingAll ? "default" : "pointer",
               opacity: markingAll ? 0.5 : 1,
@@ -201,7 +206,7 @@ export default function NotificationsPage() {
           display: "flex",
           gap: "0.25rem",
           marginBottom: "1.25rem",
-          background: "rgba(240,237,230,0.04)",
+          background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
           borderRadius: 10,
           padding: "0.25rem",
         }}
@@ -212,13 +217,13 @@ export default function NotificationsPage() {
             onClick={() => setFilter(tab)}
             style={{
               flex: 1,
-              background: filter === tab ? "rgba(240,237,230,0.08)" : "transparent",
+              background: filter === tab ? "color-mix(in srgb, var(--text-primary) 8%, transparent)" : "transparent",
               border: "none",
               borderRadius: 8,
               padding: "0.45rem 0",
               fontSize: "0.82rem",
               fontFamily: "var(--font-dm-sans)",
-              color: filter === tab ? "#F0EDE6" : "rgba(240,237,230,0.4)",
+              color: filter === tab ? "var(--text-primary)" : "var(--text-secondary)",
               cursor: "pointer",
               fontWeight: filter === tab ? 500 : 400,
               transition: "background 0.15s, color 0.15s",
@@ -249,7 +254,7 @@ export default function NotificationsPage() {
           style={{
             textAlign: "center",
             padding: "4rem 1rem",
-            color: "rgba(240,237,230,0.35)",
+            color: "var(--text-muted)",
             fontFamily: "var(--font-dm-sans)",
             fontSize: "0.875rem",
           }}
@@ -259,8 +264,8 @@ export default function NotificationsPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
               <div style={{ fontSize: "2.2rem" }}>N</div>
-              <p style={{ margin: 0, fontSize: "1rem", color: "#F0EDE6" }}>No notifications yet</p>
-              <p style={{ margin: 0, maxWidth: 360, color: "rgba(240,237,230,0.5)", lineHeight: 1.6 }}>
+              <p style={{ margin: 0, fontSize: "1rem", color: "var(--text-primary)" }}>No notifications yet</p>
+              <p style={{ margin: 0, maxWidth: 360, color: "var(--text-secondary)", lineHeight: 1.6 }}>
                 As your events receive registrations and waitlist updates, you will see actionable alerts here.
               </p>
               <Link
@@ -288,8 +293,8 @@ export default function NotificationsPage() {
             const isFeedbackRequest = notif.title === "Feedback Request"
             const fb = getFeedbackState(notif.id)
             const isUnread = !notif.read
-            const borderColor = isUnread ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)"
-            const bgColor = isUnread ? "rgba(200,245,90,0.04)" : "transparent"
+            const borderColor = isUnread ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)"
+            const bgColor = isUnread ? "rgba(200,245,90,0.04)" : "var(--surface)"
             const dotColor = notif.type === "PLATFORM" ? "#C8F55A" : notif.title === "Event Full" ? "#FF6B6B" : "#C8F55A"
 
             if (isFeedbackRequest) {
@@ -317,7 +322,7 @@ export default function NotificationsPage() {
                       }}
                     />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.5 }}>
                         {notif.message}
                       </p>
                       {notif.link && (
@@ -336,7 +341,7 @@ export default function NotificationsPage() {
                           Open event →
                         </a>
                       )}
-                      <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                      <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                         {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                       </span>
                     </div>
@@ -349,7 +354,7 @@ export default function NotificationsPage() {
                       </p>
                     ) : (
                       <div style={{ marginTop: "0.75rem" }}>
-                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
                           Rate your experience
                         </p>
                         <StarRating value={fb.rating} onChange={v => setFeedbackField(notif.id, { rating: v })} />
@@ -358,7 +363,7 @@ export default function NotificationsPage() {
                           placeholder="Tell us about your experience"
                           value={fb.message}
                           onChange={e => setFeedbackField(notif.id, { message: e.target.value })}
-                          style={{ width: "100%", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6, marginBottom: "0.625rem" }}
+                          style={{ width: "100%", background: "var(--bg-input)", border: "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)", borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.85rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6, marginBottom: "0.625rem" }}
                         />
                         <button
                           onClick={() => submitFeedback(notif)}
@@ -405,7 +410,7 @@ export default function NotificationsPage() {
                         margin: 0,
                         fontSize: "0.875rem",
                         fontFamily: "var(--font-dm-sans)",
-                        color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)",
+                        color: isUnread ? "var(--text-primary)" : "var(--text-secondary)",
                         lineHeight: 1.5,
                       }}
                     >
@@ -434,7 +439,7 @@ export default function NotificationsPage() {
                       <span
                         style={{
                           fontSize: "0.72rem",
-                          color: "rgba(240,237,230,0.3)",
+                          color: "var(--text-muted)",
                           fontFamily: "var(--font-dm-sans)",
                         }}
                       >
@@ -477,7 +482,7 @@ export default function NotificationsPage() {
                         margin: 0,
                         fontSize: "0.875rem",
                         fontFamily: "var(--font-dm-sans)",
-                        color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)",
+                        color: isUnread ? "var(--text-primary)" : "var(--text-secondary)",
                         lineHeight: 1.5,
                       }}
                     >
@@ -487,7 +492,7 @@ export default function NotificationsPage() {
                       <span
                         style={{
                           fontSize: "0.72rem",
-                          color: "rgba(240,237,230,0.3)",
+                          color: "var(--text-muted)",
                           fontFamily: "var(--font-dm-sans)",
                         }}
                       >
@@ -532,10 +537,10 @@ export default function NotificationsPage() {
                       Platform Update
                     </span>
                   )}
-                  <p style={{ margin: "0 0 0.25rem", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.7)", fontWeight: 600, lineHeight: 1.4 }}>
+                  <p style={{ margin: "0 0 0.25rem", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-primary)", fontWeight: 600, lineHeight: 1.4 }}>
                     {notif.title}
                   </p>
-                  <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "#F0EDE6" : "rgba(240,237,230,0.5)", lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", color: isUnread ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.5 }}>
                     {notif.message}
                   </p>
                   {notif.link && (
@@ -555,7 +560,7 @@ export default function NotificationsPage() {
                       Open →
                     </a>
                   )}
-                  <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                  <span style={{ display: "block", marginTop: "0.3rem", fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                     {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
                   </span>
                 </div>

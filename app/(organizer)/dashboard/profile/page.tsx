@@ -24,6 +24,11 @@ interface ProfileData {
   twoFactorEnabled: boolean
 }
 
+const profileSurfaceStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
+}
+
 // ─── Input component ─────────────────────────────────────────────────────────
 
 function Field({
@@ -46,7 +51,7 @@ function Field({
       <label
         style={{
           fontSize: "0.75rem",
-          color: "rgba(240,237,230,0.45)",
+          color: "var(--text-secondary)",
           fontFamily: "var(--font-dm-sans)",
           fontWeight: 500,
           letterSpacing: "0.02em",
@@ -62,11 +67,11 @@ function Field({
         disabled={disabled}
         className="prof-input"
         style={{
-          background: disabled ? "rgba(240,237,230,0.03)" : "rgba(240,237,230,0.05)",
-          border: "0.5px solid rgba(240,237,230,0.12)",
+          background: disabled ? "color-mix(in srgb, var(--text-primary) 3%, transparent)" : "var(--bg-input)",
+          border: "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
           borderRadius: 8,
           padding: "0.65rem 0.875rem",
-          color: disabled ? "rgba(240,237,230,0.35)" : "#F0EDE6",
+          color: disabled ? "var(--text-muted)" : "var(--text-primary)",
           fontFamily: "var(--font-dm-sans)",
           fontSize: "0.875rem",
           width: "100%",
@@ -80,7 +85,7 @@ function Field({
           style={{
             margin: 0,
             fontSize: "0.72rem",
-            color: "rgba(240,237,230,0.3)",
+            color: "var(--text-muted)",
             fontFamily: "var(--font-dm-sans)",
           }}
         >
@@ -103,10 +108,10 @@ function Card({
   return (
     <div
       style={{
-        background: "#141414",
+        ...profileSurfaceStyle,
         border: dangerBorder
           ? "0.5px solid rgba(255,107,107,0.2)"
-          : "0.5px solid rgba(240,237,230,0.08)",
+          : profileSurfaceStyle.border,
         borderRadius: 12,
         padding: "1.5rem",
       }}
@@ -130,7 +135,7 @@ function SectionHeading({
       style={{
         fontFamily: "var(--font-instrument-serif)",
         fontSize: "1.1rem",
-        color: color ?? "#F0EDE6",
+        color: color ?? "var(--text-primary)",
         fontWeight: 400,
         margin: "0 0 1.25rem",
       }}
@@ -160,7 +165,7 @@ function DeleteModal({
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.7)",
+          background: "color-mix(in srgb, black 65%, transparent)",
           zIndex: 100,
         }}
       />
@@ -171,7 +176,7 @@ function DeleteModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 101,
-          background: "#1A1A1A",
+          background: "color-mix(in srgb, var(--surface) 94%, black 6%)",
           border: "0.5px solid rgba(255,107,107,0.25)",
           borderRadius: 14,
           padding: "2rem",
@@ -179,22 +184,22 @@ function DeleteModal({
         }}
       >
         <h3
-          style={{
-            fontFamily: "var(--font-instrument-serif)",
-            fontSize: "1.2rem",
-            color: "#F0EDE6",
-            fontWeight: 400,
-            margin: "0 0 0.875rem",
+        style={{
+          fontFamily: "var(--font-instrument-serif)",
+          fontSize: "1.2rem",
+          color: "var(--text-primary)",
+          fontWeight: 400,
+          margin: "0 0 0.875rem",
           }}
         >
           Delete account?
         </h3>
         <p
-          style={{
-            fontSize: "0.875rem",
-            color: "rgba(240,237,230,0.55)",
-            fontFamily: "var(--font-dm-sans)",
-            lineHeight: 1.6,
+        style={{
+          fontSize: "0.875rem",
+          color: "var(--text-secondary)",
+          fontFamily: "var(--font-dm-sans)",
+          lineHeight: 1.6,
             margin: "0 0 1.5rem",
           }}
         >
@@ -219,11 +224,11 @@ function DeleteModal({
             disabled={deleting}
             style={{
               background: "transparent",
-              border: "0.5px solid rgba(240,237,230,0.15)",
+              border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)",
               borderRadius: 8,
               padding: "0.55rem 1.25rem",
               fontSize: "0.875rem",
-              color: "rgba(240,237,230,0.55)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               cursor: "pointer",
             }}
@@ -531,8 +536,8 @@ export default function ProfilePage() {
           box-shadow: 0 0 0 3px rgba(200,245,90,0.06);
         }
         .prof-ghost-btn:hover {
-          background: rgba(240,237,230,0.07) !important;
-          color: #F0EDE6 !important;
+          background: color-mix(in srgb, var(--text-primary) 7%, transparent) !important;
+          color: var(--text-primary) !important;
         }
         .prof-primary-btn:hover:not(:disabled) {
           background: #d8ff6a !important;
@@ -548,7 +553,7 @@ export default function ProfilePage() {
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.45rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             fontWeight: 400,
             margin: "0 0 2rem",
             lineHeight: 1.1,
@@ -579,7 +584,7 @@ export default function ProfilePage() {
                   height: 80,
                   borderRadius: "50%",
                   objectFit: "cover",
-                  border: "0.5px solid rgba(240,237,230,0.12)",
+                  border: "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
                 }}
               />
             ) : (
@@ -636,11 +641,11 @@ export default function ProfilePage() {
             className="prof-ghost-btn"
             style={{
               background: "transparent",
-              border: "0.5px solid rgba(240,237,230,0.15)",
+              border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)",
               borderRadius: 8,
               padding: "0.4rem 1rem",
               fontSize: "0.8rem",
-              color: "rgba(240,237,230,0.5)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               cursor: photoUploading ? "default" : "pointer",
               transition: "background 0.15s, color 0.15s",
@@ -846,7 +851,7 @@ export default function ProfilePage() {
               style={{
                 margin: "0 0 1rem",
                 fontSize: "0.85rem",
-                color: "rgba(240,237,230,0.48)",
+                color: "var(--text-secondary)",
                 fontFamily: "var(--font-dm-sans)",
                 lineHeight: 1.6,
               }}
@@ -861,7 +866,7 @@ export default function ProfilePage() {
                 cursor: securitySaving ? "default" : "pointer",
                 fontFamily: "var(--font-dm-sans)",
                 fontSize: "0.9rem",
-                color: "#F0EDE6",
+                color: "var(--text-primary)",
               }}
             >
               <span style={{ position: "relative", display: "inline-flex", width: 20, height: 20 }}>
@@ -877,8 +882,8 @@ export default function ProfilePage() {
                     width: 20,
                     height: 20,
                     borderRadius: 5,
-                    border: "0.5px solid rgba(240,237,230,0.18)",
-                    background: twoFactorEnabled ? "#C8F55A" : "rgba(10,10,10,0.92)",
+                    border: "0.5px solid color-mix(in srgb, var(--text-primary) 18%, transparent)",
+                    background: twoFactorEnabled ? "#C8F55A" : "var(--bg-input)",
                     color: twoFactorEnabled ? "#0A0A0A" : "transparent",
                     display: "inline-flex",
                     alignItems: "center",
@@ -917,7 +922,7 @@ export default function ProfilePage() {
                 borderRadius: 10,
                 padding: "0.75rem 0.9rem",
                 fontSize: "0.82rem",
-                color: "rgba(240,237,230,0.78)",
+                color: "var(--text-primary)",
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
@@ -954,7 +959,7 @@ export default function ProfilePage() {
               border: "none",
               cursor: "pointer",
               fontSize: "0.82rem",
-              color: "rgba(240,237,230,0.6)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               display: "inline-flex",
               alignItems: "center",
@@ -969,7 +974,7 @@ export default function ProfilePage() {
             style={{
               margin: "0 0 1.25rem",
               fontSize: "0.875rem",
-              color: "rgba(240,237,230,0.45)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               lineHeight: 1.6,
             }}

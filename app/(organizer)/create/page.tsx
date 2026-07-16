@@ -23,6 +23,7 @@ type Question = {
   required: boolean
   options: string[]
   allowMultiple?: boolean
+  optionLimits?: Record<string, string>
 }
 
 type TicketTierDraft = {
@@ -54,6 +55,7 @@ const defaultQuestion = (): Question => ({
   type: "text",
   required: true,
   options: [],
+  optionLimits: {},
 })
 
 const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
@@ -74,6 +76,51 @@ const defaultTicketTier = (): TicketTierDraft => {
     description: "",
     bundleSize: "1",
   }
+}
+
+const cardStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border-subtle)",
+  borderRadius: 12,
+}
+
+const cardMutedStyle: React.CSSProperties = {
+  background: "var(--surface-muted)",
+  border: "1px solid var(--border-subtle)",
+  borderRadius: 12,
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  color: "var(--text-primary)",
+}
+
+const mutedInputStyle: React.CSSProperties = {
+  background: "var(--surface-2)",
+  border: "1px solid var(--border)",
+  color: "var(--text-primary)",
+}
+
+const labelStyle: React.CSSProperties = {
+  color: "var(--text-secondary)",
+  letterSpacing: "0.04em",
+}
+
+const helperStyle: React.CSSProperties = {
+  color: "var(--text-muted)",
+}
+
+const warningCardStyle: React.CSSProperties = {
+  background: "rgba(255,184,77,0.05)",
+  border: "1px solid rgba(255,184,77,0.22)",
+  borderRadius: 10,
+}
+
+const warningInsetStyle: React.CSSProperties = {
+  background: "rgba(255,184,77,0.04)",
+  border: "1px solid rgba(255,184,77,0.18)",
+  borderRadius: 10,
 }
 
 export default function CreateEventPage() {
@@ -220,6 +267,9 @@ export default function CreateEventPage() {
         required: q.required,
         options: q.options ?? [],
         allowMultiple: q.allowMultiple ?? false,
+        optionLimits: Object.fromEntries(
+          Object.entries(("optionLimits" in q ? q.optionLimits : {}) ?? {}).map(([key, value]) => [key, value == null ? "" : String(value)])
+        ),
       }))
     )
     setSelectedTemplateId(templateId)
@@ -311,7 +361,7 @@ export default function CreateEventPage() {
               ...q,
               [field]: value,
               ...(field === "type" && typeof value === "string" && !typeUsesOptions(value as QuestionType)
-                ? { options: [], allowMultiple: false }
+                ? { options: [], allowMultiple: false, optionLimits: {} }
                 : {}),
             }
           : q
@@ -326,7 +376,11 @@ export default function CreateEventPage() {
         const draft = optionDrafts[q.id]?.trim()
         if (!draft) return q
         if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
-        return { ...q, options: [...q.options, draft] }
+        return {
+          ...q,
+          options: [...q.options, draft],
+          optionLimits: { ...(q.optionLimits ?? {}), [draft]: q.optionLimits?.[draft] ?? "" },
+        }
       })
     )
     const id = questions[idx]?.id
@@ -338,14 +392,48 @@ export default function CreateEventPage() {
   const removeOption = (idx: number, optionIdx: number) => {
     setQuestions(qs =>
       qs.map((q, i) =>
-        i === idx ? { ...q, options: q.options.filter((_, j) => j !== optionIdx) } : q
+        i === idx
+          ? {
+              ...q,
+              options: q.options.filter((_, j) => j !== optionIdx),
+              optionLimits: Object.fromEntries(
+                Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== q.options[optionIdx])
+              ),
+            }
+          : q
       )
     )
   }
 
+  const updateOptionLimit = (idx: number, option: string, value: string) => {
+    setQuestions(qs =>
+      qs.map((q, i) =>
+        i === idx
+          ? {
+              ...q,
+              optionLimits: {
+                ...(q.optionLimits ?? {}),
+                [option]: value.replace(/[^\d]/g, ""),
+              },
+            }
+          : q
+      )
+    )
+  }
+
+  const buildOptionLimitsPayload = (question: Question) => {
+    const entries = Object.entries(question.optionLimits ?? {})
+      .map(([label, raw]) => [label, raw.trim()] as const)
+      .filter(([, raw]) => raw.length > 0)
+      .map(([label, raw]) => [label, Number(raw)] as const)
+      .filter(([, value]) => Number.isFinite(value) && value > 0)
+
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined
+  }
+
   const addQuestion = () => {
     const id = uuidv4()
-    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false }])
+    setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false, optionLimits: {} }])
     setOptionDrafts(prev => ({ ...prev, [id]: "" }))
   }
   const removeQuestion = (idx: number) =>
@@ -500,6 +588,7 @@ export default function CreateEventPage() {
                 type: q.type,
                 options: typeUsesOptions(q.type) ? q.options : undefined,
                 allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+                optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
                 required: q.required,
               }))
             : [],
@@ -608,13 +697,13 @@ export default function CreateEventPage() {
         )}
 
         <div>
-          <h1 className="text-[1.8rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
             Create your event
           </h1>
-          <p className="mt-2 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
+          <p className="mt-2 text-[0.9rem] font-[300]" style={{ color: "var(--text-secondary)" }}>
             Set it up once. Share the link. Done.
           </p>
-          <div className="mt-4 rounded-[12px] border border-[rgba(124,199,255,0.18)] bg-[rgba(124,199,255,0.08)] px-4 py-3 text-[0.82rem] leading-6 text-[#D8ECFF]">
+          <div className="mt-4 rounded-[12px] border px-4 py-3 text-[0.82rem] leading-6" style={{ borderColor: "rgba(124,199,255,0.22)", background: "rgba(124,199,255,0.08)", color: "color-mix(in srgb, var(--text-primary) 82%, #9FD8FF 18%)" }}>
             {pricingActive
               ? "Plan-based limits are now active. We will guide you with upgrades and PAYG options instead of leaving you stuck."
               : `Your current event experience stays open until ${getPricingRolloutLabel()}. Plan limits and PAYG billing start then.`}
@@ -628,7 +717,7 @@ export default function CreateEventPage() {
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "1.5rem",
               fontWeight: 400,
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               margin: "0 0 0.375rem",
             }}
           >
@@ -639,7 +728,7 @@ export default function CreateEventPage() {
               margin: "0 0 1.125rem",
               fontSize: "0.875rem",
               fontWeight: 300,
-              color: "rgba(240,237,230,0.4)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
             }}
           >
@@ -662,10 +751,10 @@ export default function CreateEventPage() {
                   style={{
                     background: isSelected
                       ? "rgba(200,245,90,0.06)"
-                      : "#141414",
+                      : "var(--surface)",
                     border: isSelected
                       ? "1.5px solid #C8F55A"
-                      : "0.5px solid rgba(240,237,230,0.1)",
+                      : "1px solid var(--border-subtle)",
                     borderRadius: 12,
                     padding: "1.125rem 1rem",
                     cursor: "pointer",
@@ -678,13 +767,13 @@ export default function CreateEventPage() {
                   onMouseEnter={e => {
                     if (!isSelected) {
                       ;(e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(200,245,90,0.4)"
-                      ;(e.currentTarget as HTMLButtonElement).style.background = "rgba(200,245,90,0.04)"
+                      ;(e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--surface) 92%, rgba(200,245,90,0.08) 8%)"
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isSelected) {
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(240,237,230,0.1)"
-                      ;(e.currentTarget as HTMLButtonElement).style.background = "#141414"
+                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)"
+                      ;(e.currentTarget as HTMLButtonElement).style.background = "var(--surface)"
                     }
                   }}
                 >
@@ -694,7 +783,7 @@ export default function CreateEventPage() {
                       fontFamily: "var(--font-instrument-serif)",
                       fontSize: "1rem",
                       fontWeight: 400,
-                      color: "#F0EDE6",
+                      color: "var(--text-primary)",
                       lineHeight: 1.3,
                     }}
                   >
@@ -705,7 +794,7 @@ export default function CreateEventPage() {
                       fontFamily: "var(--font-dm-sans)",
                       fontWeight: 300,
                       fontSize: "0.8rem",
-                      color: "rgba(240,237,230,0.45)",
+                      color: "var(--text-secondary)",
                       lineHeight: 1.4,
                     }}
                   >
@@ -720,8 +809,8 @@ export default function CreateEventPage() {
         {selectedTemplateId && !success ? (
           <div ref={formRef}>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-2" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <div className="rounded-[12px] p-6" style={cardStyle}>
+              <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 What kind of event is this?
               </h2>
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -731,14 +820,15 @@ export default function CreateEventPage() {
                   className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
                     accessType === "REGISTRATION"
                       ? "border-[rgba(200,245,90,0.65)] bg-[rgba(200,245,90,0.08)] text-[#F0EDE6]"
-                      : "border-[rgba(240,237,230,0.12)] bg-[#101010] text-[rgba(240,237,230,0.65)]"
+                      : ""
                   }`}
+                  style={accessType === "REGISTRATION" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                 >
                   <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
                     <span aria-hidden="true">{accessType === "REGISTRATION" ? "◉" : "○"}</span>
                     <span>Registration Event</span>
                   </div>
-                  <p className="mt-4 text-[0.84rem] leading-6 text-[rgba(240,237,230,0.52)]">
+                  <p className="mt-4 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
                     People sign up in advance. You set a capacity. Waitlist manages overflow.
                   </p>
                 </button>
@@ -748,32 +838,34 @@ export default function CreateEventPage() {
                   className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
                     accessType === "WALK_IN"
                       ? "border-[rgba(124,198,255,0.7)] bg-[rgba(79,172,254,0.09)] text-[#F0EDE6]"
-                      : "border-[rgba(240,237,230,0.12)] bg-[#101010] text-[rgba(240,237,230,0.65)]"
+                      : ""
                   }`}
+                  style={accessType === "WALK_IN" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                 >
                   <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
                     <span aria-hidden="true">{accessType === "WALK_IN" ? "◉" : "○"}</span>
                     <span>Walk-In Event</span>
                   </div>
-                  <p className="mt-4 text-[0.84rem] leading-6 text-[rgba(240,237,230,0.52)]">
+                  <p className="mt-4 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
                     Free and open. People check in when they arrive. Live attendance counts.
                   </p>
                 </button>
               </div>
             </div>
 
-            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <div className="rounded-[12px] p-6" style={cardStyle}>
+              <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Event Details
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Event Title <span className="text-[#C8F55A]">*</span>
                   </label>
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     required
                     value={title}
                     onChange={e => setTitle(e.target.value)}
@@ -781,26 +873,27 @@ export default function CreateEventPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Description
                   </label>
                   <textarea
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     placeholder="Briefly describe what this event is about. Date, time and location are already shown automatically - no need to repeat them here."
                     rows={3}
                     maxLength={500}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                   />
-                  <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.35rem" }}>
                     Tip: Date, time, and location are shown automatically from the fields above. Use this field to describe the event content only.
                   </p>
-                  <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.35)", marginTop: "0.25rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.25rem" }}>
                     {description.length} / 300 characters
                   </p>
                 </div>
                 <div className="space-y-3">
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Event Type
                   </label>
                   <div className="mt-1 grid grid-cols-2 gap-2">
@@ -810,8 +903,9 @@ export default function CreateEventPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         eventType === "PHYSICAL"
                           ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
-                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                          : ""
                       }`}
+                      style={eventType === "PHYSICAL" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       📍 Physical
                     </button>
@@ -825,8 +919,9 @@ export default function CreateEventPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         eventType === "VIRTUAL"
                           ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
-                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                          : ""
                       } ${isWalkInEvent ? "cursor-not-allowed opacity-40" : ""}`}
+                      style={eventType === "VIRTUAL" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       💻 Virtual
                     </button>
@@ -835,34 +930,35 @@ export default function CreateEventPage() {
 
                 {eventType === "VIRTUAL" && (
                   <div className="space-y-2">
-                    <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                       Google Meet Link <span className="text-[#C8F55A]">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      style={inputStyle}
                       placeholder="meet.google.com/abc-defg-hij"
                       value={virtualLink}
                       onChange={e => setVirtualLink(e.target.value)}
                     />
-                    <div className="rounded-xl border border-[#2A2A2A] bg-[#141414] p-4">
+                    <div className="rounded-xl border p-4" style={cardMutedStyle}>
                       <p className="mb-2 text-xs font-semibold text-[#C8F55A]">✦ How to get your Google Meet link</p>
-                      <ol className="list-inside list-decimal space-y-1 text-xs text-[#A3A3A3]">
-                        <li>Go to <span className="text-white">meet.new</span> or open Google Meet</li>
-                        <li>Click <span className="text-white">New meeting</span></li>
-                        <li>Select <span className="text-white">Create a meeting for later</span></li>
+                      <ol className="list-inside list-decimal space-y-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                        <li>Go to <span style={{ color: "var(--text-primary)" }}>meet.new</span> or open Google Meet</li>
+                        <li>Click <span style={{ color: "var(--text-primary)" }}>New meeting</span></li>
+                        <li>Select <span style={{ color: "var(--text-primary)" }}>Create a meeting for later</span></li>
                         <li>Copy the link and paste it above</li>
                         <li>Keep the meeting open - attendees will join on event day after verification</li>
                       </ol>
-                      <p className="mt-3 text-xs text-[#525252]">🔒 Your meeting link is encrypted and only revealed to verified attendees on event day.</p>
+                      <p className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>🔒 Your meeting link is encrypted and only revealed to verified attendees on event day.</p>
                     </div>
                   </div>
                 )}
 
                 {isRegistrationEvent && (
                 <div className="space-y-3">
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Pricing
                   </label>
                   <div className="mt-1 grid grid-cols-2 gap-2">
@@ -876,8 +972,9 @@ export default function CreateEventPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         !isPaid
                           ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
-                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                          : ""
                       }`}
+                      style={!isPaid ? { borderColor: "rgba(200,245,90,0.55)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       🎟️ Free
                     </button>
@@ -891,23 +988,24 @@ export default function CreateEventPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         isPaid
                           ? "border-[rgba(255,184,77,0.6)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]"
-                          : "border-[rgba(240,237,230,0.12)] text-[rgba(240,237,230,0.65)]"
+                          : ""
                       }`}
+                      style={isPaid ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       💳 Paid
                     </button>
                   </div>
                   {isPaid && (
-                    <div className="mt-3 space-y-3 rounded-[10px] border border-[rgba(255,184,77,0.22)] bg-[rgba(255,184,77,0.05)] p-4">
-                      <div className="rounded-[10px] border border-[rgba(255,184,77,0.18)] bg-[rgba(255,184,77,0.04)] px-3 py-3">
-                        <p className="text-[0.75rem] leading-6 text-[rgba(240,237,230,0.7)]">
+                    <div className="mt-3 space-y-3 p-4" style={warningCardStyle}>
+                      <div className="px-3 py-3" style={warningInsetStyle}>
+                        <p className="text-[0.75rem] leading-6" style={{ color: "var(--text-secondary)" }}>
                           EventSlot&apos;s platform commission is non-refundable. If you refund an attendee later, the commission is still deducted from your net balance.
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Ticket tiers</p>
-                          <p className="mt-1 text-[0.72rem] text-[rgba(240,237,230,0.45)]">
+                          <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
                             Add up to 10 paid tiers. Event capacity will be the sum of all tier capacities.
                           </p>
                         </div>
@@ -923,9 +1021,9 @@ export default function CreateEventPage() {
 
                       <div className="space-y-3">
                         {ticketTiers.map((tier, index) => (
-                          <div key={tier.id} className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-3">
+                          <div key={tier.id} className="rounded-[10px] border p-3" style={cardMutedStyle}>
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-[0.78rem] font-semibold text-[#F0EDE6]">Tier {index + 1}</p>
+                              <p className="text-[0.78rem] font-semibold" style={{ color: "var(--text-primary)" }}>Tier {index + 1}</p>
                               {ticketTiers.length > 1 && (
                                 <button
                                   type="button"
@@ -939,13 +1037,14 @@ export default function CreateEventPage() {
 
                             <div className="mb-3 grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
                               <div>
-                                <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                                <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
                                   Preset tier
                                 </label>
                                 <select
                                   value={tier.presetKey}
                                   onChange={(e) => updateTicketTier(tier.id, "presetKey", e.target.value)}
-                                  className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                  style={inputStyle}
                                 >
                                   <option value="">Custom tier</option>
                                   {TIER_PRESETS.map((preset) => (
@@ -955,8 +1054,8 @@ export default function CreateEventPage() {
                                   ))}
                                 </select>
                               </div>
-                              <div className="rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#101010] px-3 py-3">
-                                <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                              <div className="rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                                <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
                                   Preview
                                 </p>
                                 <TierBadge
@@ -972,7 +1071,8 @@ export default function CreateEventPage() {
                             <div className="grid gap-3 sm:grid-cols-2">
                               <input
                                 type="text"
-                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                style={inputStyle}
                                 placeholder="Tier name"
                                 value={tier.name}
                                 onChange={e => updateTicketTier(tier.id, "name", e.target.value)}
@@ -980,7 +1080,8 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="50"
-                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                style={inputStyle}
                                 placeholder="Price (KES)"
                                 value={tier.priceKes}
                                 onChange={e => {
@@ -988,8 +1089,8 @@ export default function CreateEventPage() {
                                   if (index === 0) setTicketPrice(e.target.value)
                                 }}
                               />
-                              <div className="rounded-[8px] border border-[rgba(240,237,230,0.12)] bg-[#141414] px-3 py-2">
-                                <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-[rgba(240,237,230,0.42)]">
+                              <div className="rounded-[8px] border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                                <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
                                   Badge colour
                                 </label>
                                 <div className="flex flex-wrap items-center gap-2">
@@ -997,15 +1098,16 @@ export default function CreateEventPage() {
                                     type="color"
                                     value={tier.badgeColor}
                                     onChange={(e) => updateTicketTier(tier.id, "badgeColor", e.target.value)}
-                                    className="h-9 w-11 rounded border border-[rgba(240,237,230,0.12)] bg-transparent"
+                                    className="h-9 w-11 rounded border bg-transparent"
+                                    style={{ borderColor: "var(--border)" }}
                                   />
                                   {TIER_PRESET_COLOR_PALETTE.map((color) => (
                                     <button
                                       key={color}
                                       type="button"
                                       onClick={() => updateTicketTier(tier.id, "badgeColor", color)}
-                                      className="h-6 w-6 rounded-full border border-[rgba(240,237,230,0.16)]"
-                                      style={{ background: color }}
+                                      className="h-6 w-6 rounded-full border"
+                                      style={{ background: color, borderColor: "var(--border-subtle)" }}
                                       aria-label={`Use ${color} badge colour`}
                                     />
                                   ))}
@@ -1014,7 +1116,8 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="1"
-                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                style={inputStyle}
                                 placeholder="Tier capacity"
                                 value={tier.capacity}
                                 onChange={e => updateTicketTier(tier.id, "capacity", e.target.value)}
@@ -1022,7 +1125,8 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="1"
-                                className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                style={inputStyle}
                                 placeholder="Bundle size"
                                 value={tier.bundleSize}
                                 onChange={e => updateTicketTier(tier.id, "bundleSize", e.target.value)}
@@ -1030,7 +1134,8 @@ export default function CreateEventPage() {
                             </div>
 
                             <textarea
-                              className="mt-3 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              style={inputStyle}
                               rows={2}
                               placeholder="Optional description of what this tier includes"
                               value={tier.description}
@@ -1046,14 +1151,15 @@ export default function CreateEventPage() {
 
                 {isRegistrationEvent && (
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Maximum Capacity
                   </label>
                   <input
                     type="number"
                     min="1"
                     max={lockedCapacity ? attendeeLimit : undefined}
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     placeholder={lockedCapacity ? `Choose any number up to ${attendeeLimit.toLocaleString()}` : "Leave empty for unlimited"}
                     value={capacity}
                     onChange={e => {
@@ -1074,8 +1180,8 @@ export default function CreateEventPage() {
                   />
                   {lockedCapacity ? (
                     <div className="mt-3 rounded-[10px] border border-[rgba(200,245,90,0.16)] bg-[rgba(200,245,90,0.05)] px-4 py-3">
-                      <p className="text-[0.8rem] leading-6 text-[rgba(240,237,230,0.72)]">
-                        Your <span className="font-semibold text-[#F0EDE6]">{effectivePlan.displayName}</span> plan includes up to{" "}
+                      <p className="text-[0.8rem] leading-6" style={{ color: "var(--text-secondary)" }}>
+                        Your <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{effectivePlan.displayName}</span> plan includes up to{" "}
                         <span className="font-semibold text-[#C8F55A]">{attendeeLimit.toLocaleString()}</span> attendees per event. You can set this specific event lower if you want.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -1088,8 +1194,8 @@ export default function CreateEventPage() {
                         </button>
                       </div>
                       {showCapacityUpgradeHint ? (
-                        <div className="mt-3 rounded-[10px] border border-[rgba(240,237,230,0.08)] bg-[#101010] px-3 py-3 text-[0.78rem] leading-6 text-[rgba(240,237,230,0.58)]">
-                          Upgrade to <span className="font-semibold text-[#F0EDE6]">{nextPlan ? nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) : "a higher plan"}</span> for a larger included capacity.
+                        <div className="mt-3 rounded-[10px] border px-3 py-3 text-[0.78rem] leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
+                          Upgrade to <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{nextPlan ? nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) : "a higher plan"}</span> for a larger included capacity.
                           Once pricing is active, you can also enable PAYG from Billing so extra attendees keep coming in at{" "}
                           <span className="font-semibold text-[#C8F55A]">$0.05 per person</span>.
                         </div>
@@ -1220,137 +1326,147 @@ export default function CreateEventPage() {
                 ) : null}
                 {isRegistrationEvent && (
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Registration Deadline (optional)
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={deadline}
                     onChange={e => setDeadline(e.target.value)}
                   />
                 </div>
                 )}
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     {isWalkInEvent ? "Walk-In Start" : "Event Start"}
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={eventDate}
                     onChange={e => setEventDate(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     {isWalkInEvent ? "Walk-In End (optional)" : "Event End (optional)"}
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={eventEndAt}
                     onChange={e => setEventEndAt(e.target.value)}
                   />
-                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
                       ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
                       : "If the deadline is empty, registration will close automatically when the event ends."}
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Link Opens At (optional)
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={joinOpensAt}
                     onChange={e => setJoinOpensAt(e.target.value)}
                   />
-                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
                       ? "You can create and share this link ahead of time. Before the event starts, attendees will simply see that check-in is not open yet."
                       : "Leave empty to auto-open 30 minutes before the event start."}
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     {eventType === "VIRTUAL" ? "Host / Base Location (optional)" : "Location / Venue"}
                   </label>
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     placeholder="e.g. iHub, Nairobi"
                     value={location}
                     onChange={e => setLocation(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer Name <span className="text-[#C8F55A]">*</span>
                   </label>
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     required
                     value={organizerName}
                     onChange={e => setOrganizerName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer Email <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
                   </label>
                   <input
                     type="email"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={organizerEmail}
                     onChange={e => setOrganizerEmail(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Community link (optional)
                   </label>
                   <input
                     type="text"
                     inputMode="url"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     placeholder="e.g. WhatsApp group, Telegram, website"
                     value={communityLink}
                     onChange={e => setCommunityLink(e.target.value)}
                   />
-                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
                       ? "After check-in, attendees can use this link to join your community."
                       : "After registering, confirmed attendees will see this link."}
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Contact action (optional)
                   </label>
                   <select
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
                     value={contactMode}
                     onChange={e => setContactMode(e.target.value === "CALL" ? "CALL" : "WHATSAPP")}
                   >
-                    <option value="WHATSAPP" className="bg-[#141414] text-[#F0EDE6]">Text on WhatsApp</option>
-                    <option value="CALL" className="bg-[#141414] text-[#F0EDE6]">Call organiser</option>
+                    <option value="WHATSAPP">Text on WhatsApp</option>
+                    <option value="CALL">Call organiser</option>
                   </select>
-                  <label className="mb-1 mt-3 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                  <label className="mb-1 mt-3 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer number (optional)
                   </label>
                   <input
                     type="tel"
                     inputMode="tel"
-                    className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(37,211,102,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(37,211,102,0.5)] focus:outline-none"
+                    style={inputStyle}
                     placeholder="e.g. +254712345678"
                     value={whatsappNumber}
                     onChange={e => setWhatsappNumber(e.target.value)}
                   />
-                  <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem" }}>
+                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     Attendees will see either a WhatsApp button or a Call organiser button on the event page.
                   </p>
                   {whatsappNumber.trim() && (
@@ -1363,23 +1479,24 @@ export default function CreateEventPage() {
             </div>
 
             {/* Event Poster */}
-            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-1" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Event Poster
               </h2>
-              <p className="text-[0.78rem] text-[rgba(240,237,230,0.35)] mb-4">
+              <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
                 {isWalkInEvent
-                  ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved."
-                  : "Optional flyer or banner. JPEG, PNG, WebP or GIF · max 15 MB. Original resolution is preserved."}
+                  ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF, up to 15 MB."
+                  : "Optional flyer or banner. JPEG, PNG, WebP or GIF, up to 15 MB."}
               </p>
               {imageUrl && (
-                <div className="mb-4 rounded-[8px] overflow-hidden border border-[rgba(240,237,230,0.08)]" style={{ backgroundColor: "#0A0A0A", lineHeight: 0 }}>
+                <div className="mb-4 overflow-hidden rounded-[8px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)", lineHeight: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={imageUrl} alt="Event poster preview" style={{ width: "100%", height: "auto", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
                   <button
                     type="button"
                     onClick={() => setImageUrl("")}
-                    className="mt-2 rounded-full bg-[rgba(0,0,0,0.6)] px-2 py-1 text-[0.7rem] text-[rgba(240,237,230,0.7)] border border-[rgba(240,237,230,0.15)]"
+                    className="mt-2 rounded-full border px-2 py-1 text-[0.7rem]"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }}
                   >
                     Remove
                   </button>
@@ -1396,16 +1513,17 @@ export default function CreateEventPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={imageUploading}
-                className="rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-5 py-2 text-[0.82rem] font-medium text-[rgba(240,237,230,0.6)]"
+                className="rounded-full border bg-transparent px-5 py-2 text-[0.82rem] font-medium"
+                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
               >
-                {imageUploading ? "Uploading…" : imageUrl ? "Replace image" : "Upload image"}
+                {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
               </button>
               {imageError && <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>}
             </div>
 
             {isRegistrationEvent ? (
-            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-4" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Registration Questions
               </h2>
 
@@ -1433,31 +1551,33 @@ export default function CreateEventPage() {
               )}
               <div className="space-y-4">
                 {questions.map((q, idx) => (
-                  <div key={q.id} className="bg-[#1A1A1A] border border-[rgba(240,237,230,0.08)] rounded-[8px] p-4">
+                  <div key={q.id} className="rounded-[8px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
                     <div className="space-y-3">
                       <div>
-                        <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                        <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                           Question Label
                         </label>
                         <input
                           type="text"
-                          className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                           value={q.label}
                           onChange={e => handleQuestionChange(idx, "label", e.target.value)}
                           required
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                        <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                           Type
                         </label>
                         <select
-                          className="mt-1 w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                           value={q.type}
                           onChange={e => handleQuestionChange(idx, "type", e.target.value)}
                         >
                           {QUESTION_TYPES.map(opt => (
-                            <option key={opt.value} value={opt.value} className="bg-[#141414] text-[#F0EDE6]">
+                            <option key={opt.value} value={opt.value}>
                               {opt.label}
                             </option>
                           ))}
@@ -1465,13 +1585,14 @@ export default function CreateEventPage() {
                       </div>
                       {typeUsesOptions(q.type) && (
                         <div>
-                          <label className="mb-1 block text-[0.72rem] font-semibold text-[rgba(240,237,230,0.55)] tracking-[0.04em]">
+                          <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
                             Options
                           </label>
                           <div className="mt-1 flex gap-2">
                             <input
                               type="text"
-                              className="w-full rounded-[8px] bg-[#141414] border border-[rgba(240,237,230,0.12)] px-3 py-2 text-[#F0EDE6] text-[0.875rem] font-medium placeholder:text-[rgba(240,237,230,0.25)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                              style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                               placeholder="Add option"
                               value={optionDrafts[q.id] ?? ""}
                               onChange={e => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
@@ -1494,22 +1615,45 @@ export default function CreateEventPage() {
                             {q.options.map((opt, optionIdx) => (
                               <span
                                 key={`${q.id}-${opt}-${optionIdx}`}
-                                className="inline-flex items-center gap-2 rounded-full border border-[rgba(240,237,230,0.15)] px-3 py-1 text-[0.78rem] text-[#F0EDE6]"
+                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.78rem]"
+                                style={{ borderColor: "var(--border)", color: "var(--text-primary)", background: "var(--surface)" }}
                               >
                                 {opt}
                                 <button
                                   type="button"
-                                  className="text-[rgba(240,237,230,0.45)]"
+                                  className="text-[0.8rem]"
+                                  style={{ color: "var(--text-muted)" }}
                                   onClick={() => removeOption(idx, optionIdx)}
                                   aria-label={`Remove ${opt}`}
                                 >
-                                  ×
+                                  x
                                 </button>
                               </span>
                             ))}
                           </div>
+                          {q.options.length > 0 && (
+                            <div className="mt-3 space-y-2 rounded-[10px] border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                              <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                                Optional per-option slots. Leave blank if an option should stay unlimited.
+                              </p>
+                              {q.options.map((opt) => (
+                                <div key={`${q.id}-${opt}-limit`} className="flex items-center gap-3">
+                                  <span className="min-w-0 flex-1 truncate text-[0.78rem]" style={{ color: "var(--text-primary)" }}>{opt}</span>
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                                    style={{ background: "var(--surface-muted)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                                    placeholder="Slots"
+                                    value={q.optionLimits?.[opt] ?? ""}
+                                    onChange={e => updateOptionLimit(idx, opt, e.target.value)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {q.options.length === 0 && (
-                            <p className="mt-2 text-[0.75rem] text-[rgba(240,237,230,0.35)]">Add at least one option.</p>
+                            <p className="mt-2 text-[0.75rem]" style={{ color: "var(--text-muted)" }}>Add at least one option.</p>
                           )}
                         </div>
                       )}
@@ -1518,11 +1662,12 @@ export default function CreateEventPage() {
                           <input
                             type="checkbox"
                             id={`allow-multiple-${q.id}`}
-                            className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414] text-[#C8F55A] focus:ring-[#C8F55A]"
+                            className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
                             checked={!!q.allowMultiple}
                             onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                           />
-                          <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">
+                          <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>
                             Allow selecting multiple options
                           </label>
                         </div>
@@ -1531,11 +1676,12 @@ export default function CreateEventPage() {
                         <input
                           type="checkbox"
                           id={`required-${q.id}`}
-                          className="h-4 w-4 rounded border border-[rgba(240,237,230,0.15)] bg-[#141414] text-[#C8F55A] focus:ring-[#C8F55A]"
+                          className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
                           checked={q.required}
                           onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
                         />
-                        <label htmlFor={`required-${q.id}`} className="text-[0.9rem] text-[#F0EDE6]">
+                        <label htmlFor={`required-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>
                           Required
                         </label>
                       </div>
@@ -1553,7 +1699,8 @@ export default function CreateEventPage() {
                 ))}
                 <button
                   type="button"
-                  className="w-full rounded-full border border-[rgba(240,237,230,0.15)] bg-transparent px-6 py-3 text-[0.875rem] font-medium text-[rgba(240,237,230,0.6)]"
+                  className="w-full rounded-full border bg-transparent px-6 py-3 text-[0.875rem] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
                   onClick={addQuestion}
                 >
                   Add Question
@@ -1561,11 +1708,11 @@ export default function CreateEventPage() {
               </div>
             </div>
             ) : (
-            <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-6">
-              <h2 className="text-[1.1rem] font-semibold text-[#F0EDE6] mb-2" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Walk-In Check-In Fields
               </h2>
-              <p className="text-[0.82rem] text-[rgba(240,237,230,0.45)]">
+              <p className="text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
                 Walk-in events keep attendee check-in intentionally fast. The public page will only ask for name and phone number on the event day.
               </p>
             </div>
@@ -1584,31 +1731,31 @@ export default function CreateEventPage() {
           </form>
           </div>
         ) : selectedTemplateId && success ? (
-          <div className="bg-[#141414] border border-[rgba(240,237,230,0.08)] rounded-[12px] p-8 text-center space-y-4">
+          <div className="rounded-[12px] p-8 text-center space-y-4" style={cardStyle}>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
               <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
             </div>
-            <h2 className="text-[1.5rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+            <h2 className="text-[1.5rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Your event is live!
             </h2>
-            <p className="text-[0.875rem] text-[rgba(240,237,230,0.45)]" style={{ fontFamily: "var(--font-dm-sans)" }}>
+            <p className="text-[0.875rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-secondary)" }}>
               {isWalkInEvent
                 ? "Share your walk-in check-in link now or download a print-ready QR code."
                 : "Share your registration link now or download a print-ready QR code."}
             </p>
 
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-              <div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
+              <div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border-subtle)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
                 <input
                   readOnly
                   value={successRegistrationLink}
-                  style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => void handleCopySuccessLink()}
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "#C8F55A" : "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
+                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "#C8F55A" : "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
               >
                 {copiedSuccessLink ? "Copied!" : "Copy"}
               </button>
@@ -1618,10 +1765,10 @@ export default function CreateEventPage() {
                 disabled={qrGenerating}
                 style={{
                   background: "transparent",
-                  border: "0.5px solid rgba(240,237,230,0.15)",
+                  border: "1px solid var(--border)",
                   borderRadius: "100px",
                   padding: "0.5rem 1rem",
-                  color: "rgba(240,237,230,0.6)",
+                  color: "var(--text-secondary)",
                   fontSize: "0.82rem",
                   cursor: qrGenerating ? "not-allowed" : "pointer",
                   display: "flex",

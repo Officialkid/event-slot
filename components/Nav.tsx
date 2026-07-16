@@ -2,10 +2,11 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Menu, X } from "lucide-react"
+import { Menu, Moon, Sun, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
+import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 
 const navItems = [
   { title: "Home", href: "/", sectionId: null },
@@ -32,6 +33,7 @@ export default function Nav() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
+  const [theme, setTheme] = useState<ThemeMode>("dark")
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,12 +51,16 @@ export default function Nav() {
   }, [pathname])
 
   useEffect(() => {
+    setTheme(resolveCurrentTheme())
+  }, [])
+
+  useEffect(() => {
     if (pathname !== "/") return
     const sectionIds = ["benefits", "get-started"]
     const visible = new Map<string, boolean>()
     const observers: IntersectionObserver[] = []
 
-    sectionIds.forEach(id => {
+    sectionIds.forEach((id) => {
       const el = document.getElementById(id)
       if (!el) return
       const obs = new IntersectionObserver(
@@ -70,7 +76,7 @@ export default function Nav() {
       observers.push(obs)
     })
 
-    return () => observers.forEach(obs => obs.disconnect())
+    return () => observers.forEach((obs) => obs.disconnect())
   }, [pathname])
 
   function handleNavClick(e: React.MouseEvent<HTMLAnchorElement>, sectionId: string | null) {
@@ -87,16 +93,51 @@ export default function Nav() {
     return activeSection === item.sectionId
   }
 
+  function toggleTheme() {
+    const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark"
+    applyTheme(nextTheme)
+    setTheme(nextTheme)
+  }
+
   if (!marketingRoutes.has(pathname)) return null
 
   const initials = session?.user?.name
     ? session.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
     : session?.user?.email?.[0]?.toUpperCase() ?? "?"
 
+  const isLight = theme === "light"
+  const navShellStyle: React.CSSProperties = {
+    borderBottom: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)"}`,
+    background: isLight ? "rgba(247,247,242,0.82)" : "rgba(10,10,10,0.82)",
+  }
+  const panelStyle: React.CSSProperties = {
+    border: `1px solid ${isLight ? "rgba(162,205,46,0.18)" : "rgba(200,245,90,0.14)"}`,
+    background: isLight ? "rgba(255,255,255,0.92)" : "rgba(8,12,8,0.92)",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.22)",
+  }
+  const iconButtonStyle: React.CSSProperties = {
+    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.1)"}`,
+    background: isLight ? "rgba(23,23,23,0.03)" : "rgba(255,255,255,0.03)",
+    color: isLight ? "#171717" : "#F0EDE6",
+  }
+  const dropdownStyle: React.CSSProperties = {
+    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.1)"}`,
+    background: isLight ? "#FFFFFF" : "#111311",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+  }
+  const mobilePanelStyle: React.CSSProperties = {
+    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)"}`,
+    background: isLight ? "#FFFFFF" : "#101110",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.32)",
+  }
+  const neutralText = isLight ? "rgba(23,23,23,0.72)" : "rgba(240,237,230,0.72)"
+  const softerText = isLight ? "rgba(23,23,23,0.66)" : "rgba(240,237,230,0.66)"
+  const logoEventColor = isLight ? "#171717" : "#F0EDE6"
+
   return (
-    <nav className="sticky top-0 z-40 border-b border-[rgba(240,237,230,0.08)] bg-[rgba(10,10,10,0.82)] backdrop-blur-xl">
+    <nav className="sticky top-0 z-40 backdrop-blur-xl" style={navShellStyle}>
       <div className="marketing-shell px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4 rounded-[18px] border border-[rgba(200,245,90,0.14)] bg-[rgba(8,12,8,0.92)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.22)] sm:px-5">
+        <div className="flex items-center justify-between gap-4 rounded-[18px] px-4 py-3 sm:px-5" style={panelStyle}>
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/assets/logo.png"
@@ -106,22 +147,21 @@ export default function Nav() {
               className="h-[30px] w-[30px]"
             />
             <span className="text-[1.08rem] font-semibold tracking-tight sm:text-[1.22rem]">
-              <span className="text-[#F0EDE6]">Event</span>
+              <span style={{ color: logoEventColor }}>Event</span>
               <span className="text-[#C8F55A]">Slot</span>
             </span>
           </Link>
 
           <div className="hidden items-center gap-6 lg:flex">
-            {navItems.map(item => {
+            {navItems.map((item) => {
               const active = isActive(item)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={(e) => handleNavClick(e, item.sectionId)}
-                  className={`text-[0.88rem] font-medium transition-colors ${
-                    active ? "text-[#C8F55A]" : "text-[rgba(240,237,230,0.66)] hover:text-white"
-                  }`}
+                  className="text-[0.88rem] font-medium transition-colors"
+                  style={{ color: active ? "#C8F55A" : softerText }}
                 >
                   {item.title}
                 </Link>
@@ -130,43 +170,55 @@ export default function Nav() {
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full"
+              style={iconButtonStyle}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             {session ? (
               <>
                 <Link
                   href="/dashboard"
-                  className="text-[0.9rem] font-medium text-[rgba(240,237,230,0.72)] transition-colors hover:text-white"
+                  className="text-[0.9rem] font-medium transition-colors"
+                  style={{ color: neutralText }}
                 >
                   My dashboard
                 </Link>
                 <div ref={dropdownRef} className="relative">
                   <button
                     type="button"
-                    onClick={() => setDropdownOpen(o => !o)}
+                    onClick={() => setDropdownOpen((o) => !o)}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(200,245,90,0.18)] bg-[rgba(200,245,90,0.12)] text-[0.78rem] font-semibold text-[#C8F55A]"
                   >
                     {initials}
                   </button>
 
                   {dropdownOpen && (
-                    <div className="absolute right-0 top-[115%] min-w-[160px] rounded-[14px] border border-[rgba(240,237,230,0.1)] bg-[#111311] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                    <div className="absolute right-0 top-[115%] min-w-[160px] rounded-[14px] p-2" style={dropdownStyle}>
                       {[
                         { label: "Profile", href: "/dashboard/profile" },
                         { label: "Billing", href: "/dashboard/billing" },
-                      ].map(item => (
+                      ].map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}
                           onClick={() => setDropdownOpen(false)}
-                          className="block rounded-[10px] px-3 py-2 text-[0.85rem] text-[rgba(240,237,230,0.72)] transition-colors hover:bg-[rgba(240,237,230,0.05)] hover:text-white"
+                          className="block rounded-[10px] px-3 py-2 text-[0.85rem] transition-colors"
+                          style={{ color: neutralText }}
                         >
                           {item.label}
                         </Link>
                       ))}
-                      <div className="my-1 h-px bg-[rgba(240,237,230,0.08)]" />
+                      <div className="my-1 h-px" style={{ background: isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)" }} />
                       <button
                         type="button"
                         onClick={() => signOut({ callbackUrl: "/" })}
-                        className="w-full rounded-[10px] px-3 py-2 text-left text-[0.85rem] text-[rgba(240,237,230,0.72)] transition-colors hover:bg-[rgba(240,237,230,0.05)] hover:text-white"
+                        className="w-full rounded-[10px] px-3 py-2 text-left text-[0.85rem] transition-colors"
+                        style={{ color: neutralText }}
                       >
                         Sign out
                       </button>
@@ -184,28 +236,29 @@ export default function Nav() {
           <button
             type="button"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
-            onClick={() => setMenuOpen(open => !open)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] border border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.03)] text-[#F0EDE6] lg:hidden"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-[12px] lg:hidden"
+            style={iconButtonStyle}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
         {menuOpen && (
-          <div className="mt-3 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#101110] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.32)] lg:hidden">
+          <div className="mt-3 rounded-[18px] p-4 lg:hidden" style={mobilePanelStyle}>
             <div className="flex flex-col gap-1">
-              {navItems.map(item => {
+              {navItems.map((item) => {
                 const active = isActive(item)
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={(e) => handleNavClick(e, item.sectionId)}
-                    className={`rounded-[12px] px-3 py-3 text-[0.94rem] font-medium transition-colors ${
-                      active
-                        ? "bg-[rgba(200,245,90,0.1)] text-[#C8F55A]"
-                        : "text-[rgba(240,237,230,0.72)] hover:bg-[rgba(255,255,255,0.03)] hover:text-white"
-                    }`}
+                    className="rounded-[12px] px-3 py-3 text-[0.94rem] font-medium transition-colors"
+                    style={{
+                      background: active ? "rgba(200,245,90,0.1)" : "transparent",
+                      color: active ? "#C8F55A" : neutralText,
+                    }}
                   >
                     {item.title}
                   </Link>
@@ -213,7 +266,14 @@ export default function Nav() {
               })}
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 border-t border-[rgba(240,237,230,0.08)] pt-4">
+            <div className="mt-4 flex flex-col gap-3 pt-4" style={{ borderTop: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)"}` }}>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="marketing-button-secondary w-full justify-center"
+              >
+                {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              </button>
               {session ? (
                 <>
                   <Link href="/dashboard" className="marketing-button-primary w-full justify-center">

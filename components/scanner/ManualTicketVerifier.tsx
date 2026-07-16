@@ -27,6 +27,14 @@ interface Props {
   onVerified?: () => void
 }
 
+const verifierSurface = "var(--surface)"
+const verifierSurfaceAlt = "var(--surface-2)"
+const verifierBorder = "var(--border)"
+const verifierBorderSoft = "var(--border-subtle)"
+const verifierTextPrimary = "var(--text-primary)"
+const verifierTextSecondary = "var(--text-secondary)"
+const verifierTextMuted = "var(--text-muted)"
+
 export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerified }: Props) {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -45,6 +53,7 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
     if (normalized.length < 2) return
     setLoading(true)
     setError("")
+
     try {
       const params = new URLSearchParams({ q: normalized, token: accessToken })
       const res = await fetch(`/api/events/${eventSlug}/verify-ticket/lookup?${params.toString()}`)
@@ -166,13 +175,22 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
   }
 
   return (
-    <div className="w-full min-h-[70vh] rounded-2xl border border-[#232323] bg-[#0A0A0A] p-5 md:p-6">
+    <div
+      className="w-full min-h-[70vh] rounded-2xl border p-5 md:p-6"
+      style={{ borderColor: verifierBorder, backgroundColor: verifierSurfaceAlt }}
+    >
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-lg font-semibold text-white">Verify Ticket</p>
-          <p className="text-sm text-[#A3A3A3]">Search by attendee name, email, ticket number, or confirmation code.</p>
+          <p className="text-lg font-semibold" style={{ color: verifierTextPrimary }}>Verify Ticket</p>
+          <p className="text-sm" style={{ color: verifierTextSecondary }}>
+            Search by attendee name, email, ticket number, or confirmation code.
+          </p>
         </div>
-        <button onClick={onExit} className="rounded-full border border-[#2A2A2A] bg-[#141414] px-3 py-1.5 text-xs text-white">
+        <button
+          onClick={onExit}
+          className="rounded-full border px-3 py-1.5 text-xs"
+          style={{ borderColor: verifierBorderSoft, backgroundColor: verifierSurface, color: verifierTextPrimary }}
+        >
           Back
         </button>
       </div>
@@ -181,9 +199,12 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") void runLookup() }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void runLookup()
+          }}
           placeholder="Enter name, email, ticket number, or confirmation code"
-          className="flex-1 rounded-xl border border-[#2A2A2A] bg-[#141414] px-4 py-3 text-sm text-white placeholder:text-[#525252] focus:border-[#C8F55A] focus:outline-none"
+          className="flex-1 rounded-xl border px-4 py-3 text-sm placeholder:text-[#6b7280] focus:border-[#C8F55A] focus:outline-none"
+          style={{ borderColor: verifierBorderSoft, backgroundColor: verifierSurface, color: verifierTextPrimary }}
         />
         <button
           onClick={() => void runLookup()}
@@ -194,22 +215,29 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
         </button>
       </div>
 
-      {summary && <p className="mb-3 text-xs text-[#A3A3A3]">{summary}</p>}
+      {summary && <p className="mb-3 text-xs" style={{ color: verifierTextSecondary }}>{summary}</p>}
       {error && <p className="mb-3 text-sm text-[#F87171]">{error}</p>}
 
       <div className="space-y-3">
         {results.length === 0 && !loading && (
-          <div className="rounded-2xl border border-[#232323] bg-[#141414] p-6 text-center text-sm text-[#525252]">
+          <div
+            className="rounded-2xl border p-6 text-center text-sm"
+            style={{ borderColor: verifierBorder, backgroundColor: verifierSurface, color: verifierTextMuted }}
+          >
             Search results will appear here.
           </div>
         )}
 
         {results.map((item) => (
-          <div key={item.registrationId} className="rounded-2xl border border-[#232323] bg-[#141414] p-4">
+          <div
+            key={item.registrationId}
+            className="rounded-2xl border p-4"
+            style={{ borderColor: verifierBorder, backgroundColor: verifierSurface }}
+          >
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-white">{item.attendeeName}</p>
+                  <p className="font-semibold" style={{ color: verifierTextPrimary }}>{item.attendeeName}</p>
                   <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
                     item.admissionsUsed > 0
                       ? item.admissionsRemaining > 0
@@ -223,12 +251,15 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
                         : "VERIFIED"
                       : "READY"}
                   </span>
-                  <span className="rounded-full border border-[#2A2A2A] px-2 py-0.5 text-[11px] text-[#A3A3A3]">
+                  <span
+                    className="rounded-full border px-2 py-0.5 text-[11px]"
+                    style={{ borderColor: verifierBorderSoft, color: verifierTextSecondary }}
+                  >
                     {item.status.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-sm text-[#A3A3A3]">{item.attendeeEmail || "No email captured"}</p>
-                <div className="mt-2 space-y-1 text-xs text-[#737373]">
+                <p className="text-sm" style={{ color: verifierTextSecondary }}>{item.attendeeEmail || "No email captured"}</p>
+                <div className="mt-2 space-y-1 text-xs" style={{ color: verifierTextMuted }}>
                   <p>Ticket: {item.ticketCode}</p>
                   {item.confirmationCode && <p>Confirmation: {item.confirmationCode}</p>}
                   {item.registrationNumber && <p>Registration #{item.registrationNumber}</p>}
@@ -257,7 +288,8 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
                 <button
                   onClick={() => void unverifyTicket(item.ticketCode)}
                   disabled={item.admissionsUsed <= 0 || busyKey !== null}
-                  className="rounded-xl border border-[#2A2A2A] px-3 py-2 text-xs text-[#F0EDE6] disabled:opacity-40"
+                  className="rounded-xl border px-3 py-2 text-xs disabled:opacity-40"
+                  style={{ borderColor: verifierBorderSoft, color: verifierTextPrimary }}
                 >
                   {busyKey === `unverify-${item.ticketCode}` ? "Saving..." : "Unverify"}
                 </button>

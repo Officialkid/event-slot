@@ -257,12 +257,12 @@ export default async function PublicProfilePage({
 
     if (!isWalkInEvent && event.deadline && new Date(event.deadline) < new Date()) {
       return (
-        <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-          <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
-            <h1 className="text-[1.4rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+        <div className="min-h-screen px-4 py-12" style={{ background: "var(--page-bg)" }}>
+          <div className="mx-auto max-w-[480px] rounded-xl border p-10 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <h1 className="text-[1.4rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Registration closed
             </h1>
-            <p className="mt-3 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
+            <p className="mt-3 text-[0.9rem] font-[300]" style={{ color: "var(--text-muted)" }}>
               Registration for this event is closed.
             </p>
             <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
@@ -275,12 +275,12 @@ export default async function PublicProfilePage({
 
     if (!isWalkInEvent && event.status === "closed") {
       return (
-        <div className="min-h-screen bg-[#0A0A0A] px-4 py-12">
-          <div className="mx-auto max-w-[480px] rounded-xl border border-[#2A2A2A] bg-[#141414] p-10 text-center">
-            <h1 className="text-[1.4rem] font-semibold text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+        <div className="min-h-screen px-4 py-12" style={{ background: "var(--page-bg)" }}>
+          <div className="mx-auto max-w-[480px] rounded-xl border p-10 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <h1 className="text-[1.4rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               {event.title}
             </h1>
-            <p className="mt-3 text-[0.9rem] font-[300] text-[rgba(240,237,230,0.45)]">
+            <p className="mt-3 text-[0.9rem] font-[300]" style={{ color: "var(--text-muted)" }}>
               Unfortunately the slots are full and registration is not available at this time.
             </p>
             <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
@@ -293,8 +293,8 @@ export default async function PublicProfilePage({
 
     if (event.organizer?.suspended) {
       return (
-        <main style={{ background: "#0A0A0A", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <p style={{ color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem" }}>
+        <main style={{ background: "var(--page-bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem" }}>
             This event is currently unavailable.
           </p>
         </main>
@@ -317,7 +317,7 @@ export default async function PublicProfilePage({
     }
 
     return (
-      <div className={`min-h-screen bg-[#0A0A0A] px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`}>
+      <div className={`min-h-screen px-4 py-8 sm:py-10 ${hasWhatsapp ? "pb-24" : ""}`} style={{ background: "var(--page-bg)" }}>
         <div className="mx-auto max-w-[1120px]">
           <PublicEventTopBar />
           {/* Invitation card */}
@@ -343,11 +343,11 @@ export default async function PublicProfilePage({
             <section className="space-y-3">
               {/* FAQ — shown above the form if enabled */}
               {event.faqEnabled && eventFaqs.length > 0 && (
-                <div className="rounded-xl border border-[#2A2A2A] bg-[#141414] p-6">
+                <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <EventFAQDisplay faqs={eventFaqs} />
                 </div>
               )}
-              <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-2">✦ Registration</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">Registration</p>
               <RegistrationForm
                 event={{
                   ...event,
@@ -367,7 +367,7 @@ export default async function PublicProfilePage({
 
             {/* Already Registered? lookup panel */}
             <section className="space-y-3 lg:sticky lg:top-6">
-              <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-2">✦ Attendance Lookup</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">Attendance Lookup</p>
               <ConfirmAttendance eventSlug={username} />
               {event.eventType === "VIRTUAL" && event.eventDate && (
                 <JoinEventButton
@@ -448,7 +448,7 @@ export default async function PublicProfilePage({
             style={{
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "1.75rem",
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               margin: "0 0 0.25rem",
               fontWeight: 400,
             }}
@@ -459,7 +459,7 @@ export default async function PublicProfilePage({
             style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "0.82rem",
-              color: "rgba(240,237,230,0.4)",
+              color: "var(--text-muted)",
               margin: 0,
             }}
           >
@@ -473,11 +473,11 @@ export default async function PublicProfilePage({
           title="Follow"
           style={{
             background: "transparent",
-            border: "0.5px solid rgba(240,237,230,0.15)",
+            border: "0.5px solid var(--border)",
             borderRadius: 100,
             padding: "0.5rem 1.25rem",
             fontSize: "0.82rem",
-            color: "rgba(240,237,230,0.3)",
+            color: "var(--text-muted)",
             cursor: "not-allowed",
             fontFamily: "var(--font-dm-sans)",
           }}
@@ -489,7 +489,7 @@ export default async function PublicProfilePage({
       {/* Divider */}
       <div
         style={{
-          borderTop: "0.5px solid rgba(240,237,230,0.07)",
+          borderTop: "0.5px solid var(--border)",
           marginBottom: "2rem",
         }}
       />
@@ -502,7 +502,7 @@ export default async function PublicProfilePage({
           fontWeight: 500,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "rgba(240,237,230,0.35)",
+          color: "var(--text-muted)",
           margin: "0 0 1.25rem",
         }}
       >
@@ -528,7 +528,7 @@ export default async function PublicProfilePage({
           style={{
             textAlign: "center",
             padding: "3rem 1rem",
-            color: "rgba(240,237,230,0.3)",
+            color: "var(--text-muted)",
             fontFamily: "var(--font-dm-sans)",
             fontSize: "0.9rem",
           }}
@@ -561,19 +561,19 @@ export default async function PublicProfilePage({
               >
                 <div
                   style={{
-                    background: "#141414",
-                    border: "0.5px solid rgba(240,237,230,0.08)",
+                    background: "var(--surface)",
+                    border: "0.5px solid var(--border)",
                     borderRadius: 14,
                     overflow: "hidden",
                     transition: "border-color 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLDivElement).style.borderColor =
-                      "rgba(240,237,230,0.18)"
+                      "var(--text-secondary)"
                   }}
                   onMouseLeave={(e) => {
                     ;(e.currentTarget as HTMLDivElement).style.borderColor =
-                      "rgba(240,237,230,0.08)"
+                      "var(--border)"
                   }}
                 >
                   {/* Optional image */}
@@ -582,7 +582,7 @@ export default async function PublicProfilePage({
                       style={{
                         width: "100%",
                         overflow: "hidden",
-                        backgroundColor: "#0A0A0A",
+                        backgroundColor: "var(--surface-muted)",
                         lineHeight: 0,
                       }}
                     >
@@ -607,7 +607,7 @@ export default async function PublicProfilePage({
                       style={{
                         fontFamily: "var(--font-instrument-serif)",
                         fontSize: "1.1rem",
-                        color: "#F0EDE6",
+                        color: "var(--text-primary)",
                         margin: "0 0 0.375rem",
                         fontWeight: 400,
                         lineHeight: 1.3,
@@ -621,7 +621,7 @@ export default async function PublicProfilePage({
                       style={{
                         fontFamily: "var(--font-dm-sans)",
                         fontSize: "0.78rem",
-                        color: "rgba(240,237,230,0.45)",
+                        color: "var(--text-muted)",
                         margin: "0 0 0.875rem",
                         display: "flex",
                         gap: "0.5rem",
@@ -638,7 +638,7 @@ export default async function PublicProfilePage({
                         </span>
                       )}
                       {event.eventDate && event.location && (
-                        <span style={{ opacity: 0.4 }}>·</span>
+                        <span style={{ opacity: 0.4 }}>•</span>
                       )}
                       {event.location && <span>{event.location}</span>}
                     </p>
@@ -649,7 +649,7 @@ export default async function PublicProfilePage({
                         <div
                           style={{
                             height: 3,
-                            background: "rgba(240,237,230,0.08)",
+                            background: "var(--border)",
                             borderRadius: 100,
                             overflow: "hidden",
                           }}
@@ -669,7 +669,7 @@ export default async function PublicProfilePage({
                           style={{
                             fontFamily: "var(--font-dm-sans)",
                             fontSize: "0.72rem",
-                            color: "rgba(240,237,230,0.35)",
+                            color: "var(--text-muted)",
                             margin: "0.3rem 0 0",
                           }}
                         >
@@ -693,7 +693,7 @@ export default async function PublicProfilePage({
                         fontWeight: 500,
                       }}
                     >
-                      Register →
+                      Register now
                     </div>
                   </div>
                 </div>

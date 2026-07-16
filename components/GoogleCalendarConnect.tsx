@@ -31,7 +31,8 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
         <span className="text-[#22C55E] text-xs font-medium">Google Calendar connected</span>
         <button
           onClick={handleDisconnect}
-          className="text-[#525252] text-xs hover:text-[#EF4444] transition-colors ml-2"
+          className="ml-2 text-xs hover:text-[#EF4444] transition-colors"
+          style={{ color: "var(--text-muted)" }}
         >
           Disconnect
         </button>
@@ -39,7 +40,8 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
     ) : (
       <button
         onClick={handleConnect}
-        className="flex items-center gap-2 border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-[#A3A3A3] text-xs hover:border-[#4285F4]/50 hover:text-white transition-colors"
+        className="flex items-center gap-2 border rounded-lg px-3 py-1.5 text-xs hover:border-[#4285F4]/50 hover:text-[var(--text-primary)] transition-colors"
+        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
       >
         <Calendar className="w-3.5 h-3.5" />
         Connect Google Calendar
@@ -48,7 +50,7 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
   }
 
   return (
-    <div className="border border-[#2A2A2A] rounded-2xl p-5 bg-[#141414] space-y-4">
+    <div className="space-y-4 rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#4285F4]/10 border border-[#4285F4]/30 flex items-center justify-center shrink-0">
           <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
@@ -58,8 +60,8 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
           </svg>
         </div>
         <div>
-          <p className="text-white font-semibold text-sm">Google Calendar</p>
-          <p className="text-[#525252] text-xs">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Google Calendar</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             {isConnected ? 'Your events sync automatically' : 'Sync EventSlot events to your calendar'}
           </p>
         </div>
@@ -68,7 +70,7 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
             <CheckCircle className="w-3 h-3" /> Connected
           </span>
         ) : (
-          <span className="ml-auto text-xs bg-[#525252]/20 text-[#A3A3A3] border border-[#2A2A2A] px-2.5 py-1 rounded-full">
+          <span className="ml-auto rounded-full border px-2.5 py-1 text-xs" style={{ background: "var(--surface-muted)", color: "var(--text-secondary)", borderColor: "var(--border)" }}>
             Not connected
           </span>
         )}
@@ -85,7 +87,7 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
             ].map((benefit) => (
               <li key={benefit} className="flex items-start gap-2">
                 <span className="text-[#C8F55A] text-xs mt-0.5 shrink-0">+</span>
-                <span className="text-[#A3A3A3] text-xs">{benefit}</span>
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{benefit}</span>
               </li>
             ))}
           </ul>
@@ -100,10 +102,10 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
       {isConnected && (
         <div className="bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-xl p-3 space-y-1.5">
           <p className="text-[#22C55E] text-xs font-semibold">What syncs automatically:</p>
-          <p className="text-[#A3A3A3] text-xs">- New events you create -&gt; added to Google Calendar immediately</p>
-          <p className="text-[#A3A3A3] text-xs">- Event date/time changes -&gt; your calendar updates within seconds</p>
-          <p className="text-[#A3A3A3] text-xs">- Cancelled events -&gt; marked as cancelled in your calendar</p>
-          <p className="text-[#A3A3A3] text-xs">- Google sends reminders 1 day + 1 hour before each event</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>- New events you create -&gt; added to Google Calendar immediately</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>- Event date/time changes -&gt; your calendar updates within seconds</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>- Cancelled events -&gt; marked as cancelled in your calendar</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>- Google sends reminders 1 day + 1 hour before each event</p>
         </div>
       )}
 
@@ -111,7 +113,8 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
         <button
           onClick={handleDisconnect}
           disabled={disconnecting}
-          className="w-full flex items-center justify-center gap-2 border border-[#2A2A2A] rounded-xl py-2.5 text-[#525252] text-sm hover:border-[#EF4444]/40 hover:text-[#EF4444] transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 border rounded-xl py-2.5 text-sm hover:border-[#EF4444]/40 hover:text-[#EF4444] transition-colors disabled:opacity-50"
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
         >
           {disconnecting ? (
             <>
@@ -133,7 +136,7 @@ export function GoogleCalendarConnect({ isConnected, variant = 'profile' }: Prop
         </button>
       )}
 
-      <p className="text-[#525252] text-xs text-center">
+      <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
         EventSlot only creates and updates events it manages. We never read your other calendar events.
       </p>
     </div>

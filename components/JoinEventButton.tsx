@@ -76,7 +76,6 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
     }
   }, [startDate, endDate, opensAt])
 
-  // Auto-open meeting link for virtual events once confirmed
   useEffect(() => {
     if (result?.success && result.meetingLink) {
       window.open(result.meetingLink, "_blank", "noopener,noreferrer")
@@ -126,15 +125,17 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
   return (
     <div className="mt-6">
       {!isWindowOpen && countdown && (
-        <div className="rounded-xl border border-[#2A2A2A] p-4 text-center">
-          <p className="text-sm text-[#525252]">{countdown}</p>
-          <p className="mt-1 text-xs text-[#525252]">Have your email or name ready to join when the event opens.</p>
+        <div className="rounded-xl border p-4 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{countdown}</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+            Have your email or name ready to join when the event opens.
+          </p>
         </div>
       )}
 
       {isWindowOpen && !result && (
-        <div className="space-y-3 rounded-xl border border-[#2A2A2A] p-4">
-          <p className="text-sm font-medium text-white">Enter your name or email to join</p>
+        <div className="space-y-3 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Enter your name or email to join</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -146,14 +147,15 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
                 }
               }}
               placeholder="Your name or email..."
-              className="flex-1 rounded-lg border border-[#2A2A2A] bg-[#0A0A0A] px-3 py-2 text-sm text-white placeholder:text-[#525252] focus:border-[#C8F55A] focus:outline-none"
+              className="flex-1 rounded-lg border px-3 py-2 text-sm placeholder:text-[var(--text-muted)] focus:outline-none"
+              style={{ borderColor: "var(--border)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
             />
             <button
               onClick={() => void handleFallback()}
               disabled={fallbackLoading || !fallbackQuery.trim()}
               className="rounded-lg bg-[#C8F55A] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
             >
-              {fallbackLoading ? "…" : "Join"}
+              {fallbackLoading ? "..." : "Join"}
             </button>
           </div>
         </div>
@@ -168,10 +170,10 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
           }`}
         >
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-2xl">{result.success ? "✓" : "✕"}</span>
+            <span className="text-2xl">{result.success ? "OK" : "NO"}</span>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-white">
-                {result.success ? `Welcome, ${result.attendeeName ?? "Attendee"}!` : "Access Denied"}
+              <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                {result.success ? `Welcome, ${result.attendeeName ?? "Attendee"}!` : "Access denied"}
               </p>
               {result.success && result.ticketTierName ? (
                 <TierBadge
@@ -184,7 +186,7 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
               ) : null}
             </div>
           </div>
-          <p className="mb-4 text-sm text-[#A3A3A3]">{result.message}</p>
+          <p className="mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>{result.message}</p>
 
           {result.success && result.meetingLink && (
             <a
@@ -194,14 +196,15 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C8F55A] px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-[#b8e040]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 10l4.553-2.069A1 1 0 0121 8.879V15.12a1 1 0 01-1.447.894L15 14"/><rect x="3" y="8" width="12" height="8" rx="2"/>
+                <path d="M15 10l4.553-2.069A1 1 0 0121 8.879V15.12a1 1 0 01-1.447.894L15 14" />
+                <rect x="3" y="8" width="12" height="8" rx="2" />
               </svg>
               Open Google Meet
             </a>
           )}
 
           {result.success && !result.meetingLink && (
-            <p className="text-xs text-[#525252]">Meeting link not available — contact the organiser.</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Meeting link not available - contact the organiser.</p>
           )}
 
           {!result.success && result.reason !== "EVENT_ENDED" && (
@@ -210,7 +213,8 @@ export function JoinEventButton({ eventId, eventType, startDate, endDate, opensA
                 setResult(null)
                 setFallbackQuery("")
               }}
-              className="mt-3 text-xs text-[#525252] hover:text-[#A3A3A3]"
+              className="mt-3 text-xs"
+              style={{ color: "var(--text-muted)" }}
             >
               Try again
             </button>

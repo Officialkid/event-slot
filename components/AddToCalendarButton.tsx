@@ -43,7 +43,7 @@ export function AddToCalendarButton({
         <CheckCircle className="w-4 h-4 text-[#22C55E] shrink-0" />
         <div>
           <p className="text-[#22C55E] text-sm font-semibold">Added to Google Calendar</p>
-          <p className="text-[#525252] text-xs">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             You&apos;ll get reminders 1 day and 1 hour before the event.
           </p>
         </div>
@@ -73,16 +73,17 @@ export function AddToCalendarButton({
         <a
           href={staticIcsUrl}
           download
-          className="flex-1 text-center border border-[#2A2A2A] rounded-xl py-2
-                     text-[#525252] text-xs hover:text-white hover:border-[#C8F55A]/40
+          className="flex-1 text-center border rounded-xl py-2
+                     text-xs hover:text-[var(--text-primary)] hover:border-[#C8F55A]/40
                      transition-colors"
+          style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
         >
           Download .ics (Apple / Outlook)
         </a>
       </div>
 
       {!isConnected && (
-        <p className="text-[#525252] text-xs text-center">
+        <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
           <a href="/dashboard/profile#calendar" className="text-[#C8F55A] hover:underline">
             Connect Google Calendar
           </a>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
+import { Moon, Sun } from "lucide-react"
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay"
 import { HintDot } from "@/components/tutorial/HintDot"
 import OnboardingTourSelector from "@/components/OnboardingTourSelector"
@@ -12,6 +13,7 @@ import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
 import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
+import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -191,7 +193,7 @@ interface SidebarInnerProps {
 
 function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, paymentsBadgeCount = 0 }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
-  const visibleNavItems = NAV_ITEMS
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" && item.href !== "/dashboard/billing")
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -717,6 +719,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [showTourSelector, setShowTourSelector] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
+  const [theme, setTheme] = useState<ThemeMode>("dark")
   const moreSheetRef = useRef<HTMLDivElement>(null)
   const unreadRequestInFlightRef = useRef(false)
 
@@ -741,6 +744,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       clearTimeout(timeoutId)
       unreadRequestInFlightRef.current = false
     }
+  }, [])
+
+  useEffect(() => {
+    setTheme(resolveCurrentTheme())
   }, [])
 
   useEffect(() => {
@@ -920,15 +927,32 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   if (status === "unauthenticated") return null
 
+  const isLight = theme === "light"
+  const shellBorder = "color-mix(in srgb, var(--text-primary) 10%, transparent)"
+  const shellBorderSoft = "color-mix(in srgb, var(--text-primary) 6%, transparent)"
+  const sidebarBg = "color-mix(in srgb, var(--surface) 96%, black 4%)"
+  const headerBg = "color-mix(in srgb, var(--surface) 92%, transparent)"
+  const elevatedBg = "color-mix(in srgb, var(--surface) 88%, transparent)"
+  const pageBg = "var(--bg-page)"
+  const primaryText = "var(--text-primary)"
+  const secondaryText = "var(--text-secondary)"
+  const mutedText = "var(--text-muted)"
+
+  function toggleTheme() {
+    const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark"
+    applyTheme(nextTheme)
+    setTheme(nextTheme)
+  }
+
   return (
     <>
       <style>{`
         .dash-sl-link:not(.dash-sl-active):hover {
-          background: rgba(240,237,230,0.04) !important;
-          color: #F0EDE6 !important;
+          background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
+          color: var(--text-primary) !important;
         }
         .dash-icon-btn:hover {
-          background: rgba(240,237,230,0.06) !important;
+          background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
         }
         .dash-content {
           padding: 2rem 2.5rem;
@@ -950,13 +974,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .dash-sidebar-collapsed .dash-logo-e { display: inline-block !important; }
         .dash-sidebar-collapsed .dash-user-det { display: none !important; }
         .dash-sidebar-collapsed .dash-avatar-wrap { justify-content: center !important; }
-        .dash-collapse-btn:hover { color: rgba(240,237,230,0.55) !important; }
+        .dash-collapse-btn:hover { color: var(--text-secondary) !important; }
         @keyframes moreSheetSlideUp {
           from { transform: translateY(100%); }
           to   { transform: translateY(0); }
         }
         .more-sheet-item:hover {
-          background: rgba(240,237,230,0.04) !important;
+          background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
         }
       `}</style>
 
@@ -967,7 +991,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.6)",
+            background: isLight ? "rgba(23,23,23,0.2)" : "rgba(0,0,0,0.6)",
             zIndex: 40,
           }}
         />
@@ -981,8 +1005,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           left: 0,
           height: "100vh",
           width: 280,
-          background: "#0D0D0D",
-          borderRight: "0.5px solid rgba(240,237,230,0.06)",
+          background: sidebarBg,
+          borderRight: `0.5px solid ${shellBorderSoft}`,
           zIndex: 50,
           overflowY: "auto",
           transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
@@ -995,7 +1019,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             alignItems: "center",
             justifyContent: "flex-end",
             padding: "0.75rem 1rem",
-            borderBottom: "0.5px solid rgba(240,237,230,0.04)",
+            borderBottom: `0.5px solid ${shellBorderSoft}`,
           }}
         >
           <button
@@ -1005,7 +1029,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "rgba(240,237,230,0.4)",
+              color: secondaryText,
               padding: "0.35rem",
               borderRadius: 8,
               display: "flex",
@@ -1037,8 +1061,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             left: 0,
             width: sidebarCollapsed ? 56 : 240,
             height: "100vh",
-            background: "#0D0D0D",
-            borderRight: "0.5px solid rgba(240,237,230,0.06)",
+            background: sidebarBg,
+            borderRight: `0.5px solid ${shellBorderSoft}`,
             zIndex: 30,
             overflowY: "auto",
             overflowX: "hidden",
@@ -1052,16 +1076,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               onClick={() => setSidebarCollapsed(true)}
               aria-label="Collapse sidebar"
               className="dash-collapse-btn"
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 10,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "rgba(240,237,230,0.25)",
-                padding: "0.25rem",
-                borderRadius: 6,
+            style={{
+              position: "absolute",
+              top: 16,
+              right: 10,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: mutedText,
+              padding: "0.25rem",
+              borderRadius: 6,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1085,8 +1109,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               transform: "translateY(-50%)",
               width: 16,
               height: 48,
-              background: "#141414",
-              border: "0.5px solid rgba(240,237,230,0.08)",
+              background: elevatedBg,
+              border: `0.5px solid ${shellBorder}`,
               borderLeft: "none",
               borderRadius: "0 8px 8px 0",
               cursor: "pointer",
@@ -1111,8 +1135,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             style={{
               height: 56,
               flexShrink: 0,
-              background: "#0A0A0A",
-              borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+              background: headerBg,
+              borderBottom: `0.5px solid ${shellBorderSoft}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -1131,7 +1155,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
-                color: "rgba(240,237,230,0.6)",
+                color: secondaryText,
                 padding: "0.3rem",
                 borderRadius: 8,
                 display: "flex",
@@ -1148,7 +1172,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 style={{
                   fontFamily: "var(--font-instrument-serif)",
                   fontSize: "1.2rem",
-                  color: "#F0EDE6",
+                  color: primaryText,
                 }}
               >
                 Event
@@ -1180,9 +1204,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  color: "rgba(240,237,230,0.55)",
+                  color: secondaryText,
                   background: "transparent",
-                  border: "0.5px solid rgba(240,237,230,0.12)",
+                  border: `0.5px solid ${shellBorder}`,
                   cursor: "pointer",
                   fontFamily: "var(--font-dm-sans)",
                   fontSize: "0.95rem",
@@ -1190,6 +1214,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 }}
               >
                 ?
+              </button>
+
+              <button
+                onClick={toggleTheme}
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                className="dash-icon-btn"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  color: secondaryText,
+                  background: "transparent",
+                  border: `0.5px solid ${shellBorder}`,
+                  cursor: "pointer",
+                }}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
 
               <Link
@@ -1205,7 +1249,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   width: 36,
                   height: 36,
                   borderRadius: 8,
-                  color: "rgba(240,237,230,0.55)",
+                  color: secondaryText,
                   textDecoration: "none",
                 }}
               >
@@ -1230,7 +1274,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           {/* Page content */}
           <main
             className="dash-content md:pb-0"
-            style={{ flex: 1, background: "#0A0A0A", paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
+            style={{ flex: 1, background: pageBg, paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
             <div style={{ padding: "1rem 1rem 0" }}>
               <BillingComingSoonBanner isAdmin={isAdmin} compact />
@@ -1249,8 +1293,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           bottom: 0,
           left: 0,
           right: 0,
-          background: "#0D0D0D",
-          borderTop: "0.5px solid rgba(240,237,230,0.08)",
+          background: sidebarBg,
+          borderTop: `0.5px solid ${shellBorder}`,
           justifyContent: "space-evenly",
           padding: "0.5rem 0",
           paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
@@ -1284,7 +1328,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 justifyContent: "center",
                 gap: 3,
                 padding: "0.3rem 0",
-                color: active ? "#C8F55A" : "rgba(240,237,230,0.35)",
+                color: active ? "#C8F55A" : mutedText,
                 textDecoration: "none",
                 position: "relative",
               }}
@@ -1319,7 +1363,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             justifyContent: "center",
             gap: 3,
             padding: "0.3rem 0",
-            color: getIsActive(pathname, "/dashboard/profile", false) ? "#C8F55A" : "rgba(240,237,230,0.35)",
+            color: getIsActive(pathname, "/dashboard/profile", false) ? "#C8F55A" : mutedText,
             textDecoration: "none",
           }}
         >
@@ -1338,7 +1382,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(0,0,0,0.6)",
+              background: isLight ? "rgba(23,23,23,0.2)" : "rgba(0,0,0,0.6)",
               zIndex: 60,
             }}
           />
@@ -1354,8 +1398,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               bottom: 0,
               left: 0,
               right: 0,
-              background: "#0D0D0D",
-              borderTop: "0.5px solid rgba(240,237,230,0.1)",
+              background: sidebarBg,
+              borderTop: `0.5px solid ${shellBorder}`,
               borderRadius: "16px 16px 0 0",
               zIndex: 61,
               paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
@@ -1364,7 +1408,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           >
             {/* Drag handle */}
             <div style={{ display: "flex", justifyContent: "center", padding: "0.75rem 0 0.25rem" }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(240,237,230,0.15)" }} />
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "color-mix(in srgb, var(--text-primary) 15%, transparent)" }} />
             </div>
 
             {!signOutConfirm ? (
@@ -1372,8 +1416,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {([
                   { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
-                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: true },
-                  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: true },
+                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: false },
+                  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: false },
                   { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
                   { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: true },
                 ] as const).filter(i => i.show).map(item => {

@@ -93,7 +93,7 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
   const showBranding = !event.organizer?.plan || event.organizer.plan === "free"
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] px-4 py-8 pb-24 sm:px-6 sm:py-10 sm:pb-12">
+    <main className="min-h-screen px-4 py-8 pb-24 sm:px-6 sm:py-10 sm:pb-12" style={{ background: "var(--page-bg)" }}>
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
         <PublicEventTopBar />
         <EventInvitationCard
@@ -113,21 +113,21 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
           <section className="space-y-4">
             {event.faqEnabled && event.faqs && event.faqs.length > 0 ? (
-              <div className="rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#121212] p-5 sm:p-6">
+              <div className="rounded-[18px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                 <EventFAQDisplay faqs={event.faqs} />
               </div>
             ) : null}
 
-            <div className="rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.015)_100%)] p-5 sm:p-6">
+            <div className="rounded-[18px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[#C8F55A]">
                 Walk-in access
               </p>
 
               {loading ? (
                 <div className="mt-4 space-y-3">
-                  <div className="h-4 w-40 animate-pulse rounded bg-[rgba(240,237,230,0.08)]" />
-                  <div className="h-12 animate-pulse rounded-[14px] bg-[rgba(240,237,230,0.05)]" />
-                  <div className="h-12 animate-pulse rounded-[14px] bg-[rgba(240,237,230,0.05)]" />
+                  <div className="h-4 w-40 animate-pulse rounded" style={{ background: "var(--border)" }} />
+                  <div className="h-12 animate-pulse rounded-[14px]" style={{ background: "var(--surface-muted)" }} />
+                  <div className="h-12 animate-pulse rounded-[14px]" style={{ background: "var(--surface-muted)" }} />
                 </div>
               ) : error ? (
                 <p className="mt-4 text-[0.92rem] text-[#FF6B6B]">{error}</p>
@@ -158,22 +158,22 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
                   }}
                 />
               ) : statusData?.status === "NOT_STARTED" ? (
-                <div className="mt-4 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 text-center">
-                  <h2 className="text-[1.5rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                <div className="mt-4 rounded-[18px] border p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                  <h2 className="text-[1.5rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                     {event.title}
                   </h2>
-                  <p className="mt-4 text-[1rem] text-[rgba(240,237,230,0.74)]">This event hasn&apos;t started yet.</p>
-                  <p className="mt-2 text-[0.92rem] text-[rgba(240,237,230,0.52)]">
+                  <p className="mt-4 text-[1rem]" style={{ color: "var(--text-secondary)" }}>This event hasn&apos;t started yet.</p>
+                  <p className="mt-2 text-[0.92rem]" style={{ color: "var(--text-muted)" }}>
                     Check-in opens on {statusData.dayLabel}.
                   </p>
                 </div>
               ) : (
-                <div className="mt-4 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 text-center">
-                  <h2 className="text-[1.5rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+                <div className="mt-4 rounded-[18px] border p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                  <h2 className="text-[1.5rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                     {event.title}
                   </h2>
-                  <p className="mt-4 text-[1rem] text-[rgba(240,237,230,0.74)]">This event has ended.</p>
-                  <p className="mt-2 text-[0.92rem] text-[rgba(240,237,230,0.52)]">
+                  <p className="mt-4 text-[1rem]" style={{ color: "var(--text-secondary)" }}>This event has ended.</p>
+                  <p className="mt-2 text-[0.92rem]" style={{ color: "var(--text-muted)" }}>
                     Thanks to everyone who attended.
                   </p>
                   <a
@@ -188,14 +188,14 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
           </section>
 
           <aside className="space-y-4 lg:sticky lg:top-6">
-            <div className="rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[#121212] p-5 sm:p-6">
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.44)]">
+            <div className="rounded-[18px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-muted)" }}>
                 Today
               </p>
-              <h3 className="mt-3 text-[1.4rem] text-[#F0EDE6]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+              <h3 className="mt-3 text-[1.4rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 {statusData?.dayLabel ?? "Loading..."}
               </h3>
-              <p className="mt-2 text-[0.92rem] text-[rgba(240,237,230,0.54)]">
+              <p className="mt-2 text-[0.92rem]" style={{ color: "var(--text-muted)" }}>
                 {statusData?.status === "ACTIVE"
                   ? statusData.totalDays > 1 && statusData.dayNumber
                     ? `Currently on day ${statusData.dayNumber} of ${statusData.totalDays}.`

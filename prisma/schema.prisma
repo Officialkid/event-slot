@@ -57,6 +57,7 @@ model Event {
   paidOrders       PaidEventOrder[]
   payments         Payment[]
   registrations    Registration[]
+  registrationDrafts RegistrationDraft[]
   walkInCheckins   WalkInCheckin[]
   views            EventView[]
   feedback         AttendeeFeedback[]
@@ -401,6 +402,25 @@ model Registration {
   @@index([eventId, status])
   @@index([eventId, submittedAt])
   @@index([eventId, waitlistPosition])
+}
+
+model RegistrationDraft {
+  id                    String   @id @default(cuid())
+  eventId               String
+  event                 Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  email                 String
+  answers               Json
+  attendeeCount         Int      @default(1)
+  baseEmails            Json?
+  consentDataProcessing Boolean  @default(false)
+  consentTransactional  Boolean  @default(false)
+  consentMarketing      Boolean  @default(false)
+  sendResponseCopy      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([eventId, email])
+  @@index([email])
 }
 
 model TicketTier {

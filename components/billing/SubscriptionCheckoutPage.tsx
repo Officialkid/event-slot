@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { CreditCard, Loader2, ShieldCheck, Smartphone } from "lucide-react"
+import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
+import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 import type { SubscriptionPlanDefinition } from "@/lib/subscriptionPlans"
 import {
@@ -57,7 +59,7 @@ export function SubscriptionCheckoutPage({
 
   const handleCheckout = async () => {
     if (!billingEnabled) {
-      setError("Subscription checkout is temporarily disabled while EventSlot prepares the payments launch.")
+      setError(getBillingNoticeCopy("subscription").error)
       return
     }
 
@@ -114,6 +116,18 @@ export function SubscriptionCheckoutPage({
         )
       : 0
 
+  const sectionClassName = "rounded-[28px] border p-6 sm:p-7"
+  const sectionStyle = {
+    borderColor: "var(--border-subtle)",
+    background: "var(--surface)",
+  } satisfies React.CSSProperties
+  const mutedTextStyle = { color: "var(--text-secondary)" } satisfies React.CSSProperties
+  const subtleTextStyle = { color: "var(--text-muted)" } satisfies React.CSSProperties
+  const elevatedStyle = {
+    borderColor: "color-mix(in srgb, var(--border-subtle) 70%, transparent)",
+    background: "var(--surface-2)",
+  } satisfies React.CSSProperties
+
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 1040 }}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -124,7 +138,7 @@ export function SubscriptionCheckoutPage({
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "1.8rem",
               fontWeight: 400,
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
             }}
           >
             Upgrade your plan
@@ -134,7 +148,7 @@ export function SubscriptionCheckoutPage({
               margin: 0,
               fontFamily: "var(--font-dm-sans)",
               fontSize: "0.92rem",
-              color: "rgba(240,237,230,0.58)",
+              color: "var(--text-secondary)",
               lineHeight: 1.7,
             }}
           >
@@ -143,26 +157,27 @@ export function SubscriptionCheckoutPage({
         </div>
         <Link
           href="/dashboard/billing"
-          className="rounded-full border border-[rgba(240,237,230,0.12)] px-4 py-2 text-sm font-semibold text-[rgba(240,237,230,0.72)] transition hover:text-white"
+          className="rounded-full border px-4 py-2 text-sm font-semibold transition"
+          style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
         >
           Back to billing
         </Link>
       </div>
 
       {!billingEnabled ? (
-        <div className="mb-6 rounded-[24px] border border-[rgba(124,199,255,0.2)] bg-[rgba(124,199,255,0.08)] p-5 text-sm leading-7 text-[#D8ECFF]">
-          Subscription checkout is paused right now. Everyone still keeps full EventSlot access while we prepare the official payments launch.
+        <div className="mb-6">
+          <BillingPausedNotice context="subscription" />
         </div>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
-          <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+          <section className={sectionClassName} style={sectionStyle}>
             <div className="mb-5">
-              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.45)]">
+              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em]" style={subtleTextStyle}>
                 Plan selection
               </p>
-              <h2 className="mt-3 text-[1.5rem] font-semibold text-white">Pick the plan that fits your team</h2>
+              <h2 className="mt-3 text-[1.5rem] font-semibold" style={{ color: "var(--text-primary)" }}>Pick the plan that fits your team</h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -176,11 +191,12 @@ export function SubscriptionCheckoutPage({
                     className={`rounded-[22px] border p-5 text-left transition ${
                       active
                         ? "border-[rgba(200,245,90,0.45)] bg-[rgba(200,245,90,0.08)]"
-                        : "border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(240,237,230,0.18)]"
+                        : ""
                     }`}
+                    style={active ? undefined : elevatedStyle}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className={`h-5 w-5 rounded-full border ${active ? "border-[#C8F55A]" : "border-[rgba(240,237,230,0.28)]"} flex items-center justify-center`}>
+                      <div className={`h-5 w-5 rounded-full border flex items-center justify-center`} style={{ borderColor: active ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 28%, transparent)" }}>
                         {active ? <span className="h-2.5 w-2.5 rounded-full bg-[#C8F55A]" /> : null}
                       </div>
                       {plan.key === "pro" ? (
@@ -189,8 +205,8 @@ export function SubscriptionCheckoutPage({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-5 text-[1.15rem] font-semibold text-white">{plan.name}</p>
-                    <p className="mt-2 text-sm text-[rgba(240,237,230,0.62)]">
+                    <p className="mt-5 text-[1.15rem] font-semibold" style={{ color: "var(--text-primary)" }}>{plan.name}</p>
+                    <p className="mt-2 text-sm" style={mutedTextStyle}>
                       {Math.round(plan.commissionRate * 100)}% paid-ticket commission
                     </p>
                   </button>
@@ -199,12 +215,12 @@ export function SubscriptionCheckoutPage({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+          <section className={sectionClassName} style={sectionStyle}>
             <div className="mb-5">
-              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.45)]">
+              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em]" style={subtleTextStyle}>
                 Billing cycle
               </p>
-              <h2 className="mt-3 text-[1.5rem] font-semibold text-white">{selectedPlan.name} plan</h2>
+              <h2 className="mt-3 text-[1.5rem] font-semibold" style={{ color: "var(--text-primary)" }}>{selectedPlan.name} plan</h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -220,11 +236,12 @@ export function SubscriptionCheckoutPage({
                     className={`rounded-[22px] border p-6 text-left transition ${
                       active
                         ? "border-[#C8F55A] bg-[rgba(200,245,90,0.08)]"
-                        : "border-[rgba(240,237,230,0.1)] bg-[rgba(255,255,255,0.02)]"
+                        : ""
                     }`}
+                    style={active ? undefined : elevatedStyle}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className={`h-6 w-6 rounded-full border ${active ? "border-[#C8F55A]" : "border-[rgba(240,237,230,0.28)]"} flex items-center justify-center`}>
+                      <div className={`h-6 w-6 rounded-full border flex items-center justify-center`} style={{ borderColor: active ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 28%, transparent)" }}>
                         {active ? <span className="h-3 w-3 rounded-full bg-[#C8F55A]" /> : null}
                       </div>
                       {cycle === "annual" && savings > 0 ? (
@@ -233,10 +250,10 @@ export function SubscriptionCheckoutPage({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-6 text-[1.65rem] font-semibold text-white">
+                    <p className="mt-6 text-[1.65rem] font-semibold" style={{ color: "var(--text-primary)" }}>
                       {cycle === "monthly" ? "Monthly" : "Yearly"}
                     </p>
-                    <p className="mt-2 text-[1.05rem] text-[rgba(240,237,230,0.74)]">
+                    <p className="mt-2 text-[1.05rem]" style={{ color: "var(--text-secondary)" }}>
                       {formatUsd(price)}
                       {cycle === "monthly" ? "/month" : "/year"} + tax
                     </p>
@@ -246,12 +263,12 @@ export function SubscriptionCheckoutPage({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+          <section className={sectionClassName} style={sectionStyle}>
             <div className="mb-5">
-              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.45)]">
+              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em]" style={subtleTextStyle}>
                 Payment method
               </p>
-              <h2 className="mt-3 text-[1.5rem] font-semibold text-white">Choose how you want to pay</h2>
+              <h2 className="mt-3 text-[1.5rem] font-semibold" style={{ color: "var(--text-primary)" }}>Choose how you want to pay</h2>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -278,16 +295,17 @@ export function SubscriptionCheckoutPage({
                     className={`rounded-[22px] border p-5 text-left transition ${
                       active
                         ? "border-[#C8F55A] bg-[rgba(200,245,90,0.08)]"
-                        : "border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)]"
+                        : ""
                     }`}
+                    style={active ? undefined : elevatedStyle}
                   >
-                    <div className="flex items-center gap-3 text-white">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,255,255,0.04)]">
+                    <div className="flex items-center gap-3" style={{ color: "var(--text-primary)" }}>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "color-mix(in srgb, var(--text-primary) 5%, transparent)" }}>
                         {option.icon}
                       </span>
                       <div>
                         <p className="font-semibold">{option.title}</p>
-                        <p className="mt-1 text-sm text-[rgba(240,237,230,0.58)]">{option.description}</p>
+                        <p className="mt-1 text-sm" style={mutedTextStyle}>{option.description}</p>
                       </div>
                     </div>
                   </button>
@@ -302,59 +320,62 @@ export function SubscriptionCheckoutPage({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+          <section className={sectionClassName} style={sectionStyle}>
             <div className="mb-5">
-              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.45)]">
+              <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em]" style={subtleTextStyle}>
                 Checkout details
               </p>
-              <h2 className="mt-3 text-[1.5rem] font-semibold text-white">
+              <h2 className="mt-3 text-[1.5rem] font-semibold" style={{ color: "var(--text-primary)" }}>
                 {paymentMethod === "card" ? "Secure card checkout" : "M-Pesa checkout"}
               </h2>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="sm:col-span-2">
-                <span className="mb-2 block text-sm font-medium text-[rgba(240,237,230,0.78)]">Account holder name</span>
+                <span className="mb-2 block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Account holder name</span>
                 <input
                   value={payerName}
                   onChange={(event) => setPayerName(event.target.value)}
                   disabled={!billingEnabled}
                   placeholder="Alpha Tech Solutions"
-                  className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
+                  className="w-full rounded-[18px] border px-4 py-3 text-sm outline-none transition focus:border-[rgba(200,245,90,0.45)]"
+                  style={{ borderColor: "var(--border-subtle)", background: "var(--surface-2)", color: "var(--text-primary)" }}
                 />
               </label>
 
               {paymentMethod === "mpesa" ? (
                 <>
                   <label className="sm:col-span-2">
-                    <span className="mb-2 block text-sm font-medium text-[rgba(240,237,230,0.78)]">M-Pesa number</span>
+                    <span className="mb-2 block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>M-Pesa number</span>
                     <input
                       value={mpesaPhone}
                       onChange={(event) => setMpesaPhone(event.target.value)}
                       disabled={!billingEnabled}
                       inputMode="tel"
                       placeholder="07XX XXX XXX"
-                      className="w-full rounded-[18px] border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.02)] px-4 py-3 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.32)] focus:border-[rgba(200,245,90,0.45)]"
+                      className="w-full rounded-[18px] border px-4 py-3 text-sm outline-none transition focus:border-[rgba(200,245,90,0.45)]"
+                      style={{ borderColor: "var(--border-subtle)", background: "var(--surface-2)", color: "var(--text-primary)" }}
                     />
                   </label>
-                  <div className="sm:col-span-2 rounded-[20px] border border-[rgba(200,245,90,0.12)] bg-[rgba(200,245,90,0.05)] p-4 text-sm text-[rgba(240,237,230,0.66)]">
+                  <div className="sm:col-span-2 rounded-[20px] border p-4 text-sm" style={{ borderColor: "rgba(200,245,90,0.12)", background: "rgba(200,245,90,0.05)", color: "var(--text-secondary)" }}>
                     We will send the checkout prompt to this number after you continue. Use the Safaricom line that should approve the payment.
                   </div>
                 </>
               ) : (
-                <div className="sm:col-span-2 rounded-[20px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] p-4">
-                  <p className="text-sm font-semibold text-white">Accepted cards</p>
+                <div className="sm:col-span-2 rounded-[20px] border p-4" style={elevatedStyle}>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Accepted cards</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {["Visa", "Mastercard", "American Express", "Discover"].map((brand) => (
                       <span
                         key={brand}
-                        className="rounded-full border border-[rgba(240,237,230,0.12)] px-3 py-1 text-xs font-semibold text-[rgba(240,237,230,0.72)]"
+                        className="rounded-full border px-3 py-1 text-xs font-semibold"
+                        style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
                       >
                         {brand}
                       </span>
                     ))}
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-[rgba(240,237,230,0.58)]">
+                  <p className="mt-4 text-sm leading-6" style={mutedTextStyle}>
                     Your real card number, expiry date, and CVC are collected on the secure Paystack card page after you continue. That keeps EventSlot out of raw card handling while still supporting prepaid and postpaid cards.
                   </p>
                 </div>
@@ -363,7 +384,7 @@ export function SubscriptionCheckoutPage({
           </section>
         </div>
 
-        <aside className="h-fit rounded-[28px] border border-[rgba(240,237,230,0.08)] bg-[#141414] p-6 sm:p-7">
+        <aside className="h-fit rounded-[28px] border p-6 sm:p-7" style={sectionStyle}>
           <div className="flex items-center gap-3 text-[#C8F55A]">
             <ShieldCheck className="h-5 w-5" />
             <p className="text-[0.8rem] font-semibold uppercase tracking-[0.14em]">Order details</p>
@@ -371,38 +392,38 @@ export function SubscriptionCheckoutPage({
 
           <div className="mt-6 flex items-start justify-between gap-4">
             <div>
-              <p className="text-lg font-semibold text-white">{selectedPlan.name} plan</p>
-              <p className="mt-1 text-sm text-[rgba(240,237,230,0.58)]">
+              <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{selectedPlan.name} plan</p>
+              <p className="mt-1 text-sm" style={mutedTextStyle}>
                 {billingCycle === "annual" ? "Annually" : "Monthly"}
               </p>
             </div>
-            <p className="text-2xl font-semibold text-white">
+            <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
               {formatUsd(billingCycle === "annual" ? selectedPlan.annualPriceUsd : selectedPlan.monthlyPriceUsd)}
             </p>
           </div>
 
-          <div className="my-6 border-t border-[rgba(240,237,230,0.08)]" />
+          <div className="my-6 border-t" style={{ borderColor: "var(--border-subtle)" }} />
 
           <div className="space-y-4 text-[0.98rem]">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[rgba(240,237,230,0.68)]">Subtotal</span>
-              <span className="font-semibold text-white">{formatUsd(quote.subtotalUsd)}</span>
+              <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
+              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{formatUsd(quote.subtotalUsd)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[rgba(240,237,230,0.68)]">Tax 16%</span>
-              <span className="font-semibold text-white">{formatUsd(quote.taxUsd)}</span>
+              <span style={{ color: "var(--text-secondary)" }}>Tax 16%</span>
+              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{formatUsd(quote.taxUsd)}</span>
             </div>
           </div>
 
-          <div className="my-6 border-t border-[rgba(240,237,230,0.08)]" />
+          <div className="my-6 border-t" style={{ borderColor: "var(--border-subtle)" }} />
 
           <div className="flex items-center justify-between gap-4">
-            <span className="text-[1.05rem] font-semibold text-white">Total due today</span>
-            <span className="text-[1.5rem] font-semibold text-white">{formatUsd(quote.totalUsd)}</span>
+            <span className="text-[1.05rem] font-semibold" style={{ color: "var(--text-primary)" }}>Total due today</span>
+            <span className="text-[1.5rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formatUsd(quote.totalUsd)}</span>
           </div>
 
-          <div className="mt-3 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] p-4 text-sm text-[rgba(240,237,230,0.62)]">
-            <p className="font-semibold text-white">{accountName}</p>
+          <div className="mt-3 rounded-[18px] border p-4 text-sm" style={{ ...elevatedStyle, color: "var(--text-secondary)" }}>
+            <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{accountName}</p>
             <p className="mt-1">{accountEmail}</p>
             <p className="mt-3 text-[#C8F55A]">
               {paymentMethod === "mpesa"
@@ -437,7 +458,7 @@ export function SubscriptionCheckoutPage({
                 : "Continue to secure M-Pesa checkout"}
           </button>
 
-          <p className="mt-4 text-center text-xs leading-6 text-[rgba(240,237,230,0.46)]">
+          <p className="mt-4 text-center text-xs leading-6" style={{ color: "var(--text-muted)" }}>
             Secure checkout is hosted by our payment provider. Organizer ticket funds remain separate from EventSlot subscription revenue.
           </p>
         </aside>

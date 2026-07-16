@@ -44,6 +44,14 @@ type InsightsData = {
   aiSummarySource?: "ai" | "fallback"
 }
 
+const insightSurface = "var(--surface)"
+const insightSurfaceAlt = "var(--surface-2)"
+const insightBorder = "1px solid var(--border-subtle)"
+const insightBorderSoft = "1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent)"
+const insightTextPrimary = "var(--text-primary)"
+const insightTextSecondary = "var(--text-secondary)"
+const insightTextMuted = "var(--text-muted)"
+
 function MoMBadge({ change }: { change: number | null }) {
   if (change === null) return null
   const positive = change >= 0
@@ -115,12 +123,12 @@ export default function InsightsPage() {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <style>{`@keyframes ins-pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
-        <div style={{ height: 36, borderRadius: 8, background: "#141414", marginBottom: "0.5rem", animation: "ins-pulse 1.4s ease-in-out infinite", maxWidth: 300 }} />
-        <div style={{ height: 18, borderRadius: 6, background: "#141414", marginBottom: "2rem", animation: "ins-pulse 1.4s ease-in-out infinite", maxWidth: 220 }} />
+        <div style={{ height: 36, borderRadius: 8, background: insightSurfaceAlt, marginBottom: "0.5rem", animation: "ins-pulse 1.4s ease-in-out infinite", maxWidth: 300 }} />
+        <div style={{ height: 18, borderRadius: 6, background: insightSurfaceAlt, marginBottom: "2rem", animation: "ins-pulse 1.4s ease-in-out infinite", maxWidth: 220 }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          {[1,2,3].map(i => <div key={i} style={{ height: 90, borderRadius: 10, background: "#141414", animation: "ins-pulse 1.4s ease-in-out infinite" }} />)}
+          {[1,2,3].map(i => <div key={i} style={{ height: 90, borderRadius: 10, background: insightSurfaceAlt, animation: "ins-pulse 1.4s ease-in-out infinite" }} />)}
         </div>
-        <div style={{ height: 260, borderRadius: 12, background: "#141414", animation: "ins-pulse 1.4s ease-in-out infinite" }} />
+        <div style={{ height: 260, borderRadius: 12, background: insightSurfaceAlt, animation: "ins-pulse 1.4s ease-in-out infinite" }} />
       </div>
     )
   }
@@ -133,7 +141,7 @@ export default function InsightsPage() {
         <p style={{ fontSize: "0.875rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{error}</p>
         <button
           onClick={load}
-          style={{ marginTop: "1rem", background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+          style={{ marginTop: "1rem", background: "transparent", border: insightBorderSoft, borderRadius: 8, padding: "0.45rem 1rem", fontSize: "0.82rem", color: insightTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
         >
           Retry
         </button>
@@ -146,11 +154,11 @@ export default function InsightsPage() {
   const tooltipStyle = {
     contentStyle: {
       background: "#1A1A1A",
-      border: "0.5px solid rgba(240,237,230,0.1)",
+      border: "1px solid var(--border-subtle)",
       borderRadius: 8,
       fontSize: "0.78rem",
       fontFamily: "var(--font-dm-sans)",
-      color: "#F0EDE6",
+      color: "var(--text-primary)",
     },
   }
 
@@ -161,17 +169,17 @@ export default function InsightsPage() {
         {/* Header */}
         <div style={{ marginBottom: "1.75rem", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.9rem", flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
+            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", fontWeight: 400, color: insightTextPrimary, margin: "0 0 0.375rem" }}>
               Insight Tracker
             </h1>
-            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+            <p style={{ fontSize: "0.875rem", color: insightTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>
               Patterns across all your events.
             </p>
           </div>
           <a
             href={`/api/insights/export?range=${range}`}
             download
-            style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: "0.5px solid rgba(240,237,230,0.18)", borderRadius: 10, padding: "0.48rem 0.8rem", textDecoration: "none", color: "rgba(240,237,230,0.75)", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: insightBorderSoft, borderRadius: 10, padding: "0.48rem 0.8rem", textDecoration: "none", color: insightTextSecondary, fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}
           >
             <span>⬇</span>
             Export CSV
@@ -190,9 +198,9 @@ export default function InsightsPage() {
                 fontWeight: 600,
                 fontFamily: "var(--font-dm-sans)",
                 cursor: "pointer",
-                border: range === r ? "0.5px solid #C8F55A" : "0.5px solid rgba(240,237,230,0.14)",
+                border: range === r ? "0.5px solid #C8F55A" : insightBorderSoft,
                 background: range === r ? "rgba(200,245,90,0.12)" : "transparent",
-                color: range === r ? "#C8F55A" : "rgba(240,237,230,0.52)",
+                color: range === r ? "#C8F55A" : insightTextSecondary,
               }}
             >
               {r === "30d" ? "Last 30 days" : r === "90d" ? "Last 90 days" : r === "1y" ? "Last year" : "All time"}
@@ -200,19 +208,19 @@ export default function InsightsPage() {
           ))}
         </div>
 
-        <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.1rem", marginBottom: "1rem" }}>
+        <div style={{ background: insightSurface, border: insightBorderSoft, borderRadius: 12, padding: "1rem 1.1rem", marginBottom: "1rem" }}>
           <p style={{ fontSize: "0.68rem", color: "#C8F55A", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 0.6rem 0", fontFamily: "var(--font-dm-sans)" }}>
             ✦ AI Audience Profile
           </p>
           {profile ? (
             <>
-              <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "0.84rem", color: insightTextSecondary, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
                 &ldquo;{profile}&rdquo;
               </p>
               <button
                 onClick={generateProfile}
                 disabled={profileLoading}
-                style={{ marginTop: "0.6rem", background: "transparent", border: "none", padding: 0, fontSize: "0.74rem", color: "rgba(240,237,230,0.4)", cursor: profileLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
+                style={{ marginTop: "0.6rem", background: "transparent", border: "none", padding: 0, fontSize: "0.74rem", color: insightTextSecondary, cursor: profileLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}
               >
                 {profileLoading ? "Analysing..." : "Regenerate"}
               </button>
@@ -243,7 +251,7 @@ export default function InsightsPage() {
             <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: data.aiSummarySource === "fallback" ? "rgba(255,168,0,0.85)" : "rgba(200,245,90,0.85)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
               {data.aiSummarySource === "fallback" ? "AI Summary (Fallback)" : "AI Summary"}
             </div>
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(240,237,230,0.72)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: insightTextSecondary, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
               {data.aiSummary}
             </p>
           </div>
@@ -259,16 +267,16 @@ export default function InsightsPage() {
             <div
               key={stat.label}
               style={{
-                background: "#141414",
+                background: insightSurface,
                 border: stat.label === "Repeat Attendees" && data.repeatAttendees > 0
                   ? "0.5px solid rgba(200,245,90,0.2)"
-                  : "0.5px solid rgba(240,237,230,0.08)",
+                  : insightBorderSoft,
                 borderRadius: 10,
                 padding: "1.1rem 1.25rem",
               }}
             >
-              <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
-              <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: stat.label === "Repeat Attendees" && data.repeatAttendees > 0 ? "#C8F55A" : "#F0EDE6" }}>{stat.value}</div>
+              <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: insightTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+              <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: stat.label === "Repeat Attendees" && data.repeatAttendees > 0 ? "#C8F55A" : insightTextPrimary }}>{stat.value}</div>
               <MoMBadge change={stat.mom} />
             </div>
           ))}
@@ -277,13 +285,13 @@ export default function InsightsPage() {
         {/* Charts row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.75rem" }} className="ins-chart-grid">
           {/* By day of week */}
-          <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>By day of week</div>
+          <div style={{ background: insightSurface, border: insightBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: insightTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>By day of week</div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={data.registrationsByDayOfWeek} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
-                <XAxis dataKey="day" tick={{ fontSize: 8, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={d => d.slice(0, 3)} />
-                <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--border-subtle) 55%, transparent)" />
+                <XAxis dataKey="day" tick={{ fontSize: 8, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={d => d.slice(0, 3)} />
+                <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} />
                 <Bar dataKey="count" fill="rgba(200,245,90,0.55)" radius={[3,3,0,0]} />
               </BarChart>
@@ -291,13 +299,13 @@ export default function InsightsPage() {
           </div>
 
           {/* By month */}
-          <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>By month</div>
+          <div style={{ background: insightSurface, border: insightBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: insightTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>By month</div>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={data.registrationsByMonth} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
-                <XAxis dataKey="month" tick={{ fontSize: 8, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} />
-                <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--border-subtle) 55%, transparent)" />
+                <XAxis dataKey="month" tick={{ fontSize: 8, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} />
+                <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} />
                 <Bar dataKey="count" fill="rgba(200,245,90,0.4)" radius={[3,3,0,0]} />
               </BarChart>
@@ -306,19 +314,19 @@ export default function InsightsPage() {
         </div>
 
         {data.eventLeaderboard?.length > 0 && (
-          <div style={{ border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 14, overflow: "hidden", background: "#141414", marginBottom: "1.75rem" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.85rem 1rem", borderBottom: "0.5px solid rgba(240,237,230,0.12)" }}>
+          <div style={{ border: insightBorderSoft, borderRadius: 14, overflow: "hidden", background: insightSurface, marginBottom: "1.75rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.85rem 1rem", borderBottom: insightBorderSoft }}>
               <p style={{ margin: 0, fontSize: "0.68rem", color: "#C8F55A", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
                 ✦ Your Events
               </p>
-              <p style={{ margin: 0, color: "rgba(240,237,230,0.35)", fontSize: "0.7rem", fontFamily: "var(--font-dm-sans)" }}>Sorted by registrations</p>
+              <p style={{ margin: 0, color: insightTextMuted, fontSize: "0.7rem", fontFamily: "var(--font-dm-sans)" }}>Sorted by registrations</p>
             </div>
 
             <div style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 760 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.75rem 1rem", background: "#1E1E1E", borderBottom: "0.5px solid rgba(240,237,230,0.12)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.75rem 1rem", background: insightSurfaceAlt, borderBottom: insightBorderSoft }}>
                   {['Event', 'Registrations', 'Conversion', 'Check-in', 'Views'].map((h) => (
-                    <p key={h} style={{ margin: 0, color: "rgba(240,237,230,0.35)", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
+                    <p key={h} style={{ margin: 0, color: insightTextMuted, fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
                       {h}
                     </p>
                   ))}
@@ -327,7 +335,7 @@ export default function InsightsPage() {
                   <a
                     key={item.id}
                     href={`/dashboard/events/${item.slug}`}
-                    style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.9rem 1rem", borderBottom: "0.5px solid rgba(240,237,230,0.07)", textDecoration: "none" }}
+                    style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: "0.75rem", padding: "0.9rem 1rem", borderBottom: "0.5px solid color-mix(in srgb, var(--border-subtle) 65%, transparent)", textDecoration: "none" }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", minWidth: 0 }}>
                       {i < 3 && (
@@ -335,14 +343,14 @@ export default function InsightsPage() {
                           {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
                         </span>
                       )}
-                      <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", fontWeight: 500, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
+                      <p style={{ margin: 0, color: insightTextPrimary, fontSize: "0.82rem", fontWeight: 500, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</p>
                     </div>
-                    <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.registrations}</p>
-                    <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.conversionRate}%</p>
+                    <p style={{ margin: 0, color: insightTextPrimary, fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.registrations}</p>
+                    <p style={{ margin: 0, color: insightTextPrimary, fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.conversionRate}%</p>
                     <p style={{ margin: 0, fontSize: "0.82rem", alignSelf: "center", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: item.checkInRate >= 70 ? '#22C55E' : item.checkInRate >= 50 ? '#F59E0B' : '#EF4444' }}>
                       {item.checkInRate > 0 ? `${item.checkInRate}%` : '—'}
                     </p>
-                    <p style={{ margin: 0, color: "rgba(240,237,230,0.55)", fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.views.toLocaleString()}</p>
+                    <p style={{ margin: 0, color: insightTextSecondary, fontSize: "0.82rem", alignSelf: "center", fontFamily: "var(--font-dm-sans)" }}>{item.views.toLocaleString()}</p>
                   </a>
                 ))}
               </div>
@@ -353,25 +361,25 @@ export default function InsightsPage() {
         {/* Audience question insights */}
         {data.questionInsights.length > 0 && (
           <div style={{ marginBottom: "1.75rem" }}>
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1rem" }}>
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: insightTextPrimary, marginBottom: "1rem" }}>
               Audience insights
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {data.questionInsights.map(insight => (
-                <div key={insight.questionLabel} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                <div key={insight.questionLabel} style={{ background: insightSurface, border: insightBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{insight.questionLabel}</span>
-                    <span style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>{insight.totalAnswers} responses</span>
+                    <span style={{ fontSize: "0.875rem", fontWeight: 500, color: insightTextPrimary, fontFamily: "var(--font-dm-sans)" }}>{insight.questionLabel}</span>
+                    <span style={{ fontSize: "0.7rem", color: insightTextMuted, fontFamily: "var(--font-dm-sans)" }}>{insight.totalAnswers} responses</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                     {insight.topAnswers.slice(0, 6).map(ans => (
                       <div key={ans.value} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-                            <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: "0.5rem" }}>{ans.value}</span>
-                            <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{ans.count} ({ans.percentage}%)</span>
+                            <span style={{ fontSize: "0.78rem", color: insightTextSecondary, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: "0.5rem" }}>{ans.value}</span>
+                            <span style={{ fontSize: "0.72rem", color: insightTextSecondary, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{ans.count} ({ans.percentage}%)</span>
                           </div>
-                          <div style={{ height: 4, borderRadius: 2, background: "rgba(240,237,230,0.06)", overflow: "hidden" }}>
+                          <div style={{ height: 4, borderRadius: 2, background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", overflow: "hidden" }}>
                             <div style={{ height: "100%", borderRadius: 2, background: "rgba(200,245,90,0.5)", width: `${ans.percentage}%`, transition: "width 0.4s ease" }} />
                           </div>
                         </div>
@@ -385,8 +393,8 @@ export default function InsightsPage() {
         )}
 
         {data.questionInsights.length === 0 && (
-          <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-            <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ background: insightSurface, border: insightBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+            <p style={{ fontSize: "0.875rem", color: insightTextMuted, fontFamily: "var(--font-dm-sans)" }}>
               No registration data yet. Insights will appear after attendees register for your events.
             </p>
           </div>

@@ -140,7 +140,7 @@ function SignInForm() {
             fontFamily: 'var(--font-dm-sans)',
             fontWeight: 300,
             fontSize: '0.82rem',
-            color: 'rgba(240,237,230,0.4)',
+            color: 'var(--text-muted)',
             margin: '0.5rem 0 0',
             textAlign: 'center',
           }}
@@ -151,8 +151,8 @@ function SignInForm() {
 
       <div
         style={{
-          background: '#141414',
-          border: '0.5px solid rgba(240,237,230,0.08)',
+          background: 'var(--surface)',
+          border: '0.5px solid var(--border)',
           borderRadius: 16,
           padding: '2rem',
         }}
@@ -166,7 +166,7 @@ function SignInForm() {
               padding: '0.75rem 1rem',
               marginBottom: '1.5rem',
               fontSize: '0.85rem',
-              color: '#C8F55A',
+              color: 'var(--accent)',
               fontFamily: 'var(--font-dm-sans)',
             }}
           >
@@ -178,7 +178,7 @@ function SignInForm() {
           style={{
             fontFamily: 'var(--font-instrument-serif)',
             fontSize: '1.8rem',
-            color: '#F0EDE6',
+            color: 'var(--text-primary)',
             margin: '0 0 0.375rem',
             fontWeight: 400,
           }}
@@ -190,7 +190,7 @@ function SignInForm() {
             fontFamily: 'var(--font-dm-sans)',
             fontWeight: 300,
             fontSize: '0.9rem',
-            color: 'rgba(240,237,230,0.5)',
+            color: 'var(--text-secondary)',
             margin: '0 0 1.75rem',
           }}
         >
@@ -201,7 +201,7 @@ function SignInForm() {
             fontFamily: 'var(--font-dm-sans)',
             fontWeight: 300,
             fontSize: '0.78rem',
-            color: 'rgba(240,237,230,0.4)',
+            color: 'var(--text-muted)',
             margin: '-0.85rem 0 1.5rem',
             lineHeight: 1.55,
           }}
@@ -219,9 +219,9 @@ function SignInForm() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.625rem',
-            background: '#F0EDE6',
+            background: 'var(--surface-muted)',
             color: '#0A0A0A',
-            border: 'none',
+            border: '0.5px solid var(--border)',
             borderRadius: 100,
             padding: '0.75rem 1rem',
             fontSize: '0.9rem',
@@ -247,18 +247,18 @@ function SignInForm() {
         )}
 
         {isLocalhost && (
-          <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.42)', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
             Google sign-in on this local preview may be unavailable unless the localhost callback URL is added in the Google OAuth app. The live Cloud Run site uses the production callback.
           </p>
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0' }}>
-          <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
-          <span style={{ fontSize: '0.75rem', color: 'rgba(240,237,230,0.3)', fontFamily: 'var(--font-dm-sans)' }}>or</span>
-          <div style={{ flex: 1, borderTop: '0.5px solid rgba(240,237,230,0.1)' }} />
+          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-dm-sans)' }}>or</span>
+          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
         </div>
 
-        <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'rgba(240,237,230,0.42)', fontFamily: 'var(--font-dm-sans)', margin: '-0.25rem 0 1rem' }}>
+        <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-muted)', fontFamily: 'var(--font-dm-sans)', margin: '-0.25rem 0 1rem' }}>
           If this email was created with Google sign-in, use the Google button above. If you later set a password, you can sign in below.
         </p>
 
@@ -316,7 +316,7 @@ function SignInForm() {
                 style={inputStyle}
               />
               {otpHint && (
-                <p style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.45)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
                   {otpHint}
                 </p>
               )}
@@ -324,7 +324,7 @@ function SignInForm() {
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', fontSize: '0.82rem', color: 'rgba(240,237,230,0.68)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
               <span style={{ position: 'relative', display: 'inline-flex', width: 18, height: 18 }}>
                 <input
                   type="checkbox"
@@ -343,7 +343,7 @@ function SignInForm() {
               href="/forgot-password"
               style={{
                 fontSize: '0.78rem',
-                color: 'rgba(240,237,230,0.35)',
+                color: 'var(--text-muted)',
                 textDecoration: 'none',
                 fontFamily: 'var(--font-dm-sans)',
               }}
@@ -383,14 +383,14 @@ function SignInForm() {
         <p
           style={{
             fontSize: '0.82rem',
-            color: 'rgba(240,237,230,0.4)',
+            color: 'var(--text-muted)',
             textAlign: 'center',
             marginTop: '1.5rem',
             fontFamily: 'var(--font-dm-sans)',
           }}
         >
           Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'rgba(240,237,230,0.7)', textDecoration: 'underline' }}>
+          <Link href="/signup" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>
             Sign up
           </Link>
         </p>
@@ -401,12 +401,12 @@ function SignInForm() {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0A0A0A',
-  border: '0.5px solid rgba(240,237,230,0.12)',
+  background: 'var(--surface-muted)',
+  border: '0.5px solid var(--border)',
   borderRadius: 8,
   padding: '0.75rem 0.875rem',
   fontSize: '0.875rem',
-  color: '#F0EDE6',
+  color: 'var(--text-primary)',
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',
@@ -414,7 +414,7 @@ const inputStyle: React.CSSProperties = {
 
 const fieldLabelStyle: React.CSSProperties = {
   fontSize: '0.78rem',
-  color: 'rgba(240,237,230,0.58)',
+  color: 'var(--text-secondary)',
   fontFamily: 'var(--font-dm-sans)',
   marginBottom: '-0.35rem',
 }
@@ -432,7 +432,7 @@ const passwordToggleStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: 8,
   background: 'transparent',
-  color: 'rgba(240,237,230,0.5)',
+  color: 'var(--text-muted)',
   cursor: 'pointer',
 }
 
@@ -448,8 +448,8 @@ const rememberBoxStyle: React.CSSProperties = {
   width: 18,
   height: 18,
   borderRadius: 5,
-  border: '0.5px solid rgba(240,237,230,0.18)',
-  background: 'rgba(10,10,10,0.92)',
+  border: '0.5px solid var(--border)',
+  background: 'var(--surface-muted)',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',

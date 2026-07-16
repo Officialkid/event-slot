@@ -25,8 +25,16 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
   const [qrDataUrl, setQrDataUrl] = useState<string>("")
   const [downloading, setDownloading] = useState(false)
 
+  const ticketTextPrimary = "var(--text-primary)"
+  const ticketTextSecondary = "var(--text-secondary)"
+  const ticketTextMuted = "var(--text-muted)"
+
   useEffect(() => {
-    QRCode.toDataURL(ticket.verifyUrl, { width: 136, margin: 1, color: { dark: "#0A0A0A", light: "#FAFAF7" } })
+    QRCode.toDataURL(ticket.verifyUrl, {
+      width: 136,
+      margin: 1,
+      color: { dark: "#0A0A0A", light: "#FAFAF7" },
+    })
       .then((url) => setQrDataUrl(url))
       .catch(console.error)
   }, [ticket.verifyUrl])
@@ -60,63 +68,57 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
 
   return (
     <div style={{ fontFamily: "var(--font-dm-sans, system-ui, sans-serif)" }}>
-
-      {/* Ticket card — captured for PDF */}
       <div
         ref={cardRef}
         style={{
-          background: "#111111",
+          background: "var(--surface)",
           border: "1px solid rgba(200,245,90,0.25)",
           borderRadius: 16,
           overflow: "hidden",
           display: "flex",
           maxWidth: 640,
           margin: "0 auto",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.22)",
         }}
       >
-        {/* ── Left: event + attendee details ─────────────────────────────── */}
         <div style={{ flex: 1, padding: "1.75rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          {/* Logo / brand */}
           <p style={{ fontSize: "0.65rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#C8F55A", margin: "0 0 0.75rem", fontWeight: 600 }}>
             EventSlot · Ticket
           </p>
 
-          {/* Event title */}
-          <h2 style={{ fontSize: "1.15rem", fontWeight: 600, color: "#F0EDE6", margin: "0 0 0.5rem", lineHeight: 1.3, fontFamily: "var(--font-instrument-serif, Georgia, serif)" }}>
+          <h2 style={{ fontSize: "1.15rem", fontWeight: 600, color: ticketTextPrimary, margin: "0 0 0.5rem", lineHeight: 1.3, fontFamily: "var(--font-instrument-serif, Georgia, serif)" }}>
             {ticket.eventTitle}
           </h2>
 
-          {/* Date / location */}
           {ticket.eventDate && (
-            <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", margin: "0 0 0.15rem" }}>
-              📅 {ticket.eventDate}
+            <p style={{ fontSize: "0.78rem", color: ticketTextSecondary, margin: "0 0 0.15rem" }}>
+              Date: {ticket.eventDate}
             </p>
           )}
           {ticket.eventLocation && (
-            <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", margin: "0 0 0.75rem" }}>
-              📍 {ticket.eventLocation}
+            <p style={{ fontSize: "0.78rem", color: ticketTextSecondary, margin: "0 0 0.75rem" }}>
+              Location: {ticket.eventLocation}
             </p>
           )}
 
-          <hr style={{ border: "none", borderTop: "0.5px solid rgba(240,237,230,0.1)", margin: "0.5rem 0" }} />
+          <hr style={{ border: "none", borderTop: "0.5px solid var(--border-subtle)", margin: "0.5rem 0" }} />
 
-          {/* Attendee info */}
           {ticket.attendeeName && (
-            <p style={{ fontSize: "0.82rem", color: "#F0EDE6", margin: "0.1rem 0", fontWeight: 500 }}>
+            <p style={{ fontSize: "0.82rem", color: ticketTextPrimary, margin: "0.1rem 0", fontWeight: 500 }}>
               {ticket.attendeeName}
             </p>
           )}
           {ticket.attendeeEmail && (
-            <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", margin: "0.05rem 0" }}>
+            <p style={{ fontSize: "0.75rem", color: ticketTextSecondary, margin: "0.05rem 0" }}>
               {ticket.attendeeEmail}
             </p>
           )}
           {ticket.attendeePhone && (
-            <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", margin: "0.05rem 0" }}>
+            <p style={{ fontSize: "0.75rem", color: ticketTextSecondary, margin: "0.05rem 0" }}>
               {ticket.attendeePhone}
             </p>
           )}
+
           {(ticket.ticketTierName || ticket.amountPaidKes) && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
               {ticket.ticketTierName && (
@@ -129,17 +131,16 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
                 />
               )}
               {ticket.amountPaidKes ? (
-                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.5)" }}>
+                <span style={{ fontSize: "0.72rem", color: ticketTextSecondary }}>
                   Paid KES {ticket.amountPaidKes.toLocaleString()}
                 </span>
               ) : null}
             </div>
           )}
 
-          <hr style={{ border: "none", borderTop: "0.5px solid rgba(240,237,230,0.1)", margin: "0.75rem 0 0.5rem" }} />
+          <hr style={{ border: "none", borderTop: "0.5px solid var(--border-subtle)", margin: "0.75rem 0 0.5rem" }} />
 
-          {/* Confirmation code */}
-          <p style={{ fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.4)", margin: "0 0 0.25rem" }}>
+          <p style={{ fontSize: "0.62rem", letterSpacing: "0.1em", textTransform: "uppercase", color: ticketTextMuted, margin: "0 0 0.25rem" }}>
             Confirmation Code
           </p>
           <p style={{ fontFamily: "monospace", fontSize: "1rem", letterSpacing: "0.2em", color: "#C8F55A", fontWeight: 700, margin: 0 }}>
@@ -147,14 +148,10 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
           </p>
         </div>
 
-        {/* ── Dashed divider ──────────────────────────────────────────────── */}
         <div style={{ width: 1, borderLeft: "1.5px dashed rgba(200,245,90,0.25)", margin: "1.25rem 0", flexShrink: 0 }} />
 
-        {/* ── Right: QR code ──────────────────────────────────────────────── */}
         <div style={{ width: 168, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem 1.25rem", gap: "0.75rem" }}>
           {qrDataUrl ? (
-            // Plain <img> is required here — html2canvas does not capture Next.js
-            // Image components reliably when they wrap data: URLs.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={qrDataUrl}
@@ -164,15 +161,14 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
               style={{ borderRadius: 8, display: "block", maxWidth: "100%" }}
             />
           ) : (
-            <div style={{ width: 118, height: 118, background: "rgba(240,237,230,0.06)", borderRadius: 8 }} />
+            <div style={{ width: 118, height: 118, background: "var(--surface-2)", borderRadius: 8 }} />
           )}
-          <p style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", textAlign: "center", margin: 0 }}>
+          <p style={{ fontSize: "0.6rem", letterSpacing: "0.08em", textTransform: "uppercase", color: ticketTextMuted, textAlign: "center", margin: 0 }}>
             Scan to verify
           </p>
         </div>
       </div>
 
-      {/* Download button */}
       <div style={{ maxWidth: 640, margin: "1.25rem auto 0", display: "flex", justifyContent: "center" }}>
         <button
           onClick={handleDownload}
@@ -190,7 +186,7 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
             transition: "background 0.15s",
           }}
         >
-          {downloading ? "Generating PDF…" : "Download Ticket as PDF"}
+          {downloading ? "Generating PDF..." : "Download Ticket as PDF"}
         </button>
       </div>
     </div>

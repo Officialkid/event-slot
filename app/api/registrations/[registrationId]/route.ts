@@ -5,8 +5,17 @@ import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { promoteNextFreeWaitlistSpot } from '@/lib/freeEventWaitlist'
 import { sendWaitlistPromotedEmail } from '@/lib/email'
 import { APP_URL } from '@/lib/config'
+import { getFullOptions } from '@/lib/registrationQuestionOptions'
 
-type EventQuestion = { id: string; type: string; label: string; required?: boolean }
+type EventQuestion = {
+  id: string
+  type: string
+  label: string
+  required?: boolean
+  options?: string[]
+  optionLimits?: Record<string, number | null | undefined>
+  allowMultiple?: boolean
+}
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ registrationId: string }> }) {
   const params = await props.params;
@@ -104,6 +113,51 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ registr
       }
     }
 
+    const limitedQuestions = questions.filter((question) => {
+      const limits = question.optionLimits ?? {}
+      return (question.type === 'select' || question.type === 'checkbox') && Object.keys(limits).length > 0
+    })
+
+    if (limitedQuestions.length > 0) {
+      const peerRegistrations = await prisma.registration.findMany({
+        where: {
+          eventId: registration.eventId,
+          id: { not: registration.id },
+          status: { in: ['confirmed', 'waitlist'] },
+        },
+        select: { answers: true },
+      })
+
+      const queuedRegistrations = peerRegistrations.map((item) => ({
+        answers: item.answers as Array<{ questionId: string; value: string }>,
+      }))
+
+      for (const question of limitedQuestions) {
+        const fullOptions = new Set(getFullOptions(question, queuedRegistrations))
+        if (fullOptions.size === 0) continue
+
+        const rawAnswer = answers.find((answer) => answer.questionId === question.id)?.value ?? ''
+        const selectedValues = question.type === 'checkbox'
+          ? (() => {
+              try {
+                const parsed = JSON.parse(rawAnswer)
+                return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+              } catch {
+                return rawAnswer.split('|').map((value) => value.trim()).filter(Boolean)
+              }
+            })()
+          : [rawAnswer]
+
+        const blockedOption = selectedValues.find((value) => fullOptions.has(value))
+        if (blockedOption) {
+          return NextResponse.json(
+            { error: `"${blockedOption}" is already full for ${question.label}. Please choose another option.` },
+            { status: 409 }
+          )
+        }
+      }
+    }
+
     const updated = await prisma.registration.update({
       where: { id: params.registrationId },
       data: { answers },
@@ -123,7 +177,21 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
 
     const registration = await prisma.registration.findUnique({
       where: { id: params.registrationId },
-      include: { event: { select: { dashboardToken: true, id: true, title: true, isPaid: true } } },
+      include: {
+        event: {
+          select: {
+            dashboardToken: true,
+            id: true,
+            title: true,
+            isPaid: true,
+            eventDate: true,
+            eventEndAt: true,
+            location: true,
+            communityLink: true,
+            slug: true,
+          },
+        },
+      },
     })
 
     if (!registration) {
@@ -210,12 +278,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ regist
         await sendWaitlistPromotedEmail({
           to: promoted.attendeeEmail,
           eventTitle: registration.event.title,
-          eventDate: null,
-          eventEndAt: null,
-          eventLocation: null,
-          communityLink: null,
+          eventDate: registration.event.eventDate,
+          eventEndAt: registration.event.eventEndAt,
+          eventLocation: registration.event.location,
+          communityLink: registration.event.communityLink,
           ticketUrl: promoted.confirmationCode ? `${APP_URL}/register/success/${promoted.confirmationCode}` : null,
-          eventSlug: null,
+          eventSlug: registration.event.slug,
         }).catch(() => {})
       }
     }

@@ -32,3 +32,9 @@ jest.mock('next-auth/react', () => ({
   signOut: jest.fn(),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
+
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: ({ alt = '', ...props }: React.ImgHTMLAttributes<HTMLImageElement>) =>
+    React.createElement('img', { alt, ...props }),
+}))

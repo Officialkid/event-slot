@@ -47,29 +47,28 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
   return (
     <div
       style={{
-        background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
-        border: "1px solid rgba(240,237,230,0.12)",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: 16,
         padding: "1.75rem 1.5rem",
         maxWidth: 480,
         margin: "0 auto",
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
-        boxShadow: "0 16px 36px rgba(0,0,0,0.25)",
-        backdropFilter: "blur(6px)",
+        boxShadow: "0 16px 36px rgba(0,0,0,0.12)",
       }}
     >
       <h2
         style={{
           fontSize: "1.1rem",
           fontWeight: 600,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           margin: "0 0 0.35rem",
           fontFamily: "var(--font-instrument-serif, Georgia, serif)",
         }}
       >
         Check your registration
       </h2>
-      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
+      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
         Search by your name or email address.
       </p>
 
@@ -82,12 +81,12 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
           disabled={loading}
           style={{
             flex: 1,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(240,237,230,0.16)",
+            background: "var(--surface-muted)",
+            border: "1px solid var(--border)",
             borderRadius: 10,
             padding: "0.65rem 0.85rem",
             fontSize: "0.88rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             outline: "none",
           }}
         />
@@ -119,12 +118,12 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
       {result && (
         <div style={{ marginTop: "1rem" }}>
           {result.status === "CONFIRMED" && (
-            <div style={{ background: "#0A0A0A", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "0.85rem" }}>
-              <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600 }}>✅ Confirmed</p>
+            <div style={{ background: "var(--surface-muted)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "0.85rem" }}>
+              <p style={{ margin: 0, color: "var(--text-primary)", fontSize: "0.9rem", fontWeight: 600 }}>Confirmed</p>
               {result.attendeeName && (
-                <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.6)", fontSize: "0.82rem" }}>{result.attendeeName}</p>
+                <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontSize: "0.82rem" }}>{result.attendeeName}</p>
               )}
-              <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.45)", fontSize: "0.75rem" }}>
+              <p style={{ margin: "0.35rem 0 0", color: "var(--text-muted)", fontSize: "0.75rem" }}>
                 Confirmation #{result.registrationNumber ?? "N/A"}
               </p>
               {result.canDownloadTicket && result.ticketUrl ? (
@@ -147,7 +146,7 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
                   Download Ticket
                 </a>
               ) : (
-                <p style={{ margin: "0.6rem 0 0", color: "rgba(240,237,230,0.35)", fontSize: "0.72rem" }}>
+                <p style={{ margin: "0.6rem 0 0", color: "var(--text-muted)", fontSize: "0.72rem" }}>
                   Tickets are currently disabled for this event.
                 </p>
               )}
@@ -155,20 +154,20 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
           )}
 
           {result.status === "WAITLISTED" && (
-            <div style={{ background: "#0A0A0A", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 10, padding: "0.85rem" }}>
-              <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600 }}>
-                ⏳ Waitlisted{typeof result.waitlistPosition === "number" ? ` - Position #${result.waitlistPosition}` : ""}
+            <div style={{ background: "var(--surface-muted)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 10, padding: "0.85rem" }}>
+              <p style={{ margin: 0, color: "var(--text-primary)", fontSize: "0.9rem", fontWeight: 600 }}>
+                Waitlisted{typeof result.waitlistPosition === "number" ? ` - Position #${result.waitlistPosition}` : ""}
               </p>
               {result.attendeeName && (
-                <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.6)", fontSize: "0.82rem" }}>{result.attendeeName}</p>
+                <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontSize: "0.82rem" }}>{result.attendeeName}</p>
               )}
             </div>
           )}
 
           {result.status === "NOT_REGISTERED" && (
-            <div style={{ background: "#0A0A0A", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "0.85rem" }}>
-              <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600 }}>❌ Not registered</p>
-              <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.6)", fontSize: "0.82rem" }}>
+            <div style={{ background: "var(--surface-muted)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "0.85rem" }}>
+              <p style={{ margin: 0, color: "var(--text-primary)", fontSize: "0.9rem", fontWeight: 600 }}>Not registered</p>
+              <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontSize: "0.82rem" }}>
                 {result.message ?? "No registration found for that name or email."}
               </p>
             </div>

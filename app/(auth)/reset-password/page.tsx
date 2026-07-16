@@ -51,8 +51,8 @@ function ResetPasswordForm() {
     <div style={{ maxWidth: 440, margin: '0 auto', padding: '4rem 1.5rem' }}>
       <div
         style={{
-          background: '#141414',
-          border: '0.5px solid rgba(240,237,230,0.08)',
+          background: 'var(--surface)',
+          border: '0.5px solid var(--border)',
           borderRadius: 16,
           padding: '2rem',
         }}
@@ -64,7 +64,7 @@ function ResetPasswordForm() {
             alignItems: 'center',
             gap: '0.3rem',
             fontSize: '0.78rem',
-            color: 'rgba(240,237,230,0.35)',
+            color: 'var(--text-muted)',
             textDecoration: 'none',
             marginBottom: '1.5rem',
             fontFamily: 'var(--font-dm-sans)',
@@ -81,7 +81,7 @@ function ResetPasswordForm() {
             fontFamily: 'var(--font-instrument-serif)',
             fontSize: '1.5rem',
             fontWeight: 400,
-            color: '#F0EDE6',
+            color: 'var(--text-primary)',
             margin: '0 0 0.375rem',
           }}
         >
@@ -92,7 +92,7 @@ function ResetPasswordForm() {
             fontFamily: 'var(--font-dm-sans)',
             fontWeight: 300,
             fontSize: '0.875rem',
-            color: 'rgba(240,237,230,0.45)',
+            color: 'var(--text-secondary)',
             margin: '0 0 1.75rem',
           }}
         >
@@ -159,12 +159,12 @@ export default function ResetPasswordPage() {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0A0A0A',
-  border: '0.5px solid rgba(240,237,230,0.12)',
+  background: 'var(--bg-input)',
+  border: '0.5px solid var(--border)',
   borderRadius: 8,
   padding: '0.75rem 0.875rem',
   fontSize: '0.875rem',
-  color: '#F0EDE6',
+  color: 'var(--text-primary)',
   fontFamily: 'var(--font-dm-sans)',
   outline: 'none',
   boxSizing: 'border-box',

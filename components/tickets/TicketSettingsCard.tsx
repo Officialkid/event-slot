@@ -9,6 +9,13 @@ type TicketSettingsCardProps = {
   onUpdated?: (enabled: boolean) => void
 }
 
+const ticketSurface = "var(--surface)"
+const ticketSurfaceAlt = "var(--surface-2)"
+const ticketBorder = "var(--border-subtle)"
+const ticketTextPrimary = "var(--text-primary)"
+const ticketTextSecondary = "var(--text-secondary)"
+const ticketTextMuted = "var(--text-muted)"
+
 export default function TicketSettingsCard({
   eventId,
   initialEnabled,
@@ -51,17 +58,49 @@ export default function TicketSettingsCard({
   }
 
   return (
-    <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
-      <p style={{ margin: 0, fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
-        ✦ Ticket Settings
+    <div
+      style={{
+        background: ticketSurface,
+        border: `0.5px solid ${ticketBorder}`,
+        borderRadius: 12,
+        padding: "1.25rem",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          marginBottom: "0.45rem",
+          fontSize: "0.72rem",
+          color: "#C8F55A",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          fontFamily: "var(--font-dm-sans)",
+        }}
+      >
+        Ticket Settings
       </p>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.85rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+          <p
+            style={{
+              margin: 0,
+              color: ticketTextPrimary,
+              fontSize: "0.85rem",
+              fontFamily: "var(--font-dm-sans)",
+              fontWeight: 600,
+            }}
+          >
             Generate tickets for attendees
           </p>
-          <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.5)", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
+          <p
+            style={{
+              margin: "0.35rem 0 0",
+              color: ticketTextSecondary,
+              fontSize: "0.8rem",
+              fontFamily: "var(--font-dm-sans)",
+            }}
+          >
             {enabled
               ? `Tickets are active. ${registrationCount} attendee${registrationCount === 1 ? "" : "s"} can download their ticket.`
               : "Tickets are off. Attendees can still look up their confirmation status."}
@@ -94,22 +133,25 @@ export default function TicketSettingsCard({
               width: 16,
               height: 16,
               borderRadius: "50%",
-              background: "#0A0A0A",
+              background: enabled ? "#0A0A0A" : ticketSurfaceAlt,
               transition: "left 160ms ease",
             }}
           />
         </button>
       </div>
 
-      {enabled ? (
-        <p style={{ margin: "0.75rem 0 0", color: "rgba(240,237,230,0.35)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
-          Tickets are available for confirmed attendees through confirmation lookup.
-        </p>
-      ) : (
-        <p style={{ margin: "0.75rem 0 0", color: "rgba(240,237,230,0.35)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
-          Confirmation lookup still works, but ticket download is hidden while tickets are off.
-        </p>
-      )}
+      <p
+        style={{
+          margin: "0.75rem 0 0",
+          color: ticketTextMuted,
+          fontSize: "0.74rem",
+          fontFamily: "var(--font-dm-sans)",
+        }}
+      >
+        {enabled
+          ? "Tickets are available for confirmed attendees through confirmation lookup."
+          : "Confirmation lookup still works, but ticket download is hidden while tickets are off."}
+      </p>
 
       {error && (
         <p style={{ margin: "0.6rem 0 0", fontSize: "0.75rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>

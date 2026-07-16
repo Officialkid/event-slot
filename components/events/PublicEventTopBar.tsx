@@ -4,11 +4,14 @@ import Link from "next/link"
 
 export default function PublicEventTopBar() {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[rgba(18,18,18,0.92)] px-4 py-3 sm:px-5">
+    <div
+      className="mb-5 flex items-center justify-between gap-3 rounded-[18px] border px-4 py-3 sm:px-5"
+      style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+    >
       <Link
         href="/"
-        className="text-[1.55rem] leading-none text-[#F0EDE6] no-underline"
-        style={{ fontFamily: "var(--font-instrument-serif)" }}
+        className="text-[1.55rem] leading-none no-underline"
+        style={{ color: "var(--text-primary)", fontFamily: "var(--font-instrument-serif)" }}
       >
         Event<span className="text-[#C8F55A]">Slot</span>
       </Link>

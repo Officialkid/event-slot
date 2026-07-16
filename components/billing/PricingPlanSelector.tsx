@@ -47,7 +47,7 @@ export function PricingPlanSelector({
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <div className="inline-flex rounded-full border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.03)] p-1">
+        <div className="inline-flex rounded-full border p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-2)" }}>
           {(["monthly", "annual"] as SubscriptionBillingCycle[]).map((cycle) => {
             const active = billingCycle === cycle
             return (
@@ -58,8 +58,9 @@ export function PricingPlanSelector({
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                   active
                     ? "bg-[#C8F55A] text-[#0A0A0A]"
-                    : "text-[rgba(240,237,230,0.68)] hover:text-white"
+                    : ""
                 }`}
+                style={active ? undefined : { color: "var(--text-secondary)" }}
               >
                 {cycle === "monthly" ? "Monthly" : "Yearly"}
               </button>
@@ -94,9 +95,12 @@ export function PricingPlanSelector({
               key={plan.key}
               className={`relative flex h-full flex-col overflow-hidden rounded-[24px] border transition ${
                 featured
-                  ? "border-[rgba(200,245,90,0.4)] bg-[linear-gradient(180deg,rgba(200,245,90,0.14),rgba(17,17,17,0.98))] shadow-[0_24px_80px_rgba(200,245,90,0.08)]"
-                  : "border-[rgba(240,237,230,0.12)] bg-[rgba(18,18,18,0.96)]"
+                  ? "border-[rgba(200,245,90,0.4)] shadow-[0_24px_80px_rgba(200,245,90,0.08)]"
+                  : ""
               }`}
+              style={featured
+                ? { background: "linear-gradient(180deg, rgba(200,245,90,0.14), var(--surface) 98%)", borderColor: "rgba(200,245,90,0.4)" }
+                : { background: "var(--surface)", borderColor: "var(--border-subtle)" }}
             >
               {featured ? (
                 <div className="bg-[#C8F55A] px-4 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] text-[#0A0A0A]">
@@ -106,16 +110,16 @@ export function PricingPlanSelector({
 
               <div className="flex flex-1 flex-col p-6 sm:p-7">
                 <div className="text-center">
-                  <h3 className="text-[1.65rem] font-semibold text-white">{plan.name}</h3>
+                  <h3 className="text-[1.65rem] font-semibold" style={{ color: "var(--text-primary)" }}>{plan.name}</h3>
                   <div className="mt-4 flex items-end justify-center gap-2">
-                    <span className="text-[2.75rem] font-semibold leading-none text-white">
+                    <span className="text-[2.75rem] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>
                       ${price}
                     </span>
-                    <span className="pb-1 text-[0.95rem] text-[rgba(240,237,230,0.6)]">
+                    <span className="pb-1 text-[0.95rem]" style={{ color: "var(--text-secondary)" }}>
                       {cadence}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm text-[rgba(240,237,230,0.58)]">
+                  <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>
                     {Math.round(plan.commissionRate * 100)}% paid-ticket commission
                   </p>
                   {billingCycle === "annual" && monthlySavings > 0 ? (
@@ -125,7 +129,7 @@ export function PricingPlanSelector({
                   ) : null}
                 </div>
 
-                <ul className="mt-7 space-y-3 text-sm text-[rgba(240,237,230,0.72)]">
+                <ul className="mt-7 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
                   {plan.highlights.map((item) => (
                     <li key={item} className="flex gap-3">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#C8F55A]" />
@@ -134,18 +138,18 @@ export function PricingPlanSelector({
                   ))}
                 </ul>
 
-                <div className="mt-7 grid gap-2 rounded-[18px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.02)] p-4 text-sm text-[rgba(240,237,230,0.66)]">
+                <div className="mt-7 grid gap-2 rounded-[18px] border p-4 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
                   <div className="flex items-center justify-between gap-4">
                     <span>Attendees / event</span>
-                    <span className="font-semibold text-white">{plan.attendeesPerEvent}</span>
+                    <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{plan.attendeesPerEvent}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span>Active events</span>
-                    <span className="font-semibold text-white">{plan.activeEvents}</span>
+                    <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{plan.activeEvents}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span>Organiser seats</span>
-                    <span className="font-semibold text-white">{plan.organizerSeats}</span>
+                    <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{plan.organizerSeats}</span>
                   </div>
                 </div>
 
@@ -158,8 +162,13 @@ export function PricingPlanSelector({
                       ? "cursor-default border border-[rgba(200,245,90,0.18)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
                       : featured
                         ? "bg-[#C8F55A] text-[#0A0A0A] hover:bg-[#d3ff67]"
-                        : "border border-[rgba(240,237,230,0.12)] bg-[rgba(255,255,255,0.03)] text-white hover:border-[rgba(200,245,90,0.35)] hover:text-[#C8F55A]"
+                        : ""
                   }`}
+                  style={
+                    !isCurrent && billingEnabled && !featured
+                      ? { borderColor: "var(--border-subtle)", background: "var(--surface-2)", color: "var(--text-primary)" }
+                      : undefined
+                  }
                 >
                   {isCurrent
                     ? "Current plan"

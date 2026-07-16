@@ -25,7 +25,7 @@ export default async function BillingPage() {
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.5rem",
             fontWeight: 400,
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             margin: "0 0 0.35rem",
             lineHeight: 1.1,
           }}
@@ -36,12 +36,12 @@ export default async function BillingPage() {
           style={{
             margin: 0,
             fontSize: "0.9rem",
-            color: "rgba(240,237,230,0.5)",
+            color: "var(--text-secondary)",
             fontFamily: "var(--font-dm-sans)",
             lineHeight: 1.7,
           }}
         >
-          Billing changes and payment tools are temporarily unavailable while EventSlot completes maintenance.
+          We are working on this. Billing changes and payment tools will appear here once the live rollout is ready.
         </p>
       </div>
 
@@ -50,14 +50,14 @@ export default async function BillingPage() {
 
       <section
         style={{
-          background: "#141414",
-          border: "0.5px solid rgba(240,237,230,0.08)",
+          background: "var(--surface)",
+          border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
           borderRadius: 14,
           padding: "1.25rem",
           marginBottom: "1rem",
         }}
       >
-        <p style={{ margin: 0, color: "rgba(240,237,230,0.68)", fontSize: "0.88rem", lineHeight: 1.75, fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.88rem", lineHeight: 1.75, fontFamily: "var(--font-dm-sans)" }}>
           {isAdmin
             ? "The super admin account keeps full system access, but payment-facing features remain hidden while maintenance continues."
             : `Your current account stays on ${user?.plan ?? "free"} access while we finish the payment maintenance work.`}

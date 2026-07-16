@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
+import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import { isBillingCheckoutEnabled } from "@/lib/pricingRollout"
 
 type PaygSettings = {
@@ -129,7 +131,7 @@ export function PaygSettingsCard() {
 
   async function handleSave() {
     if (!billingEnabled) {
-      setError("PAYG is temporarily disabled while EventSlot prepares the payments launch.")
+      setError(getBillingNoticeCopy("payg").error)
       return
     }
 
@@ -399,9 +401,9 @@ export function PaygSettingsCard() {
       ) : null}
 
       {!billingEnabled ? (
-        <p style={{ margin: "0.8rem 0 0", color: "#D8ECFF", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
-          PAYG overflow billing is paused for now. EventSlot is keeping registrations open without charging overage while payments are introduced.
-        </p>
+        <div style={{ marginTop: "0.9rem" }}>
+          <BillingPausedNotice context="payg" compact />
+        </div>
       ) : null}
 
       {message ? <p style={{ margin: "0.8rem 0 0", color: "#C8F55A", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>{message}</p> : null}

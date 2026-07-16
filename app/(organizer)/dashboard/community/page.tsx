@@ -3,10 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type BadgeKey =
   | "PIONEER"
   | "GROWTH_BUILDER"
@@ -82,10 +78,6 @@ const EMPTY_LEADERBOARD_RESPONSE: LeaderboardResponse = {
   entries: [],
 }
 
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-
 const PERIOD_TABS: { key: PeriodKey; label: string }[] = [
   { key: "week", label: "This Week" },
   { key: "month", label: "This Month" },
@@ -105,6 +97,14 @@ const PODIUM_BORDER = [
   "border-[#CD7F32]/40 bg-[#CD7F32]/5",
 ]
 const PODIUM_TEXT = ["text-[#FFD700]", "text-[#C0C0C0]", "text-[#CD7F32]"]
+
+const communitySurface = "var(--surface)"
+const communitySurfaceAlt = "var(--surface-2)"
+const communityBorder = "var(--border)"
+const communityBorderSoft = "var(--border-subtle)"
+const communityTextPrimary = "var(--text-primary)"
+const communityTextSecondary = "var(--text-secondary)"
+const communityTextMuted = "var(--text-muted)"
 
 const BADGE_META: Record<BadgeKey, { icon: string; label: string; description: string }> = {
   PIONEER: {
@@ -138,10 +138,6 @@ const BADGE_META: Record<BadgeKey, { icon: string; label: string; description: s
     description: "Actively growing the EventSlot community",
   },
 }
-
-// ---------------------------------------------------------------------------
-// Inline SVG icons (no lucide-react in main app)
-// ---------------------------------------------------------------------------
 
 function ShareIcon() {
   return (
@@ -177,7 +173,7 @@ function TrophyIcon() {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="text-[#2A2A2A]"
+      style={{ color: communityTextMuted }}
     >
       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
@@ -189,29 +185,25 @@ function TrophyIcon() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Avatar helper
-// ---------------------------------------------------------------------------
-
 function Avatar({ src, name, size = 8 }: { src: string | null; name: string | null; size?: number }) {
-  const cls = `w-${size} h-${size} rounded-full bg-[#2A2A2A] overflow-hidden shrink-0`
+  const cls = `w-${size} h-${size} rounded-full overflow-hidden shrink-0`
+
   return (
-    <div className={cls}>
+    <div className={cls} style={{ backgroundColor: communitySurfaceAlt }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold">
+        <div
+          className="w-full h-full flex items-center justify-center text-xs font-bold"
+          style={{ color: communityTextPrimary }}
+        >
           {name?.[0]?.toUpperCase() ?? "?"}
         </div>
       )}
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export default function CommunityPage() {
   const { data: session } = useSession()
@@ -236,9 +228,9 @@ export default function CommunityPage() {
     }
   }
 
-  // Load referral data + badges once
   useEffect(() => {
     let cancelled = false
+
     async function load() {
       try {
         const [refRes, badgeRes] = await Promise.all([
@@ -249,8 +241,10 @@ export default function CommunityPage() {
           readJsonSafe<ReferralResponse>(refRes, EMPTY_REFERRAL_RESPONSE),
           readJsonSafe<BadgesResponse>(badgeRes, { badges: [], hasPioneer: false }),
         ])
+
         if (cancelled) return
         setReferralData(refData)
+
         if (badgeRes.ok) {
           setBadges(badgeData.badges ?? [])
           setHasPioneer(Boolean(badgeData.hasPioneer))
@@ -267,13 +261,16 @@ export default function CommunityPage() {
         if (!cancelled) setLoadingBase(false)
       }
     }
+
     void load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // Load leaderboard on period / type change
   useEffect(() => {
     let cancelled = false
+
     async function load() {
       try {
         const res = await fetch(`/api/leaderboard?period=${period}&type=${type}`)
@@ -285,22 +282,25 @@ export default function CommunityPage() {
         if (!cancelled) setLeaderboard(EMPTY_LEADERBOARD_RESPONSE)
       }
     }
+
     void load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [period, type])
 
   const referralUrl = referralData?.referralUrl ?? ""
-
   const visibleBadges = useMemo(
     () =>
       badges
-        .map((b) => ({ key: b, meta: BADGE_META[b] }))
-        .filter((b) => Boolean(b.meta)),
+        .map((badge) => ({ key: badge, meta: BADGE_META[badge] }))
+        .filter((badge) => Boolean(badge.meta)),
     [badges]
   )
 
   async function copyLink() {
     if (!referralUrl) return
+
     try {
       await navigator.clipboard.writeText(referralUrl)
       setCopied(true)
@@ -311,26 +311,27 @@ export default function CommunityPage() {
   }
 
   async function shareInvite() {
-    const url = referralUrl
-    if (!url) return
-    const msg = `Join EventSlot — the smartest way to organise events. Sign up here: ${url}`
+    if (!referralUrl) return
+
+    const message = `Join EventSlot - the smartest way to organise events. Sign up here: ${referralUrl}`
+
     try {
       if (navigator.share) {
-        await navigator.share({ text: msg })
+        await navigator.share({ text: message })
       } else {
-        await navigator.clipboard.writeText(msg)
+        await navigator.clipboard.writeText(message)
         setCopied(true)
         window.setTimeout(() => setCopied(false), 2000)
       }
     } catch {
-      // user cancelled or clipboard unavailable
+      // User cancelled sharing or clipboard access was unavailable.
     }
   }
 
-  function score(e: LeaderboardEntry) {
-    if (type === "referral") return e.referralPts
-    if (type === "organiser") return e.organiserPts
-    return e.totalPts
+  function score(entry: LeaderboardEntry) {
+    if (type === "referral") return entry.referralPts
+    if (type === "organiser") return entry.organiserPts
+    return entry.totalPts
   }
 
   const top3 = leaderboard?.entries?.slice(0, 3) ?? []
@@ -339,40 +340,56 @@ export default function CommunityPage() {
   if (loadingBase && !referralData) {
     return (
       <div className="max-w-2xl mx-auto p-5 space-y-3 animate-pulse">
-        <div className="h-4 bg-[#2A2A2A] rounded-full w-3/4" />
-        <div className="h-4 bg-[#2A2A2A] rounded-full w-1/2" />
-        <div className="h-40 bg-[#141414] border border-[#2A2A2A] rounded-2xl" />
+        <div className="h-4 rounded-full w-3/4" style={{ backgroundColor: communitySurfaceAlt }} />
+        <div className="h-4 rounded-full w-1/2" style={{ backgroundColor: communitySurfaceAlt }} />
+        <div
+          className="h-40 border rounded-2xl"
+          style={{ backgroundColor: communitySurface, borderColor: communityBorder }}
+        />
       </div>
     )
   }
 
   return (
     <div className="max-w-2xl mx-auto p-5 space-y-6">
-
-      {/* Pioneer banner */}
       {hasPioneer && (
-        <div className="flex items-center gap-4 flex-wrap rounded-xl border border-[#C8F55A]/30 bg-gradient-to-r from-[#C8F55A]/10 to-[#C8F55A]/5 p-5">
+        <div
+          className="flex items-center gap-4 flex-wrap rounded-xl border bg-gradient-to-r p-5"
+          style={{
+            borderColor: "rgba(186, 230, 90, 0.28)",
+            backgroundImage: "linear-gradient(to right, rgba(186,230,90,0.12), rgba(186,230,90,0.04))",
+          }}
+        >
           <span className="text-4xl">🏆</span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-[#C8F55A]">EventSlot Pioneer</p>
-            <p className="mt-0.5 text-xs text-[#A3A3A3]">
-              You are one of EventSlot&apos;s earliest supporters. This badge belongs to a limited group — and you&apos;re in it.
+            <p className="mt-0.5 text-xs" style={{ color: communityTextSecondary }}>
+              You are one of EventSlot&apos;s earliest supporters. This badge belongs to a limited group and you&apos;re in it.
             </p>
           </div>
         </div>
       )}
 
-      {/* Badges */}
       {visibleBadges.length > 0 && (
         <div>
-          <p className="mb-3 text-sm font-semibold text-white">Your Badges</p>
+          <p className="mb-3 text-sm font-semibold" style={{ color: communityTextPrimary }}>
+            Your Badges
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {visibleBadges.map(({ key, meta }) => (
-              <div key={key} className="flex items-start gap-3 rounded-xl border border-[#2A2A2A] bg-[#141414] p-4">
+              <div
+                key={key}
+                className="flex items-start gap-3 rounded-xl border p-4"
+                style={{ borderColor: communityBorderSoft, backgroundColor: communitySurface }}
+              >
                 <span className="text-2xl">{meta.icon}</span>
                 <div>
-                  <p className="text-xs font-semibold text-white">{meta.label}</p>
-                  <p className="mt-0.5 text-xs text-[#525252]">{meta.description}</p>
+                  <p className="text-xs font-semibold" style={{ color: communityTextPrimary }}>
+                    {meta.label}
+                  </p>
+                  <p className="mt-0.5 text-xs" style={{ color: communityTextMuted }}>
+                    {meta.description}
+                  </p>
                 </div>
               </div>
             ))}
@@ -380,20 +397,22 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Invite & Earn */}
-      <div className="border border-[#2A2A2A] rounded-2xl p-5 bg-[#141414]">
-        <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-1">
-          ✦ INVITE &amp; EARN
-        </p>
-        <p className="text-[#A3A3A3] text-sm leading-relaxed mb-4">
-          Earn <span className="text-white font-bold">5 tokens</span> when someone signs up, and{" "}
-          <span className="text-white font-bold">+5 tokens</span> when they create their first event.
-          Invite 2 people who create events — your first AI report is free.
+      <div
+        className="border rounded-2xl p-5"
+        style={{ borderColor: communityBorder, backgroundColor: communitySurface }}
+      >
+        <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-1">Invite &amp; Earn</p>
+        <p className="text-sm leading-relaxed mb-4" style={{ color: communityTextSecondary }}>
+          Earn <span className="font-bold" style={{ color: communityTextPrimary }}>5 tokens</span> when someone signs up, and{" "}
+          <span className="font-bold" style={{ color: communityTextPrimary }}>+5 tokens</span> when they create their first event.
+          Invite 2 people who create events and your first AI report is free.
         </p>
 
-        {/* Referral link */}
-        <div className="flex items-center gap-2 flex-wrap bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 mb-3">
-          <span className="text-[#A3A3A3] text-xs flex-1 min-w-0 truncate">
+        <div
+          className="flex items-center gap-2 flex-wrap border rounded-xl px-4 py-3 mb-3"
+          style={{ backgroundColor: communitySurfaceAlt, borderColor: communityBorderSoft }}
+        >
+          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: communityTextSecondary }}>
             {referralUrl || (loadingBase ? "Loading..." : "Unavailable")}
           </span>
           <button
@@ -401,11 +420,10 @@ export default function CommunityPage() {
             onClick={() => void copyLink()}
             className="text-[#C8F55A] text-xs font-semibold shrink-0 hover:text-white transition-colors"
           >
-            {copied ? "✓ Copied" : "Copy"}
+            {copied ? "Copied" : "Copy"}
           </button>
         </div>
 
-        {/* Share button */}
         <button
           type="button"
           onClick={() => void shareInvite()}
@@ -415,37 +433,49 @@ export default function CommunityPage() {
           <ShareIcon /> Share Invite
         </button>
 
-        {/* Stats */}
         {referralData?.stats && (
           <div className="grid grid-cols-3 gap-3 mt-4">
             {[
               { label: "Referred", value: referralData.stats.totalReferrals },
               { label: "Completed", value: referralData.stats.completedReferrals },
               { label: "Tokens Earned", value: referralData.stats.totalTokensEarned },
-            ].map((s) => (
-              <div key={s.label} className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl p-3 text-center">
-                <p className="text-[#C8F55A] font-bold text-2xl">{s.value}</p>
-                <p className="text-[#525252] text-xs mt-0.5">{s.label}</p>
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="border rounded-xl p-3 text-center"
+                style={{ backgroundColor: communitySurfaceAlt, borderColor: communityBorderSoft }}
+              >
+                <p className="text-[#C8F55A] font-bold text-2xl">{stat.value}</p>
+                <p className="text-xs mt-0.5" style={{ color: communityTextMuted }}>
+                  {stat.label}
+                </p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Referral list */}
         {referralData?.referrals?.length ? (
           <div className="mt-4">
-            <p className="mb-2 text-xs font-medium text-white">Your referrals</p>
+            <p className="mb-2 text-xs font-medium" style={{ color: communityTextPrimary }}>
+              Your referrals
+            </p>
             <div className="space-y-2">
-              {referralData.referrals.map((r) => (
-                <div key={r.id} className="flex items-center justify-between rounded-lg bg-[#0A0A0A] px-3 py-2">
+              {referralData.referrals.map((referral) => (
+                <div
+                  key={referral.id}
+                  className="flex items-center justify-between rounded-lg px-3 py-2"
+                  style={{ backgroundColor: communitySurfaceAlt }}
+                >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{r.status === "EVENT_CREATED" ? "✅" : "⏳"}</span>
-                    <span className="text-xs text-white">{r.label}</span>
+                    <span className="text-sm">{referral.status === "EVENT_CREATED" ? "✅" : "⏳"}</span>
+                    <span className="text-xs" style={{ color: communityTextPrimary }}>
+                      {referral.label}
+                    </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-semibold text-[#C8F55A]">+{r.earned} tokens</span>
-                    <p className="text-xs text-[#525252]">
-                      {r.status === "EVENT_CREATED" ? "Complete" : "Waiting for first event"}
+                    <span className="text-xs font-semibold text-[#C8F55A]">+{referral.earned} tokens</span>
+                    <p className="text-xs" style={{ color: communityTextMuted }}>
+                      {referral.status === "EVENT_CREATED" ? "Complete" : "Waiting for first event"}
                     </p>
                   </div>
                 </div>
@@ -455,105 +485,104 @@ export default function CommunityPage() {
         ) : null}
       </div>
 
-      {/* Leaderboard */}
-      <div className="border border-[#2A2A2A] rounded-2xl overflow-hidden bg-[#141414]">
-
-        {/* Period tabs */}
-        <div className="flex border-b border-[#2A2A2A]">
-          {PERIOD_TABS.map((t) => (
+      <div
+        className="border rounded-2xl overflow-hidden"
+        style={{ borderColor: communityBorder, backgroundColor: communitySurface }}
+      >
+        <div className="flex border-b" style={{ borderColor: communityBorder }}>
+          {PERIOD_TABS.map((tab) => (
             <button
-              key={t.key}
+              key={tab.key}
               type="button"
-              onClick={() => setPeriod(t.key)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors
-                ${period === t.key
-                  ? "text-[#C8F55A] border-b-2 border-[#C8F55A]"
-                  : "text-[#525252] hover:text-[#A3A3A3]"}`}
+              onClick={() => setPeriod(tab.key)}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                period === tab.key ? "text-[#C8F55A] border-b-2 border-[#C8F55A]" : ""
+              }`}
+              style={period === tab.key ? undefined : { color: communityTextMuted }}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Type sub-tabs */}
-        <div className="flex gap-2 flex-wrap p-3 border-b border-[#2A2A2A]">
-          {TYPE_TABS.map((t) => (
+        <div className="flex gap-2 flex-wrap p-3 border-b" style={{ borderColor: communityBorder }}>
+          {TYPE_TABS.map((tab) => (
             <button
-              key={t.key}
+              key={tab.key}
               type="button"
-              onClick={() => setType(t.key)}
-              className={`flex-1 min-w-[92px] py-1.5 text-xs font-medium rounded-lg transition-colors
-                ${type === t.key
-                  ? "bg-[#C8F55A] text-black"
-                  : "bg-[#0A0A0A] text-[#525252] hover:text-white"}`}
+              onClick={() => setType(tab.key)}
+              className={`flex-1 min-w-[92px] py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                type === tab.key ? "bg-[#C8F55A] text-black" : ""
+              }`}
+              style={
+                type === tab.key
+                  ? undefined
+                  : { backgroundColor: communitySurfaceAlt, color: communityTextMuted }
+              }
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Top 3 podium */}
         {top3.length > 0 && (
           <div className="p-4 space-y-2">
-            {top3.map((e, i) => (
+            {top3.map((entry, index) => (
               <div
-                key={e.userId}
-                className={`flex items-center gap-3 p-3 rounded-xl border ${PODIUM_BORDER[i]}`}
+                key={entry.userId}
+                className={`flex items-center gap-3 p-3 rounded-xl border ${PODIUM_BORDER[index]}`}
               >
-                <span className="text-2xl w-8 text-center">{MEDALS[i]}</span>
-                <Avatar src={e.avatar} name={e.name} size={8} />
+                <span className="text-2xl w-8 text-center">{MEDALS[index]}</span>
+                <Avatar src={entry.avatar} name={entry.name} size={8} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    {e.name ?? "Unknown"}
-                    {e.userId === myId && (
-                      <span className="text-[#C8F55A] text-xs ml-2">(you)</span>
-                    )}
+                  <p className="text-sm font-medium truncate" style={{ color: communityTextPrimary }}>
+                    {entry.name ?? "Unknown"}
+                    {entry.userId === myId && <span className="text-[#C8F55A] text-xs ml-2">(you)</span>}
                   </p>
-                  <p className="text-[#525252] text-xs">
-                    Ref: {e.referralPts}pts · Events: {e.organiserPts}pts
+                  <p className="text-xs" style={{ color: communityTextMuted }}>
+                    Ref: {entry.referralPts}pts · Events: {entry.organiserPts}pts
                   </p>
                 </div>
-                <span className={`font-bold text-sm ${PODIUM_TEXT[i]}`}>
-                  {score(e)} pts
-                </span>
+                <span className={`font-bold text-sm ${PODIUM_TEXT[index]}`}>{score(entry)} pts</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Positions 4–50 */}
         {rest.length > 0 && (
-          <div className="border-t border-[#2A2A2A]">
-            {rest.map((e, i) => (
+          <div className="border-t" style={{ borderColor: communityBorder }}>
+            {rest.map((entry, index) => (
               <div
-                key={e.userId}
-                className={`flex items-center gap-3 px-4 py-3 border-b border-[#2A2A2A]
-                  hover:bg-[#1E1E1E] transition-colors
-                  ${e.userId === myId
-                    ? "bg-[#C8F55A]/5 border-l-2 border-l-[#C8F55A]"
-                    : ""}`}
+                key={entry.userId}
+                className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${
+                  entry.userId === myId ? "bg-[#C8F55A]/5 border-l-2 border-l-[#C8F55A]" : ""
+                }`}
+                style={{ borderColor: communityBorderSoft }}
               >
-                <span className="text-[#525252] text-sm w-6 text-center">{i + 4}</span>
-                <Avatar src={e.avatar} name={e.name} size={7} />
-                <span className="text-[#A3A3A3] text-sm flex-1 truncate">
-                  {e.name ?? "Unknown"}
-                  {e.userId === myId && (
-                    <span className="text-[#C8F55A] text-xs ml-2">(you)</span>
-                  )}
+                <span className="text-sm w-6 text-center" style={{ color: communityTextMuted }}>
+                  {index + 4}
                 </span>
-                <span className="text-white text-sm font-medium">{score(e)} pts</span>
+                <Avatar src={entry.avatar} name={entry.name} size={7} />
+                <span className="text-sm flex-1 truncate" style={{ color: communityTextSecondary }}>
+                  {entry.name ?? "Unknown"}
+                  {entry.userId === myId && <span className="text-[#C8F55A] text-xs ml-2">(you)</span>}
+                </span>
+                <span className="text-sm font-medium" style={{ color: communityTextPrimary }}>
+                  {score(entry)} pts
+                </span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Empty state */}
         {!leaderboard?.entries?.length && (
           <div className="p-8 text-center">
             <div className="flex justify-center mb-2">
               <TrophyIcon />
             </div>
-            <p className="text-[#525252] text-sm">No entries yet for this period.</p>
+            <p className="text-sm" style={{ color: communityTextMuted }}>
+              No entries yet for this period.
+            </p>
           </div>
         )}
       </div>

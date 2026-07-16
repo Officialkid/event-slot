@@ -78,21 +78,21 @@ export function BillingComingSoonBanner({
       style={{
         marginBottom: compact ? "1rem" : "1.25rem",
         borderRadius: compact ? 18 : 24,
-        border: "0.5px solid rgba(124,199,255,0.24)",
-        background: "linear-gradient(135deg, rgba(124,199,255,0.14), rgba(200,245,90,0.08) 55%, rgba(255,255,255,0.02) 100%)",
+        border: "0.5px solid color-mix(in srgb, var(--info) 32%, var(--border) 68%)",
+        background: "linear-gradient(135deg, color-mix(in srgb, var(--info) 16%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 55%, color-mix(in srgb, var(--surface) 88%, transparent) 100%)",
         padding: compact ? "1rem" : "1.15rem 1.2rem",
         boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
         <div style={{ maxWidth: 760 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, background: "rgba(10,10,10,0.35)", border: "0.5px solid rgba(255,255,255,0.08)", padding: "0.3rem 0.7rem", color: "#D8ECFF", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, background: "color-mix(in srgb, var(--bg-page) 55%, transparent)", border: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", padding: "0.3rem 0.7rem", color: "color-mix(in srgb, var(--info) 78%, var(--text-primary) 22%)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
             Coming soon
           </div>
-          <h2 style={{ margin: "0.75rem 0 0.35rem", fontFamily: "var(--font-instrument-serif)", fontSize: compact ? "1.2rem" : "1.35rem", fontWeight: 400, color: "#F0EDE6" }}>
+          <h2 style={{ margin: "0.75rem 0 0.35rem", fontFamily: "var(--font-instrument-serif)", fontSize: compact ? "1.2rem" : "1.35rem", fontWeight: 400, color: "var(--text-primary)" }}>
             {getBillingComingSoonHeadline()}
           </h2>
-          <p style={{ margin: 0, color: "rgba(240,237,230,0.78)", fontSize: "0.9rem", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
             We are preparing the official payment system. For now, billing and subscription changes are unavailable. Keep using EventSlot on the free plan and leave your email below if you want the launch announcement.
           </p>
         </div>
@@ -103,9 +103,9 @@ export function BillingComingSoonBanner({
             onClick={dismissBanner}
             style={{
               borderRadius: 999,
-              border: "0.5px solid rgba(240,237,230,0.16)",
-              background: "rgba(255,255,255,0.04)",
-              color: "#F0EDE6",
+              border: "0.5px solid color-mix(in srgb, var(--text-primary) 16%, transparent)",
+              background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
+              color: "var(--text-primary)",
               padding: "0.75rem 1rem",
               fontFamily: "var(--font-dm-sans)",
               fontSize: "0.86rem",
@@ -128,9 +128,9 @@ export function BillingComingSoonBanner({
             flex: "1 1 280px",
             minWidth: 220,
             borderRadius: 999,
-            border: "0.5px solid rgba(240,237,230,0.14)",
-            background: "rgba(10,10,10,0.28)",
-            color: "#F0EDE6",
+            border: "0.5px solid color-mix(in srgb, var(--text-primary) 14%, transparent)",
+            background: "color-mix(in srgb, var(--bg-page) 35%, transparent)",
+            color: "var(--text-primary)",
             padding: "0.8rem 1rem",
             fontSize: "0.86rem",
             fontFamily: "var(--font-dm-sans)",
@@ -159,7 +159,7 @@ export function BillingComingSoonBanner({
       </div>
 
       {message ? (
-        <p style={{ margin: "0.85rem 0 0", color: message.includes("notify list") ? "#C8F55A" : "#FF8E7D", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ margin: "0.85rem 0 0", color: message.includes("notify list") ? "var(--accent)" : "var(--error)", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>
           {message}
         </p>
       ) : null}

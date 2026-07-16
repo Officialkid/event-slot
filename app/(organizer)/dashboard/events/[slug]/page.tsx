@@ -251,6 +251,16 @@ const REPORT_PROGRESS_STEPS = [
   'Generating insights...',
 ]
 
+const themeSurface = "var(--surface)"
+const themeSurfaceAlt = "var(--surface-2)"
+const themeBorder = "1px solid var(--border-subtle)"
+const themeBorderSoft = "1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent)"
+const themeTextPrimary = "var(--text-primary)"
+const themeTextSecondary = "var(--text-secondary)"
+const themeTextMuted = "var(--text-muted)"
+const themeOverlay = "rgba(10,10,10,0.62)"
+const themeOverlayStrong = "rgba(10,10,10,0.78)"
+
 // --- Helpers ---
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -361,7 +371,7 @@ function toIsoFromDatetimeLocal(value: string): string | null {
 function StatusBadge({ event }: { event: EventData }) {
   if (isEventArchived(event)) {
     return (
-      <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.08)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
+      <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "color-mix(in srgb, var(--text-primary) 8%, transparent)", color: "color-mix(in srgb, var(--text-primary) 50%, transparent)", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
         ARCHIVED
       </span>
     )
@@ -415,7 +425,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
   const item: React.CSSProperties = {
     display: "block", width: "100%", textAlign: "left", background: "transparent",
     border: "none", padding: "0.5rem 0.875rem", fontSize: "0.82rem",
-    fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.7)",
+    fontFamily: "var(--font-dm-sans)", color: themeTextSecondary,
     cursor: "pointer", borderRadius: 6, whiteSpace: "nowrap",
   }
 
@@ -423,13 +433,13 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
     <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
       <button
         onClick={() => setOpen(v => !v)}
-        style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "rgba(240,237,230,0.5)", fontSize: "1rem", letterSpacing: "0.1em" }}
+        style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: themeTextMuted, fontSize: "1rem", letterSpacing: "0.1em" }}
         aria-label="Event options"
       >
         ---
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.25rem", zIndex: 20, minWidth: 180, boxShadow: "0 12px 32px rgba(0,0,0,0.18)" }}>
           <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onEdit() }}>Edit event</button>
           <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onRename() }}>Rename</button>
           {!archived && (
@@ -440,7 +450,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
           {!archived && (
             <button className="hdr-menu-item" style={item} onClick={() => { setOpen(false); onArchive() }}>Archive</button>
           )}
-          <div style={{ height: "0.5px", background: "rgba(240,237,230,0.08)", margin: "0.25rem 0.5rem" }} />
+          <div style={{ height: "0.5px", background: "color-mix(in srgb, var(--border-subtle) 72%, transparent)", margin: "0.25rem 0.5rem" }} />
           <button className="hdr-menu-item" style={{ ...item, color: "#FF6B6B" }} onClick={() => { setOpen(false); onDelete() }}>Delete</button>
         </div>
       )}
@@ -451,7 +461,7 @@ function HeaderMenu({ onRename, onArchive, onDelete, onClose, onEdit, archived, 
 // --- Modals ---
 
 function Backdrop({ onClick }: { onClick: () => void }) {
-  return <div onClick={onClick} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 60 }} />
+  return <div onClick={onClick} style={{ position: "fixed", inset: 0, background: themeOverlay, zIndex: 60 }} />
 }
 
 function RenameModal({ current, onClose, onSave }: { current: string; onClose: () => void; onSave: (t: string) => Promise<void> }) {
@@ -470,14 +480,14 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
   return (
     <>
       <Backdrop onClick={onClose} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,420px)" }}>
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "1rem" }}>Rename event</h3>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: themeSurface, border: themeBorder, borderRadius: 16, padding: "1.75rem", width: "min(92vw,420px)", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, marginBottom: "1rem" }}>Rename event</h3>
         <input autoFocus type="text" value={value} onChange={e => { setValue(e.target.value); setError("") }} onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onClose() }}
-          style={{ width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }} />
-        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.28)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>Note: Your public registration link stays the same after renaming.</p>
+          style={{ width: "100%", background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.625rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }} />
+        <p style={{ fontSize: "0.72rem", color: themeTextMuted, marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>Note: Your public registration link stays the same after renaming.</p>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save"}</button>
         </div>
       </div>
@@ -497,12 +507,12 @@ function ArchiveConfirm({ onClose, onConfirm }: { onClose: () => void; onConfirm
   return (
     <>
       <Backdrop onClick={onClose} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,420px)" }}>
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.5rem" }}>Archive this event?</h3>
-        <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>It will be moved to your archived tab.</p>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: themeSurface, border: themeBorder, borderRadius: 16, padding: "1.75rem", width: "min(92vw,420px)", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, marginBottom: "0.5rem" }}>Archive this event?</h3>
+        <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>It will be moved to your archived tab.</p>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button onClick={handle} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Archiving..." : "Archive"}</button>
         </div>
       </div>
@@ -526,7 +536,7 @@ function DeleteModal({ title, slug, token, onClose, onSuccess }: { title: string
   return (
     <>
       <Backdrop onClick={onClose} />
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,440px)" }}>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: themeSurface, border: themeBorder, borderRadius: 16, padding: "1.75rem", width: "min(92vw,440px)", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(255,107,107,0.12)", border: "0.5px solid rgba(255,107,107,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M9 2L16.5 15H1.5L9 2z" stroke="#FF6B6B" strokeWidth="1.25" strokeLinejoin="round" />
@@ -534,13 +544,13 @@ function DeleteModal({ title, slug, token, onClose, onSuccess }: { title: string
             <circle cx="9" cy="13" r="0.75" fill="#FF6B6B" />
           </svg>
         </div>
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "0.5rem" }}>Delete this event?</h3>
-        <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.6 }}>
-          This will permanently delete <strong style={{ color: "rgba(240,237,230,0.75)" }}>{title}</strong> and all its registrations. This cannot be undone.
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, marginBottom: "0.5rem" }}>Delete this event?</h3>
+        <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.6 }}>
+          This will permanently delete <strong style={{ color: themeTextPrimary }}>{title}</strong> and all its registrations. This cannot be undone.
         </p>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button onClick={handle} disabled={deleting} style={{ background: "#FF6B6B", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: deleting ? 0.7 : 1 }}>{deleting ? "Deleting..." : "Delete permanently"}</button>
         </div>
       </div>
@@ -587,25 +597,25 @@ function EditRegModal({
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
-      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "2rem", maxWidth: 480, width: "90%", maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.25rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.25rem" }}>Edit registration</h3>
+      <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 16, padding: "2rem", maxWidth: 480, width: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.25rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.25rem" }}>Edit registration</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.25rem" }}>
           {questions.map(q => (
             <div key={q.id}>
-              <label style={{ display: "block", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.35rem" }}>
                 {q.label}{q.required && <span style={{ color: "#FF6B6B", marginLeft: 2 }}>*</span>}
               </label>
               <input
                 value={values[q.id] ?? ""}
                 onChange={e => setValues(prev => ({ ...prev, [q.id]: e.target.value }))}
-                style={{ width: "100%", background: "#111", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.9rem", color: "#F0EDE6", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", color: themeTextPrimary, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
               />
             </div>
           ))}
           {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{error}</p>}
         </div>
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button type="button" onClick={onClose} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "0.5px solid rgba(240,237,230,0.15)", background: "transparent", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button type="button" onClick={onClose} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: themeBorderSoft, background: "transparent", color: themeTextSecondary, cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving..." : "Save changes"}</button>
         </div>
       </div>
@@ -659,9 +669,9 @@ function RegTable({
         }}
       />
     )}
-    <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
+    <div style={{ overflowX: "auto", borderRadius: 12, border: themeBorderSoft, background: themeSurface }}>
       <table style={{ minWidth: "100%", borderCollapse: "collapse" }}>
-        <thead style={{ background: "#141414" }}>
+        <thead style={{ background: themeSurfaceAlt }}>
           <tr>
             {showPosition && <th style={thStyle}>#</th>}
             {labels.map(label => <th key={label} style={thStyle}>{label}</th>)}
@@ -673,19 +683,19 @@ function RegTable({
         <tbody>
           {rowData.length === 0 ? (
             <tr>
-              <td colSpan={labels.length + (showPosition ? 4 : 3)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={labels.length + (showPosition ? 4 : 3)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 {emptyText}
               </td>
             </tr>
           ) : (
             rowData.map(reg => (
-              <tr key={reg.id} style={{ borderTop: "0.5px solid rgba(240,237,230,0.06)" }} className="reg-row">
+              <tr key={reg.id} style={{ borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 62%, transparent)" }} className="reg-row">
                 {showPosition && <td style={tdStyle}>{reg.waitlistPosition}</td>}
                 {questions.map(q => {
                   const answer = reg.answers.find(a => a.questionId === q.id)?.value || ""
                   return <td key={q.id} style={tdStyle}>{answer}</td>
                 })}
-                <td style={{ ...tdStyle, color: "rgba(240,237,230,0.4)", fontSize: "0.75rem" }}>
+                <td style={{ ...tdStyle, color: themeTextSecondary, fontSize: "0.75rem" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                     {new Date(reg.submittedAt).toLocaleString()}
                     {reg.isDuplicate && (
@@ -694,7 +704,7 @@ function RegTable({
                       </span>
                     )}
                   {reg.source === 'manual' && (
-                    <span style={{ fontSize: "0.65rem", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}>
+                    <span style={{ fontSize: "0.65rem", background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: themeTextSecondary, borderRadius: 100, padding: "1px 7px", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}>
                       Manual
                     </span>
                   )}
@@ -721,7 +731,7 @@ function RegTable({
                       </button>
                       <button
                         onClick={() => setConfirmingId(null)}
-                        style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                        style={{ background: "transparent", border: themeBorderSoft, borderRadius: 6, padding: "3px 8px", fontSize: "0.72rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
                         No
                       </button>
@@ -730,7 +740,7 @@ function RegTable({
                     <span style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
                       <button
                         onClick={() => setEditingReg(reg)}
-                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(200,245,90,0.7)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "#7A941B", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
                         Edit
                       </button>
@@ -760,7 +770,7 @@ const thStyle: React.CSSProperties = {
   fontWeight: 600,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "rgba(240,237,230,0.35)",
+  color: themeTextMuted,
   fontFamily: "var(--font-dm-sans)",
   whiteSpace: "nowrap",
 }
@@ -768,7 +778,7 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = {
   padding: "0.75rem 1rem",
   fontSize: "0.82rem",
-  color: "#F0EDE6",
+  color: themeTextPrimary,
   fontFamily: "var(--font-dm-sans)",
 }
 
@@ -882,7 +892,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     fontSize: "0.75rem",
     fontWeight: 500,
     letterSpacing: "0.04em",
-    color: "rgba(240,237,230,0.45)",
+    color: themeTextMuted,
     marginBottom: "0.4rem",
     fontFamily: "var(--font-dm-sans)",
     textTransform: "uppercase",
@@ -890,12 +900,12 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    background: "#0A0A0A",
-    border: "0.5px solid rgba(240,237,230,0.12)",
+    background: themeSurfaceAlt,
+    border: themeBorderSoft,
     borderRadius: 8,
     padding: "0.625rem 0.875rem",
     fontSize: "0.875rem",
-    color: "#F0EDE6",
+    color: themeTextPrimary,
     fontFamily: "var(--font-dm-sans)",
     outline: "none",
     boxSizing: "border-box",
@@ -904,12 +914,12 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   return (
     <div style={{ maxWidth: 560 }}>
       {hasRegistrations && (
-        <div style={{ background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 10, padding: "0.75rem 1rem", marginBottom: "1.5rem", display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="rgba(240,237,230,0.35)" strokeWidth="1.25" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
+        <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.75rem 1rem", marginBottom: "1.5rem", display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={themeTextMuted} strokeWidth="1.25" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 2 }}>
             <circle cx="8" cy="8" r="6.5" />
             <path d="M8 5v3.5M8 10.5v.5" />
           </svg>
-          <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
             Questions cannot be edited after registrations have been received.
           </p>
         </div>
@@ -943,7 +953,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         <div>
           <label style={fieldLabel}>Event end</label>
           <input type="datetime-local" value={eventEndAt} onChange={e => setEventEndAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             If the deadline is empty, registrations close when this event end time is reached.
           </p>
         </div>
@@ -951,7 +961,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         <div>
           <label style={fieldLabel}>Link opens at (optional)</label>
           <input type="datetime-local" value={joinOpensAt} onChange={e => setJoinOpensAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             If left empty, attendee join access opens 30 minutes before the event start.
           </p>
         </div>
@@ -960,7 +970,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         <div>
           <label style={fieldLabel}>Registration deadline (optional)</label>
           <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ ...inputStyle, maxWidth: 280 }} className="dt-input" />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             Leave this empty if people should keep registering until the event ends.
           </p>
         </div>
@@ -969,7 +979,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         <div>
           <label style={fieldLabel}>Community link</label>
           <input type="url" value={communityLink} onChange={e => setCommunityLink(e.target.value)} placeholder="https://chat.whatsapp.com/..." style={inputStyle} />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             Sent to confirmed attendees automatically.
           </p>
         </div>
@@ -991,14 +1001,14 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
               placeholder="+254712345678"
               style={inputStyle}
             />
-            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
               Must include country code. {contactMode === "WHATSAPP" ? "Attendees will open WhatsApp with a prefilled message." : "Attendees will copy the number and open their phone dialer."}
             </p>
           </div>
         </div>
 
         {event.isPaid && (
-          <div style={{ borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1.25rem" }}>
+          <div style={{ borderTop: themeBorderSoft, paddingTop: "1.25rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
               <label style={fieldLabel}>Ticket tiers</label>
               <button
@@ -1026,7 +1036,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
               {ticketTiers.map((tier) => (
-                <div key={tier.id} style={{ border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem", background: "#141414" }}>
+                <div key={tier.id} style={{ border: themeBorderSoft, borderRadius: 10, padding: "0.85rem", background: themeSurfaceAlt }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.8fr", gap: "0.75rem" }}>
                     <input value={tier.name} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, name: e.target.value } : item))} placeholder="Tier name" style={inputStyle} />
                     <input type="number" min="50" value={tier.priceKes} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, priceKes: Number(e.target.value) } : item))} placeholder="Price" style={inputStyle} />
@@ -1034,7 +1044,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
                   </div>
                   <textarea value={tier.description ?? ""} onChange={e => setTicketTiers(items => items.map(item => item.id === tier.id ? { ...item, description: e.target.value } : item))} placeholder="Optional tier description" rows={2} style={{ ...inputStyle, marginTop: "0.75rem", resize: "vertical" }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.65rem" }}>
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                       Sold: {tier.soldCount} - Waiting: {tier.waitlistCount}
                     </p>
                     <button type="button" onClick={() => setTicketTiers(items => items.filter(item => item.id !== tier.id))} style={{ background: "transparent", border: "none", color: "#FF6B6B", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
@@ -1201,8 +1211,8 @@ function ManualRegModal({
   }
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.15)",
-    borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6",
+    width: "100%", background: themeSurfaceAlt, border: themeBorderSoft,
+    borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary,
     fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box",
   }
 
@@ -1210,21 +1220,21 @@ function ManualRegModal({
     return (
       <>
         <Backdrop onClick={onClose} />
-        <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", marginBottom: "1rem" }}>
+        <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: themeSurface, border: themeBorder, borderRadius: 16, padding: "1.75rem", width: "min(92vw,460px)", maxHeight: "85vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, marginBottom: "1rem" }}>
             {results.length === 1 ? "Registered" : `${results.length} people registered`}
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {results.map((r, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#101010", borderRadius: 8, padding: "0.6rem 0.875rem" }}>
-                <span style={{ fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
-                <span style={{ fontSize: "0.72rem", color: r.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", textTransform: "capitalize" }}>#{r.registrationNumber} - {r.status}</span>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.875rem" }}>
+                <span style={{ fontSize: "0.85rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
+                <span style={{ fontSize: "0.72rem", color: r.status === "confirmed" ? "#7A941B" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", textTransform: "capitalize" }}>#{r.registrationNumber} - {r.status}</span>
               </div>
             ))}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <span style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Closing automatically...</span>
+              <span style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Closing automatically...</span>
               <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
             </div>
           </div>
@@ -1237,17 +1247,17 @@ function ManualRegModal({
     <>
       <Backdrop onClick={onClose} />
       <div
-        style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 16, padding: "1.75rem", width: "min(92vw,480px)", maxHeight: "90vh", overflowY: "auto" }}
+        style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 61, background: themeSurface, border: themeBorder, borderRadius: 16, padding: "1.75rem", width: "min(92vw,480px)", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.2)" }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.25rem" }}>
-          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>Register manually</h3>
+          <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, margin: 0 }}>Register manually</h3>
           <button onClick={addAttendee} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "rgba(200,245,90,0.1)", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.3rem 0.75rem", fontSize: "0.75rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0 }}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M5 1v8M1 5h8" /></svg>
             Add person
           </button>
         </div>
-        <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0.25rem 0 1rem" }}>
+        <p style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: "0.25rem 0 1rem" }}>
           Add registrations directly without the public form.
         </p>
 
@@ -1269,23 +1279,23 @@ function ManualRegModal({
             </p>
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <button onClick={handleForce} style={{ background: "#C8F55A", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Add anyway</button>
-              <button onClick={() => setDupWarning(null)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+              <button onClick={() => setDupWarning(null)} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
             </div>
           </div>
         )}
 
         {attendees.map((form, idx) => (
-          <div key={idx} style={idx > 0 ? { borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1.25rem", marginTop: "1.25rem" } : {}}>
+          <div key={idx} style={idx > 0 ? { borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 65%, transparent)", paddingTop: "1.25rem", marginTop: "1.25rem" } : {}}>
             {attendees.length > 1 && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>Attendee {idx + 1}</span>
-                {idx > 0 && <button type="button" onClick={() => removeAttendee(idx)} style={{ background: "transparent", border: "none", color: "rgba(240,237,230,0.3)", cursor: "pointer", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", padding: 0 }}>Remove</button>}
+                <span style={{ fontSize: "0.72rem", color: themeTextMuted, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>Attendee {idx + 1}</span>
+                {idx > 0 && <button type="button" onClick={() => removeAttendee(idx)} style={{ background: "transparent", border: "none", color: themeTextMuted, cursor: "pointer", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", padding: 0 }}>Remove</button>}
               </div>
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {questions.map(q => (
                 <div key={q.id}>
-                  <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                  <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
                     {q.label}{q.required && <span style={{ color: "#C8F55A", marginLeft: 2 }}>*</span>}
                   </label>
                   {q.type === "select" && q.options ? (
@@ -1299,7 +1309,7 @@ function ManualRegModal({
                         const selectedValues = parseCheckboxValue(form[q.id])
                         const isChecked = selectedValues.includes(opt)
                         return (
-                          <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}>
+                          <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}>
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -1327,23 +1337,23 @@ function ManualRegModal({
         ))}
 
         {/* Status selector */}
-        <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "0.5px solid rgba(240,237,230,0.08)" }}>
-          <div style={{ fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem" }}>Status</div>
+        <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 65%, transparent)" }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem" }}>Status</div>
           <div style={{ display: "flex", gap: "1rem" }}>
             {(['confirmed', 'waitlist'] as const).map(s => (
-              <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", color: regStatus === s ? "#F0EDE6" : "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+              <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", color: regStatus === s ? themeTextPrimary : themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
                 <input type="radio" name="regStatus" value={s} checked={regStatus === s} onChange={() => setRegStatus(s)} style={{ accentColor: "#C8F55A" }} />
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </label>
             ))}
           </div>
-          <p style={{ marginTop: "0.4rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.4rem", fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             {atCapacity && regStatus === 'confirmed' ? "Capacity full - will be added to waitlist." : "Confirmed adds directly to your attendee list. Capacity rules apply."}
           </p>
         </div>
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
+          <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
           <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Registering..." : attendees.length > 1 ? `Register ${attendees.length} people` : "Add registration"}
           </button>
@@ -1670,7 +1680,7 @@ export default function EventDashboardPage() {
       const dataUrl = await QRCode.toDataURL(regLink, {
         width: 300,
         margin: 2,
-        color: { dark: "#0A0A0A", light: "#F0EDE6" },
+        color: { dark: "#111111", light: "#FFFFFF" },
         errorCorrectionLevel: "H",
       })
       setQrDataUrl(dataUrl)
@@ -2101,9 +2111,9 @@ export default function EventDashboardPage() {
   if (accessDenied) {
     return (
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "3rem 0" }}>
-        <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
-          <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: "#F0EDE6", marginBottom: "0.75rem" }}>Access denied</h1>
-          <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>Invalid or missing access credentials.</p>
+        <div style={{ background: themeSurface, border: themeBorder, borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
+          <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: themeTextPrimary, marginBottom: "0.75rem" }}>Access denied</h1>
+          <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>Invalid or missing access credentials.</p>
           <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to My Events</Link>
         </div>
       </div>
@@ -2113,12 +2123,12 @@ export default function EventDashboardPage() {
   if (loading) {
     return (
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ height: 32, borderRadius: 8, background: "#141414", marginBottom: "1.5rem", animation: "epage-pulse 1.4s ease-in-out infinite" }} />
-        <div style={{ height: 20, width: "40%", borderRadius: 8, background: "#141414", marginBottom: "2rem", animation: "epage-pulse 1.4s ease-in-out infinite" }} />
+        <div style={{ height: 32, borderRadius: 8, background: themeSurfaceAlt, marginBottom: "1.5rem", animation: "epage-pulse 1.4s ease-in-out infinite" }} />
+        <div style={{ height: 20, width: "40%", borderRadius: 8, background: themeSurfaceAlt, marginBottom: "2rem", animation: "epage-pulse 1.4s ease-in-out infinite" }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          {[1,2,3,4].map(i => <div key={i} style={{ height: 90, borderRadius: 10, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+          {[1,2,3,4].map(i => <div key={i} style={{ height: 90, borderRadius: 10, background: themeSurfaceAlt, animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
         </div>
-        <div style={{ height: 300, borderRadius: 12, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />
+        <div style={{ height: 300, borderRadius: 12, background: themeSurfaceAlt, animation: "epage-pulse 1.4s ease-in-out infinite" }} />
       </div>
     )
   }
@@ -2126,8 +2136,8 @@ export default function EventDashboardPage() {
   if (error && !eventData) {
     return (
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "3rem 0" }}>
-        <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
-          <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>{error}</p>
+        <div style={{ background: themeSurface, border: themeBorder, borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
+          <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>{error}</p>
         </div>
       </div>
     )
@@ -2318,9 +2328,9 @@ export default function EventDashboardPage() {
   return (
     <>
       <style>{`
-        .hdr-menu-item:hover { background: rgba(240,237,230,0.06) !important; }
-        .reg-row:hover { background: rgba(240,237,230,0.02); }
-        .dt-input::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+        .hdr-menu-item:hover { background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important; }
+        .reg-row:hover { background: color-mix(in srgb, var(--text-primary) 2.5%, transparent); }
+        .dt-input::-webkit-calendar-picker-indicator { filter: var(--calendar-icon-filter, invert(0.45)); cursor: pointer; }
         @keyframes epage-pulse { 0%,100%{opacity:0.45} 50%{opacity:0.9} }
       `}</style>
 
@@ -2361,7 +2371,7 @@ export default function EventDashboardPage() {
             position: "fixed",
             inset: 0,
             zIndex: 100,
-            background: "rgba(0,0,0,0.8)",
+            background: themeOverlayStrong,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -2371,22 +2381,23 @@ export default function EventDashboardPage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: "#141414",
-              border: "0.5px solid rgba(240,237,230,0.1)",
+              background: themeSurface,
+              border: themeBorder,
               borderRadius: "16px",
               padding: "2rem",
               maxWidth: "360px",
               width: "100%",
               textAlign: "center",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, margin: 0 }}>
                 Event QR Code
               </h3>
               <button
                 onClick={() => setShowQrModal(false)}
-                style={{ background: "none", border: "none", color: "rgba(240,237,230,0.4)", fontSize: "1.2rem", cursor: "pointer" }}
+                style={{ background: "none", border: "none", color: themeTextMuted, fontSize: "1.2rem", cursor: "pointer" }}
               >
                 X
               </button>
@@ -2394,7 +2405,7 @@ export default function EventDashboardPage() {
 
             <div
               style={{
-                background: "#F0EDE6",
+                background: "#FFFFFF",
                 borderRadius: "12px",
                 padding: "1rem",
                 marginBottom: "1rem",
@@ -2405,11 +2416,11 @@ export default function EventDashboardPage() {
               <img src={qrDataUrl} alt="Event QR Code" style={{ width: "220px", height: "220px", display: "block" }} />
             </div>
 
-            <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
-                {eventData.accessType === "WALK_IN" ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: "#F0EDE6" }}>{eventData.title}</strong>
+            <p style={{ fontSize: "0.82rem", color: themeTextSecondary, marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+                {eventData.accessType === "WALK_IN" ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: themeTextPrimary }}>{eventData.title}</strong>
             </p>
 
-            <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ fontSize: "0.75rem", color: themeTextMuted, marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
               Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly.
             </p>
 
@@ -2431,7 +2442,7 @@ export default function EventDashboardPage() {
               Download High-Res PNG
             </button>
 
-            <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ fontSize: "0.7rem", color: themeTextMuted, marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
               1024x1024px - Print-ready resolution
             </p>
           </div>
@@ -2442,7 +2453,7 @@ export default function EventDashboardPage() {
         {/* -- Back breadcrumb --- */}
         <Link
           href="/dashboard/events"
-          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", marginBottom: "1.5rem" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", textDecoration: "none", marginBottom: "1.5rem" }}
           className="back-link"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -2453,7 +2464,7 @@ export default function EventDashboardPage() {
 
         {/* -- Cover image --- */}
         {eventData.imageUrl && (
-          <div className="md:hidden" style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#0A0A0A', lineHeight: 0, minHeight: 220 }}>
+          <div className="md:hidden" style={{ width: '100%', borderRadius: '10px', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: themeSurfaceAlt, lineHeight: 0, minHeight: 220, border: themeBorderSoft }}>
             <EventImageWithFallback
               src={eventData.imageUrl}
               alt={eventData.title}
@@ -2471,10 +2482,10 @@ export default function EventDashboardPage() {
         {/* -- Event header --- */}
         <div style={{ marginBottom: "1.75rem" }}>
           {/* Title row */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+          <div className="flex flex-col gap-3 sm:gap-4" style={{ marginBottom: "0.75rem" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.6rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+                <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.5rem, 6vw, 2.2rem)", fontWeight: 400, color: themeTextPrimary, margin: 0, lineHeight: 1.15 }}>
                   {eventData.title}
                 </h1>
                 <StatusBadge event={eventData} />
@@ -2483,7 +2494,7 @@ export default function EventDashboardPage() {
                   <button
                     onClick={() => setModal("rename")}
                     title="Rename event"
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(240,237,230,0.3)", padding: "2px", display: "flex", alignItems: "center", borderRadius: 4, flexShrink: 0 }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: themeTextMuted, padding: "2px", display: "flex", alignItems: "center", borderRadius: 4, flexShrink: 0 }}
                     className="pencil-btn"
                   >
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
@@ -2497,19 +2508,19 @@ export default function EventDashboardPage() {
               {(eventData.eventDate || eventData.location || eventData.deadline) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginTop: "0.5rem" }}>
                   {eventData.eventDate && (
-                    <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="3" width="13" height="11" rx="2"/><path d="M1.5 7h13M5 1.5v3M11 1.5v3"/></svg>
                       {formatDate(eventData.eventDate)}
                     </span>
                   )}
                   {eventData.location && (
-                    <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6.5" r="2.5"/><path d="M8 1C4.686 1 2 3.686 2 7c0 4 6 8 6 8s6-4 6-7c0-3.314-2.686-6-6-6z"/></svg>
                       {eventData.location}
                     </span>
                   )}
                   {eventData.deadline && (
-                    <span style={{ fontSize: "0.78rem", color: isEventPast(eventData) ? "rgba(255,107,107,0.6)" : "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <span style={{ fontSize: "0.78rem", color: isEventPast(eventData) ? "rgba(255,107,107,0.76)" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2.5 2"/></svg>
                       {isEventPast(eventData) ? "Closed" : "Closes"} {formatDate(eventData.deadline)}
                     </span>
@@ -2524,7 +2535,7 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Three-dot menu */}
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:w-full sm:flex-wrap sm:items-center" style={{ flexShrink: 0, width: "100%" }}>
               <button
                 onClick={() => {
                   setActiveTab('overview')
@@ -2532,7 +2543,7 @@ export default function EventDashboardPage() {
                 }}
                 disabled={reportLoading}
                 title="Generate report preview"
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.375rem 0.75rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? "rgba(240,237,230,0.3)" : "rgba(240,237,230,0.5)", cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", whiteSpace: "nowrap" }}
+                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? themeTextMuted : themeTextSecondary, cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", whiteSpace: "nowrap", minHeight: 40, width: "100%" }}
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M8 2v8M5 7l3 3 3-3" />
@@ -2566,61 +2577,65 @@ export default function EventDashboardPage() {
           ) : null}
 
           {/* Registration link row */}
-          <div data-tutorial="event-link" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ flex: "1 1 200px", display: "flex", alignItems: "center", background: "rgba(240,237,230,0.04)", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
+          <div data-tutorial="event-link" className="grid gap-2 sm:flex sm:flex-wrap sm:items-center" style={{ alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, overflow: "hidden", minWidth: 0, width: "100%", flex: "1 1 200px" }}>
               <input
                 readOnly
                 value={regLink}
-                style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
               />
             </div>
-            <button
-              onClick={handleCopy}
-              style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copied ? "#C8F55A" : "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-            <button
-              onClick={handleShare}
-              style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", gap: "0.375rem" }}
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="13" cy="3" r="2"/><circle cx="3" cy="8" r="2"/><circle cx="13" cy="13" r="2"/>
-                <path d="M5 7l6-3M5 9l6 3"/>
-              </svg>
-                Share
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+              <button
+                onClick={handleCopy}
+                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.55rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copied ? "#C8F55A" : themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, width: "100%" }}
+              >
+                {copied ? "Copied!" : "Copy"}
               </button>
+              <button
+                onClick={handleShare}
+                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.55rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.375rem", width: "100%" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="13" cy="3" r="2"/><circle cx="3" cy="8" r="2"/><circle cx="13" cy="13" r="2"/>
+                  <path d="M5 7l6-3M5 9l6 3"/>
+                </svg>
+                  Share
+                </button>
+              <button
+                onClick={() => void handleGenerateQR()}
+                disabled={qrGenerating}
+                style={{
+                  background: "transparent",
+                  border: themeBorderSoft,
+                  borderRadius: "100px",
+                  padding: "0.55rem 0.9rem",
+                  color: themeTextSecondary,
+                  fontSize: "0.82rem",
+                  cursor: qrGenerating ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  whiteSpace: "nowrap",
+                  opacity: qrGenerating ? 0.6 : 1,
+                  width: "100%",
+                }}
+              >
+                QR
+              </button>
+            </div>
             {shareFeedback && (
-              <span style={{ fontSize: "0.75rem", color: shareFeedback.includes("Could not") ? "#FF6B6B" : "rgba(200,245,90,0.85)", fontFamily: "var(--font-dm-sans)" }}>
+              <span style={{ fontSize: "0.75rem", color: shareFeedback.includes("Could not") ? "#FF6B6B" : "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
                 {shareFeedback}
               </span>
             )}
-            <button
-              onClick={() => void handleGenerateQR()}
-              disabled={qrGenerating}
-              style={{
-                background: "transparent",
-                border: "0.5px solid rgba(240,237,230,0.15)",
-                borderRadius: "100px",
-                padding: "0.5rem 1rem",
-                color: "rgba(240,237,230,0.6)",
-                fontSize: "0.82rem",
-                cursor: qrGenerating ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-                fontFamily: "var(--font-dm-sans)",
-                whiteSpace: "nowrap",
-                opacity: qrGenerating ? 0.6 : 1,
-              }}
-            >
-              QR {qrGenerating ? "Generating..." : "QR Code"}
-            </button>
           </div>
         </div>
 
         {/* -- Tabs --- */}
-        <div style={{ display: "flex", borderBottom: "0.5px solid rgba(240,237,230,0.08)", marginBottom: "2rem", overflowX: "auto" }}>
+        <div style={{ display: "flex", borderBottom: themeBorderSoft, marginBottom: "2rem", overflowX: "auto" }}>
           {tabs.map(tab => (
             <button
               key={tab.key}
@@ -2635,7 +2650,7 @@ export default function EventDashboardPage() {
                 padding: "0.6rem 1.1rem",
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
-                color: activeTab === tab.key ? "#F0EDE6" : "rgba(240,237,230,0.4)",
+                color: activeTab === tab.key ? themeTextPrimary : themeTextMuted,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 marginBottom: "-0.5px",
@@ -2656,7 +2671,7 @@ export default function EventDashboardPage() {
                 padding: "0.6rem 1.1rem",
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
-                color: "rgba(240,237,230,0.4)",
+                color: themeTextMuted,
                 whiteSpace: "nowrap",
                 marginBottom: "-0.5px",
                 flexShrink: 0,
@@ -2677,13 +2692,13 @@ export default function EventDashboardPage() {
         {/* -- Tab: Overview --- */}
         {activeTab === "overview" && isWalkInEvent && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
+            <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                 <div>
-                  <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.45rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+                  <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.45rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>
                     {eventData.title}
                   </h2>
-                  <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                     {walkInDashboardHeaderLabel(walkInDashboard)}
                   </p>
                 </div>
@@ -2700,10 +2715,10 @@ export default function EventDashboardPage() {
               {walkInDashboard?.status === "ACTIVE" && (
                 <div style={{ marginBottom: "1rem", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.9rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                   <div>
-                    <p style={{ margin: 0, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                    <p style={{ margin: 0, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                       Live
                     </p>
-                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.92rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.92rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                       {walkInDashboard.days.find((day) => day.status === "ACTIVE")?.count.toLocaleString() ?? "0"} check-ins today
                     </p>
                   </div>
@@ -2715,10 +2730,10 @@ export default function EventDashboardPage() {
 
               {walkInDashboard?.status === "ENDED" && (
                 <div style={{ marginBottom: "1rem", background: "rgba(255,168,0,0.08)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, padding: "0.9rem 1rem" }}>
-                  <p style={{ margin: 0, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                     Completed
                   </p>
-                  <p style={{ margin: "0.2rem 0 0", fontSize: "0.92rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: "0.2rem 0 0", fontSize: "0.92rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                     {(walkInDashboard.totalCheckins ?? 0).toLocaleString()} total check-ins across all days
                   </p>
                 </div>
@@ -2730,12 +2745,12 @@ export default function EventDashboardPage() {
                 </p>
               )}
 
-              <div style={{ overflowX: "auto", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 8 }}>
+              <div style={{ overflowX: "auto", border: themeBorderSoft, borderRadius: 8 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
                   <thead>
-                    <tr style={{ background: "rgba(240,237,230,0.04)" }}>
+                    <tr style={{ background: themeSurfaceAlt }}>
                       {["Day", "Check-ins", "Peak Hour", "Status"].map((heading) => (
-                        <th key={heading} style={{ padding: "0.75rem 0.9rem", textAlign: "left", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", borderBottom: "0.5px solid rgba(240,237,230,0.08)" }}>
+                        <th key={heading} style={{ padding: "0.75rem 0.9rem", textAlign: "left", fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", borderBottom: themeBorderSoft }}>
                           {heading}
                         </th>
                       ))}
@@ -2744,28 +2759,28 @@ export default function EventDashboardPage() {
                   <tbody>
                     {walkInLoading && !walkInDashboard ? (
                       <tr>
-                        <td colSpan={4} style={{ padding: "1rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem" }}>
+                        <td colSpan={4} style={{ padding: "1rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem" }}>
                           Loading walk-in dashboard...
                         </td>
                       </tr>
                     ) : (walkInDashboard?.days ?? []).map((day) => (
                       <tr key={day.date}>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           Day {day.dayNumber} ({day.label.split(",")[0]})
                         </td>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: day.status === "UPCOMING" ? "rgba(240,237,230,0.35)" : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", fontWeight: 700 }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "UPCOMING" ? themeTextMuted : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", fontWeight: 700 }}>
                           {day.status === "UPCOMING" && day.count === 0 ? "-" : day.count.toLocaleString()}{day.status === "ACTIVE" ? " (Live)" : ""}
                         </td>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: themeTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           -
                         </td>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: "0.5px solid rgba(240,237,230,0.06)", color: day.status === "ACTIVE" ? "#C8F55A" : "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "ACTIVE" ? "#C8F55A" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           {day.status === "CLOSED" ? "Closed" : day.status === "ACTIVE" ? "Active" : "Upcoming"}
                         </td>
                       </tr>
                     ))}
                     <tr>
-                      <td style={{ padding: "0.9rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Total</td>
+                      <td style={{ padding: "0.9rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Total</td>
                       <td style={{ padding: "0.9rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 800 }}>
                         {(walkInDashboard?.totalCheckins ?? 0).toLocaleString()}
                       </td>
@@ -2797,7 +2812,7 @@ export default function EventDashboardPage() {
                     <select
                       value={walkInExportFormat}
                       onChange={(e) => setWalkInExportFormat(e.target.value === "xlsx" ? "xlsx" : "csv")}
-                      style={{ background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.48rem 0.6rem", color: "rgba(240,237,230,0.7)", fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}
+                      style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.48rem 0.6rem", color: themeTextSecondary, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)" }}
                     >
                       <option value="xlsx">XLSX</option>
                       <option value="csv">CSV</option>
@@ -2823,9 +2838,9 @@ export default function EventDashboardPage() {
                 { label: "Capacity", value: capacityDisplay },
                 { label: "Slots remaining", value: slotsRemaining },
               ].map(stat => (
-                <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
-                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                <div key={stat.label} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{stat.value}</div>
                 </div>
               ))}
             </div>
@@ -2840,7 +2855,7 @@ export default function EventDashboardPage() {
                 In your Google Calendar
               </span>
             ) : eventData.googleCalendarConnected === false ? (
-              <a href="/dashboard/profile#calendar" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>
+              <a href="/dashboard/profile#calendar" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                 Connect Google Calendar
               </a>
@@ -2861,7 +2876,7 @@ export default function EventDashboardPage() {
               </button>
               <Link
                 href={`/dashboard/events/${slug}/emails`}
-                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: "rgba(240,237,230,0.6)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem", textDecoration: "none" }}
+                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem", textDecoration: "none" }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
@@ -2880,13 +2895,13 @@ export default function EventDashboardPage() {
             />
 
             {/* Report preview + paid download */}
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
+            <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
                     Event Report
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
                     {reportDescription}
                   </p>
                 </div>
@@ -2912,7 +2927,7 @@ export default function EventDashboardPage() {
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
-                        <div style={{ height: 6, borderRadius: 999, background: 'rgba(240,237,230,0.12)', overflow: 'hidden' }}>
+                        <div style={{ height: 6, borderRadius: 999, background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)', overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
@@ -2922,7 +2937,7 @@ export default function EventDashboardPage() {
                             }}
                           />
                         </div>
-                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'rgba(240,237,230,0.5)', fontFamily: 'var(--font-dm-sans)' }}>
+                        <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: themeTextSecondary, fontFamily: 'var(--font-dm-sans)' }}>
                           {Math.max(reportProgress, 5)}% complete
                         </p>
                       </div>
@@ -2933,17 +2948,17 @@ export default function EventDashboardPage() {
 
               {reportData && (
                 <div style={{
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.08)",
+                  background: themeSurfaceAlt,
+                  border: themeBorderSoft,
                   borderRadius: "12px",
                   padding: "1.5rem",
                   marginTop: "1rem",
                 }}>
-                  <p style={{ marginTop: "0.9rem", marginBottom: 0, fontSize: "0.86rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
+                  <p style={{ marginTop: "0.9rem", marginBottom: 0, fontSize: "0.86rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.7 }}>
                     {reportData.message || 'Your professional report is ready.'}
                   </p>
                   {(reportNotice || reportData.accessNote) && (
-                    <p style={{ marginTop: "0.75rem", marginBottom: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                    <p style={{ marginTop: "0.75rem", marginBottom: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
                       {reportNotice || reportData.accessNote}
                     </p>
                   )}
@@ -2957,11 +2972,11 @@ export default function EventDashboardPage() {
                     const paymentSummary = reportData.paymentSummary
                     return (
                     <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                      <div style={{ background: "#0F0F0F", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
+                      <div style={{ background: themeSurface, border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
                         <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
                           Commercial Performance
                         </div>
-                        <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
                           Gross revenue {formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue)}, net revenue {formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue)}, and platform commission {formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal)} are now included in the downloaded report.
                         </p>
                       </div>
@@ -2975,11 +2990,11 @@ export default function EventDashboardPage() {
                           { label: "Successful Payments", value: paymentSummary.successfulPayments.toLocaleString("en-US") },
                           { label: "Pending Payments", value: paymentSummary.pendingPayments.toLocaleString("en-US") },
                         ].map((item) => (
-                          <div key={item.label} style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem 0.9rem" }}>
-                            <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                          <div key={item.label} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 0.9rem" }}>
+                            <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
                               {item.label}
                             </div>
-                            <div style={{ fontSize: "1rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                            <div style={{ fontSize: "1rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                               {item.value}
                             </div>
                           </div>
@@ -2987,17 +3002,17 @@ export default function EventDashboardPage() {
                       </div>
 
                       {paymentSummary.paymentMethodBreakdown.length > 0 && (
-                        <div style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
-                          <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.45)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.55rem" }}>
+                        <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 0.95rem" }}>
+                          <div style={{ fontSize: "0.68rem", color: themeTextMuted, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.55rem" }}>
                             Payment Methods
                           </div>
                           <div style={{ display: "grid", gap: "0.45rem" }}>
                             {paymentSummary.paymentMethodBreakdown.map((method) => (
                               <div key={method.method} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
-                                <span style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.68)", fontFamily: "var(--font-dm-sans)" }}>
-                                  {formatPaymentMethodLabel(method.method)} · {method.count} sale{method.count === 1 ? "" : "s"}
+                                <span style={{ fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                                  {formatPaymentMethodLabel(method.method)} - {method.count} sale{method.count === 1 ? "" : "s"}
                                 </span>
-                                <span style={{ fontSize: "0.8rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                                <span style={{ fontSize: "0.8rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                                   {formatReportMoney(paymentSummary.currency, method.grossRevenue)}
                                 </span>
                               </div>
@@ -3010,7 +3025,7 @@ export default function EventDashboardPage() {
                   })()}
 
                   <div style={{
-                    borderTop: "0.5px solid rgba(240,237,230,0.08)",
+                    borderTop: themeBorderSoft,
                     paddingTop: "1rem",
                     marginTop: "1rem",
                     display: "flex",
@@ -3020,7 +3035,7 @@ export default function EventDashboardPage() {
                     flexWrap: "wrap",
                   }}>
                     <div>
-                      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.45)", margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                      <p style={{ fontSize: "0.82rem", color: themeTextMuted, margin: 0, fontFamily: "var(--font-dm-sans)" }}>
                         {reportData.reportReady
                           ? 'Download the full report as a Word document.'
                           : 'Preparing your report document...'}
@@ -3033,7 +3048,7 @@ export default function EventDashboardPage() {
                         </p>
                       )}
                       {!isSuperAdmin && !reportData.requiresSignIn && downloadBalance !== null && (
-                        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.38)", marginTop: "0.24rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ fontSize: "0.72rem", color: themeTextMuted, marginTop: "0.24rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
                           Remaining paid report downloads on this account: {downloadBalance}
                         </p>
                       )}
@@ -3066,11 +3081,11 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Capacity panel */}
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem", marginBottom: "0.5rem" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.375rem" }}>
+            <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.5rem", marginBottom: "0.5rem" }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 0.375rem" }}>
                 Increase Capacity
               </h2>
-              <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.125rem" }}>
+              <p style={{ fontSize: "0.82rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "1.125rem" }}>
                 Increase or reduce the event capacity here. If you increase it, waitlisted attendees are promoted automatically.
               </p>
               <div style={{ display: "flex", gap: "0.625rem", alignItems: "center", flexWrap: "wrap" }}>
@@ -3080,7 +3095,7 @@ export default function EventDashboardPage() {
                   value={newCapacity}
                   onChange={e => { setNewCapacity(e.target.value); setCapacityError(""); setCapacityMessage("") }}
                   placeholder="New capacity"
-                  style={{ maxWidth: 160, background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.5rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                  style={{ maxWidth: 160, background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none" }}
                 />
                 <button
                   onClick={handleCapacityUpdate}
@@ -3095,11 +3110,11 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Duplicate Scanner */}
-            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+            <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>Scan all registrations for identical responses</div>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
+                  <div style={{ fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Scan all registrations for identical responses</div>
                 </div>
                 <button
                   onClick={runDuplicateScan}
@@ -3115,8 +3130,8 @@ export default function EventDashboardPage() {
               )}
               {dupGroups !== null && dupGroups.length > 0 && (
                 <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                    Found <strong style={{ color: "rgba(240,237,230,0.6)" }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
+                  <div style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                    Found <strong style={{ color: themeTextSecondary }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
                   </div>
                   {dupGroups.map((group, gi) => (
                     <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
@@ -3129,17 +3144,17 @@ export default function EventDashboardPage() {
                         return (
                           <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)", color: reg.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "#C8F55A" : themeTextMuted, whiteSpace: "nowrap" }}>
                                 {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
                               </span>
                               {reg.registrationNumber && (
-                                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
+                                <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
                               )}
-                              <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
-                              <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{new Date(reg.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                              <span style={{ fontSize: "0.82rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
+                              <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>{new Date(reg.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                             </div>
                             <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
-                              <button onClick={() => keepDupReg(reg.id)} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Keep</button>
+                              <button onClick={() => keepDupReg(reg.id)} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Keep</button>
                               <button onClick={() => removeDupReg(reg.id)} disabled={isRemoving} style={{ background: "transparent", border: "0.5px solid rgba(255,107,107,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: isRemoving ? "rgba(255,107,107,0.4)" : "rgba(255,107,107,0.7)", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)" }}>{isRemoving ? "..." : "Remove"}</button>
                             </div>
                           </div>
@@ -3155,10 +3170,10 @@ export default function EventDashboardPage() {
             {eventData.waitlistCount > 0 && (
               <div style={{ border: "0.5px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "1rem 1.25rem", background: "rgba(245,158,11,0.05)" }}>
                 <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F59E0B", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Featured WAITLIST INTELLIGENCE</div>
-                <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.375rem 0" }}>
+                <p style={{ fontSize: "0.9rem", fontWeight: 600, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", margin: "0 0 0.375rem 0" }}>
                   {eventData.waitlistCount} {eventData.waitlistCount === 1 ? 'person is' : 'people are'} on the waitlist
                 </p>
-                <p style={{ fontSize: "0.8rem", color: "#A3A3A3", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.875rem 0", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: "0 0 0.875rem 0", lineHeight: 1.5 }}>
                   {eventData.capacity
                     ? `Increasing capacity by ${Math.min(eventData.waitlistCount, 10)} would automatically promote the next ${Math.min(eventData.waitlistCount, 10)} attendees.`
                     : 'You have unlimited capacity - all waitlisted attendees can be promoted.'}
@@ -3172,7 +3187,7 @@ export default function EventDashboardPage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('waitlist')}
-                    style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "#A3A3A3", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                    style={{ background: "transparent", border: themeBorderSoft, borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                   >
                     View Waitlist
                   </button>
@@ -3182,7 +3197,7 @@ export default function EventDashboardPage() {
 
             {/* M3 - Recent Registrations Ticker */}
             {recentRegs.length > 0 && (
-              <div style={{ border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem", background: "#141414" }}>
+              <div style={{ border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem", background: themeSurface }}>
                 <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>Featured RECENT REGISTRATIONS</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {recentRegs.map((r) => (
@@ -3191,9 +3206,9 @@ export default function EventDashboardPage() {
                         <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(200,245,90,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#C8F55A", flexShrink: 0, fontFamily: "var(--font-dm-sans)" }}>
                           {r.name[0]?.toUpperCase() ?? '?'}
                         </div>
-                        <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
+                        <span style={{ fontSize: "0.82rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>
                       </div>
-                      <span style={{ fontSize: "0.72rem", color: "#525252", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
                         {formatDistanceToNow(new Date(r.submittedAt), { addSuffix: true })}
                       </span>
                     </div>
@@ -3231,14 +3246,14 @@ export default function EventDashboardPage() {
         {activeTab === "confirmed" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>
                 Confirmed registrations
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 320px", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
                 <button
                   onClick={() => setShowManualReg(true)}
-                  style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, whiteSpace: "nowrap" }}
+                  style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, whiteSpace: "nowrap" }}
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <path d="M5 1v8M1 5h8" />
@@ -3252,7 +3267,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(200,245,90,0.7)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Confirmed CSV
                 </a>
@@ -3263,7 +3278,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download PDF (Individual responses)
                 </a>
@@ -3274,7 +3289,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.35)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download All PDF (Individual responses)
                 </a>
@@ -3282,7 +3297,7 @@ export default function EventDashboardPage() {
                   {confirmed.length} confirmed
                 </span>
                 </div>
-                <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                <p style={{ margin: 0, fontSize: "0.7rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                   {csvExporting ? "Preparing your export..." : "Swipe sideways on mobile to reveal the rest of the actions."}
                 </p>
                 {csvError && (
@@ -3293,10 +3308,10 @@ export default function EventDashboardPage() {
               </div>
             </div>
             {confirmed.length === 0 ? (
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
                 <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>RG</div>
-                <p style={{ margin: "0 0 0.4rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.15rem", color: "#F0EDE6" }}>No registrations yet</p>
-                <p style={{ margin: "0 auto 0.95rem", maxWidth: 420, fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                <p style={{ margin: "0 0 0.4rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.15rem", color: themeTextPrimary }}>No registrations yet</p>
+                <p style={{ margin: "0 auto 0.95rem", maxWidth: 420, fontSize: "0.84rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
                   Share your registration link to start collecting attendees; new signups will appear here automatically.
                 </p>
                 <button
@@ -3343,11 +3358,11 @@ export default function EventDashboardPage() {
             )}
 
             {/* -- Duplicate Scanner panel --- */}
-            <div style={{ background: "rgba(240,237,230,0.03)", border: "0.5px solid rgba(240,237,230,0.09)", borderRadius: 12, padding: "1rem 1.25rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>
+            <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem", marginTop: "0.5rem", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
-                  <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Duplicate Scanner</div>
+                  <div style={{ fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                     Scan all registrations for identical responses
                   </div>
                 </div>
@@ -3370,8 +3385,8 @@ export default function EventDashboardPage() {
 
               {dupGroups !== null && dupGroups.length > 0 && (
                 <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
-                  <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
-                    Found <strong style={{ color: "rgba(240,237,230,0.6)" }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
+                  <div style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                    Found <strong style={{ color: themeTextSecondary }}>{dupGroups.length}</strong> duplicate {dupGroups.length === 1 ? "group" : "groups"}
                   </div>
                   {dupGroups.map((group, gi) => (
                     <div key={gi} style={{ background: "rgba(255,168,0,0.05)", border: "0.5px solid rgba(255,168,0,0.2)", borderRadius: 10, overflow: "hidden" }}>
@@ -3384,21 +3399,21 @@ export default function EventDashboardPage() {
                         return (
                           <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "rgba(240,237,230,0.06)", color: reg.status === "confirmed" ? "#C8F55A" : "rgba(240,237,230,0.4)", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "#C8F55A" : themeTextMuted, whiteSpace: "nowrap" }}>
                                 {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
                               </span>
                               {reg.registrationNumber && (
-                                <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
+                                <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>#{reg.registrationNumber}</span>
                               )}
-                              <span style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
-                              <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "0.82rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{firstName}</span>
+                              <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
                                 {new Date(reg.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                               </span>
                             </div>
                             <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}>
                               <button
                                 onClick={() => keepDupReg(reg.id)}
-                                style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                               >
                                 Keep
                               </button>
@@ -3420,7 +3435,7 @@ export default function EventDashboardPage() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>
                 Waitlist
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -3431,7 +3446,7 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist.csv`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Waitlisted CSV
                 </a>
@@ -3442,11 +3457,11 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-waitlist-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "rgba(240,237,230,0.4)", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
                   Download Waitlisted PDF (Individual responses)
                 </a>
-                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.4)", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: themeTextMuted, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
                   {waitlist.length} waiting
                 </span>
               </div>
@@ -3476,7 +3491,7 @@ export default function EventDashboardPage() {
         {activeTab === "analytics" && isWalkInEvent && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Walk-In Analytics</h2>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>Walk-In Analytics</h2>
               {!analyticsData && !analyticsLoading && (
                 <button
                   onClick={() => void loadAnalytics()}
@@ -3488,7 +3503,7 @@ export default function EventDashboardPage() {
             </div>
 
             {analyticsLoading && (
-              <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ fontSize: "0.875rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 Loading analytics...
               </p>
             )}
@@ -3506,23 +3521,23 @@ export default function EventDashboardPage() {
                     { label: "Today", value: analyticsData.walkInTodayCount ?? 0 },
                     { label: "Conversion", value: `${analyticsData.conversionRate}%` },
                   ].map((stat) => (
-                    <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
-                      <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                    <div key={stat.label} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+                      <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{stat.value}</div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
-                  <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.05rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1rem" }}>
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
+                  <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.05rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1rem" }}>
                     Check-Ins by Day
                   </h3>
                   <div style={{ width: "100%", height: 280 }}>
                     <ResponsiveContainer>
                       <BarChart data={analyticsData.registrationsByDay}>
-                        <CartesianGrid stroke="rgba(240,237,230,0.08)" vertical={false} />
-                        <XAxis dataKey="date" stroke="rgba(240,237,230,0.35)" tickLine={false} axisLine={false} />
-                        <YAxis stroke="rgba(240,237,230,0.35)" tickLine={false} axisLine={false} allowDecimals={false} />
+                        <CartesianGrid stroke="color-mix(in srgb, var(--text-primary) 8%, transparent)" vertical={false} />
+                        <XAxis dataKey="date" stroke={themeTextMuted} tickLine={false} axisLine={false} />
+                        <YAxis stroke={themeTextMuted} tickLine={false} axisLine={false} allowDecimals={false} />
                         <Tooltip />
                         <Bar dataKey="count" fill="#7CC6FF" radius={[8, 8, 0, 0]} />
                       </BarChart>
@@ -3536,11 +3551,11 @@ export default function EventDashboardPage() {
         {activeTab === "analytics" && !isWalkInEvent && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Event Analytics</h2>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>Event Analytics</h2>
               <a
                 href={`/api/events/${slug}/analytics/export${token ? `?token=${encodeURIComponent(token)}` : ''}`}
                 download
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: "rgba(240,237,230,0.72)", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: themeBorderSoft, borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: themeTextSecondary, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
               >
                 <span>Download</span>
                 Export CSV
@@ -3549,7 +3564,7 @@ export default function EventDashboardPage() {
 
             {analyticsLoading && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
-                {[1,2,3,4].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+                {[1,2,3,4].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: themeSurfaceAlt, animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
               </div>
             )}
 
@@ -3563,15 +3578,15 @@ export default function EventDashboardPage() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>AI Insights</span>
+                      <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>AI Insights</span>
                       {insightsGeneratedAt && (
-                        <span style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>- {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
+                        <span style={{ fontSize: "0.65rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>- {new Date(insightsGeneratedAt).toLocaleDateString()}</span>
                       )}
                     </div>
                     {!insightsLoading && (
                       <button
                         onClick={() => loadInsights(true)}
-                        style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                        style={{ background: "none", border: themeBorderSoft, borderRadius: 6, padding: "0.25rem 0.6rem", fontSize: "0.7rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
                         {analyticsData.aiInsightsFreeUsed
                           ? `Regenerate - ${insightsRequiredCredits} credits`
@@ -3580,16 +3595,16 @@ export default function EventDashboardPage() {
                     )}
                   </div>
 
-                  <p style={{ margin: "0 0 0.85rem", fontSize: "0.74rem", color: "rgba(240,237,230,0.42)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                  <p style={{ margin: "0 0 0.85rem", fontSize: "0.74rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
                     {aiInsightsAccessNote}
                   </p>
 
                   {insightsLocked && (
-                    <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "1rem" }}>Locked</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights - {insightsRequiredCredits} credits</p>
-                        <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Get 3 personalised insights about your event performance.</p>
+                        <p style={{ fontSize: "0.82rem", fontWeight: 500, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Insights - {insightsRequiredCredits} credits</p>
+                        <p style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>Get 3 personalised insights about your event performance.</p>
                       </div>
                       {reportCreditBalance >= insightsRequiredCredits ? (
                         <button
@@ -3607,7 +3622,7 @@ export default function EventDashboardPage() {
 
                   {insightsLoading && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
-                      {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 8, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+                      {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 8, background: themeSurfaceAlt, animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
                     </div>
                   )}
 
@@ -3632,16 +3647,16 @@ export default function EventDashboardPage() {
                           borderLeft: `3px solid ${
                             card.type === 'warning' ? '#FF6B6B' :
                             card.type === 'action'  ? '#C8F55A' :
-                            card.type === 'info'    ? 'rgba(240,237,230,0.2)' :
+                            card.type === 'info'    ? 'color-mix(in srgb, var(--text-primary) 20%, transparent)' :
                             '#C8F55A'
                           }`,
-                          borderTop: "0.5px solid rgba(240,237,230,0.06)",
-                          borderRight: "0.5px solid rgba(240,237,230,0.06)",
-                          borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+                          borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
+                          borderRight: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
+                          borderBottom: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
                           background:
                             card.type === 'warning' ? "rgba(255,107,107,0.04)" :
                             card.type === 'action'  ? "rgba(200,245,90,0.06)" :
-                            card.type === 'info'    ? "rgba(240,237,230,0.03)" :
+                            card.type === 'info'    ? "color-mix(in srgb, var(--text-primary) 3%, transparent)" :
                             "rgba(200,245,90,0.04)",
                           borderRadius: 8,
                           padding: "0.875rem 1rem",
@@ -3649,13 +3664,13 @@ export default function EventDashboardPage() {
                           <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color:
                             card.type === 'warning' ? '#FF6B6B' :
                             card.type === 'action'  ? '#C8F55A' :
-                            card.type === 'info'    ? 'rgba(240,237,230,0.35)' :
+                            card.type === 'info'    ? themeTextMuted :
                             '#C8F55A',
                             fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>
                             {card.type === 'action' ? '-> action' : card.type}
                           </div>
-                          <div style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
-                          <div style={{ fontSize: "0.76rem", fontWeight: 300, color: "rgba(240,237,230,0.6)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
+                          <div style={{ fontSize: "0.82rem", fontWeight: 500, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
+                          <div style={{ fontSize: "0.76rem", fontWeight: 300, color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
                         </div>
                       ))}
                     </div>
@@ -3670,15 +3685,15 @@ export default function EventDashboardPage() {
                     { label: "Conversion Rate", value: `${analyticsData.conversionRate}%` },
                     { label: "Confirmed -> Waitlist", value: `${analyticsData.waitlistConversionRate}%` },
                   ].map(stat => (
-                    <div key={stat.label} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
-                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                    <div key={stat.label} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
+                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{stat.value}</div>
                     </div>
                   ))}
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Check-in Rate</div>
-                    <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{analyticsData.checkInRate}%</div>
-                    <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Check-in Rate</div>
+                    <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{analyticsData.checkInRate}%</div>
+                    <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                       {analyticsData.checkedInCount} of {analyticsData.confirmedCount} confirmed
                     </div>
                     {analyticsData.checkInRate >= 70 && (
@@ -3689,17 +3704,17 @@ export default function EventDashboardPage() {
                     )}
                   </div>
                   {analyticsData.feedbackScore !== null && (
-                    <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Feedback Score</div>
-                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{analyticsData.feedbackScore} / 5</div>
+                    <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Feedback Score</div>
+                      <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{analyticsData.feedbackScore} / 5</div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.18rem", marginTop: "0.35rem" }}>
                         {[1, 2, 3, 4, 5].map((n) => (
-                          <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? '#C8F55A' : 'rgba(240,237,230,0.15)' }}>
+                          <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? '#C8F55A' : 'color-mix(in srgb, var(--text-primary) 15%, transparent)' }}>
                             Star
                           </span>
                         ))}
                       </div>
-                      <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                      <div style={{ fontSize: "0.75rem", marginTop: "0.35rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                         {analyticsData.feedbackCount} response{analyticsData.feedbackCount !== 1 ? 's' : ''} -{' '}
                         <button
                           onClick={() => setActiveTab('feedback')}
@@ -3713,7 +3728,7 @@ export default function EventDashboardPage() {
                 </div>
 
                 {eventData.isPaid && (
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(255,184,77,0.14)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                  <div style={{ background: themeSurface, border: "0.5px solid rgba(255,184,77,0.18)", borderRadius: 12, padding: "1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.7rem", color: "#FFB84D", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.85rem", fontFamily: "var(--font-dm-sans)" }}>
                       Paid Event Snapshot
                     </div>
@@ -3726,9 +3741,9 @@ export default function EventDashboardPage() {
                         { label: "Tickets Sold", value: analyticsData.paidTicketsSold ?? 0 },
                         { label: "Admissions Issued", value: analyticsData.paidAdmissionsIssued ?? 0 },
                       ].map((stat) => (
-                        <div key={stat.label} style={{ background: "#0F0F0F", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
-                          <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>{stat.label}</div>
-                          <div style={{ fontSize: "1.25rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>{stat.value}</div>
+                        <div key={stat.label} style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "1rem" }}>
+                          <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>{stat.label}</div>
+                          <div style={{ fontSize: "1.25rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{stat.value}</div>
                         </div>
                       ))}
                     </div>
@@ -3736,17 +3751,17 @@ export default function EventDashboardPage() {
                     {!!analyticsData.tierBreakdown?.length && (
                       <div style={{ marginTop: "1rem", display: "grid", gap: "0.65rem" }}>
                         {analyticsData.tierBreakdown.map((tier) => (
-                          <div key={tier.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 10, background: "#0F0F0F", border: "0.5px solid rgba(240,237,230,0.08)", flexWrap: "wrap" }}>
+                          <div key={tier.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 10, background: themeSurfaceAlt, border: themeBorderSoft, flexWrap: "wrap" }}>
                             <div>
-                              <div style={{ color: "#F0EDE6", fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>{tier.name}</div>
-                              <div style={{ color: "rgba(240,237,230,0.4)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
+                              <div style={{ color: themeTextPrimary, fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>{tier.name}</div>
+                              <div style={{ color: themeTextSecondary, fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>
                                 KES {tier.priceKes.toLocaleString()} - {tier.soldCount} sold - {tier.waitlistCount} waitlist
                                 {tier.bundleSize > 1 ? ` - ${tier.bundleSize} entries each` : ""}
                               </div>
                             </div>
                             <div style={{ textAlign: "right" }}>
                               <div style={{ color: "#FFB84D", fontSize: "0.9rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>KES {tier.grossKes.toLocaleString()}</div>
-                              <div style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>{tier.admissionsIssued} admissions issued</div>
+                              <div style={{ color: themeTextMuted, fontSize: "0.74rem", fontFamily: "var(--font-dm-sans)" }}>{tier.admissionsIssued} admissions issued</div>
                             </div>
                           </div>
                         ))}
@@ -3756,29 +3771,29 @@ export default function EventDashboardPage() {
                 )}
 
                 {(analyticsData.waitlistedCount > 0 || analyticsData.promotedCount > 0) && (
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                       Featured Waitlist Funnel
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }}>
                       <div style={{ textAlign: "center" }}>
-                        <div style={{ color: "#F0EDE6", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.waitlistedCount}</div>
-                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Total Waitlisted</div>
+                        <div style={{ color: themeTextPrimary, fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.waitlistedCount}</div>
+                        <div style={{ color: themeTextMuted, fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Total Waitlisted</div>
                       </div>
                       <div style={{ textAlign: "center" }}>
                         <div style={{ color: "#22C55E", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.promotedCount}</div>
-                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Promoted</div>
+                        <div style={{ color: themeTextMuted, fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Promoted</div>
                       </div>
                       <div style={{ textAlign: "center" }}>
                         <div style={{ color: "#F59E0B", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{analyticsData.stillWaitingCount}</div>
-                        <div style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Still Waiting</div>
+                        <div style={{ color: themeTextMuted, fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>Still Waiting</div>
                       </div>
                     </div>
 
                     {analyticsData.stillWaitingCount > 0 && (
                       <div style={{ marginTop: "0.75rem", borderLeft: "4px solid #C8F55A", paddingLeft: "0.75rem", background: "rgba(200,245,90,0.05)", borderTopRightRadius: 10, borderBottomRightRadius: 10, paddingTop: "0.5rem", paddingBottom: "0.5rem" }}>
-                        <p style={{ color: "#A3A3A3", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                        <p style={{ color: themeTextSecondary, fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
                           {analyticsData.stillWaitingCount} people are waiting.
                           {analyticsData.event?.capacity && (
                             <> Increasing capacity by {Math.min(analyticsData.stillWaitingCount, 10)} would promote the next {Math.min(analyticsData.stillWaitingCount, 10)} attendees.</>
@@ -3796,7 +3811,7 @@ export default function EventDashboardPage() {
                 )}
 
                 {analyticsData.sourceBreakdown?.length > 0 && (
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem 1.25rem" }}>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem" }}>
                     <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                       Featured Registration Sources
                     </div>
@@ -3816,8 +3831,8 @@ export default function EventDashboardPage() {
                           ))}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ background: '#141414', border: '1px solid rgba(240,237,230,0.15)', borderRadius: 8 }}
-                          labelStyle={{ color: 'rgba(240,237,230,0.6)' }}
+                          contentStyle={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, color: themeTextPrimary }}
+                          labelStyle={{ color: themeTextSecondary }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -3825,28 +3840,28 @@ export default function EventDashboardPage() {
                 )}
 
                 {/* Registrations by day */}
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations - last 30 days</div>
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations - last 30 days</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={analyticsData.registrationsByDay} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={v => v.slice(5)} interval={4} />
-                      <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
-                      <Tooltip contentStyle={{ background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--border-subtle) 55%, transparent)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={v => v.slice(5)} interval={4} />
+                      <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                      <Tooltip contentStyle={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: themeTextPrimary }} />
                       <Line type="monotone" dataKey="count" stroke="#C8F55A" strokeWidth={1.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Registrations by hour */}
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
-                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations by hour of day</div>
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                  <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>Registrations by hour of day</div>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={analyticsData.registrationsByHour} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,230,0.06)" />
-                      <XAxis dataKey="hour" tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={h => `${h}h`} />
-                      <YAxis tick={{ fontSize: 9, fill: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
-                      <Tooltip contentStyle={{ background: "#1A1A1A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: "#F0EDE6" }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in srgb, var(--border-subtle) 55%, transparent)" />
+                      <XAxis dataKey="hour" tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={h => `${h}h`} />
+                      <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
+                      <Tooltip contentStyle={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: themeTextPrimary }} />
                       <Bar dataKey="count" fill="rgba(200,245,90,0.6)" radius={[3,3,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -3855,7 +3870,7 @@ export default function EventDashboardPage() {
                 {/* M1 - Comparative performance vs own average */}
                 {analyticsData.vsAverage !== null && analyticsData.avgRegistrations !== null && (
                   <div style={{ borderLeft: `4px solid ${analyticsData.vsAverage >= 0 ? '#22C55E' : '#F59E0B'}`, paddingLeft: "1rem", paddingTop: "0.625rem", paddingBottom: "0.625rem", background: analyticsData.vsAverage >= 0 ? "rgba(34,197,94,0.05)" : "rgba(245,158,11,0.05)", borderTopRightRadius: 12, borderBottomRightRadius: 12 }}>
-                    <p style={{ color: "#A3A3A3", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.25rem 0", lineHeight: 1.5 }}>
+                    <p style={{ color: themeTextSecondary, fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.25rem 0", lineHeight: 1.5 }}>
                       {analyticsData.vsAverage >= 0 ? (
                         <>This event has{' '}
                           <span style={{ color: "#22C55E", fontWeight: 700 }}>{analyticsData.vsAverage}% more</span>
@@ -3866,7 +3881,7 @@ export default function EventDashboardPage() {
                           {' '}registrations than your average event.</>
                       )}
                     </p>
-                    <p style={{ color: "#525252", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                    <p style={{ color: themeTextMuted, fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
                       Your average: {analyticsData.avgRegistrations} registrations per event
                     </p>
                   </div>
@@ -3875,13 +3890,13 @@ export default function EventDashboardPage() {
             )}
 
             {!analyticsData && !analyticsLoading && (
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", color: analyticsError ? "#FFB3B3" : "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", color: analyticsError ? "#FFB3B3" : themeTextMuted, fontFamily: "var(--font-dm-sans)", margin: 0 }}>
                   {analyticsError || "Could not load analytics yet."}
                 </p>
                 <button
                   onClick={() => void loadAnalytics()}
-                  style={{ marginTop: "0.85rem", background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.45rem 0.85rem", color: "#F0EDE6", fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
+                  style={{ marginTop: "0.85rem", background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.45rem 0.85rem", color: themeTextPrimary, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
                 >
                   Retry analytics
                 </button>
@@ -3889,16 +3904,16 @@ export default function EventDashboardPage() {
             )}
 
             {/* -- AI Q&A --- */}
-            <div style={{ marginTop: "2rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", paddingTop: "1.75rem" }}>
-              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 0.25rem 0" }}>Ask about your event</h3>
-              <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem 0" }}>Ask anything about your registration data.</p>
+            <div style={{ marginTop: "2rem", borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)", paddingTop: "1.75rem" }}>
+              <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.1rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 0.25rem 0" }}>Ask about your event</h3>
+              <p style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: "0 0 1.25rem 0" }}>Ask anything about your registration data.</p>
 
               {qaLocked ? (
-                <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "1rem" }}>Locked</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A - 1 credit per question</p>
-                    <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
+                    <p style={{ fontSize: "0.82rem", fontWeight: 500, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", margin: "0 0 0.15rem 0" }}>AI Q&A - 1 credit per question</p>
+                    <p style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>Purchase credits to ask questions about your event data.</p>
                   </div>
                   <a href="/dashboard/billing#report-downloads" style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", textDecoration: "none", whiteSpace: "nowrap" }}>Buy report downloads</a>
                 </div>
@@ -3915,7 +3930,7 @@ export default function EventDashboardPage() {
                       <button
                         key={q}
                         onClick={() => setQaInput(q)}
-                        style={{ background: "none", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 20, padding: "0.3rem 0.7rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.55)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                        style={{ background: "none", border: themeBorderSoft, borderRadius: 20, padding: "0.3rem 0.7rem", fontSize: "0.72rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
                       >
                         {q}
                       </button>
@@ -3931,9 +3946,9 @@ export default function EventDashboardPage() {
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitQuestion(qaInput) } }}
                         placeholder="Ask a question about this event..."
                         disabled={qaLoading}
-                        style={{ width: "100%", background: "#141414", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.65rem 0.875rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                        style={{ width: "100%", background: themeSurface, border: themeBorderSoft, borderRadius: 8, padding: "0.65rem 0.875rem", fontSize: "0.82rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
                       />
-                      <p style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.3rem 0 0 0" }}>1 credit per question</p>
+                      <p style={{ fontSize: "0.65rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", margin: "0.3rem 0 0 0" }}>1 credit per question</p>
                     </div>
                     <button
                       onClick={() => submitQuestion(qaInput)}
@@ -3950,7 +3965,7 @@ export default function EventDashboardPage() {
                       <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
                       </div>
-                      <div style={{ background: "#141414", borderRadius: "2px 12px 12px 12px", padding: "0.55rem 0.875rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
+                      <div style={{ background: themeSurface, borderRadius: "2px 12px 12px 12px", padding: "0.55rem 0.875rem", fontSize: "0.82rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
                         Thinking...
                       </div>
                     </div>
@@ -3963,7 +3978,7 @@ export default function EventDashboardPage() {
                         <div key={i}>
                           {/* Question bubble */}
                           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-                            <div style={{ background: "#1E1E1E", border: "0.5px solid rgba(240,237,230,0.07)", borderRadius: "12px 12px 2px 12px", padding: "0.55rem 0.875rem", maxWidth: "80%", fontSize: "0.82rem", color: "rgba(240,237,230,0.8)", fontFamily: "var(--font-dm-sans)" }}>
+                            <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: "12px 12px 2px 12px", padding: "0.55rem 0.875rem", maxWidth: "80%", fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
                               {item.question}
                             </div>
                           </div>
@@ -3973,8 +3988,8 @@ export default function EventDashboardPage() {
                               <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
                             </div>
                             <div>
-                              <p style={{ fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontWeight: 300, lineHeight: 1.65, margin: "0 0 0.2rem 0" }}>{item.answer}</p>
-                              <span style={{ fontSize: "0.6rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>{new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              <p style={{ fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 300, lineHeight: 1.65, margin: "0 0 0.2rem 0" }}>{item.answer}</p>
+                              <span style={{ fontSize: "0.6rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>{new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
                           </div>
                         </div>
@@ -3991,7 +4006,7 @@ export default function EventDashboardPage() {
         {activeTab === "feedback" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>Attendee Feedback</h2>
+              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>Attendee Feedback</h2>
               {!feedbackData && !feedbackLoading && !feedbackError && (
                 <button
                   onClick={loadFeedback}
@@ -4004,7 +4019,7 @@ export default function EventDashboardPage() {
 
             {feedbackLoading && (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {[1, 2, 3].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: "#141414", animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
+                {[1, 2, 3].map(i => <div key={i} style={{ height: 80, borderRadius: 10, background: themeSurfaceAlt, animation: "epage-pulse 1.4s ease-in-out infinite" }} />)}
               </div>
             )}
 
@@ -4016,36 +4031,36 @@ export default function EventDashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                 {/* Summary stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem" }} className="stat-grid">
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Response Rate</div>
-                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Response Rate</div>
+                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>
                       {feedbackData.totalResponses} of {feedbackData.confirmedCount}
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>attendees responded</div>
+                    <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>attendees responded</div>
                   </div>
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Average Rating</div>
-                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#F0EDE6" }}>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>Average Rating</div>
+                    <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>
                       {feedbackData.averageRating !== null ? `${feedbackData.averageRating} / 5` : "-"}
                     </div>
                   </div>
                 </div>
 
                 {feedbackData.feedback.length === 0 ? (
-                  <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-                    <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>No feedback submitted yet. Feedback request emails are sent automatically after the event date.</p>
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                    <p style={{ fontSize: "0.875rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", margin: 0 }}>No feedback submitted yet. Feedback request emails are sent automatically after the event date.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                     {feedbackData.feedback.map(fb => (
-                      <div key={fb.id} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem 1.5rem" }}>
+                      <div key={fb.id} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem 1.5rem" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: fb.enjoyed || fb.improve || fb.complaint ? "1rem" : 0, flexWrap: "wrap", gap: "0.5rem" }}>
                           <div style={{ display: "flex", gap: "2px" }}>
                             {[1, 2, 3, 4, 5].map(s => (
-                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "rgba(240,237,230,0.15)" }}>Star</span>
+                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 15%, transparent)" }}>Star</span>
                             ))}
                           </div>
-                          <span style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                          <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                             {new Date(fb.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                           </span>
                         </div>
@@ -4054,19 +4069,19 @@ export default function EventDashboardPage() {
                             {fb.enjoyed && (
                               <div>
                                 <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(200,245,90,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Enjoyed</div>
-                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.enjoyed}</p>
+                                <p style={{ fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.enjoyed}</p>
                               </div>
                             )}
                             {fb.improve && (
                               <div>
-                                <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Improve</div>
-                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.improve}</p>
+                                <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Improve</div>
+                                <p style={{ fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.improve}</p>
                               </div>
                             )}
                             {fb.complaint && (
                               <div>
                                 <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255,107,107,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>Complaint</div>
-                                <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.complaint}</p>
+                                <p style={{ fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", margin: 0 }}>{fb.complaint}</p>
                               </div>
                             )}
                           </div>
@@ -4079,8 +4094,8 @@ export default function EventDashboardPage() {
             )}
 
             {!feedbackData && !feedbackLoading && !feedbackError && (
-              <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load feedback&rdquo; to see attendee responses.</p>
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Click &ldquo;Load feedback&rdquo; to see attendee responses.</p>
               </div>
             )}
           </div>
@@ -4089,11 +4104,11 @@ export default function EventDashboardPage() {
         {/* -- Tab: Check-in --- */}
         {activeTab === "checkin" && (
           <div data-tutorial="confirm-attendance">
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.5rem" }}>
               Ticket Verification
             </h2>
             {eventData && <EntryDashboard eventId={eventData.id} />}
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: "rgba(240,237,230,0.45)", margin: "0 0 1rem" }}>
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: themeTextSecondary, margin: "0 0 1rem" }}>
               Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
             </p>
 
@@ -4110,7 +4125,7 @@ export default function EventDashboardPage() {
         {/* -- Tab: Settings --- */}
         {activeTab === "settings" && (
           <div>
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "#F0EDE6", margin: "0 0 1.5rem" }}>
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.5rem" }}>
               Event settings
             </h2>
             <SettingsTab event={eventData} hasRegistrations={hasRegistrations} onSaved={handleSettingsSaved} />
@@ -4122,30 +4137,30 @@ export default function EventDashboardPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
             {/* Current team members */}
             <div>
-              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
+              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
                 Team members with access to this event
               </h3>
               {teamLoading ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {[1, 2, 3].map((i) => (
-                    <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
-                      <div style={{ height: 12, width: "42%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.4rem" }} />
-                      <div style={{ height: 10, width: "58%", borderRadius: 6, background: "#1A1A1A" }} />
+                    <div key={i} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "0.875rem 1rem", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
+                      <div style={{ height: 12, width: "42%", borderRadius: 6, background: themeSurfaceAlt, marginBottom: "0.4rem" }} />
+                      <div style={{ height: 10, width: "58%", borderRadius: 6, background: themeSurfaceAlt }} />
                     </div>
                   ))}
                 </div>
               ) : eventTeam.length === 0 ? (
-                <p style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>No team members have access to this event yet.</p>
+                <p style={{ color: themeTextMuted, fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>No team members have access to this event yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {eventTeam.map(m => (
-                    <div key={m.teamMemberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "0.875rem 1rem", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <div key={m.teamMemberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "0.875rem 1rem", gap: "0.75rem", flexWrap: "wrap" }}>
                       <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-                        <p style={{ margin: 0, fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ margin: 0, fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                           {m.member?.name ?? m.email}
                         </p>
                         {m.member?.name && (
-                          <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>{m.email}</p>
+                          <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>{m.email}</p>
                         )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -4156,7 +4171,7 @@ export default function EventDashboardPage() {
                           <button
                             onClick={() => void handleResendTeamInvite(m.teamMemberId)}
                             disabled={resendingTeamMember === m.teamMemberId}
-                            style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.12)", borderRadius: 7, color: resendTeamSuccessId === m.teamMemberId ? "#C8F55A" : "rgba(240,237,230,0.55)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer", opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1 }}
+                            style={{ background: "transparent", border: themeBorderSoft, borderRadius: 7, color: resendTeamSuccessId === m.teamMemberId ? "#7A941B" : themeTextSecondary, fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer", opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1 }}
                           >
                             {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sending..." : "Resend"}
                           </button>
@@ -4184,8 +4199,8 @@ export default function EventDashboardPage() {
             </div>
 
             {/* Invite form */}
-            <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.25rem" }}>
-              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
+            <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
+              <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
                 Invite a team member to this event
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -4196,7 +4211,7 @@ export default function EventDashboardPage() {
                     value={email}
                     onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
                     placeholder={i === 0 ? "teammate@example.com" : "second@example.com (optional)"}
-                    style={{ width: "100%", background: "#0A0A0A", border: invalidTeamInviteEntries.some(entry => entry.index === i) ? "0.5px solid rgba(239,68,68,0.6)" : "0.5px solid rgba(240,237,230,0.12)", borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
+                    style={{ width: "100%", background: themeSurfaceAlt, border: invalidTeamInviteEntries.some(entry => entry.index === i) ? "0.5px solid rgba(239,68,68,0.6)" : themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
                   />
                 ))}
               </div>
@@ -4209,8 +4224,8 @@ export default function EventDashboardPage() {
               {teamInviteAcceptLinks.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
                   {teamInviteAcceptLinks.map(({ email, acceptUrl }) => (
-                    <div key={email} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#0A0A0A", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
-                      <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
+                    <div key={email} style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                      <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
                       <button
                         onClick={() => void copyTeamInviteLink(acceptUrl, `new-${email}`)}
                         style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: "0.72rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
@@ -4229,7 +4244,7 @@ export default function EventDashboardPage() {
               >
                 {teamInviting ? "Sending..." : "Send Invite"}
               </button>
-              <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 Invited members receive an email with a link to accept. If delivery is paused, copy the direct invite link and resend after the sender domain is verified.
               </p>
             </div>
@@ -4238,8 +4253,8 @@ export default function EventDashboardPage() {
       </div>
 
       <style>{`
-        .pencil-btn:hover { color: rgba(240,237,230,0.65) !important; }
-        .back-link:hover { color: rgba(240,237,230,0.6) !important; }
+        .pencil-btn:hover { color: color-mix(in srgb, var(--text-primary) 65%, transparent) !important; }
+        .back-link:hover { color: color-mix(in srgb, var(--text-primary) 60%, transparent) !important; }
         @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4,1fr) !important; } }
         @media (max-width: 639px) { .insight-grid { grid-template-columns: 1fr !important; } }
       `}</style>
