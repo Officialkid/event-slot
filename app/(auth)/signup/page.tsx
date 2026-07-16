@@ -198,6 +198,38 @@ export default function SignUpPage() {
           Continue with Google
         </button>
 
+        <label
+          style={{
+            display: 'flex',
+            gap: '0.7rem',
+            alignItems: 'flex-start',
+            marginTop: '0.85rem',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-dm-sans)',
+            fontSize: '0.78rem',
+            lineHeight: 1.55,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={(event) => setPrivacyAccepted(event.target.checked)}
+            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#C8F55A', flexShrink: 0 }}
+          />
+          <span>
+            I agree to EventSlot&apos;s{' '}
+            <Link href="/terms" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
+              Privacy Policy
+            </Link>{' '}
+            before continuing with Google.
+          </span>
+        </label>
+
         {/* Divider */}
         <div
           style={{

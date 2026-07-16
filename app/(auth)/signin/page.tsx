@@ -267,7 +267,7 @@ function SignInForm() {
           <span>
             I agree to EventSlot&apos;s{' '}
             <Link href="/terms" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
-              Terms
+              Terms of Service
             </Link>{' '}
             and{' '}
             <Link href="/privacy" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
