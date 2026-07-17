@@ -13,6 +13,10 @@ param(
   [string]$Repository = "eventslot",
 
   [Parameter(Mandatory = $false)]
+  [ValidateSet("resend", "smtp")]
+  [string]$EmailProvider = "resend",
+
+  [Parameter(Mandatory = $false)]
   [switch]$SkipSmokeTests
 )
 
@@ -37,7 +41,9 @@ if ($repoDescribeExitCode -ne 0) {
 Write-Host "Submitting Cloud Build..."
 $imageTag = (Get-Date -Format "yyyyMMdd-HHmmss")
 $substitutions = "_REGION=$Region,_SERVICE=$Service,_REPOSITORY=$Repository,_IMAGE_TAG=$imageTag"
-gcloud builds submit --config cloudbuild.yaml --substitutions "$substitutions"
+$buildConfig = if ($EmailProvider -eq "smtp") { "cloudbuild.smtp.yaml" } else { "cloudbuild.yaml" }
+Write-Host "Using deploy config $buildConfig for email provider mode '$EmailProvider'."
+gcloud builds submit --config $buildConfig --substitutions "$substitutions"
 if ($LASTEXITCODE -ne 0) { throw "Cloud Build submission failed." }
 
 Write-Host "Deployment submitted."

@@ -28,6 +28,7 @@
 - Initial local builds stalled at `Generating static pages using 3 workers (44/179)` until Next.js tracing scope was corrected.
 - **`next.config.mjs`** now sets `outputFileTracingRoot` explicitly to the EventSlot repo root, preventing Next.js from inferring `C:\Users\DANIEL` as the workspace root because of an unrelated lockfile outside the project.
 - After that tracing-root fix, a full local production build completed successfully through `Generating static pages using 3 workers (179/179)` and route manifest finalization on Friday, July 17, 2026.
+- **SMTP rollout path improved**: `cloudbuild.yaml` now declares the default Resend mode explicitly, `cloudbuild.smtp.yaml` was added for SMTP-based production deployments once `SMTP_*` secrets exist, and `scripts/deploy-gcp.ps1` now supports `-EmailProvider smtp` to choose the SMTP deploy config without editing the build files manually.
 
 ---
 

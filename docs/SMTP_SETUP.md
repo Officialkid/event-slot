@@ -78,6 +78,20 @@ To preview the command without changing Cloud Run:
 .\scripts\configure-cloudrun-smtp.ps1 -DryRun
 ```
 
+If you want the normal Cloud Build deployment path to use SMTP as well, the repo now includes a dedicated SMTP deploy config. After the secrets exist, deploy with:
+
+```powershell
+.\scripts\deploy-gcp.ps1 -EmailProvider smtp
+```
+
+The default remains:
+
+```powershell
+.\scripts\deploy-gcp.ps1
+```
+
+That keeps standard deploys on the safe Resend fallback until SMTP secrets are ready.
+
 The script checks that every required SMTP secret exists first, then updates Cloud Run with:
 
 ```text
@@ -95,7 +109,7 @@ SMTP_PASSWORD=SMTP_PASSWORD:latest
 SMTP_FROM=SMTP_FROM:latest
 ```
 
-Do not add those mappings before the secrets exist, because Cloud Run deployment will fail if a referenced secret is missing. Keep `cloudbuild.yaml` on the Resend fallback until SMTP secrets are present and verified, otherwise normal deployments can fail.
+Do not use `cloudbuild.smtp.yaml` or `.\scripts\deploy-gcp.ps1 -EmailProvider smtp` before the SMTP secrets exist, because Cloud Run deployment will fail if a referenced secret is missing. The default `cloudbuild.yaml` remains on the Resend fallback so normal deploys can still run safely until SMTP is present and verified.
 
 ## 6. Features That Depend On SMTP
 
