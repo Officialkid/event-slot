@@ -1,4 +1,8 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import withPWA, { runtimeCaching as defaultRuntimeCaching } from '@ducanh2912/next-pwa'
+
+const workspaceRoot = path.dirname(fileURLToPath(import.meta.url))
 
 const runtimeCaching = defaultRuntimeCaching.filter((entry) => {
   const cacheName = entry?.options?.cacheName
@@ -24,6 +28,7 @@ const withPWAConfig = withPWA({
 const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  outputFileTracingRoot: workspaceRoot,
 
   // @react-pdf/renderer uses native Node.js modules that webpack cannot bundle.
   // Marking it as external causes Next.js to require() it at runtime instead.

@@ -25,7 +25,9 @@
 ### Verification Notes
 
 - `npx tsc --noEmit` passed locally on Friday, July 17, 2026.
-- `npm run build` completed compilation and TypeScript, then remained stuck during static page generation (`Generating static pages using 3 workers (44/179)`), so a full production build remains unverified and still needs deeper investigation.
+- Initial local builds stalled at `Generating static pages using 3 workers (44/179)` until Next.js tracing scope was corrected.
+- **`next.config.mjs`** now sets `outputFileTracingRoot` explicitly to the EventSlot repo root, preventing Next.js from inferring `C:\Users\DANIEL` as the workspace root because of an unrelated lockfile outside the project.
+- After that tracing-root fix, a full local production build completed successfully through `Generating static pages using 3 workers (179/179)` and route manifest finalization on Friday, July 17, 2026.
 
 ---
 
