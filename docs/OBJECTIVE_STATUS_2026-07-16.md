@@ -4,7 +4,7 @@ Last updated: 2026-07-16
 
 | Objective | Expected outcome | Status |
 | --- | --- | --- |
-| Hide payment functionality for now | Users should see “coming soon / working on this” instead of usable payment setup. | Improved. Dashboard-wide billing banner removed. Billing/payment pages remain informational. Legacy credit/report purchase endpoints now return coming-soon responses while checkout is disabled. |
+| Hide payment functionality for now | Users should see “coming soon / working on this” instead of usable payment setup. | Improved and covered by live smoke plus regression tests. Dashboard-wide billing banner removed. Billing/payment pages remain informational. Legacy credit/report purchase endpoints return coming-soon responses before auth, rate limiting, or Paystack checkout while billing is disabled. |
 | Remove confusing super-admin payment banner | Super admin should not see billing restriction messaging on normal dashboard pages. | Improved. The global dashboard shell no longer injects the billing launch banner. Live smoke now verifies payment purchase endpoints are paused. |
 | Keep free event creation simple | Organizers should not be pushed into paid setup while creating a normal event. | Mostly done. Payment maintenance notices remain where needed, and paid checkout APIs are disabled. Needs final signed-in UI check. |
 | Light/dark theme | Theme choice should work across the system, not only the landing page. | In progress. Several dashboard/report/email surfaces have been converted to theme tokens. Needs page-by-page visual audit. |
