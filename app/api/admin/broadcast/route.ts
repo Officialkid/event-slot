@@ -4,8 +4,10 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasAdminAccess } from '@/lib/isAdmin'
 import { sendEmail } from '@/lib/email'
+import { env } from '@/lib/env'
+import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 
-const EMAIL_FROM = process.env.RESEND_FROM?.trim() || 'EventSlot <hello@eventsslot.com>'
+const EMAIL_FROM = getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
 const BATCH_SIZE = 50
 const BATCH_DELAY_MS = 500
 

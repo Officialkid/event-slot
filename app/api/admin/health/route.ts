@@ -52,6 +52,7 @@ async function getProviderAcceptedCountSince(startDate: Date): Promise<number | 
 }
 
 type EmailProviderStatus = {
+  provider: "smtp" | "resend"
   configured: boolean
   healthy: boolean
   message: string
@@ -73,6 +74,7 @@ function shouldUseSmtp() {
 async function getSmtpProviderStatus(): Promise<EmailProviderStatus> {
   if (!smtpIsConfigured()) {
     return {
+      provider: "smtp",
       configured: false,
       healthy: false,
       message: "SMTP_HOST, SMTP_PORT, SMTP_USER, or SMTP_PASSWORD missing",
@@ -91,12 +93,14 @@ async function getSmtpProviderStatus(): Promise<EmailProviderStatus> {
     })
     await transporter.verify()
     return {
+      provider: "smtp",
       configured: true,
       healthy: true,
       message: `SMTP provider reachable with sender ${extractSenderEmail(EMAIL_FROM) || env.SMTP_USER}`,
     }
   } catch (error) {
     return {
+      provider: "smtp",
       configured: true,
       healthy: false,
       message: error instanceof Error ? error.message : "SMTP provider check failed",
@@ -117,6 +121,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
   if (!EMAIL_FROM || !apiKey) {
     return {
+      provider: "resend",
       configured: false,
       healthy: false,
       message: "RESEND_API_KEY or RESEND_FROM missing",
@@ -145,6 +150,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
 
       if (senderDomain === "resend.dev") {
         return {
+          provider: "resend",
           configured: true,
           healthy: false,
           message: "Testing sender only: verify a Resend domain to email real attendees.",
@@ -153,6 +159,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
 
       if (!matchingDomain) {
         return {
+          provider: "resend",
           configured: true,
           healthy: false,
           message: `Sender domain ${senderDomain || "unknown"} is not added in Resend.`,
@@ -161,6 +168,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
 
       if (!domainVerified) {
         return {
+          provider: "resend",
           configured: true,
           healthy: false,
           message: `Sender domain ${senderDomain} is not verified in Resend yet.`,
@@ -168,6 +176,7 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
       }
 
       return {
+        provider: "resend",
         configured: true,
         healthy: true,
         message: `Provider reachable with verified sender ${senderEmail}`,
@@ -176,12 +185,14 @@ async function getEmailProviderStatus(): Promise<EmailProviderStatus> {
 
     const message = await response.text()
     return {
+      provider: "resend",
       configured: true,
       healthy: false,
       message: message || `Provider check failed (${response.status})`,
     }
   } catch (error) {
     return {
+      provider: "resend",
       configured: true,
       healthy: false,
       message: error instanceof Error ? error.message : "Provider check failed",
@@ -223,6 +234,7 @@ export async function GET() {
       emailsAcceptedThisMonth,
       emailProviderConfigured: emailProviderStatus.configured,
       emailProviderHealthy: emailProviderStatus.healthy,
+      emailProviderName: emailProviderStatus.provider,
       emailProviderMessage: emailProviderStatus.message,
     })
   } catch (err) {

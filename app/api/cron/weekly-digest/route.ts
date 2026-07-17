@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
+import { env } from '@/lib/env'
+import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 
 const DIGEST_FROM =
   process.env.RESEND_DIGEST_FROM?.trim() ||
-  process.env.RESEND_FROM?.trim() ||
-  'EventSlot <onboarding@resend.dev>'
+  getConfiguredEmailFrom(env, 'EventSlot <onboarding@resend.dev>')
 
 function parseDigestRecipients(): string[] {
   const configured = [

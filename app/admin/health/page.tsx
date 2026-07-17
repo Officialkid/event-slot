@@ -15,6 +15,7 @@ interface HealthData {
   emailsAcceptedThisMonth: number | null
   emailProviderConfigured: boolean
   emailProviderHealthy: boolean
+  emailProviderName: "smtp" | "resend"
   emailProviderMessage: string
 }
 
@@ -185,6 +186,8 @@ export default function AdminHealthPage() {
       actionableIssues.map((issue) => [`${issue.status}:${issue.label}:${issue.summary}`, issue])
     ).values()
   )
+  const emailMetricLabel = data.emailProviderName === "smtp" ? "Email provider" : "Emails accepted this month"
+  const emailMetricValue = data.emailProviderName === "smtp" ? data.emailProviderName.toUpperCase() : String(data.emailsAcceptedThisMonth ?? "--")
 
   return (
     <div>
@@ -205,10 +208,10 @@ export default function AdminHealthPage() {
 
         <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
           <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
-            Emails accepted this month
+            {emailMetricLabel}
           </div>
           <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)", lineHeight: 1 }}>
-            {data.emailsAcceptedThisMonth ?? "--"}
+            {emailMetricValue}
           </div>
           <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "var(--text-muted)" : "var(--error)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
             {data.emailProviderConfigured ? data.emailProviderMessage : "Email provider settings missing"}
