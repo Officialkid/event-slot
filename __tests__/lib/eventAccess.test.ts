@@ -84,3 +84,5 @@ describe('hasTeamEventAccess', () => {
     ).resolves.toBe(true)
   })
 })
+
+export {}

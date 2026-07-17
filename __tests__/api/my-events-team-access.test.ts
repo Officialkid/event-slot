@@ -101,3 +101,5 @@ describe('GET /api/my-events team access', () => {
     ])
   })
 })
+
+export {}
