@@ -58,8 +58,8 @@ function StatusBadge({ event }: { event: OrgEvent }) {
           fontSize: "0.65rem",
           fontWeight: 600,
           letterSpacing: "0.04em",
-          background: "rgba(240,237,230,0.06)",
-          color: "rgba(240,237,230,0.3)",
+          background: "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+          color: "var(--text-muted)",
           borderRadius: 100,
           padding: "2px 8px",
           fontFamily: "var(--font-dm-sans)",
@@ -76,8 +76,8 @@ function StatusBadge({ event }: { event: OrgEvent }) {
           fontSize: "0.65rem",
           fontWeight: 600,
           letterSpacing: "0.04em",
-          background: "rgba(240,237,230,0.08)",
-          color: "rgba(240,237,230,0.4)",
+          background: "color-mix(in srgb, var(--text-primary) 8%, transparent)",
+          color: "var(--text-muted)",
           borderRadius: 100,
           padding: "2px 8px",
           fontFamily: "var(--font-dm-sans)",
@@ -169,7 +169,7 @@ function ThreeDotMenu({
     padding: "0.5rem 0.875rem",
     fontSize: "0.82rem",
     fontFamily: "var(--font-dm-sans)",
-    color: "rgba(240,237,230,0.7)",
+    color: "var(--text-secondary)",
     cursor: "pointer",
     borderRadius: 6,
     whiteSpace: "nowrap",
@@ -186,7 +186,7 @@ function ThreeDotMenu({
         onClick={() => setOpen(v => !v)}
         style={{
           background: "transparent",
-          border: "0.5px solid rgba(240,237,230,0.1)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: 8,
           width: 30,
           height: 30,
@@ -194,7 +194,7 @@ function ThreeDotMenu({
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
-          color: "rgba(240,237,230,0.5)",
+          color: "var(--text-secondary)",
           fontSize: "1rem",
           letterSpacing: "0.1em",
         }}
@@ -209,8 +209,8 @@ function ThreeDotMenu({
             position: "absolute",
             top: "calc(100% + 6px)",
             right: 0,
-            background: "#1A1A1A",
-            border: "0.5px solid rgba(240,237,230,0.1)",
+            background: "var(--bg-elevated)",
+            border: "0.5px solid var(--border-subtle)",
             borderRadius: 8,
             padding: "0.25rem",
             zIndex: 20,
@@ -260,7 +260,7 @@ function ThreeDotMenu({
           <div
             style={{
               height: "0.5px",
-              background: "rgba(240,237,230,0.08)",
+              background: "var(--border-subtle)",
               margin: "0.25rem 0.5rem",
             }}
           />
@@ -341,8 +341,8 @@ function RenameModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 61,
-          background: "#1A1A1A",
-          border: "0.5px solid rgba(240,237,230,0.1)",
+          background: "var(--bg-elevated)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: 16,
           padding: "1.75rem",
           width: "min(92vw, 420px)",
@@ -352,7 +352,7 @@ function RenameModal({
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.2rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             marginBottom: "1rem",
           }}
         >
@@ -366,12 +366,12 @@ function RenameModal({
           onKeyDown={e => e.key === "Enter" && handleSave()}
           style={{
             width: "100%",
-            background: "#141414",
-            border: "0.5px solid rgba(240,237,230,0.15)",
+            background: "var(--bg-input)",
+            border: "0.5px solid var(--border)",
             borderRadius: 8,
             padding: "0.625rem 0.875rem",
             fontSize: "0.875rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             fontFamily: "var(--font-dm-sans)",
             outline: "none",
             boxSizing: "border-box",
@@ -382,11 +382,11 @@ function RenameModal({
             {error}
           </p>
         )}
-        <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.35)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
           Your registration link will not change. Only the event title updates.
         </p>
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
             Cancel
           </button>
           <button
@@ -442,8 +442,8 @@ function ArchiveConfirm({
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 61,
-          background: "#1A1A1A",
-          border: "0.5px solid rgba(240,237,230,0.1)",
+          background: "var(--bg-elevated)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: 16,
           padding: "1.75rem",
           width: "min(92vw, 420px)",
@@ -453,13 +453,13 @@ function ArchiveConfirm({
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.2rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             marginBottom: "0.5rem",
           }}
         >
           Archive this event?
         </h3>
-        <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
           It will be moved to your archived tab.
         </p>
         {error && (
@@ -468,7 +468,7 @@ function ArchiveConfirm({
           </p>
         )}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
             Cancel
           </button>
           <button
@@ -524,8 +524,8 @@ function DeleteModal({
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 61,
-          background: "#1A1A1A",
-          border: "0.5px solid rgba(240,237,230,0.1)",
+          background: "var(--bg-elevated)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: 16,
           padding: "1.75rem",
           width: "min(92vw, 440px)",
@@ -556,15 +556,15 @@ function DeleteModal({
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.2rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             marginBottom: "0.5rem",
           }}
         >
           Delete this event?
         </h3>
-        <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.6 }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.5rem", lineHeight: 1.6 }}>
           This will permanently delete{" "}
-          <strong style={{ color: "rgba(240,237,230,0.75)" }}>{event.title}</strong> and all its
+          <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong> and all its
           registrations. This cannot be undone.
         </p>
         {error && (
@@ -573,7 +573,7 @@ function DeleteModal({
           </p>
         )}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid rgba(240,237,230,0.15)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.5)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
+          <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>
             Cancel
           </button>
           <button
@@ -674,8 +674,8 @@ function EventCard({
       <div
         onClick={() => router.push(`/dashboard/events/${event.slug}?token=${event.dashboardToken}`)}
         style={{
-          background: "#141414",
-          border: "0.5px solid rgba(240,237,230,0.08)",
+          background: "var(--surface)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: 12,
           padding: "1.25rem",
           cursor: "pointer",
@@ -690,7 +690,7 @@ function EventCard({
                   fontFamily: "var(--font-instrument-serif)",
                   fontSize: "1.1rem",
                   fontWeight: 400,
-                  color: "#F0EDE6",
+                  color: "var(--text-primary)",
                   margin: 0,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -704,11 +704,11 @@ function EventCard({
 
             {/* Meta */}
             {event.dataExpired ? (
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
                 Registration data has been deleted. Upgrade to recover future data.
               </p>
             ) : (
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
                 {event.confirmedCount} confirmed · {event.waitlistCount} waitlisted ·{" "}
                 {event.capacity ? `${event.capacity} capacity` : "Unlimited"}
               </p>
@@ -716,7 +716,7 @@ function EventCard({
 
             {/* Date / location */}
             {(event.eventDate || event.location) && (
-              <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                 {event.eventDate && formatDate(event.eventDate)}
                 {event.eventDate && event.location && " · "}
                 {event.location}
@@ -748,12 +748,12 @@ function EventCard({
             value={regLink}
             style={{
               flex: 1,
-              background: "rgba(240,237,230,0.04)",
-              border: "0.5px solid rgba(240,237,230,0.08)",
+              background: "var(--bg-input)",
+              border: "0.5px solid var(--border-subtle)",
               borderRadius: 6,
               padding: "0.375rem 0.625rem",
               fontSize: "0.72rem",
-              color: "rgba(240,237,230,0.4)",
+              color: "var(--text-secondary)",
               fontFamily: "var(--font-dm-sans)",
               outline: "none",
               overflow: "hidden",
@@ -765,12 +765,12 @@ function EventCard({
             onClick={handleCopy}
             style={{
               background: "transparent",
-              border: "0.5px solid rgba(240,237,230,0.12)",
+              border: "0.5px solid var(--border)",
               borderRadius: 6,
               padding: "0.375rem 0.75rem",
               fontSize: "0.72rem",
               fontWeight: 500,
-              color: copied ? "#C8F55A" : "rgba(240,237,230,0.5)",
+              color: copied ? "var(--accent)" : "var(--text-secondary)",
               cursor: "pointer",
               fontFamily: "var(--font-dm-sans)",
               whiteSpace: "nowrap",
@@ -808,8 +808,8 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
   return (
     <div
       style={{
-        background: "#141414",
-        border: "0.5px solid rgba(240,237,230,0.08)",
+        background: "var(--surface)",
+        border: "0.5px solid var(--border-subtle)",
         borderRadius: 12,
         padding: "2.5rem 1.5rem",
         textAlign: "center",
@@ -818,8 +818,8 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
       {tab === "active" ? (
         <div className="flex flex-col items-center justify-center py-10 text-center">
           <div style={{ fontSize: "3.2rem", marginBottom: "0.7rem" }}>EV</div>
-          <h2 style={{ margin: 0, color: "#F0EDE6", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>No events yet</h2>
-          <p style={{ color: "rgba(240,237,230,0.5)", fontSize: "0.84rem", margin: "0.65rem 0 1.1rem", maxWidth: 360, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+          <h2 style={{ margin: 0, color: "var(--text-primary)", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>No events yet</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.84rem", margin: "0.65rem 0 1.1rem", maxWidth: 360, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
             Create your first event in under 2 minutes. Set a name, date, venue, and slot limit - then share the link.
           </p>
           <Link
@@ -841,7 +841,7 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
           </Link>
           <button
             onClick={onRestartTour}
-            style={{ marginTop: "0.85rem", background: "transparent", border: "none", fontSize: "0.8rem", color: "rgba(240,237,230,0.4)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+            style={{ marginTop: "0.85rem", background: "transparent", border: "none", fontSize: "0.8rem", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
           >
             Restart tutorial
           </button>
@@ -852,13 +852,13 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
             style={{
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "1.1rem",
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               marginBottom: "0.4rem",
             }}
           >
             {heading}
           </p>
-          <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
             {body}
           </p>
         </>
@@ -927,7 +927,7 @@ export default function DashboardEventsPage() {
     <>
       <style>{`
         .dot-menu-item:hover {
-          background: rgba(240,237,230,0.06) !important;
+          background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
         }
       `}</style>
 
@@ -948,7 +948,7 @@ export default function DashboardEventsPage() {
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "1.45rem",
               fontWeight: 400,
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               margin: 0,
               lineHeight: 1.1,
             }}
@@ -978,7 +978,7 @@ export default function DashboardEventsPage() {
           style={{
             display: "flex",
             gap: "0",
-            borderBottom: "0.5px solid rgba(240,237,230,0.08)",
+            borderBottom: "0.5px solid var(--border-subtle)",
             marginBottom: "1.5rem",
           }}
         >
@@ -995,7 +995,7 @@ export default function DashboardEventsPage() {
                 padding: "0.6rem 1.1rem",
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
-                color: activeTab === tab.key ? "#F0EDE6" : "rgba(240,237,230,0.4)",
+                color: activeTab === tab.key ? "var(--text-primary)" : "var(--text-muted)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -1012,8 +1012,8 @@ export default function DashboardEventsPage() {
                     fontWeight: 600,
                     background: activeTab === tab.key
                       ? "rgba(200,245,90,0.12)"
-                      : "rgba(240,237,230,0.06)",
-                    color: activeTab === tab.key ? "#C8F55A" : "rgba(240,237,230,0.35)",
+                      : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                    color: activeTab === tab.key ? "var(--accent)" : "var(--text-muted)",
                     borderRadius: 100,
                     padding: "1px 6px",
                   }}
@@ -1034,8 +1034,8 @@ export default function DashboardEventsPage() {
                 style={{
                   height: 140,
                   borderRadius: 12,
-                  background: "#141414",
-                  border: "0.5px solid rgba(240,237,230,0.06)",
+                  background: "var(--surface)",
+                  border: "0.5px solid var(--border-subtle)",
                   animation: "ev-pulse 1.5s ease-in-out infinite",
                 }}
               />
