@@ -4,6 +4,13 @@ import { getOrCreateReferralLink } from '@/lib/referral'
 import { APP_URL } from '@/lib/config'
 import { env } from '@/lib/env'
 import { buildGoogleCalendarTemplateUrl } from '@/lib/calendarLinks'
+import {
+  DEFAULT_RESEND_SENDER,
+  getConfiguredEmailFrom,
+  getVerifiedSender,
+  shouldUseSmtpFromEnv,
+  smtpIsConfiguredFromEnv,
+} from '@/lib/emailProvider'
 
 function getResendClient() {
   const apiKey = env.RESEND_API_KEY
@@ -14,25 +21,7 @@ function getResendClient() {
 }
 
 const BASE_URL = APP_URL
-const EMAIL_FROM = env.SMTP_FROM || env.RESEND_FROM || 'EventSlot <onboarding@resend.dev>'
-
-function extractEmailAddress(sender: string): string {
-  const match = sender.match(/<([^>]+)>/)
-  return (match?.[1] ?? sender).trim()
-}
-
-function extractDisplayName(sender: string): string | null {
-  const match = sender.match(/^\s*"?([^"<]+?)"?\s*<[^>]+>\s*$/)
-  return match?.[1]?.trim() ?? null
-}
-
-function getVerifiedSender(preferredFrom?: string): string {
-  const verifiedAddress = extractEmailAddress(EMAIL_FROM)
-  const preferredName = preferredFrom ? extractDisplayName(preferredFrom) : null
-  const fallbackName = extractDisplayName(EMAIL_FROM) ?? 'EventSlot'
-  const displayName = preferredName || fallbackName
-  return `${displayName} <${verifiedAddress}>`
-}
+const EMAIL_FROM = getConfiguredEmailFrom(env)
 
 type InternalEmailOptions = {
   to: string | string[]
@@ -44,12 +33,11 @@ type InternalEmailOptions = {
 }
 
 function smtpIsConfigured() {
-  return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD)
+  return smtpIsConfiguredFromEnv(env)
 }
 
 function shouldUseSmtp() {
-  const provider = env.EMAIL_PROVIDER.trim().toLowerCase()
-  return provider === 'smtp' || (!provider && smtpIsConfigured())
+  return shouldUseSmtpFromEnv(env)
 }
 
 function getSmtpTransporter() {
@@ -80,13 +68,13 @@ function extractEmailErrorMessage(error: unknown): string {
 }
 
 function shouldRetryWithFallbackSender(message: string | null, from: string) {
-  return Boolean(message) && /verify|domain|sender/i.test(message ?? "") && from !== "EventSlot <onboarding@resend.dev>"
+  return Boolean(message) && /verify|domain|sender/i.test(message ?? "") && from !== DEFAULT_RESEND_SENDER
 }
 
 export async function sendEmail(options: InternalEmailOptions) {
   if (shouldUseSmtp()) {
     const transporter = getSmtpTransporter()
-    const verifiedFrom = getVerifiedSender(options.from)
+    const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
 
     try {
       await transporter.sendMail({
@@ -105,7 +93,7 @@ export async function sendEmail(options: InternalEmailOptions) {
   }
 
   const resend = getResendClient()
-  const verifiedFrom = getVerifiedSender(options.from)
+  const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
   const payload = {
     ...options,
     // Always use the verified sender address, even if callers pass a branded alias.
@@ -124,7 +112,7 @@ export async function sendEmail(options: InternalEmailOptions) {
     try {
       const retryResult = await resend.emails.send({
         ...payload,
-        from: "EventSlot <onboarding@resend.dev>",
+        from: DEFAULT_RESEND_SENDER,
       })
       error = retryResult.error ?? null
     } catch (retryError) {

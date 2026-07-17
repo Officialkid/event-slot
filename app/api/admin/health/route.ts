@@ -5,13 +5,15 @@ import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasAdminAccess } from "@/lib/isAdmin"
 import { env } from "@/lib/env"
+import {
+  extractEmailAddress,
+  getConfiguredEmailFrom,
+  shouldUseSmtpFromEnv,
+  smtpIsConfiguredFromEnv,
+} from "@/lib/emailProvider"
 
-const EMAIL_FROM = env.SMTP_FROM || env.RESEND_FROM || ""
-
-function extractSenderEmail(sender: string) {
-  const match = sender.match(/<([^>]+)>/)
-  return (match?.[1] ?? sender).trim().toLowerCase()
-}
+const EMAIL_FROM = getConfiguredEmailFrom(env, "")
+const extractSenderEmail = (sender: string) => extractEmailAddress(sender).toLowerCase()
 
 async function getProviderAcceptedCountSince(startDate: Date): Promise<number | null> {
   if (shouldUseSmtp()) return null
@@ -61,12 +63,11 @@ type ResendDomainRow = {
 }
 
 function smtpIsConfigured() {
-  return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASSWORD)
+  return smtpIsConfiguredFromEnv(env)
 }
 
 function shouldUseSmtp() {
-  const provider = env.EMAIL_PROVIDER.trim().toLowerCase()
-  return provider === "smtp" || (!provider && smtpIsConfigured())
+  return shouldUseSmtpFromEnv(env)
 }
 
 async function getSmtpProviderStatus(): Promise<EmailProviderStatus> {
