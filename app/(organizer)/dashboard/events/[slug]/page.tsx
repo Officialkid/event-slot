@@ -2640,6 +2640,9 @@ export default function EventDashboardPage() {
               key={tab.key}
               onClick={() => {
                 setActiveTab(tab.key)
+                if (tab.key === "analytics" && !isWalkInEvent && !analyticsData && !analyticsLoading) {
+                  void loadAnalytics()
+                }
                 if (tab.key === "team" && eventTeam.length === 0) void loadEventTeam()
               }}
               style={{
@@ -3534,15 +3537,33 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>Event Analytics</h2>
-              <a
-                href={`/api/events/${slug}/analytics/export${token ? `?token=${encodeURIComponent(token)}` : ''}`}
-                download
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: themeBorderSoft, borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: themeTextSecondary, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
-              >
-                <span>Download</span>
-                Export CSV
-              </a>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                {!analyticsData && !analyticsLoading && (
+                  <button
+                    onClick={() => void loadAnalytics()}
+                    style={{ background: themeAccentSoftStrong, border: themeAccentBorder, borderRadius: 10, padding: "0.45rem 0.9rem", fontSize: "0.8rem", fontWeight: 600, color: themeAccent, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  >
+                    Load analytics
+                  </button>
+                )}
+                <a
+                  href={`/api/events/${slug}/analytics/export${token ? `?token=${encodeURIComponent(token)}` : ''}`}
+                  download
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: themeBorderSoft, borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: themeTextSecondary, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  <span>Download</span>
+                  Export CSV
+                </a>
+              </div>
             </div>
+
+            {!analyticsData && !analyticsLoading && !analyticsError && (
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.1rem", marginBottom: "1.25rem" }}>
+                <p style={{ margin: 0, fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.65 }}>
+                  Event analytics summarises registration momentum, source performance, AI insight signals, and attendance patterns for this event.
+                </p>
+              </div>
+            )}
 
             {analyticsLoading && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0.75rem", marginBottom: "1.25rem" }}>
