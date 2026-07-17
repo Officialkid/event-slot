@@ -20,6 +20,10 @@ function IconInstall() {
 export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPromptProps) {
   const { method, promptInstall, isInstalled } = usePWAInstall()
   const [showIosTip, setShowIosTip] = useState(false)
+  const cardBackground = "linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, var(--surface) 88%), color-mix(in srgb, var(--info) 6%, var(--surface) 94%) 58%, color-mix(in srgb, white 20%, var(--surface) 80%))"
+  const cardBorder = "color-mix(in srgb, var(--accent) 28%, var(--text-primary) 10%)"
+  const iconSurface = "color-mix(in srgb, var(--accent) 14%, var(--surface) 86%)"
+  const accentText = "color-mix(in srgb, var(--accent) 40%, var(--text-primary) 60%)"
 
   if (isInstalled || method === "already-installed") {
     return null
@@ -69,9 +73,9 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
             width: 38,
             height: 38,
             borderRadius: 12,
-            border: "0.5px solid rgba(200,245,90,0.22)",
-            background: "linear-gradient(180deg, rgba(200,245,90,0.18), rgba(200,245,90,0.06))",
-            color: "#C8F55A",
+            border: `0.5px solid ${cardBorder}`,
+            background: "linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, var(--surface) 82%), color-mix(in srgb, var(--accent) 8%, var(--surface) 92%))",
+            color: accentText,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -89,8 +93,8 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
       <div
         style={{
           borderRadius: 16,
-          border: "0.5px solid rgba(200,245,90,0.18)",
-          background: "linear-gradient(160deg, rgba(200,245,90,0.12), rgba(138,180,255,0.06) 58%, rgba(255,255,255,0.03))",
+          border: `0.5px solid ${cardBorder}`,
+          background: cardBackground,
           padding: "0.85rem 0.9rem",
           boxShadow: "0 14px 26px rgba(0,0,0,0.18)",
         }}
@@ -101,9 +105,9 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
               width: 34,
               height: 34,
               borderRadius: 12,
-              border: "0.5px solid rgba(200,245,90,0.24)",
-              background: "color-mix(in srgb, var(--surface) 72%, transparent)",
-              color: "#C8F55A",
+              border: `0.5px solid ${cardBorder}`,
+              background: iconSurface,
+              color: accentText,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -131,8 +135,8 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
             marginTop: "0.75rem",
             width: "100%",
             borderRadius: 999,
-            border: "0.5px solid rgba(200,245,90,0.22)",
-            background: "#C8F55A",
+            border: `0.5px solid ${cardBorder}`,
+            background: "var(--accent)",
             color: "#0A0A0A",
             padding: "0.62rem 0.9rem",
             fontFamily: "var(--font-dm-sans)",

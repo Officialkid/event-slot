@@ -302,6 +302,10 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("")
   const [theme, setTheme] = useState<ThemeMode>("dark")
 
+  function syncProfileIdentity(next: { name?: string | null; image?: string | null }) {
+    window.dispatchEvent(new CustomEvent("eventslot:profile-updated", { detail: next }))
+  }
+
   useEffect(() => {
     markFeatureUsed("profile")
     setTheme(resolveCurrentTheme())
@@ -311,6 +315,7 @@ export default function ProfilePage() {
         setProfile(data)
         setName(data.name ?? "")
         setTwoFactorEnabled(!!data.twoFactorEnabled)
+        syncProfileIdentity({ name: data.name, image: data.image })
       })
   }, [])
 
@@ -380,7 +385,7 @@ export default function ProfilePage() {
           setPhotoPreview(null)
         } else {
           setProfile(prev => (prev ? { ...prev, image: dataUrl } : prev))
-          window.dispatchEvent(new Event("eventslot:profile-updated"))
+          syncProfileIdentity({ image: dataUrl, name: profile?.name ?? name || null })
         }
       } catch {
         setPhotoError("Upload failed. Please try again.")
@@ -413,7 +418,7 @@ export default function ProfilePage() {
       const trimmedName = name.trim()
       setProfile(prev => (prev ? { ...prev, name: trimmedName } : prev))
       await updateSession({ name: trimmedName })
-      window.dispatchEvent(new Event("eventslot:profile-updated"))
+      syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null })
       setDetailsSuccess(true)
       setTimeout(() => setDetailsSuccess(false), 3000)
     } catch {

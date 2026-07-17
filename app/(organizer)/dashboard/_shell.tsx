@@ -209,11 +209,32 @@ interface SidebarInnerProps {
   isAdmin?: boolean
   paymentsNavVisible?: boolean
   paymentsBadgeCount?: number
+  theme?: ThemeMode
 }
 
-function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, paymentsBadgeCount = 0 }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, theme = "dark" }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" && item.href !== "/dashboard/billing")
+  const isLight = theme === "light"
+  const accentText = isLight
+    ? "color-mix(in srgb, var(--accent) 38%, var(--text-primary) 62%)"
+    : "var(--accent)"
+  const accentSoftBackground = isLight
+    ? "color-mix(in srgb, var(--accent) 16%, white 84%)"
+    : "rgba(200,245,90,0.1)"
+  const accentStrongBackground = isLight
+    ? "color-mix(in srgb, var(--accent) 24%, white 76%)"
+    : "rgba(200,245,90,0.14)"
+  const accentBorder = isLight
+    ? "color-mix(in srgb, var(--accent) 52%, var(--text-primary) 12%)"
+    : "rgba(200,245,90,0.3)"
+  const navActiveBackground = isLight
+    ? "color-mix(in srgb, var(--accent) 14%, white 86%)"
+    : "rgba(200,245,90,0.08)"
+  const navIdleColor = isLight ? "var(--text-primary)" : "var(--text-secondary)"
+  const accentDivider = isLight
+    ? "color-mix(in srgb, var(--accent) 18%, transparent)"
+    : "rgba(200,245,90,0.15)"
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Logo + user info */}
@@ -263,14 +284,14 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   width: 32,
                   height: 32,
                   borderRadius: "50%",
-                  background: "rgba(200,245,90,0.15)",
-                  border: "0.5px solid rgba(200,245,90,0.25)",
+                  background: accentSoftBackground,
+                  border: `0.5px solid ${accentBorder}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "0.7rem",
                   fontWeight: 600,
-                  color: "#C8F55A",
+                  color: accentText,
                 }}
               >
                 {initials}
@@ -286,7 +307,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   width: 16,
                   height: 16,
                   borderRadius: "50%",
-                  background: "#C8F55A",
+                  background: "var(--accent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -324,9 +345,9 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                     fontSize: "0.62rem",
                     padding: "2px 8px",
                     borderRadius: 999,
-                    color: "#C8F55A",
-                    background: "rgba(200,245,90,0.1)",
-                    border: "0.5px solid rgba(200,245,90,0.35)",
+                    color: accentText,
+                    background: accentSoftBackground,
+                    border: `0.5px solid ${accentBorder}`,
                     fontFamily: "var(--font-dm-sans)",
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
@@ -347,9 +368,9 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                     fontSize: "0.62rem",
                     padding: "2px 8px",
                     borderRadius: 999,
-                    color: "#C8F55A",
-                    background: "rgba(200,245,90,0.12)",
-                    border: "0.5px solid rgba(200,245,90,0.28)",
+                    color: accentText,
+                    background: accentStrongBackground,
+                    border: `0.5px solid ${accentBorder}`,
                     fontFamily: "var(--font-dm-sans)",
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
@@ -425,8 +446,8 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   fontSize: "0.875rem",
                   fontFamily: "var(--font-dm-sans)",
                   textDecoration: "none",
-                  background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                  color: active ? "#C8F55A" : "var(--text-secondary)",
+                  background: active ? navActiveBackground : "transparent",
+                  color: active ? accentText : navIdleColor,
                 }}
               >
                 {item.icon}
@@ -501,8 +522,8 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
                 textDecoration: "none",
-                background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                color: active ? "#C8F55A" : "var(--text-secondary)",
+                background: active ? navActiveBackground : "transparent",
+                color: active ? accentText : navIdleColor,
               }}
             >
               <IconInsights />
@@ -534,8 +555,8 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
                 textDecoration: "none",
-                background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                color: active ? "#C8F55A" : "var(--text-secondary)",
+                background: active ? navActiveBackground : "transparent",
+                color: active ? accentText : navIdleColor,
               }}
             >
               <IconUsers />
@@ -554,7 +575,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
       {/* Admin Panel — only visible to superadmin */}
       {isAdmin && (
         <div style={{ padding: "0 0.75rem 0.625rem" }}>
-          <div style={{ height: "0.5px", background: "rgba(200,245,90,0.15)", margin: "0 0.25rem 0.625rem" }} />
+          <div style={{ height: "0.5px", background: accentDivider, margin: "0 0.25rem 0.625rem" }} />
           {(() => {
             const active = getIsActive(pathname, "/admin", false)
             return (
@@ -578,9 +599,9 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   fontSize: "0.875rem",
                   fontFamily: "var(--font-dm-sans)",
                   textDecoration: "none",
-                  background: active ? "rgba(200,245,90,0.12)" : "rgba(200,245,90,0.05)",
-                  color: active ? "#C8F55A" : "rgba(200,245,90,0.65)",
-                  border: "0.5px solid rgba(200,245,90,0.18)",
+                  background: active ? accentStrongBackground : accentSoftBackground,
+                  color: active ? accentText : "var(--text-secondary)",
+                  border: `0.5px solid ${accentBorder}`,
                 }}
               >
                 <IconAdmin />
@@ -776,7 +797,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     if (status !== "authenticated") return
     void refreshProfileIdentity()
 
-    const handleProfileUpdated = () => {
+    const handleProfileUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string | null; image?: string | null }>).detail
+      if (detail && typeof detail === "object") {
+        setProfileIdentity((current) => ({
+          name: typeof detail.name === "string" ? detail.name : current?.name ?? null,
+          image: typeof detail.image === "string" ? detail.image : current?.image ?? null,
+        }))
+      }
       void refreshProfileIdentity()
     }
     window.addEventListener("eventslot:profile-updated", handleProfileUpdated)
@@ -916,6 +944,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     onOpenTourSelector: () => setShowTourSelector(true),
     paymentsNavVisible,
     paymentsBadgeCount,
+    theme,
   }
   sidebarProps.isAdmin = isAdmin
 
@@ -955,9 +984,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const isLight = theme === "light"
   const shellBorder = "color-mix(in srgb, var(--text-primary) 10%, transparent)"
   const shellBorderSoft = "color-mix(in srgb, var(--text-primary) 6%, transparent)"
-  const sidebarBg = "color-mix(in srgb, var(--surface) 96%, black 4%)"
-  const headerBg = "color-mix(in srgb, var(--surface) 92%, transparent)"
-  const elevatedBg = "color-mix(in srgb, var(--surface) 88%, transparent)"
+  const sidebarBg = isLight
+    ? "linear-gradient(180deg, color-mix(in srgb, white 96%, var(--accent) 4%) 0%, color-mix(in srgb, white 92%, var(--accent) 8%) 100%)"
+    : "color-mix(in srgb, var(--surface) 96%, black 4%)"
+  const headerBg = isLight
+    ? "color-mix(in srgb, white 94%, var(--accent) 6%)"
+    : "color-mix(in srgb, var(--surface) 92%, transparent)"
+  const elevatedBg = isLight
+    ? "color-mix(in srgb, white 90%, var(--accent) 10%)"
+    : "color-mix(in srgb, var(--surface) 88%, transparent)"
   const pageBg = "var(--bg-page)"
   const primaryText = "var(--text-primary)"
   const secondaryText = "var(--text-secondary)"
