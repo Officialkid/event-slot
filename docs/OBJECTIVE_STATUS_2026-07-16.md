@@ -16,7 +16,7 @@ Last updated: 2026-07-16
 | Team member event access | Invited team member should only see assigned event. | Implemented in access logic and covered by regression tests for explicit event assignment. Still needs live test with an invited account. |
 | Account deletion | Super admin and users should be able to delete test/user accounts safely. | Improved with cleanup and covered by regression tests for self-delete plus admin-delete event handling. Needs live super-admin deletion test. |
 | Verify-ticket workflow documentation | Document current scanner/search/upload behavior and future verifier subdomain idea. | Done in `docs/VERIFY_TICKET_WORKFLOW.md`. |
-| 100,000 registrations/week readiness | Do not claim capacity until load tested. | In progress. A load-test plan and guarded helper script now exist. Actual staging/prod-safe load run still required. |
+| 100,000 registrations/week readiness | Do not claim capacity until load tested. | In progress. A load-test plan and guarded helper script now cover page reads, draft saves, registration submit, and waitlist promotion. Actual staging/prod-safe load run with metrics still required. |
 
 ## Automated Live Checks
 

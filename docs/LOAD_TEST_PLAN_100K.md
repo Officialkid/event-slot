@@ -43,6 +43,14 @@ Example local run:
 node scripts/load-test-registration.mjs --base-url=http://localhost:3000 --event-slug=test-event --payload-file=./load-payload.json --mode=all --duration=300 --rps=10 --run
 ```
 
+Example waitlist-promotion run against a staging/test event:
+
+```bash
+node scripts/load-test-registration.mjs --base-url=http://localhost:3000 --event-slug=test-event --dashboard-token=TEST_DASHBOARD_TOKEN --mode=promote --capacity-start=51 --duration=60 --rps=1 --run
+```
+
+`--mode=promote` calls `PATCH /api/events/[slug]/capacity` with increasing capacity values. It mutates the event and can trigger promotion emails, so only use it on a dedicated load-test event.
+
 Production safety:
 
 ```bash
@@ -67,5 +75,5 @@ Only use production with a dedicated test event and explicit approval.
 - Run the script against a staging event with realistic questions.
 - Add a queue or background worker for emails if registration submit is slowed by SMTP/provider latency.
 - Capture database metrics during the test, especially connection count and slow queries.
-- Add a focused waitlist-promotion load test after SMTP secrets are configured.
+- Run the focused waitlist-promotion load-test mode after SMTP secrets are configured.
 - Confirm draft restore and final submit from the mobile UI in a signed-in/browser test session.

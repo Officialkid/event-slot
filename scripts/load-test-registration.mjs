@@ -13,15 +13,18 @@ Options:
   --base-url=<url>          Target app URL. Defaults to ${DEFAULT_BASE_URL}
   --event-slug=<slug>       Public event slug to test.
   --payload-file=<file>     JSON body template for POST /api/register.
+  --dashboard-token=<token> Dashboard token for capacity promotion tests.
+  --capacity-start=<number> First capacity value for --mode=promote. Defaults to 1.
   --duration=<seconds>      Test duration. Defaults to 60.
   --rps=<number>            Target requests per second. Defaults to 1.
-  --mode=<all|page|draft|register>
+  --mode=<all|page|draft|register|promote>
                             Endpoint mix to run. Defaults to all.
   --run                     Actually send traffic. Without this, the script dry-runs.
 
 Safety:
   Production targets require ALLOW_PRODUCTION_LOAD_TEST=true.
   Use a dedicated test event, test questions, and synthetic emails only.
+  Promotion tests mutate event capacity, so run them only on a staging/test event.
 `)
 }
 
@@ -47,6 +50,14 @@ async function readPayloadTemplate(path) {
   if (!path) return null
   const { readFile } = await import("node:fs/promises")
   return JSON.parse(await readFile(path, "utf8"))
+}
+
+function buildPromotionPayload(eventSlug, dashboardToken, capacityStart, index) {
+  return {
+    eventSlug,
+    token: dashboardToken,
+    newCapacity: capacityStart + index,
+  }
 }
 
 function clonePayload(template, eventSlug, index) {
@@ -123,6 +134,8 @@ async function run() {
   const durationSeconds = Math.max(1, Number(getArg("duration", process.env.LOAD_TEST_DURATION_SECONDS || "60")))
   const rps = Math.max(0.1, Number(getArg("rps", process.env.LOAD_TEST_RPS || "1")))
   const mode = getArg("mode", process.env.LOAD_TEST_MODE || "all")
+  const dashboardToken = getArg("dashboard-token", process.env.LOAD_TEST_DASHBOARD_TOKEN || "")
+  const capacityStart = Math.max(1, Number(getArg("capacity-start", process.env.LOAD_TEST_CAPACITY_START || "1")))
   const shouldRun = hasFlag("run")
 
   if (!eventSlug) {
@@ -133,6 +146,12 @@ async function run() {
 
   if (isProductionLike(baseUrl) && process.env.ALLOW_PRODUCTION_LOAD_TEST !== "true") {
     console.error("Refusing to run against production-like URL without ALLOW_PRODUCTION_LOAD_TEST=true.")
+    process.exitCode = 1
+    return
+  }
+
+  if (mode === "promote" && !dashboardToken) {
+    console.error("Missing --dashboard-token=<token> for --mode=promote.")
     process.exitCode = 1
     return
   }
@@ -150,6 +169,8 @@ async function run() {
     totalRequests,
     dryRun: !shouldRun,
     payloadFile: payloadFile || null,
+    dashboardTokenProvided: Boolean(dashboardToken),
+    capacityStart,
   }, null, 2))
 
   if (!shouldRun) {
@@ -192,6 +213,19 @@ async function run() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
+        }))
+        return
+      }
+
+      if (endpointMode === "promote") {
+        const promotionPayload = buildPromotionPayload(eventSlug, dashboardToken, capacityStart, index)
+        results.push(await requestJson(`${baseUrl}/api/events/${encodeURIComponent(eventSlug)}/capacity`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            newCapacity: promotionPayload.newCapacity,
+            token: promotionPayload.token,
+          }),
         }))
         return
       }
