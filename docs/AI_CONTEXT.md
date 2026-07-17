@@ -52,13 +52,9 @@ Attendees do NOT need an account:
 - All core features are free with no subscription tiers.
 - Event creation, waitlist automation, analytics, insight cards, tracker, feedback, CSV export, duplicate event, and predictive capacity are available without plan gates.
 
-### Paid Action (Report Download Only)
-- Report generation and in-browser report preview are free.
-- Downloading a Word report uses paid download bundles:
-	- KSh 100 single download
-	- KSh 300 bundle of 3
-	- KSh 500 bundle of 6
-	- KSh 1,000 bundle of 15
+### Premium Billing Rollout
+- Report generation, in-browser report preview, and full Word report downloads are currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused.
+- Paid report-download bundles are not available to users until the payment rollout is ready.
 
 ---
 
@@ -84,7 +80,7 @@ A: Yes, they receive an email notification if they consented to notifications du
 
 **Q: How do I download an attendee report?**
 A: Go to your event dashboard and click Download Report.
-You can generate and view the report in-browser for free. Downloading the Word file uses a paid download bundle.
+You can generate, preview, and download the Word file for free while premium report billing is paused.
 
 **Q: What is the difference between the standard and AI report?**
 A: The standard report contains tables of attendee data and event stats.

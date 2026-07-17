@@ -295,7 +295,7 @@ ${insights.suggestions.map((suggestion, index) => `${index + 1}. ${suggestion}`)
 
 IMPORTANT: Share this data conversationally and helpfully.
 Do NOT format it as a formal report or use document-style headings.
-The full AI report (Word document) requires tokens and is a separate paid feature.
+The full AI report (Word document) is currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused. Direct them to Generate Report in the event dashboard.
 ═══════════════════════════════════════════════
 `
         }

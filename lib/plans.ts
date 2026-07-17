@@ -1,4 +1,4 @@
-// All features are free. The only paid action is downloading a report.
+// All core features are free while premium billing is paused.
 export const FEATURES_FREE = true
 
 export const REPORT_DOWNLOAD_PRICING = {

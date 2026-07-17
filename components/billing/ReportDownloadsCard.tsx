@@ -55,6 +55,31 @@ export function ReportDownloadsCard({
     }
   }
 
+  if (!billingEnabled) {
+    return (
+      <section
+        id="report-downloads"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: 14,
+          padding: "1.25rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, background: "color-mix(in srgb, var(--accent) 10%, transparent)", border: "0.5px solid color-mix(in srgb, var(--accent) 26%, transparent)", color: "var(--accent)", padding: "0.35rem 0.7rem", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+          Free during rollout
+        </div>
+        <h2 style={{ margin: "0.8rem 0 0.35rem", fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: "var(--text-primary)" }}>
+          Report downloads are free right now
+        </h2>
+        <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7, maxWidth: 720 }}>
+          Event report previews and full Word downloads are available to authorised organisers, assigned team members, and super admins while EventSlot finishes the premium report rollout. Paid report bundles stay hidden until payment checkout is ready.
+        </p>
+      </section>
+    )
+  }
+
   return (
     <section
       id="report-downloads"
@@ -143,12 +168,6 @@ export function ReportDownloadsCard({
           </div>
         ))}
       </div>
-
-      {!billingEnabled ? (
-        <p style={{ margin: "0.9rem 0 0", color: "#D8ECFF", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>
-          Paid report-download bundles are temporarily disabled. Everyone keeps access while the payment system is being introduced.
-        </p>
-      ) : null}
 
       {error ? (
         <p style={{ margin: "0.9rem 0 0", color: "#FF8E7D", fontSize: "0.84rem", fontFamily: "var(--font-dm-sans)" }}>

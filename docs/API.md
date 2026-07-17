@@ -179,7 +179,7 @@ Ask a natural language question about event data.
 Download Word report (.docx) for an event.  
 **Auth:** Session ownership OR `?token=` dashboard token  
 **Modes:** `?mode=preview` for browser preview, `?mode=download` for file download  
-**Billing check:** Download mode consumes paid report-download balance unless the requester is a super admin  
+**Billing check:** Preview and download are currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused.  
 **Returns:** Binary `.docx` file with branded cover page, clickable table of contents, analytics sections, attendee tables, and AI narrative content
 
 ### GET /api/events/[slug]/export
