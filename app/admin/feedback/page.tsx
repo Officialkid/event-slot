@@ -61,14 +61,14 @@ export default function FeedbackPage() {
   if (loading) {
     return (
       <div className="p-6 max-w-5xl animate-pulse space-y-4">
-        <div className="h-6 w-56 rounded bg-[#1A1A1A]" />
-        <div className="h-4 w-72 rounded bg-[#1A1A1A]" />
+        <div className="h-6 w-56 rounded bg-[var(--bg-elevated)]" />
+        <div className="h-4 w-72 rounded bg-[var(--bg-elevated)]" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] space-y-3">
-              <div className="h-3 w-24 rounded bg-[#1A1A1A]" />
-              <div className="h-8 w-24 rounded bg-[#1A1A1A]" />
-              <div className="h-3 w-20 rounded bg-[#1A1A1A]" />
+            <div key={i} className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)] space-y-3">
+              <div className="h-3 w-24 rounded bg-[var(--bg-elevated)]" />
+              <div className="h-8 w-24 rounded bg-[var(--bg-elevated)]" />
+              <div className="h-3 w-20 rounded bg-[var(--bg-elevated)]" />
             </div>
           ))}
         </div>
@@ -83,50 +83,50 @@ export default function FeedbackPage() {
   return (
     <div className="p-6 max-w-5xl">
       <h1 className="text-white font-bold text-2xl mb-2">Org Feedback</h1>
-      <p className="text-[#525252] text-sm mb-8">Organizer feedback inbox plus assistant rating signals.</p>
+      <p className="text-[var(--text-muted)] text-sm mb-8">Organizer feedback inbox plus assistant rating signals.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Organizer Feedback</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Organizer Feedback</p>
           <p className="text-white text-4xl font-bold">{data.total}</p>
-          <p className="text-[#525252] text-xs mt-1">total submissions</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">total submissions</p>
         </div>
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Unread</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Unread</p>
           <p className="text-[#C8F55A] text-4xl font-bold">{data.unreadCount}</p>
-          <p className="text-[#525252] text-xs mt-1">need review</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">need review</p>
         </div>
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Assistant Ratings</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Assistant Ratings</p>
           <p className="text-white text-4xl font-bold">{data.totalFeedback}</p>
-          <p className="text-[#525252] text-xs mt-1">total responses</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">total responses</p>
         </div>
       </div>
 
       <h2 className="text-white font-semibold mb-4">Organizer Inbox</h2>
       {data.items.length === 0 ? (
-        <p className="text-[#525252] text-sm mb-8">No organizer feedback yet.</p>
+        <p className="text-[var(--text-muted)] text-sm mb-8">No organizer feedback yet.</p>
       ) : (
         <div className="space-y-3 mb-8">
           {data.items.map((item) => (
-            <div key={item.id} className="border border-[#2A2A2A] rounded-xl p-4 bg-[#141414]">
+            <div key={item.id} className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)]">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-xs rounded-full border border-[#2A2A2A] bg-[#0A0A0A] px-2 py-1 text-[#C8F55A] uppercase">
+                <span className="text-xs rounded-full border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1 text-[var(--accent)] uppercase">
                   {item.type}
                 </span>
-                <span className="text-xs rounded-full border border-[#2A2A2A] px-2 py-1 text-[#A3A3A3] uppercase">
+                <span className="text-xs rounded-full border border-[var(--border)] px-2 py-1 text-[var(--text-secondary)] uppercase">
                   {item.status}
                 </span>
                 {typeof item.rating === "number" && (
-                  <span className="text-xs text-[#A3A3A3]">{item.rating}/5</span>
+                  <span className="text-xs text-[var(--text-secondary)]">{item.rating}/5</span>
                 )}
-                <span className="ml-auto text-xs text-[#525252]">
+                <span className="ml-auto text-xs text-[var(--text-muted)]">
                   {new Date(item.createdAt).toLocaleDateString("en-KE")}
                 </span>
               </div>
               <h3 className="text-white font-medium mb-1">{item.subject}</h3>
-              <p className="text-[#A3A3A3] text-sm mb-2 whitespace-pre-wrap">{item.message}</p>
-              <p className="text-xs text-[#525252]">
+              <p className="text-[var(--text-secondary)] text-sm mb-2 whitespace-pre-wrap">{item.message}</p>
+              <p className="text-xs text-[var(--text-muted)]">
                 {item.organizer.name ?? "Anonymous organizer"}
                 {item.organizer.email ? ` - ${item.organizer.email}` : ""}
               </p>
@@ -136,24 +136,24 @@ export default function FeedbackPage() {
       )}
 
       <h2 className="text-white font-semibold mb-4">Assistant Feedback</h2>
-      <p className="text-[#525252] text-sm mb-6">User ratings from session limit prompts</p>
+      <p className="text-[var(--text-muted)] text-sm mb-6">User ratings from session limit prompts</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Average Rating</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Average Rating</p>
           <p className="text-[#C8F55A] text-4xl font-bold">{data.averageRating}</p>
-          <p className="text-[#525252] text-xs mt-1">out of 5</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">out of 5</p>
         </div>
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Total Ratings</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Total Ratings</p>
           <p className="text-white text-4xl font-bold">{data.totalFeedback}</p>
         </div>
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">Distribution</p>
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">Distribution</p>
           {data.ratingDistribution.map((rating) => (
             <div key={rating.stars} className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-[#525252] w-10">{rating.stars}/5</span>
-              <div className="flex-1 bg-[#0A0A0A] rounded h-1.5">
+              <span className="text-xs text-[var(--text-muted)] w-10">{rating.stars}/5</span>
+              <div className="flex-1 bg-[var(--bg-input)] rounded h-1.5">
                 <div
                   className="bg-[#C8F55A] h-1.5 rounded"
                   style={{
@@ -161,7 +161,7 @@ export default function FeedbackPage() {
                   }}
                 />
               </div>
-              <span className="text-xs text-[#525252] w-4">{rating.count}</span>
+              <span className="text-xs text-[var(--text-muted)] w-4">{rating.count}</span>
             </div>
           ))}
         </div>
@@ -169,19 +169,19 @@ export default function FeedbackPage() {
 
       <h2 className="text-white font-semibold mb-4">Recent Assistant Comments</h2>
       {data.recentComments.length === 0 ? (
-        <p className="text-[#525252] text-sm">No comments yet.</p>
+        <p className="text-[var(--text-muted)] text-sm">No comments yet.</p>
       ) : (
         <div className="space-y-3">
           {data.recentComments.map((comment, index) => (
-            <div key={index} className="border border-[#2A2A2A] rounded-xl p-4 bg-[#141414]">
+            <div key={index} className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)]">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm">{STARS[comment.rating - 1] ?? "*"}</span>
-                <span className="text-xs text-[#A3A3A3]">{comment.rating}/5</span>
-                <span className="text-[#525252] text-xs">
+                <span className="text-xs text-[var(--text-secondary)]">{comment.rating}/5</span>
+                <span className="text-[var(--text-muted)] text-xs">
                   {new Date(comment.createdAt).toLocaleDateString("en-KE")}
                 </span>
               </div>
-              <p className="text-[#A3A3A3] text-sm">{comment.comment}</p>
+              <p className="text-[var(--text-secondary)] text-sm">{comment.comment}</p>
             </div>
           ))}
         </div>

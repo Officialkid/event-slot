@@ -91,17 +91,17 @@ export default function AdminCommsPage() {
   return (
     <div style={{ maxWidth: 920 }}>
       <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "#F0EDE6", margin: 0 }}>
+        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "var(--text-primary)", margin: 0 }}>
           Comms
         </h1>
-        <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
+        <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
           Post public announcements that appear on the comms board and as platform notifications.
         </p>
       </div>
 
       <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
-        <section style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 14, padding: "1.25rem" }}>
-          <h2 style={{ margin: "0 0 1rem", color: "#F0EDE6", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 14, padding: "1.25rem" }}>
+          <h2 style={{ margin: "0 0 1rem", color: "var(--text-primary)", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
             New Announcement
           </h2>
 
@@ -111,7 +111,7 @@ export default function AdminCommsPage() {
           <label style={{ ...labelStyle, marginTop: "0.9rem" }}>Content</label>
           <textarea value={content} onChange={e => setContent(e.target.value)} rows={8} style={{ ...inputStyle, resize: "vertical", minHeight: 180 }} placeholder="Write the announcement content here..." />
 
-          <div style={{ marginTop: "0.9rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ marginTop: "0.9rem", fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
             Preview snippet: {snippet || "No content yet"}
           </div>
 
@@ -123,33 +123,33 @@ export default function AdminCommsPage() {
           </button>
         </section>
 
-        <section style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 14, padding: "1.25rem" }}>
-          <h2 style={{ margin: "0 0 1rem", color: "#F0EDE6", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 14, padding: "1.25rem" }}>
+          <h2 style={{ margin: "0 0 1rem", color: "var(--text-primary)", fontSize: "1rem", fontFamily: "var(--font-dm-sans)" }}>
             Recent Public Notices
           </h2>
           {loading ? (
             <div style={{ display: "grid", gap: "0.75rem" }}>
               {[1, 2, 3].map((i) => (
-                <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.06)", borderRadius: 12, padding: "1rem" }}>
-                  <div style={{ height: 12, width: "48%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.55rem", animation: "pulse 1.4s ease-in-out infinite" }} />
-                  <div style={{ height: 10, width: "92%", borderRadius: 6, background: "#1A1A1A", marginBottom: "0.35rem", animation: "pulse 1.4s ease-in-out infinite" }} />
-                  <div style={{ height: 10, width: "74%", borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite" }} />
+                <div key={i} style={{ background: "var(--surface-muted)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1rem" }}>
+                  <div style={{ height: 12, width: "48%", borderRadius: 6, background: "var(--bg-elevated)", marginBottom: "0.55rem", animation: "pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 10, width: "92%", borderRadius: 6, background: "var(--bg-elevated)", marginBottom: "0.35rem", animation: "pulse 1.4s ease-in-out infinite" }} />
+                  <div style={{ height: 10, width: "74%", borderRadius: 6, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite" }} />
                 </div>
               ))}
             </div>
           ) : announcements.length === 0 ? (
-            <div style={{ color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+            <div style={{ color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
               No announcements published yet.
             </div>
           ) : (
             <div style={{ display: "grid", gap: "0.75rem" }}>
               {announcements.map(item => (
-                <article key={item.id} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.06)", borderRadius: 12, padding: "1rem" }}>
+                <article key={item.id} style={{ background: "var(--surface-muted)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.45rem", flexWrap: "wrap" }}>
-                    <strong style={{ color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "0.95rem" }}>{item.subject}</strong>
-                    <span style={{ color: "rgba(240,237,230,0.3)", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>{new Date(item.createdAt).toLocaleDateString("en-GB")}</span>
+                    <strong style={{ color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.95rem" }}>{item.subject}</strong>
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)" }}>{new Date(item.createdAt).toLocaleDateString("en-GB")}</span>
                   </div>
-                  <p style={{ margin: 0, color: "rgba(240,237,230,0.6)", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>{item.content}</p>
+                  <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>{item.content}</p>
                 </article>
               ))}
             </div>
@@ -163,7 +163,7 @@ export default function AdminCommsPage() {
 const labelStyle: React.CSSProperties = {
   display: "block",
   marginBottom: "0.35rem",
-  color: "rgba(240,237,230,0.35)",
+  color: "var(--text-muted)",
   fontSize: "0.72rem",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
@@ -173,9 +173,9 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   borderRadius: 10,
-  border: "0.5px solid rgba(240,237,230,0.1)",
-  background: "#0A0A0A",
-  color: "#F0EDE6",
+  border: "0.5px solid var(--border)",
+  background: "var(--bg-input)",
+  color: "var(--text-primary)",
   padding: "0.75rem 0.9rem",
   fontFamily: "var(--font-dm-sans)",
   fontSize: "0.875rem",

@@ -94,7 +94,7 @@ export default function CountryIntelligence() {
           </svg>
           <div>
             <h1 className="text-white font-bold text-2xl">Country Intelligence</h1>
-            <p className="text-sm text-[#8A8A8A]">
+            <p className="text-sm text-[var(--text-secondary)]">
               Live country coverage for all users, plus a safe backfill for recoverable older accounts.
             </p>
           </div>
@@ -118,19 +118,19 @@ export default function CountryIntelligence() {
           { label: 'Coverage', value: loading ? '...' : `${data?.coveragePercent ?? 0}%` },
           { label: 'Unknown Users', value: loading ? '...' : (data?.unknownUsers?.toLocaleString() ?? '-') },
         ].map((summary) => (
-          <div key={summary.label} className="border border-[#2A2A2A] rounded-xl p-4 bg-[#141414]">
-            <p className="text-[#525252] text-xs mb-1">{summary.label}</p>
+          <div key={summary.label} className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)]">
+            <p className="text-[var(--text-muted)] text-xs mb-1">{summary.label}</p>
             <p className="text-white font-bold text-xl">{String(summary.value)}</p>
           </div>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-        <div className="border border-[#2A2A2A] rounded-2xl bg-[#141414] p-5">
+        <div className="border border-[var(--border)] rounded-2xl bg-[var(--surface)] p-5">
           <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-[0.22em] mb-3">
             Coverage Notes
           </p>
-          <div className="space-y-2 text-sm text-[#B8B8B8]">
+          <div className="space-y-2 text-sm text-[var(--text-secondary)]">
             <p>
               Older accounts without any recorded geo signal cannot be assigned a true country retroactively.
             </p>
@@ -143,17 +143,17 @@ export default function CountryIntelligence() {
           </div>
         </div>
 
-        <div className="border border-[#2A2A2A] rounded-2xl bg-[#141414] p-5">
+        <div className="border border-[var(--border)] rounded-2xl bg-[var(--surface)] p-5">
           <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-[0.22em] mb-3">
             Leaderboard
           </p>
           <div className="space-y-3 text-sm">
             <div>
-              <p className="text-[#6E6E6E] mb-1">Top Country</p>
+              <p className="text-[var(--text-muted)] mb-1">Top Country</p>
               <p className="text-white font-semibold">{loading ? '...' : (data?.topCountry?.countryName ?? '-')}</p>
             </div>
             <div>
-              <p className="text-[#6E6E6E] mb-1">Fastest Growing</p>
+              <p className="text-[var(--text-muted)] mb-1">Fastest Growing</p>
               <p className="text-white font-semibold">{loading ? '...' : (data?.fastestGrowing?.countryName ?? '-')}</p>
             </div>
           </div>
@@ -178,8 +178,8 @@ export default function CountryIntelligence() {
               { label: 'Event-Based Inferences', value: backfillResult.inferredFromOrganizerEvents },
               { label: 'Attendee Email Inferences', value: backfillResult.inferredFromAttendeeRegistrations },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-[#2A2A2A] bg-[#111111] p-4">
-                <p className="text-xs text-[#6E6E6E] mb-1">{item.label}</p>
+              <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+                <p className="text-xs text-[var(--text-muted)] mb-1">{item.label}</p>
                 <p className="text-lg font-semibold text-white">{item.value.toLocaleString()}</p>
               </div>
             ))}
@@ -196,19 +196,19 @@ export default function CountryIntelligence() {
             {data!.recommendations.map((recommendation, index) => (
               <div key={index} className="flex items-start gap-3">
                 <span className="text-[#C8F55A] text-sm mt-0.5">-&gt;</span>
-                <p className="text-[#A3A3A3] text-sm">{recommendation}</p>
+                <p className="text-[var(--text-secondary)] text-sm">{recommendation}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="border border-[#2A2A2A] rounded-xl overflow-hidden">
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
-            <div className="grid grid-cols-6 gap-4 px-5 py-3 bg-[#1E1E1E] border-b border-[#2A2A2A]">
+            <div className="grid grid-cols-6 gap-4 px-5 py-3 bg-[var(--surface-muted)] border-b border-[var(--border)]">
               {['Country', 'Users', 'Organisers', 'Events', '7d Growth', 'Currency'].map((heading) => (
-                <p key={heading} className="text-[#525252] text-xs font-semibold uppercase tracking-wider">
+                <p key={heading} className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
                   {heading}
                 </p>
               ))}
@@ -219,12 +219,12 @@ export default function CountryIntelligence() {
                 <div className="space-y-2 animate-pulse">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="grid grid-cols-6 gap-4 py-2">
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
-                      <div className="h-4 rounded bg-[#1A1A1A]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
+                      <div className="h-4 rounded bg-[var(--bg-elevated)]" />
                     </div>
                   ))}
                 </div>
@@ -232,7 +232,7 @@ export default function CountryIntelligence() {
             )}
 
             {!loading && (data?.countries ?? []).length === 0 && (
-              <div className="px-5 py-8 text-center text-[#525252] text-sm">
+              <div className="px-5 py-8 text-center text-[var(--text-muted)] text-sm">
                 No country data yet.
               </div>
             )}
@@ -240,13 +240,13 @@ export default function CountryIntelligence() {
             {(data?.countries ?? []).map((country) => (
               <div
                 key={country.countryCode}
-                className="grid grid-cols-6 gap-4 px-5 py-4 border-b border-[#2A2A2A] hover:bg-[#1E1E1E] transition-colors"
+                className="grid grid-cols-6 gap-4 px-5 py-4 border-b border-[var(--border)] hover:bg-[var(--surface-muted)] transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{country.flag}</span>
                   <div>
                     <p className="text-white text-sm font-medium">{country.countryName}</p>
-                    <p className="text-[#525252] text-xs">{country.countryCode}</p>
+                    <p className="text-[var(--text-muted)] text-xs">{country.countryCode}</p>
                   </div>
                 </div>
                 <p className="text-white text-sm self-center">{country.userCount.toLocaleString()}</p>
@@ -256,7 +256,7 @@ export default function CountryIntelligence() {
                   {country.growth7d >= 0 ? '+' : ''}
                   {country.growth7d}%
                 </span>
-                <p className="text-[#A3A3A3] text-sm self-center">{country.currency}</p>
+                <p className="text-[var(--text-secondary)] text-sm self-center">{country.currency}</p>
               </div>
             ))}
           </div>

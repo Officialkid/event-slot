@@ -149,12 +149,12 @@ export default function AdminBroadcastPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Email Broadcast</h1>
-        <p className="text-[#A3A3A3] mt-1">Send updates to all users, subscribers, or selected individuals.</p>
+        <p className="text-[var(--text-secondary)] mt-1">Send updates to all users, subscribers, or selected individuals.</p>
       </div>
 
-      <div className="rounded-2xl border border-[#2A2A2A] bg-[#141414] p-6 space-y-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-6">
         <div>
-          <label className="block text-sm mb-2 text-[#A3A3A3]">Mode</label>
+          <label className="block text-sm mb-2 text-[var(--text-secondary)]">Mode</label>
           <div className="grid grid-cols-3 gap-2">
             {(["ALL", "SUBSCRIBED", "INDIVIDUAL"] as const).map((m) => (
               <button
@@ -163,14 +163,14 @@ export default function AdminBroadcastPage() {
                 className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
                   mode === m
                     ? "bg-[#C8F55A] text-black"
-                    : "bg-[#0A0A0A] text-[#A3A3A3] hover:text-white border border-[#2A2A2A]"
+                    : "bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]"
                 }`}
               >
                 {m === "ALL" ? "All users" : m === "SUBSCRIBED" ? "Subscribers" : "Individuals"}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-[#525252]">
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
             {mode === "ALL"
               ? "Sends to every active account with an email address."
               : mode === "SUBSCRIBED"
@@ -180,11 +180,11 @@ export default function AdminBroadcastPage() {
         </div>
 
         {mode !== "INDIVIDUAL" && (
-          <div className="rounded-xl bg-[#0A0A0A] p-4 border border-[#2A2A2A]">
-            <p className="text-sm text-[#A3A3A3]">Recipient preview</p>
+          <div className="rounded-xl bg-[var(--bg-input)] p-4 border border-[var(--border)]">
+            <p className="text-sm text-[var(--text-secondary)]">Recipient preview</p>
             <p className="text-2xl font-bold text-white mt-1">{loadingPreview ? "..." : prettyCount}</p>
             {preview?.sampleRecipients?.length ? (
-              <div className="mt-3 text-xs text-[#525252] space-y-1">
+              <div className="mt-3 text-xs text-[var(--text-muted)] space-y-1">
                 {preview.sampleRecipients.map((u) => (
                   <div key={u.id}>{u.email}</div>
                 ))}
@@ -195,17 +195,17 @@ export default function AdminBroadcastPage() {
 
         {mode === "INDIVIDUAL" && (
           <div className="space-y-3">
-            <label className="block text-sm text-[#A3A3A3]">Find users</label>
+            <label className="block text-sm text-[var(--text-secondary)]">Find users</label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or email"
-              className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
+              className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors w-full"
             />
 
-            <div className="max-h-44 overflow-y-auto rounded-xl border border-[#2A2A2A]">
+            <div className="max-h-44 overflow-y-auto rounded-xl border border-[var(--border)]">
               {foundUsers.length === 0 ? (
-                <p className="p-3 text-sm text-[#525252]">No users found</p>
+                <p className="p-3 text-sm text-[var(--text-muted)]">No users found</p>
               ) : (
                 foundUsers.map((u) => (
                   <button
@@ -216,10 +216,10 @@ export default function AdminBroadcastPage() {
                         setSelectedUsers((prev) => [...prev, u])
                       }
                     }}
-                    className="w-full text-left px-3 py-2 border-b border-[#2A2A2A] hover:bg-[#141414]"
+                    className="w-full text-left px-3 py-2 border-b border-[var(--border)] hover:bg-[var(--surface-muted)]"
                   >
                     <p className="text-sm text-white">{u.name || "No name"}</p>
-                    <p className="text-xs text-[#525252]">{u.email}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{u.email}</p>
                   </button>
                 ))
               )}
@@ -244,29 +244,29 @@ export default function AdminBroadcastPage() {
               </div>
             )}
 
-            <p className="text-xs text-[#525252]">Selected: {selectedUsers.length}</p>
+            <p className="text-xs text-[var(--text-muted)]">Selected: {selectedUsers.length}</p>
           </div>
         )}
 
         <div>
-          <label className="block text-sm mb-1 text-[#A3A3A3]">Subject</label>
+          <label className="block text-sm mb-1 text-[var(--text-secondary)]">Subject</label>
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
+            className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors w-full"
             placeholder="Your subject"
           />
         </div>
 
         <div>
-          <label className="block text-sm mb-1 text-[#A3A3A3]">Message</label>
+          <label className="block text-sm mb-1 text-[var(--text-secondary)]">Message</label>
           <textarea
             value={htmlContent}
             onChange={(e) => setHtmlContent(e.target.value)}
             rows={10}
-            className="bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-4 py-3 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] transition-colors w-full"
+            className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors w-full"
           />
-          <p className="mt-1 text-xs text-[#525252]">Use {"{{name}}"} for personalization.</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Use {"{{name}}"} for personalization.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -277,14 +277,14 @@ export default function AdminBroadcastPage() {
           >
             {sending ? "Sending..." : `Send (${mode})`}
           </button>
-          <span className="text-xs text-[#525252]">
+          <span className="text-xs text-[var(--text-muted)]">
             {mode === "INDIVIDUAL"
               ? `${selectedUsers.length} selected`
               : `${preview?.recipientCount ?? 0} recipients`}
           </span>
         </div>
 
-        {message ? <p className="text-sm text-[#A3A3A3]">{message}</p> : null}
+        {message ? <p className="text-sm text-[var(--text-secondary)]">{message}</p> : null}
       </div>
     </div>
   )

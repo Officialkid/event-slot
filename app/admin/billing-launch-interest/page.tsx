@@ -50,7 +50,7 @@ export default function AdminBillingLaunchInterestPage() {
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div>
         <h1 className="text-white font-bold text-2xl mb-2">Billing Launch Interest</h1>
-        <p className="text-sm text-[#8A8A8A]">
+        <p className="text-sm text-[var(--text-secondary)]">
           People who already want to be notified when EventSlot billing officially opens.
         </p>
       </div>
@@ -63,8 +63,8 @@ export default function AdminBillingLaunchInterestPage() {
           { label: "Organisers", value: data?.summary.organisers ?? 0 },
           { label: "Admins", value: data?.summary.admins ?? 0 },
         ].map((item) => (
-          <div key={item.label} className="border border-[#2A2A2A] rounded-xl p-4 bg-[#141414]">
-            <p className="text-[#525252] text-xs mb-1">{item.label}</p>
+          <div key={item.label} className="border border-[var(--border)] rounded-xl p-4 bg-[var(--surface)]">
+            <p className="text-[var(--text-muted)] text-xs mb-1">{item.label}</p>
             <p className="text-white font-bold text-xl">{loading ? "..." : item.value.toLocaleString()}</p>
           </div>
         ))}
@@ -76,10 +76,10 @@ export default function AdminBillingLaunchInterestPage() {
         </div>
       ) : null}
 
-      <div className="border border-[#2A2A2A] rounded-xl overflow-hidden">
-        <div className="grid grid-cols-6 gap-4 px-5 py-3 bg-[#1E1E1E] border-b border-[#2A2A2A] min-w-[900px]">
+      <div className="border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--surface)]">
+        <div className="grid grid-cols-6 gap-4 px-5 py-3 bg-[var(--surface-muted)] border-b border-[var(--border)] min-w-[900px]">
           {["User", "Email", "Account", "Preview", "Plan", "Updated"].map((heading) => (
-            <p key={heading} className="text-[#525252] text-xs font-semibold uppercase tracking-wider">
+            <p key={heading} className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
               {heading}
             </p>
           ))}
@@ -93,25 +93,25 @@ export default function AdminBillingLaunchInterestPage() {
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="grid grid-cols-6 gap-4 py-2">
                       {Array.from({ length: 6 }).map((_, index) => (
-                        <div key={index} className="h-4 rounded bg-[#1A1A1A]" />
+                        <div key={index} className="h-4 rounded bg-[var(--bg-elevated)]" />
                       ))}
                     </div>
                   ))}
                 </div>
               </div>
             ) : (data?.interests.length ?? 0) === 0 ? (
-              <div className="px-5 py-8 text-center text-[#525252] text-sm">
+              <div className="px-5 py-8 text-center text-[var(--text-muted)] text-sm">
                 No launch-interest signups yet.
               </div>
             ) : (
               data?.interests.map((interest) => (
-                <div key={interest.id} className="grid grid-cols-6 gap-4 px-5 py-4 border-b border-[#1E1E1E] text-sm">
+                <div key={interest.id} className="grid grid-cols-6 gap-4 px-5 py-4 border-b border-[var(--border-subtle)] text-sm">
                   <div className="text-white">{interest.name ?? "Unnamed user"}</div>
-                  <div className="text-[#A3A3A3] break-all">{interest.email}</div>
-                  <div className="text-[#D8ECFF] capitalize">{(interest.accountType ?? "organiser").replaceAll("_", " ")}</div>
+                  <div className="text-[var(--text-secondary)] break-all">{interest.email}</div>
+                  <div className="text-[var(--text-primary)] capitalize">{(interest.accountType ?? "organiser").replaceAll("_", " ")}</div>
                   <div className="text-[#C8F55A] capitalize">{interest.previewMode ?? "visuals"}</div>
-                  <div className="text-[#A3A3A3] uppercase">{interest.user?.plan ?? "-"}</div>
-                  <div className="text-[#7A7A7A]">{new Date(interest.updatedAt).toLocaleString("en-GB")}</div>
+                  <div className="text-[var(--text-secondary)] uppercase">{interest.user?.plan ?? "-"}</div>
+                  <div className="text-[var(--text-muted)]">{new Date(interest.updatedAt).toLocaleString("en-GB")}</div>
                 </div>
               ))
             )}

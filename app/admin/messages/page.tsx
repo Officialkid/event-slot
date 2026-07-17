@@ -61,18 +61,18 @@ export default function AdminMessagesPage() {
       ? { label: "Announcement", bg: "rgba(200,245,90,0.12)", color: "#C8F55A" }
       : message.kind === "email_broadcast"
         ? { label: "Email Broadcast", bg: "rgba(138,180,255,0.14)", color: "#8AB4FF" }
-        : { label: "Feedback", bg: "rgba(240,237,230,0.06)", color: "rgba(240,237,230,0.55)" }
+        : { label: "Feedback", bg: "var(--surface-muted)", color: "var(--text-secondary)" }
 
   const skeletonCards = [1, 2, 3]
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.4rem", flexWrap: "wrap" }}>
-        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "#F0EDE6" }}>
+        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "var(--text-primary)" }}>
           Messages
         </h1>
       </div>
-      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
+      <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
         Public announcements, email broadcasts, and user feedback submitted through the platform.
       </p>
 
@@ -85,9 +85,9 @@ export default function AdminMessagesPage() {
             style={{
               padding: "0.35rem 0.85rem",
               borderRadius: 100,
-              border: "0.5px solid " + (filter === t.key ? "rgba(200,245,90,0.4)" : "rgba(240,237,230,0.1)"),
-              background: filter === t.key ? "rgba(200,245,90,0.1)" : "transparent",
-              color: filter === t.key ? "#C8F55A" : "rgba(240,237,230,0.45)",
+              border: "0.5px solid " + (filter === t.key ? "var(--border-emphasis)" : "var(--border)"),
+              background: filter === t.key ? "var(--accent-dim)" : "transparent",
+              color: filter === t.key ? "var(--accent)" : "var(--text-secondary)",
               fontSize: "0.78rem",
               fontFamily: "var(--font-dm-sans)",
               cursor: "pointer",
@@ -104,24 +104,24 @@ export default function AdminMessagesPage() {
             <div
               key={`skeleton-${card}`}
               style={{
-                background: "#111",
-                border: "0.5px solid rgba(240,237,230,0.07)",
+                background: "var(--surface)",
+                border: "0.5px solid var(--border-subtle)",
                 borderRadius: 12,
                 padding: "1.25rem 1.5rem",
               }}
             >
               <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-                <div style={{ height: 20, width: 92, borderRadius: 100, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite" }} />
-                <div style={{ height: 12, width: 120, borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 20, width: 92, borderRadius: 100, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite" }} />
+                <div style={{ height: 12, width: 120, borderRadius: 6, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite" }} />
               </div>
-              <div style={{ height: 14, width: "58%", borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite", marginBottom: "0.55rem" }} />
-              <div style={{ height: 10, width: "92%", borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite", marginBottom: "0.4rem" }} />
-              <div style={{ height: 10, width: "80%", borderRadius: 6, background: "#1A1A1A", animation: "pulse 1.4s ease-in-out infinite" }} />
+              <div style={{ height: 14, width: "58%", borderRadius: 6, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite", marginBottom: "0.55rem" }} />
+              <div style={{ height: 10, width: "92%", borderRadius: 6, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite", marginBottom: "0.4rem" }} />
+              <div style={{ height: 10, width: "80%", borderRadius: 6, background: "var(--bg-elevated)", animation: "pulse 1.4s ease-in-out infinite" }} />
             </div>
           ))}
         </div>
       ) : messages.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "3rem 0", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
+        <div style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
           No messages found.
         </div>
       ) : (
@@ -132,8 +132,8 @@ export default function AdminMessagesPage() {
               <article
                 key={msg.id}
                 style={{
-                  background: "#111",
-                  border: "0.5px solid rgba(240,237,230,0.07)",
+                  background: "var(--surface)",
+                  border: "0.5px solid var(--border-subtle)",
                   borderRadius: 12,
                   padding: "1.25rem 1.5rem",
                 }}
@@ -142,22 +142,22 @@ export default function AdminMessagesPage() {
                   <span style={{ fontSize: "0.65rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", padding: "0.15rem 0.5rem", borderRadius: 100, background: badge.bg, color: badge.color, fontFamily: "var(--font-dm-sans)" }}>
                     {badge.label}
                   </span>
-                  <span style={{ fontSize: "0.82rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                  <span style={{ fontSize: "0.82rem", fontWeight: 500, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
                     {msg.author?.name ?? msg.author?.email ?? "Anonymous"}
                   </span>
                   {msg.author?.email && (
-                    <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", overflowWrap: "anywhere" }}>
+                    <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", overflowWrap: "anywhere" }}>
                       {msg.author.email}
                     </span>
                   )}
-                  <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)" }}>
+                  <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                     {new Date(msg.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                 </div>
-                <h2 style={{ margin: "0 0 0.55rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "1rem" }}>
+                <h2 style={{ margin: "0 0 0.55rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", fontSize: "1rem" }}>
                   {msg.subject}
                 </h2>
-                <p style={{ fontSize: "0.875rem", color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
                   {msg.content}
                 </p>
               </article>

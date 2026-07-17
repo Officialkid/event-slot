@@ -28,12 +28,12 @@ function StatCard({
   label: string; value: string; sub?: string; accent?: boolean
 }) {
   return (
-    <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-      <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">{label}</p>
-      <p className={`text-3xl font-bold mb-1 ${accent ? "text-[#C8F55A]" : "text-white"}`}>
+    <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+      <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">{label}</p>
+      <p className={`text-3xl font-bold mb-1 ${accent ? "text-[var(--accent)]" : "text-[var(--text-primary)]"}`}>
         {value}
       </p>
-      {sub && <p className="text-[#525252] text-xs">{sub}</p>}
+      {sub && <p className="text-[var(--text-muted)] text-xs">{sub}</p>}
     </div>
   )
 }
@@ -52,14 +52,14 @@ export default function RevenuePage() {
   if (loading) {
     return (
       <div className="p-6 max-w-6xl animate-pulse space-y-4">
-        <div className="h-6 w-40 rounded bg-[#1A1A1A]" />
-        <div className="h-4 w-72 rounded bg-[#1A1A1A]" />
+        <div className="h-6 w-40 rounded bg-[var(--bg-elevated)]" />
+        <div className="h-4 w-72 rounded bg-[var(--bg-elevated)]" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] space-y-3">
-              <div className="h-3 w-20 rounded bg-[#1A1A1A]" />
-              <div className="h-8 w-28 rounded bg-[#1A1A1A]" />
-              <div className="h-3 w-24 rounded bg-[#1A1A1A]" />
+            <div key={i} className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)] space-y-3">
+              <div className="h-3 w-20 rounded bg-[var(--bg-elevated)]" />
+              <div className="h-8 w-28 rounded bg-[var(--bg-elevated)]" />
+              <div className="h-3 w-24 rounded bg-[var(--bg-elevated)]" />
             </div>
           ))}
         </div>
@@ -73,7 +73,7 @@ export default function RevenuePage() {
   return (
     <div className="p-6 max-w-6xl">
       <h1 className="text-white font-bold text-2xl mb-2">Revenue</h1>
-      <p className="text-[#525252] text-sm mb-8">
+      <p className="text-[var(--text-muted)] text-sm mb-8">
         Token economy — 1 token = KSh 5 · Super admins enjoy unlimited free access to all features
       </p>
 
@@ -106,26 +106,26 @@ export default function RevenuePage() {
       {/* Feature breakdown */}
       <h2 className="text-white font-semibold mb-4">Token Usage by Feature</h2>
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">
             Document Generation
           </p>
           <p className="text-white text-2xl font-bold mb-1">
             {data.tokensOnDocuments} tokens
           </p>
-          <p className="text-[#525252] text-xs">
+          <p className="text-[var(--text-muted)] text-xs">
             {Math.floor(data.tokensOnDocuments / 20)} documents generated
             · KSh {(data.tokensOnDocuments * 5).toLocaleString()} revenue
           </p>
         </div>
-        <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414]">
-          <p className="text-[#525252] text-xs uppercase tracking-wider mb-3">
+        <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)]">
+          <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider mb-3">
             Voice Transcription
           </p>
           <p className="text-white text-2xl font-bold mb-1">
             {data.tokensOnVoice} tokens
           </p>
-          <p className="text-[#525252] text-xs">
+          <p className="text-[var(--text-muted)] text-xs">
             {Math.floor(data.tokensOnVoice / 10)} paid transcriptions
             · KSh {(data.tokensOnVoice * 5).toLocaleString()} revenue
           </p>
@@ -134,9 +134,9 @@ export default function RevenuePage() {
 
       {/* Monthly token revenue chart */}
       <h2 className="text-white font-semibold mb-4">Monthly Token Revenue</h2>
-      <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] mb-10">
+      <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)] mb-10">
         {data.monthlyPurchases.length === 0 ? (
-          <p className="text-[#525252] text-sm">No token purchases yet.</p>
+          <p className="text-[var(--text-muted)] text-sm">No token purchases yet.</p>
         ) : (
           <div className="space-y-3">
             {data.monthlyPurchases.map((m, i) => {
@@ -144,8 +144,8 @@ export default function RevenuePage() {
               const pct    = maxKsh > 0 ? (m.ksh / maxKsh) * 100 : 0
               return (
                 <div key={i} className="flex items-center gap-3">
-                  <span className="text-[#525252] text-xs w-20 shrink-0">{m.month}</span>
-                  <div className="flex-1 bg-[#0A0A0A] rounded-full h-2">
+                  <span className="text-[var(--text-muted)] text-xs w-20 shrink-0">{m.month}</span>
+                  <div className="flex-1 bg-[var(--bg-input)] rounded-full h-2">
                     <div
                       className="bg-[#C8F55A] h-2 rounded-full transition-all"
                       style={{ width: `${pct}%` }}
@@ -184,15 +184,15 @@ export default function RevenuePage() {
       {data.creditsByMonth.length > 0 && (
         <>
           <h2 className="text-white font-semibold mb-4">Monthly Credit Revenue</h2>
-          <div className="border border-[#2A2A2A] rounded-xl p-5 bg-[#141414] mb-8">
+          <div className="border border-[var(--border)] rounded-xl p-5 bg-[var(--surface)] mb-8">
             <div className="space-y-3">
               {data.creditsByMonth.map((m, i) => {
                 const maxRev = Math.max(...data.creditsByMonth.map(x => x.revenue))
                 const pct    = maxRev > 0 ? (m.revenue / maxRev) * 100 : 0
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-[#525252] text-xs w-20 shrink-0">{m.month}</span>
-                    <div className="flex-1 bg-[#0A0A0A] rounded-full h-2">
+                    <span className="text-[var(--text-muted)] text-xs w-20 shrink-0">{m.month}</span>
+                    <div className="flex-1 bg-[var(--bg-input)] rounded-full h-2">
                       <div
                         className="bg-[#C8F55A]/40 h-2 rounded-full transition-all"
                         style={{ width: `${pct}%` }}

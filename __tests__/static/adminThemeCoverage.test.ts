@@ -7,7 +7,16 @@ describe("admin theme coverage", () => {
   it.each([
     "app/admin/layout.tsx",
     "app/admin/AdminSidebar.tsx",
+    "app/admin/billing-launch-interest/page.tsx",
+    "app/admin/broadcast/page.tsx",
+    "app/admin/comms/page.tsx",
+    "app/admin/conversations/page.tsx",
+    "app/admin/countries/page.tsx",
     "app/admin/events/page.tsx",
+    "app/admin/feedback/page.tsx",
+    "app/admin/messages/page.tsx",
+    "app/admin/revenue/page.tsx",
+    "app/admin/updates/page.tsx",
   ])("keeps %s on semantic neutral theme values", (relativePath) => {
     const source = readFileSync(path.join(root, relativePath), "utf8")
 

@@ -65,8 +65,8 @@ export default function ConversationsPage() {
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col lg:flex-row">
       {/* Sidebar */}
-      <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-[#2A2A2A] flex flex-col shrink-0">
-        <div className="p-4 border-b border-[#2A2A2A]">
+      <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-[var(--border)] flex flex-col shrink-0">
+        <div className="p-4 border-b border-[var(--border)]">
           <h1 className="text-white font-bold text-base mb-3">
             Assistant Conversations
           </h1>
@@ -81,7 +81,7 @@ export default function ConversationsPage() {
                              ? f === "flagged"
                                ? "bg-red-900/30 text-red-400 border-red-800"
                                : "bg-[#C8F55A]/10 text-[#C8F55A] border-[#C8F55A]/30"
-                             : "border-[#2A2A2A] text-[#525252]"
+                             : "border-[var(--border)] text-[var(--text-muted)]"
                            }`}
               >
                 {f === "flagged" ? `Flagged (${flagged})` : `All (${total})`}
@@ -97,15 +97,15 @@ export default function ConversationsPage() {
           {loading && (
             <div className="p-4 space-y-2 animate-pulse">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="rounded-lg border border-[#2A2A2A] bg-[#141414] p-3">
-                  <div className="h-3 w-32 rounded bg-[#1A1A1A] mb-2" />
-                  <div className="h-2.5 w-40 rounded bg-[#1A1A1A]" />
+                <div key={i} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+                  <div className="h-3 w-32 rounded bg-[var(--bg-elevated)] mb-2" />
+                  <div className="h-2.5 w-40 rounded bg-[var(--bg-elevated)]" />
                 </div>
               ))}
             </div>
           )}
           {!loading && sessions.length === 0 && (
-            <p className="p-4 text-[#525252] text-sm">
+            <p className="p-4 text-[var(--text-muted)] text-sm">
               {filter === "flagged" ? "No flagged conversations yet." : "No conversations yet."}
             </p>
           )}
@@ -113,9 +113,9 @@ export default function ConversationsPage() {
             <button
               key={s.id}
               onClick={() => setSelected(s)}
-              className={`w-full text-left p-4 border-b border-[#2A2A2A]
-                         hover:bg-[#1E1E1E] transition-colors
-                         ${selected?.id === s.id ? "bg-[#1E1E1E]" : ""}`}
+              className={`w-full text-left p-4 border-b border-[var(--border)]
+                         hover:bg-[var(--surface-muted)] transition-colors
+                         ${selected?.id === s.id ? "bg-[var(--surface-muted)]" : ""}`}
             >
               <div className="flex items-center justify-between mb-1">
                 <span className="text-white text-xs font-medium">
@@ -128,16 +128,16 @@ export default function ConversationsPage() {
                 )}
               </div>
               {s.flagReason && (
-                <p className="text-[#525252] text-xs truncate mb-1">{s.flagReason}</p>
+                <p className="text-[var(--text-muted)] text-xs truncate mb-1">{s.flagReason}</p>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-[#525252] text-xs">
+                <span className="text-[var(--text-muted)] text-xs">
                   {new Date(s.startedAt).toLocaleDateString("en-KE")}
                 </span>
-                <span className="text-[#525252] text-xs">- {s.messageCount} msgs</span>
+                <span className="text-[var(--text-muted)] text-xs">- {s.messageCount} msgs</span>
                 <span className={`text-xs ml-auto ${
                   s.status === "FLAGGED" ? "text-red-400" :
-                  s.status === "ENDED"   ? "text-[#525252]" : "text-[#22C55E]"
+                  s.status === "ENDED"   ? "text-[var(--text-muted)]" : "text-[#22C55E]"
                 }`}>
                   {s.status}
                 </span>
@@ -151,11 +151,11 @@ export default function ConversationsPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {selected ? (
           <>
-            <div className="p-4 border-b border-[#2A2A2A]">
+            <div className="p-4 border-b border-[var(--border)]">
               <h2 className="text-white font-semibold text-sm">
                 {selected.channel === "VOICE" ? "Voice" : "Text"} Session
               </h2>
-              <p className="text-[#525252] text-xs">
+              <p className="text-[var(--text-muted)] text-xs">
                 {new Date(selected.startedAt).toLocaleString("en-KE")}
                 {selected.flagReason && (
                   <span className="ml-3 text-red-400">
@@ -172,10 +172,10 @@ export default function ConversationsPage() {
                 >
                   <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm
                     ${msg.role === "USER"
-                      ? "bg-[#2A2A2A] text-white rounded-br-sm"
-                      : "bg-[#C8F55A]/10 text-[#E5E5E5] border border-[#C8F55A]/20 rounded-bl-sm"
+                      ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] rounded-br-sm"
+                      : "bg-[var(--accent-dim)] text-[var(--text-primary)] border border-[var(--border-emphasis)] rounded-bl-sm"
                     }`}>
-                    <p className="text-[#525252] text-xs mb-1">
+                    <p className="text-[var(--text-muted)] text-xs mb-1">
                       {msg.role === "USER" ? "User" : "EventSlot Assistant"}
                       {msg.isVoice && " (voice)"}
                     </p>
@@ -187,7 +187,7 @@ export default function ConversationsPage() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-[#525252] text-sm">Select a conversation to view</p>
+            <p className="text-[var(--text-muted)] text-sm">Select a conversation to view</p>
           </div>
         )}
       </div>
