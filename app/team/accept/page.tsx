@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { purgeUserCache } from '@/lib/cache'
 import Link from 'next/link'
 
 interface Props {
@@ -72,6 +73,8 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
     where: { inviteToken: token },
     data: { memberId: session.user.id, status: 'accepted' },
   })
+
+  purgeUserCache(session.user.id, session.user.email ?? null)
 
   const ownerName = invite.owner.name || invite.owner.email || 'the organiser'
   const assignedEvent = invite.eventAccess[0]?.event

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { purgeUserCache } from '@/lib/cache'
 
 export async function DELETE(_req: NextRequest, props: { params: Promise<{ memberId: string }> }) {
   const params = await props.params;
@@ -15,7 +16,11 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ membe
 
     const record = await prisma.teamMember.findUnique({
       where: { id: memberId },
-      select: { ownerId: true },
+      select: {
+        ownerId: true,
+        memberId: true,
+        member: { select: { email: true } },
+      },
     })
 
     if (!record) {
@@ -27,6 +32,10 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ membe
     }
 
     await prisma.teamMember.delete({ where: { id: memberId } })
+
+    if (record.memberId) {
+      purgeUserCache(record.memberId, record.member?.email ?? null)
+    }
 
     return NextResponse.json({ ok: true })
   } catch {

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { purgeUserCache } from '@/lib/cache'
 
 // GET /api/events/[slug]/team — list team members who have access to this event
 export async function GET(_req: Request, props: { params: Promise<{ slug: string }> }) {
@@ -72,9 +73,21 @@ export async function DELETE(req: Request, props: { params: Promise<{ slug: stri
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
+    const teamMember = await prisma.teamMember.findUnique({
+      where: { id: memberId },
+      select: {
+        memberId: true,
+        member: { select: { email: true } },
+      },
+    })
+
     await prisma.teamMemberEvent.deleteMany({
       where: { teamMemberId: memberId, eventId: event.id },
     })
+
+    if (teamMember?.memberId) {
+      purgeUserCache(teamMember.memberId, teamMember.member?.email ?? null)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

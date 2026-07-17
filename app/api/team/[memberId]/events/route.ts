@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { purgeUserCache } from '@/lib/cache'
 
 interface Ctx { params: Promise<{ memberId: string }> }
 
@@ -44,7 +45,13 @@ export async function PUT(req: NextRequest, props: Ctx) {
 
     const record = await prisma.teamMember.findUnique({
       where: { id: params.memberId },
-      select: { id: true, ownerId: true, status: true },
+      select: {
+        id: true,
+        ownerId: true,
+        status: true,
+        memberId: true,
+        member: { select: { email: true } },
+      },
     })
 
     if (!record || record.ownerId !== session.user.id) {
@@ -74,6 +81,10 @@ export async function PUT(req: NextRequest, props: Ctx) {
           })]
         : []),
     ])
+
+    if (record.memberId) {
+      purgeUserCache(record.memberId, record.member?.email ?? null)
+    }
 
     return NextResponse.json({ ok: true, assigned: eventIds.length })
   } catch (err) {
