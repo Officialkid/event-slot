@@ -1,5 +1,34 @@
 # EventSlot — Changelog
 
+## [0.4.76] — July 17, 2026
+
+### Event Analytics Export Polish & Response PDF Readability
+
+- **`app/(organizer)/dashboard/events/[slug]/page.tsx`** — refined the organizer event exports/reporting language so the surface reads as an export workflow instead of repeating “Generate Report” in multiple places:
+  - renamed the overview report panel to **Export centre**
+  - changed the header shortcut CTA from report-first wording to **Prepare exports / Open exports**
+  - added clearer quick actions for **Export CSV data**, **Export PDF responses**, and **Export report (.docx)**
+  - renamed waitlist export actions to match the confirmed-registration export language
+- **Insights tab upgraded for decision-making** in `app/(organizer)/dashboard/events/[slug]/page.tsx`:
+  - added a **Top priority** card that promotes the most urgent insight
+  - added a **Recommended next moves** panel so organisers can act on the strongest follow-up signals faster
+  - softened card shadows and export accents to improve readability in light theme
+- **`components/pdf/RegistrationResponsesPdf.tsx`** — improved the individual response PDF layout for long answers:
+  - reduced over-aggressive font shrinking for medium and long responses
+  - increased line-height across response text styles so dense answers remain readable instead of looking squeezed
+  - raised the length thresholds before compact text styles are applied
+- **`app/globals.css`** — improved mobile layout for analytics and export actions:
+  - export buttons now stack cleanly on smaller screens
+  - analytics stat cards and insight grids collapse to single-column layouts on mobile
+  - the featured insight card spans more space on desktop for better hierarchy
+
+### Verification Notes
+
+- `npx tsc --noEmit` passed locally on Friday, July 17, 2026.
+- `npm run build` completed compilation and TypeScript, then remained stuck during static page generation (`Generating static pages using 3 workers (44/179)`), so a full production build remains unverified and still needs deeper investigation.
+
+---
+
 ## [0.4.75] — May 26, 2026
 
 ### MD-PLAYSTORE-01 Parts 13–14 — Version Strategy & Mobile Install Button
