@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: 36,
     paddingBottom: 48,
-    paddingHorizontal: 56,
+    paddingHorizontal: 44,
     fontFamily: 'Helvetica',
     fontSize: 10,
     color: '#202124',
@@ -124,7 +124,14 @@ const styles = StyleSheet.create({
 
   // Question + answer block
   qaBlock: {
-    marginBottom: 20,
+    marginBottom: 18,
+  },
+  answerCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
   },
   questionLabel: {
     fontSize: 9,
@@ -137,6 +144,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#202124',
     lineHeight: 1.6,
+    fontFamily: 'Helvetica',
+  },
+  answerTextCompact: {
+    fontSize: 10.2,
+    color: '#202124',
+    lineHeight: 1.55,
+    fontFamily: 'Helvetica',
+  },
+  answerTextSmall: {
+    fontSize: 9.5,
+    color: '#202124',
+    lineHeight: 1.5,
     fontFamily: 'Helvetica',
   },
   answerEmpty: {
@@ -178,6 +197,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+function getAnswerTextStyle(answer: string | null) {
+  const normalized = (answer ?? '').trim();
+  if (normalized.length > 900) return styles.answerTextSmall;
+  if (normalized.length > 420) return styles.answerTextCompact;
+  return styles.answerText;
+}
 
 // Single response page
 const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; exportedAt: string }> = ({
@@ -222,11 +248,13 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
         <View key={qa.questionId}>
           <View style={styles.qaBlock}>
             <Text style={styles.questionLabel}>{qa.label}</Text>
-            {qa.answer && qa.answer.trim() !== '' ? (
-              <Text style={styles.answerText}>{qa.answer}</Text>
-            ) : (
-              <Text style={styles.answerEmpty}>No answer provided</Text>
-            )}
+            <View style={styles.answerCard}>
+              {qa.answer && qa.answer.trim() !== '' ? (
+                <Text style={getAnswerTextStyle(qa.answer)}>{qa.answer}</Text>
+              ) : (
+                <Text style={styles.answerEmpty}>No answer provided</Text>
+              )}
+            </View>
           </View>
           {i < reg.questionAnswers.length - 1 && (
             <View style={styles.divider} />

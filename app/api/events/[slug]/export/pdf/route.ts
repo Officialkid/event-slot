@@ -65,6 +65,14 @@ function buildFallbackResponsesPdf(params: {
   const marginX = 42
   const topY = 42
   const lineHeight = 15
+  const answerBoxPaddingX = 12
+  const answerBoxPaddingY = 10
+
+  const getAnswerFontSize = (answer: string) => {
+    if (answer.length > 900) return 9.5
+    if (answer.length > 420) return 10.2
+    return 11
+  }
 
   const ensureSpace = (y: number, needed: number) => {
     if (y + needed <= pageHeight - 48) return y
@@ -131,7 +139,7 @@ function buildFallbackResponsesPdf(params: {
       y += 16
     } else {
       for (const qa of reg.questionAnswers) {
-        y = ensureSpace(y, 56)
+        y = ensureSpace(y, 78)
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(9)
         doc.setTextColor(95, 99, 104)
@@ -139,12 +147,20 @@ function buildFallbackResponsesPdf(params: {
         doc.text(labelLines, marginX, y)
         y += labelLines.length * 12
 
+        const answerText = qa.answer?.trim() || 'No answer provided'
+        const answerFontSize = getAnswerFontSize(answerText)
+        const answerLineHeight = answerFontSize >= 11 ? lineHeight : answerFontSize >= 10 ? 14 : 13
+        const answerLines = doc.splitTextToSize(answerText, pageWidth - marginX * 2 - answerBoxPaddingX * 2)
+        const answerBoxHeight = answerBoxPaddingY * 2 + answerLines.length * answerLineHeight
+
+        y = ensureSpace(y, answerBoxHeight + 26)
+        doc.setFillColor(248, 249, 250)
+        doc.roundedRect(marginX, y, pageWidth - marginX * 2, answerBoxHeight, 8, 8, 'F')
         doc.setFont('helvetica', qa.answer ? 'normal' : 'italic')
-        doc.setFontSize(11)
+        doc.setFontSize(answerFontSize)
         doc.setTextColor(32, 33, 36)
-        const answerLines = doc.splitTextToSize(qa.answer?.trim() || 'No answer provided', pageWidth - marginX * 2)
-        doc.text(answerLines, marginX, y)
-        y += answerLines.length * lineHeight + 8
+        doc.text(answerLines, marginX + answerBoxPaddingX, y + answerBoxPaddingY + answerFontSize - 1)
+        y += answerBoxHeight + 10
 
         doc.setDrawColor(218, 220, 224)
         doc.line(marginX, y, pageWidth - marginX, y)

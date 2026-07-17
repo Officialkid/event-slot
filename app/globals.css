@@ -68,9 +68,9 @@ html[data-theme="light"] {
   --border: #D8D8D0;
   --border-subtle: rgba(23, 23, 23, 0.12);
 
-  --accent: #A2CD2E;
-  --accent-hover: #93BD25;
-  --accent-dim: rgba(162, 205, 46, 0.12);
+  --accent: #6F8F12;
+  --accent-hover: #5F7A0F;
+  --accent-dim: rgba(111, 143, 18, 0.14);
 
   --text-primary: #171717;
   --text-secondary: #4B5563;
@@ -87,7 +87,7 @@ html[data-theme="light"] {
   --surface-hover: var(--bg-elevated);
   --text-hint: var(--text-muted);
   --accent-muted: var(--accent-dim);
-  --border-emphasis: rgba(162, 205, 46, 0.3);
+  --border-emphasis: rgba(111, 143, 18, 0.28);
 }
 
 html {

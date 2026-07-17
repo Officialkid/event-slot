@@ -257,6 +257,10 @@ const themeBorderSoft = "1px solid color-mix(in srgb, var(--border-subtle) 70%, 
 const themeTextPrimary = "var(--text-primary)"
 const themeTextSecondary = "var(--text-secondary)"
 const themeTextMuted = "var(--text-muted)"
+const themeAccent = "var(--accent)"
+const themeAccentSoft = "color-mix(in srgb, var(--accent) 12%, transparent)"
+const themeAccentSoftStrong = "color-mix(in srgb, var(--accent) 18%, var(--surface) 82%)"
+const themeAccentBorder = "1px solid color-mix(in srgb, var(--accent) 28%, transparent)"
 const themeOverlay = "rgba(10,10,10,0.62)"
 const themeOverlayStrong = "rgba(10,10,10,0.78)"
 
@@ -1599,7 +1603,7 @@ export default function EventDashboardPage() {
     if (reportData?.requiresSignIn) {
       return "Preview is free. Download requires a signed-in organiser or team member."
     }
-    return "Generate a free event intelligence report with attendee details, event performance, and AI recommendations."
+    return "Build a free event report with attendee details, event performance, and practical AI recommendations."
   })()
 
   const aiInsightsAccessNote = isSuperAdmin
@@ -2526,7 +2530,7 @@ export default function EventDashboardPage() {
                   <path d="M8 2v8M5 7l3 3 3-3" />
                   <path d="M2 12h12" />
                 </svg>
-                {reportLoading ? "Generating..." : reportData ? "Report Ready" : "Generate Report"}
+                {reportLoading ? "Preparing report..." : reportData ? "Open report" : "Build report"}
               </button>
               {eventData.canEdit && (
                 <HeaderMenu
@@ -2888,7 +2892,7 @@ export default function EventDashboardPage() {
                         width: '100%',
                       }}
                     >
-                      {reportLoading ? reportLoadingText || 'Generating insights...' : 'Generate Report'}
+                      {reportLoading ? reportLoadingText || 'Preparing report...' : 'Build event report'}
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
@@ -3210,7 +3214,7 @@ export default function EventDashboardPage() {
                 Confirmed registrations
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 320px", minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 <button
                   onClick={() => setShowManualReg(true)}
                   style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, whiteSpace: "nowrap" }}
@@ -3227,9 +3231,9 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: "#C8F55A", fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeAccentBorder, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeAccent, background: themeAccentSoft, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Download Confirmed CSV
+                  Export CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3240,7 +3244,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Download PDF (Individual responses)
+                  Export PDF: confirmed
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3251,14 +3255,14 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Download All PDF (Individual responses)
+                  Export PDF: all responses
                 </a>
-                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: themeAccentSoftStrong, color: themeAccent, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {confirmed.length} confirmed
                 </span>
                 </div>
                 <p style={{ margin: 0, fontSize: "0.7rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-                  {csvExporting ? "Preparing your export..." : "Swipe sideways on mobile to reveal the rest of the actions."}
+                  {csvExporting ? "Preparing your export..." : "Choose the export format you need for follow-up, printing, or analysis."}
                 </p>
                 {csvError && (
                   <p style={{ margin: 0, fontSize: "0.72rem", color: "#FFB3B3", fontFamily: "var(--font-dm-sans)" }}>
@@ -3601,38 +3605,63 @@ export default function EventDashboardPage() {
                   )}
 
                   {insightsData && !insightsLoading && (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }} className="insight-grid">
-                      {insightsData.map((card, i) => (
-                        <div key={i} style={{
-                          borderLeft: `3px solid ${
-                            card.type === 'warning' ? '#FF6B6B' :
-                            card.type === 'action'  ? '#C8F55A' :
-                            card.type === 'info'    ? 'color-mix(in srgb, var(--text-primary) 20%, transparent)' :
-                            '#C8F55A'
-                          }`,
-                          borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
-                          borderRight: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
-                          borderBottom: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
-                          background:
-                            card.type === 'warning' ? "rgba(255,107,107,0.04)" :
-                            card.type === 'action'  ? "rgba(200,245,90,0.06)" :
-                            card.type === 'info'    ? "color-mix(in srgb, var(--text-primary) 3%, transparent)" :
-                            "rgba(200,245,90,0.04)",
-                          borderRadius: 8,
-                          padding: "0.875rem 1rem",
-                        }}>
-                          <div style={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color:
-                            card.type === 'warning' ? '#FF6B6B' :
-                            card.type === 'action'  ? '#C8F55A' :
-                            card.type === 'info'    ? themeTextMuted :
-                            '#C8F55A',
-                            fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>
-                            {card.type === 'action' ? '-> action' : card.type}
-                          </div>
-                          <div style={{ fontSize: "0.82rem", fontWeight: 500, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem", lineHeight: 1.35 }}>{card.title}</div>
-                          <div style={{ fontSize: "0.76rem", fontWeight: 300, color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>{card.body}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+                      <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.85rem", flexWrap: "wrap" }}>
+                        <div style={{ minWidth: 0, flex: "1 1 260px" }}>
+                          <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.32rem" }}>Insights command centre</div>
+                          <p style={{ margin: 0, fontSize: "0.82rem", color: themeTextSecondary, lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
+                            Use these signals to decide what to promote, what to fix, and where registrations are slowing down before the event date.
+                          </p>
                         </div>
-                      ))}
+                        <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+                          <span style={{ background: themeAccentSoftStrong, color: themeAccent, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                            {insightsData.length} signals
+                          </span>
+                          <span style={{ background: "color-mix(in srgb, var(--text-primary) 7%, transparent)", color: themeTextSecondary, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
+                            Updated for this event
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.85rem" }} className="insight-grid">
+                        {insightsData.map((card, i) => (
+                          <div key={i} style={{
+                            borderLeft: `3px solid ${
+                              card.type === 'warning' ? '#FF6B6B' :
+                              card.type === 'action'  ? themeAccent :
+                              card.type === 'info'    ? 'color-mix(in srgb, var(--text-primary) 20%, transparent)' :
+                              themeAccent
+                            }`,
+                            borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
+                            borderRight: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
+                            borderBottom: "0.5px solid color-mix(in srgb, var(--border-subtle) 60%, transparent)",
+                            background:
+                              card.type === 'warning' ? "rgba(255,107,107,0.04)" :
+                              card.type === 'action'  ? themeAccentSoft :
+                              card.type === 'info'    ? "color-mix(in srgb, var(--text-primary) 3%, transparent)" :
+                              themeAccentSoft,
+                            borderRadius: 12,
+                            padding: "1rem 1.05rem",
+                            boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.55rem" }}>
+                              <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color:
+                                card.type === 'warning' ? '#C76B6B' :
+                                card.type === 'action'  ? themeAccent :
+                                card.type === 'info'    ? themeTextMuted :
+                                themeAccent,
+                                fontFamily: "var(--font-dm-sans)" }}>
+                                {card.type === 'action' ? 'Action' : card.type === 'warning' ? 'Risk' : 'Insight'}
+                              </div>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: card.type === 'warning' ? '#C76B6B' : themeAccent, background: card.type === 'warning' ? "rgba(255,107,107,0.08)" : themeAccentSoftStrong, borderRadius: 999, padding: "0.2rem 0.55rem", fontFamily: "var(--font-dm-sans)" }}>
+                                {String(i + 1).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: "0.9rem", fontWeight: 600, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem", lineHeight: 1.4 }}>{card.title}</div>
+                            <div style={{ fontSize: "0.8rem", fontWeight: 300, color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.66 }}>{card.body}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
