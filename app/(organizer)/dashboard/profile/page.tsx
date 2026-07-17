@@ -385,7 +385,7 @@ export default function ProfilePage() {
           setPhotoPreview(null)
         } else {
           setProfile(prev => (prev ? { ...prev, image: dataUrl } : prev))
-          syncProfileIdentity({ image: dataUrl, name: profile?.name ?? name || null })
+          syncProfileIdentity({ image: dataUrl, name: profile?.name ?? name ?? null })
         }
       } catch {
         setPhotoError("Upload failed. Please try again.")
