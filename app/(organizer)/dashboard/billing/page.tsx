@@ -1,21 +1,14 @@
 import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
-import prisma from "@/lib/prisma"
 import { BillingComingSoonBanner } from "@/components/billing/BillingComingSoonBanner"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
-import { isAdminEmail } from "@/lib/isAdmin"
 
 export default async function BillingPage() {
   const session = await getServerSession(authOptions)
-  const isAdmin = isAdminEmail(session?.user?.email)
-  const user = session?.user?.id
-    ? await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: {
-          plan: true,
-        },
-      })
-    : null
+  if (!session?.user?.id) {
+    redirect("/signin")
+  }
 
   return (
     <div className="dashboard-page-shell" style={{ maxWidth: 920 }}>
@@ -46,7 +39,7 @@ export default async function BillingPage() {
       </div>
 
       <PaymentMaintenanceBanner compact />
-      {!isAdmin && <BillingComingSoonBanner compact />}
+      <BillingComingSoonBanner compact />
 
       <section
         style={{
@@ -58,9 +51,7 @@ export default async function BillingPage() {
         }}
       >
         <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.88rem", lineHeight: 1.75, fontFamily: "var(--font-dm-sans)" }}>
-          {isAdmin
-            ? "The super admin account keeps full system access, but payment-facing features remain hidden while maintenance continues."
-            : `Your current account stays on ${user?.plan ?? "free"} access while we finish the payment maintenance work.`}
+          Your current access remains available while we finish payment maintenance. This page is intentionally informational only, so no one starts a paid setup before the payment system is ready.
         </p>
       </section>
     </div>

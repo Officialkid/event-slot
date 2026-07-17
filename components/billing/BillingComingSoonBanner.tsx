@@ -1,146 +1,63 @@
-"use client"
-
-import { useEffect, useState } from "react"
+import Link from "next/link"
 import { getBillingComingSoonHeadline } from "@/lib/pricingRollout"
 
 type BillingComingSoonBannerProps = {
-  isAdmin?: boolean
   compact?: boolean
 }
 
-const DISMISS_KEY = "eventslot.billingComingSoonBanner.dismissed"
-
-export function BillingComingSoonBanner({
-  isAdmin = false,
-  compact = false,
-}: BillingComingSoonBannerProps) {
-  const [dismissed, setDismissed] = useState(false)
-  const [email, setEmail] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState("")
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== "undefined" && window.sessionStorage.getItem(DISMISS_KEY) === "true") {
-      setDismissed(true)
-    }
-  }, [])
-
-  function dismissBanner() {
-    setDismissed(true)
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(DISMISS_KEY, "true")
-    }
-  }
-
-  async function handleNotifyMe() {
-    if (!email.trim()) {
-      setMessage("Enter your email address so we can notify you.")
-      return
-    }
-
-    setSaving(true)
-    setMessage("")
-
-    try {
-      const response = await fetch("/api/billing/launch-interest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          previewMode: "text",
-          source: isAdmin ? "admin_billing_coming_soon_banner" : "organiser_billing_coming_soon_banner",
-        }),
-      })
-
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        setMessage(data.error ?? "Could not save your launch interest right now.")
-        return
-      }
-
-      setMessage("You are on the notify list for the payments launch.")
-      dismissBanner()
-    } catch {
-      setMessage("Could not save your launch interest right now.")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (mounted && dismissed) {
-    return null
-  }
-
+export function BillingComingSoonBanner({ compact = false }: BillingComingSoonBannerProps) {
   return (
     <section
+      aria-label="Payment system coming soon"
       style={{
         marginBottom: compact ? "1rem" : "1.25rem",
         borderRadius: compact ? 18 : 24,
         border: "0.5px solid color-mix(in srgb, var(--info) 32%, var(--border) 68%)",
-        background: "linear-gradient(135deg, color-mix(in srgb, var(--info) 16%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 55%, color-mix(in srgb, var(--surface) 88%, transparent) 100%)",
+        background:
+          "linear-gradient(135deg, color-mix(in srgb, var(--info) 16%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 55%, color-mix(in srgb, var(--surface) 88%, transparent) 100%)",
         padding: compact ? "1rem" : "1.15rem 1.2rem",
         boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-        <div style={{ maxWidth: 760 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, background: "color-mix(in srgb, var(--bg-page) 55%, transparent)", border: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", padding: "0.3rem 0.7rem", color: "color-mix(in srgb, var(--info) 78%, var(--text-primary) 22%)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
-            Coming soon
-          </div>
-          <h2 style={{ margin: "0.75rem 0 0.35rem", fontFamily: "var(--font-instrument-serif)", fontSize: compact ? "1.2rem" : "1.35rem", fontWeight: 400, color: "var(--text-primary)" }}>
-            {getBillingComingSoonHeadline()}
-          </h2>
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
-            We are preparing the official payment system. For now, billing and subscription changes are unavailable. Keep using EventSlot on the free plan and leave your email below if you want the launch announcement.
-          </p>
+      <div style={{ maxWidth: 760 }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 999,
+            background: "color-mix(in srgb, var(--bg-page) 55%, transparent)",
+            border: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)",
+            padding: "0.3rem 0.7rem",
+            color: "color-mix(in srgb, var(--info) 78%, var(--text-primary) 22%)",
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Coming soon
         </div>
-
-        <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={dismissBanner}
-            style={{
-              borderRadius: 999,
-              border: "0.5px solid color-mix(in srgb, var(--text-primary) 16%, transparent)",
-              background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
-              color: "var(--text-primary)",
-              padding: "0.75rem 1rem",
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "0.86rem",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
+        <h2
+          style={{
+            margin: "0.75rem 0 0.35rem",
+            fontFamily: "var(--font-instrument-serif)",
+            fontSize: compact ? "1.2rem" : "1.35rem",
+            fontWeight: 400,
+            color: "var(--text-primary)",
+          }}
+        >
+          {getBillingComingSoonHeadline()}
+        </h2>
+        <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
+          We are working on this. Payment collection, billing changes, paid-event checkout, and withdrawals are hidden until the rollout is ready. For now, keep using EventSlot with free events.
+        </p>
       </div>
 
       <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", marginTop: "1rem" }}>
-        <input
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="Enter your email for the launch announcement"
-          style={{
-            flex: "1 1 280px",
-            minWidth: 220,
-            borderRadius: 999,
-            border: "0.5px solid color-mix(in srgb, var(--text-primary) 14%, transparent)",
-            background: "color-mix(in srgb, var(--bg-page) 35%, transparent)",
-            color: "var(--text-primary)",
-            padding: "0.8rem 1rem",
-            fontSize: "0.86rem",
-            fontFamily: "var(--font-dm-sans)",
-            outline: "none",
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => void handleNotifyMe()}
-          disabled={saving}
+        <Link
+          href="/dashboard/events"
           style={{
             borderRadius: 999,
             border: "0.5px solid rgba(200,245,90,0.24)",
@@ -150,19 +67,28 @@ export function BillingComingSoonBanner({
             fontFamily: "var(--font-dm-sans)",
             fontSize: "0.86rem",
             fontWeight: 800,
-            cursor: saving ? "default" : "pointer",
-            opacity: saving ? 0.7 : 1,
+            textDecoration: "none",
           }}
         >
-          {saving ? "Saving..." : "Notify me"}
-        </button>
+          View free events
+        </Link>
+        <Link
+          href="/dashboard"
+          style={{
+            borderRadius: 999,
+            border: "0.5px solid color-mix(in srgb, var(--text-primary) 16%, transparent)",
+            background: "color-mix(in srgb, var(--text-primary) 4%, transparent)",
+            color: "var(--text-primary)",
+            padding: "0.8rem 1rem",
+            fontFamily: "var(--font-dm-sans)",
+            fontSize: "0.86rem",
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          Back to dashboard
+        </Link>
       </div>
-
-      {message ? (
-        <p style={{ margin: "0.85rem 0 0", color: message.includes("notify list") ? "var(--accent)" : "var(--error)", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)" }}>
-          {message}
-        </p>
-      ) : null}
     </section>
   )
 }
