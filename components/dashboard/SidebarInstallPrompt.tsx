@@ -102,7 +102,7 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
               height: 34,
               borderRadius: 12,
               border: "0.5px solid rgba(200,245,90,0.24)",
-              background: "rgba(10,10,10,0.28)",
+              background: "color-mix(in srgb, var(--surface) 72%, transparent)",
               color: "#C8F55A",
               display: "flex",
               alignItems: "center",
@@ -113,10 +113,10 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
             <IconInstall />
           </div>
           <div style={{ minWidth: 0 }}>
-            <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.8rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: 0, color: "var(--text-primary)", fontSize: "0.8rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
               Install EventSlot
             </p>
-            <p style={{ margin: "0.3rem 0 0", color: "rgba(240,237,230,0.66)", fontSize: "0.72rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: "0.3rem 0 0", color: "var(--text-secondary)", fontSize: "0.72rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
               {helperText}
             </p>
           </div>
@@ -150,16 +150,16 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
           style={{
             marginTop: "0.55rem",
             borderRadius: 14,
-            border: "0.5px solid rgba(240,237,230,0.08)",
-            background: "#121212",
+            border: "0.5px solid var(--border-subtle)",
+            background: "var(--bg-elevated)",
             padding: "0.8rem 0.9rem",
           }}
         >
-          <p style={{ margin: 0, color: "#F0EDE6", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ margin: 0, color: "var(--text-primary)", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
             Install on iPhone
           </p>
-          <p style={{ margin: "0.35rem 0 0", color: "rgba(240,237,230,0.62)", fontSize: "0.7rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
-            Tap Share in Safari, choose <strong style={{ color: "#F0EDE6" }}>Add to Home Screen</strong>, then tap <strong style={{ color: "#F0EDE6" }}>Add</strong>.
+          <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontSize: "0.7rem", lineHeight: 1.55, fontFamily: "var(--font-dm-sans)" }}>
+            Tap Share in Safari, choose <strong style={{ color: "var(--text-primary)" }}>Add to Home Screen</strong>, then tap <strong style={{ color: "var(--text-primary)" }}>Add</strong>.
           </p>
         </div>
       ) : null}

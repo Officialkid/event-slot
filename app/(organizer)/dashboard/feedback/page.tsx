@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback } from "react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 
-const FG = "#F0EDE6"
-const BG = "#0A0A0A"
-const SURFACE = "#141414"
-const LIME = "#C8F55A"
-const MUTED = "rgba(240,237,230,0.45)"
-const BORDER = "rgba(240,237,230,0.08)"
+const FG = "var(--text-primary)"
+const BG = "var(--bg-page)"
+const SURFACE = "var(--surface)"
+const LIME = "var(--accent)"
+const MUTED = "var(--text-secondary)"
+const BORDER = "var(--border-subtle)"
+const ACCENT_TEXT = "#0A0A0A"
 
 type FeedbackType = "complaint" | "compliment" | "suggestion" | "general"
 
@@ -34,12 +35,12 @@ const TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bg: stri
   complaint: { label: "Complaint", color: "#FF6B6B", bg: "rgba(255,107,107,0.1)" },
   compliment: { label: "Compliment", color: "#4ADE80", bg: "rgba(74,222,128,0.1)" },
   suggestion: { label: "Suggestion", color: "#60A5FA", bg: "rgba(96,165,250,0.1)" },
-  general: { label: "General", color: MUTED, bg: "rgba(240,237,230,0.06)" },
+  general: { label: "General", color: MUTED, bg: "color-mix(in srgb, var(--text-primary) 6%, transparent)" },
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   unread: { label: "Unread", color: "#FBBF24", bg: "rgba(251,191,36,0.1)" },
-  read: { label: "Read", color: MUTED, bg: "rgba(240,237,230,0.06)" },
+  read: { label: "Read", color: MUTED, bg: "color-mix(in srgb, var(--text-primary) 6%, transparent)" },
   resolved: { label: "Resolved", color: "#4ADE80", bg: "rgba(74,222,128,0.1)" },
 }
 
@@ -96,7 +97,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
             border: "none",
             cursor: "pointer",
             fontSize: "1.4rem",
-            color: n <= (hover || value) ? LIME : "rgba(240,237,230,0.15)",
+            color: n <= (hover || value) ? LIME : "var(--text-dim)",
             padding: "0 2px",
             lineHeight: 1,
           }}
@@ -141,7 +142,7 @@ function AnnouncementsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
             borderRadius: 10,
             border: "none",
             background: LIME,
-            color: BG,
+            color: ACCENT_TEXT,
             cursor: "pointer",
             fontSize: "0.82rem",
             fontWeight: 700,
@@ -164,7 +165,7 @@ function AnnouncementsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
               {new Date(message.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </span>
           </div>
-          <p style={{ margin: 0, color: "rgba(240,237,230,0.65)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+          <p style={{ margin: 0, color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
             {message.content}
           </p>
         </article>
@@ -234,7 +235,7 @@ function SubmitTab() {
             marginTop: "0.5rem",
             padding: "0.6rem 1.5rem",
             borderRadius: 100,
-            border: "0.5px solid rgba(240,237,230,0.15)",
+            border: "0.5px solid var(--border)",
             background: "transparent",
             color: MUTED,
             cursor: "pointer",
@@ -330,7 +331,7 @@ function SubmitTab() {
           borderRadius: 100,
           border: "none",
           background: submitting ? "rgba(200,245,90,0.4)" : LIME,
-          color: BG,
+          color: ACCENT_TEXT,
           cursor: submitting ? "default" : "pointer",
           fontSize: "0.875rem",
           fontWeight: 700,
@@ -386,7 +387,7 @@ function SubmissionsTab({ onStartSubmit }: { onStartSubmit: () => void }) {
             borderRadius: 10,
             border: "none",
             background: LIME,
-            color: BG,
+            color: ACCENT_TEXT,
             cursor: "pointer",
             fontSize: "0.82rem",
             fontWeight: 700,
@@ -458,8 +459,8 @@ const labelStyle: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "#111",
-  border: `0.5px solid rgba(240,237,230,0.12)`,
+  background: "var(--bg-input)",
+  border: `0.5px solid var(--border)`,
   borderRadius: 8,
   padding: "0.65rem 0.9rem",
   color: FG,
@@ -475,7 +476,7 @@ function paginationBtn(disabled: boolean): React.CSSProperties {
     borderRadius: 100,
     border: `0.5px solid ${BORDER}`,
     background: "transparent",
-    color: disabled ? "rgba(240,237,230,0.2)" : MUTED,
+    color: disabled ? "var(--text-dim)" : MUTED,
     cursor: disabled ? "default" : "pointer",
     fontSize: "0.8rem",
     fontFamily: "var(--font-dm-sans)",

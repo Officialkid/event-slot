@@ -347,7 +347,7 @@ export default function TeamPage() {
                           fontSize: "0.6875rem",
                           borderRadius: 5,
                           padding: "0.15rem 0.4rem",
-                          background: ev.status === "active" ? "rgba(200,245,90,0.1)" : "rgba(240,237,230,0.06)",
+                          background: ev.status === "active" ? "rgba(200,245,90,0.1)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
                           color: ev.status === "active" ? "#C8F55A" : teamTextMuted,
                           flexShrink: 0,
                         }}
@@ -571,8 +571,8 @@ export default function TeamPage() {
                           style={{
                             fontSize: "0.6875rem",
                             fontFamily: "var(--font-dm-sans)",
-                            background: a.event.status === "active" ? "rgba(200,245,90,0.08)" : "rgba(240,237,230,0.05)",
-                            border: `0.5px solid ${a.event.status === "active" ? "rgba(200,245,90,0.2)" : "rgba(240,237,230,0.08)"}`,
+                            background: a.event.status === "active" ? "rgba(200,245,90,0.08)" : "color-mix(in srgb, var(--text-primary) 5%, transparent)",
+                            border: `0.5px solid ${a.event.status === "active" ? "rgba(200,245,90,0.2)" : "var(--border-subtle)"}`,
                             color: a.event.status === "active" ? "#C8F55A" : teamTextSecondary,
                             borderRadius: 5,
                             padding: "0.2rem 0.5rem",

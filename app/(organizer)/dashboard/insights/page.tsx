@@ -153,7 +153,7 @@ export default function InsightsPage() {
 
   const tooltipStyle = {
     contentStyle: {
-      background: "#1A1A1A",
+      background: "var(--bg-elevated)",
       border: "1px solid var(--border-subtle)",
       borderRadius: 8,
       fontSize: "0.78rem",

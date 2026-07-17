@@ -387,7 +387,7 @@ export default function NotificationsPage() {
                   style={{
                     ...cardBase,
                     background: isUnread ? "rgba(250,199,117,0.04)" : "transparent",
-                    border: `0.5px solid ${isUnread ? "rgba(250,199,117,0.15)" : "rgba(240,237,230,0.06)"}`,
+                    border: `0.5px solid ${isUnread ? "rgba(250,199,117,0.15)" : "var(--border-subtle)"}`,
                     borderLeft: "2px solid #FAC775",
                     cursor: isUnread ? "pointer" : "default",
                     transition: "background 0.15s",
@@ -459,7 +459,7 @@ export default function NotificationsPage() {
                   style={{
                     ...cardBase,
                     background: isUnread ? "rgba(255,107,107,0.04)" : "transparent",
-                    border: `0.5px solid ${isUnread ? "rgba(255,107,107,0.15)" : "rgba(240,237,230,0.06)"}`,
+                    border: `0.5px solid ${isUnread ? "rgba(255,107,107,0.15)" : "var(--border-subtle)"}`,
                     borderLeft: "2px solid #FF6B6B",
                     cursor: isUnread ? "pointer" : "default",
                     transition: "background 0.15s",
