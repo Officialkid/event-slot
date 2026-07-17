@@ -380,6 +380,7 @@ export default function ProfilePage() {
           setPhotoPreview(null)
         } else {
           setProfile(prev => (prev ? { ...prev, image: dataUrl } : prev))
+          window.dispatchEvent(new Event("eventslot:profile-updated"))
         }
       } catch {
         setPhotoError("Upload failed. Please try again.")
@@ -412,6 +413,7 @@ export default function ProfilePage() {
       const trimmedName = name.trim()
       setProfile(prev => (prev ? { ...prev, name: trimmedName } : prev))
       await updateSession({ name: trimmedName })
+      window.dispatchEvent(new Event("eventslot:profile-updated"))
       setDetailsSuccess(true)
       setTimeout(() => setDetailsSuccess(false), 3000)
     } catch {
@@ -1074,16 +1076,16 @@ export default function ProfilePage() {
           href="/privacy"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#525252] text-xs hover:text-[#C8F55A] transition-colors"
+          className="text-[var(--text-muted)] text-xs hover:text-[var(--accent)] transition-colors"
         >
           Privacy Policy
         </a>
-        <span className="text-[#2A2A2A]">·</span>
+        <span className="text-[var(--text-dim)]">·</span>
         <a
           href="/terms"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#525252] text-xs hover:text-[#C8F55A] transition-colors"
+          className="text-[var(--text-muted)] text-xs hover:text-[var(--accent)] transition-colors"
         >
           Terms of Service
         </a>

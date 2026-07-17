@@ -82,7 +82,7 @@ export default function AdminSidebar() {
 
   const sidebarContent = (
     <>
-      <div style={{ padding: "0 1.5rem 2rem", borderBottom: "0.5px solid rgba(240,237,230,0.07)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <div style={{ padding: "0 1.5rem 2rem", borderBottom: "0.5px solid var(--border-subtle)", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <Link
             href="/admin"
@@ -94,7 +94,7 @@ export default function AdminSidebar() {
             }}
             onClick={() => setDrawerOpen(false)}
           >
-            <span style={{ color: "#F0EDE6" }}>Event</span>
+            <span style={{ color: "var(--text-primary)" }}>Event</span>
             <span style={{ color: "#C8F55A" }}>Slot</span>
           </Link>
           <div
@@ -104,7 +104,7 @@ export default function AdminSidebar() {
               fontWeight: 700,
               letterSpacing: "0.15em",
               textTransform: "uppercase",
-              color: "rgba(240,237,230,0.3)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
             }}
           >
@@ -119,7 +119,7 @@ export default function AdminSidebar() {
           style={{
             background: "transparent",
             border: "none",
-            color: "rgba(240,237,230,0.4)",
+            color: "var(--text-muted)",
             cursor: "pointer",
             padding: "0.2rem",
             lineHeight: 1,
@@ -146,7 +146,7 @@ export default function AdminSidebar() {
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
                 fontWeight: isActive ? 500 : 400,
-                color: isActive ? "#C8F55A" : "rgba(240,237,230,0.5)",
+                color: isActive ? "var(--accent)" : "var(--text-secondary)",
                 background: isActive ? "rgba(200,245,90,0.08)" : "transparent",
                 textDecoration: "none",
                 marginBottom: "0.15rem",
@@ -175,7 +175,7 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      <div style={{ padding: "1rem 1.5rem", borderTop: "0.5px solid rgba(240,237,230,0.07)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <div style={{ padding: "1rem 1.5rem", borderTop: "0.5px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         <a
           href="https://docs.eventsslot.com"
           target="_blank"
@@ -185,7 +185,7 @@ export default function AdminSidebar() {
             alignItems: "center",
             gap: "0.4rem",
             fontSize: "0.75rem",
-            color: "rgba(240,237,230,0.5)",
+            color: "var(--text-secondary)",
             textDecoration: "none",
             fontFamily: "var(--font-dm-sans)",
             padding: "0.35rem 0",
@@ -205,7 +205,7 @@ export default function AdminSidebar() {
           href="/"
           style={{
             fontSize: "0.75rem",
-            color: "rgba(240,237,230,0.3)",
+            color: "var(--text-muted)",
             textDecoration: "none",
             fontFamily: "var(--font-dm-sans)",
           }}
@@ -223,8 +223,8 @@ export default function AdminSidebar() {
         .admin-sidebar-desktop {
           width: 220px;
           flex-shrink: 0;
-          background: #080808;
-          border-right: 0.5px solid rgba(240,237,230,0.07);
+          background: color-mix(in srgb, var(--surface) 96%, black 4%);
+          border-right: 0.5px solid var(--border-subtle);
           padding: 2rem 0;
           display: flex;
           flex-direction: column;
@@ -265,8 +265,8 @@ export default function AdminSidebar() {
             left: 0;
             right: 0;
             height: 56px;
-            background: #080808;
-            border-bottom: 0.5px solid rgba(240,237,230,0.07);
+            background: color-mix(in srgb, var(--surface) 96%, black 4%);
+            border-bottom: 0.5px solid var(--border-subtle);
             padding: 0 1.25rem;
             z-index: 200;
           }
@@ -293,8 +293,8 @@ export default function AdminSidebar() {
             bottom: 0;
             width: 280px;
             max-width: 85vw;
-            background: #080808;
-            border-right: 0.5px solid rgba(240,237,230,0.07);
+            background: color-mix(in srgb, var(--surface) 96%, black 4%);
+            border-right: 0.5px solid var(--border-subtle);
             z-index: 301;
             display: flex;
             flex-direction: column;
@@ -317,9 +317,9 @@ export default function AdminSidebar() {
           aria-label="Open menu"
           style={{
             background: "transparent",
-            border: "0.5px solid rgba(240,237,230,0.12)",
+            border: "0.5px solid var(--border)",
             borderRadius: 8,
-            color: "rgba(240,237,230,0.7)",
+            color: "var(--text-secondary)",
             cursor: "pointer",
             padding: "0.4rem 0.6rem",
             fontSize: "1rem",
@@ -336,7 +336,7 @@ export default function AdminSidebar() {
             textDecoration: "none",
           }}
         >
-          <span style={{ color: "#F0EDE6" }}>Event</span>
+          <span style={{ color: "var(--text-primary)" }}>Event</span>
           <span style={{ color: "#C8F55A" }}>Slot</span>
         </Link>
         <div style={{ width: 36 }} /> {/* spacer to centre logo */}

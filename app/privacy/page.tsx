@@ -153,7 +153,7 @@ const sections: Array<{
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
+    <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="mb-10">
           <h1 className="mb-2 text-3xl font-bold text-text-primary">EventSlot Privacy Policy</h1>

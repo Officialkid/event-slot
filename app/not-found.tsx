@@ -15,7 +15,7 @@ export default function NotFound() {
           fontFamily: 'var(--font-instrument-serif)',
           fontSize: '5rem',
           fontWeight: 400,
-          color: 'rgba(240,237,230,0.08)',
+          color: 'var(--text-dim)',
           margin: '0 0 1rem',
           lineHeight: 1,
         }}
@@ -27,7 +27,7 @@ export default function NotFound() {
           fontFamily: 'var(--font-instrument-serif)',
           fontSize: '1.6rem',
           fontWeight: 400,
-          color: '#F0EDE6',
+          color: 'var(--text-primary)',
           margin: '0 0 0.75rem',
         }}
       >
@@ -38,7 +38,7 @@ export default function NotFound() {
           fontFamily: 'var(--font-dm-sans)',
           fontWeight: 300,
           fontSize: '0.9rem',
-          color: 'rgba(240,237,230,0.45)',
+          color: 'var(--text-secondary)',
           margin: '0 0 2.5rem',
           lineHeight: 1.6,
         }}
@@ -77,8 +77,8 @@ export default function NotFound() {
             display: 'inline-flex',
             alignItems: 'center',
             background: 'transparent',
-            color: '#F0EDE6',
-            border: '0.5px solid rgba(240,237,230,0.2)',
+            color: 'var(--text-primary)',
+            border: '0.5px solid var(--border)',
             borderRadius: 100,
             padding: '0.72rem 1.4rem',
             fontSize: '0.9rem',

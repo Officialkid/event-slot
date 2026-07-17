@@ -22,6 +22,7 @@ describe("dashboard theme coverage", () => {
     "app/(organizer)/dashboard/page.tsx",
     "app/(organizer)/dashboard/insights/page.tsx",
     "app/(organizer)/dashboard/notifications/page.tsx",
+    "app/(organizer)/dashboard/profile/page.tsx",
     "app/(organizer)/dashboard/team/page.tsx",
     "components/dashboard/SidebarInstallPrompt.tsx",
   ])("keeps %s free from dark-only neutral palette values", (relativePath) => {
@@ -30,5 +31,21 @@ describe("dashboard theme coverage", () => {
     expect(source).toMatch(/var\(--(?:text|bg|surface|border)/)
     expect(source).not.toMatch(/#(?:111(?:111)?|121212|141414|1A1A1A|F0EDE6)/i)
     expect(source).not.toContain("rgba(240,237,230")
+  })
+
+  it("refreshes the sidebar identity from the profile source of truth", () => {
+    const shell = readFileSync(
+      path.join(root, "app/(organizer)/dashboard/_shell.tsx"),
+      "utf8"
+    )
+    const profile = readFileSync(
+      path.join(root, "app/(organizer)/dashboard/profile/page.tsx"),
+      "utf8"
+    )
+
+    expect(shell).toContain('fetch("/api/profile", { cache: "no-store" })')
+    expect(shell).toContain('window.addEventListener("eventslot:profile-updated"')
+    expect(shell).toContain("profileIdentity?.name || session?.user?.name")
+    expect(profile).toContain('window.dispatchEvent(new Event("eventslot:profile-updated"))')
   })
 })

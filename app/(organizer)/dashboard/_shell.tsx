@@ -718,8 +718,24 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>("dark")
+  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; image: string | null } | null>(null)
   const moreSheetRef = useRef<HTMLDivElement>(null)
   const unreadRequestInFlightRef = useRef(false)
+
+  const refreshProfileIdentity = useCallback(async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return
+    try {
+      const response = await fetch("/api/profile", { cache: "no-store" })
+      if (!response.ok) return
+      const profile = await response.json()
+      setProfileIdentity({
+        name: typeof profile.name === "string" ? profile.name : null,
+        image: typeof profile.image === "string" ? profile.image : null,
+      })
+    } catch {
+      // The session identity remains available as an offline/error fallback.
+    }
+  }, [])
 
   const fetchUnreadCount = useCallback(async () => {
     if (unreadRequestInFlightRef.current) return
@@ -755,6 +771,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       return () => clearInterval(id)
     }
   }, [status, fetchUnreadCount])
+
+  useEffect(() => {
+    if (status !== "authenticated") return
+    void refreshProfileIdentity()
+
+    const handleProfileUpdated = () => {
+      void refreshProfileIdentity()
+    }
+    window.addEventListener("eventslot:profile-updated", handleProfileUpdated)
+    return () => window.removeEventListener("eventslot:profile-updated", handleProfileUpdated)
+  }, [status, refreshProfileIdentity])
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -863,12 +890,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed))
   }, [sidebarCollapsed])
 
-  const name = session?.user?.name || session?.user?.email || "Organizer"
+  const name = profileIdentity?.name || session?.user?.name || session?.user?.email || "Organizer"
   const email = session?.user?.email ?? ""
-  const image = session?.user?.image ?? null
+  const image = profileIdentity?.image ?? session?.user?.image ?? null
   const mobilePageTitle = getMobilePageTitle(pathname)
-  const initials = session?.user?.name
-    ? session.user.name
+  const initials = name
+    ? name
         .split(" ")
         .map((n: string) => n[0])
         .slice(0, 2)

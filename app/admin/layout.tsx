@@ -22,7 +22,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         .admin-layout-wrapper {
           display: flex;
           min-height: 100vh;
-          background: #080808;
+          background: var(--bg-page);
+          color: var(--text-primary);
         }
         .admin-layout-main {
           flex: 1;
@@ -35,9 +36,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           justify-content: space-between;
           gap: 1rem;
           margin-bottom: 1.75rem;
-          border: 0.5px solid rgba(240,237,230,0.08);
+          border: 0.5px solid var(--border-subtle);
           border-radius: 18px;
-          background: rgba(18,18,18,0.92);
+          background: color-mix(in srgb, var(--surface) 94%, transparent);
           padding: 0.9rem 1.1rem;
         }
         .admin-topbar-brand {
@@ -53,10 +54,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           flex-wrap: wrap;
         }
         .admin-topbar-link {
-          border: 0.5px solid rgba(240,237,230,0.12);
+          border: 0.5px solid var(--border);
           border-radius: 999px;
           padding: 0.5rem 0.85rem;
-          color: rgba(240,237,230,0.68);
+          color: var(--text-secondary);
           font-family: var(--font-dm-sans);
           font-size: 0.78rem;
           font-weight: 600;
@@ -82,7 +83,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <main className="admin-layout-main">
           <div className="admin-topbar">
             <Link href="/admin" className="admin-topbar-brand">
-              <span style={{ color: "#F0EDE6" }}>Event</span>
+              <span style={{ color: "var(--text-primary)" }}>Event</span>
               <span style={{ color: "#C8F55A" }}>Slot</span>
             </Link>
             <div className="admin-topbar-actions">

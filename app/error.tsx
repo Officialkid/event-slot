@@ -22,7 +22,7 @@ export default function GlobalError({
           fontFamily: 'var(--font-instrument-serif)',
           fontSize: '1.6rem',
           fontWeight: 400,
-          color: '#F0EDE6',
+          color: 'var(--text-primary)',
           margin: '0 0 0.75rem',
         }}
       >
@@ -33,7 +33,7 @@ export default function GlobalError({
           fontFamily: 'var(--font-dm-sans)',
           fontWeight: 300,
           fontSize: '0.9rem',
-          color: 'rgba(240,237,230,0.45)',
+          color: 'var(--text-secondary)',
           margin: '0 0 2.5rem',
           lineHeight: 1.6,
         }}
@@ -73,8 +73,8 @@ export default function GlobalError({
             display: 'inline-flex',
             alignItems: 'center',
             background: 'transparent',
-            color: '#F0EDE6',
-            border: '0.5px solid rgba(240,237,230,0.2)',
+            color: 'var(--text-primary)',
+            border: '0.5px solid var(--border)',
             borderRadius: 100,
             padding: '0.72rem 1.4rem',
             fontSize: '0.9rem',
