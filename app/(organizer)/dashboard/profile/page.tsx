@@ -798,8 +798,8 @@ export default function ProfilePage() {
                       border: active
                         ? "0.5px solid rgba(200,245,90,0.42)"
                         : "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
-                      background: active ? "rgba(200,245,90,0.12)" : "var(--bg-input)",
-                      color: active ? "#C8F55A" : "var(--text-secondary)",
+                      background: active ? "color-mix(in srgb, var(--accent) 12%, var(--surface) 88%)" : "var(--bg-input)",
+                      color: active ? "var(--text-primary)" : "var(--text-secondary)",
                       padding: "0.8rem 0.9rem",
                       fontFamily: "var(--font-dm-sans)",
                       fontSize: "0.88rem",

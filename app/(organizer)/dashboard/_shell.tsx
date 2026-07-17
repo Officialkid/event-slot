@@ -217,19 +217,19 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
   const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" && item.href !== "/dashboard/billing")
   const isLight = theme === "light"
   const accentText = isLight
-    ? "color-mix(in srgb, var(--accent) 38%, var(--text-primary) 62%)"
+    ? "var(--text-primary)"
     : "var(--accent)"
   const accentSoftBackground = isLight
-    ? "color-mix(in srgb, var(--accent) 16%, white 84%)"
+    ? "color-mix(in srgb, var(--accent) 10%, var(--surface) 90%)"
     : "rgba(200,245,90,0.1)"
   const accentStrongBackground = isLight
-    ? "color-mix(in srgb, var(--accent) 24%, white 76%)"
+    ? "color-mix(in srgb, var(--accent) 16%, var(--surface) 84%)"
     : "rgba(200,245,90,0.14)"
   const accentBorder = isLight
-    ? "color-mix(in srgb, var(--accent) 52%, var(--text-primary) 12%)"
+    ? "color-mix(in srgb, var(--accent) 28%, var(--text-primary) 18%)"
     : "rgba(200,245,90,0.3)"
   const navActiveBackground = isLight
-    ? "color-mix(in srgb, var(--accent) 14%, white 86%)"
+    ? "color-mix(in srgb, var(--accent) 12%, var(--surface) 88%)"
     : "rgba(200,245,90,0.08)"
   const navIdleColor = isLight ? "var(--text-primary)" : "var(--text-secondary)"
   const accentDivider = isLight
@@ -985,13 +985,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const shellBorder = "color-mix(in srgb, var(--text-primary) 10%, transparent)"
   const shellBorderSoft = "color-mix(in srgb, var(--text-primary) 6%, transparent)"
   const sidebarBg = isLight
-    ? "linear-gradient(180deg, color-mix(in srgb, white 96%, var(--accent) 4%) 0%, color-mix(in srgb, white 92%, var(--accent) 8%) 100%)"
+    ? "linear-gradient(180deg, color-mix(in srgb, var(--surface-muted) 92%, var(--accent) 8%) 0%, color-mix(in srgb, var(--surface) 82%, var(--surface-muted) 18%) 100%)"
     : "color-mix(in srgb, var(--surface) 96%, black 4%)"
   const headerBg = isLight
-    ? "color-mix(in srgb, white 94%, var(--accent) 6%)"
+    ? "color-mix(in srgb, var(--surface) 88%, var(--surface-muted) 12%)"
     : "color-mix(in srgb, var(--surface) 92%, transparent)"
   const elevatedBg = isLight
-    ? "color-mix(in srgb, white 90%, var(--accent) 10%)"
+    ? "color-mix(in srgb, var(--surface) 82%, var(--surface-muted) 18%)"
     : "color-mix(in srgb, var(--surface) 88%, transparent)"
   const pageBg = "var(--bg-page)"
   const primaryText = "var(--text-primary)"

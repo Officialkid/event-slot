@@ -20,10 +20,10 @@ function IconInstall() {
 export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPromptProps) {
   const { method, promptInstall, isInstalled } = usePWAInstall()
   const [showIosTip, setShowIosTip] = useState(false)
-  const cardBackground = "linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, var(--surface) 88%), color-mix(in srgb, var(--info) 6%, var(--surface) 94%) 58%, color-mix(in srgb, white 20%, var(--surface) 80%))"
-  const cardBorder = "color-mix(in srgb, var(--accent) 28%, var(--text-primary) 10%)"
-  const iconSurface = "color-mix(in srgb, var(--accent) 14%, var(--surface) 86%)"
-  const accentText = "color-mix(in srgb, var(--accent) 40%, var(--text-primary) 60%)"
+  const cardBackground = "linear-gradient(160deg, color-mix(in srgb, var(--accent) 8%, var(--surface-muted) 92%), color-mix(in srgb, var(--surface) 80%, var(--surface-muted) 20%) 58%, color-mix(in srgb, var(--surface) 88%, white 12%))"
+  const cardBorder = "color-mix(in srgb, var(--accent) 24%, var(--text-primary) 14%)"
+  const iconSurface = "color-mix(in srgb, var(--accent) 12%, var(--surface) 88%)"
+  const accentText = "var(--text-primary)"
 
   if (isInstalled || method === "already-installed") {
     return null
@@ -74,7 +74,7 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
             height: 38,
             borderRadius: 12,
             border: `0.5px solid ${cardBorder}`,
-            background: "linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, var(--surface) 82%), color-mix(in srgb, var(--accent) 8%, var(--surface) 92%))",
+            background: "linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, var(--surface-muted) 88%), color-mix(in srgb, var(--surface) 84%, var(--surface-muted) 16%))",
             color: accentText,
             display: "inline-flex",
             alignItems: "center",
