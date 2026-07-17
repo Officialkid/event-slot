@@ -6,10 +6,17 @@ const mockTransaction = jest.fn()
 
 const tx = {
   event: { deleteMany: jest.fn() },
+  eventPass: { deleteMany: jest.fn() },
+  teamMember: { deleteMany: jest.fn() },
   organizerFeedback: { deleteMany: jest.fn() },
   eventUnlock: { deleteMany: jest.fn() },
+  billingLaunchInterest: { deleteMany: jest.fn() },
+  reportDownloadTransaction: { deleteMany: jest.fn() },
+  paygUsage: { deleteMany: jest.fn() },
+  paygInvoice: { deleteMany: jest.fn() },
   referral: { deleteMany: jest.fn() },
   message: { updateMany: jest.fn() },
+  loginSecurityState: { deleteMany: jest.fn() },
   user: { delete: jest.fn() },
 }
 
@@ -56,13 +63,23 @@ describe('DELETE /api/profile', () => {
 
     expect(response.status).toBe(200)
     expect(data).toEqual({ success: true })
+    expect(tx.eventPass.deleteMany).toHaveBeenCalledWith({ where: { organizerId: 'user-1' } })
     expect(tx.event.deleteMany).toHaveBeenCalledWith({
       where: {
         OR: [{ organizerId: 'user-1' }, { organizerEmail: 'owner@example.com' }],
       },
     })
+    expect(tx.teamMember.deleteMany).toHaveBeenCalledWith({
+      where: {
+        OR: [{ ownerId: 'user-1' }, { memberId: 'user-1' }],
+      },
+    })
     expect(tx.organizerFeedback.deleteMany).toHaveBeenCalledWith({ where: { organizerId: 'user-1' } })
     expect(tx.eventUnlock.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } })
+    expect(tx.billingLaunchInterest.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } })
+    expect(tx.reportDownloadTransaction.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } })
+    expect(tx.paygUsage.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } })
+    expect(tx.paygInvoice.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } })
     expect(tx.referral.deleteMany).toHaveBeenCalledWith({
       where: {
         OR: [{ referrerId: 'user-1' }, { referredUserId: 'user-1' }],
@@ -72,6 +89,7 @@ describe('DELETE /api/profile', () => {
       where: { authorId: 'user-1' },
       data: { authorId: null },
     })
+    expect(tx.loginSecurityState.deleteMany).toHaveBeenCalledWith({ where: { email: 'owner@example.com' } })
     expect(tx.user.delete).toHaveBeenCalledWith({ where: { id: 'user-1' } })
   })
 

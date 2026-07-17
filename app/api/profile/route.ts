@@ -111,6 +111,10 @@ export async function DELETE() {
     }
 
     await prisma.$transaction(async (tx) => {
+      await tx.eventPass.deleteMany({
+        where: { organizerId: user.id },
+      })
+
       await tx.event.deleteMany({
         where: {
           OR: eventOwnerFilters,
@@ -118,8 +122,20 @@ export async function DELETE() {
       })
 
       // These relations are not guaranteed to cascade in every deployed schema.
+      await tx.teamMember.deleteMany({
+        where: {
+          OR: [
+            { ownerId: user.id },
+            { memberId: user.id },
+          ],
+        },
+      })
       await tx.organizerFeedback.deleteMany({ where: { organizerId: user.id } })
       await tx.eventUnlock.deleteMany({ where: { userId: user.id } })
+      await tx.billingLaunchInterest.deleteMany({ where: { userId: user.id } })
+      await tx.reportDownloadTransaction.deleteMany({ where: { userId: user.id } })
+      await tx.paygUsage.deleteMany({ where: { userId: user.id } })
+      await tx.paygInvoice.deleteMany({ where: { userId: user.id } })
       await tx.referral.deleteMany({
         where: {
           OR: [
@@ -132,6 +148,11 @@ export async function DELETE() {
         where: { authorId: user.id },
         data: { authorId: null },
       })
+      if (user.email) {
+        await tx.loginSecurityState.deleteMany({
+          where: { email: user.email },
+        })
+      }
 
       await tx.user.delete({ where: { id: user.id } })
     })

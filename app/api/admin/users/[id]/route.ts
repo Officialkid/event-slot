@@ -139,6 +139,10 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     await prisma.$transaction(async (tx) => {
       if (eventHandling === "archive") {
+        await tx.eventPass.deleteMany({
+          where: { organizerId: params.id },
+        })
+
         await tx.event.updateMany({
           where: { organizerId: params.id },
           data: {
@@ -150,6 +154,10 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       }
 
       if (eventHandling === "delete") {
+        await tx.eventPass.deleteMany({
+          where: { organizerId: params.id },
+        })
+
         await tx.event.deleteMany({
           where: { organizerId: params.id },
         })
@@ -180,12 +188,29 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
           ],
         },
       })
+      await tx.teamMember.deleteMany({
+        where: {
+          OR: [
+            { ownerId: params.id },
+            { memberId: params.id },
+          ],
+        },
+      })
       await tx.organizerFeedback.deleteMany({ where: { organizerId: params.id } })
       await tx.eventUnlock.deleteMany({ where: { userId: params.id } })
+      await tx.billingLaunchInterest.deleteMany({ where: { userId: params.id } })
+      await tx.reportDownloadTransaction.deleteMany({ where: { userId: params.id } })
+      await tx.paygUsage.deleteMany({ where: { userId: params.id } })
+      await tx.paygInvoice.deleteMany({ where: { userId: params.id } })
       await tx.message.updateMany({
         where: { authorId: params.id },
         data: { authorId: null },
       })
+      if (target.email) {
+        await tx.loginSecurityState.deleteMany({
+          where: { email: target.email },
+        })
+      }
 
       await tx.user.delete({ where: { id: params.id } })
     })
