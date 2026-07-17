@@ -1610,6 +1610,24 @@ export default function EventDashboardPage() {
     ? "Super admins can generate and regenerate AI insights freely."
     : "Standard plan and above can generate AI insights. The first insight for an event is free while your monthly quota lasts; regenerations use 20 credits."
 
+  const insightRiskCount = insightsData?.filter((card) => card.type === "warning").length ?? 0
+  const insightActionCount = insightsData?.filter((card) => card.type === "action").length ?? 0
+  const leadingSource = analyticsData?.sourceBreakdown?.reduce<{ source: string; count: number } | null>((top, item) => {
+    if (!top || item.count > top.count) return item
+    return top
+  }, null)
+  const busiestHour = analyticsData?.registrationsByHour?.reduce<{ hour: number; count: number } | null>((top, item) => {
+    if (!top || item.count > top.count) return item
+    return top
+  }, null)
+  const strongestMetric = analyticsData
+    ? analyticsData.conversionRate >= 40
+      ? `${analyticsData.conversionRate}% conversion rate`
+      : analyticsData.checkInRate >= 70
+      ? `${analyticsData.checkInRate}% check-in rate`
+      : `${analyticsData.totalRegistrations} total registrations`
+    : null
+
   const copyTextToClipboard = async (text: string) => {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -3214,7 +3232,7 @@ export default function EventDashboardPage() {
                 Confirmed registrations
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 320px", minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }} className="export-action-row">
                 <button
                   onClick={() => setShowManualReg(true)}
                   style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.3rem", flexShrink: 0, whiteSpace: "nowrap" }}
@@ -3242,9 +3260,9 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export PDF: confirmed
+                  Export PDF (confirmed)
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3253,9 +3271,9 @@ export default function EventDashboardPage() {
                     void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all-responses.pdf`)
                   }}
                   download
-                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export PDF: all responses
+                  Export PDF (all responses)
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: themeAccentSoftStrong, color: themeAccent, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {confirmed.length} confirmed
@@ -3606,20 +3624,61 @@ export default function EventDashboardPage() {
 
                   {insightsData && !insightsLoading && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-                      <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.85rem", flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 0, flex: "1 1 260px" }}>
-                          <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.32rem" }}>Insights command centre</div>
-                          <p style={{ margin: 0, fontSize: "0.82rem", color: themeTextSecondary, lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
-                            Use these signals to decide what to promote, what to fix, and where registrations are slowing down before the event date.
-                          </p>
+                      <div style={{ background: `linear-gradient(135deg, ${themeAccentSoftStrong} 0%, ${themeSurface} 55%)`, border: themeAccentBorder, borderRadius: 18, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.85rem", flexWrap: "wrap" }}>
+                          <div style={{ minWidth: 0, flex: "1 1 320px" }}>
+                            <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Insights command centre</div>
+                            <h3 style={{ margin: "0 0 0.45rem", fontSize: "1.15rem", color: themeTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                              Turn registrations into decisions
+                            </h3>
+                            <p style={{ margin: 0, fontSize: "0.84rem", color: themeTextSecondary, lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
+                              Use these signals to decide what to promote, what to fix, and where registrations are slowing down before the event date.
+                            </p>
+                          </div>
+                          <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+                            <span style={{ background: themeSurface, color: themeAccent, border: themeAccentBorder, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                              {insightsData.length} signals
+                            </span>
+                            <span style={{ background: themeSurfaceAlt, color: themeTextSecondary, border: themeBorderSoft, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
+                              Updated for this event
+                            </span>
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
-                          <span style={{ background: themeAccentSoftStrong, color: themeAccent, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
-                            {insightsData.length} signals
-                          </span>
-                          <span style={{ background: "color-mix(in srgb, var(--text-primary) 7%, transparent)", color: themeTextSecondary, borderRadius: 999, padding: "0.35rem 0.75rem", fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
-                            Updated for this event
-                          </span>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.75rem" }} className="insight-summary-grid">
+                          <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "0.95rem 1rem" }}>
+                            <div style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                              Biggest opportunity
+                            </div>
+                            <div style={{ fontSize: "1rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600, lineHeight: 1.45 }}>
+                              {leadingSource ? `${leadingSource.source} is leading signups` : "Registrations are still building"}
+                            </div>
+                            <p style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                              {leadingSource ? `${leadingSource.count.toLocaleString("en-US")} registrations came from your top source.` : "Once signups increase, EventSlot will highlight your strongest acquisition channel."}
+                            </p>
+                          </div>
+                          <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "0.95rem 1rem" }}>
+                            <div style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                              Attention needed
+                            </div>
+                            <div style={{ fontSize: "1rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600, lineHeight: 1.45 }}>
+                              {insightRiskCount > 0 ? `${insightRiskCount} risk${insightRiskCount === 1 ? "" : "s"} need action` : "No major risks detected"}
+                            </div>
+                            <p style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                              {insightActionCount > 0 ? `${insightActionCount} recommended action${insightActionCount === 1 ? "" : "s"} are ready for follow-up.` : "Keep monitoring registrations, waitlist movement, and attendee feedback as data grows."}
+                            </p>
+                          </div>
+                          <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "0.95rem 1rem" }}>
+                            <div style={{ fontSize: "0.64rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                              Momentum snapshot
+                            </div>
+                            <div style={{ fontSize: "1rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600, lineHeight: 1.45 }}>
+                              {strongestMetric ?? "More data will unlock deeper trends"}
+                            </div>
+                            <p style={{ marginTop: "0.35rem", fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                              {busiestHour ? `Peak registrations happen around ${String(busiestHour.hour).padStart(2, "0")}:00.` : "EventSlot will highlight your busiest registration window once hourly traffic builds up."}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -3640,8 +3699,8 @@ export default function EventDashboardPage() {
                               card.type === 'action'  ? themeAccentSoft :
                               card.type === 'info'    ? "color-mix(in srgb, var(--text-primary) 3%, transparent)" :
                               themeAccentSoft,
-                            borderRadius: 12,
-                            padding: "1rem 1.05rem",
+                            borderRadius: 14,
+                            padding: "1.05rem 1.1rem",
                             boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
                           }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.55rem" }}>
@@ -4245,7 +4304,11 @@ export default function EventDashboardPage() {
         .pencil-btn:hover { color: color-mix(in srgb, var(--text-primary) 65%, transparent) !important; }
         .back-link:hover { color: color-mix(in srgb, var(--text-primary) 60%, transparent) !important; }
         @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4,1fr) !important; } }
-        @media (max-width: 639px) { .insight-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 639px) {
+          .insight-grid { grid-template-columns: 1fr !important; }
+          .insight-summary-grid { grid-template-columns: 1fr !important; }
+          .export-action-row > * { width: 100%; justify-content: center; }
+        }
       `}</style>
     </>
   )

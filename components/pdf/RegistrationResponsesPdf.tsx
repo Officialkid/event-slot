@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
   answerCard: {
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 12,
     paddingHorizontal: 12,
   },
   questionLabel: {
@@ -141,21 +141,27 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   answerText: {
-    fontSize: 11,
+    fontSize: 10.8,
     color: '#202124',
-    lineHeight: 1.6,
+    lineHeight: 1.68,
     fontFamily: 'Helvetica',
   },
   answerTextCompact: {
-    fontSize: 10.2,
+    fontSize: 10.4,
     color: '#202124',
-    lineHeight: 1.55,
+    lineHeight: 1.64,
     fontFamily: 'Helvetica',
   },
   answerTextSmall: {
-    fontSize: 9.5,
+    fontSize: 10,
     color: '#202124',
-    lineHeight: 1.5,
+    lineHeight: 1.58,
+    fontFamily: 'Helvetica',
+  },
+  answerTextDense: {
+    fontSize: 9.6,
+    color: '#202124',
+    lineHeight: 1.52,
     fontFamily: 'Helvetica',
   },
   answerEmpty: {
@@ -200,6 +206,7 @@ const styles = StyleSheet.create({
 
 function getAnswerTextStyle(answer: string | null) {
   const normalized = (answer ?? '').trim();
+  if (normalized.length > 1600) return styles.answerTextDense;
   if (normalized.length > 900) return styles.answerTextSmall;
   if (normalized.length > 420) return styles.answerTextCompact;
   return styles.answerText;
