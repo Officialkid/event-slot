@@ -461,7 +461,7 @@ export default function DashboardOverviewPage() {
             label="Total events"
             value={loading ? "—" : (stats?.totalEvents ?? 0)}
             trend={!loading && stats && (
-              <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: stats.eventsThisMonth > 0 ? "#C8F55A" : "rgba(240,237,230,0.3)" }}>
+              <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: stats.eventsThisMonth > 0 ? "#C8F55A" : "var(--text-muted)" }}>
                 {stats.eventsThisMonth > 0 ? `+${stats.eventsThisMonth} this month` : "None this month"}
               </span>
             )}
@@ -473,7 +473,7 @@ export default function DashboardOverviewPage() {
               const diff = stats.registrationsThisMonth - stats.registrationsLastMonth
               if (diff > 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#C8F55A" }}>↑ {diff} more than last month</span>
               if (diff < 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(255,107,107,0.8)" }}>↓ {Math.abs(diff)} fewer than last month</span>
-              return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.3)" }}>Same as last month</span>
+              return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>Same as last month</span>
             })()}
           />
           <StatCard
@@ -482,7 +482,7 @@ export default function DashboardOverviewPage() {
             trend={!loading && stats && (
               stats.eventsClosingThisWeek > 0
                 ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#FAC775" }}>⚠ {stats.eventsClosingThisWeek} closing this week</span>
-                : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.3)" }}>No closures this week</span>
+                : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>No closures this week</span>
             )}
           />
           <StatCard
@@ -491,7 +491,7 @@ export default function DashboardOverviewPage() {
             trend={!loading && stats && (
               stats.totalWaitlisted === 0
                 ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#C8F55A" }}>All caught up</span>
-                : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(240,237,230,0.3)" }}>across {stats.waitlistEventCount} event{stats.waitlistEventCount !== 1 ? "s" : ""}</span>
+                : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>across {stats.waitlistEventCount} event{stats.waitlistEventCount !== 1 ? "s" : ""}</span>
             )}
           />
         </div>
@@ -1026,7 +1026,7 @@ export default function DashboardOverviewPage() {
                 <div style={{ ...surfaceStyle, borderRadius: 12, overflow: "hidden" }}>
                   <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: subtleDivider, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>Recent Signups</span>
-                    <Link href="/admin/users" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
+                    <Link href="/admin/users" style={{ fontSize: "0.7rem", color: "var(--text-muted)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
                   </div>
                   {adminLoading ? (
                     <div style={{ padding: "0.75rem 1rem" }}>
@@ -1036,16 +1036,16 @@ export default function DashboardOverviewPage() {
                     <div style={{ padding: "1rem", fontSize: "0.8rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>No signups yet.</div>
                   ) : (
                     adminStats.recentSignups.map((u, i, arr) => (
-                      <div key={u.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none", display: "flex", alignItems: "center", gap: "0.625rem", justifyContent: "space-between" }}>
+                      <div key={u.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-subtle)" : "none", display: "flex", alignItems: "center", gap: "0.625rem", justifyContent: "space-between" }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: "0.8rem", fontWeight: 500, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name ?? u.email ?? "—"}</div>
-                          {u.name && <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>}
+                          <div style={{ fontSize: "0.8rem", fontWeight: 500, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name ?? u.email ?? "—"}</div>
+                          {u.name && <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>}
                         </div>
                         <span style={{
                           fontSize: "0.62rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
                           padding: "0.15rem 0.4rem", borderRadius: 99,
-                          background: "rgba(240,237,230,0.07)",
-                          color: "rgba(240,237,230,0.4)",
+                          background: "color-mix(in srgb, var(--text-primary) 7%, transparent)",
+                          color: "var(--text-muted)",
                           fontFamily: "var(--font-dm-sans)", flexShrink: 0,
                         }}>{u.plan}</span>
                       </div>
@@ -1057,7 +1057,7 @@ export default function DashboardOverviewPage() {
                 <div style={{ ...surfaceStyle, borderRadius: 12, overflow: "hidden" }}>
                   <div style={{ padding: "0.75rem 1rem 0.5rem", borderBottom: subtleDivider, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>Unread Feedback</span>
-                    <Link href="/admin/feedback" style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.4)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
+                    <Link href="/admin/feedback" style={{ fontSize: "0.7rem", color: "var(--text-muted)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}>View all →</Link>
                   </div>
                   {adminLoading ? (
                     <div style={{ padding: "0.75rem 1rem" }}>
@@ -1067,17 +1067,17 @@ export default function DashboardOverviewPage() {
                     <div style={{ padding: "1rem", fontSize: "0.8rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>No unread feedback.</div>
                   ) : (
                     adminFeedback.items.map((fb, i, arr) => (
-                      <div key={fb.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none" }}>
+                      <div key={fb.id} style={{ padding: "0.625rem 1rem", borderBottom: i < arr.length - 1 ? "0.5px solid var(--border-subtle)" : "none" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.2rem" }}>
                           <span style={{
                             fontSize: "0.6rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
                             padding: "0.12rem 0.4rem", borderRadius: 99, fontFamily: "var(--font-dm-sans)",
-                            background: fb.type === "complaint" ? "rgba(255,107,107,0.12)" : fb.type === "compliment" ? "rgba(74,222,128,0.12)" : fb.type === "suggestion" ? "rgba(96,165,250,0.12)" : "rgba(240,237,230,0.07)",
-                            color: fb.type === "complaint" ? "#FF6B6B" : fb.type === "compliment" ? "#4ADE80" : fb.type === "suggestion" ? "#60A5FA" : "rgba(240,237,230,0.45)",
+                            background: fb.type === "complaint" ? "rgba(255,107,107,0.12)" : fb.type === "compliment" ? "rgba(74,222,128,0.12)" : fb.type === "suggestion" ? "rgba(96,165,250,0.12)" : "color-mix(in srgb, var(--text-primary) 7%, transparent)",
+                            color: fb.type === "complaint" ? "#FF6B6B" : fb.type === "compliment" ? "#4ADE80" : fb.type === "suggestion" ? "#60A5FA" : "var(--text-secondary)",
                           }}>{fb.type}</span>
-                          <span style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>{fb.organizer.name ?? fb.organizer.email ?? "—"}</span>
+                          <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>{fb.organizer.name ?? fb.organizer.email ?? "—"}</span>
                         </div>
-                        <div style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.7)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fb.subject}</div>
+                        <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fb.subject}</div>
                       </div>
                     ))
                   )}

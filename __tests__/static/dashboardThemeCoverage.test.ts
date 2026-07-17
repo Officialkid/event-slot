@@ -17,7 +17,9 @@ describe("dashboard theme coverage", () => {
   })
 
   it.each([
+    "app/(organizer)/dashboard/_shell.tsx",
     "app/(organizer)/dashboard/feedback/page.tsx",
+    "app/(organizer)/dashboard/page.tsx",
     "app/(organizer)/dashboard/insights/page.tsx",
     "app/(organizer)/dashboard/notifications/page.tsx",
     "app/(organizer)/dashboard/team/page.tsx",

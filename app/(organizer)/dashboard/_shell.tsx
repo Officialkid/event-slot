@@ -221,7 +221,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
         className="dash-hdr-top"
         style={{
           padding: "1.5rem 1.25rem 1.25rem",
-          borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+          borderBottom: "0.5px solid var(--border-subtle)",
           flexShrink: 0,
         }}
       >
@@ -230,7 +230,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-hdr-logo"
           style={{ textDecoration: "none", display: "inline-block", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#F0EDE6" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--text-primary)" }}>
             Event
           </span>
           <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#C8F55A" }}>
@@ -291,7 +291,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "0.52rem",
-                  border: "1.5px solid #141414",
+                  border: "1.5px solid var(--surface)",
                   lineHeight: 1,
                   boxShadow: "0 0 4px rgba(200,245,90,0.6)",
                 }}
@@ -305,7 +305,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               style={{
                 fontSize: "0.8rem",
                 fontWeight: 500,
-                color: "rgba(240,237,230,0.75)",
+                color: "var(--text-primary)",
                 fontFamily: "var(--font-dm-sans)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -367,7 +367,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               <div
                 style={{
                   fontSize: "0.7rem",
-                  color: "rgba(240,237,230,0.35)",
+                  color: "var(--text-muted)",
                   fontFamily: "var(--font-dm-sans)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -426,7 +426,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   fontFamily: "var(--font-dm-sans)",
                   textDecoration: "none",
                   background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                  color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                  color: active ? "#C8F55A" : "var(--text-secondary)",
                 }}
               >
                 {item.icon}
@@ -502,7 +502,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 fontFamily: "var(--font-dm-sans)",
                 textDecoration: "none",
                 background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                color: active ? "#C8F55A" : "var(--text-secondary)",
               }}
             >
               <IconInsights />
@@ -535,7 +535,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 fontFamily: "var(--font-dm-sans)",
                 textDecoration: "none",
                 background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                color: active ? "#C8F55A" : "var(--text-secondary)",
               }}
             >
               <IconUsers />
@@ -596,7 +596,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
         className="dash-bottom"
         style={{
           padding: "0.875rem 1.25rem",
-          borderTop: "0.5px solid rgba(240,237,230,0.06)",
+          borderTop: "0.5px solid var(--border-subtle)",
           flexShrink: 0,
         }}
       >
@@ -610,7 +610,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             borderRadius: "8px",
             background: "transparent",
             border: "none",
-            color: "rgba(240,237,230,0.35)",
+            color: "var(--text-muted)",
             fontSize: "0.875rem",
             cursor: "pointer",
             width: "100%",
@@ -629,7 +629,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             className="dash-sl-link"
             style={{
               fontSize: "0.75rem",
-              color: "rgba(240,237,230,0.3)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
               textDecoration: "none",
               padding: "0.25rem 0.5rem",
@@ -645,7 +645,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             className="dash-sl-link"
             style={{
               fontSize: "0.75rem",
-              color: "rgba(240,237,230,0.3)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
               textDecoration: "none",
               padding: "0.25rem 0.5rem",
@@ -660,11 +660,11 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           style={{
             width: "100%",
             background: "transparent",
-            border: "0.5px solid rgba(240,237,230,0.1)",
+            border: "0.5px solid var(--border-subtle)",
             borderRadius: 8,
             padding: "0.45rem 0.75rem",
             fontSize: "0.75rem",
-            color: "rgba(240,237,230,0.4)",
+            color: "var(--text-secondary)",
             cursor: "pointer",
             fontFamily: "var(--font-dm-sans)",
             textAlign: "left",
@@ -681,12 +681,12 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             left: 64,
             top: tooltip.y,
             transform: "translateY(-50%)",
-            background: "#1A1A1A",
-            border: "0.5px solid rgba(240,237,230,0.1)",
+            background: "var(--bg-elevated)",
+            border: "0.5px solid var(--border-subtle)",
             borderRadius: 6,
             padding: "0.35rem 0.6rem",
             fontSize: "0.78rem",
-            color: "rgba(240,237,230,0.75)",
+            color: "var(--text-primary)",
             fontFamily: "var(--font-dm-sans)",
             whiteSpace: "nowrap" as const,
             zIndex: 50,
@@ -902,7 +902,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div
         style={{
           minHeight: "100vh",
-          background: "#0A0A0A",
+          background: "var(--bg-page)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1049,9 +1049,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               alignItems: "center",
               justifyContent: "center",
               zIndex: 31,
+              color: mutedText,
             }}
           >
-            <svg width="7" height="11" viewBox="0 0 8 12" fill="none" stroke="rgba(240,237,230,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="7" height="11" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 2l4 4-4 4" />
             </svg>
           </div>
@@ -1476,7 +1477,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                         gap: 12,
                         padding: "0.75rem 1rem",
                         borderRadius: 10,
-                        color: active ? "#C8F55A" : "rgba(240,237,230,0.75)",
+                        color: active ? "#C8F55A" : secondaryText,
                         background: active ? "rgba(200,245,90,0.06)" : "transparent",
                         textDecoration: "none",
                         fontSize: "0.9rem",
@@ -1491,7 +1492,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
                 {isAdmin && (
                   <>
-                    <div style={{ height: 1, background: "rgba(240,237,230,0.08)", margin: "0.5rem 0.25rem" }} />
+                    <div style={{ height: 1, background: shellBorderSoft, margin: "0.5rem 0.25rem" }} />
                     <Link
                       href="/admin"
                       aria-label="Switch to Admin View"
@@ -1515,7 +1516,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   </>
                 )}
 
-                <div style={{ height: 1, background: "rgba(240,237,230,0.08)", margin: "0.5rem 0.25rem" }} />
+                <div style={{ height: 1, background: shellBorderSoft, margin: "0.5rem 0.25rem" }} />
                 <button
                   aria-label="Sign out"
                   onClick={() => setSignOutConfirm(true)}
@@ -1545,7 +1546,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 <p
                   style={{
                     fontSize: "0.9rem",
-                    color: "rgba(240,237,230,0.75)",
+                    color: secondaryText,
                     fontFamily: "var(--font-dm-sans)",
                     marginBottom: "1rem",
                     lineHeight: 1.5,
@@ -1561,9 +1562,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       flex: 1,
                       padding: "0.625rem 1rem",
                       borderRadius: 8,
-                      background: "rgba(240,237,230,0.06)",
-                      border: "0.5px solid rgba(240,237,230,0.1)",
-                      color: "rgba(240,237,230,0.75)",
+                      background: "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                      border: `0.5px solid ${shellBorder}`,
+                      color: secondaryText,
                       cursor: "pointer",
                       fontSize: "0.875rem",
                       fontFamily: "var(--font-dm-sans)",
