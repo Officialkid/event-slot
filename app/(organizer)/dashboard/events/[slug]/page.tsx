@@ -1603,7 +1603,7 @@ export default function EventDashboardPage() {
     if (reportData?.requiresSignIn) {
       return "Preview is free. Download requires a signed-in organiser or team member."
     }
-    return "Build a free event report with attendee details, event performance, and practical AI recommendations."
+    return "Choose the export format you need for this event: CSV data, printable response PDFs, or the full AI event intelligence report."
   })()
 
   const aiInsightsAccessNote = isSuperAdmin
@@ -1612,6 +1612,12 @@ export default function EventDashboardPage() {
 
   const insightRiskCount = insightsData?.filter((card) => card.type === "warning").length ?? 0
   const insightActionCount = insightsData?.filter((card) => card.type === "action").length ?? 0
+  const priorityInsight =
+    insightsData?.find((card) => card.type === "warning")
+    ?? insightsData?.find((card) => card.type === "action")
+    ?? insightsData?.[0]
+    ?? null
+  const followUpInsights = insightsData?.filter((card) => card !== priorityInsight).slice(0, 3) ?? []
   const leadingSource = analyticsData?.sourceBreakdown?.reduce<{ source: string; count: number } | null>((top, item) => {
     if (!top || item.count > top.count) return item
     return top
@@ -2535,20 +2541,20 @@ export default function EventDashboardPage() {
 
             {/* Three-dot menu */}
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:w-full sm:flex-wrap sm:items-center" style={{ flexShrink: 0, width: "100%" }}>
-              <button
-                onClick={() => {
-                  setActiveTab('overview')
-                  void generateReportPreview()
-                }}
-                disabled={reportLoading}
-                title="Generate report preview"
-                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? themeTextMuted : themeTextSecondary, cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", whiteSpace: "nowrap", minHeight: 40, width: "100%" }}
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v8M5 7l3 3 3-3" />
-                  <path d="M2 12h12" />
-                </svg>
-                {reportLoading ? "Preparing report..." : reportData ? "Open report" : "Build report"}
+                <button
+                  onClick={() => {
+                    setActiveTab('overview')
+                    void generateReportPreview()
+                  }}
+                  disabled={reportLoading}
+                  title="Open export tools"
+                  style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? themeTextMuted : themeTextSecondary, cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", whiteSpace: "nowrap", minHeight: 40, width: "100%" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v8M5 7l3 3 3-3" />
+                    <path d="M2 12h12" />
+                  </svg>
+                {reportLoading ? "Preparing exports..." : reportData ? "Open exports" : "Prepare exports"}
               </button>
               {eventData.canEdit && (
                 <HeaderMenu
@@ -2888,20 +2894,46 @@ export default function EventDashboardPage() {
             <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: "0.72rem", color: "#C8F55A", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
-                    Event Report
+                  <div style={{ fontSize: "0.72rem", color: themeAccent, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
+                    Export centre
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.65 }}>
                     {reportDescription}
                   </p>
                 </div>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: "1 1 320px", justifyContent: "flex-end" }}>
+                  <a
+                    href={`/api/events/${slug}/export?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
+                    }}
+                    download
+                    className="event-export-link"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeAccentBorder, borderRadius: 999, padding: "0.55rem 0.9rem", textDecoration: "none", color: themeAccent, background: themeAccentSoft, fontSize: "0.76rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap", minWidth: 0 }}
+                  >
+                    Export CSV data
+                  </a>
+                  <a
+                    href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-all-responses.pdf`)
+                    }}
+                    download
+                    className="event-export-link"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.9rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.76rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap", minWidth: 0 }}
+                  >
+                    Export PDF responses
+                  </a>
+                </div>
                 {!reportData && (
-                  <div style={{ minWidth: 280 }}>
+                  <div style={{ minWidth: 280, width: "100%" }}>
                     <button
                       onClick={() => void generateReportPreview()}
                       disabled={reportLoading}
                       style={{
-                        background: reportLoading ? "rgba(200,245,90,0.3)" : "#C8F55A",
+                        background: reportLoading ? themeAccentSoftStrong : themeAccent,
                         color: "#0A0A0A",
                         border: "none",
                         borderRadius: "100px",
@@ -2913,7 +2945,7 @@ export default function EventDashboardPage() {
                         width: '100%',
                       }}
                     >
-                      {reportLoading ? reportLoadingText || 'Preparing report...' : 'Build event report'}
+                      {reportLoading ? reportLoadingText || 'Preparing AI export...' : 'Prepare AI report export'}
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
@@ -2922,7 +2954,7 @@ export default function EventDashboardPage() {
                             style={{
                               height: '100%',
                               width: `${reportProgress}%`,
-                              background: 'linear-gradient(90deg, #7AB648 0%, #C8F55A 100%)',
+                              background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, #335200 30%) 0%, var(--accent) 100%)',
                               transition: 'width 300ms ease',
                             }}
                           />
@@ -2963,7 +2995,7 @@ export default function EventDashboardPage() {
                     return (
                     <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                       <div style={{ background: themeSurface, border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.85rem 0.95rem" }}>
-                        <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                        <div style={{ fontSize: "0.68rem", color: themeAccent, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
                           Commercial Performance
                         </div>
                         <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, lineHeight: 1.65, fontFamily: "var(--font-dm-sans)" }}>
@@ -3027,39 +3059,53 @@ export default function EventDashboardPage() {
                     <div>
                       <p style={{ fontSize: "0.82rem", color: themeTextMuted, margin: 0, fontFamily: "var(--font-dm-sans)" }}>
                         {reportData.reportReady
-                          ? 'Download the full report as a Word document.'
+                          ? 'Export the full AI report as a Word document.'
                           : 'Preparing your report document...'}
                       </p>
                       {!isSuperAdmin && (
-                        <p style={{ fontSize: "0.75rem", color: "#C8F55A", marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ fontSize: "0.75rem", color: themeAccent, marginTop: "0.2rem", marginBottom: 0, fontFamily: "var(--font-dm-sans)" }}>
                           {reportData.requiresSignIn
                             ? "Sign in first to download this report."
                             : "Free download is enabled while premium reporting is being introduced."}
                         </p>
                       )}
                     </div>
-                    <button
-                      onClick={() => void downloadReport()}
-                      disabled={downloadingReport}
-                      style={{
-                        background: "#C8F55A",
-                        color: "#0A0A0A",
-                        border: "none",
-                        borderRadius: "100px",
-                        padding: "0.6rem 1.4rem",
-                        fontSize: "0.875rem",
-                        fontWeight: 500,
-                        cursor: downloadingReport ? "not-allowed" : "pointer",
-                        fontFamily: "var(--font-dm-sans)",
-                        opacity: downloadingReport ? 0.6 : 1,
-                      }}
-                    >
-                      {downloadingReport
-                        ? 'Preparing...'
-                        : reportData.requiresSignIn
-                        ? 'Sign in to download'
-                        : 'Download report (.docx)'}
-                    </button>
+                    <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+                      <a
+                        href={`/api/events/${slug}/export?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          void downloadExportFile(e.currentTarget.href, `eventslot-${slug}-confirmed.csv`)
+                        }}
+                        download
+                        className="event-export-link"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeBorderSoft, borderRadius: 999, padding: "0.6rem 0.95rem", textDecoration: "none", color: themeTextSecondary, background: themeSurface, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap" }}
+                      >
+                        Export CSV data
+                      </a>
+                      <button
+                        onClick={() => void downloadReport()}
+                        disabled={downloadingReport}
+                        style={{
+                          background: themeAccent,
+                          color: "#0A0A0A",
+                          border: "none",
+                          borderRadius: "100px",
+                          padding: "0.6rem 1.4rem",
+                          fontSize: "0.875rem",
+                          fontWeight: 500,
+                          cursor: downloadingReport ? "not-allowed" : "pointer",
+                          fontFamily: "var(--font-dm-sans)",
+                          opacity: downloadingReport ? 0.6 : 1,
+                        }}
+                      >
+                        {downloadingReport
+                          ? 'Preparing...'
+                          : reportData.requiresSignIn
+                          ? 'Sign in to export report'
+                          : 'Export report (.docx)'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3433,7 +3479,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Download Waitlisted CSV
+                  Export CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3444,7 +3490,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Download Waitlisted PDF (Individual responses)
+                  Export PDF (waitlist responses)
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: themeTextMuted, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
                   {waitlist.length} waiting
@@ -3549,10 +3595,10 @@ export default function EventDashboardPage() {
                 <a
                   href={`/api/events/${slug}/analytics/export${token ? `?token=${encodeURIComponent(token)}` : ''}`}
                   download
+                  className="event-export-link"
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: themeBorderSoft, borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: themeTextSecondary, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
                 >
-                  <span>Download</span>
-                  Export CSV
+                  Export CSV data
                 </a>
               </div>
             </div>
@@ -3645,7 +3691,7 @@ export default function EventDashboardPage() {
 
                   {insightsData && !insightsLoading && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-                      <div style={{ background: `linear-gradient(135deg, ${themeAccentSoftStrong} 0%, ${themeSurface} 55%)`, border: themeAccentBorder, borderRadius: 18, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      <div style={{ background: `linear-gradient(135deg, ${themeAccentSoftStrong} 0%, ${themeSurface} 55%)`, border: themeAccentBorder, borderRadius: 18, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem", boxShadow: "0 18px 40px rgba(0,0,0,0.08)" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.85rem", flexWrap: "wrap" }}>
                           <div style={{ minWidth: 0, flex: "1 1 320px" }}>
                             <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Insights command centre</div>
@@ -3703,6 +3749,48 @@ export default function EventDashboardPage() {
                         </div>
                       </div>
 
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.85rem" }} className="insight-priority-grid">
+                        {priorityInsight && (
+                          <div
+                            className="insight-feature-card"
+                            style={{
+                              background: themeSurface,
+                              border: priorityInsight.type === "warning" ? "1px solid rgba(255,107,107,0.24)" : themeAccentBorder,
+                              borderRadius: 16,
+                              padding: "1.1rem 1.15rem",
+                              boxShadow: "0 12px 28px rgba(0,0,0,0.05)",
+                            }}
+                          >
+                            <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: priorityInsight.type === "warning" ? "#C76B6B" : themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                              Top priority
+                            </div>
+                            <div style={{ fontSize: "1.05rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 700, lineHeight: 1.45, marginBottom: "0.45rem" }}>
+                              {priorityInsight.title}
+                            </div>
+                            <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.68 }}>
+                              {priorityInsight.body}
+                            </p>
+                          </div>
+                        )}
+                        <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 16, padding: "1.1rem 1.15rem" }}>
+                          <div style={{ fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                            Recommended next moves
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+                            {followUpInsights.length > 0 ? followUpInsights.map((card, index) => (
+                              <div key={`${card.title}-${index}`} style={{ paddingLeft: "0.7rem", borderLeft: card.type === "warning" ? "3px solid rgba(255,107,107,0.5)" : `3px solid ${themeAccent}` }}>
+                                <div style={{ fontSize: "0.78rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600, lineHeight: 1.45 }}>{card.title}</div>
+                                <div style={{ fontSize: "0.74rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.55, marginTop: "0.2rem" }}>{card.body}</div>
+                              </div>
+                            )) : (
+                              <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                                EventSlot will add more action-ready guidance here as more registrations, sources, and feedback data arrive.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.85rem" }} className="insight-grid">
                         {insightsData.map((card, i) => (
                           <div key={i} style={{
@@ -3722,7 +3810,7 @@ export default function EventDashboardPage() {
                               themeAccentSoft,
                             borderRadius: 14,
                             padding: "1.05rem 1.1rem",
-                            boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
+                            boxShadow: "0 12px 26px rgba(0,0,0,0.05)",
                           }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.55rem" }}>
                               <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color:

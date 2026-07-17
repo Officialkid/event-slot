@@ -538,6 +538,24 @@ li {
     padding-bottom: 20px;
   }
 
+  .export-action-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100%;
+  }
+
+  .event-export-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stat-grid,
+  .insight-summary-grid,
+  .insight-priority-grid,
+  .insight-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .marketing-panel,
   .marketing-dashboard-frame,
   .marketing-card {
@@ -550,6 +568,12 @@ li {
 
   .dashboard-page-title {
     font-size: 1.35rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .insight-feature-card {
+    grid-column: span 2;
   }
 }
 

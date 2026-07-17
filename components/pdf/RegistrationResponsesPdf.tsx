@@ -141,27 +141,27 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   answerText: {
-    fontSize: 10.8,
+    fontSize: 10.9,
+    color: '#202124',
+    lineHeight: 1.72,
+    fontFamily: 'Helvetica',
+  },
+  answerTextCompact: {
+    fontSize: 10.7,
     color: '#202124',
     lineHeight: 1.68,
     fontFamily: 'Helvetica',
   },
-  answerTextCompact: {
+  answerTextSmall: {
     fontSize: 10.4,
     color: '#202124',
-    lineHeight: 1.64,
-    fontFamily: 'Helvetica',
-  },
-  answerTextSmall: {
-    fontSize: 10,
-    color: '#202124',
-    lineHeight: 1.58,
+    lineHeight: 1.62,
     fontFamily: 'Helvetica',
   },
   answerTextDense: {
-    fontSize: 9.6,
+    fontSize: 10,
     color: '#202124',
-    lineHeight: 1.52,
+    lineHeight: 1.58,
     fontFamily: 'Helvetica',
   },
   answerEmpty: {
@@ -206,9 +206,9 @@ const styles = StyleSheet.create({
 
 function getAnswerTextStyle(answer: string | null) {
   const normalized = (answer ?? '').trim();
-  if (normalized.length > 1600) return styles.answerTextDense;
-  if (normalized.length > 900) return styles.answerTextSmall;
-  if (normalized.length > 420) return styles.answerTextCompact;
+  if (normalized.length > 2200) return styles.answerTextDense;
+  if (normalized.length > 1200) return styles.answerTextSmall;
+  if (normalized.length > 520) return styles.answerTextCompact;
   return styles.answerText;
 }
 
