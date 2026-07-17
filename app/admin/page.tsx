@@ -30,8 +30,8 @@ function HeroSignupCard({
   return (
     <div
       style={{
-        background: "#111",
-        border: `0.5px solid ${isPrimary ? "rgba(200,245,90,0.35)" : "rgba(240,237,230,0.12)"}`,
+        background: "var(--surface)",
+        border: `0.5px solid ${isPrimary ? "var(--border-emphasis)" : "var(--border-subtle)"}`,
         borderRadius: 14,
         padding: "1.5rem",
       }}
@@ -42,7 +42,7 @@ function HeroSignupCard({
           fontWeight: 600,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: isPrimary ? "rgba(200,245,90,0.9)" : "rgba(240,237,230,0.4)",
+          color: isPrimary ? "var(--accent)" : "var(--text-muted)",
           fontFamily: "var(--font-dm-sans)",
           marginBottom: "0.5rem",
         }}
@@ -53,13 +53,13 @@ function HeroSignupCard({
         style={{
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "3rem",
-          color: isPrimary ? "#C8F55A" : "#F0EDE6",
+          color: isPrimary ? "var(--accent)" : "var(--text-primary)",
           lineHeight: 1,
         }}
       >
         {value}
       </div>
-      <div style={{ fontSize: "0.8rem", color: "rgba(240,237,230,0.42)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
+      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
         {sub}
       </div>
     </div>
@@ -156,8 +156,8 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
   return (
     <div
       style={{
-        background: "#111",
-        border: "0.5px solid rgba(240,237,230,0.08)",
+        background: "var(--surface)",
+        border: "0.5px solid var(--border-subtle)",
         borderRadius: 12,
         padding: "1.5rem",
       }}
@@ -168,7 +168,7 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
           fontWeight: 600,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "rgba(240,237,230,0.35)",
+          color: "var(--text-muted)",
           fontFamily: "var(--font-dm-sans)",
           marginBottom: "0.5rem",
         }}
@@ -179,14 +179,14 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
         style={{
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "2rem",
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           lineHeight: 1,
         }}
       >
         {value}
       </div>
       {sub && (
-        <div style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
           {sub}
         </div>
       )}
@@ -205,8 +205,8 @@ function PlanBadge({ plan }: { plan: string }) {
         letterSpacing: "0.08em",
         padding: "0.15rem 0.5rem",
         borderRadius: 100,
-        background: "rgba(240,237,230,0.07)",
-        color: "rgba(240,237,230,0.45)",
+        background: "var(--border-subtle)",
+        color: "var(--text-muted)",
         fontFamily: "var(--font-dm-sans)",
       }}
     >
@@ -277,13 +277,13 @@ export default function AdminOverviewPage() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 980, animation: "pulse 1.4s ease-in-out infinite" }}>
-        <div style={{ height: 24, width: 180, borderRadius: 8, background: "#1A1A1A" }} />
-        <div style={{ height: 14, width: 260, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 24, width: 180, borderRadius: 8, background: "var(--surface-hover)" }} />
+        <div style={{ height: 14, width: 260, borderRadius: 8, background: "var(--surface-hover)" }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
-              <div style={{ height: 10, width: 90, borderRadius: 6, background: "#1E1E1E", marginBottom: "0.55rem" }} />
-              <div style={{ height: 18, width: 56, borderRadius: 6, background: "#1E1E1E" }} />
+            <div key={i} style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 10, padding: "1rem" }}>
+              <div style={{ height: 10, width: 90, borderRadius: 6, background: "var(--surface-hover)", marginBottom: "0.55rem" }} />
+              <div style={{ height: 18, width: 56, borderRadius: 6, background: "var(--surface-hover)" }} />
             </div>
           ))}
         </div>
@@ -299,20 +299,20 @@ export default function AdminOverviewPage() {
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "2rem",
           fontWeight: 400,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           marginBottom: "0.4rem",
         }}
       >
         Overview
       </h1>
-      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
+      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
         Platform-wide stats at a glance.
       </p>
 
       <div
         style={{
-          background: "#141414",
-          border: "0.5px solid rgba(240,237,230,0.08)",
+          background: "var(--surface)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: "12px",
           padding: "1.5rem",
           marginBottom: "2rem",
@@ -321,7 +321,7 @@ export default function AdminOverviewPage() {
         <p
           style={{
             fontSize: "0.7rem",
-            color: "#C8F55A",
+            color: "var(--accent)",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             marginBottom: "0.5rem",
@@ -334,14 +334,14 @@ export default function AdminOverviewPage() {
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.3rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             marginBottom: "0.75rem",
             fontWeight: 400,
           }}
         >
           Generate Platform Report
         </h3>
-        <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
           Download a complete Word document report for stakeholder meetings. Includes user growth, events, registrations,
           system health, and AI recommendations.
         </p>
@@ -355,9 +355,9 @@ export default function AdminOverviewPage() {
               key={period.key}
               onClick={() => downloadReport(period.key as "weekly" | "monthly" | "yearly")}
               style={{
-                background: period.key === "monthly" ? "#C8F55A" : "transparent",
-                color: period.key === "monthly" ? "#0A0A0A" : "rgba(240,237,230,0.6)",
-                border: period.key === "monthly" ? "none" : "0.5px solid rgba(240,237,230,0.15)",
+                background: period.key === "monthly" ? "var(--accent)" : "transparent",
+                color: period.key === "monthly" ? "#0A0A0A" : "var(--text-secondary)",
+                border: period.key === "monthly" ? "none" : "0.5px solid var(--border-subtle)",
                 borderRadius: "100px",
                 padding: "0.6rem 1.4rem",
                 fontSize: "0.875rem",
@@ -374,8 +374,8 @@ export default function AdminOverviewPage() {
 
       <div
         style={{
-          background: "#141414",
-          border: "0.5px solid rgba(240,237,230,0.08)",
+          background: "var(--surface)",
+          border: "0.5px solid var(--border-subtle)",
           borderRadius: "12px",
           padding: "1.5rem",
           marginBottom: "2rem",
@@ -384,7 +384,7 @@ export default function AdminOverviewPage() {
         <p
           style={{
             fontSize: "0.7rem",
-            color: "#C8F55A",
+            color: "var(--accent)",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             marginBottom: "0.5rem",
@@ -397,14 +397,14 @@ export default function AdminOverviewPage() {
           style={{
             fontFamily: "var(--font-instrument-serif)",
             fontSize: "1.3rem",
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             marginBottom: "0.75rem",
             fontWeight: 400,
           }}
         >
           Paste event registration URL or slug
         </h3>
-        <p style={{ fontSize: "0.85rem", color: "rgba(240,237,230,0.5)", marginBottom: "1rem", fontFamily: "var(--font-dm-sans)" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", fontFamily: "var(--font-dm-sans)" }}>
           Use this for sales demos: paste a public active EventSlot link and generate an AI + Word report instantly.
         </p>
 
@@ -416,11 +416,11 @@ export default function AdminOverviewPage() {
             style={{
               flex: "1 1 420px",
               minWidth: 280,
-              background: "#0A0A0A",
-              border: "0.5px solid rgba(240,237,230,0.15)",
+              background: "var(--bg-input)",
+              border: "0.5px solid var(--border-subtle)",
               borderRadius: 8,
               padding: "0.6rem 0.875rem",
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               fontSize: "0.85rem",
               fontFamily: "var(--font-dm-sans)",
               outline: "none",
@@ -430,7 +430,7 @@ export default function AdminOverviewPage() {
             onClick={generateByLink}
             disabled={generatingByLink || !reportLinkInput.trim()}
             style={{
-              background: "#C8F55A",
+              background: "var(--accent)",
               color: "#0A0A0A",
               border: "none",
               borderRadius: "100px",
@@ -447,33 +447,33 @@ export default function AdminOverviewPage() {
         </div>
 
         {linkReportError && (
-          <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)" }}>
             {linkReportError}
           </p>
         )}
 
         {linkReportPreview && (
-          <div style={{ marginTop: "1rem", borderTop: "0.5px solid rgba(240,237,230,0.08)", paddingTop: "1rem" }}>
-            <p style={{ fontSize: "0.84rem", color: "rgba(240,237,230,0.75)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
-              <strong style={{ color: "#F0EDE6" }}>{linkReportPreview.event.title}</strong>
+          <div style={{ marginTop: "1rem", borderTop: "0.5px solid var(--border-subtle)", paddingTop: "1rem" }}>
+            <p style={{ fontSize: "0.84rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+              <strong style={{ color: "var(--text-primary)" }}>{linkReportPreview.event.title}</strong>
             </p>
-            <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.45)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
               Slug: {linkReportPreview.event.slug} · Confirmed: {linkReportPreview.event.confirmedCount} · Waitlist: {linkReportPreview.event.waitlistCount}
             </p>
 
             {linkReportPreview.message && (
-              <p style={{ marginTop: "0.55rem", marginBottom: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+              <p style={{ marginTop: "0.55rem", marginBottom: 0, fontSize: "0.8rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
                 {linkReportPreview.message}
               </p>
             )}
 
             {linkReportPreview.aiContent && (
               <div style={{ marginTop: "0.8rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                <div style={{ background: "#0A0A0A", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 10, padding: "0.65rem 0.75rem" }}>
-                  <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>
+                <div style={{ background: "var(--bg-input)", border: "0.5px solid var(--border-emphasis)", borderRadius: 10, padding: "0.65rem 0.75rem" }}>
+                  <div style={{ fontSize: "0.68rem", color: "var(--accent)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.2rem" }}>
                     10. Overall Score
                   </div>
-                  <div style={{ fontSize: "0.92rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "0.92rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
                     {linkReportPreview.aiContent.overallScore}
                   </div>
                 </div>
@@ -489,11 +489,11 @@ export default function AdminOverviewPage() {
                   { title: "8. Waitlist Analysis", text: linkReportPreview.aiContent.waitlistAnalysis },
                   { title: "9. Recommendations", text: linkReportPreview.aiContent.recommendations },
                 ].map((item) => (
-                  <details key={item.title} style={{ border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, background: "#101010", padding: "0.45rem 0.65rem" }}>
-                    <summary style={{ cursor: "pointer", fontSize: "0.76rem", color: "rgba(200,245,90,0.88)", letterSpacing: "0.04em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
+                  <details key={item.title} style={{ border: "0.5px solid var(--border-subtle)", borderRadius: 8, background: "var(--surface-2)", padding: "0.45rem 0.65rem" }}>
+                    <summary style={{ cursor: "pointer", fontSize: "0.76rem", color: "var(--accent)", letterSpacing: "0.04em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)" }}>
                       {item.title}
                     </summary>
-                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "rgba(240,237,230,0.68)", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>
+                    <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.65, fontFamily: "var(--font-dm-sans)", whiteSpace: "pre-wrap" }}>
                       {item.text}
                     </p>
                   </details>
@@ -505,11 +505,11 @@ export default function AdminOverviewPage() {
               const paymentSummary = linkReportPreview.paymentSummary
               return (
               <div style={{ marginTop: "0.8rem", display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                <div style={{ background: "#0A0A0A", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.75rem" }}>
-                  <div style={{ fontSize: "0.68rem", color: "rgba(200,245,90,0.9)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                <div style={{ background: "var(--bg-input)", border: "0.5px solid var(--accent-dim)", borderRadius: 10, padding: "0.75rem" }}>
+                  <div style={{ fontSize: "0.68rem", color: "var(--accent)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
                     Commercial Performance
                   </div>
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(240,237,230,0.62)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
                     Gross revenue {formatReportMoney(paymentSummary.currency, paymentSummary.grossRevenue)}, net revenue {formatReportMoney(paymentSummary.currency, paymentSummary.netRevenue)}, and platform commission {formatReportMoney(paymentSummary.currency, paymentSummary.commissionTotal)}.
                   </p>
                 </div>
@@ -523,11 +523,11 @@ export default function AdminOverviewPage() {
                     { label: "Successful Payments", value: paymentSummary.successfulPayments.toLocaleString("en-US") },
                     { label: "Pending Payments", value: paymentSummary.pendingPayments.toLocaleString("en-US") },
                   ].map((item) => (
-                    <div key={item.label} style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.7rem" }}>
-                      <div style={{ fontSize: "0.65rem", color: "rgba(240,237,230,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                    <div key={item.label} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-subtle)", borderRadius: 8, padding: "0.7rem" }}>
+                      <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
                         {item.label}
                       </div>
-                      <div style={{ fontSize: "0.88rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                      <div style={{ fontSize: "0.88rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
                         {item.value}
                       </div>
                     </div>
@@ -535,17 +535,17 @@ export default function AdminOverviewPage() {
                 </div>
 
                 {paymentSummary.paymentMethodBreakdown.length > 0 && (
-                  <div style={{ background: "#101010", border: "0.5px solid rgba(240,237,230,0.1)", borderRadius: 8, padding: "0.75rem" }}>
-                    <div style={{ fontSize: "0.68rem", color: "rgba(240,237,230,0.45)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
+                  <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-subtle)", borderRadius: 8, padding: "0.75rem" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.45rem" }}>
                       Payment Methods
                     </div>
                     <div style={{ display: "grid", gap: "0.4rem" }}>
                       {paymentSummary.paymentMethodBreakdown.map((method) => (
                         <div key={method.method} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
-                          <span style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.7)" }}>
+                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
                             {formatPaymentMethodLabel(method.method)} · {method.count} sale{method.count === 1 ? "" : "s"}
                           </span>
-                          <span style={{ fontSize: "0.78rem", color: "#F0EDE6" }}>
+                          <span style={{ fontSize: "0.78rem", color: "var(--text-primary)" }}>
                             {formatReportMoney(paymentSummary.currency, method.grossRevenue)}
                           </span>
                         </div>
@@ -562,7 +562,7 @@ export default function AdminOverviewPage() {
                 href={linkReportPreview.downloadUrl}
                 style={{
                   textDecoration: 'none',
-                  background: '#C8F55A',
+                  background: 'var(--accent)',
                   color: '#0A0A0A',
                   borderRadius: '100px',
                   padding: '0.5rem 1rem',
@@ -624,7 +624,7 @@ export default function AdminOverviewPage() {
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "1.3rem",
           fontWeight: 400,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           marginBottom: "1rem",
         }}
       >
@@ -639,19 +639,19 @@ export default function AdminOverviewPage() {
             {/* Estimated MRR */}
             <div
               style={{
-                background: "#111",
-                border: "0.5px solid rgba(200,245,90,0.18)",
+                background: "var(--surface)",
+                border: "0.5px solid var(--accent-dim)",
                 borderRadius: 12,
                 padding: "1.5rem",
               }}
             >
-              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
                 Estimated MRR
               </div>
-              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#C8F55A", lineHeight: 1 }}>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--accent)", lineHeight: 1 }}>
                 ${revenue.estimatedMRR.toLocaleString()}
               </div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
                 {revenue.newPaidThisMonth > 0 && `+${revenue.newPaidThisMonth} new`}
                 {revenue.newPaidThisMonth > 0 && revenue.churnedThisMonth > 0 && " · "}
                 {revenue.churnedThisMonth > 0 && `${revenue.churnedThisMonth} churned`}
@@ -660,14 +660,14 @@ export default function AdminOverviewPage() {
             </div>
 
             {/* Credit revenue */}
-            <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
-              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+            <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
                 Credit Revenue
               </div>
-              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
+              <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)", lineHeight: 1 }}>
                 ${revenue.creditRevenueTotal.toLocaleString()}
               </div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.35rem", fontFamily: "var(--font-dm-sans)" }}>
                 total · {revenue.totalCreditsSpent} credits spent
               </div>
             </div>
@@ -676,39 +676,39 @@ export default function AdminOverviewPage() {
           {/* Bar chart — credits revenue by month */}
           <div
             style={{
-              background: "#111",
-              border: "0.5px solid rgba(240,237,230,0.08)",
+              background: "var(--surface)",
+              border: "0.5px solid var(--border-subtle)",
               borderRadius: 12,
               padding: "1.5rem",
             }}
           >
-            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
+            <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.25rem" }}>
               Credit Revenue · Last 12 Months
             </div>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={revenue.creditsByMonth} barCategoryGap="30%">
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: "rgba(240,237,230,0.3)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
+                  tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: "rgba(240,237,230,0.25)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
+                  tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "var(--font-dm-sans)" }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v: number) => `$${v}`}
                   width={36}
                 />
                 <Tooltip
-                  cursor={{ fill: "rgba(240,237,230,0.04)" }}
+                  cursor={{ fill: "var(--border-subtle)" }}
                   contentStyle={{
-                    background: "#1A1A1A",
-                    border: "0.5px solid rgba(240,237,230,0.1)",
+                    background: "var(--surface-hover)",
+                    border: "0.5px solid var(--border-subtle)",
                     borderRadius: 8,
                     fontSize: "0.78rem",
                     fontFamily: "var(--font-dm-sans)",
-                    color: "#F0EDE6",
+                    color: "var(--text-primary)",
                   }}
                   formatter={(value) => [`$${value}`, "Revenue"]}
                 />
@@ -716,7 +716,7 @@ export default function AdminOverviewPage() {
                   {revenue.creditsByMonth.map((entry, index) => (
                     <Cell
                       key={index}
-                      fill={entry.revenue > 0 ? "#C8F55A" : "rgba(200,245,90,0.15)"}
+                      fill={entry.revenue > 0 ? "var(--accent)" : "var(--accent-dim)"}
                     />
                   ))}
                 </Bar>
@@ -733,16 +733,16 @@ export default function AdminOverviewPage() {
           fontFamily: "var(--font-instrument-serif)",
           fontSize: "1.3rem",
           fontWeight: 400,
-          color: "#F0EDE6",
+          color: "var(--text-primary)",
           marginBottom: "1rem",
         }}
       >
         Recent Signups
       </h2>
-      <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
+      <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid var(--border-subtle)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 540 }}>
           <thead>
-            <tr style={{ borderBottom: "0.5px solid rgba(240,237,230,0.08)", background: "#111" }}>
+            <tr style={{ borderBottom: "0.5px solid var(--border-subtle)", background: "var(--surface)" }}>
               {["Name", "Email", "Plan", "Joined"].map(h => (
                 <th
                   key={h}
@@ -753,7 +753,7 @@ export default function AdminOverviewPage() {
                     fontWeight: 600,
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    color: "rgba(240,237,230,0.3)",
+                    color: "var(--text-muted)",
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
@@ -767,20 +767,20 @@ export default function AdminOverviewPage() {
               <tr
                 key={u.id}
                 style={{
-                  borderBottom: "0.5px solid rgba(240,237,230,0.04)",
-                  background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent",
+                  borderBottom: "0.5px solid var(--border-subtle)",
+                  background: i % 2 !== 0 ? "var(--surface-2)" : "transparent",
                 }}
               >
-                <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
                   {u.name ?? "—"}
                 </td>
-                <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)" }}>
+                <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
                   {u.email ?? "—"}
                 </td>
                 <td style={{ padding: "0.75rem 1rem" }}>
                   <PlanBadge plan={u.plan} />
                 </td>
-                <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)" }}>
+                <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                   {new Date(u.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </td>
               </tr>
@@ -791,13 +791,13 @@ export default function AdminOverviewPage() {
 
       {auditLogs.length > 0 && (
         <div style={{ marginTop: "2.5rem" }}>
-          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1rem" }}>
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "var(--text-primary)", marginBottom: "1rem" }}>
             Admin Mode Activity
           </h2>
-          <div style={{ borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)", overflow: "hidden" }}>
-            <div style={{ padding: "0.75rem 1rem", background: "#111", borderBottom: "0.5px solid rgba(240,237,230,0.08)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#EF4444", flexShrink: 0 }} />
-              <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ borderRadius: 12, border: "0.5px solid var(--border-subtle)", overflow: "hidden" }}>
+            <div style={{ padding: "0.75rem 1rem", background: "var(--surface)", borderBottom: "0.5px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--error)", flexShrink: 0 }} />
+              <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--error)", fontFamily: "var(--font-dm-sans)" }}>
                 Admin Mode Activity Log
               </span>
             </div>
@@ -806,21 +806,21 @@ export default function AdminOverviewPage() {
               return (
                 <div
                   key={log.id}
-                  style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.75rem 1rem", borderBottom: i < auditLogs.length - 1 ? "0.5px solid rgba(240,237,230,0.04)" : "none", background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent" }}
+                  style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.75rem 1rem", borderBottom: i < auditLogs.length - 1 ? "0.5px solid var(--border-subtle)" : "none", background: i % 2 !== 0 ? "var(--surface-2)" : "transparent" }}
                 >
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "0.5px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "color-mix(in srgb, var(--error) 12%, transparent)", border: "0.5px solid color-mix(in srgb, var(--error) 30%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "0.75rem" }}>
                     🛡
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: "0.82rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
+                    <p style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
                       {meta.eventTitle ? `Entered Admin Mode for "${meta.eventTitle}"` : log.action}
                     </p>
                     {meta.organiserEmail && (
-                      <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
                         Organiser: {meta.organiserName} ({meta.organiserEmail})
                       </p>
                     )}
-                    <p style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.25)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", margin: "0.15rem 0 0" }}>
                       {new Date(log.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>

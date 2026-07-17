@@ -37,8 +37,8 @@ const STALE_AFTER_HOURS = 72
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
-      <span style={{ width: 9, height: 9, borderRadius: "50%", background: ok ? "#C8F55A" : "#FF6B6B", flexShrink: 0 }} />
-      <span style={{ fontSize: "0.82rem", color: ok ? "#C8F55A" : "#FF6B6B", fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}>
+      <span style={{ width: 9, height: 9, borderRadius: "50%", background: ok ? "var(--accent)" : "var(--error)", flexShrink: 0 }} />
+      <span style={{ fontSize: "0.82rem", color: ok ? "var(--accent)" : "var(--error)", fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}>
         {ok ? "Healthy" : "Error"}
       </span>
     </span>
@@ -131,10 +131,10 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
 }
 
 function getStatusColor(status: IssueStatus) {
-  if (status === "resolved") return "#7DD3FC"
-  if (status === "info") return "#A3A3A3"
-  if (status === "config") return "#FFB84D"
-  return "#FF6B6B"
+  if (status === "resolved") return "var(--info)"
+  if (status === "info") return "var(--text-secondary)"
+  if (status === "config") return "var(--warning)"
+  return "var(--error)"
 }
 
 function getStatusText(status: IssueStatus) {
@@ -158,13 +158,13 @@ export default function AdminHealthPage() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 960, animation: "pulse 1.4s ease-in-out infinite" }}>
-        <div style={{ height: 24, width: 220, borderRadius: 8, background: "#1A1A1A" }} />
-        <div style={{ height: 14, width: 260, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 24, width: 220, borderRadius: 8, background: "var(--surface-hover)" }} />
+        <div style={{ height: 14, width: 260, borderRadius: 8, background: "var(--surface-hover)" }} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
-              <div style={{ height: 10, width: 120, borderRadius: 6, background: "#1A1A1A", marginBottom: "0.8rem" }} />
-              <div style={{ height: 16, width: 90, borderRadius: 6, background: "#1A1A1A" }} />
+            <div key={i} style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
+              <div style={{ height: 10, width: 120, borderRadius: 6, background: "var(--surface-hover)", marginBottom: "0.8rem" }} />
+              <div style={{ height: 16, width: 90, borderRadius: 6, background: "var(--surface-hover)" }} />
             </div>
           ))}
         </div>
@@ -188,41 +188,41 @@ export default function AdminHealthPage() {
 
   return (
     <div>
-      <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "0.4rem" }}>
+      <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "var(--text-primary)", marginBottom: "0.4rem" }}>
         Platform Health
       </h1>
-      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.35)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
+      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
         System status and error monitoring.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: "2rem" }}>
-        <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
-          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
+        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
             Database (Neon)
           </div>
           <StatusDot ok={data.dbOk} />
         </div>
 
-        <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
-          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
             Emails accepted this month
           </div>
-          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "#F0EDE6", lineHeight: 1 }}>
+          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)", lineHeight: 1 }}>
             {data.emailsAcceptedThisMonth ?? "--"}
           </div>
-          <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "rgba(240,237,230,0.3)" : "#FF6B6B", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ fontSize: "0.72rem", color: data.emailProviderHealthy ? "var(--text-muted)" : "var(--error)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
             {data.emailProviderConfigured ? data.emailProviderMessage : "Email provider settings missing"}
           </div>
         </div>
 
-        <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem" }}>
-          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem" }}>
+          <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
             Actionable issues
           </div>
-          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: activeIssues.length > 0 ? "#FF6B6B" : "#C8F55A", lineHeight: 1 }}>
+          <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: activeIssues.length > 0 ? "var(--error)" : "var(--accent)", lineHeight: 1 }}>
             {activeIssues.length}
           </div>
-          <div style={{ fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
+          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem", fontFamily: "var(--font-dm-sans)" }}>
             {resolvedIssues.length} likely fixed, {informationalIssues.length} informational
           </div>
         </div>
@@ -231,17 +231,17 @@ export default function AdminHealthPage() {
       {activeIssues.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
           {activeIssues.slice(0, 4).map((issue) => (
-            <div key={issue.id} style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1rem" }}>
+            <div key={issue.id} style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1rem" }}>
               <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.65rem" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: getStatusColor(issue.status), flexShrink: 0 }} />
                 <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.08em", color: getStatusColor(issue.status), fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
                   {issue.label}
                 </span>
               </div>
-              <div style={{ color: "#F0EDE6", fontSize: "0.92rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, marginBottom: "0.5rem" }}>
+              <div style={{ color: "var(--text-primary)", fontSize: "0.92rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, marginBottom: "0.5rem" }}>
                 {issue.summary}
               </div>
-              <div style={{ color: "rgba(240,237,230,0.55)", fontSize: "0.78rem", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
+              <div style={{ color: "var(--text-secondary)", fontSize: "0.78rem", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
                 {issue.hint}
               </div>
             </div>
@@ -249,20 +249,20 @@ export default function AdminHealthPage() {
         </div>
       ) : null}
 
-      <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "#F0EDE6", marginBottom: "1rem" }}>
+      <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: "var(--text-primary)", marginBottom: "1rem" }}>
         Recent API Errors
       </h2>
       {issues.length === 0 ? (
-        <div style={{ background: "#111", border: "0.5px solid rgba(240,237,230,0.07)", borderRadius: 12, padding: "2rem", textAlign: "center", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
+        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "2rem", textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.875rem" }}>
           No errors logged. All clear.
         </div>
       ) : (
-        <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid rgba(240,237,230,0.08)" }}>
+        <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid var(--border-subtle)" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
             <thead>
-              <tr style={{ borderBottom: "0.5px solid rgba(240,237,230,0.08)", background: "#111" }}>
+              <tr style={{ borderBottom: "0.5px solid var(--border-subtle)", background: "var(--surface)" }}>
                 {["Route", "Error", "Time"].map((h) => (
-                  <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)" }}>
+                  <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                     {h}
                   </th>
                 ))}
@@ -270,8 +270,8 @@ export default function AdminHealthPage() {
             </thead>
             <tbody>
               {issues.map((issue, i) => (
-                <tr key={issue.id} style={{ borderBottom: "0.5px solid rgba(240,237,230,0.04)", background: i % 2 !== 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                <tr key={issue.id} style={{ borderBottom: "0.5px solid var(--border-subtle)", background: i % 2 !== 0 ? "var(--surface-2)" : "transparent" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
                     <div>{issue.route}</div>
                     <div style={{ marginTop: "0.35rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.64rem", letterSpacing: "0.04em", textTransform: "uppercase", color: getStatusColor(issue.status) }}>
                       <span style={{ width: 7, height: 7, borderRadius: "50%", background: getStatusColor(issue.status), flexShrink: 0 }} />
@@ -279,12 +279,12 @@ export default function AdminHealthPage() {
                       {issue.stale ? " | Historical" : ""}
                     </div>
                   </td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "rgba(240,237,230,0.55)", fontFamily: "var(--font-dm-sans)", verticalAlign: "top" }}>
-                    <div style={{ color: "#F0EDE6", marginBottom: "0.35rem" }}>{issue.summary}</div>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", verticalAlign: "top" }}>
+                    <div style={{ color: "var(--text-primary)", marginBottom: "0.35rem" }}>{issue.summary}</div>
                     <div style={{ marginBottom: "0.45rem", wordBreak: "break-word" }}>{issue.message}</div>
-                    <div style={{ color: "rgba(240,237,230,0.35)", fontSize: "0.72rem", lineHeight: 1.45 }}>{issue.hint}</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.72rem", lineHeight: 1.45 }}>{issue.hint}</div>
                   </td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.3)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", verticalAlign: "top" }}>
                     {new Date(issue.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
                 </tr>

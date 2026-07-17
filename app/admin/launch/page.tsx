@@ -43,14 +43,14 @@ function Check({ ok, label, note }: { ok: boolean; label: string; note?: string 
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0.65rem 0",
-        borderBottom: "0.5px solid rgba(240,237,230,0.05)",
+        borderBottom: "0.5px solid var(--border-subtle)",
       }}
     >
       <div>
         <span
           style={{
             fontSize: "0.85rem",
-            color: "rgba(240,237,230,0.75)",
+            color: "var(--text-secondary)",
             fontFamily: "var(--font-dm-sans)",
           }}
         >
@@ -61,7 +61,7 @@ function Check({ ok, label, note }: { ok: boolean; label: string; note?: string 
             style={{
               display: "block",
               fontSize: "0.72rem",
-              color: "rgba(240,237,230,0.3)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
               marginTop: "0.15rem",
             }}
@@ -76,9 +76,9 @@ function Check({ ok, label, note }: { ok: boolean; label: string; note?: string 
           fontWeight: 600,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: ok ? "#C8F55A" : "#FF6B6B",
+          color: ok ? "var(--accent)" : "var(--error)",
           fontFamily: "var(--font-dm-sans)",
-          background: ok ? "rgba(200,245,90,0.08)" : "rgba(255,107,107,0.1)",
+          background: ok ? "var(--accent-dim)" : "color-mix(in srgb, var(--error) 12%, transparent)",
           padding: "0.2rem 0.6rem",
           borderRadius: 6,
           whiteSpace: "nowrap",
@@ -94,8 +94,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div
       style={{
-        background: "#111111",
-        border: "0.5px solid rgba(240,237,230,0.08)",
+        background: "var(--surface)",
+        border: "0.5px solid var(--border-subtle)",
         borderRadius: 12,
         padding: "1.5rem",
         marginBottom: "1.25rem",
@@ -107,7 +107,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontWeight: 700,
           letterSpacing: "0.12em",
           textTransform: "uppercase",
-          color: "rgba(240,237,230,0.3)",
+          color: "var(--text-muted)",
           fontFamily: "var(--font-dm-sans)",
           marginBottom: "0.75rem",
         }}
@@ -133,13 +133,13 @@ export default function LaunchChecklistPage() {
   if (loading) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 920, animation: "pulse 1.4s ease-in-out infinite" }}>
-        <div style={{ height: 22, width: 180, borderRadius: 8, background: "#1A1A1A" }} />
-        <div style={{ height: 14, width: 240, borderRadius: 8, background: "#1A1A1A" }} />
+        <div style={{ height: 22, width: 180, borderRadius: 8, background: "var(--surface-hover)" }} />
+        <div style={{ height: 14, width: 240, borderRadius: 8, background: "var(--surface-hover)" }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 10, padding: "1rem" }}>
-              <div style={{ height: 10, width: 100, borderRadius: 6, background: "#1E1E1E", marginBottom: "0.55rem" }} />
-              <div style={{ height: 18, width: 68, borderRadius: 6, background: "#1E1E1E" }} />
+            <div key={i} style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 10, padding: "1rem" }}>
+              <div style={{ height: 10, width: 100, borderRadius: 6, background: "var(--surface-hover)", marginBottom: "0.55rem" }} />
+              <div style={{ height: 18, width: 68, borderRadius: 6, background: "var(--surface-hover)" }} />
             </div>
           ))}
         </div>
@@ -194,7 +194,7 @@ export default function LaunchChecklistPage() {
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "2rem",
               fontWeight: 400,
-              color: "#F0EDE6",
+              color: "var(--text-primary)",
               margin: 0,
             }}
           >
@@ -203,7 +203,7 @@ export default function LaunchChecklistPage() {
           <p
             style={{
               fontSize: "0.82rem",
-              color: "rgba(240,237,230,0.35)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
               margin: "0.35rem 0 0",
             }}
@@ -215,8 +215,8 @@ export default function LaunchChecklistPage() {
         {/* Score badge */}
         <div
           style={{
-            background: isReady ? "rgba(200,245,90,0.08)" : "rgba(255,180,50,0.08)",
-            border: `0.5px solid ${isReady ? "rgba(200,245,90,0.2)" : "rgba(255,180,50,0.2)"}`,
+            background: isReady ? "var(--accent-dim)" : "color-mix(in srgb, var(--warning) 12%, transparent)",
+            border: `0.5px solid ${isReady ? "var(--border-emphasis)" : "color-mix(in srgb, var(--warning) 30%, transparent)"}`,
             borderRadius: 12,
             padding: "1rem 1.5rem",
             textAlign: "center",
@@ -227,7 +227,7 @@ export default function LaunchChecklistPage() {
             style={{
               fontFamily: "var(--font-instrument-serif)",
               fontSize: "2.4rem",
-              color: isReady ? "#C8F55A" : "#FFB432",
+              color: isReady ? "var(--accent)" : "var(--warning)",
               lineHeight: 1,
             }}
           >
@@ -239,7 +239,7 @@ export default function LaunchChecklistPage() {
               fontWeight: 700,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: isReady ? "#C8F55A" : "#FFB432",
+              color: isReady ? "var(--accent)" : "var(--warning)",
               fontFamily: "var(--font-dm-sans)",
               marginTop: "0.35rem",
             }}
@@ -249,7 +249,7 @@ export default function LaunchChecklistPage() {
           <div
             style={{
               fontSize: "0.65rem",
-              color: "rgba(240,237,230,0.25)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-dm-sans)",
               marginTop: "0.25rem",
             }}
@@ -277,8 +277,8 @@ export default function LaunchChecklistPage() {
           <div
             key={stat.label}
             style={{
-              background: "#111",
-              border: "0.5px solid rgba(240,237,230,0.08)",
+              background: "var(--surface)",
+              border: "0.5px solid var(--border-subtle)",
               borderRadius: 12,
               padding: "1.25rem",
             }}
@@ -289,7 +289,7 @@ export default function LaunchChecklistPage() {
                 fontWeight: 600,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: "rgba(240,237,230,0.3)",
+                color: "var(--text-muted)",
                 fontFamily: "var(--font-dm-sans)",
                 marginBottom: "0.5rem",
               }}
@@ -300,7 +300,7 @@ export default function LaunchChecklistPage() {
               style={{
                 fontFamily: "var(--font-instrument-serif)",
                 fontSize: "2rem",
-                color: stat.warn ? "#FF6B6B" : "#F0EDE6",
+                color: stat.warn ? "var(--error)" : "var(--text-primary)",
                 lineHeight: 1,
               }}
             >
@@ -379,7 +379,7 @@ export default function LaunchChecklistPage() {
       <p
         style={{
           fontSize: "0.72rem",
-          color: "rgba(240,237,230,0.2)",
+          color: "var(--text-muted)",
           fontFamily: "var(--font-dm-sans)",
           textAlign: "right",
           marginTop: "1rem",

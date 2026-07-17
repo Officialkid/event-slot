@@ -14,9 +14,14 @@ describe("admin theme coverage", () => {
     "app/admin/countries/page.tsx",
     "app/admin/events/page.tsx",
     "app/admin/feedback/page.tsx",
+    "app/admin/health/page.tsx",
+    "app/admin/launch/page.tsx",
     "app/admin/messages/page.tsx",
+    "app/admin/page.tsx",
     "app/admin/revenue/page.tsx",
+    "app/admin/test/payments/page.tsx",
     "app/admin/updates/page.tsx",
+    "app/admin/users/page.tsx",
   ])("keeps %s on semantic neutral theme values", (relativePath) => {
     const source = readFileSync(path.join(root, relativePath), "utf8")
 
