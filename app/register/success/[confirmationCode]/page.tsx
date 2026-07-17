@@ -129,7 +129,7 @@ export default async function TicketSuccessPage({
     <main
       style={{
         minHeight: "100vh",
-        background: "#0A0A0A",
+        background: "var(--bg-page)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -147,14 +147,14 @@ export default async function TicketSuccessPage({
             width: 52,
             height: 52,
             borderRadius: "50%",
-            background: "rgba(200,245,90,0.12)",
-            border: "1px solid rgba(200,245,90,0.3)",
+            background: "var(--accent-dim)",
+            border: "1px solid var(--border-emphasis)",
             marginBottom: "1rem",
           }}
         >
           {/* Checkmark */}
           <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <path d="M2 8L8.5 14L20 2" stroke="#C8F55A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 8L8.5 14L20 2" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <h1
@@ -162,7 +162,7 @@ export default async function TicketSuccessPage({
             fontFamily: "var(--font-instrument-serif, Georgia, serif)",
             fontSize: "1.9rem",
             fontWeight: 400,
-            color: "#F0EDE6",
+            color: "var(--text-primary)",
             margin: "0 0 0.5rem",
           }}
         >
@@ -172,11 +172,11 @@ export default async function TicketSuccessPage({
           style={{
             fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
             fontSize: "0.9rem",
-            color: "rgba(240,237,230,0.5)",
+            color: "var(--text-secondary)",
             margin: 0,
           }}
         >
-          Here is your ticket for <strong style={{ color: "rgba(240,237,230,0.85)" }}>{event.title}</strong>
+          Here is your ticket for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>
         </p>
       </div>
 
@@ -189,8 +189,8 @@ export default async function TicketSuccessPage({
               style={{
                 marginTop: "0.75rem",
                 padding: "0.5rem 0.85rem",
-                background: "rgba(239,68,68,0.12)",
-                border: "0.5px solid rgba(239,68,68,0.35)",
+                background: "color-mix(in srgb, var(--error) 12%, transparent)",
+                border: "0.5px solid color-mix(in srgb, var(--error) 35%, transparent)",
                 borderRadius: 8,
                 textAlign: "center",
               }}
@@ -198,7 +198,7 @@ export default async function TicketSuccessPage({
               <p
                 style={{
                   margin: 0,
-                  color: "#f87171",
+                  color: "var(--error)",
                   fontFamily: "var(--font-dm-sans)",
                   fontSize: "0.78rem",
                   fontWeight: 600,
@@ -222,19 +222,19 @@ export default async function TicketSuccessPage({
           style={{
             width: "100%",
             maxWidth: 660,
-            border: "0.5px solid rgba(240,237,230,0.1)",
+            border: "0.5px solid var(--border-subtle)",
             borderRadius: 12,
             padding: "1rem 1.1rem",
-            background: "#141414",
+            background: "var(--surface)",
           }}
         >
-          <p style={{ margin: 0, color: "#F0EDE6", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem", fontWeight: 600 }}>
+          <p style={{ margin: 0, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem", fontWeight: 600 }}>
             Registration confirmed
           </p>
-          <p style={{ margin: "0.45rem 0 0", color: "rgba(240,237,230,0.5)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem" }}>
+          <p style={{ margin: "0.45rem 0 0", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem" }}>
             Confirmation #{confirmationCode}
           </p>
-          <p style={{ margin: "0.6rem 0 0", color: "rgba(240,237,230,0.38)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>
+          <p style={{ margin: "0.6rem 0 0", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>
             Tickets are currently disabled for this event. Keep your confirmation code for check-in.
           </p>
         </div>

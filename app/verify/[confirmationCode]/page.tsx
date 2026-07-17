@@ -34,7 +34,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
     <main
       style={{
         minHeight: "100vh",
-        background: "#0A0A0A",
+        background: "var(--bg-page)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -45,8 +45,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
         style={{
           maxWidth: 420,
           width: "100%",
-          background: "#141414",
-          border: `1px solid ${valid ? "rgba(200,245,90,0.25)" : "rgba(255,107,107,0.25)"}`,
+          background: "var(--surface)",
+          border: `1px solid ${valid ? "var(--border-emphasis)" : "color-mix(in srgb, var(--error) 28%, transparent)"}`,
           borderRadius: 16,
           padding: "2.5rem 2rem",
           textAlign: "center",
@@ -61,19 +61,19 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
             width: 56,
             height: 56,
             borderRadius: "50%",
-            background: valid ? "rgba(200,245,90,0.12)" : "rgba(255,107,107,0.1)",
-            border: `1px solid ${valid ? "rgba(200,245,90,0.3)" : "rgba(255,107,107,0.3)"}`,
+            background: valid ? "var(--accent-dim)" : "color-mix(in srgb, var(--error) 12%, transparent)",
+            border: `1px solid ${valid ? "var(--border-emphasis)" : "color-mix(in srgb, var(--error) 30%, transparent)"}`,
             marginBottom: "1.25rem",
           }}
         >
           {valid ? (
             <svg width="24" height="18" viewBox="0 0 24 18" fill="none">
-              <path d="M2 9L9 16L22 2" stroke="#C8F55A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 9L9 16L22 2" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           ) : (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              <line x1="18" y1="6" x2="6" y2="18" stroke="#FF6B6B" strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="6" y1="6" x2="18" y2="18" stroke="#FF6B6B" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="18" y1="6" x2="6" y2="18" stroke="var(--error)" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1="6" y1="6" x2="18" y2="18" stroke="var(--error)" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           )}
         </div>
@@ -89,9 +89,9 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
             fontWeight: 600,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
-            background: valid ? "rgba(200,245,90,0.12)" : "rgba(255,107,107,0.1)",
-            border: `1px solid ${valid ? "rgba(200,245,90,0.3)" : "rgba(255,107,107,0.3)"}`,
-            color: valid ? "#C8F55A" : "#FF6B6B",
+            background: valid ? "var(--accent-dim)" : "color-mix(in srgb, var(--error) 12%, transparent)",
+            border: `1px solid ${valid ? "var(--border-emphasis)" : "color-mix(in srgb, var(--error) 30%, transparent)"}`,
+            color: valid ? "var(--accent)" : "var(--error)",
             marginBottom: "1rem",
           }}
         >
@@ -105,7 +105,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
                 fontFamily: "var(--font-instrument-serif, Georgia, serif)",
                 fontSize: "1.5rem",
                 fontWeight: 400,
-                color: "#F0EDE6",
+                color: "var(--text-primary)",
                 margin: "0 0 0.5rem",
               }}
             >
@@ -115,14 +115,14 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
               style={{
                 fontFamily: "var(--font-dm-sans, system-ui)",
                 fontSize: "0.9rem",
-                color: "rgba(240,237,230,0.55)",
+                color: "var(--text-secondary)",
                 margin: "0 0 1.25rem",
               }}
             >
               {registration.event.title}
             </p>
             {registration.event.eventDate && (
-              <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", margin: "0 0 0.25rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.25rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
                 📅{" "}
                 {new Date(registration.event.eventDate).toLocaleString("en-GB", {
                   weekday: "short",
@@ -136,11 +136,11 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
               </p>
             )}
             {registration.event.location && (
-              <p style={{ fontSize: "0.78rem", color: "rgba(240,237,230,0.4)", margin: "0 0 1rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 1rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
                 📍 {registration.event.location}
               </p>
             )}
-            <p style={{ fontFamily: "monospace", fontSize: "0.8rem", letterSpacing: "0.15em", color: "rgba(200,245,90,0.6)", margin: 0 }}>
+            <p style={{ fontFamily: "monospace", fontSize: "0.8rem", letterSpacing: "0.15em", color: "var(--accent)", margin: 0 }}>
               {confirmationCode}
             </p>
           </>
@@ -151,13 +151,13 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
                 fontFamily: "var(--font-instrument-serif, Georgia, serif)",
                 fontSize: "1.5rem",
                 fontWeight: 400,
-                color: "#F0EDE6",
+                color: "var(--text-primary)",
                 margin: "0 0 0.5rem",
               }}
             >
               Ticket not found
             </h2>
-            <p style={{ fontFamily: "var(--font-dm-sans, system-ui)", fontSize: "0.9rem", color: "rgba(240,237,230,0.45)", margin: 0 }}>
+            <p style={{ fontFamily: "var(--font-dm-sans, system-ui)", fontSize: "0.9rem", color: "var(--text-muted)", margin: 0 }}>
               This confirmation code is not valid or does not match any confirmed registration.
             </p>
           </>

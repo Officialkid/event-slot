@@ -118,12 +118,12 @@ export default function EditRegistrationPage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    background: "#0A0A0A",
-    border: "0.5px solid rgba(240,237,230,0.12)",
+    background: "var(--bg-page)",
+    border: "0.5px solid var(--border-subtle)",
     borderRadius: 8,
     padding: "0.625rem 0.875rem",
     fontSize: "0.875rem",
-    color: "#F0EDE6",
+    color: "var(--text-primary)",
     fontFamily: "var(--font-dm-sans)",
     outline: "none",
     boxSizing: "border-box",
@@ -134,7 +134,7 @@ export default function EditRegistrationPage() {
     fontSize: "0.75rem",
     fontWeight: 500,
     letterSpacing: "0.04em",
-    color: "rgba(240,237,230,0.45)",
+    color: "var(--text-muted)",
     marginBottom: "0.4rem",
     fontFamily: "var(--font-dm-sans)",
     textTransform: "uppercase",
@@ -144,7 +144,7 @@ export default function EditRegistrationPage() {
     return (
       <main style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style>{`@keyframes edit-spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid rgba(200,245,90,0.2)", borderTopColor: "#C8F55A", animation: "edit-spin 0.8s linear infinite" }} />
+        <div style={{ width: 24, height: 24, borderRadius: "50%", border: "2px solid var(--border-emphasis)", borderTopColor: "var(--accent)", animation: "edit-spin 0.8s linear infinite" }} />
       </main>
     )
   }
@@ -152,7 +152,7 @@ export default function EditRegistrationPage() {
   if (notFound || !registration) {
     return (
       <main style={{ maxWidth: 480, margin: "3rem auto", padding: "0 1.5rem", textAlign: "center" }}>
-        <p style={{ color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)" }}>Registration not found.</p>
+        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>Registration not found.</p>
       </main>
     )
   }
@@ -163,37 +163,37 @@ export default function EditRegistrationPage() {
     <main style={{ maxWidth: 520, margin: "0 auto", padding: "3rem 1.5rem" }}>
       <a
         href={`/registration/${registrationId}`}
-        style={{ background: "transparent", border: "none", cursor: "pointer", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", padding: 0, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+        style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem", padding: 0, marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}
       >
         ← Back
       </a>
 
-      <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", color: "#F0EDE6", fontWeight: 400, marginBottom: "0.35rem" }}>
+      <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.8rem", color: "var(--text-primary)", fontWeight: 400, marginBottom: "0.35rem" }}>
         Edit registration
       </h1>
-      <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
+      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
         {registration.event.title}
         {registration.registrationNumber && (
-          <span style={{ marginLeft: 8, color: "rgba(240,237,230,0.3)" }}>
+          <span style={{ marginLeft: 8, color: "var(--text-muted)" }}>
             · #{String(registration.registrationNumber).padStart(4, "0")}
           </span>
         )}
       </p>
 
       {isClosed && (
-        <div style={{ background: "rgba(255,107,107,0.08)", border: "0.5px solid rgba(255,107,107,0.2)", borderRadius: 10, padding: "0.875rem 1rem", marginBottom: "1.5rem" }}>
-          <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(255,107,107,0.85)", fontFamily: "var(--font-dm-sans)" }}>
+        <div style={{ background: "color-mix(in srgb, var(--error) 10%, transparent)", border: "0.5px solid color-mix(in srgb, var(--error) 24%, transparent)", borderRadius: 10, padding: "0.875rem 1rem", marginBottom: "1.5rem" }}>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)" }}>
             This event is closed. Your registration details cannot be edited.
           </p>
         </div>
       )}
 
-      <div style={{ background: "#141414", border: "0.5px solid rgba(240,237,230,0.08)", borderRadius: 12, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {registration.event.questions.map(q => (
           <div key={q.id}>
             <label style={labelStyle}>
               {q.label}
-              {q.required && <span style={{ color: "#C8F55A", marginLeft: 4 }}>*</span>}
+              {q.required && <span style={{ color: "var(--accent)", marginLeft: 4 }}>*</span>}
             </label>
             {q.type === "select" && q.options ? (
               <select
@@ -213,7 +213,7 @@ export default function EditRegistrationPage() {
                   const selectedValues = parseCheckboxValue(answers[q.id])
                   const isChecked = selectedValues.includes(opt)
                   return (
-                    <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "#F0EDE6", fontFamily: "var(--font-dm-sans)" }}>
+                    <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -244,12 +244,12 @@ export default function EditRegistrationPage() {
       </div>
 
       {error && (
-        <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{error}</p>
+        <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)" }}>{error}</p>
       )}
 
       {saved && (
-        <div style={{ marginTop: "1.25rem", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 10, padding: "0.875rem 1rem" }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+        <div style={{ marginTop: "1.25rem", background: "var(--accent-dim)", border: "0.5px solid var(--border-emphasis)", borderRadius: 10, padding: "0.875rem 1rem" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>
             Your registration has been updated.
           </p>
         </div>
@@ -260,14 +260,14 @@ export default function EditRegistrationPage() {
           <button
             onClick={handleSave}
             disabled={saving || saved}
-            style={{ background: saved ? "rgba(200,245,90,0.3)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.65rem 1.75rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving || saved ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
+            style={{ background: saved ? "var(--border-emphasis)" : "var(--accent)", border: "none", borderRadius: 8, padding: "0.65rem 1.75rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving || saved ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
           >
             {saving ? "Saving…" : saved ? "Updated!" : "Update my registration"}
           </button>
           {saved && (
             <a
               href={`/registration/${registrationId}`}
-              style={{ fontSize: "0.82rem", color: "rgba(200,245,90,0.6)", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}
+              style={{ fontSize: "0.82rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}
             >
               View registration →
             </a>

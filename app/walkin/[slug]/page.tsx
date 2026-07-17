@@ -91,8 +91,8 @@ export default async function WalkInEventPage({
 
   if (event.organizer?.suspended) {
     return (
-      <main style={{ background: "#0A0A0A", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "rgba(240,237,230,0.4)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem" }}>
+      <main style={{ background: "var(--bg-page)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem" }}>
           This event is currently unavailable.
         </p>
       </main>
