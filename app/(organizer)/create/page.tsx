@@ -9,7 +9,7 @@ import { getPublicEventUrl } from "@/lib/eventUrls"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import type { EventContactMode } from "@/lib/eventContact"
 import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/effectivePlanPolicy"
-import { getPricingRolloutLabel, isPricingRolloutActive } from "@/lib/pricingRollout"
+import { isPricingRolloutActive } from "@/lib/pricingRollout"
 import { TierBadge } from "@/components/TierBadge"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
@@ -706,8 +706,8 @@ export default function CreateEventPage() {
           </p>
           <div className="mt-4 rounded-[12px] border px-4 py-3 text-[0.82rem] leading-6" style={{ borderColor: "rgba(124,199,255,0.22)", background: "rgba(124,199,255,0.08)", color: "color-mix(in srgb, var(--text-primary) 82%, #9FD8FF 18%)" }}>
             {pricingActive
-              ? "Plan-based limits are now active. We will guide you with upgrades and PAYG options instead of leaving you stuck."
-              : `Your current event experience stays open until ${getPricingRolloutLabel()}. Plan limits and PAYG billing start then.`}
+              ? "Your current plan limits apply here. If you need more room, EventSlot will guide you clearly before anything changes."
+              : "Free event creation is fully open right now. Paid-event tools and billing controls will appear later when they are ready."}
           </div>
         </div>
 
@@ -1194,8 +1194,7 @@ export default function CreateEventPage() {
                       {showCapacityUpgradeHint ? (
                         <div className="mt-3 rounded-[10px] border px-3 py-3 text-[0.78rem] leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
                           Upgrade to <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{nextPlan ? nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) : "a higher plan"}</span> for a larger included capacity.
-                          Once pricing is active, you can also enable PAYG from Billing so extra attendees keep coming in at{" "}
-                          <span className="font-semibold text-[#C8F55A]">$0.05 per person</span>.
+                          Extra paid capacity controls will only appear after the billing rollout is ready.
                         </div>
                       ) : null}
                     </div>
