@@ -8,7 +8,7 @@ export type EmailProviderRuntimeEnv = {
   RESEND_FROM?: string
 }
 
-export const DEFAULT_RESEND_SENDER = "EventSlot <onboarding@resend.dev>"
+export const DEFAULT_RESEND_SENDER = "EventSlot <hello@eventsslot.com>"
 
 function readEnvValue(value: string | undefined) {
   return value?.trim() ?? ""
