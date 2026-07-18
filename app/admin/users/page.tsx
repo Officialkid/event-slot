@@ -164,16 +164,25 @@ export default function AdminUsersPage() {
   const [deleteMode, setDeleteMode] = useState<DeleteHandlingMode>("archive")
   const [transferUserId, setTransferUserId] = useState("")
   const [editUser, setEditUser] = useState<EditUserState | null>(null)
+  const [actionError, setActionError] = useState("")
 
   const fetchUsers = useCallback(() => {
     setLoading(true)
+    setActionError("")
     const params = new URLSearchParams()
     if (search) params.set("search", search)
     if (planFilter !== "all") params.set("plan", planFilter)
 
     fetch(`/api/admin/users?${params}`)
-      .then((r) => r.json())
-      .then((d) => setUsers(d.users ?? []))
+      .then(async (r) => {
+        const d = await r.json().catch(() => null)
+        if (!r.ok) throw new Error(d?.error ?? "Unable to load users.")
+        setUsers(d.users ?? [])
+      })
+      .catch((err) => {
+        setUsers([])
+        setActionError(err instanceof Error ? err.message : "Unable to load users.")
+      })
       .finally(() => setLoading(false))
   }, [search, planFilter])
 
@@ -182,21 +191,33 @@ export default function AdminUsersPage() {
   }, [fetchUsers])
 
   async function changePlan(id: string, plan: string) {
-    await fetch(`/api/admin/users/${id}`, {
+    setActionError("")
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setActionError(data?.error ?? "Unable to update user plan.")
+      return
+    }
     setOpenMenu(null)
     fetchUsers()
   }
 
   async function toggleSuspend(id: string, suspended: boolean) {
-    await fetch(`/api/admin/users/${id}`, {
+    setActionError("")
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suspended }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setActionError(data?.error ?? "Unable to update account status.")
+      return
+    }
     setOpenMenu(null)
     fetchUsers()
   }
@@ -258,6 +279,11 @@ export default function AdminUsersPage() {
       <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
         All registered accounts on the platform.
       </p>
+      {actionError && (
+        <p style={{ fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>
+          {actionError}
+        </p>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
         <input

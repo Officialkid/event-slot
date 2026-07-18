@@ -112,6 +112,29 @@ const helperStyle: React.CSSProperties = {
   color: "var(--text-muted)",
 }
 
+const accentPanelStyle: React.CSSProperties = {
+  background: "var(--accent-dim)",
+  border: "1px solid var(--border-emphasis)",
+  borderRadius: 10,
+}
+
+const accentButtonStyle: React.CSSProperties = {
+  borderColor: "var(--border-emphasis)",
+  color: "var(--accent)",
+}
+
+const accentTextStyle: React.CSSProperties = {
+  color: "var(--accent)",
+}
+
+const warningTextStyle: React.CSSProperties = {
+  color: "var(--warning)",
+}
+
+const errorTextStyle: React.CSSProperties = {
+  color: "var(--error)",
+}
+
 const warningCardStyle: React.CSSProperties = {
   background: "rgba(255,184,77,0.05)",
   border: "1px solid rgba(255,184,77,0.22)",
@@ -675,7 +698,7 @@ export default function CreateEventPage() {
               <button
                 onClick={handleDownloadSuccessQR}
                 style={{
-                  background: "#C8F55A",
+                  background: "var(--accent)",
                   color: "#0A0A0A",
                   border: "none",
                   borderRadius: "100px",
@@ -754,7 +777,7 @@ export default function CreateEventPage() {
                       ? "rgba(200,245,90,0.06)"
                       : "var(--surface)",
                     border: isSelected
-                      ? "1.5px solid #C8F55A"
+                      ? "1.5px solid var(--border-emphasis)"
                       : "1px solid var(--border-subtle)",
                     borderRadius: 12,
                     padding: "1.125rem 1rem",
@@ -861,7 +884,7 @@ export default function CreateEventPage() {
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Event Title <span className="text-[#C8F55A]">*</span>
+                    Event Title <span style={accentTextStyle}>*</span>
                   </label>
                   <input
                     type="text"
@@ -879,18 +902,18 @@ export default function CreateEventPage() {
                   </label>
                   <textarea
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                    style={inputStyle}
-                    placeholder="Briefly describe what this event is about. Date, time and location are already shown automatically - no need to repeat them here."
-                    rows={3}
-                    maxLength={500}
+                    style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                    placeholder="Briefly describe what this event is about. Line breaks, spacing, and emojis are kept as written."
+                    rows={5}
+                    maxLength={5000}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                   />
                   <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.35rem" }}>
-                    Tip: Date, time, and location are shown automatically from the fields above. Use this field to describe the event content only.
+                    Tip: Date, time, and location are shown automatically from the fields above. Use this field for your caption, spacing, extra notes, and emojis exactly as you want attendees to read them.
                   </p>
                   <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.25rem" }}>
-                    {description.length} / 300 characters
+                    {description.length} / 5000 characters
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -903,10 +926,10 @@ export default function CreateEventPage() {
                       onClick={() => setEventType("PHYSICAL")}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         eventType === "PHYSICAL"
-                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          ? ""
                           : ""
                       }`}
-                      style={eventType === "PHYSICAL" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      style={eventType === "PHYSICAL" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       📍 Physical
                     </button>
@@ -919,10 +942,10 @@ export default function CreateEventPage() {
                       disabled={isWalkInEvent}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         eventType === "VIRTUAL"
-                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          ? ""
                           : ""
                       } ${isWalkInEvent ? "cursor-not-allowed opacity-40" : ""}`}
-                      style={eventType === "VIRTUAL" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      style={eventType === "VIRTUAL" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       💻 Virtual
                     </button>
@@ -932,7 +955,7 @@ export default function CreateEventPage() {
                 {eventType === "VIRTUAL" && (
                   <div className="space-y-2">
                     <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Google Meet Link <span className="text-[#C8F55A]">*</span>
+                      Google Meet Link <span style={accentTextStyle}>*</span>
                     </label>
                     <input
                       type="text"
@@ -944,7 +967,7 @@ export default function CreateEventPage() {
                       onChange={e => setVirtualLink(e.target.value)}
                     />
                     <div className="rounded-xl border p-4" style={cardMutedStyle}>
-                      <p className="mb-2 text-xs font-semibold text-[#C8F55A]">✦ How to get your Google Meet link</p>
+                      <p className="mb-2 text-xs font-semibold" style={accentTextStyle}>✦ How to get your Google Meet link</p>
                       <ol className="list-inside list-decimal space-y-1 text-xs" style={{ color: "var(--text-secondary)" }}>
                         <li>Go to <span style={{ color: "var(--text-primary)" }}>meet.new</span> or open Google Meet</li>
                         <li>Click <span style={{ color: "var(--text-primary)" }}>New meeting</span></li>
@@ -972,10 +995,10 @@ export default function CreateEventPage() {
                       }}
                       className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
                         !isPaid
-                          ? "border-[rgba(200,245,90,0.55)] bg-[rgba(200,245,90,0.08)] text-[#C8F55A]"
+                          ? ""
                           : ""
                       }`}
-                      style={!isPaid ? { borderColor: "rgba(200,245,90,0.55)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      style={!isPaid ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
                     >
                       🎟️ Free
                     </button>
@@ -983,7 +1006,7 @@ export default function CreateEventPage() {
                       type="button"
                       disabled
                       className="rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium opacity-70"
-                      style={{ borderColor: "rgba(255,184,77,0.3)", background: "var(--surface-2)", color: "#FFB84D", cursor: "not-allowed" }}
+                      style={{ borderColor: "color-mix(in srgb, var(--warning) 35%, transparent)", background: "var(--surface-2)", color: "var(--warning)", cursor: "not-allowed" }}
                     >
                       💳 Paid
                     </button>
@@ -1026,7 +1049,8 @@ export default function CreateEventPage() {
                                 <button
                                   type="button"
                                   onClick={() => removeTicketTier(tier.id)}
-                                  className="text-[0.72rem] text-[#FF6B6B]"
+                                className="text-[0.72rem]"
+                                style={errorTextStyle}
                                 >
                                   Remove
                                 </button>
@@ -1177,16 +1201,17 @@ export default function CreateEventPage() {
                     }}
                   />
                   {lockedCapacity ? (
-                    <div className="mt-3 rounded-[10px] border border-[rgba(200,245,90,0.16)] bg-[rgba(200,245,90,0.05)] px-4 py-3">
+                    <div className="mt-3 rounded-[10px] border px-4 py-3" style={accentPanelStyle}>
                       <p className="text-[0.8rem] leading-6" style={{ color: "var(--text-secondary)" }}>
                         Your <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{effectivePlan.displayName}</span> plan includes up to{" "}
-                        <span className="font-semibold text-[#C8F55A]">{attendeeLimit.toLocaleString()}</span> attendees per event. You can set this specific event lower if you want.
+                        <span className="font-semibold" style={accentTextStyle}>{attendeeLimit.toLocaleString()}</span> attendees per event. You can set this specific event lower if you want.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => setShowCapacityUpgradeHint((current) => !current)}
-                          className="rounded-full border border-[rgba(200,245,90,0.22)] px-3 py-2 text-[0.78rem] font-semibold text-[#C8F55A]"
+                          className="rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
+                          style={accentButtonStyle}
                         >
                           Need more capacity?
                         </button>
@@ -1202,19 +1227,17 @@ export default function CreateEventPage() {
                   {aiPredictionLoading && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
-                        <circle cx="12" cy="12" r="10" stroke="rgba(200,245,90,0.3)" strokeWidth="2.5" />
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke="#C8F55A" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="12" cy="12" r="10" stroke="var(--border-emphasis)" strokeWidth="2.5" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" />
                       </svg>
-                      <span style={{ fontSize: '0.75rem', color: 'rgba(200,245,90,0.6)', fontFamily: 'var(--font-dm-sans)' }}>Analysing your past events…</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>Analysing your past events…</span>
                     </div>
                   )}
                   {aiPrediction && !capacity && (
                     <div
                       style={{
                         marginTop: '0.625rem',
-                        background: 'rgba(200,245,90,0.06)',
-                        border: '0.5px solid rgba(200,245,90,0.2)',
-                        borderRadius: 8,
+                        ...accentPanelStyle,
                         padding: '0.6rem 0.85rem',
                         display: 'flex',
                         gap: '0.625rem',
@@ -1222,16 +1245,16 @@ export default function CreateEventPage() {
                       }}
                     >
                       <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginTop: 2 }}>
-                        <path d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z" fill="rgba(200,245,90,0.2)" stroke="#C8F55A" strokeWidth="1.25" />
-                        <path d="M8 17h4" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
-                        <path d="M9 19h2" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z" fill="var(--accent-dim)" stroke="var(--accent)" strokeWidth="1.25" />
+                        <path d="M8 17h4" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M9 19h2" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
                       </svg>
                       <div style={{ flex: 1 }}>
-                        <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', color: 'rgba(200,245,90,0.85)', fontFamily: 'var(--font-dm-sans)', fontWeight: 500, lineHeight: 1.4 }}>
+                        <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', color: 'var(--accent)', fontFamily: 'var(--font-dm-sans)', fontWeight: 500, lineHeight: 1.4 }}>
                           AI suggestion: <strong>{aiPrediction.suggestedCapacity}</strong> attendees&nbsp;
                           <span style={{ fontWeight: 400, opacity: 0.7 }}>({aiPrediction.confidence} confidence)</span>
                         </p>
-                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'rgba(240,237,230,0.45)', fontFamily: 'var(--font-dm-sans)', fontWeight: 300, lineHeight: 1.4 }}>
+                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)', fontWeight: 300, lineHeight: 1.4 }}>
                           {aiPrediction.reasoning}
                         </p>
                         <button
@@ -1239,12 +1262,12 @@ export default function CreateEventPage() {
                           onClick={() => setCapacity(String(aiPrediction.suggestedCapacity))}
                           style={{
                             background: 'transparent',
-                            border: '0.5px solid rgba(200,245,90,0.35)',
+                            border: '0.5px solid var(--border-emphasis)',
                             borderRadius: 6,
                             padding: '0.3rem 0.75rem',
                             fontSize: '0.72rem',
                             fontWeight: 500,
-                            color: '#C8F55A',
+                            color: 'var(--accent)',
                             cursor: 'pointer',
                             fontFamily: 'var(--font-dm-sans)',
                           }}
@@ -1258,9 +1281,7 @@ export default function CreateEventPage() {
                     <div
                       style={{
                         marginTop: "0.625rem",
-                        background: "rgba(200,245,90,0.06)",
-                        border: "0.5px solid rgba(200,245,90,0.15)",
-                        borderRadius: 8,
+                        ...accentPanelStyle,
                         padding: "0.75rem 1rem",
                         display: "flex",
                         gap: "0.625rem",
@@ -1274,17 +1295,17 @@ export default function CreateEventPage() {
                       >
                         <path
                           d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z"
-                          fill="rgba(200,245,90,0.25)" stroke="#C8F55A" strokeWidth="1.25"
+                          fill="var(--accent-dim)" stroke="var(--accent)" strokeWidth="1.25"
                         />
-                        <path d="M8 17h4" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
-                        <path d="M9 19h2" stroke="#C8F55A" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M8 17h4" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
+                        <path d="M9 19h2" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
                       </svg>
                       <div style={{ flex: 1 }}>
                         <p
                           style={{
                             margin: "0 0 0.5rem",
                             fontSize: "0.8rem",
-                            color: "rgba(200,245,90,0.8)",
+                            color: "var(--accent)",
                             fontFamily: "var(--font-dm-sans)",
                             lineHeight: 1.5,
                           }}
@@ -1296,12 +1317,12 @@ export default function CreateEventPage() {
                           onClick={() => setCapacity(String(capacitySuggestion.suggestedCapacity))}
                           style={{
                             background: "transparent",
-                            border: "0.5px solid rgba(200,245,90,0.35)",
+                            border: "0.5px solid var(--border-emphasis)",
                             borderRadius: 6,
                             padding: "0.3rem 0.75rem",
                             fontSize: "0.75rem",
                             fontWeight: 500,
-                            color: "#C8F55A",
+                            color: "var(--accent)",
                             cursor: "pointer",
                             fontFamily: "var(--font-dm-sans)",
                           }}
@@ -1396,7 +1417,7 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Organizer Name <span className="text-[#C8F55A]">*</span>
+                    Organizer Name <span style={accentTextStyle}>*</span>
                   </label>
                   <input
                     type="text"
@@ -1467,7 +1488,7 @@ export default function CreateEventPage() {
                     Attendees will see either a WhatsApp button or a Call organiser button on the event page.
                   </p>
                   {whatsappNumber.trim() && (
-                    <p style={{ fontSize: "0.72rem", color: "#F59E0B", marginTop: "0.35rem" }}>
+                    <p style={{ ...warningTextStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                       This number is public on your event page. Use the full country code, for example +254..., and use a dedicated events or business line where possible.
                     </p>
                   )}
@@ -1515,7 +1536,7 @@ export default function CreateEventPage() {
               >
                 {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
               </button>
-              {imageError && <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>}
+              {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
             </div>
 
             {isRegistrationEvent ? (
@@ -1530,14 +1551,14 @@ export default function CreateEventPage() {
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
-                    background: "rgba(200,245,90,0.07)",
-                    border: "0.5px solid rgba(200,245,90,0.25)",
+                    background: "var(--accent-dim)",
+                    border: "0.5px solid var(--border-emphasis)",
                     borderRadius: 8,
                     padding: "0.6rem 0.875rem",
                     marginBottom: "1.25rem",
                     fontFamily: "var(--font-dm-sans)",
                     fontSize: "0.8rem",
-                    color: "rgba(200,245,90,0.9)",
+                    color: "var(--accent)",
                   }}
                 >
                   <span style={{ fontSize: "1rem" }}>{activeTpl.icon}</span>
@@ -1602,7 +1623,8 @@ export default function CreateEventPage() {
                             />
                             <button
                               type="button"
-                              className="rounded-[8px] border border-[rgba(200,245,90,0.35)] px-3 py-2 text-[0.8rem] text-[#C8F55A]"
+                              className="rounded-[8px] border px-3 py-2 text-[0.8rem]"
+                              style={accentButtonStyle}
                               onClick={() => addOption(idx)}
                             >
                               Add
@@ -1660,7 +1682,7 @@ export default function CreateEventPage() {
                             type="checkbox"
                             id={`allow-multiple-${q.id}`}
                             className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
-                            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
+                            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                             checked={!!q.allowMultiple}
                             onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                           />
@@ -1674,7 +1696,7 @@ export default function CreateEventPage() {
                           type="checkbox"
                           id={`required-${q.id}`}
                           className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
-                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
+                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                           checked={q.required}
                           onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
                         />
@@ -1685,7 +1707,8 @@ export default function CreateEventPage() {
                       {questions.length > 1 && (
                         <button
                           type="button"
-                          className="mt-2 rounded-full border border-[rgba(255,107,107,0.3)] px-3 py-1 text-[0.75rem] text-[#FF6B6B]"
+                          className="mt-2 rounded-full border px-3 py-1 text-[0.75rem]"
+                          style={{ borderColor: "color-mix(in srgb, var(--error) 35%, transparent)", color: "var(--error)" }}
                           onClick={() => removeQuestion(idx)}
                         >
                           Remove
@@ -1718,19 +1741,20 @@ export default function CreateEventPage() {
             <div className="space-y-4">
               <button
                 type="submit"
-                className="w-full rounded-full bg-[#C8F55A] px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                style={{ background: "var(--accent)" }}
                 disabled={loading}
               >
                 {loading ? "Creating..." : "Create Event"}
               </button>
-              {error && <div className="text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
+              {error && <div className="text-[0.82rem] text-center" style={errorTextStyle}>{error}</div>}
             </div>
           </form>
           </div>
         ) : selectedTemplateId && success ? (
           <div className="rounded-[12px] p-8 text-center space-y-4" style={cardStyle}>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
-              <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border" style={{ borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }}>
+              <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4" style={{ borderColor: "var(--accent)" }} />
             </div>
             <h2 className="text-[1.5rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Your event is live!
@@ -1752,7 +1776,7 @@ export default function CreateEventPage() {
               <button
                 type="button"
                 onClick={() => void handleCopySuccessLink()}
-                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "#C8F55A" : "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
+                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
               >
                 {copiedSuccessLink ? "Copied!" : "Copy"}
               </button>
@@ -1784,7 +1808,8 @@ export default function CreateEventPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/events/${eventInfo.slug}`)}
-                className="w-full rounded-full bg-[#C8F55A] px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                style={{ background: "var(--accent)" }}
               >
                 Continue to Dashboard
               </button>

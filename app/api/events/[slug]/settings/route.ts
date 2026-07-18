@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     const updatedEvent = await prisma.event.update({
       where: { slug },
       data: {
-        description: description !== undefined ? (description?.trim() || null) : undefined,
+        description: description !== undefined ? ((description && description.trim().length > 0) ? description : null) : undefined,
         eventDate: eventDate !== undefined ? (eventDate ? new Date(eventDate) : null) : undefined,
         eventEndAt: eventEndAt !== undefined ? (eventEndAt ? new Date(eventEndAt) : null) : undefined,
         joinOpensAt: joinOpensAt !== undefined ? (joinOpensAt ? new Date(joinOpensAt) : null) : undefined,

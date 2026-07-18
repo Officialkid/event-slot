@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { purgeUserCache } from '@/lib/cache'
 import Link from 'next/link'
+import SignOutAndContinueButton from './SignOutAndContinueButton'
 
 interface Props {
   searchParams: Promise<{ token?: string }>
@@ -90,12 +91,7 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
             You are currently signed in as <strong style={{ color: 'var(--text-primary)' }}>{session.user.email ?? 'another account'}</strong>. Sign out and continue with the invited email to open this event.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link
-              href={`/api/auth/signout?callbackUrl=${encodeURIComponent(acceptPath)}`}
-              style={{ display: 'inline-block', background: 'var(--accent)', color: '#0A0A0A', borderRadius: 8, padding: '0.7rem 1.35rem', fontSize: '0.9rem', fontWeight: 600, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}
-            >
-              Sign out and continue
-            </Link>
+            <SignOutAndContinueButton callbackUrl={acceptPath} />
             <Link
               href="/dashboard"
               style={{ display: 'inline-block', border: '0.5px solid var(--border-subtle)', color: 'var(--text-secondary)', borderRadius: 8, padding: '0.7rem 1.35rem', fontSize: '0.9rem', fontWeight: 500, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}

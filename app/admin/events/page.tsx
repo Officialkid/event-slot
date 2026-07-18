@@ -22,6 +22,7 @@ export default function AdminEventsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [actionError, setActionError] = useState("")
   const [entering, setEntering] = useState<string | null>(null)
   const router = useRouter()
 
@@ -29,13 +30,21 @@ export default function AdminEventsPage() {
 
   const fetchEvents = useCallback(() => {
     setLoading(true)
+    setActionError("")
     const params = new URLSearchParams()
     if (search) params.set("search", search)
     if (statusFilter !== "all") params.set("status", statusFilter)
     if (userId) params.set("user", userId)
     fetch(`/api/admin/events?${params}`)
-      .then(r => r.json())
-      .then(d => setEvents(d.events ?? []))
+      .then(async r => {
+        const d = await r.json().catch(() => null)
+        if (!r.ok) throw new Error(d?.error ?? "Unable to load events.")
+        setEvents(d.events ?? [])
+      })
+      .catch((err) => {
+        setEvents([])
+        setActionError(err instanceof Error ? err.message : "Unable to load events.")
+      })
       .finally(() => setLoading(false))
   }, [search, statusFilter, userId])
 
@@ -43,6 +52,7 @@ export default function AdminEventsPage() {
 
   async function enterAdminMode(eventId: string) {
     setEntering(eventId)
+    setActionError("")
     try {
       const res = await fetch('/api/admin/event-mode', {
         method: 'POST',
@@ -53,21 +63,27 @@ export default function AdminEventsPage() {
       if (res.ok && data.redirectTo) {
         router.push(data.redirectTo)
       } else {
-        alert(data.error ?? 'Failed to enter Admin Mode')
+        setActionError(data.error ?? 'Failed to enter Admin Mode')
       }
     } catch {
-      alert('Network error. Please try again.')
+      setActionError('Network error. Please try again.')
     } finally {
       setEntering(null)
     }
   }
 
   async function deleteEvent(id: string) {
-    await fetch("/api/admin/events", {
+    setActionError("")
+    const res = await fetch("/api/admin/events", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      setActionError(data?.error ?? "Unable to delete this event.")
+      return
+    }
     setConfirmDelete(null)
     fetchEvents()
   }
@@ -90,6 +106,11 @@ export default function AdminEventsPage() {
       <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
         All events on the platform.{userId ? " (Filtered by user)" : ""}
       </p>
+      {actionError && (
+        <p style={{ fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>
+          {actionError}
+        </p>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
         <input

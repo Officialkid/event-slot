@@ -1603,7 +1603,7 @@ export default function EventDashboardPage() {
     if (reportData?.requiresSignIn) {
       return "Preview is free. Download requires a signed-in organiser or team member."
     }
-    return "Choose the export format you need for this event: CSV data, printable response PDFs, or the full AI event intelligence report."
+    return "Choose the export format you need for this event: confirmed CSV, printable response PDFs, or a detailed AI event documentation report."
   })()
 
   const aiInsightsAccessNote = isSuperAdmin
@@ -1904,7 +1904,7 @@ export default function EventDashboardPage() {
     setReportError("")
     setReportNotice("")
 
-    if (!session?.user?.id) {
+    if (!session?.user?.id && !(token || eventData.dashboardToken)) {
       const callbackUrl = typeof window !== "undefined"
         ? `${window.location.pathname}${window.location.search}`
         : `/dashboard/events/${slug}`
@@ -1977,7 +1977,10 @@ export default function EventDashboardPage() {
       if (!res.ok) {
         const contentType = res.headers.get("content-type") ?? ""
         const data = contentType.includes("application/json") ? await res.json().catch(() => null) : null
-        setCsvError(data?.error || "Export failed. Please try again.")
+        const fallbackText = !data && !contentType.includes("application/json")
+          ? await res.text().catch(() => "")
+          : ""
+        setCsvError(data?.error || fallbackText || "Export failed. Please try again.")
         return
       }
 
@@ -1989,7 +1992,7 @@ export default function EventDashboardPage() {
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-      URL.revokeObjectURL(objectUrl)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000)
     } catch {
       setCsvError("Unable to download export. Please try again.")
     } finally {
@@ -2945,7 +2948,7 @@ export default function EventDashboardPage() {
                         width: '100%',
                       }}
                     >
-                      {reportLoading ? reportLoadingText || 'Preparing AI export...' : 'Prepare AI report'}
+                      {reportLoading ? reportLoadingText || 'Preparing AI documentation...' : 'Prepare AI documentation'}
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
@@ -3059,7 +3062,7 @@ export default function EventDashboardPage() {
                     <div>
                       <p style={{ fontSize: "0.82rem", color: themeTextMuted, margin: 0, fontFamily: "var(--font-dm-sans)" }}>
                         {reportData.reportReady
-                          ? 'Export the full AI report as a Word document.'
+                          ? 'Export the full AI event documentation as a Word document.'
                           : 'Preparing your report document...'}
                       </p>
                       {!isSuperAdmin && (
@@ -3103,7 +3106,7 @@ export default function EventDashboardPage() {
                           ? 'Preparing...'
                           : reportData.requiresSignIn
                           ? 'Sign in to export report'
-                          : 'Export report (.docx)'}
+                          : 'Export AI report (.docx)'}
                       </button>
                     </div>
                   </div>

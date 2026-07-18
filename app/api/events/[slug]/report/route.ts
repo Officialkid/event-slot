@@ -8,6 +8,9 @@ import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { reportDownloadRatelimit } from '@/lib/ratelimit'
 import { rateLimit } from '@/lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 function extractDisplayNameFromEmail(email: string): string {
   const local = email.split('@')[0] || 'Organiser'
   return local
@@ -173,6 +176,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const registrations = await prisma.registration.findMany({
       where: { eventId: event.id },
       orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
+      select: {
+        id: true,
+        status: true,
+        answers: true,
+        registrationNumber: true,
+        submittedAt: true,
+        waitlistPosition: true,
+      },
     })
 
     const [payments, paidOrders] = event.isPaid
@@ -269,7 +280,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     if (mode === 'preview' || !mode) {
-      const requiresSignIn = !session?.user?.id
+      const requiresSignIn = !session?.user?.id && !hasValidToken
       const accessNote = requiresSignIn
         ? 'Preview is ready. Sign in as the organiser or an approved team member to download the full report.'
         : 'Preview and download are free while EventSlot completes the premium report rollout.'
@@ -300,14 +311,21 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     if (mode === 'download') {
-      if (!session?.user?.id) {
+      const downloadAccessKey =
+        session?.user?.id
+          ? session.user.id
+          : hasValidToken
+            ? `event-report-token:${event.id}:${token}`
+            : null
+
+      if (!downloadAccessKey) {
         return NextResponse.json(
           { error: 'Sign in to download', code: 'AUTH_REQUIRED' },
           { status: 401 },
         )
       }
 
-      const docRl = await rateLimit(session.user.id, 'DOCUMENT_GENERATION', 10, 60)
+      const docRl = await rateLimit(downloadAccessKey, 'DOCUMENT_GENERATION', 10, 60)
       if (!docRl.allowed) {
         return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 })
       }

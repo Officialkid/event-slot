@@ -20,6 +20,10 @@ export type EventInvitationCardProps = {
   walkInOpenToday?: boolean
 }
 
+function getDirectionsUrl(location: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
+}
+
 function formatEventDate(date: Date): string {
   const d = new Date(date)
   const dayName = d.toLocaleDateString("en-GB", { weekday: "long" })
@@ -276,6 +280,14 @@ export default function EventInvitationCard({
               <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 400 }}>
                 {location}
               </span>
+              <a
+                href={getDirectionsUrl(location)}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 500, textDecoration: "none" }}
+              >
+                Get directions
+              </a>
             </div>
           )}
 
@@ -323,6 +335,7 @@ export default function EventInvitationCard({
                 lineHeight: 1.72,
                 margin: 0,
                 maxWidth: 700,
+                whiteSpace: "pre-wrap",
               }}
             >
               {descriptionText}

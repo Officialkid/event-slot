@@ -86,6 +86,25 @@ const helperStyle: React.CSSProperties = {
   color: "var(--text-muted)",
 }
 
+const accentPanelStyle: React.CSSProperties = {
+  background: "var(--accent-dim)",
+  border: "1px solid var(--border-emphasis)",
+  borderRadius: 10,
+}
+
+const accentButtonStyle: React.CSSProperties = {
+  borderColor: "var(--border-emphasis)",
+  color: "var(--accent)",
+}
+
+const accentTextStyle: React.CSSProperties = {
+  color: "var(--accent)",
+}
+
+const errorTextStyle: React.CSSProperties = {
+  color: "var(--error)",
+}
+
 const warningCardStyle: React.CSSProperties = {
   background: "rgba(255,184,77,0.05)",
   border: "1px solid rgba(255,184,77,0.22)",
@@ -500,7 +519,7 @@ export default function EditEventPage() {
     return (
       <div className="px-4 py-12">
         <div className="mx-auto max-w-[640px] rounded-[12px] border p-8 text-center" style={cardStyle}>
-          <p className="text-[#FF6B6B] text-sm">{error}</p>
+          <p className="text-sm" style={errorTextStyle}>{error}</p>
           <a href="/my-events" className="mt-4 inline-block text-sm" style={{ color: "var(--text-secondary)" }}>← Back to my events</a>
         </div>
       </div>
@@ -521,7 +540,7 @@ export default function EditEventPage() {
         </div>
 
         {success && (
-          <div className="rounded-[8px] border px-4 py-3 text-[0.82rem] text-[#C8F55A]" style={{ background: "rgba(200,245,90,0.1)", borderColor: "rgba(200,245,90,0.24)" }}>
+          <div className="rounded-[8px] border px-4 py-3 text-[0.82rem]" style={{ ...accentPanelStyle, color: "var(--accent)" }}>
             Changes saved! Redirecting…
           </div>
         )}
@@ -535,7 +554,7 @@ export default function EditEventPage() {
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Event Title <span className="text-[#C8F55A]">*</span>
+                  Event Title <span style={accentTextStyle}>*</span>
                 </label>
                 <input
                   type="text"
@@ -552,11 +571,16 @@ export default function EditEventPage() {
                 </label>
                 <textarea
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                  style={inputStyle}
-                  rows={3}
+                  style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
+                  rows={5}
+                  maxLength={5000}
+                  placeholder="Your caption, spacing, line breaks, and emojis will be kept as written."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                 />
+                <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
+                  Line breaks, spacing, and emojis are preserved on the public event page and registration form.
+                </p>
               </div>
               <div>
                 {isPaid && (
@@ -579,7 +603,8 @@ export default function EditEventPage() {
                         type="button"
                         onClick={addTicketTier}
                         disabled={ticketTiers.length >= 10}
-                        className="rounded-full border border-[rgba(255,184,77,0.25)] px-3 py-1 text-[0.75rem] text-[#FFB84D] disabled:opacity-40"
+                        className="rounded-full border px-3 py-1 text-[0.75rem] disabled:opacity-40"
+                        style={{ borderColor: "color-mix(in srgb, var(--warning) 35%, transparent)", color: "var(--warning)" }}
                       >
                         + Add tier
                       </button>
@@ -601,7 +626,8 @@ export default function EditEventPage() {
                               <button
                                 type="button"
                                 onClick={() => removeTicketTier(tier.id)}
-                                className="text-[0.72rem] text-[#FF6B6B]"
+                                className="text-[0.72rem]"
+                                style={errorTextStyle}
                               >
                                 Remove
                               </button>
@@ -871,7 +897,7 @@ export default function EditEventPage() {
               {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
             </button>
             {imageError && (
-              <p className="mt-2 text-[0.78rem] text-[#FF6B6B]">{imageError}</p>
+              <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>
             )}
           </div>
 
@@ -936,7 +962,8 @@ export default function EditEventPage() {
                           />
                           <button
                             type="button"
-                            className="rounded-[8px] border border-[rgba(200,245,90,0.35)] px-3 py-2 text-[0.8rem] text-[#C8F55A]"
+                            className="rounded-[8px] border px-3 py-2 text-[0.8rem]"
+                            style={accentButtonStyle}
                             onClick={() => addOption(idx)}
                           >
                             Add
@@ -994,7 +1021,7 @@ export default function EditEventPage() {
                           type="checkbox"
                           id={`allow-multiple-${q.id}`}
                           className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
-                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
+                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                           checked={!!q.allowMultiple}
                           onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
                         />
@@ -1008,7 +1035,7 @@ export default function EditEventPage() {
                         type="checkbox"
                         id={`required-${q.id}`}
                         className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
-                        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "#C8F55A" }}
+                        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                         checked={q.required}
                         onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
                       />
@@ -1017,7 +1044,8 @@ export default function EditEventPage() {
                     {questions.length > 1 && (
                       <button
                         type="button"
-                        className="mt-2 rounded-full border border-[rgba(255,107,107,0.3)] px-3 py-1 text-[0.75rem] text-[#FF6B6B]"
+                        className="mt-2 rounded-full border px-3 py-1 text-[0.75rem]"
+                        style={{ borderColor: "color-mix(in srgb, var(--error) 35%, transparent)", color: "var(--error)" }}
                         onClick={() => removeQuestion(idx)}
                       >
                         Remove
@@ -1040,12 +1068,13 @@ export default function EditEventPage() {
           <div className="space-y-4">
             <button
               type="submit"
-              className="w-full rounded-full bg-[#C8F55A] px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+              style={{ background: "var(--accent)" }}
               disabled={saving}
             >
               {saving ? "Saving…" : "Save Changes"}
             </button>
-            {error && <div className="text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
+            {error && <div className="text-[0.82rem] text-center" style={errorTextStyle}>{error}</div>}
           </div>
         </form>
 

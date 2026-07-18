@@ -225,7 +225,15 @@ export async function GET(
     const registrations = await prisma.registration.findMany({
       where:   { eventId: event.id, ...(statusWhere ? { status: statusWhere } : {}) },
       orderBy: { submittedAt: 'asc' },
-      include: { ticket: { select: { code: true } } },
+      select: {
+        id: true,
+        status: true,
+        submittedAt: true,
+        registrationNumber: true,
+        attendeeEmail: true,
+        answers: true,
+        ticket: { select: { code: true } },
+      },
     })
 
     const questions = (

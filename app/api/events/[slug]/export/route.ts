@@ -19,6 +19,9 @@ import {
 } from 'docx'
 import { jsPDF } from 'jspdf'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 function escapeCSV(value: string): string {
   if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
     return `"${value.replace(/"/g, '""')}"`
@@ -409,7 +412,13 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const registrations = await prisma.registration.findMany({
       where: { eventId: event.id, ...(statusWhere ? { status: statusWhere } : {}) },
       orderBy: { submittedAt: 'asc' },
-      include: { ticket: { select: { code: true } } },
+      select: {
+        status: true,
+        submittedAt: true,
+        registrationNumber: true,
+        answers: true,
+        ticket: { select: { code: true } },
+      },
     })
 
     const questions = event.questions as Array<{ id: string; label: string; type: string }>

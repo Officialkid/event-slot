@@ -113,6 +113,14 @@ function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
   return Object.fromEntries(questions.map(q => [q.id, ""]))
 }
 
+function getDirectionsUrl(location: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
+}
+
+function getDirectionsEmbedUrl(location: string): string {
+  return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`
+}
+
 type DuplicateInfo = {
   attendeeIndex: number
   registrationNumber: number | null
@@ -952,7 +960,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {event.title}
               </h2>
               {event.description && (
-                <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.75, margin: 0 }}>
+                <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
                   {event.description}
                 </p>
               )}
@@ -969,6 +977,16 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
                   <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
                   <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{event.location}</p>
+                  <a
+                    href={getDirectionsUrl(event.location)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 text-[0.8rem] font-medium"
+                    style={{ color: "var(--accent)", textDecoration: "none" }}
+                  >
+                    <span>Get directions</span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
                 </div>
               )}
               <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
@@ -988,6 +1006,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 Fill in the details below to secure your spot. You can save progress with your email and continue later.
               </p>
             </div>
+
+            {event.location && (
+              <div className="overflow-hidden rounded-[18px]" style={{ border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "color-mix(in srgb, var(--surface) 97%, white 3%)" }}>
+                <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                  <div>
+                    <p className="m-0 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Venue directions</p>
+                    <p className="m-0 mt-1 text-[0.86rem]" style={{ color: "var(--text-secondary)" }}>Preview the route and open full directions if needed.</p>
+                  </div>
+                  <a
+                    href={getDirectionsUrl(event.location)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.78rem] font-semibold"
+                    style={{ color: "#0A0A0A", background: "var(--accent)", textDecoration: "none" }}
+                  >
+                    Open map
+                  </a>
+                </div>
+                <iframe
+                  title="Event venue directions"
+                  src={getDirectionsEmbedUrl(event.location)}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  style={{ display: "block", width: "100%", minHeight: 240, border: 0 }}
+                />
+              </div>
+            )}
 
             <div className="rounded-[18px] px-4 py-4" style={{ border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)", background: "color-mix(in srgb, var(--accent) 8%, var(--surface) 92%)" }}>
               <div className="flex flex-col gap-3 md:flex-row md:items-end">
