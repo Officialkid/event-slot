@@ -515,7 +515,7 @@ li {
   font-family: var(--font-instrument-serif);
   font-size: 1.5rem;
   font-weight: 400;
-  color: #f0ede6;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.1;
 }
@@ -524,12 +524,12 @@ li {
   margin: 0.4rem 0 0;
   font-size: 0.9rem;
   line-height: 1.65;
-  color: rgba(240, 237, 230, 0.5);
+  color: var(--text-secondary);
 }
 
 .dashboard-surface {
-  background: #141414;
-  border: 0.5px solid rgba(240, 237, 230, 0.08);
+  background: var(--surface);
+  border: 0.5px solid var(--border);
   border-radius: 14px;
  }
 
@@ -618,7 +618,7 @@ li {
 
 .table-wrapper thead {
   background: var(--surface);
-  color: rgba(240, 237, 230, 0.45);
+  color: var(--text-muted);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -631,15 +631,15 @@ li {
 }
 
 .table-wrapper tbody tr {
-  border-top: 0.5px solid rgba(240, 237, 230, 0.06);
+  border-top: 0.5px solid var(--border-subtle);
 }
 
 .table-wrapper tbody tr:hover {
-  background: rgba(240, 237, 230, 0.03);
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
 }
 
 .progress-bar {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   border-radius: 999px;
   overflow: hidden;
 }

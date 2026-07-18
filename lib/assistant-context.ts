@@ -126,9 +126,10 @@ A: You get 5 free voice transcriptions per month. These reset on the 1st of
    voice message costs 10 tokens (KSh 50).
 
 Q: How do I generate an event report?
-A: From your event dashboard, click "Generate Report" to open the free preview.
-   Downloading the full Word document is currently free for authorised organisers
-   and assigned team members while premium report billing is paused.
+A: From your event dashboard, open the Export centre and choose
+   "Prepare AI report export" to open the free preview. Downloading the full
+   Word document is currently free for authorised organisers and assigned
+   team members while premium report billing is paused.
 
 Q: Can I delete my account?
 A: Yes. Go to Account Settings → scroll to the bottom → Delete Account.
@@ -263,8 +264,9 @@ TRIGGER: User asks "how is my event" or "give me an update"
    ([fill rate]% full). [Waitlist status]. [Peak insight]. [Best tip]."
 
 ALWAYS END INSIGHTS WITH:
-"For the full AI analysis and downloadable report, use Generate Report
-from your event dashboard. Report downloads are currently free while premium billing is paused."
+"For the full AI analysis and downloadable report, open the Export centre
+from your event dashboard and choose Prepare AI report export. Report downloads
+are currently free while premium billing is paused."
 `.trim()
 
 export const EVENTSLOT_SYSTEM_PROMPT =

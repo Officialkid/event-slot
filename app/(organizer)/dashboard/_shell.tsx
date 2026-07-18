@@ -254,7 +254,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--text-primary)" }}>
             Event
           </span>
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#C8F55A" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>
             Slot
           </span>
         </Link>
@@ -263,7 +263,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-logo-e"
           style={{ textDecoration: "none", display: "none", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "#C8F55A" }}>E</span>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>E</span>
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -481,7 +481,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 {item.href === "/dashboard/notifications" && unreadCount > 0 && (
                   <span
                     style={{
-                      background: "#C8F55A",
+                      background: "var(--accent)",
                       color: "#0A0A0A",
                       borderRadius: 100,
                       fontSize: "0.6rem",
@@ -997,6 +997,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const primaryText = "var(--text-primary)"
   const secondaryText = "var(--text-secondary)"
   const mutedText = "var(--text-muted)"
+  const accentColor = isLight
+    ? "color-mix(in srgb, var(--accent) 78%, var(--text-primary) 22%)"
+    : "var(--accent)"
+  const accentSurface = isLight
+    ? "color-mix(in srgb, var(--accent) 14%, var(--surface) 86%)"
+    : "color-mix(in srgb, var(--accent) 12%, transparent)"
+  const accentSurfaceStrong = isLight
+    ? "color-mix(in srgb, var(--accent) 18%, var(--surface) 82%)"
+    : "rgba(200,245,90,0.1)"
+  const accentBorderSoft = isLight
+    ? "color-mix(in srgb, var(--accent) 28%, var(--text-primary) 14%)"
+    : "rgba(200,245,90,0.18)"
 
   function toggleTheme() {
     const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark"
@@ -1348,8 +1360,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 gap: 3,
                 padding: "0.45rem 0",
                 borderRadius: 14,
-                background: active ? "color-mix(in srgb, #C8F55A 12%, transparent)" : "transparent",
-                color: active ? "#C8F55A" : mutedText,
+                background: active ? accentSurface : "transparent",
+                color: active ? accentColor : mutedText,
                 textDecoration: "none",
                 position: "relative",
               }}
@@ -1365,7 +1377,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    background: "#C8F55A",
+                    background: "var(--accent)",
                   }}
                 />
               )}
@@ -1385,8 +1397,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             gap: 3,
             padding: "0.45rem 0",
             borderRadius: 14,
-            background: moreOpen ? "color-mix(in srgb, #C8F55A 12%, transparent)" : "transparent",
-            color: moreOpen ? "#C8F55A" : mutedText,
+            background: moreOpen ? accentSurface : "transparent",
+            color: moreOpen ? accentColor : mutedText,
             border: "none",
             cursor: "pointer",
             fontFamily: "var(--font-dm-sans)",
@@ -1469,9 +1481,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                         gap: 10,
                         padding: "0.85rem 0.9rem",
                         borderRadius: 14,
-                        background: "rgba(200,245,90,0.1)",
-                        border: "0.5px solid rgba(200,245,90,0.18)",
-                        color: "#C8F55A",
+                        background: accentSurfaceStrong,
+                        border: `0.5px solid ${accentBorderSoft}`,
+                        color: accentColor,
                         textDecoration: "none",
                         fontSize: "0.84rem",
                         fontFamily: "var(--font-dm-sans)",
@@ -1539,8 +1551,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                         gap: 12,
                         padding: "0.75rem 1rem",
                         borderRadius: 10,
-                        color: active ? "#C8F55A" : secondaryText,
-                        background: active ? "rgba(200,245,90,0.06)" : "transparent",
+                        color: active ? accentColor : secondaryText,
+                        background: active ? accentSurface : "transparent",
                         textDecoration: "none",
                         fontSize: "0.9rem",
                         fontFamily: "var(--font-dm-sans)",
@@ -1566,7 +1578,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                         gap: 12,
                         padding: "0.75rem 1rem",
                         borderRadius: 10,
-                        color: "rgba(200,245,90,0.8)",
+                        color: accentColor,
                         textDecoration: "none",
                         fontSize: "0.9rem",
                         fontFamily: "var(--font-dm-sans)",

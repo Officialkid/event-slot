@@ -15,7 +15,7 @@ import { Prisma } from "@prisma/client"
 const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024
 const MAX_IMAGES_PER_MESSAGE = 3
 const FULL_REPORT_CTA =
-  "For the full AI analysis and downloadable report, use Generate Report from your event dashboard. Report downloads are currently free while premium billing is paused."
+  "For the full AI analysis and downloadable report, open the Export centre from your event dashboard and choose Prepare AI report export. Report downloads are currently free while premium billing is paused."
 const LATEST_UPDATES_REPLY =
   "For the latest EventSlot updates, check your notification bell in the dashboard or visit www.eventsslot.com. Is there something specific about the platform I can help you with?"
 
@@ -295,7 +295,7 @@ ${insights.suggestions.map((suggestion, index) => `${index + 1}. ${suggestion}`)
 
 IMPORTANT: Share this data conversationally and helpfully.
 Do NOT format it as a formal report or use document-style headings.
-The full AI report (Word document) is currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused. Direct them to Generate Report in the event dashboard.
+The full AI report (Word document) is currently free for authorised organisers, assigned team members, and super admins while premium report billing is paused. Direct them to the Export centre in the event dashboard and tell them to choose Prepare AI report export.
 ═══════════════════════════════════════════════
 `
         }
