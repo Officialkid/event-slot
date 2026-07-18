@@ -391,7 +391,7 @@ export default function AdminOverviewPage() {
             fontFamily: "var(--font-dm-sans)",
           }}
         >
-          Generate Report by Link
+          Event Report by Link
         </p>
         <h3
           style={{
@@ -405,7 +405,7 @@ export default function AdminOverviewPage() {
           Paste event registration URL or slug
         </h3>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", fontFamily: "var(--font-dm-sans)" }}>
-          Use this for sales demos: paste a public active EventSlot link and generate an AI + Word report instantly.
+          Use this for sales demos and admin review: paste a public active EventSlot link and prepare the AI preview, then export the full Word report.
         </p>
 
         <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap", alignItems: "center" }}>
@@ -442,7 +442,7 @@ export default function AdminOverviewPage() {
               opacity: generatingByLink ? 0.7 : 1,
             }}
           >
-            {generatingByLink ? 'Generating…' : 'Generate'}
+            {generatingByLink ? 'Preparing...' : 'Prepare preview'}
           </button>
         </div>
 

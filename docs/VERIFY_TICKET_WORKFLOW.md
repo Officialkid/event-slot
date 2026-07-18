@@ -1,6 +1,6 @@
 # Verify Ticket Workflow
 
-This document captures how EventSlot ticket verification works today and how the future standalone verifier experience should work.
+This document captures how EventSlot ticket verification works today, how verifier access should work for assigned users, and how the future standalone verifier experience should work.
 
 ## Current State
 
@@ -25,6 +25,28 @@ Current permissions:
 - Super admin can verify tickets through authorised event access.
 - Accepted team members can verify only events explicitly assigned to them.
 - Event dashboard token access can support dashboard-scoped verification flows.
+
+## How Verifier Users Work Today
+
+Today, EventSlot does not yet run a fully separate verifier-account product. Verification access is resolved through the event-access layer.
+
+Authoritative access paths:
+
+- Event owner: full verification access for their own event.
+- Super admin: privileged access through the admin-authorised event path.
+- Accepted team member: access only to the event or events explicitly assigned to them.
+- Valid dashboard event token: limited dashboard-scoped access where that token is permitted.
+
+This means the current verifier-user flow is:
+
+1. A verifier must already have valid access to the event.
+2. The system resolves that access against the event grant layer.
+3. If the event grant is valid, the verifier can open the verification tools for that event only.
+4. If the event grant is not valid, the verifier must not be able to verify tickets for that event.
+
+Important current limitation:
+
+- Temporary volunteers who are not organisers or accepted team members still do not have a dedicated verifier-only experience yet.
 
 ## Current User Experience
 
@@ -84,6 +106,17 @@ The verifier should then be able to:
 - Reverse an accidental approval if permitted.
 - Register a walk-in or missing person only if the organiser enabled that permission.
 
+## Recommended Future Verifier Roles
+
+To support volunteers safely, the future standalone verifier model should separate verification permissions from full organiser/team permissions.
+
+Suggested roles:
+
+- `Scanner only`: can scan and approve valid tickets.
+- `Scanner + search`: can scan, search, and resolve unclear entries.
+- `Scanner + walk-in`: can also register walk-ins if enabled by the organiser.
+- `Lead verifier`: can reverse mistakes and review the entry log.
+
 ## Search Behavior
 
 Search should support:
@@ -121,6 +154,16 @@ Current dashboard scanner components can be reused:
 - `components/scanner/qr-utils.ts`
 
 The future standalone verifier should share verification APIs where possible, but use a narrower auth/session model and a simplified layout.
+
+## Recommended Implementation Direction
+
+The safest product direction is:
+
+1. Keep the current event-dashboard verifier tools for organisers, super admins, and assigned team members.
+2. Add a dedicated verifier invitation flow for temporary workers.
+3. Reuse the existing verification APIs and scanner components where possible.
+4. Restrict standalone verifier sessions so they cannot reach billing, reports, team management, or unrelated events.
+5. Record every verifier action in the audit trail.
 
 ## Open Decisions
 

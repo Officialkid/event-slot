@@ -91,7 +91,7 @@ Both are functional but **thin relative to what an organizer actually needs to j
 - No waitlist intelligence (they have waitlists but no smart promotion)
 - Cluttered UI — too many menus for small event organizers
 - No built-in community link or WhatsApp/Telegram group integration
-- No per-event team scoping (all team members see all events)
+- Per-event team scoping now exists, but role granularity is still limited and temporary verifier-only access is still missing
 
 ### 3.2 Luma (lu.ma)
 **What they have that we don't:**

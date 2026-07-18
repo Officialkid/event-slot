@@ -259,7 +259,7 @@ A complete audit of every surface in EventSlot today. Status: ✅ Live | ⚠️ 
 - **No AI anywhere** — no AI insights, no AI summaries, no AI assistant
 - **No intelligent waitlist** — their waitlist is manual and clunky; you must manually process the list
 - **Complex UI** — organiser dashboard requires training; dozens of nested menus
-- **No per-event team scoping** — all team members see everything
+- **Per-event team scoping now exists** — this was a previous gap, but assigned team members are now restricted to explicitly granted events
 - **No community/gamification** — zero referral system, no leaderboard
 - **Not built for Africa** — USD pricing, US-centric discovery, no mobile money, no KSh
 - **No built-in AI reports** — third-party integrations only
@@ -283,7 +283,7 @@ A complete audit of every surface in EventSlot today. Status: ✅ Live | ⚠️ 
 **Critical Luma weaknesses:**
 - **No analytics depth** — beautiful but shallow; no day-of-week charts, no AI analysis, no conversion funnel
 - **No waitlist intelligence** — basic waitlist, no auto-promotion logic like EventSlot's
-- **No team management** — no per-event team scoping
+- **Team roles are still limited** — per-event team scoping exists now, but there are not yet separate verifier, read-only, or editor-only role variants
 - **No email campaigns** — no ability to send bulk emails to attendees
 - **No check-in system** — you're on your own for door management
 - **No paid events** — very limited monetisation; primarily RSVP-based

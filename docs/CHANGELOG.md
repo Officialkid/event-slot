@@ -1,5 +1,19 @@
 # EventSlot — Changelog
 
+## [0.4.77] — July 18, 2026
+
+### Admin Report Wording, Verifier Flow Docs, and Team-Access Doc Corrections
+
+- **`app/admin/page.tsx`** — aligned the super-admin link-based event report panel with the newer organiser export/report language:
+  - renamed **Generate Report by Link** to **Event Report by Link**
+  - changed the helper text to describe preparing the AI preview before exporting the Word report
+  - changed the primary CTA from **Generate** to **Prepare preview**
+- **`docs/VERIFY_TICKET_WORKFLOW.md`** — expanded the verifier documentation to explain how verifier users work today, how access is currently granted, and how a future `verify.eventsslot.com` model should separate temporary verifiers from full organiser/team access.
+- **Strategy docs corrected to current behaviour**:
+  - `docs/WHOLE_SYSTEM_COMPETITIVE_REPORT.md`
+  - `docs/INSIGHTS_DASHBOARD_IMPROVEMENT_REPORT.md`
+  - removed outdated statements claiming all team members see every event, and updated them to reflect current per-event team scoping plus the remaining role-granularity gap.
+
 ## [0.4.76] — July 17, 2026
 
 ### Event Analytics Export Polish & Response PDF Readability
