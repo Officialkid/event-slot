@@ -247,83 +247,50 @@ function buildPdfExport(params: {
   const pageHeight = doc.internal.pageSize.getHeight()
   const marginX = 42
   const contentWidth = pageWidth - marginX * 2
-  const lineHeight = 16
-  const rowHeight = 22
+  const lineHeight = 15
+  const sectionGap = 18
+  const cardPadding = 14
   let y = 56
 
-  const headers = ['#', ...questions.map((q) => q.label), 'Status', 'Registration Day']
-  const firstCol = 42
-  const statusCol = 84
-  const dayCol = 104
-  const dynamicColCount = Math.max(1, headers.length - 3)
-  const dynamicColWidth = Math.floor((contentWidth - firstCol - statusCol - dayCol) / dynamicColCount)
-  const widths = [
-    firstCol,
-    ...new Array(dynamicColCount).fill(dynamicColWidth),
-    statusCol,
-    contentWidth - (firstCol + dynamicColCount * dynamicColWidth + statusCol),
-  ]
+  const splitLines = (text: string, width: number) => {
+    const source = text.trim() || 'No response provided'
+    return doc.splitTextToSize(source, width)
+  }
 
-  const drawWrappedCell = (text: string, x: number, topY: number, width: number, maxLines = 2) => {
-    const lines = doc.splitTextToSize(text || '', width - 6).slice(0, maxLines)
+  const drawWrappedText = (text: string, x: number, topY: number, width: number) => {
+    const lines = splitLines(text, width)
     lines.forEach((line: string, i: number) => {
-      doc.text(line, x + 3, topY + 14 + i * 9)
+      doc.text(line, x, topY + i * lineHeight)
     })
+    return lines.length
+  }
+
+  const ensureRoom = (requiredHeight: number) => {
+    if (y + requiredHeight <= pageHeight - 90) return
+    doc.addPage()
+    y = 56
   }
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(18)
-  doc.text('Confirmed Attendees', marginX, y)
+  doc.text('Individual Responses Export', marginX, y)
   y += 22
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(80, 80, 80)
   doc.text(
-    `${registrations.length} confirmed registrations as of ${formatRegistrationDateTime(new Date())} (EAT)`,
+    `${registrations.length} registration${registrations.length !== 1 ? 's' : ''} exported on ${formatRegistrationDateTime(new Date())} (EAT)`,
     marginX,
     y,
   )
   y += 22
-
-  doc.setDrawColor(35, 62, 109)
-  doc.setFillColor(35, 62, 109)
-  doc.rect(marginX, y, contentWidth, rowHeight, 'F')
-
-  doc.setTextColor(255, 255, 255)
-  doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
-
-  let x = marginX
-  headers.forEach((h, idx) => {
-    drawWrappedCell(h, x, y, widths[idx])
-    x += widths[idx]
-  })
-  y += rowHeight
-
-  doc.setTextColor(20, 20, 20)
-  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(120, 120, 120)
+  doc.text(`Event: ${eventSlug}`, marginX, y)
+  y += 24
 
   for (let i = 0; i < registrations.length; i += 1) {
-    if (y + rowHeight > pageHeight - 90) {
-      doc.addPage()
-      y = 56
-      doc.setDrawColor(35, 62, 109)
-      doc.setFillColor(35, 62, 109)
-      doc.rect(marginX, y, contentWidth, rowHeight, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      x = marginX
-      headers.forEach((h, idx) => {
-        drawWrappedCell(h, x, y, widths[idx])
-        x += widths[idx]
-      })
-      y += rowHeight
-      doc.setTextColor(20, 20, 20)
-      doc.setFont('helvetica', 'normal')
-    }
-
     const reg = registrations[i]
     const answers = Array.isArray(reg.answers)
       ? (reg.answers as Array<{ questionId?: string; value?: unknown }>)
@@ -335,20 +302,45 @@ function buildPdfExport(params: {
     )
 
     const rowValues = [
-      String(reg.registrationNumber ?? i + 1),
-      ...questions.map((q) => answerMap.get(q.id) ?? ''),
-      reg.status,
-      formatRegistrationDay(reg.submittedAt),
+      { label: 'Registration #', value: String(reg.registrationNumber ?? i + 1) },
+      { label: 'Status', value: reg.status },
+      { label: 'Submitted', value: formatRegistrationDateTime(reg.submittedAt) },
+      ...questions.map((q) => ({ label: q.label, value: answerMap.get(q.id) ?? '' })),
     ]
 
-    doc.setDrawColor(225, 225, 225)
-    doc.rect(marginX, y, contentWidth, rowHeight)
-    x = marginX
-    rowValues.forEach((cell, idx) => {
-      drawWrappedCell(cell, x, y, widths[idx])
-      x += widths[idx]
+    const fieldHeights = rowValues.map((field) => {
+      const bodyLines = splitLines(field.value, contentWidth - cardPadding * 2)
+      return 18 + bodyLines.length * lineHeight + 8
     })
-    y += rowHeight
+    const cardHeight = fieldHeights.reduce((sum, value) => sum + value, 0) + cardPadding * 2
+
+    ensureRoom(cardHeight + sectionGap)
+
+    doc.setDrawColor(225, 225, 225)
+    doc.setFillColor(249, 249, 249)
+    doc.roundedRect(marginX, y, contentWidth, cardHeight, 10, 10, 'FD')
+
+    let fieldY = y + cardPadding + 10
+    rowValues.forEach((field, index) => {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(35, 62, 109)
+      doc.text(field.label.toUpperCase(), marginX + cardPadding, fieldY)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(11)
+      doc.setTextColor(20, 20, 20)
+      const linesUsed = drawWrappedText(field.value, marginX + cardPadding, fieldY + 14, contentWidth - cardPadding * 2)
+      fieldY += 18 + linesUsed * lineHeight + 8
+
+      if (index < rowValues.length - 1) {
+        doc.setDrawColor(235, 235, 235)
+        doc.line(marginX + cardPadding, fieldY - 2, marginX + contentWidth - cardPadding, fieldY - 2)
+        fieldY += 10
+      }
+    })
+
+    y += cardHeight + sectionGap
   }
 
   if (y + 64 > pageHeight) {

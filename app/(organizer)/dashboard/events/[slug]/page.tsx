@@ -2912,7 +2912,7 @@ export default function EventDashboardPage() {
                     className="event-export-link"
                     style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeAccentBorder, borderRadius: 999, padding: "0.55rem 0.9rem", textDecoration: "none", color: themeAccent, background: themeAccentSoft, fontSize: "0.76rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap", minWidth: 0 }}
                   >
-                    Export CSV data
+                    Export confirmed CSV
                   </a>
                   <a
                     href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -2924,7 +2924,7 @@ export default function EventDashboardPage() {
                     className="event-export-link"
                     style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.9rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.76rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap", minWidth: 0 }}
                   >
-                    Export PDF responses
+                    Export all responses PDF
                   </a>
                 </div>
                 {!reportData && (
@@ -2945,7 +2945,7 @@ export default function EventDashboardPage() {
                         width: '100%',
                       }}
                     >
-                      {reportLoading ? reportLoadingText || 'Preparing AI export...' : 'Prepare AI report export'}
+                      {reportLoading ? reportLoadingText || 'Preparing AI export...' : 'Prepare AI report'}
                     </button>
                     {reportLoading && (
                       <div style={{ marginTop: '0.5rem' }}>
@@ -3081,7 +3081,7 @@ export default function EventDashboardPage() {
                         className="event-export-link"
                         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", border: themeBorderSoft, borderRadius: 999, padding: "0.6rem 0.95rem", textDecoration: "none", color: themeTextSecondary, background: themeSurface, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)", fontWeight: 600, whiteSpace: "nowrap" }}
                       >
-                        Export CSV data
+                        Export confirmed CSV
                       </a>
                       <button
                         onClick={() => void downloadReport()}
@@ -3300,7 +3300,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeAccentBorder, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeAccent, background: themeAccentSoft, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export CSV
+                  Export confirmed CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=confirmed${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3311,7 +3311,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export PDF (confirmed)
+                  Export confirmed PDF
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=all${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3322,7 +3322,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextSecondary, background: themeSurfaceAlt, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export PDF (all responses)
+                  Export all responses PDF
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: themeAccentSoftStrong, color: themeAccent, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)", flexShrink: 0, whiteSpace: "nowrap" }}>
                   {confirmed.length} confirmed
@@ -3479,7 +3479,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export CSV
+                  Export waitlist CSV
                 </a>
                 <a
                   href={`/api/events/${slug}/export/pdf?status=waitlist${token ? `&token=${encodeURIComponent(token)}` : ''}`}
@@ -3490,7 +3490,7 @@ export default function EventDashboardPage() {
                   download
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", border: themeBorderSoft, borderRadius: 8, padding: "0.35rem 0.7rem", textDecoration: "none", color: themeTextMuted, fontSize: "0.73rem", fontFamily: "var(--font-dm-sans)", pointerEvents: csvExporting ? "none" : "auto", opacity: csvExporting ? 0.55 : 1 }}
                 >
-                  Export PDF (waitlist responses)
+                  Export waitlist PDF
                 </a>
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: themeTextMuted, borderRadius: 100, padding: "3px 10px", fontFamily: "var(--font-dm-sans)" }}>
                   {waitlist.length} waiting
@@ -3598,7 +3598,7 @@ export default function EventDashboardPage() {
                   className="event-export-link"
                   style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", border: themeBorderSoft, borderRadius: 10, padding: "0.45rem 0.75rem", textDecoration: "none", color: themeTextSecondary, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}
                 >
-                  Export CSV data
+                  Export analytics CSV
                 </a>
               </div>
             </div>
