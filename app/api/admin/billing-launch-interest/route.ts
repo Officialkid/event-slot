@@ -4,6 +4,28 @@ import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasAdminAccess } from "@/lib/isAdmin"
 
+function isMissingBillingInterestTable(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2021"
+  )
+}
+
+function emptyPayload() {
+  return {
+    interests: [],
+    summary: {
+      total: 0,
+      visuals: 0,
+      text: 0,
+      admins: 0,
+      organisers: 0,
+    },
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -53,6 +75,10 @@ export async function GET() {
       },
     })
   } catch (error) {
+    if (isMissingBillingInterestTable(error)) {
+      return NextResponse.json(emptyPayload())
+    }
+
     console.error("[admin/billing-launch-interest] GET error:", error)
     return NextResponse.json({ error: "Unable to load billing launch interest." }, { status: 500 })
   }

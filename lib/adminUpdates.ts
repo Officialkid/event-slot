@@ -75,8 +75,18 @@ function trimMd(value: string) {
   return value.replace(/\*\*/g, "").replace(/`/g, "").trim()
 }
 
+async function readOptionalText(filePath: string) {
+  try {
+    return await fs.readFile(filePath, "utf8")
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+    throw error
+  }
+}
+
 async function parseChangelog() {
-  const text = await fs.readFile(CHANGELOG_PATH, "utf8")
+  const text = await readOptionalText(CHANGELOG_PATH)
+  if (!text) return []
   const lines = text.split(/\r?\n/)
   const items: AdminUpdateItem[] = []
 
@@ -134,7 +144,8 @@ async function parseChangelog() {
 }
 
 async function parseDeployLog() {
-  const text = await fs.readFile(DEPLOY_LOG_PATH, "utf8")
+  const text = await readOptionalText(DEPLOY_LOG_PATH)
+  if (!text) return []
   const lines = text.split(/\r?\n/)
   const items: AdminUpdateItem[] = []
   let current: AdminUpdateItem | null = null
@@ -177,7 +188,14 @@ async function parseDeployLog() {
 }
 
 async function parseSystemDocStatus() {
-  const text = await fs.readFile(SYSTEM_DOC_PATH, "utf8")
+  const text = await readOptionalText(SYSTEM_DOC_PATH)
+  if (!text) {
+    return {
+      documentedAt: null,
+      documentedCommit: null,
+      documentedRevision: null,
+    }
+  }
   const match = text.match(SYSTEM_DOC_STATUS_REGEX)
 
   if (!match) {

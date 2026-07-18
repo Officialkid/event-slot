@@ -9,6 +9,23 @@ const ALLOWED_DELETE_HANDLERS = new Set(["archive", "delete", "transfer"])
 
 type DeleteEventHandling = "archive" | "delete" | "transfer"
 
+function isMissingOptionalTable(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2021"
+  )
+}
+
+async function ignoreMissingOptionalTable(promise: Promise<unknown>) {
+  try {
+    await promise
+  } catch (error) {
+    if (!isMissingOptionalTable(error)) throw error
+  }
+}
+
 async function parseDeleteBody(req: NextRequest) {
   const rawBody = await req.text()
   if (!rawBody.trim()) return {}
@@ -198,7 +215,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       })
       await tx.organizerFeedback.deleteMany({ where: { organizerId: params.id } })
       await tx.eventUnlock.deleteMany({ where: { userId: params.id } })
-      await tx.billingLaunchInterest.deleteMany({ where: { userId: params.id } })
+      await ignoreMissingOptionalTable(tx.billingLaunchInterest.deleteMany({ where: { userId: params.id } }))
       await tx.reportDownloadTransaction.deleteMany({ where: { userId: params.id } })
       await tx.paygUsage.deleteMany({ where: { userId: params.id } })
       await tx.paygInvoice.deleteMany({ where: { userId: params.id } })
