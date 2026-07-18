@@ -7,7 +7,7 @@ import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 
 const DIGEST_FROM =
   process.env.RESEND_DIGEST_FROM?.trim() ||
-  getConfiguredEmailFrom(env, 'EventSlot <onboarding@resend.dev>')
+  getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
 
 function parseDigestRecipients(): string[] {
   const configured = [
