@@ -4,11 +4,16 @@
 > 
 > Use this file for supporting feature detail only. The canonical document owns the live feature inventory.
 
-_Last updated: May 26, 2026_
+_Last updated: July 19, 2026_
 
 ---
 
 ## Authentication & URL Integrity
+
+### Preferred Language Capture
+**Where:** `app/(auth)/signup/page.tsx`, `app/(organizer)/dashboard/profile/page.tsx`, `app/api/auth/signup/route.ts`, `app/api/profile/route.ts`, `lib/i18n/languages.ts`, `prisma/schema.prisma`
+**What it does:** Lets new users choose a preferred language during email/password signup and lets existing users update that preference later from profile settings. Supported launch language codes are centralized so future app-wide translation keys can use one source of truth.
+**Current scope:** The preference is stored on the user profile. Full app text translation is not complete yet.
 
 ### Canonical App URL Enforcement (BUG-01)
 **Where:** `lib/config.ts`, `app/join/route.ts`, `app/api/events/[slug]/qr/route.ts`, `lib/auth.ts`  
@@ -573,6 +578,13 @@ the same email.
 **API:** POST /api/register  
 **Rate limit:** 10 requests per IP per minute (Upstash Redis)
 
+### Attendee Event Caption, Read More, and Translation
+**Where:** `app/(attendee)/[username]/RegistrationForm.tsx`, `components/events/EventDescriptionBlock.tsx`, `app/api/events/[slug]/translate-description/route.ts`
+**Who:** Attendees
+**What it does:** Long event descriptions render as a compact caption with a text-style `Read more` control. Original line breaks, spacing, and emojis are preserved. Attendees can tap `Translate`, choose a supported EventSlot language, and request an AI translation of the public event description. The translation endpoint only reads active public events and does not expose private dashboard data.
+**API:** POST /api/events/[slug]/translate-description
+**Current scope:** AI translation depends on configured AI providers. Full static UI translation keys are still a follow-up.
+
 ### Waitlist Promotion
 **Where:** Organizer dashboard → Overview tab → Increase capacity  
 **Who:** Organizer or team member  
@@ -586,6 +598,12 @@ receive an email notification if they consented to transactional emails.
 **Who:** Organizer or authorized team member  
 **What it does:** Verifies attendee tickets at entry by accepting a ticket code, QR-scan payload, attendee email, or attendee name. The flow blocks duplicate verification by enforcing one-time check-in and returning the existing check-in timestamp if already used. Ambiguous identity searches return a conflict response so staff can refine the lookup before check-in.  
 **API:** POST /api/events/[slug]/verify-ticket
+
+### Standalone Verify Tickets Foundation
+**Where:** `app/verify-tickets/page.tsx`, `app/verify-tickets/[slug]/page.tsx`, `components/scanner/ScannerHome.tsx`, `next.config.mjs`, `docs/VERIFY_TICKETS_SUBDOMAIN.md`
+**Who:** Event gate teams, organizers, assigned team members, and future temporary verifiers
+**What it does:** Adds a focused verifier surface separate from the main dashboard. `/verify-tickets` explains the verifier entry point, while `/verify-tickets/[slug]` loads scan, upload, and manual search tools for a single event using the existing scanner components. `next.config.mjs` rewrites `verify.eventsslot.com` to this surface for future subdomain activation.
+**Current scope:** Uses the existing dashboard token/session/team access model. Dedicated expiring verifier invitations and role-specific verifier sessions remain future hardening work.
 
 ### Registration Status Page
 **Where:** /registration/[registrationId]  

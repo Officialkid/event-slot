@@ -4,7 +4,7 @@
 > 
 > This file can keep endpoint-level detail, but the canonical document owns the live API surface summary.
 
-_Last updated: April 13, 2026_  
+_Last updated: July 19, 2026_
 _Base URL: https://www.eventsslot.com/api_  
 _Auth: NextAuth session cookie unless otherwise noted_
 
@@ -15,9 +15,9 @@ _Auth: NextAuth session cookie unless otherwise noted_
 ### POST /api/auth/signup
 Create a new email/password account.  
 **Auth:** None  
-**Body:** `{ name, email, password }`  
+**Body:** `{ name, email, password, privacyAccepted, preferredLanguage? }`
 **Returns:** `{ success, message }`  
-**Side effect:** Fires `sendWelcomeEmail()` (non-blocking)
+**Side effect:** Fires welcome/verification email flow (non-blocking where possible)
 
 ### POST /api/auth/forgot-password
 Request a password reset email.  
@@ -53,12 +53,12 @@ Get current user's profile including credit balance.
 ### GET /api/profile
 Get user profile details.  
 **Auth:** Required  
-**Returns:** `{ id, name, email, image, plan, username }`
+**Returns:** `{ id, name, email, image, hasPassword, calendarConnected, twoFactorEnabled, preferredLanguage }`
 
 ### PATCH /api/profile
-Update display name or bio.  
+Update profile settings.
 **Auth:** Required  
-**Body:** `{ name?, image? }`  
+**Body:** `{ name?, twoFactorEnabled?, preferredLanguage? }`
 **Returns:** `{ success, user }`
 
 ### DELETE /api/profile
@@ -116,6 +116,13 @@ Create a new event.
 Get event data including all registrations.  
 **Auth:** Session ownership OR `?token=` dashboard token  
 **Returns:** `{ success, event, confirmed[], waitlist[] }`
+
+### POST /api/events/[slug]/translate-description
+Translate the public event description for attendee viewing.
+**Auth:** None
+**Body:** `{ targetLanguage }` where `targetLanguage` is one of the supported EventSlot language codes.
+**Returns:** `{ translation, targetLanguage, provider }` or `{ error }`
+**Notes:** Only active, non-archived public events are eligible. The translation prompt preserves dates, names, phone numbers, prices, URLs, emojis, spacing, and line breaks.
 
 ### PUT /api/events/[slug]
 Update full event data (title, capacity, deadline, questions, image, communityLink).  
