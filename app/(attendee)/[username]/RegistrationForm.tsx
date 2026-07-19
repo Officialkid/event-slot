@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
+import { EventDescriptionBlock } from "@/components/events/EventDescriptionBlock"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 
@@ -960,9 +961,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 {event.title}
               </h2>
               {event.description && (
-                <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>
-                  {event.description}
-                </p>
+                <EventDescriptionBlock eventSlug={event.slug} description={event.description} />
               )}
             </div>
 
