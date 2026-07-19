@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages'
+
+const supportedLanguageCodes = SUPPORTED_LANGUAGES.map(language => language.code) as [string, ...string[]]
 
 export const updateProfileSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -7,6 +10,7 @@ export const updateProfileSchema = z.object({
   website: z.string().url().max(500).optional().nullable().or(z.literal('')),
   consentSystemEmails: z.boolean().optional(),
   twoFactorEnabled: z.boolean().optional(),
+  preferredLanguage: z.enum(supportedLanguageCodes).optional(),
 })
 
 export const changePasswordSchema = z.object({

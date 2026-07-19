@@ -48,4 +48,19 @@ describe("dashboard theme coverage", () => {
     expect(shell).toContain("profileIdentity?.name || session?.user?.name")
     expect(profile).toContain('window.dispatchEvent(new Event("eventslot:profile-updated"))')
   })
+
+  it("keeps the first language preference and verifier foundations wired", () => {
+    const signup = readFileSync(path.join(root, "app/(auth)/signup/page.tsx"), "utf8")
+    const profile = readFileSync(path.join(root, "app/(organizer)/dashboard/profile/page.tsx"), "utf8")
+    const profileApi = readFileSync(path.join(root, "app/api/profile/route.ts"), "utf8")
+    const nextConfig = readFileSync(path.join(root, "next.config.mjs"), "utf8")
+    const verifierPage = readFileSync(path.join(root, "app/verify-tickets/[slug]/page.tsx"), "utf8")
+
+    expect(signup).toContain("SUPPORTED_LANGUAGES")
+    expect(signup).toContain("preferredLanguage")
+    expect(profile).toContain("Preferred language")
+    expect(profileApi).toContain("preferredLanguage")
+    expect(nextConfig).toContain("verify.eventsslot.com")
+    expect(verifierPage).toContain("<ScannerHome")
+  })
 })

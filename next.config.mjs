@@ -74,6 +74,22 @@ const nextConfig = {
       },
     ]
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/',
+          has: [{ type: 'host', value: 'verify.eventsslot.com' }],
+          destination: '/verify-tickets',
+        },
+        {
+          source: '/:slug',
+          has: [{ type: 'host', value: 'verify.eventsslot.com' }],
+          destination: '/verify-tickets/:slug',
+        },
+      ],
+    }
+  },
   async headers() {
     return [
       {
@@ -156,7 +172,7 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+            value: "camera=(self), microphone=(), geolocation=(), browsing-topics=()",
           },
           {
             key: "Content-Security-Policy",

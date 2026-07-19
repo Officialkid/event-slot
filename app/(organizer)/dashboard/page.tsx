@@ -322,6 +322,7 @@ export default function DashboardOverviewPage() {
   const [loading, setLoading] = useState(true)
   const [capacityEvent, setCapacityEvent] = useState<EventNearCapacity | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [profileName, setProfileName] = useState<string | null>(null)
   const [adminStats, setAdminStats] = useState<{
     totalUsers: number
     newUsersThisMonth: number
@@ -333,8 +334,9 @@ export default function DashboardOverviewPage() {
   } | null>(null)
   const [adminLoading, setAdminLoading] = useState(false)
 
-  const firstName = session?.user?.name
-    ? session.user.name.split(" ")[0]
+  const identityName = profileName || session?.user?.name || null
+  const firstName = identityName
+    ? identityName.split(" ")[0]
     : session?.user?.email?.split("@")[0] ?? "there"
 
   useEffect(() => {
@@ -346,6 +348,14 @@ export default function DashboardOverviewPage() {
       .then(r => r.json())
       .then(d => {
         if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
+      })
+      .catch(() => {})
+    fetch("/api/profile")
+      .then(r => r.ok ? r.json() : null)
+      .then(profile => {
+        if (profile && typeof profile.name === "string" && profile.name.trim()) {
+          setProfileName(profile.name.trim())
+        }
       })
       .catch(() => {})
   }, [])

@@ -17,6 +17,7 @@ export async function GET() {
         name: true,
         email: true,
         image: true,
+        preferredLanguage: true,
         password: true,
         googleCalendarConnected: true,
         twoFactorEnabled: true,
@@ -31,6 +32,7 @@ export async function GET() {
       name: user.name,
       email: user.email,
       image: user.image,
+      preferredLanguage: user.preferredLanguage,
       hasPassword: !!user.password,
       calendarConnected: !!user.googleCalendarConnected,
       twoFactorEnabled: !!user.twoFactorEnabled,
@@ -63,14 +65,17 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    const { name, twoFactorEnabled } = parsed.data
-    const data: { name?: string; twoFactorEnabled?: boolean } = {}
+    const { name, twoFactorEnabled, preferredLanguage } = parsed.data
+    const data: { name?: string; twoFactorEnabled?: boolean; preferredLanguage?: string } = {}
 
     if (typeof name === "string" && name.trim().length > 0) {
       data.name = name.trim()
     }
     if (typeof twoFactorEnabled === "boolean") {
       data.twoFactorEnabled = twoFactorEnabled
+    }
+    if (typeof preferredLanguage === "string") {
+      data.preferredLanguage = preferredLanguage
     }
 
     if (Object.keys(data).length === 0) {

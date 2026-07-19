@@ -6,6 +6,7 @@ import { sendWelcomeEmail } from '@/lib/email'
 import { signupRatelimit } from '@/lib/ratelimit'
 import { checkAndAwardPioneerBadge, processSignupReferral } from '@/lib/referral'
 import { detectCountry, getCountryName } from '@/lib/geoip'
+import { normalizePreferredLanguage } from '@/lib/i18n/languages'
 
 export async function POST(req: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const { name, email, password, privacyAccepted } = await req.json()
+    const { name, email, password, privacyAccepted, preferredLanguage } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 })
@@ -45,6 +46,9 @@ export async function POST(req: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase()
+    const normalizedLanguage = normalizePreferredLanguage(
+      typeof preferredLanguage === 'string' ? preferredLanguage : undefined
+    )
     const existing = await prisma.user.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
     })
@@ -81,6 +85,7 @@ export async function POST(req: Request) {
         consentSystemEmails: true,
         marketingConsent: true,
         otpRequired: true,
+        preferredLanguage: normalizedLanguage,
       },
       select: { id: true },
     })

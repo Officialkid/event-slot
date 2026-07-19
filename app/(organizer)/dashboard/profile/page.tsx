@@ -8,6 +8,7 @@ import { Moon, Sun } from "lucide-react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguageCode } from "@/lib/i18n/languages"
 
 const checkboxStyle: React.CSSProperties = {
   position: "absolute",
@@ -24,6 +25,7 @@ interface ProfileData {
   hasPassword: boolean
   calendarConnected: boolean
   twoFactorEnabled: boolean
+  preferredLanguage: SupportedLanguageCode
 }
 
 const profileSurfaceStyle: React.CSSProperties = {
@@ -277,6 +279,7 @@ export default function ProfilePage() {
 
   // Details form
   const [name, setName] = useState("")
+  const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguageCode>(DEFAULT_LANGUAGE)
   const [detailsSaving, setDetailsSaving] = useState(false)
   const [detailsSuccess, setDetailsSuccess] = useState(false)
   const [detailsError, setDetailsError] = useState("")
@@ -302,8 +305,8 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("")
   const [theme, setTheme] = useState<ThemeMode>("dark")
 
-  function syncProfileIdentity(next: { name?: string | null; image?: string | null }) {
-    window.dispatchEvent(new CustomEvent("eventslot:profile-updated", { detail: next }))
+  function syncProfileIdentity(_next: { name?: string | null; image?: string | null }) {
+    window.dispatchEvent(new Event("eventslot:profile-updated"))
   }
 
   useEffect(() => {
@@ -314,6 +317,7 @@ export default function ProfilePage() {
       .then((data: ProfileData) => {
         setProfile(data)
         setName(data.name ?? "")
+        setPreferredLanguage(data.preferredLanguage ?? DEFAULT_LANGUAGE)
         setTwoFactorEnabled(!!data.twoFactorEnabled)
         syncProfileIdentity({ name: data.name, image: data.image })
       })
@@ -408,7 +412,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, preferredLanguage }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -416,7 +420,7 @@ export default function ProfilePage() {
         return
       }
       const trimmedName = name.trim()
-      setProfile(prev => (prev ? { ...prev, name: trimmedName } : prev))
+      setProfile(prev => (prev ? { ...prev, name: trimmedName, preferredLanguage } : prev))
       await updateSession({ name: trimmedName })
       syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null })
       setDetailsSuccess(true)
@@ -711,9 +715,49 @@ export default function ProfilePage() {
                 note={
                   !profile.hasPassword
                     ? "Email is managed by your Google account."
-                    : undefined
+                  : undefined
                 }
               />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <label
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-secondary)",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontWeight: 500,
+                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Preferred language
+                </label>
+                <select
+                  value={preferredLanguage}
+                  onChange={event => setPreferredLanguage(event.target.value as SupportedLanguageCode)}
+                  className="prof-input"
+                  style={{
+                    background: "var(--bg-input)",
+                    border: "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
+                    borderRadius: 8,
+                    padding: "0.65rem 0.875rem",
+                    color: "var(--text-primary)",
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "0.875rem",
+                    width: "100%",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {SUPPORTED_LANGUAGES.map(language => (
+                    <option key={language.code} value={language.code}>
+                      {language.label} - {language.nativeLabel}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
+                  EventSlot will use this for future translated system text and attendee-facing language choices.
+                </p>
+              </div>
 
               <div
                 style={{

@@ -137,6 +137,7 @@ model User {
   signupCountry            String?  // ISO 3166-1 alpha-2 — set at signup, never changes
   countryCode              String?  // most recently detected country
   countryName              String?
+  preferredLanguage        String   @default("en")
   username                 String?  @unique
   resetToken               String?
   resetTokenExpiry         DateTime?

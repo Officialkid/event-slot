@@ -5,6 +5,7 @@ import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguageCode } from '@/lib/i18n/languages'
 
 export default function SignUpPage() {
   const { status } = useSession()
@@ -13,6 +14,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguageCode>(DEFAULT_LANGUAGE)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -88,7 +90,7 @@ export default function SignUpPage() {
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, privacyAccepted }),
+          body: JSON.stringify({ name, email, password, privacyAccepted, preferredLanguage }),
         })
         const data = await res.json()
         if (!res.ok) {
@@ -164,6 +166,34 @@ export default function SignUpPage() {
         >
           Start managing events in minutes.
         </p>
+
+        <label style={{ display: 'block', marginBottom: '1rem' }}>
+          <span
+            style={{
+              display: 'block',
+              marginBottom: '0.4rem',
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Preferred language
+          </span>
+          <select
+            value={preferredLanguage}
+            onChange={event => setPreferredLanguage(event.target.value as SupportedLanguageCode)}
+            style={inputStyle}
+          >
+            {SUPPORTED_LANGUAGES.map(language => (
+              <option key={language.code} value={language.code}>
+                {language.label} - {language.nativeLabel}
+              </option>
+            ))}
+          </select>
+        </label>
 
         {/* Google Button */}
         <button
