@@ -11,6 +11,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Dashboard should greet using the current EventSlot profile identity, not a stale `iSpeak` session name. | `app/(organizer)/dashboard/page.tsx` fetches `/api/profile` and prefers that name for the greeting. |
 | New users can choose a preferred language during signup. | `app/(auth)/signup/page.tsx` renders `SUPPORTED_LANGUAGES`; `app/api/auth/signup/route.ts` stores `preferredLanguage`. |
 | Existing users can change preferred language later. | `app/(organizer)/dashboard/profile/page.tsx` renders the selector; `app/api/profile/route.ts` reads/writes `preferredLanguage`. |
+| Existing users should be informed that the language option exists. | `app/(organizer)/dashboard/_shell.tsx` shows a dismissible dashboard notice linking to Profile until the user dismisses it in local storage. |
 | Language codes should be centralized for future i18n. | `lib/i18n/languages.ts` defines supported launch languages and helpers. |
 | Event content should show a small caption first, then `Read more`. | `components/events/EventDescriptionBlock.tsx` compacts long descriptions and preserves original spacing with `whiteSpace: pre-wrap`. |
 | Attendees should see a lightweight `Translate` text action and choose a language. | `components/events/EventDescriptionBlock.tsx` exposes `Translate`, language selector, `Apply`, and `Show original`. |
@@ -26,6 +27,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 - `npx prisma validate` passed.
 - `npx tsc --noEmit --incremental false` passed.
 - Focused Jest suite passed: admin user deletion, registration draft restore, response copy, option limits, tickets, waitlist promotion email, theme coverage, and attendee description translation guards.
+- Dashboard language notice coverage passed in `__tests__/static/dashboardThemeCoverage.test.ts`.
 
 ## Still Partial Or Not Proven
 

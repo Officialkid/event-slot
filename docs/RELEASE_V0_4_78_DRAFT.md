@@ -7,6 +7,7 @@ migration, deployment, and live end-to-end checks pass.
 
 - Preferred language selection for new email/password signups.
 - Preferred language editing in profile settings for existing users.
+- Dismissible dashboard notice informing existing users where to set preferred language.
 - Central supported-language registry for future i18n translation keys.
 - Attendee event descriptions now support compact captions, `Read more`, and preserved line breaks/emojis.
 - Public event-description translation route for supported languages.
