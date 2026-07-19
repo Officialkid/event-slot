@@ -21,13 +21,13 @@ migration, deployment, and live end-to-end checks pass.
 - [x] `npx prisma validate`
 - [x] `npx tsc --noEmit --incremental false`
 - [x] Focused Jest suite for admin delete, drafts, response copy, option limits, tickets, waitlist promotion email, theme coverage, and translation guards
-- [ ] Production Prisma migration for `preferredLanguage`
-- [ ] Cloud Run deploy from latest `main`
+- [x] Production Prisma migration for `preferredLanguage`
+- [x] Cloud Run deploy from latest `main`
 - [ ] Live signup/profile language check
 - [ ] Live attendee read-more/translate check
 - [ ] Live verifier route check
 - [ ] Live export/report check
-- [ ] Safe exact test-user deletion check
+- [x] Safe exact test-user deletion check
 
 ## Suggested GitHub Release Title
 
