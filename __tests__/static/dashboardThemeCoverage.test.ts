@@ -63,4 +63,16 @@ describe("dashboard theme coverage", () => {
     expect(nextConfig).toContain("verify.eventsslot.com")
     expect(verifierPage).toContain("<ScannerHome")
   })
+
+  it("informs existing users that preferred language can be changed in profile", () => {
+    const shell = readFileSync(
+      path.join(root, "app/(organizer)/dashboard/_shell.tsx"),
+      "utf8"
+    )
+
+    expect(shell).toContain("New: choose your preferred language")
+    expect(shell).toContain("eventslot:language-notice-dismissed")
+    expect(shell).toContain('href="/dashboard/profile"')
+    expect(shell).toContain("Dismiss language preference notice")
+  })
 })

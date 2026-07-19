@@ -739,6 +739,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>("dark")
+  const [languageNoticeDismissed, setLanguageNoticeDismissed] = useState(true)
   const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; image: string | null } | null>(null)
   const moreSheetRef = useRef<HTMLDivElement>(null)
   const unreadRequestInFlightRef = useRef(false)
@@ -783,7 +784,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   useEffect(() => {
     setTheme(resolveCurrentTheme())
+    setLanguageNoticeDismissed(
+      window.localStorage.getItem("eventslot:language-notice-dismissed") === "true"
+    )
   }, [])
+
+  function dismissLanguageNotice() {
+    window.localStorage.setItem("eventslot:language-notice-dismissed", "true")
+    setLanguageNoticeDismissed(true)
+  }
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -1288,6 +1297,82 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="dash-content md:pb-0"
             style={{ flex: 1, background: pageBg, paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
+            {!languageNoticeDismissed && !pathname.startsWith("/dashboard/profile") && (
+              <section
+                aria-label="New language preference notice"
+                style={{
+                  margin: "0 0 1rem",
+                  border: `0.5px solid ${accentBorderSoft}`,
+                  background: accentSurface,
+                  borderRadius: 16,
+                  padding: "1rem",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                  boxShadow: isLight ? "0 18px 36px rgba(17,24,39,0.06)" : "none",
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 0.35rem",
+                      color: primaryText,
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "0.92rem",
+                      fontWeight: 800,
+                    }}
+                  >
+                    New: choose your preferred language
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: secondaryText,
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "0.82rem",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    EventSlot is preparing multilingual support. Set your preferred language now so future system text and attendee-facing tools can adapt to you.
+                  </p>
+                  <Link
+                    href="/dashboard/profile"
+                    style={{
+                      display: "inline-flex",
+                      marginTop: "0.75rem",
+                      color: accentColor,
+                      fontFamily: "var(--font-dm-sans)",
+                      fontSize: "0.82rem",
+                      fontWeight: 800,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Update in Profile
+                  </Link>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissLanguageNotice}
+                  aria-label="Dismiss language preference notice"
+                  style={{
+                    border: `0.5px solid ${shellBorder}`,
+                    background: "transparent",
+                    color: mutedText,
+                    borderRadius: 999,
+                    width: 30,
+                    height: 30,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "1rem",
+                    lineHeight: 1,
+                  }}
+                >
+                  x
+                </button>
+              </section>
+            )}
             {children}
           </main>
         </div>
