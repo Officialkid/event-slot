@@ -31,6 +31,7 @@ migration, deployment, and live end-to-end checks pass.
 - [x] Live export/report check
 - [x] Safe exact test-user deletion check
 - [x] Super-admin command permission unit coverage
+- [x] Focused email-flow unit coverage for team invite, forgot password, waitlist promotion, attendee response copy, provider selection, and Resend integration
 
 ## Suggested GitHub Release Title
 
@@ -49,6 +50,6 @@ ready for the future `verify.eventsslot.com` subdomain. It reuses the existing
 scan, upload, and manual search tools while keeping verifier work separate from
 the main dashboard experience.
 
-Do not publish this release as final until the remaining side-effect email and
-destructive/payment-sensitive flows are either tested safely or explicitly
-deferred from the release scope.
+Publish only if the remaining live side-effect checks are explicitly deferred
+from v0.4.78 scope: real inbox delivery, broadcast send, destructive admin
+delete, payment transactions, and cron reminder/digest runs.

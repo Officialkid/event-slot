@@ -32,6 +32,8 @@ readiness, and full end-to-end testing before Play Store work begins.
 - `npx tsc --noEmit --incremental false` passed.
 - `cmd /c npx tsc --noEmit --incremental false` passed after the super-admin command fix.
 - `cmd /c npx jest __tests__/lib/adminMode.test.ts --runInBand --silent=false` passed 2/2.
+- `cmd /c npx tsc --noEmit --incremental false` passed after adding focused email-flow tests.
+- `cmd /c npx jest __tests__/api/team-invite-email.test.ts __tests__/api/forgot-password-email.test.ts __tests__/api/waitlist-promotion-email.test.ts __tests__/api/register-response-copy.test.ts __tests__/lib/emailProvider.test.ts __tests__/lib/emailResend.test.ts --runInBand --silent=false` passed 6/6 suites and 14/14 tests.
 - Focused Jest suite passed: admin user deletion, registration draft restore, response copy, option limits, tickets, waitlist promotion email, theme coverage, and attendee description translation guards.
 - Dashboard language notice coverage passed in `__tests__/static/dashboardThemeCoverage.test.ts`.
 - Post-deploy Cloud Run smoke tests passed for homepage, sign-in, sign-up, billing pause endpoints, robots.txt, and sitemap.xml.
@@ -54,11 +56,12 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Full app-wide i18n translation-key system. | Partial. | `preferredLanguage` and public description translation exist, but the whole UI still uses hardcoded English in many places. |
 | Google OAuth users choosing language during signup. | Partial. | Google users can change language from profile after account creation; OAuth pre-consent language capture is not wired yet. |
 | Dedicated temporary verifier invitations and roles. | Partial. | Standalone verifier route exists, but scoped invite sessions, expiry, roles, and verifier-only audit identity are not complete. |
-| Full live signed-in end-to-end test. | Mostly completed. | Signed-in read-only page sweep now passes. Remaining unproven live items are side-effect flows that were intentionally not triggered in this pass: saving profile preference, team invite email, waitlist promotion email, reminder/digest email, broadcast send, destructive admin delete, and payment transactions. |
+| Full live signed-in end-to-end test. | Mostly completed. | Signed-in read-only page sweep now passes. Non-destructive unit coverage proves team invite email, forgot-password email, waitlist promotion email, response-copy email, provider selection, and Resend integration paths. Remaining live-unproven items are real inbox delivery, broadcast send, destructive admin delete, payment transactions, and cron reminder/digest runs. |
 | Official GitHub release. | Not completed. | Source commits are pushed and release draft exists, but a release should be created only after live E2E evidence. |
 | Docs-wide implementation proof. | In progress. | Main feature/API docs now include current goal work; several historical docs still contain roadmap items and stale pricing/payment references that need separate cleanup. |
 
 ## Recommended Next Sequence
 
-1. Live-test signup, profile language selection, attendee description read-more/translate, verifier route, exports, waitlist promotion email, and super-admin user actions.
-2. Create the first GitHub release after live E2E passes.
+1. Decide whether to explicitly defer full app-wide translation-key conversion and dedicated temporary verifier invitations to post-v0.4.78 roadmap items.
+2. If yes, publish the first GitHub release with the current verified foundation.
+3. If no, continue implementation before release.
