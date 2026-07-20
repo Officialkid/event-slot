@@ -23,16 +23,23 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Delete exactly the two test users only. | Production guard inspected `danmwalilitest@gmail.com` and `danmwalili@gmail.com`, confirmed both were non-admin and owned zero events, deleted exactly 2 accounts, then read-back returned `remaining: 0`. |
 | Production migration for preferred language. | Production `npx prisma migrate deploy` applied `20260719100000_add_user_preferred_language` successfully. |
 | Deploy latest source after migration. | Cloud Build `925877d5-f2b2-444a-b18b-c875802ad7df` deployed image tag `20260720-001227`; Cloud Run smoke tests passed 7/7. |
+| Super admins should be able to execute organiser-level event commands. | `lib/adminMode.ts` now grants `hasOrganiserAccess` for `hasAdminAccess` sessions without requiring an event-specific Admin Mode cookie; covered by `__tests__/lib/adminMode.test.ts`. |
 
 ## Verified Locally
 
 - `npx prisma generate` passed after adding `preferredLanguage`.
 - `npx prisma validate` passed.
 - `npx tsc --noEmit --incremental false` passed.
+- `cmd /c npx tsc --noEmit --incremental false` passed after the super-admin command fix.
+- `cmd /c npx jest __tests__/lib/adminMode.test.ts --runInBand --silent=false` passed 2/2.
 - Focused Jest suite passed: admin user deletion, registration draft restore, response copy, option limits, tickets, waitlist promotion email, theme coverage, and attendee description translation guards.
 - Dashboard language notice coverage passed in `__tests__/static/dashboardThemeCoverage.test.ts`.
 - Post-deploy Cloud Run smoke tests passed for homepage, sign-in, sign-up, billing pause endpoints, robots.txt, and sitemap.xml.
-- Direct `www.eventsslot.com` shell checks timed out from this environment after deployment, so custom-domain public checks still need browser/manual confirmation.
+- Super-admin command fix deployed in commit `df33204` via Cloud Build `784bade7-b506-4df8-b704-5745b8e128b0`, image tag `20260720-111248`; Cloud Run smoke tests passed 7/7.
+- Direct `www.eventsslot.com` checks now pass for `/`, `/signup`, and `/verify-tickets` with HTTP 200.
+- Live JavaScript-rendered signup page shows preferred language options, Google consent, Terms of Service, Privacy Policy, and unsubscribe wording.
+- Live attendee event page for `christhood-potluck-edition-1-2026-897l` shows `Read more`, `Translate`, progress-save wording, preserved event spacing, and directions.
+- Live exports for the same event returned downloadable files: confirmed CSV, all responses PDF, confirmed responses PDF, and Word export all returned HTTP 200.
 
 ## Still Partial Or Not Proven
 
@@ -41,7 +48,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Full app-wide i18n translation-key system. | Partial. | `preferredLanguage` and public description translation exist, but the whole UI still uses hardcoded English in many places. |
 | Google OAuth users choosing language during signup. | Partial. | Google users can change language from profile after account creation; OAuth pre-consent language capture is not wired yet. |
 | Dedicated temporary verifier invitations and roles. | Partial. | Standalone verifier route exists, but scoped invite sessions, expiry, roles, and verifier-only audit identity are not complete. |
-| Full live signed-in end-to-end test. | Not completed. | Needs authenticated browser/session access plus custom-domain confirmation because shell checks to `www.eventsslot.com` timed out. |
+| Full live signed-in end-to-end test. | Not completed. | Public live checks pass, but authenticated browser automation cannot attach to the in-app browser yet. Profile/settings, super-admin UI clicks, inbox-triggered email flows, and page-by-page dashboard checks still need a signed-in browser session. |
 | Official GitHub release. | Not completed. | Source commits are pushed and release draft exists, but a release should be created only after live E2E evidence. |
 | Docs-wide implementation proof. | In progress. | Main feature/API docs now include current goal work; several historical docs still contain roadmap items and stale pricing/payment references that need separate cleanup. |
 

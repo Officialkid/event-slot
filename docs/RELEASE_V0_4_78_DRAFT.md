@@ -13,6 +13,7 @@ migration, deployment, and live end-to-end checks pass.
 - Public event-description translation route for supported languages.
 - Standalone verifier foundation at `/verify-tickets` and `/verify-tickets/[slug]`.
 - Future `verify.eventsslot.com` rewrites and setup documentation.
+- Super-admin event command access no longer depends on first entering event-specific Admin Mode.
 - Goal implementation audit separating completed local work from live blockers.
 
 ## Verification Before Publishing
@@ -23,11 +24,13 @@ migration, deployment, and live end-to-end checks pass.
 - [x] Focused Jest suite for admin delete, drafts, response copy, option limits, tickets, waitlist promotion email, theme coverage, and translation guards
 - [x] Production Prisma migration for `preferredLanguage`
 - [x] Cloud Run deploy from latest `main`
-- [ ] Live signup/profile language check
-- [ ] Live attendee read-more/translate check
-- [ ] Live verifier route check
-- [ ] Live export/report check
+- [x] Live signup language/consent render check
+- [ ] Live profile language check
+- [x] Live attendee read-more/translate check
+- [x] Live verifier route check
+- [x] Live export/report check
 - [x] Safe exact test-user deletion check
+- [x] Super-admin command permission unit coverage
 
 ## Suggested GitHub Release Title
 
@@ -46,5 +49,5 @@ ready for the future `verify.eventsslot.com` subdomain. It reuses the existing
 scan, upload, and manual search tools while keeping verifier work separate from
 the main dashboard experience.
 
-Do not publish this release as final until the production migration, deployment,
-and live end-to-end checks are complete.
+Do not publish this release as final until the remaining authenticated profile,
+dashboard, super-admin UI, and email-flow end-to-end checks are complete.
