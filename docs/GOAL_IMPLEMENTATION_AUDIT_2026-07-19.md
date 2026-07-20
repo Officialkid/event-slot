@@ -40,6 +40,12 @@ readiness, and full end-to-end testing before Play Store work begins.
 - Live JavaScript-rendered signup page shows preferred language options, Google consent, Terms of Service, Privacy Policy, and unsubscribe wording.
 - Live attendee event page for `christhood-potluck-edition-1-2026-897l` shows `Read more`, `Translate`, progress-save wording, preserved event spacing, and directions.
 - Live exports for the same event returned downloadable files: confirmed CSV, all responses PDF, confirmed responses PDF, and Word export all returned HTTP 200.
+- Signed-in in-app browser profile check passed: `/dashboard/profile` shows `EventSlot`, preferred language selector, `Custom dark`, and `Light mode`; it does not show the stale `iSpeak` profile name.
+- Signed-in dashboard check passed: `/dashboard` greets `Good morning, EventSlot`, shows the language notice, and does not show the payment launch banner.
+- Signed-in active event check passed for `christhood-potluck-edition-1-2026-897l`: Export Centre, CSV/PDF/AI documentation labels, Verify Ticket tab, and no internal server error.
+- Signed-in admin checks passed for `/admin`, `/admin/events`, and `/admin/health`; no forbidden/unauthorized redirects, and health shows Resend reachable with verified sender `hello@eventsslot.com`.
+- Signed-in route sweep passed for `/dashboard`, `/dashboard/events`, `/dashboard/profile`, `/dashboard/notifications`, `/dashboard/community`, `/dashboard/insights`, `/dashboard/team`, `/dashboard/billing`, `/admin`, `/admin/events`, `/admin/users`, `/admin/feedback`, `/admin/broadcast`, `/admin/health`, and `/verify-tickets`.
+- Billing route check passed: `/dashboard/billing` is informational only, states payments are coming soon/hidden, and does not show the previous super-admin privilege banner.
 
 ## Still Partial Or Not Proven
 
@@ -48,7 +54,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Full app-wide i18n translation-key system. | Partial. | `preferredLanguage` and public description translation exist, but the whole UI still uses hardcoded English in many places. |
 | Google OAuth users choosing language during signup. | Partial. | Google users can change language from profile after account creation; OAuth pre-consent language capture is not wired yet. |
 | Dedicated temporary verifier invitations and roles. | Partial. | Standalone verifier route exists, but scoped invite sessions, expiry, roles, and verifier-only audit identity are not complete. |
-| Full live signed-in end-to-end test. | Not completed. | Public live checks pass, but authenticated browser automation cannot attach to the in-app browser yet. Profile/settings, super-admin UI clicks, inbox-triggered email flows, and page-by-page dashboard checks still need a signed-in browser session. |
+| Full live signed-in end-to-end test. | Mostly completed. | Signed-in read-only page sweep now passes. Remaining unproven live items are side-effect flows that were intentionally not triggered in this pass: saving profile preference, team invite email, waitlist promotion email, reminder/digest email, broadcast send, destructive admin delete, and payment transactions. |
 | Official GitHub release. | Not completed. | Source commits are pushed and release draft exists, but a release should be created only after live E2E evidence. |
 | Docs-wide implementation proof. | In progress. | Main feature/API docs now include current goal work; several historical docs still contain roadmap items and stale pricing/payment references that need separate cleanup. |
 

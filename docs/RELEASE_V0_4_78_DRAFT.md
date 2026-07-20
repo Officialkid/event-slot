@@ -25,7 +25,7 @@ migration, deployment, and live end-to-end checks pass.
 - [x] Production Prisma migration for `preferredLanguage`
 - [x] Cloud Run deploy from latest `main`
 - [x] Live signup language/consent render check
-- [ ] Live profile language check
+- [x] Live profile language check
 - [x] Live attendee read-more/translate check
 - [x] Live verifier route check
 - [x] Live export/report check
@@ -49,5 +49,6 @@ ready for the future `verify.eventsslot.com` subdomain. It reuses the existing
 scan, upload, and manual search tools while keeping verifier work separate from
 the main dashboard experience.
 
-Do not publish this release as final until the remaining authenticated profile,
-dashboard, super-admin UI, and email-flow end-to-end checks are complete.
+Do not publish this release as final until the remaining side-effect email and
+destructive/payment-sensitive flows are either tested safely or explicitly
+deferred from the release scope.
