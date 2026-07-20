@@ -1,7 +1,8 @@
 # EventSlot v0.4.78 Release Draft
 
-This is the draft for the first official GitHub release once production
-migration, deployment, and live end-to-end checks pass.
+This release note supports the pushed `v0.4.78` version tag. A GitHub
+Release-page object can be created from the same tag once release-capable
+GitHub tooling is available in the environment.
 
 ## Highlights
 
