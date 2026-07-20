@@ -48,7 +48,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 - Signed-in admin checks passed for `/admin`, `/admin/events`, and `/admin/health`; no forbidden/unauthorized redirects, and health shows Resend reachable with verified sender `hello@eventsslot.com`.
 - Signed-in route sweep passed for `/dashboard`, `/dashboard/events`, `/dashboard/profile`, `/dashboard/notifications`, `/dashboard/community`, `/dashboard/insights`, `/dashboard/team`, `/dashboard/billing`, `/admin`, `/admin/events`, `/admin/users`, `/admin/feedback`, `/admin/broadcast`, `/admin/health`, and `/verify-tickets`.
 - Billing route check passed: `/dashboard/billing` is informational only, states payments are coming soon/hidden, and does not show the previous super-admin privilege banner.
-- Official version tag created and pushed: `v0.4.78` points to `c61c955` (`Add focused email flow coverage`) on `origin/main`.
+- Official GitHub Release page created: `v0.4.78` is published as the latest release, points to `c61c955` (`Add focused email flow coverage`), and documents the verified foundation plus deferred roadmap items.
 
 ## Still Partial Or Not Proven
 
@@ -58,11 +58,10 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Google OAuth users choosing language during signup. | Partial. | Google users can change language from profile after account creation; OAuth pre-consent language capture is not wired yet. |
 | Dedicated temporary verifier invitations and roles. | Partial. | Standalone verifier route exists, but scoped invite sessions, expiry, roles, and verifier-only audit identity are not complete. |
 | Full live signed-in end-to-end test. | Mostly completed. | Signed-in read-only page sweep now passes. Non-destructive unit coverage proves team invite email, forgot-password email, waitlist promotion email, response-copy email, provider selection, and Resend integration paths. Remaining live-unproven items are real inbox delivery, broadcast send, destructive admin delete, payment transactions, and cron reminder/digest runs. |
-| Official GitHub release. | Mostly completed. | The official `v0.4.78` Git tag is pushed to GitHub. The GitHub Release-page object is not created from this environment because `gh` is unavailable and no `GITHUB_TOKEN`/`GH_TOKEN` is configured. |
+| Official GitHub release. | Completed. | GitHub Release `v0.4.78` is published and marked latest. |
 | Docs-wide implementation proof. | In progress. | Main feature/API docs now include current goal work; several historical docs still contain roadmap items and stale pricing/payment references that need separate cleanup. |
 
 ## Recommended Next Sequence
 
 1. Decide whether to explicitly defer full app-wide translation-key conversion and dedicated temporary verifier invitations to post-v0.4.78 roadmap items.
-2. If yes, create the GitHub Release-page object from the already pushed `v0.4.78` tag using GitHub UI or a release-capable CLI/token.
-3. If no, continue implementation before release.
+2. Start the next goal for Play Store/mobile readiness.

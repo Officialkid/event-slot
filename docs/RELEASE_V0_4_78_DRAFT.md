@@ -1,8 +1,7 @@
-# EventSlot v0.4.78 Release Draft
+# EventSlot v0.4.78 Release
 
-This release note supports the pushed `v0.4.78` version tag. A GitHub
-Release-page object can be created from the same tag once release-capable
-GitHub tooling is available in the environment.
+GitHub Release `v0.4.78` is published as the latest release and points to
+commit `c61c955`.
 
 ## Highlights
 
