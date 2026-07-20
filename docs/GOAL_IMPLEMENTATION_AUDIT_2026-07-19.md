@@ -9,10 +9,12 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Requirement | Current evidence |
 | --- | --- |
 | Dashboard should greet using the current EventSlot profile identity, not a stale `iSpeak` session name. | `app/(organizer)/dashboard/page.tsx` fetches `/api/profile` and prefers that name for the greeting. |
-| New users can choose a preferred language during signup. | `app/(auth)/signup/page.tsx` renders `SUPPORTED_LANGUAGES`; `app/api/auth/signup/route.ts` stores `preferredLanguage`. |
+| New email/password users can choose a preferred language during signup. | `app/(auth)/signup/page.tsx` renders `SUPPORTED_LANGUAGES`; `app/api/auth/signup/route.ts` stores `preferredLanguage`. |
+| New Google OAuth users can carry their chosen signup language into the account. | `app/(auth)/signup/page.tsx` passes `preferredLanguage` through the Google callback URL; `app/(organizer)/dashboard/profile/page.tsx` detects and persists that value through `/api/profile`. |
 | Existing users can change preferred language later. | `app/(organizer)/dashboard/profile/page.tsx` renders the selector; `app/api/profile/route.ts` reads/writes `preferredLanguage`. |
 | Existing users should be informed that the language option exists. | `app/(organizer)/dashboard/_shell.tsx` shows a dismissible dashboard notice linking to Profile until the user dismisses it in local storage. |
 | Language codes should be centralized for future i18n. | `lib/i18n/languages.ts` defines supported launch languages and helpers. |
+| The app should start moving away from hardcoded text through translation keys. | `lib/i18n/messages.ts` defines shared message keys and complete launch-language dictionaries with safe English fallback coverage for copy that still needs human-approved translations. |
 | Event content should show a small caption first, then `Read more`. | `components/events/EventDescriptionBlock.tsx` compacts long descriptions and preserves original spacing with `whiteSpace: pre-wrap`. |
 | Attendees should see a lightweight `Translate` text action and choose a language. | `components/events/EventDescriptionBlock.tsx` exposes `Translate`, language selector, `Apply`, and `Show original`. |
 | Public translation should not expose private dashboard data. | `app/api/events/[slug]/translate-description/route.ts` reads only active, non-archived event title/description. |
@@ -33,6 +35,8 @@ readiness, and full end-to-end testing before Play Store work begins.
 - `cmd /c npx tsc --noEmit --incremental false` passed after the super-admin command fix.
 - `cmd /c npx jest __tests__/lib/adminMode.test.ts --runInBand --silent=false` passed 2/2.
 - `cmd /c npx tsc --noEmit --incremental false` passed after adding focused email-flow tests.
+- `cmd /c npx jest __tests__/static/dashboardThemeCoverage.test.ts __tests__/lib/i18n-messages.test.ts --runInBand --silent=false` passed 2/2 suites and 16/16 tests after Google OAuth language handoff and i18n message-key foundation updates.
+- `cmd /c npx tsc --noEmit --incremental false` passed after Google OAuth language handoff and i18n message-key foundation updates.
 - `cmd /c npx jest __tests__/api/team-invite-email.test.ts __tests__/api/forgot-password-email.test.ts __tests__/api/waitlist-promotion-email.test.ts __tests__/api/register-response-copy.test.ts __tests__/lib/emailProvider.test.ts __tests__/lib/emailResend.test.ts --runInBand --silent=false` passed 6/6 suites and 14/14 tests.
 - Focused Jest suite passed: admin user deletion, registration draft restore, response copy, option limits, tickets, waitlist promotion email, theme coverage, and attendee description translation guards.
 - Dashboard language notice coverage passed in `__tests__/static/dashboardThemeCoverage.test.ts`.
@@ -54,14 +58,14 @@ readiness, and full end-to-end testing before Play Store work begins.
 
 | Requirement | Status | What remains |
 | --- | --- | --- |
-| Full app-wide i18n translation-key system. | Partial. | `preferredLanguage` and public description translation exist, but the whole UI still uses hardcoded English in many places. |
-| Google OAuth users choosing language during signup. | Partial. | Google users can change language from profile after account creation; OAuth pre-consent language capture is not wired yet. |
-| Dedicated temporary verifier invitations and roles. | Partial. | Standalone verifier route exists, but scoped invite sessions, expiry, roles, and verifier-only audit identity are not complete. |
+| Full app-wide i18n translation-key conversion. | Roadmap, not fully converted. | Supported launch languages, preferred-language storage, Google OAuth language handoff, public event-description translation, and shared message keys now exist. Migrating every legacy UI string from hardcoded English into `lib/i18n/messages.ts` remains a larger post-foundation task. |
+| Dedicated temporary verifier invitations and roles. | Future scope from pasted workflow. | The current goal requested the standalone verifier surface/folder and subdomain guidance; the referenced pasted document labels invite-only verifier sessions, expiry, roles, and dedicated verifier audit identity as desired future/open decisions. |
 | Full live signed-in end-to-end test. | Mostly completed. | Signed-in read-only page sweep now passes. Non-destructive unit coverage proves team invite email, forgot-password email, waitlist promotion email, response-copy email, provider selection, and Resend integration paths. Remaining live-unproven items are real inbox delivery, broadcast send, destructive admin delete, payment transactions, and cron reminder/digest runs. |
 | Official GitHub release. | Completed. | GitHub Release `v0.4.78` is published and marked latest. |
 | Docs-wide implementation proof. | In progress. | Main feature/API docs now include current goal work; several historical docs still contain roadmap items and stale pricing/payment references that need separate cleanup. |
 
 ## Recommended Next Sequence
 
-1. Decide whether to explicitly defer full app-wide translation-key conversion and dedicated temporary verifier invitations to post-v0.4.78 roadmap items.
-2. Start the next goal for Play Store/mobile readiness.
+1. Deploy the Google OAuth language handoff and shared i18n message-key foundation.
+2. Run one more signed-in live sweep after deployment.
+3. Start the next goal for Play Store/mobile readiness once the live sweep is accepted.

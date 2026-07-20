@@ -58,7 +58,11 @@ describe("dashboard theme coverage", () => {
 
     expect(signup).toContain("SUPPORTED_LANGUAGES")
     expect(signup).toContain("preferredLanguage")
+    expect(signup).toContain("preferredLanguage=${encodeURIComponent(preferredLanguage)}")
     expect(profile).toContain("Preferred language")
+    expect(profile).toContain('searchParams?.get("preferredLanguage")')
+    expect(profile).toContain("isSupportedLanguage(preferredLanguageParam)")
+    expect(profile).toContain('body: JSON.stringify({ preferredLanguage: languageFromSignup })')
     expect(profileApi).toContain("preferredLanguage")
     expect(nextConfig).toContain("verify.eventsslot.com")
     expect(verifierPage).toContain("<ScannerHome")

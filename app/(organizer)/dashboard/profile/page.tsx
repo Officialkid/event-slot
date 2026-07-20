@@ -8,7 +8,7 @@ import { Moon, Sun } from "lucide-react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
-import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguageCode } from "@/lib/i18n/languages"
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguageCode } from "@/lib/i18n/languages"
 
 const checkboxStyle: React.CSSProperties = {
   position: "absolute",
@@ -312,16 +312,38 @@ export default function ProfilePage() {
   useEffect(() => {
     markFeatureUsed("profile")
     setTheme(resolveCurrentTheme())
+    const preferredLanguageParam = searchParams?.get("preferredLanguage")
+    const languageFromSignup = isSupportedLanguage(preferredLanguageParam) ? preferredLanguageParam : null
     fetch("/api/profile")
       .then(r => r.json())
-      .then((data: ProfileData) => {
+      .then(async (data: ProfileData) => {
+        const nextPreferredLanguage = languageFromSignup ?? data.preferredLanguage ?? DEFAULT_LANGUAGE
         setProfile(data)
         setName(data.name ?? "")
-        setPreferredLanguage(data.preferredLanguage ?? DEFAULT_LANGUAGE)
+        setPreferredLanguage(nextPreferredLanguage)
         setTwoFactorEnabled(!!data.twoFactorEnabled)
         syncProfileIdentity({ name: data.name, image: data.image })
+
+        if (languageFromSignup && languageFromSignup !== data.preferredLanguage) {
+          const res = await fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ preferredLanguage: languageFromSignup }),
+          })
+
+          if (res.ok) {
+            setProfile(prev => (prev ? { ...prev, preferredLanguage: languageFromSignup } : prev))
+          }
+        }
+
+        if (languageFromSignup || searchParams?.get("fromSignup") === "google") {
+          const url = new URL(window.location.href)
+          url.searchParams.delete("preferredLanguage")
+          url.searchParams.delete("fromSignup")
+          router.replace(url.pathname + (url.search || "") + (url.hash || ""), { scroll: false })
+        }
       })
-  }, [])
+  }, [router, searchParams])
 
   function handleThemeChange(nextTheme: ThemeMode) {
     applyTheme(nextTheme)

@@ -78,7 +78,8 @@ export default function SignUpPage() {
       setError('Please agree to the Terms and Privacy Policy before continuing with Google.')
       return
     }
-    signIn('google', { callbackUrl: '/my-events' })
+    const googleCallbackUrl = `/dashboard/profile?preferredLanguage=${encodeURIComponent(preferredLanguage)}&fromSignup=google`
+    signIn('google', { callbackUrl: googleCallbackUrl })
   }
 
   async function handleSubmit(e: React.FormEvent) {

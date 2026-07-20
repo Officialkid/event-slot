@@ -11,9 +11,9 @@ _Last updated: July 19, 2026_
 ## Authentication & URL Integrity
 
 ### Preferred Language Capture
-**Where:** `app/(auth)/signup/page.tsx`, `app/(organizer)/dashboard/profile/page.tsx`, `app/api/auth/signup/route.ts`, `app/api/profile/route.ts`, `lib/i18n/languages.ts`, `prisma/schema.prisma`
-**What it does:** Lets new users choose a preferred language during email/password signup and lets existing users update that preference later from profile settings. Supported launch language codes are centralized so future app-wide translation keys can use one source of truth.
-**Current scope:** The preference is stored on the user profile. Full app text translation is not complete yet.
+**Where:** `app/(auth)/signup/page.tsx`, `app/(organizer)/dashboard/profile/page.tsx`, `app/api/auth/signup/route.ts`, `app/api/profile/route.ts`, `lib/i18n/languages.ts`, `lib/i18n/messages.ts`, `prisma/schema.prisma`
+**What it does:** Lets new users choose a preferred language during email/password signup, carries Google signup language choice back into the profile after OAuth, and lets existing users update that preference later from profile settings. Supported launch language codes and shared message keys are centralized so future app-wide translation work can use one source of truth.
+**Current scope:** The preference is stored on the user profile and the shared key registry exists. Migrating every older hardcoded UI string to the registry is still a larger follow-up.
 
 ### Canonical App URL Enforcement (BUG-01)
 **Where:** `lib/config.ts`, `app/join/route.ts`, `app/api/events/[slug]/qr/route.ts`, `lib/auth.ts`  
@@ -583,7 +583,7 @@ the same email.
 **Who:** Attendees
 **What it does:** Long event descriptions render as a compact caption with a text-style `Read more` control. Original line breaks, spacing, and emojis are preserved. Attendees can tap `Translate`, choose a supported EventSlot language, and request an AI translation of the public event description. The translation endpoint only reads active public events and does not expose private dashboard data.
 **API:** POST /api/events/[slug]/translate-description
-**Current scope:** AI translation depends on configured AI providers. Full static UI translation keys are still a follow-up.
+**Current scope:** AI translation depends on configured AI providers. Shared static UI message keys exist in `lib/i18n/messages.ts`, but migrating every older hardcoded UI string to those keys is still a follow-up.
 
 ### Waitlist Promotion
 **Where:** Organizer dashboard → Overview tab → Increase capacity  

@@ -1,0 +1,168 @@
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalizePreferredLanguage, type SupportedLanguageCode } from "./languages"
+
+export const I18N_MESSAGE_KEYS = [
+  "createEvent",
+  "dashboard",
+  "myEvents",
+  "profile",
+  "verifyTickets",
+  "preferredLanguage",
+  "readMore",
+  "showLess",
+  "translate",
+  "saveChanges",
+  "submit",
+  "clearForm",
+  "sendMeCopy",
+  "neverSubmitPasswords",
+] as const
+
+export type I18nMessageKey = (typeof I18N_MESSAGE_KEYS)[number]
+
+type I18nMessages = Record<I18nMessageKey, string>
+
+export const I18N_MESSAGES: Record<SupportedLanguageCode, I18nMessages> = {
+  en: {
+    createEvent: "Create Event",
+    dashboard: "Dashboard",
+    myEvents: "My Events",
+    profile: "Profile",
+    verifyTickets: "Verify Tickets",
+    preferredLanguage: "Preferred language",
+    readMore: "Read more",
+    showLess: "Show less",
+    translate: "Translate",
+    saveChanges: "Save changes",
+    submit: "Submit",
+    clearForm: "Clear form",
+    sendMeCopy: "Send me a copy of my responses.",
+    neverSubmitPasswords: "Never submit passwords through EventSlot forms.",
+  },
+  sw: {
+    createEvent: "Unda Tukio",
+    dashboard: "Dashibodi",
+    myEvents: "Matukio Yangu",
+    profile: "Wasifu",
+    verifyTickets: "Thibitisha Tiketi",
+    preferredLanguage: "Lugha unayopendelea",
+    readMore: "Soma zaidi",
+    showLess: "Onyesha kidogo",
+    translate: "Tafsiri",
+    saveChanges: "Hifadhi mabadiliko",
+    submit: "Wasilisha",
+    clearForm: "Futa fomu",
+    sendMeCopy: "Nitumie nakala ya majibu yangu.",
+    neverSubmitPasswords: "Usitume nywila kupitia fomu za EventSlot.",
+  },
+  fr: {
+    createEvent: "Creer un evenement",
+    dashboard: "Tableau de bord",
+    myEvents: "Mes evenements",
+    profile: "Profil",
+    verifyTickets: "Verifier les billets",
+    preferredLanguage: "Langue preferee",
+    readMore: "Lire la suite",
+    showLess: "Afficher moins",
+    translate: "Traduire",
+    saveChanges: "Enregistrer",
+    submit: "Envoyer",
+    clearForm: "Effacer le formulaire",
+    sendMeCopy: "M'envoyer une copie de mes reponses.",
+    neverSubmitPasswords: "Ne soumettez jamais de mots de passe via les formulaires EventSlot.",
+  },
+  pt: {
+    createEvent: "Criar evento",
+    dashboard: "Painel",
+    myEvents: "Meus eventos",
+    profile: "Perfil",
+    verifyTickets: "Verificar ingressos",
+    preferredLanguage: "Idioma preferido",
+    readMore: "Ler mais",
+    showLess: "Mostrar menos",
+    translate: "Traduzir",
+    saveChanges: "Salvar alteracoes",
+    submit: "Enviar",
+    clearForm: "Limpar formulario",
+    sendMeCopy: "Envie-me uma copia das minhas respostas.",
+    neverSubmitPasswords: "Nunca envie senhas por formularios do EventSlot.",
+  },
+  ar: {
+    createEvent: "Create Event",
+    dashboard: "Dashboard",
+    myEvents: "My Events",
+    profile: "Profile",
+    verifyTickets: "Verify Tickets",
+    preferredLanguage: "Preferred language",
+    readMore: "Read more",
+    showLess: "Show less",
+    translate: "Translate",
+    saveChanges: "Save changes",
+    submit: "Submit",
+    clearForm: "Clear form",
+    sendMeCopy: "Send me a copy of my responses.",
+    neverSubmitPasswords: "Never submit passwords through EventSlot forms.",
+  },
+  es: {
+    createEvent: "Crear evento",
+    dashboard: "Panel",
+    myEvents: "Mis eventos",
+    profile: "Perfil",
+    verifyTickets: "Verificar entradas",
+    preferredLanguage: "Idioma preferido",
+    readMore: "Leer mas",
+    showLess: "Mostrar menos",
+    translate: "Traducir",
+    saveChanges: "Guardar cambios",
+    submit: "Enviar",
+    clearForm: "Borrar formulario",
+    sendMeCopy: "Enviarme una copia de mis respuestas.",
+    neverSubmitPasswords: "Nunca envies contrasenas mediante formularios de EventSlot.",
+  },
+  de: {
+    createEvent: "Event erstellen",
+    dashboard: "Dashboard",
+    myEvents: "Meine Events",
+    profile: "Profil",
+    verifyTickets: "Tickets pruefen",
+    preferredLanguage: "Bevorzugte Sprache",
+    readMore: "Mehr lesen",
+    showLess: "Weniger anzeigen",
+    translate: "Uebersetzen",
+    saveChanges: "Aenderungen speichern",
+    submit: "Absenden",
+    clearForm: "Formular loeschen",
+    sendMeCopy: "Sende mir eine Kopie meiner Antworten.",
+    neverSubmitPasswords: "Sende niemals Passwoerter ueber EventSlot-Formulare.",
+  },
+  zh: {
+    createEvent: "Create Event",
+    dashboard: "Dashboard",
+    myEvents: "My Events",
+    profile: "Profile",
+    verifyTickets: "Verify Tickets",
+    preferredLanguage: "Preferred language",
+    readMore: "Read more",
+    showLess: "Show less",
+    translate: "Translate",
+    saveChanges: "Save changes",
+    submit: "Submit",
+    clearForm: "Clear form",
+    sendMeCopy: "Send me a copy of my responses.",
+    neverSubmitPasswords: "Never submit passwords through EventSlot forms.",
+  },
+}
+
+export function getI18nMessage(
+  language: string | null | undefined,
+  key: I18nMessageKey,
+): string {
+  const normalizedLanguage = normalizePreferredLanguage(language)
+  return I18N_MESSAGES[normalizedLanguage]?.[key] ?? I18N_MESSAGES[DEFAULT_LANGUAGE][key]
+}
+
+export function getMissingI18nLanguages(): SupportedLanguageCode[] {
+  const configuredLanguages = Object.keys(I18N_MESSAGES)
+  return SUPPORTED_LANGUAGES
+    .map(language => language.code)
+    .filter(code => !configuredLanguages.includes(code))
+}
