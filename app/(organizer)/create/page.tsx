@@ -15,7 +15,7 @@ import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 
-type QuestionType = "text" | "email" | "phone" | "select" | "checkbox"
+type QuestionType = "text" | "email" | "phone" | "select" | "checkbox" | "file"
 
 type Question = {
   id: string
@@ -48,6 +48,7 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "phone", label: "Phone Number" },
   { value: "select", label: "Multiple Choice" },
   { value: "checkbox", label: "Checkboxes" },
+  { value: "file", label: "File upload" },
 ]
 
 const defaultQuestion = (): Question => ({

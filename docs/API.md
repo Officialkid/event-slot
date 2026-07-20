@@ -408,6 +408,13 @@ Upload an image to Cloudflare R2.
 **Body:** FormData with `file`  
 **Returns:** `{ url }` — public R2 URL
 
+### POST /api/register/upload
+Upload an attendee file answer to Cloudflare R2 before form submission.  
+**Auth:** None  
+**Body:** FormData with `eventSlug`, `questionId`, and `file`  
+**Allowed:** JPEG, PNG, WebP, GIF, PDF, Word, Excel, and text files up to 10 MB  
+**Returns:** `{ success, file: { name, type, size, url } }`
+
 ---
 
 ## OG Image

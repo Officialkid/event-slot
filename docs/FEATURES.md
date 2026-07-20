@@ -578,6 +578,13 @@ the same email.
 **API:** POST /api/register  
 **Rate limit:** 10 requests per IP per minute (Upstash Redis)
 
+### Registration File Upload Questions
+**Where:** `app/(organizer)/create/page.tsx`, `app/(organizer)/edit/[slug]/page.tsx`, `app/(attendee)/[username]/RegistrationForm.tsx`, `app/api/register/upload/route.ts`
+**Who:** Organizers and attendees
+**What it does:** Organizers can add a `File upload` question for documents or pictures. Attendees upload the file before submitting the form; EventSlot stores the file in Cloudflare R2 and saves only a compact file reference in the registration answer, keeping the database light.
+**Supported files:** JPEG, PNG, WebP, GIF, PDF, Word, Excel, and text files up to 10 MB.
+**API:** POST /api/register/upload
+
 ### Attendee Event Caption, Read More, and Translation
 **Where:** `app/(attendee)/[username]/RegistrationForm.tsx`, `components/events/EventDescriptionBlock.tsx`, `app/api/events/[slug]/translate-description/route.ts`
 **Who:** Attendees
@@ -599,11 +606,11 @@ receive an email notification if they consented to transactional emails.
 **What it does:** Verifies attendee tickets at entry by accepting a ticket code, QR-scan payload, attendee email, or attendee name. The flow blocks duplicate verification by enforcing one-time check-in and returning the existing check-in timestamp if already used. Ambiguous identity searches return a conflict response so staff can refine the lookup before check-in.  
 **API:** POST /api/events/[slug]/verify-ticket
 
-### Standalone Verify Tickets Foundation
-**Where:** `app/verify-tickets/page.tsx`, `app/verify-tickets/[slug]/page.tsx`, `components/scanner/ScannerHome.tsx`, `next.config.mjs`, `docs/VERIFY_TICKETS_SUBDOMAIN.md`
-**Who:** Event gate teams, organizers, assigned team members, and future temporary verifiers
-**What it does:** Adds a focused verifier surface separate from the main dashboard. `/verify-tickets` explains the verifier entry point, while `/verify-tickets/[slug]` loads scan, upload, and manual search tools for a single event using the existing scanner components. `next.config.mjs` rewrites `verify.eventsslot.com` to this surface for future subdomain activation.
-**Current scope:** Uses the existing dashboard token/session/team access model. Dedicated expiring verifier invitations and role-specific verifier sessions remain future hardening work.
+### Standalone Verify Tickets
+**Where:** `app/verify-tickets/page.tsx`, `app/verify-tickets/[slug]/page.tsx`, `app/api/verify-tickets/access/route.ts`, `components/scanner/ScannerHome.tsx`, `next.config.mjs`, `docs/VERIFY_TICKETS_SUBDOMAIN.md`
+**Who:** Event gate teams, organizers, assigned team members, and temporary verifiers
+**What it does:** Adds a focused verifier surface separate from the main dashboard. Every event has a separate verifier code that organizers can share with many gate workers. `/verify-tickets` accepts the verifier code, while `/verify-tickets/[slug]` loads scan, upload, and manual search tools for a single event. `next.config.mjs` rewrites `verify.eventsslot.com` and `verify.www.eventsslot.com` to this surface.
+**Current scope:** Verifier codes are accepted only by ticket-verification APIs and do not grant dashboard, billing, settings, team, analytics, or unrelated-event access. Dedicated expiring invite sessions and role-specific verifier permissions remain future hardening work.
 
 ### Registration Status Page
 **Where:** /registration/[registrationId]  

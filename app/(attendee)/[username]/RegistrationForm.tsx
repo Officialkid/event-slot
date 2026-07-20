@@ -93,6 +93,13 @@ type BulkResult = {
 
 type AttendeeAnswers = Record<string, string>
 
+type UploadedFileAnswer = {
+  name: string
+  type: string
+  size: number
+  url: string
+}
+
 function parseCheckboxValue(raw: string | undefined): string[] {
   if (!raw) return []
   try {
@@ -108,6 +115,30 @@ function parseCheckboxValue(raw: string | undefined): string[] {
 function serializeCheckboxValue(values: string[]): string {
   const uniqueSorted = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
   return JSON.stringify(uniqueSorted)
+}
+
+function parseFileAnswer(raw: string | undefined): UploadedFileAnswer | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as Partial<UploadedFileAnswer>
+    if (
+      typeof parsed.name === "string" &&
+      typeof parsed.url === "string" &&
+      typeof parsed.type === "string" &&
+      typeof parsed.size === "number"
+    ) {
+      return { name: parsed.name, url: parsed.url, type: parsed.type, size: parsed.size }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${bytes} B`
 }
 
 function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
@@ -180,6 +211,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [mpesaPhone] = useState("")
   const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
   const [paymentPolling, setPaymentPolling] = useState(false)
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({})
   const [draftEmail, setDraftEmail] = useState("")
   const [draftState, setDraftState] = useState<"idle" | "loading" | "saving" | "saved" | "error">("idle")
   const [draftMessage, setDraftMessage] = useState("")
@@ -460,6 +493,40 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       next[attendeeIndex] = { ...next[attendeeIndex], [qId]: value }
       return next
     })
+  }
+
+  async function handleFileUpload(attendeeIndex: number, qId: string, file: File | null) {
+    const key = `${attendeeIndex}:${qId}`
+    setFileErrors(prev => ({ ...prev, [key]: "" }))
+
+    if (!file) {
+      handleChange(attendeeIndex, qId, "")
+      return
+    }
+
+    const payload = new FormData()
+    payload.set("eventSlug", event.slug)
+    payload.set("questionId", qId)
+    payload.set("file", file)
+
+    setUploadingFiles(prev => ({ ...prev, [key]: true }))
+    try {
+      const res = await fetch("/api/register/upload", {
+        method: "POST",
+        body: payload,
+      })
+      const data = await res.json() as { file?: UploadedFileAnswer; error?: string }
+      if (!res.ok || !data.file) {
+        setFileErrors(prev => ({ ...prev, [key]: data.error ?? "Upload failed. Please try again." }))
+        return
+      }
+
+      handleChange(attendeeIndex, qId, JSON.stringify(data.file))
+    } catch {
+      setFileErrors(prev => ({ ...prev, [key]: "Upload failed. Please check your connection." }))
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [key]: false }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1192,6 +1259,47 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
                   />
                 )}
+                {q.type === "file" && (() => {
+                  const uploadKey = `${attendeeIndex}:${q.id}`
+                  const uploadedFile = parseFileAnswer(form[q.id])
+                  return (
+                    <div className="mt-1 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
+                      <input
+                        id={`attendee-${attendeeIndex}-${q.id}`}
+                        type="file"
+                        required={q.required && !uploadedFile}
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        className={fieldClassName}
+                        style={fieldStyle}
+                        disabled={uploadingFiles[uploadKey]}
+                        onChange={e => void handleFileUpload(attendeeIndex, q.id, e.target.files?.[0] ?? null)}
+                      />
+                      <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                        Upload an image, PDF, Word, Excel, or text file. Maximum size is 10 MB.
+                      </p>
+                      {uploadingFiles[uploadKey] && (
+                        <p className="mt-2 text-[0.78rem]" style={{ color: "#C8F55A" }}>
+                          Uploading file...
+                        </p>
+                      )}
+                      {fileErrors[uploadKey] && (
+                        <p className="mt-2 text-[0.78rem]" style={{ color: "var(--error)" }}>
+                          {fileErrors[uploadKey]}
+                        </p>
+                      )}
+                      {uploadedFile && (
+                        <div className="mt-3 rounded-[12px] border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "var(--surface)" }}>
+                          <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer" className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {uploadedFile.name}
+                          </a>
+                          <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                            {uploadedFile.type || "Uploaded file"} - {formatFileSize(uploadedFile.size)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
                 {q.type === "select" && (
                   <>
                     <select

@@ -4,7 +4,7 @@ import { normalizeInternationalPhoneNumber } from '@/lib/eventContact'
 const questionSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1).max(200),
-  type: z.enum(['text', 'email', 'phone', 'select', 'checkbox', 'textarea', 'number']),
+  type: z.enum(['text', 'email', 'phone', 'select', 'checkbox', 'textarea', 'number', 'file']),
   required: z.boolean().optional(),
   options: z.array(z.string()).optional(),
   optionLimits: z.record(z.string(), z.number().int().positive().nullable()).optional(),
