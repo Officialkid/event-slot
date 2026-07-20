@@ -26,6 +26,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 | Production migration for preferred language. | Production `npx prisma migrate deploy` applied `20260719100000_add_user_preferred_language` successfully. |
 | Deploy latest source after migration. | Cloud Build `925877d5-f2b2-444a-b18b-c875802ad7df` deployed image tag `20260720-001227`; Cloud Run smoke tests passed 7/7. |
 | Super admins should be able to execute organiser-level event commands. | `lib/adminMode.ts` now grants `hasOrganiserAccess` for `hasAdminAccess` sessions without requiring an event-specific Admin Mode cookie; covered by `__tests__/lib/adminMode.test.ts`. |
+| Deploy Google OAuth language handoff and shared i18n message keys. | Cloud Build `4cd22c91-0d9a-4293-883f-7f0284bb3c37` deployed image tag `20260720-135348`; Cloud Run smoke tests passed 7/7. |
 
 ## Verified Locally
 
@@ -53,6 +54,7 @@ readiness, and full end-to-end testing before Play Store work begins.
 - Signed-in route sweep passed for `/dashboard`, `/dashboard/events`, `/dashboard/profile`, `/dashboard/notifications`, `/dashboard/community`, `/dashboard/insights`, `/dashboard/team`, `/dashboard/billing`, `/admin`, `/admin/events`, `/admin/users`, `/admin/feedback`, `/admin/broadcast`, `/admin/health`, and `/verify-tickets`.
 - Billing route check passed: `/dashboard/billing` is informational only, states payments are coming soon/hidden, and does not show the previous super-admin privilege banner.
 - Official GitHub Release page created: `v0.4.78` is published as the latest release, points to `c61c955` (`Add focused email flow coverage`), and documents the verified foundation plus deferred roadmap items.
+- Latest Cloud Run deployment after the Google signup language/i18n foundation commit passed smoke tests for homepage, sign-in, sign-up, paused billing endpoints, robots.txt, and sitemap.xml. A direct custom-domain shell check from this machine was inconclusive after deployment because both `Invoke-WebRequest` and `curl.exe` failed at the transport layer before returning a reliable HTTP status.
 
 ## Still Partial Or Not Proven
 
@@ -66,6 +68,5 @@ readiness, and full end-to-end testing before Play Store work begins.
 
 ## Recommended Next Sequence
 
-1. Deploy the Google OAuth language handoff and shared i18n message-key foundation.
-2. Run one more signed-in live sweep after deployment.
-3. Start the next goal for Play Store/mobile readiness once the live sweep is accepted.
+1. Run one more signed-in live browser sweep after the latest deployment.
+2. Start the next goal for Play Store/mobile readiness once the live sweep is accepted.
