@@ -5,6 +5,7 @@
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
+import { hasAdminAccess } from '@/lib/isAdmin'
 
 const ADMIN_MODE_COOKIE = 'es_admin_mode'
 
@@ -55,6 +56,8 @@ export function encodeAdminModeState(state: AdminModeState): string {
 export async function resolveOrganiserAccess(params: {
   userId:   string
   userRole: string
+  userEmail?: string | null
+  isAdmin?: boolean | null
   eventId:  string
 }): Promise<{
   hasAccess:   boolean
@@ -67,6 +70,18 @@ export async function resolveOrganiserAccess(params: {
   })
 
   if (!event) return { hasAccess: false, isAdminMode: false, organiserId: null }
+
+  // Super admins can execute organiser-level commands across events.
+  // Admin Mode remains useful for page context/banner state, but it should not
+  // block legitimate super-admin exports, capacity updates, or moderation work.
+  if (hasAdminAccess({ user: { role: params.userRole, email: params.userEmail, isAdmin: params.isAdmin } })) {
+    const adminMode = await getAdminModeFromCookie()
+    return {
+      hasAccess: true,
+      isAdminMode: adminMode.active && adminMode.eventId === params.eventId,
+      organiserId: event.organizerId,
+    }
+  }
 
   // Organiser owns the event
   if (event.organizerId === params.userId) {
@@ -102,12 +117,14 @@ export async function resolveOrganiserAccess(params: {
 // Simpler check — does the current user have organiser-level write access?
 // Use in place of: event.organizerId !== session.user.id
 export async function hasOrganiserAccess(
-  session: { user: { id: string; role?: string | undefined } },
+  session: { user: { id: string; role?: string | null | undefined; email?: string | null | undefined; isAdmin?: boolean | null | undefined } },
   eventId: string
 ): Promise<boolean> {
   const result = await resolveOrganiserAccess({
     userId:   session.user.id,
     userRole: session.user.role ?? '',
+    userEmail: session.user.email,
+    isAdmin: session.user.isAdmin,
     eventId,
   })
   return result.hasAccess
