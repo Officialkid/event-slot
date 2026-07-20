@@ -975,6 +975,37 @@ export async function sendPioneerBadgeAnnouncementEmail({
   })
 }
 
+export async function sendAppTesterSignupEmail({
+  to,
+}: {
+  to: string
+}) {
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    to,
+    subject: 'You are on the EventSlot early tester list',
+    html: `
+      <div style="background:#0A0A0A;color:#F0EDE6;padding:40px;font-family:sans-serif;max-width:560px;margin:0 auto;">
+        <div style="color:#C8F55A;font-size:14px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:20px;">EventSlot early testing</div>
+        <h2 style="color:#FFFFFF;font-size:26px;line-height:1.2;margin:0 0 16px;">Thank you for helping us test the app</h2>
+        <p style="color:rgba(240,237,230,0.72);font-size:15px;line-height:1.7;margin:0 0 16px;">
+          We have saved your email for the EventSlot mobile app tester group. When the Play Store testing track is ready, we will use this email to send access instructions.
+        </p>
+        <p style="color:rgba(240,237,230,0.72);font-size:15px;line-height:1.7;margin:0 0 24px;">
+          As an early tester, the biggest help is to open the app regularly, create or join test events, verify that registration and tickets work, and share any issue you notice.
+        </p>
+        <a href="${BASE_URL}"
+          style="display:inline-block;background:#C8F55A;color:#0A0A0A;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:800;">
+          Visit EventSlot
+        </a>
+        <p style="color:rgba(240,237,230,0.45);font-size:12px;line-height:1.6;margin:28px 0 0;">
+          You are receiving this because you asked to join EventSlot early app testing.
+        </p>
+      </div>
+    `,
+  })
+}
+
 export async function sendPostEventSummaryEmail({
   to,
   organizerName,

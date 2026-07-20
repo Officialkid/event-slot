@@ -52,6 +52,21 @@ function issueIsStale(createdAt: string) {
   return Date.now() - created > STALE_AFTER_HOURS * 60 * 60 * 1000
 }
 
+function parsePromotionSummary(message: string) {
+  const start = message.indexOf("{")
+  const end = message.lastIndexOf("}")
+  if (start < 0 || end <= start) return null
+  try {
+    const parsed = JSON.parse(message.slice(start, end + 1)) as {
+      summary?: { attempted?: number; sent?: number; failed?: number; skippedNoEmail?: number }
+      promoted?: number
+    }
+    return parsed.summary ?? null
+  } catch {
+    return null
+  }
+}
+
 function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
   const stale = issueIsStale(error.createdAt)
   const emailHealthy = data.emailProviderConfigured && data.emailProviderHealthy
@@ -99,6 +114,19 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
     }
   }
 
+  if (error.route.startsWith("AI-") && error.message.toLowerCase().includes("empty response")) {
+    return {
+      ...error,
+      status: stale ? "info" : "resolved",
+      label: "AI provider fallback",
+      summary: "Groq returned an empty response, and the AI layer now treats this as retryable/fallback-safe.",
+      hint: stale
+        ? "Historical only unless the same route logs a fresh error after the latest deploy."
+        : "Retest the AI action once; if OpenRouter is configured, EventSlot should continue through the fallback chain.",
+      stale,
+    }
+  }
+
   if (error.route === "/api/admin/health" && error.message.includes("Cannot read properties of undefined (reading 'resend')")) {
     return {
       ...error,
@@ -111,12 +139,23 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
   }
 
   if (error.route.startsWith("waitlist-promotion-email:")) {
+    const summary = parsePromotionSummary(error.message)
+    const sent = summary?.sent ?? 0
+    const failed = summary?.failed ?? 0
     return {
       ...error,
-      status: "info",
-      label: "No-op promotion",
-      summary: "The waitlist promotion job ran but nobody was eligible for promotion.",
-      hint: "This is informational unless you expected waiting attendees with email addresses.",
+      status: failed > 0 ? "open" : "info",
+      label: failed > 0 ? "Promotion email issue" : sent > 0 ? "Promotion email sent" : "No-op promotion",
+      summary:
+        failed > 0
+          ? "A waitlist promotion ran, but at least one promotion email failed."
+          : sent > 0
+          ? `The waitlist promotion email job sent ${sent} email${sent === 1 ? "" : "s"}.`
+          : "The waitlist promotion job ran but nobody needed an email.",
+      hint:
+        failed > 0
+          ? "Open the event email diagnostics and confirm the failed recipient details."
+          : "This is informational and does not require action unless you expected a different promotion count.",
       stale,
     }
   }

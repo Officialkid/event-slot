@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, QrCode, Sparkles, Users2 } from "lucide-react
 import { MarketingFooter } from "@/components/MarketingFooter"
 import SmartCTA from "@/components/SmartCTA"
 import { MobileInstallButton } from "@/components/MobileInstallButton"
+import { EarlyTesterPrompt } from "@/components/marketing/EarlyTesterPrompt"
 
 export const metadata: Metadata = {
   title: "EventSlot - Smart Event Registration Platform with Built-in Waitlist",
@@ -128,6 +129,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <EarlyTesterPrompt />
 
       <section className="marketing-shell px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-14 lg:pt-10">
         <div className="marketing-panel marketing-grid overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">

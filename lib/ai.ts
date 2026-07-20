@@ -39,6 +39,7 @@ function isRetryableAIError(message: string): boolean {
     msg.includes('network') ||
     msg.includes('429') ||
     msg.includes('rate limit') ||
+    msg.includes('empty response') ||
     msg.includes('5') && (msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('504')) ||
     msg.includes('temporarily unavailable')
   )
