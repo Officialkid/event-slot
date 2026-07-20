@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
+import { EventDescriptionBlock } from "@/components/events/EventDescriptionBlock"
 
 export type EventInvitationCardProps = {
+  eventSlug: string
   title: string
   description?: string | null
   eventDate?: Date | null
   location?: string | null
+  mapDirectionsUrl?: string | null
   imageUrl?: string | null
   organizerName?: string | null
   organizerIsPioneer?: boolean
@@ -18,10 +21,6 @@ export type EventInvitationCardProps = {
   deadline?: Date | string | null
   accessType?: "REGISTRATION" | "WALK_IN"
   walkInOpenToday?: boolean
-}
-
-function getDirectionsUrl(location: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
 }
 
 function formatEventDate(date: Date): string {
@@ -93,10 +92,12 @@ function getStatusBadge(
 }
 
 export default function EventInvitationCard({
+  eventSlug,
   title,
   description,
   eventDate,
   location,
+  mapDirectionsUrl,
   imageUrl,
   organizerName,
   organizerIsPioneer,
@@ -108,19 +109,11 @@ export default function EventInvitationCard({
   walkInOpenToday = false,
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
   const posterErrorHandledRef = useRef(false)
   const badge = getStatusBadge(accessType, status, capacity, confirmedCount, deadline ?? null, walkInOpenToday)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
-  const isLongDescription = Boolean(description && description.length > 300)
-  const descriptionText = !description
-    ? ""
-    : isLongDescription && !expanded
-    ? `${description.slice(0, 300)}...`
-    : description
-
   const spotsLeft =
     capacity !== null && capacity !== undefined
       ? Math.max(0, capacity - confirmedCount)
@@ -280,14 +273,16 @@ export default function EventInvitationCard({
               <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 400 }}>
                 {location}
               </span>
-              <a
-                href={getDirectionsUrl(location)}
-                target="_blank"
-                rel="noreferrer"
-                style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 500, textDecoration: "none" }}
-              >
-                Get directions
-              </a>
+              {mapDirectionsUrl ? (
+                <a
+                  href={mapDirectionsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 500, textDecoration: "none" }}
+                >
+                  Get directions
+                </a>
+              ) : null}
             </div>
           )}
 
@@ -328,36 +323,7 @@ export default function EventInvitationCard({
                 background: "var(--border)",
               }}
             />
-            <p
-              style={{
-                fontSize: "0.88rem",
-                color: "var(--text-secondary)",
-                lineHeight: 1.72,
-                margin: 0,
-                maxWidth: 700,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {descriptionText}
-            </p>
-            {isLongDescription && (
-              <button
-                type="button"
-                onClick={() => setExpanded(v => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#C8F55A",
-                  fontSize: "0.78rem",
-                  padding: "0.25rem 0",
-                  fontFamily: "var(--font-dm-sans)",
-                  marginTop: "0.1rem",
-                }}
-              >
-                {expanded ? "Show less" : "Read more"}
-              </button>
-            )}
+            <EventDescriptionBlock eventSlug={eventSlug} description={description} />
           </>
         )}
 

@@ -33,6 +33,7 @@ model Event {
   eventEndAt       DateTime?
   joinOpensAt      DateTime?
   location         String?
+  mapDirectionsUrl String?
   communityLink    String?
   eventType        EventType @default(PHYSICAL)
   virtualLink      String?

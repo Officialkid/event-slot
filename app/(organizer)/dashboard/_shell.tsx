@@ -13,6 +13,8 @@ import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
 import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
+import { DEFAULT_LANGUAGE, type SupportedLanguageCode } from "@/lib/i18n/languages"
+import { getI18nMessage, type I18nMessageKey } from "@/lib/i18n/messages"
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -156,32 +158,32 @@ function IconDotsHorizontal() {
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
-  { label: "My Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
-  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
-  { label: "Community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
-  { label: "Notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
-  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
-  { label: "Calendar", href: "/dashboard/profile#calendar", icon: <IconCalendar />, exact: false },
-  { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
-  { label: "Comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
+  { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
+  { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
+  { labelKey: "community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
+  { labelKey: "notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+  { labelKey: "billing", href: "/dashboard/billing", icon: <IconBilling />, exact: false },
+  { labelKey: "calendar", href: "/dashboard/profile#calendar", icon: <IconCalendar />, exact: false },
+  { labelKey: "profile", href: "/dashboard/profile", icon: <IconUser />, exact: false },
+  { labelKey: "comms", href: "/dashboard/feedback", icon: <IconFeedback />, exact: false },
 ] as const
 
 const MOBILE_TAB_ITEMS = [
-  { label: "Home", href: "/dashboard", icon: <IconGrid />, exact: true },
-  { label: "Events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
-  { label: "Alerts", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
+  { labelKey: "home", href: "/dashboard", icon: <IconGrid />, exact: true },
+  { labelKey: "events", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { labelKey: "alerts", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
 ] as const
 
-function getMobilePageTitle(pathname: string): string {
-  if (pathname === "/dashboard") return "Dashboard"
-  if (pathname.startsWith("/dashboard/events")) return "My Events"
-  if (pathname.startsWith("/dashboard/notifications")) return "Notifications"
-  if (pathname.startsWith("/dashboard/profile")) return "Profile"
-  if (pathname.startsWith("/dashboard/team")) return "Team"
-  if (pathname.startsWith("/dashboard/insights")) return "Insights"
-  if (pathname.startsWith("/dashboard/feedback")) return "Comms"
-  if (pathname.startsWith("/dashboard/community")) return "Community"
+function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
+  if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
+  if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
+  if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
+  if (pathname.startsWith("/dashboard/profile")) return getI18nMessage(language, "profile")
+  if (pathname.startsWith("/dashboard/team")) return getI18nMessage(language, "team")
+  if (pathname.startsWith("/dashboard/insights")) return getI18nMessage(language, "insights")
+  if (pathname.startsWith("/dashboard/feedback")) return getI18nMessage(language, "comms")
+  if (pathname.startsWith("/dashboard/community")) return getI18nMessage(language, "community")
   return "EventSlot"
 }
 
@@ -210,11 +212,13 @@ interface SidebarInnerProps {
   paymentsNavVisible?: boolean
   paymentsBadgeCount?: number
   theme?: ThemeMode
+  preferredLanguage: SupportedLanguageCode
 }
 
-function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, theme = "dark" }: SidebarInnerProps) {
+function SidebarInner({ pathname, name, email, plan, image, initials, unreadCount, hasPioneer, usedFeatures, onNavClick, onOpenTourSelector, collapsed = false, isAdmin = false, theme = "dark", preferredLanguage }: SidebarInnerProps) {
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null)
   const visibleNavItems = NAV_ITEMS.filter((item) => item.href !== "/dashboard/payments" && item.href !== "/dashboard/billing")
+  const t = (key: I18nMessageKey) => getI18nMessage(preferredLanguage, key)
   const isLight = theme === "light"
   const accentText = isLight
     ? "var(--text-primary)"
@@ -415,6 +419,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
       >
         {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
+          const label = t(item.labelKey)
           const tutorialTarget =
             item.href === "/dashboard/events"
               ? "my-events-nav"
@@ -432,7 +437,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 onMouseEnter={e => {
                   if (collapsed) {
                     const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                    setTooltip({ label: item.label, y: rect.top + rect.height / 2 })
+                    setTooltip({ label, y: rect.top + rect.height / 2 })
                   }
                 }}
                 onMouseLeave={() => setTooltip(null)}
@@ -452,7 +457,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               >
                 {item.icon}
                 <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
-                  {item.label}
+                  {label}
                   {item.href === "/dashboard/events" && (
                     <HintDot
                       show={!usedFeatures.includes("view_events")}
@@ -508,7 +513,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               onMouseEnter={e => {
                 if (collapsed) {
                   const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                  setTooltip({ label: "Insights", y: rect.top + rect.height / 2 })
+                  setTooltip({ label: t("insights"), y: rect.top + rect.height / 2 })
                 }
               }}
               onMouseLeave={() => setTooltip(null)}
@@ -527,7 +532,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               }}
             >
               <IconInsights />
-              <span className="dash-nav-lbl" style={{ flex: 1 }}>Insights</span>
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>{t("insights")}</span>
             </Link>
           )
         })()}
@@ -541,7 +546,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
               onMouseEnter={e => {
                 if (collapsed) {
                   const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                  setTooltip({ label: "Team", y: rect.top + rect.height / 2 })
+                  setTooltip({ label: t("team"), y: rect.top + rect.height / 2 })
                 }
               }}
               onMouseLeave={() => setTooltip(null)}
@@ -561,7 +566,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             >
               <IconUsers />
               <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center" }}>
-                Team
+                {t("team")}
                 <HintDot
                   show={!usedFeatures.includes("team")}
                   message="Invite teammates and manage shared event access from here."
@@ -585,7 +590,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 onMouseEnter={e => {
                   if (collapsed) {
                     const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                    setTooltip({ label: "Admin Panel", y: rect.top + rect.height / 2 })
+                    setTooltip({ label: t("adminPanel"), y: rect.top + rect.height / 2 })
                   }
                 }}
                 onMouseLeave={() => setTooltip(null)}
@@ -605,7 +610,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 }}
               >
                 <IconAdmin />
-                <span className="dash-nav-lbl">Admin Panel</span>
+                <span className="dash-nav-lbl">{t("adminPanel")}</span>
               </Link>
             )
           })()}
@@ -691,7 +696,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             textAlign: "left",
           }}
         >
-          Sign out
+          {t("signOut")}
         </button>
       </div>
       {/* Tooltip for icon-only collapsed nav items */}
@@ -740,6 +745,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>("dark")
   const [languageNoticeDismissed, setLanguageNoticeDismissed] = useState(true)
+  const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguageCode>(DEFAULT_LANGUAGE)
   const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; image: string | null } | null>(null)
   const moreSheetRef = useRef<HTMLDivElement>(null)
   const unreadRequestInFlightRef = useRef(false)
@@ -754,6 +760,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         name: typeof profile.name === "string" ? profile.name : null,
         image: typeof profile.image === "string" ? profile.image : null,
       })
+      if (typeof profile.preferredLanguage === "string") {
+        setPreferredLanguage(profile.preferredLanguage as SupportedLanguageCode)
+      }
     } catch {
       // The session identity remains available as an offline/error fallback.
     }
@@ -807,12 +816,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     void refreshProfileIdentity()
 
     const handleProfileUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ name?: string | null; image?: string | null }>).detail
+      const detail = (event as CustomEvent<{ name?: string | null; image?: string | null; preferredLanguage?: SupportedLanguageCode }>).detail
       if (detail && typeof detail === "object") {
         setProfileIdentity((current) => ({
           name: typeof detail.name === "string" ? detail.name : current?.name ?? null,
           image: typeof detail.image === "string" ? detail.image : current?.image ?? null,
         }))
+        if (detail.preferredLanguage) setPreferredLanguage(detail.preferredLanguage)
       }
       void refreshProfileIdentity()
     }
@@ -930,7 +940,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const name = profileIdentity?.name || session?.user?.name || session?.user?.email || "Organizer"
   const email = session?.user?.email ?? ""
   const image = profileIdentity?.image ?? session?.user?.image ?? null
-  const mobilePageTitle = getMobilePageTitle(pathname)
+  const t = (key: I18nMessageKey) => getI18nMessage(preferredLanguage, key)
+  const mobilePageTitle = getMobilePageTitle(pathname, preferredLanguage)
   const initials = name
     ? name
         .split(" ")
@@ -954,6 +965,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     paymentsNavVisible,
     paymentsBadgeCount,
     theme,
+    preferredLanguage,
   }
   sidebarProps.isAdmin = isAdmin
 
@@ -1184,7 +1196,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   fontFamily: "var(--font-dm-sans)",
                 }}
               >
-                EventSlot organizer
+                {t("eventslotOrganizer")}
               </p>
             </div>
 
@@ -1380,7 +1392,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
       <Link
         href="/create"
-        aria-label="Create event"
+        aria-label={t("createEvent")}
         data-tutorial="create-event-btn"
         className="md:hidden"
         style={{
@@ -1424,6 +1436,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       >
         {MOBILE_TAB_ITEMS.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
+          const label = t(item.labelKey)
           return (
             <Link
               key={item.href}
@@ -1435,7 +1448,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     ? "notifications-nav"
                     : undefined
               }
-              aria-label={item.label}
+              aria-label={label}
               style={{
                 flex: 1,
                 display: "flex",
@@ -1452,7 +1465,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               }}
             >
               {item.icon}
-              <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
+              <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>{label}</span>
               {item.href === "/dashboard/notifications" && unreadCount > 0 && (
                 <span
                   style={{
@@ -1471,7 +1484,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         })}
         <button
           type="button"
-          aria-label="More options"
+          aria-label={t("moreOptions")}
           onClick={() => setMoreOpen(true)}
           style={{
             flex: 1,
@@ -1490,7 +1503,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           }}
         >
           <IconDotsHorizontal />
-          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>More</span>
+          <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-dm-sans)" }}>{t("more")}</span>
         </button>
       </nav>
 
@@ -1513,7 +1526,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             ref={moreSheetRef}
             role="dialog"
             aria-modal="true"
-            aria-label="More options"
+            aria-label={t("moreOptions")}
             className="md:hidden"
             style={{
               position: "fixed",
@@ -1537,7 +1550,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <div style={{ padding: "0.25rem 0.75rem 0.25rem" }}>
                 <div style={{ padding: "0.5rem 1rem 0.85rem" }}>
                   <p style={{ margin: 0, fontFamily: "var(--font-instrument-serif)", fontSize: "1.08rem", color: primaryText }}>
-                    More options
+                    {t("moreOptions")}
                   </p>
                   <p style={{ margin: "0.28rem 0 0", fontSize: "0.82rem", lineHeight: 1.5, color: secondaryText, fontFamily: "var(--font-dm-sans)" }}>
                     Extra actions, quick links, and organizer tools live here so the main navigation stays simple.
@@ -1554,7 +1567,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   }}
                 >
                   <p style={{ margin: 0, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase", color: mutedText, fontFamily: "var(--font-dm-sans)" }}>
-                    Quick actions
+                    {t("quickActions")}
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.65rem", marginTop: "0.75rem" }}>
                     <Link
@@ -1576,7 +1589,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       }}
                     >
                       <IconPlus />
-                      Create event
+                      {t("createEvent")}
                     </Link>
                     <button
                       type="button"
@@ -1600,18 +1613,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       }}
                     >
                       ?
-                      Restart tour
+                      {t("restartTour")}
                     </button>
                   </div>
                 </div>
 
                 {([
-                  { label: "Profile", href: "/dashboard/profile", icon: <IconUser />, show: true },
-                  { label: "Team", href: "/dashboard/team", icon: <IconUsers />, show: true },
-                  { label: "My Payments", href: "/dashboard/payments", icon: <IconPayments />, show: false },
-                  { label: "Billing", href: "/dashboard/billing", icon: <IconBilling />, show: false },
-                  { label: "Feedback", href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
-                  { label: "Insights", href: "/dashboard/insights", icon: <IconInsights />, show: true },
+                  { label: t("profile"), href: "/dashboard/profile", icon: <IconUser />, show: true },
+                  { label: t("team"), href: "/dashboard/team", icon: <IconUsers />, show: true },
+                  { label: t("myPayments"), href: "/dashboard/payments", icon: <IconPayments />, show: false },
+                  { label: t("billing"), href: "/dashboard/billing", icon: <IconBilling />, show: false },
+                  { label: t("feedback"), href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
+                  { label: t("insights"), href: "/dashboard/insights", icon: <IconInsights />, show: true },
                 ] as const).filter(i => i.show).map(item => {
                   const active = getIsActive(pathname, item.href, false)
                   return (
@@ -1654,7 +1667,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                     <div style={{ height: 1, background: shellBorderSoft, margin: "0.5rem 0.25rem" }} />
                     <Link
                       href="/admin"
-                      aria-label="Switch to Admin View"
+                      aria-label={t("switchToAdminView")}
                       onClick={() => setMoreOpen(false)}
                       className="more-sheet-item"
                       style={{
@@ -1670,14 +1683,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       }}
                     >
                       <IconAdmin />
-                      Switch to Admin View
+                      {t("switchToAdminView")}
                     </Link>
                   </>
                 )}
 
                 <div style={{ height: 1, background: shellBorderSoft, margin: "0.5rem 0.25rem" }} />
                 <button
-                  aria-label="Sign out"
+                  aria-label={t("signOut")}
                   onClick={() => setSignOutConfirm(true)}
                   className="more-sheet-item"
                   style={{
@@ -1697,7 +1710,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   }}
                 >
                   <IconLogOut />
-                  Sign Out
+                  {t("signOut")}
                 </button>
               </div>
             ) : (
@@ -1747,7 +1760,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                       fontWeight: 500,
                     }}
                   >
-                    Sign Out
+                    {t("signOut")}
                   </button>
                 </div>
               </div>

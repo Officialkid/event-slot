@@ -9,6 +9,7 @@ import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { GoogleCalendarConnect } from "@/components/GoogleCalendarConnect"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguageCode } from "@/lib/i18n/languages"
+import { getI18nMessage, type I18nMessageKey } from "@/lib/i18n/messages"
 
 const checkboxStyle: React.CSSProperties = {
   position: "absolute",
@@ -305,8 +306,8 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("")
   const [theme, setTheme] = useState<ThemeMode>("dark")
 
-  function syncProfileIdentity(_next: { name?: string | null; image?: string | null }) {
-    window.dispatchEvent(new Event("eventslot:profile-updated"))
+  function syncProfileIdentity(next: { name?: string | null; image?: string | null; preferredLanguage?: SupportedLanguageCode }) {
+    window.dispatchEvent(new CustomEvent("eventslot:profile-updated", { detail: next }))
   }
 
   useEffect(() => {
@@ -322,7 +323,7 @@ export default function ProfilePage() {
         setName(data.name ?? "")
         setPreferredLanguage(nextPreferredLanguage)
         setTwoFactorEnabled(!!data.twoFactorEnabled)
-        syncProfileIdentity({ name: data.name, image: data.image })
+        syncProfileIdentity({ name: data.name, image: data.image, preferredLanguage: nextPreferredLanguage })
 
         if (languageFromSignup && languageFromSignup !== data.preferredLanguage) {
           const res = await fetch("/api/profile", {
@@ -376,6 +377,7 @@ export default function ProfilePage() {
     .slice(0, 2)
     .join("")
     .toUpperCase()
+  const t = (key: I18nMessageKey) => getI18nMessage(preferredLanguage, key)
 
   // ── Photo handlers ──────────────────────────────────────────────────────────
 
@@ -411,7 +413,7 @@ export default function ProfilePage() {
           setPhotoPreview(null)
         } else {
           setProfile(prev => (prev ? { ...prev, image: dataUrl } : prev))
-          syncProfileIdentity({ image: dataUrl, name: profile?.name ?? name ?? null })
+          syncProfileIdentity({ image: dataUrl, name: profile?.name ?? name ?? null, preferredLanguage })
         }
       } catch {
         setPhotoError("Upload failed. Please try again.")
@@ -444,7 +446,7 @@ export default function ProfilePage() {
       const trimmedName = name.trim()
       setProfile(prev => (prev ? { ...prev, name: trimmedName, preferredLanguage } : prev))
       await updateSession({ name: trimmedName })
-      syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null })
+      syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null, preferredLanguage })
       setDetailsSuccess(true)
       setTimeout(() => setDetailsSuccess(false), 3000)
     } catch {
@@ -601,7 +603,7 @@ export default function ProfilePage() {
             lineHeight: 1.1,
           }}
         >
-          Your profile
+          {t("yourProfile")}
         </h1>
 
         {/* ── Photo section ── */}
@@ -693,7 +695,7 @@ export default function ProfilePage() {
               transition: "background 0.15s, color 0.15s",
             }}
           >
-            {photoUploading ? "Uploading…" : "Change photo"}
+            {photoUploading ? t("uploading") : t("changePhoto")}
           </button>
 
           {photoError && (
@@ -722,15 +724,15 @@ export default function ProfilePage() {
         {/* ── Personal details card ── */}
         <div style={{ marginBottom: "1.25rem" }}>
           <Card>
-            <SectionHeading>Personal details</SectionHeading>
+            <SectionHeading>{t("personalDetails")}</SectionHeading>
             <form onSubmit={handleDetailsSave} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <Field
-                label="Display name"
+                label={t("displayName")}
                 value={name}
                 onChange={setName}
               />
               <Field
-                label="Email"
+                label={t("email")}
                 type="email"
                 value={profile.email ?? ""}
                 disabled
@@ -751,7 +753,7 @@ export default function ProfilePage() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Preferred language
+                  {t("preferredLanguage")}
                 </label>
                 <select
                   value={preferredLanguage}
@@ -809,7 +811,7 @@ export default function ProfilePage() {
                     transition: "background 0.15s",
                   }}
                 >
-                  {detailsSaving ? "Saving…" : "Save changes"}
+                  {detailsSaving ? t("saving") : t("saveChanges")}
                 </button>
 
                 {detailsSuccess && (
@@ -820,7 +822,7 @@ export default function ProfilePage() {
                       fontFamily: "var(--font-dm-sans)",
                     }}
                   >
-                    Profile updated
+                    {t("profileUpdated")}
                   </span>
                 )}
 
@@ -843,11 +845,11 @@ export default function ProfilePage() {
         {/* ── Change password card (credentials users only) ── */}
         <div style={{ marginBottom: "1.25rem" }}>
           <Card>
-            <SectionHeading>Appearance</SectionHeading>
+            <SectionHeading>{t("appearance")}</SectionHeading>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.75rem" }}>
               {([
-                { key: "dark", label: "Custom dark", icon: <Moon size={18} /> },
-                { key: "light", label: "Light mode", icon: <Sun size={18} /> },
+                { key: "dark", label: t("customDark"), icon: <Moon size={18} /> },
+                { key: "light", label: t("lightMode"), icon: <Sun size={18} /> },
               ] as const).map((option) => {
                 const active = theme === option.key
                 return (
@@ -886,22 +888,22 @@ export default function ProfilePage() {
         {profile.hasPassword && (
           <div style={{ marginBottom: "1.25rem" }}>
             <Card>
-              <SectionHeading>Change password</SectionHeading>
+              <SectionHeading>{t("changePassword")}</SectionHeading>
               <form onSubmit={handlePasswordSave} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <Field
-                  label="Current password"
+                  label={t("currentPassword")}
                   type="password"
                   value={currentPw}
                   onChange={setCurrentPw}
                 />
                 <Field
-                  label="New password"
+                  label={t("newPassword")}
                   type="password"
                   value={newPw}
                   onChange={setNewPw}
                 />
                 <Field
-                  label="Confirm new password"
+                  label={t("confirmNewPassword")}
                   type="password"
                   value={confirmPw}
                   onChange={setConfirmPw}
@@ -935,7 +937,7 @@ export default function ProfilePage() {
                       transition: "background 0.15s",
                     }}
                   >
-                    {pwSaving ? "Saving…" : "Save password"}
+                    {pwSaving ? t("saving") : t("savePassword")}
                   </button>
 
                   {pwSuccess && (
@@ -970,7 +972,7 @@ export default function ProfilePage() {
         {/* ── Google Calendar card ── */}
         <div style={{ marginBottom: "1.25rem" }}>
           <Card>
-            <SectionHeading>Two-factor email codes</SectionHeading>
+            <SectionHeading>{t("twoFactorEmailCodes")}</SectionHeading>
             <p
               style={{
                 margin: "0 0 1rem",
@@ -1019,7 +1021,7 @@ export default function ProfilePage() {
                   ✓
                 </span>
               </span>
-              Require email OTP on sign-in
+              {t("requireEmailOtp")}
             </label>
             <div style={{ marginTop: "0.75rem", minHeight: "1.1rem" }}>
               {securitySuccess && (
@@ -1061,7 +1063,7 @@ export default function ProfilePage() {
 
         {/* ── Danger zone card ── */}
         <Card dangerBorder>
-          <SectionHeading color="#FF6B6B">Danger zone</SectionHeading>
+          <SectionHeading color="#FF6B6B">{t("dangerZone")}</SectionHeading>
           <button
             onClick={async () => {
               await Promise.all([
@@ -1092,7 +1094,7 @@ export default function ProfilePage() {
               padding: 0,
             }}
           >
-            <span>↺</span> Restart Dashboard Tour
+            <span>↺</span> {t("restartDashboardTour")}
           </button>
           <p
             style={{
@@ -1123,7 +1125,7 @@ export default function ProfilePage() {
               transition: "background 0.15s",
             }}
           >
-            Delete my account
+            {t("deleteMyAccount")}
           </button>
         </Card>
       </div>

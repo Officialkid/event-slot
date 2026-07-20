@@ -155,6 +155,7 @@ export default function EditEventPage() {
   const [eventEndAt, setEventEndAt] = useState("")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
+  const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
@@ -191,6 +192,7 @@ export default function EditEventPage() {
         setEventEndAt(toDatetimeLocal(e.eventEndAt))
         setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
         setLocation(e.location ?? "")
+        setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
         setCategory(e.category ?? "")
@@ -446,6 +448,7 @@ export default function EditEventPage() {
           eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
+          mapDirectionsUrl: mapDirectionsUrl || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
           category: category || undefined,
@@ -818,6 +821,23 @@ export default function EditEventPage() {
                   value={location}
                   onChange={e => setLocation(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                  Google Maps directions link <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  inputMode="url"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
+                  placeholder="Paste the exact Google Maps share link"
+                  value={mapDirectionsUrl}
+                  onChange={e => setMapDirectionsUrl(e.target.value)}
+                />
+                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                  EventSlot only shows directions when this link is provided by the organiser.
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>

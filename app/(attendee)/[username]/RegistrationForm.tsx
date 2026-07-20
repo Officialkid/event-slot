@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
-import { EventDescriptionBlock } from "@/components/events/EventDescriptionBlock"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 
@@ -48,6 +47,7 @@ type EventProps = {
     eventDate?: Date | string | null
     deadline?: Date | string | null
     location?: string | null
+    mapDirectionsUrl?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     createdAt: Date | string
@@ -145,14 +145,6 @@ function emptyAnswers(questions: EventQuestion[]): AttendeeAnswers {
   return Object.fromEntries(questions.map(q => [q.id, ""]))
 }
 
-function getDirectionsUrl(location: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`
-}
-
-function getDirectionsEmbedUrl(location: string): string {
-  return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`
-}
-
 type DuplicateInfo = {
   attendeeIndex: number
   registrationNumber: number | null
@@ -221,6 +213,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     if (!event.deadline) return false
     return new Date(event.deadline).getTime() <= Date.now()
   })
+  const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
+  const entryLabel = event.isPaid && activeTicketTiers.length > 0
+    ? activeTicketTiers.length === 1
+      ? `${activeTicketTiers[0].currency || "KSh"} ${activeTicketTiers[0].priceKes.toLocaleString()}`
+      : activeTicketTiers
+          .map(tier => `${tier.name}: ${tier.currency || "KSh"} ${tier.priceKes.toLocaleString()}`)
+          .join(" / ")
+    : null
 
   useEffect(() => {
     const sourceKey = `event_source_${event.slug}`
@@ -1027,9 +1027,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.65rem,4vw,2.3rem)", color: "var(--text-primary)", lineHeight: 1.12, margin: 0 }}>
                 {event.title}
               </h2>
-              {event.description && (
-                <EventDescriptionBlock eventSlug={event.slug} description={event.description} />
-              )}
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1044,21 +1041,23 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
                   <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{event.location}</p>
                   <a
-                    href={getDirectionsUrl(event.location)}
+                    href={event.mapDirectionsUrl ?? "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 inline-flex items-center gap-2 text-[0.8rem] font-medium"
-                    style={{ color: "var(--accent)", textDecoration: "none" }}
+                    style={{ color: "var(--accent)", display: event.mapDirectionsUrl ? "inline-flex" : "none", textDecoration: "none" }}
                   >
                     <span>Get directions</span>
                     <span aria-hidden="true">↗</span>
                   </a>
                 </div>
               )}
-              <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-                <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry</p>
-                <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{event.isPaid ? "Paid event" : "Free"}</p>
-              </div>
+              {entryLabel && (
+                <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
+                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>
+                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{entryLabel}</p>
+                </div>
+              )}
               {event.organizerName && (
                 <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
                   <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Hosted by</p>
@@ -1073,7 +1072,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               </p>
             </div>
 
-            {event.location && (
+            {event.mapDirectionsUrl && (
               <div className="overflow-hidden rounded-[18px]" style={{ border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "color-mix(in srgb, var(--surface) 97%, white 3%)" }}>
                 <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
                   <div>
@@ -1081,7 +1080,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     <p className="m-0 mt-1 text-[0.86rem]" style={{ color: "var(--text-secondary)" }}>Preview the route and open full directions if needed.</p>
                   </div>
                   <a
-                    href={getDirectionsUrl(event.location)}
+                    href={event.mapDirectionsUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.78rem] font-semibold"
@@ -1090,13 +1089,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     Open map
                   </a>
                 </div>
-                <iframe
-                  title="Event venue directions"
-                  src={getDirectionsEmbedUrl(event.location)}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  style={{ display: "block", width: "100%", minHeight: 240, border: 0 }}
-                />
               </div>
             )}
 

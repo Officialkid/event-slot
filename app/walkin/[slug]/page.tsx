@@ -30,6 +30,7 @@ async function getWalkInEventBySlug(slug: string) {
       eventDate: true,
       eventEndAt: true,
       location: true,
+      mapDirectionsUrl: true,
       communityLink: true,
       imageUrl: true,
       status: true,

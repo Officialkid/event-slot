@@ -68,6 +68,7 @@ type EventData = {
   eventEndAt?: string | null
   joinOpensAt: string | null
   location: string | null
+  mapDirectionsUrl: string | null
   communityLink: string | null
   whatsappNumber?: string | null
   contactMode?: "WHATSAPP" | "CALL"
@@ -795,6 +796,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [eventEndAt, setEventEndAt] = useState(toDatetimeLocal(event.eventEndAt))
   const [joinOpensAt, setJoinOpensAt] = useState(toDatetimeLocal(event.joinOpensAt))
   const [location, setLocation] = useState(event.location ?? "")
+  const [mapDirectionsUrl, setMapDirectionsUrl] = useState(event.mapDirectionsUrl ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
   const [whatsappNumber, setWhatsappNumber] = useState(event.whatsappNumber ?? "")
   const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
@@ -812,12 +814,13 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     setEventEndAt(toDatetimeLocal(event.eventEndAt))
     setJoinOpensAt(toDatetimeLocal(event.joinOpensAt))
     setLocation(event.location ?? "")
+    setMapDirectionsUrl(event.mapDirectionsUrl ?? "")
     setCommunityLink(event.communityLink ?? "")
     setWhatsappNumber(event.whatsappNumber ?? "")
     setContactMode(event.contactMode ?? "WHATSAPP")
     setDeadline(toDatetimeLocal(event.deadline))
     setTicketTiers(event.ticketTiers ?? [])
-  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
+  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
 
   const handleSave = async () => {
     setSaving(true)
@@ -830,6 +833,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
       eventEndAt: toIsoFromDatetimeLocal(eventEndAt),
       joinOpensAt: toIsoFromDatetimeLocal(joinOpensAt),
       location: location || null,
+      mapDirectionsUrl: mapDirectionsUrl || null,
       communityLink: normalizedCommunityLink,
       whatsappNumber: whatsappNumber || null,
       contactMode,
@@ -952,12 +956,26 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} style={inputStyle} className="dt-input" />
           </div>
           <div>
-            <label style={fieldLabel}>Venue / map location</label>
-            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue, city, or Google Maps link" style={inputStyle} />
+            <label style={fieldLabel}>Venue / location text</label>
+            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city shown to attendees" style={inputStyle} />
             <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-              Attendees see this with an embedded map and a Get directions link.
+              This text is shown as the venue. It does not create directions by itself.
             </p>
           </div>
+        </div>
+
+        <div>
+          <label style={fieldLabel}>Google Maps directions link</label>
+          <input
+            type="url"
+            value={mapDirectionsUrl}
+            onChange={e => setMapDirectionsUrl(e.target.value)}
+            placeholder="Paste the exact Google Maps share link"
+            style={{ ...inputStyle, maxWidth: 720 }}
+          />
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Attendees only see Get directions when this organiser-provided link is saved.
+          </p>
         </div>
 
         <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>

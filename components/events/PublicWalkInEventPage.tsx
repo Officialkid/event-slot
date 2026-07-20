@@ -17,6 +17,7 @@ type WalkInEventPageProps = {
     eventDate: Date | string | null
     eventEndAt?: Date | string | null
     location: string | null
+    mapDirectionsUrl?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     status: string
@@ -97,10 +98,12 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
         <PublicEventTopBar />
         <EventInvitationCard
+          eventSlug={event.slug}
           title={event.title}
           description={event.description}
           eventDate={event.eventDate ? new Date(event.eventDate) : null}
           location={event.location}
+          mapDirectionsUrl={event.mapDirectionsUrl}
           imageUrl={event.imageUrl}
           organizerName={event.organizer?.name ?? null}
           organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}

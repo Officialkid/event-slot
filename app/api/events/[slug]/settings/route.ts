@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       )
     }
 
-    const { description, eventDate, eventEndAt, joinOpensAt, location, communityLink, deadline, whatsappNumber, contactMode } = parsed.data
+    const { description, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, communityLink, deadline, whatsappNumber, contactMode } = parsed.data
 
     let storedEventContact: string | null = null
     if (whatsappNumber?.trim()) {
@@ -61,6 +61,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         eventEndAt: eventEndAt !== undefined ? (eventEndAt ? new Date(eventEndAt) : null) : undefined,
         joinOpensAt: joinOpensAt !== undefined ? (joinOpensAt ? new Date(joinOpensAt) : null) : undefined,
         location: location !== undefined ? (location?.trim() || null) : undefined,
+        mapDirectionsUrl: mapDirectionsUrl !== undefined ? (mapDirectionsUrl?.trim() || null) : undefined,
         communityLink: communityLink !== undefined ? normalizeCommunityLink(communityLink) : undefined,
         whatsappNumber: whatsappNumber !== undefined ? storedEventContact : undefined,
         deadline: deadline !== undefined ? (deadline ? new Date(deadline) : null) : undefined,
@@ -71,6 +72,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         eventEndAt: true,
         joinOpensAt: true,
         location: true,
+        mapDirectionsUrl: true,
         communityLink: true,
         whatsappNumber: true,
         deadline: true,

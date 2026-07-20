@@ -85,7 +85,14 @@ export default function CountdownTimer({
     ? "#FF6B6B"
     : isUrgent
     ? "#FAC775"
-    : "rgba(240,237,230,0.45)"
+    : "var(--text-secondary)"
+  const blockBackground = isCritical || isUrgent
+    ? "color-mix(in srgb, currentColor 8%, transparent)"
+    : "color-mix(in srgb, var(--text-primary) 6%, transparent)"
+  const blockBorder = isCritical || isUrgent
+    ? "color-mix(in srgb, currentColor 22%, transparent)"
+    : "color-mix(in srgb, var(--text-primary) 12%, transparent)"
+  const unitColor = "var(--text-muted)"
 
   const label = isCritical ? "Closing very soon" : isUrgent ? "Closing soon" : "Closes in"
   const pulseDuration = isCritical ? "1s" : "1.5s"
@@ -139,8 +146,8 @@ export default function CountdownTimer({
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  background: "rgba(240,237,230,0.04)",
-                  border: "0.5px solid rgba(240,237,230,0.1)",
+                  background: blockBackground,
+                  border: `0.5px solid ${blockBorder}`,
                   borderRadius: 8,
                   padding: "0.5rem 0.75rem",
                   minWidth: 52,
@@ -163,7 +170,7 @@ export default function CountdownTimer({
                     fontWeight: 500,
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    color: "rgba(240,237,230,0.3)",
+                    color: unitColor,
                     marginTop: "0.25rem",
                     fontFamily: "var(--font-dm-sans)",
                   }}

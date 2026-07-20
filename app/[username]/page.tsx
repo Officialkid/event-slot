@@ -82,6 +82,7 @@ async function getEventMetaBySlug(slug: string) {
       confirmedCount: true,
       organizerEmail: true,
       location: true,
+      mapDirectionsUrl: true,
       eventDate: true,
       accessType: true,
     },
@@ -106,6 +107,7 @@ const getPublicUserProfile = unstable_cache(
           slug: true,
           eventDate: true,
           location: true,
+          mapDirectionsUrl: true,
           capacity: true,
           confirmedCount: true,
           deadline: true,
@@ -139,6 +141,7 @@ async function getEventBySlug(slug: string) {
       accessType: true,
       eventEndAt: true,
       location: true,
+      mapDirectionsUrl: true,
       communityLink: true,
       imageUrl: true,
       status: true,
@@ -322,10 +325,12 @@ export default async function PublicProfilePage({
           <PublicEventTopBar />
           {/* Invitation card */}
           <EventInvitationCard
+            eventSlug={username}
             title={event.title}
             description={event.description}
             eventDate={event.eventDate}
             location={event.location}
+            mapDirectionsUrl={event.mapDirectionsUrl}
             imageUrl={event.imageUrl}
             organizerName={event.organizer?.name ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
@@ -354,6 +359,7 @@ export default async function PublicProfilePage({
                   slug: username,
                   questions: event.questions as EventQuestion[],
                   organizerName: event.organizer?.name ?? null,
+                  mapDirectionsUrl: event.mapDirectionsUrl,
                   deadline: toIsoOrNull(event.deadline),
                   eventDate: toIsoOrNull(event.eventDate),
                   isPaid: event.isPaid,

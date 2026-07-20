@@ -163,6 +163,7 @@ export default function CreateEventPage() {
   const [eventEndAt, setEventEndAt] = useState("")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
+  const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
@@ -585,6 +586,7 @@ export default function CreateEventPage() {
           eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
+          mapDirectionsUrl: mapDirectionsUrl || undefined,
           isPaid: isRegistrationEvent ? isPaid : false,
           ticketPrice: isRegistrationEvent && isPaid && ticketPrice ? Number(ticketPrice) : undefined,
           ticketTiers: isRegistrationEvent && isPaid
@@ -1416,6 +1418,25 @@ export default function CreateEventPage() {
                     onChange={e => setLocation(e.target.value)}
                   />
                 </div>
+                {eventType === "PHYSICAL" && (
+                  <div>
+                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                      Google Maps directions link <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                    </label>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      style={inputStyle}
+                      placeholder="Paste the exact Google Maps share link"
+                      value={mapDirectionsUrl}
+                      onChange={e => setMapDirectionsUrl(e.target.value)}
+                    />
+                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
+                      This is the only link attendees use for directions. EventSlot will not guess from the venue name.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer Name <span style={accentTextStyle}>*</span>
