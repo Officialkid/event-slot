@@ -107,6 +107,27 @@ function getCardCopy(language: SupportedLanguageCode | null) {
   return copy[language ?? "en"] ?? copy.en
 }
 
+function buildMapPreviewUrl(mapUrl: string | null | undefined, location: string | null | undefined) {
+  if (!mapUrl) return null
+  try {
+    const url = new URL(mapUrl)
+    const query = url.searchParams.get("query") || url.searchParams.get("q")
+    if (query) return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`
+
+    const coordinates = mapUrl.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+    if (coordinates) return `https://www.google.com/maps?q=${coordinates[1]},${coordinates[2]}&output=embed`
+
+    const placeMatch = url.pathname.match(/\/place\/([^/]+)/)
+    if (placeMatch?.[1]) {
+      return `https://www.google.com/maps?q=${encodeURIComponent(decodeURIComponent(placeMatch[1].replace(/\+/g, " ")))}&output=embed`
+    }
+  } catch {
+    // Short maps links are still useful as the button target, even if they cannot be embedded directly.
+  }
+
+  return location ? `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed` : null
+}
+
 export default function EventInvitationCard({
   eventSlug,
   title,
@@ -135,6 +156,7 @@ export default function EventInvitationCard({
   const displayLocation = translation?.location || location
   const displayEntryFeeLabel = translation?.entryFeeLabel || entryFeeLabel
   const displayOrganizerName = translation?.organizerName || organizerName
+  const mapPreviewUrl = buildMapPreviewUrl(mapDirectionsUrl, displayLocation)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
   const spotsLeft =
@@ -296,16 +318,6 @@ export default function EventInvitationCard({
               <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 400 }}>
                 {displayLocation}
               </span>
-              {mapDirectionsUrl ? (
-                <a
-                  href={mapDirectionsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 500, textDecoration: "none" }}
-                >
-                  {cardCopy.getDirections}
-                </a>
-              ) : null}
             </div>
           )}
 
@@ -362,6 +374,34 @@ export default function EventInvitationCard({
               onShowOriginal={() => setTranslation(null)}
             />
           </>
+        )}
+
+        {mapDirectionsUrl && (
+          <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.35rem" }}>
+            {mapPreviewUrl ? (
+              <iframe
+                title={`${displayTitle} map preview`}
+                src={mapPreviewUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                style={{ display: "block", width: "100%", height: 150, border: 0 }}
+              />
+            ) : (
+              <div style={{ height: 120, display: "grid", placeItems: "center", color: "var(--text-muted)", fontSize: "0.82rem", padding: "1rem", textAlign: "center" }}>
+                Map preview is available after opening the organizer-provided directions link.
+              </div>
+            )}
+            <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "center" }}>
+              <a
+                href={mapDirectionsUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: "inline-flex", justifyContent: "center", width: "100%", borderRadius: 999, background: "var(--accent)", color: "#0A0A0A", padding: "0.72rem 1rem", fontSize: "0.86rem", fontWeight: 800, textDecoration: "none" }}
+              >
+                Open in Google Maps
+              </a>
+            </div>
+          </div>
         )}
 
         {accessType === "REGISTRATION" && deadline && badge.label !== "Registration Closed" && (

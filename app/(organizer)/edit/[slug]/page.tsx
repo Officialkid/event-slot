@@ -157,6 +157,8 @@ export default function EditEventPage() {
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
+  const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
@@ -195,6 +197,8 @@ export default function EditEventPage() {
         setLocation(e.location ?? "")
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
         setEntryFeeLabel(e.entryFeeLabel ?? "")
+        setAttendeeConsentEnabled(e.attendeeConsentEnabled !== false)
+        setAttendeeConsentText(e.attendeeConsentText ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
         setCategory(e.category ?? "")
@@ -452,6 +456,8 @@ export default function EditEventPage() {
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
+          attendeeConsentEnabled,
+          attendeeConsentText: attendeeConsentText || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
           category: category || undefined,
@@ -841,6 +847,15 @@ export default function EditEventPage() {
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   EventSlot only shows directions when this link is provided by the organiser.
                 </p>
+                <a
+                  href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
+                  style={{ ...accentButtonStyle, textDecoration: "none" }}
+                >
+                  Search venue on Google Maps
+                </a>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
@@ -857,6 +872,31 @@ export default function EditEventPage() {
                 />
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   This only displays the organizer's fee note. It does not collect payment.
+                </p>
+              </div>
+              <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
+                <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <input
+                    type="checkbox"
+                    checked={attendeeConsentEnabled}
+                    onChange={e => setAttendeeConsentEnabled(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Show consent checkbox on attendee form
+                </label>
+                {attendeeConsentEnabled && (
+                  <textarea
+                    className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    style={inputStyle}
+                    rows={3}
+                    maxLength={1000}
+                    placeholder="Optional custom consent wording. Leave blank to use the EventSlot default."
+                    value={attendeeConsentText}
+                    onChange={e => setAttendeeConsentText(e.target.value)}
+                  />
+                )}
+                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                  Use this only when your department or event requires a specific consent statement.
                 </p>
               </div>
               <div>

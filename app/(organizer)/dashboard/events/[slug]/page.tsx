@@ -70,6 +70,8 @@ type EventData = {
   location: string | null
   mapDirectionsUrl: string | null
   entryFeeLabel: string | null
+  attendeeConsentEnabled: boolean
+  attendeeConsentText: string | null
   communityLink: string | null
   whatsappNumber?: string | null
   contactMode?: "WHATSAPP" | "CALL"
@@ -799,6 +801,8 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [location, setLocation] = useState(event.location ?? "")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState(event.mapDirectionsUrl ?? "")
   const [entryFeeLabel, setEntryFeeLabel] = useState(event.entryFeeLabel ?? "")
+  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(event.attendeeConsentEnabled !== false)
+  const [attendeeConsentText, setAttendeeConsentText] = useState(event.attendeeConsentText ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
   const [whatsappNumber, setWhatsappNumber] = useState(event.whatsappNumber ?? "")
   const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
@@ -807,7 +811,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
-  const verifierDomain = "https://verify.eventsslot.com"
+  const verifierDomain = "https://www.eventsslot.com/verify-tickets"
   const verifierLink = event.verifierCode ? `${verifierDomain}/${event.slug}?token=${encodeURIComponent(event.verifierCode)}` : ""
 
   useEffect(() => {
@@ -818,12 +822,14 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     setLocation(event.location ?? "")
     setMapDirectionsUrl(event.mapDirectionsUrl ?? "")
     setEntryFeeLabel(event.entryFeeLabel ?? "")
+    setAttendeeConsentEnabled(event.attendeeConsentEnabled !== false)
+    setAttendeeConsentText(event.attendeeConsentText ?? "")
     setCommunityLink(event.communityLink ?? "")
     setWhatsappNumber(event.whatsappNumber ?? "")
     setContactMode(event.contactMode ?? "WHATSAPP")
     setDeadline(toDatetimeLocal(event.deadline))
     setTicketTiers(event.ticketTiers ?? [])
-  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.entryFeeLabel, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
+  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.entryFeeLabel, event.attendeeConsentEnabled, event.attendeeConsentText, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
 
   const handleSave = async () => {
     setSaving(true)
@@ -838,6 +844,8 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
       location: location || null,
       mapDirectionsUrl: mapDirectionsUrl || null,
       entryFeeLabel: entryFeeLabel || null,
+      attendeeConsentEnabled,
+      attendeeConsentText: attendeeConsentText || null,
       communityLink: normalizedCommunityLink,
       whatsappNumber: whatsappNumber || null,
       contactMode,
@@ -980,6 +988,14 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             Attendees only see Get directions when this organiser-provided link is saved.
           </p>
+          <a
+            href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-flex", marginTop: "0.75rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.85rem", color: "#C8F55A", textDecoration: "none", fontSize: "0.78rem", fontWeight: 800, fontFamily: "var(--font-dm-sans)" }}
+          >
+            Search venue on Google Maps
+          </a>
         </div>
 
         <div>
@@ -998,6 +1014,30 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         </div>
 
         <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.65rem", color: themeTextPrimary, fontWeight: 800, fontSize: "0.86rem", fontFamily: "var(--font-dm-sans)" }}>
+            <input
+              type="checkbox"
+              checked={attendeeConsentEnabled}
+              onChange={e => setAttendeeConsentEnabled(e.target.checked)}
+            />
+            Show consent checkbox on attendee form
+          </label>
+          {attendeeConsentEnabled && (
+            <textarea
+              value={attendeeConsentText}
+              onChange={e => setAttendeeConsentText(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              placeholder="Optional custom consent wording. Leave blank to use the EventSlot default."
+              style={{ ...inputStyle, maxWidth: 720, marginTop: "0.85rem", resize: "vertical", lineHeight: 1.6 }}
+            />
+          )}
+          <p style={{ marginTop: "0.55rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Turn this off for simple events, or write your own department-specific consent wording.
+          </p>
+        </div>
+
+        <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
           <label style={fieldLabel}>Verifier access code</label>
           <div style={{ display: "grid", gap: "0.75rem" }}>
             <input
@@ -1008,7 +1048,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             />
             <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
               Share this code with as many gate verifiers as you need. They can
-              open verify.eventsslot.com, enter the code, and only access ticket
+              open the EventSlot Verify page, enter the code, and only access ticket
               scanning for this event.
             </p>
             {verifierLink && (

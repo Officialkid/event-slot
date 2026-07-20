@@ -51,6 +51,8 @@ type EventProps = {
     location?: string | null
     mapDirectionsUrl?: string | null
     entryFeeLabel?: string | null
+    attendeeConsentEnabled?: boolean
+    attendeeConsentText?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     createdAt: Date | string
@@ -245,6 +247,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const displayLocation = publicTranslation?.location || event.location
   const displayOrganizerName = publicTranslation?.organizerName || event.organizerName
   const displayEntryLabel = publicTranslation?.entryFeeLabel || entryLabel
+  const consentRequired = event.attendeeConsentEnabled !== false
+  const consentBody = event.attendeeConsentText?.trim() || formCopy.consentBody.replace("{organizer}", displayOrganizerName ?? "the organiser")
   const translatedQuestionById = new Map((publicTranslation?.questions ?? []).map((question) => [question.id, question]))
   const displayQuestions = event.questions.map((question) => {
     const translatedQuestion = translatedQuestionById.get(question.id)
@@ -491,9 +495,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           answers: attendees,
           attendeeCount: attendees.length,
           baseEmails,
-          consentDataProcessing,
-          consentTransactional,
-          consentMarketing,
+          consentDataProcessing: consentRequired ? consentDataProcessing : true,
+          consentTransactional: true,
+          consentMarketing: false,
           sendResponseCopy,
         }),
       })
@@ -586,7 +590,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       setError("Registration has closed.")
       return
     }
-    if (!consentDataProcessing) {
+    if (consentRequired && !consentDataProcessing) {
       setError("Please confirm the data-processing consent before submitting.")
       return
     }
@@ -626,9 +630,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             eventSlug: event.slug,
             ticketTierId: selectedTierId,
             attendee: attendeesPayload[0],
-            consentDataProcessing,
-            consentTransactional,
-            consentMarketing,
+            consentDataProcessing: consentRequired ? consentDataProcessing : true,
+            consentTransactional: true,
+            consentMarketing: false,
             sendResponseCopy,
             paymentMethod,
             mpesaPhone,
@@ -655,9 +659,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           body: JSON.stringify({
             eventSlug: event.slug,
             attendees: attendeesPayload,
-            consentDataProcessing,
-            consentTransactional,
-            consentMarketing,
+            consentDataProcessing: consentRequired ? consentDataProcessing : true,
+            consentTransactional: true,
+            consentMarketing: false,
             sendResponseCopy,
             source: registrationSource,
             refCode: registrationRefCode,
@@ -677,9 +681,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           setPendingPayload({
             eventSlug: event.slug,
             attendeesPayload,
-            consentDataProcessing,
-            consentTransactional,
-            consentMarketing,
+            consentDataProcessing: consentRequired ? consentDataProcessing : true,
+            consentTransactional: true,
+            consentMarketing: false,
             sendResponseCopy,
             source: registrationSource,
             refCode: registrationRefCode,
@@ -1407,11 +1411,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       ))}
 
+      {consentRequired && (
       <div className="rounded-[18px] p-4 sm:p-5" style={questionCardStyle}>
         <div className="mb-4">
           <p className="m-0 text-[1rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formCopy.consentTitle}</p>
           <p className="mt-2 text-[0.92rem] leading-8" style={{ color: "var(--text-secondary)" }}>
-            {formCopy.consentBody.replace("{organizer}", displayOrganizerName ?? "the organiser")}
+            {consentBody}
           </p>
         </div>
 
@@ -1447,77 +1452,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </span>
           </label>
 
-          <div style={{ height: 1, background: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }} />
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.1rem" }}>
-            <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
-              <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
-                <input
-                  id="consent-transactional"
-                  type="checkbox"
-                  checked={consentTransactional}
-                  onChange={e => setConsentTransactional(e.target.checked)}
-                  style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
-                />
-                <span style={{
-                  display: "block",
-                  width: 16,
-                  height: 16,
-                  borderRadius: 3,
-                  border: consentTransactional ? "1.5px solid #C8F55A" : "1.5px solid color-mix(in srgb, var(--text-primary) 18%, transparent)",
-                  background: consentTransactional ? "#C8F55A" : "transparent",
-                  flexShrink: 0,
-                  transition: "background 0.15s, border 0.15s",
-                }}>
-                  {consentTransactional && (
-                    <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
-                      <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </span>
-              </span>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
-                I agree to receive updates about this event, including registration confirmation and waitlist notifications. (Optional)
-              </span>
-            </label>
-
-            <label style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start", cursor: "pointer" }}>
-              <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
-                <input
-                  id="consent-marketing"
-                  type="checkbox"
-                  checked={consentMarketing}
-                  onChange={e => setConsentMarketing(e.target.checked)}
-                  style={{ position: "absolute", opacity: 0, width: 16, height: 16, margin: 0, cursor: "pointer" }}
-                />
-                <span style={{
-                  display: "block",
-                  width: 16,
-                  height: 16,
-                  borderRadius: 3,
-                  border: consentMarketing ? "1.5px solid #C8F55A" : "1.5px solid color-mix(in srgb, var(--text-primary) 18%, transparent)",
-                  background: consentMarketing ? "#C8F55A" : "transparent",
-                  flexShrink: 0,
-                  transition: "background 0.15s, border 0.15s",
-                }}>
-                  {consentMarketing && (
-                    <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "3px auto 0" }}>
-                      <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </span>
-              </span>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.5, fontFamily: "var(--font-dm-sans)" }}>
-                I would like to hear about future events from this organiser. (Optional)
-              </span>
-            </label>
-
-            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", lineHeight: 1.5, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
-              Your data is protected under Kenya&apos;s Data Protection Act 2019. We never sell your information.
-            </p>
-          </div>
         </div>
       </div>
+      )}
 
       <label className="flex items-center gap-3 rounded-[18px] px-4 py-4" style={questionCardStyle}>
         <input

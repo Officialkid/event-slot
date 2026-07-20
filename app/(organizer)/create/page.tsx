@@ -165,6 +165,8 @@ export default function CreateEventPage() {
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
+  const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
@@ -589,6 +591,8 @@ export default function CreateEventPage() {
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
+          attendeeConsentEnabled,
+          attendeeConsentText: attendeeConsentText || undefined,
           isPaid: isRegistrationEvent ? isPaid : false,
           ticketPrice: isRegistrationEvent && isPaid && ticketPrice ? Number(ticketPrice) : undefined,
           ticketTiers: isRegistrationEvent && isPaid
@@ -1437,6 +1441,15 @@ export default function CreateEventPage() {
                     <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                       This is the only link attendees use for directions. EventSlot will not guess from the venue name.
                     </p>
+                    <a
+                      href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
+                      style={{ ...accentButtonStyle, textDecoration: "none" }}
+                    >
+                      Search venue on Google Maps
+                    </a>
                   </div>
                 )}
                 {isRegistrationEvent && (
@@ -1455,6 +1468,33 @@ export default function CreateEventPage() {
                     />
                     <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                       This only displays the organizer's fee note. It does not collect payment.
+                    </p>
+                  </div>
+                )}
+                {isRegistrationEvent && (
+                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
+                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                      <input
+                        type="checkbox"
+                        checked={attendeeConsentEnabled}
+                        onChange={e => setAttendeeConsentEnabled(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      Show consent checkbox on attendee form
+                    </label>
+                    {attendeeConsentEnabled && (
+                      <textarea
+                        className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        style={inputStyle}
+                        rows={3}
+                        maxLength={1000}
+                        placeholder="Optional custom consent wording. Leave blank to use the EventSlot default."
+                        value={attendeeConsentText}
+                        onChange={e => setAttendeeConsentText(e.target.value)}
+                      />
+                    )}
+                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
+                      Use this only when your department or event requires a specific consent statement.
                     </p>
                   </div>
                 )}

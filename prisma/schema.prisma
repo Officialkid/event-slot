@@ -35,6 +35,8 @@ model Event {
   location         String?
   mapDirectionsUrl String?
   entryFeeLabel    String?
+  attendeeConsentEnabled Boolean @default(true)
+  attendeeConsentText String?
   communityLink    String?
   eventType        EventType @default(PHYSICAL)
   virtualLink      String?

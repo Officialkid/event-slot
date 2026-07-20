@@ -19,6 +19,8 @@ type WalkInEventPageProps = {
     location: string | null
     mapDirectionsUrl?: string | null
     entryFeeLabel?: string | null
+    attendeeConsentEnabled?: boolean
+    attendeeConsentText?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     status: string

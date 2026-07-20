@@ -71,9 +71,6 @@ export async function POST(req: NextRequest) {
     if (!eventSlug || !Array.isArray(attendees) || attendees.length === 0) {
       return NextResponse.json({ success: false, error: 'Missing eventSlug or attendees' }, { status: 400 })
     }
-    if (!consentDataProcessing) {
-      return NextResponse.json({ success: false, error: 'You must consent to data processing before registering.' }, { status: 400 })
-    }
     if (attendees.length > 20) {
       return NextResponse.json({ success: false, error: 'Maximum 20 attendees per submission' }, { status: 400 })
     }
@@ -83,6 +80,9 @@ export async function POST(req: NextRequest) {
     const eventQuestions = (event?.questions as EventQuestion[] | null) ?? []
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
+    }
+    if (event.attendeeConsentEnabled && !consentDataProcessing) {
+      return NextResponse.json({ success: false, error: 'You must consent to data processing before registering.' }, { status: 400 })
     }
 
     // Plan enforcement — check organizer's attendee cap for this event

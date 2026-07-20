@@ -28,7 +28,7 @@ export default function VerifyTicketsLandingPage() {
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             Open the exact link shared by the event organiser. It should look
-            like <span className="text-[#C8F55A]">verify.eventsslot.com/event-slug</span>
+            like <span className="text-[#C8F55A]">eventsslot.com/verify-tickets/event-slug</span>
             and include a verifier code token.
           </p>
         </div>
