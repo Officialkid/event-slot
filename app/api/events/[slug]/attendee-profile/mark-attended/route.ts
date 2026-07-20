@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasTeamEventAccess } from "@/lib/eventAccess"
 import { hasOrganiserAccess } from "@/lib/adminMode"
+import { hasDashboardOrVerifierToken } from "@/lib/eventVerifierAccess"
 
 export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
     const event = await prisma.event.findFirst({
       where: { OR: [{ slug }, { id: slug }] },
-      select: { id: true, organizerId: true, dashboardToken: true },
+      select: { id: true, organizerId: true, dashboardToken: true, verifierCode: true, verifierCodeEnabled: true },
     })
 
     if (!event) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
 
     const session = await getServerSession(authOptions)
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
-    const hasValidToken = !!(token && token === event.dashboardToken)
+    const hasValidToken = hasDashboardOrVerifierToken(token, event)
     const hasTeamAccess = !!(session?.user?.id && (await hasTeamEventAccess({
       userId: session.user.id,
       organizerId: event.organizerId,

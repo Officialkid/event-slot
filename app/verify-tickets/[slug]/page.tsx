@@ -92,8 +92,8 @@ export default async function StandaloneVerifyTicketsPage({ params, searchParams
           <div className="mb-4 rounded-2xl border border-[rgba(245,158,11,0.35)] bg-[rgba(245,158,11,0.08)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
             You are viewing this without an event token. If you are not signed in
             as the organiser, assigned team member, or super admin, verification
-            actions will be rejected. Future verifier invites will open this page
-            with an event-scoped secure link.
+            actions will be rejected. Ask the organiser for the verifier code, or
+            open the verifier link copied from the event Settings page.
           </div>
         )}
 

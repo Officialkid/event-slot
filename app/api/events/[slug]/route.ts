@@ -153,6 +153,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         ticketsEnabled: event.ticketsEnabled,
         expiresAt: event.expiresAt,
         dashboardToken: event.dashboardToken,
+        verifierCode: event.verifierCode,
+        verifierCodeEnabled: event.verifierCodeEnabled,
         organizerPlan: event.organizer?.plan ?? 'free',
         eventEffectivePlan: effectiveEventPlan.planKey,
         eventEffectivePlanSource: effectiveEventPlan.source,

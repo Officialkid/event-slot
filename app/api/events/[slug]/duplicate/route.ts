@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasOrganiserAccess } from "@/lib/adminMode"
 import { randomBytes } from "crypto"
+import { generateVerifierCode } from "@/lib/verifierCode"
 
 function generateSlug(title: string): string {
   return (title
@@ -38,6 +39,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ slug: s
     const newTitle = `${source.title} (Copy)`
     const newSlug = generateSlug(newTitle)
     const newToken = randomBytes(20).toString("hex")
+    const verifierCode = generateVerifierCode()
 
     const duplicate = await prisma.event.create({
       data: {
@@ -49,6 +51,7 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ slug: s
         organizerEmail: session.user.email,
         organizerId: session.user.id,
         dashboardToken: newToken,
+        verifierCode,
         status: "active",
         archived: false,
       },

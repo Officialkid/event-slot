@@ -16,6 +16,7 @@ import { validateAndEncodeEventContact } from '@/lib/eventContact'
 import { normalizeTicketTiers, sumTierCapacity } from '@/lib/paidEvents'
 import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy'
 import { getPricingRolloutLabel } from '@/lib/pricingRollout'
+import { generateVerifierCode } from '@/lib/verifierCode'
 
 function generateSlug(title: string): string {
   const base = title
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
 
     const slug = generateSlug(normalizedTitle)
     const dashboardToken = uuidv4()
+    const verifierCode = generateVerifierCode()
     const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
     const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
     const eventCountryCode = await detectCountry(req).catch(() => null)
@@ -220,6 +222,7 @@ export async function POST(req: NextRequest) {
         organizerEmail: eventOrganizerEmail,
         slug,
         dashboardToken,
+        verifierCode,
         organizerId,
         countryCode: eventCountryCode ?? undefined,
         ticketTiers: isPaid && isRegistrationEvent
@@ -246,6 +249,7 @@ export async function POST(req: NextRequest) {
         title: true,
         slug: true,
         dashboardToken: true,
+        verifierCode: true,
         accessType: true,
         capacity: true,
       },

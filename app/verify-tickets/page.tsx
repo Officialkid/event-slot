@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { VerifyAccessForm } from "@/components/verify/VerifyAccessForm"
 
 export const metadata = {
   title: "Verify Tickets",
@@ -13,22 +14,22 @@ export default function VerifyTicketsLandingPage() {
           EventSlot Verify
         </p>
         <h1 className="font-[var(--font-instrument-serif)] text-4xl font-normal leading-tight md:text-6xl">
-          Fast ticket checks for event entrances.
+          Enter the event code. Start checking tickets.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--text-secondary)]">
-          This is the foundation for the future verifier-only experience at
-          verify.eventsslot.com. Verifiers will use event-specific links from
-          organisers, and they will only access Scan, Search, and Upload tools
-          for their assigned event.
+          This verifier-only workspace is built for gate teams and temporary
+          volunteers. Organisers share one event code, and verifiers only access
+          Scan, Search, and Upload tools for that event.
         </p>
-        <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <VerifyAccessForm />
+        <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
             Have a verifier link?
           </p>
           <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
             Open the exact link shared by the event organiser. It should look
-            like <span className="text-[#C8F55A]">/verify-tickets/event-slug</span>
-            and may include a secure event token.
+            like <span className="text-[#C8F55A]">verify.eventsslot.com/event-slug</span>
+            and include a verifier code token.
           </p>
         </div>
         <Link

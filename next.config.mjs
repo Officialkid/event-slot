@@ -83,8 +83,18 @@ const nextConfig = {
           destination: '/verify-tickets',
         },
         {
+          source: '/',
+          has: [{ type: 'host', value: 'verify.www.eventsslot.com' }],
+          destination: '/verify-tickets',
+        },
+        {
           source: '/:slug',
           has: [{ type: 'host', value: 'verify.eventsslot.com' }],
+          destination: '/verify-tickets/:slug',
+        },
+        {
+          source: '/:slug',
+          has: [{ type: 'host', value: 'verify.www.eventsslot.com' }],
           destination: '/verify-tickets/:slug',
         },
       ],
@@ -188,8 +198,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.r2.dev https://lh3.googleusercontent.com",
                      // App APIs are same-origin, with external fetches to R2 and selected Google endpoints
                      "connect-src 'self' https://*.r2.dev https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com",
-              // No iframes loaded by this app
-              "frame-src 'none'",
+              // Public event pages embed Google Maps for directions.
+              "frame-src 'self' https://www.google.com https://maps.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               // Paystack checkout is a server-side URL redirect, no form POST needed

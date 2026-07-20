@@ -76,6 +76,8 @@ type EventData = {
   ticketsEnabled: boolean
   expiresAt?: string | null
   dashboardToken: string
+  verifierCode?: string | null
+  verifierCodeEnabled?: boolean
   organizerPlan: string
   eventEffectivePlan?: string
   eventEffectivePlanSource?: "event_pass" | "subscription" | "free"
@@ -801,6 +803,8 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
+  const verifierDomain = "https://verify.eventsslot.com"
+  const verifierLink = event.verifierCode ? `${verifierDomain}/${event.slug}?token=${encodeURIComponent(event.verifierCode)}` : ""
 
   useEffect(() => {
     setDescription(event.description ?? "")
@@ -948,8 +952,37 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} style={inputStyle} className="dt-input" />
           </div>
           <div>
-            <label style={fieldLabel}>Location</label>
-            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city" style={inputStyle} />
+            <label style={fieldLabel}>Venue / map location</label>
+            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue, city, or Google Maps link" style={inputStyle} />
+            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+              Attendees see this with an embedded map and a Get directions link.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
+          <label style={fieldLabel}>Verifier access code</label>
+          <div style={{ display: "grid", gap: "0.75rem" }}>
+            <input
+              type="text"
+              value={event.verifierCode ?? "Code will appear after the next refresh"}
+              readOnly
+              style={{ ...inputStyle, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}
+            />
+            <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+              Share this code with as many gate verifiers as you need. They can
+              open verify.eventsslot.com, enter the code, and only access ticket
+              scanning for this event.
+            </p>
+            {verifierLink && (
+              <button
+                type="button"
+                onClick={() => navigator.clipboard?.writeText(verifierLink)}
+                style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, #C8F55A 16%, var(--surface))", color: themeTextPrimary }}
+              >
+                Copy verifier link
+              </button>
+            )}
           </div>
         </div>
 
