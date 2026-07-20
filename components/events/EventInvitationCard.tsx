@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
-import { EventDescriptionBlock } from "@/components/events/EventDescriptionBlock"
+import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
+import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 
 export type EventInvitationCardProps = {
   eventSlug: string
@@ -12,6 +13,7 @@ export type EventInvitationCardProps = {
   eventDate?: Date | null
   location?: string | null
   mapDirectionsUrl?: string | null
+  entryFeeLabel?: string | null
   imageUrl?: string | null
   organizerName?: string | null
   organizerIsPioneer?: boolean
@@ -91,6 +93,20 @@ function getStatusBadge(
   }
 }
 
+function getCardCopy(language: SupportedLanguageCode | null) {
+  const copy = {
+    en: { date: "Date", place: "Place", entry: "Entry", host: "Host", hostedBy: "Hosted by", pioneer: "Pioneer", getDirections: "Get directions", spotsRemaining: "spots remaining", spotRemaining: "spot remaining", waitlistOpen: "Waitlist open" },
+    sw: { date: "Tarehe", place: "Mahali", entry: "Kiingilio", host: "Mwenyeji", hostedBy: "Imeandaliwa na", pioneer: "Mwanzilishi", getDirections: "Pata maelekezo", spotsRemaining: "nafasi zimebaki", spotRemaining: "nafasi imebaki", waitlistOpen: "Orodha ya kusubiri ipo wazi" },
+    fr: { date: "Date", place: "Lieu", entry: "Entree", host: "Hote", hostedBy: "Organise par", pioneer: "Pionnier", getDirections: "Itineraire", spotsRemaining: "places restantes", spotRemaining: "place restante", waitlistOpen: "Liste d'attente ouverte" },
+    pt: { date: "Data", place: "Local", entry: "Entrada", host: "Anfitriao", hostedBy: "Organizado por", pioneer: "Pioneiro", getDirections: "Ver direcoes", spotsRemaining: "vagas restantes", spotRemaining: "vaga restante", waitlistOpen: "Lista de espera aberta" },
+    es: { date: "Fecha", place: "Lugar", entry: "Entrada", host: "Anfitrion", hostedBy: "Organizado por", pioneer: "Pionero", getDirections: "Ver indicaciones", spotsRemaining: "cupos restantes", spotRemaining: "cupo restante", waitlistOpen: "Lista de espera abierta" },
+    de: { date: "Datum", place: "Ort", entry: "Eintritt", host: "Gastgeber", hostedBy: "Veranstaltet von", pioneer: "Pionier", getDirections: "Route anzeigen", spotsRemaining: "Plaetze uebrig", spotRemaining: "Platz uebrig", waitlistOpen: "Warteliste offen" },
+    ar: { date: "التاريخ", place: "المكان", entry: "الدخول", host: "المنظم", hostedBy: "بواسطة", pioneer: "رائد", getDirections: "احصل على الاتجاهات", spotsRemaining: "أماكن متبقية", spotRemaining: "مكان متبق", waitlistOpen: "قائمة الانتظار مفتوحة" },
+    zh: { date: "日期", place: "地点", entry: "入场", host: "主办方", hostedBy: "主办方", pioneer: "先锋", getDirections: "获取路线", spotsRemaining: "个名额剩余", spotRemaining: "个名额剩余", waitlistOpen: "候补名单开放" },
+  } satisfies Record<SupportedLanguageCode, Record<string, string>>
+  return copy[language ?? "en"] ?? copy.en
+}
+
 export default function EventInvitationCard({
   eventSlug,
   title,
@@ -98,6 +114,7 @@ export default function EventInvitationCard({
   eventDate,
   location,
   mapDirectionsUrl,
+  entryFeeLabel,
   imageUrl,
   organizerName,
   organizerIsPioneer,
@@ -110,8 +127,14 @@ export default function EventInvitationCard({
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
+  const [translation, setTranslation] = useState<PublicEventTranslation | null>(null)
   const posterErrorHandledRef = useRef(false)
   const badge = getStatusBadge(accessType, status, capacity, confirmedCount, deadline ?? null, walkInOpenToday)
+  const cardCopy = getCardCopy(translation?.targetLanguage ?? null)
+  const displayTitle = translation?.title || title
+  const displayLocation = translation?.location || location
+  const displayEntryFeeLabel = translation?.entryFeeLabel || entryFeeLabel
+  const displayOrganizerName = translation?.organizerName || organizerName
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
   const spotsLeft =
@@ -146,7 +169,7 @@ export default function EventInvitationCard({
         <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "var(--surface-muted)" }} className="sm:h-[300px] lg:h-[420px]">
           <Image
             src={posterSrc}
-            alt={title}
+            alt={displayTitle}
             fill
             sizes="100vw"
             quality={100}
@@ -240,7 +263,7 @@ export default function EventInvitationCard({
             maxWidth: 800,
           }}
         >
-          {title}
+          {displayTitle}
         </h1>
 
         <div
@@ -252,7 +275,7 @@ export default function EventInvitationCard({
         >
           {eventDate && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Date</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>{cardCopy.date}</span>
               <span
                 style={{
                   fontSize: "0.88rem",
@@ -267,11 +290,11 @@ export default function EventInvitationCard({
             </div>
           )}
 
-          {location && (
+          {displayLocation && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Place</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>{cardCopy.place}</span>
               <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 400 }}>
-                {location}
+                {displayLocation}
               </span>
               {mapDirectionsUrl ? (
                 <a
@@ -280,18 +303,27 @@ export default function EventInvitationCard({
                   rel="noreferrer"
                   style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 500, textDecoration: "none" }}
                 >
-                  Get directions
+                  {cardCopy.getDirections}
                 </a>
               ) : null}
             </div>
           )}
 
-          {organizerName && (
+          {displayEntryFeeLabel && (
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>Host</span>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>{cardCopy.entry}</span>
+              <span style={{ fontSize: "0.88rem", color: "var(--text-secondary)", fontWeight: 500 }}>
+                {displayEntryFeeLabel}
+              </span>
+            </div>
+          )}
+
+          {displayOrganizerName && (
+            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>{cardCopy.host}</span>
               <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
-                Hosted by{" "}
-                <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{organizerName}</span>
+                {cardCopy.hostedBy}{" "}
+                <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{displayOrganizerName}</span>
                 {organizerIsPioneer ? (
                   <span
                     title="EventSlot Pioneer - one of our earliest supporters"
@@ -307,7 +339,7 @@ export default function EventInvitationCard({
                       lineHeight: 1.4,
                     }}
                   >
-                    Pioneer
+                    {cardCopy.pioneer}
                   </span>
                 ) : null}
               </span>
@@ -323,7 +355,12 @@ export default function EventInvitationCard({
                 background: "var(--border)",
               }}
             />
-            <EventDescriptionBlock eventSlug={eventSlug} description={description} />
+            <EventDescriptionBlock
+              eventSlug={eventSlug}
+              description={description}
+              onTranslated={setTranslation}
+              onShowOriginal={() => setTranslation(null)}
+            />
           </>
         )}
 
@@ -360,8 +397,8 @@ export default function EventInvitationCard({
                 }}
               />
               {spotsLeft > 0
-                ? `${spotsLeft} ${spotsLeft === 1 ? "spot" : "spots"} remaining`
-                : "Waitlist open"}
+                ? `${spotsLeft} ${spotsLeft === 1 ? cardCopy.spotRemaining : cardCopy.spotsRemaining}`
+                : cardCopy.waitlistOpen}
             </span>
           </div>
         )}

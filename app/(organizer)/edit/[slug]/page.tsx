@@ -156,6 +156,7 @@ export default function EditEventPage() {
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
+  const [entryFeeLabel, setEntryFeeLabel] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
@@ -193,6 +194,7 @@ export default function EditEventPage() {
         setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
         setLocation(e.location ?? "")
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
+        setEntryFeeLabel(e.entryFeeLabel ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
         setCategory(e.category ?? "")
@@ -449,6 +451,7 @@ export default function EditEventPage() {
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
+          entryFeeLabel: entryFeeLabel || undefined,
           communityLink: communityLink || undefined,
           imageUrl: imageUrl || undefined,
           category: category || undefined,
@@ -837,6 +840,23 @@ export default function EditEventPage() {
                 />
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   EventSlot only shows directions when this link is provided by the organiser.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                  Entry / contribution note <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
+                  placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
+                  value={entryFeeLabel}
+                  onChange={e => setEntryFeeLabel(e.target.value)}
+                />
+                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                  This only displays the organizer's fee note. It does not collect payment.
                 </p>
               </div>
               <div>

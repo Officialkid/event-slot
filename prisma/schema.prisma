@@ -34,6 +34,7 @@ model Event {
   joinOpensAt      DateTime?
   location         String?
   mapDirectionsUrl String?
+  entryFeeLabel    String?
   communityLink    String?
   eventType        EventType @default(PHYSICAL)
   virtualLink      String?

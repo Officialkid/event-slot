@@ -164,6 +164,7 @@ export default function CreateEventPage() {
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
+  const [entryFeeLabel, setEntryFeeLabel] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
@@ -587,6 +588,7 @@ export default function CreateEventPage() {
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
+          entryFeeLabel: entryFeeLabel || undefined,
           isPaid: isRegistrationEvent ? isPaid : false,
           ticketPrice: isRegistrationEvent && isPaid && ticketPrice ? Number(ticketPrice) : undefined,
           ticketTiers: isRegistrationEvent && isPaid
@@ -1434,6 +1436,25 @@ export default function CreateEventPage() {
                     />
                     <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                       This is the only link attendees use for directions. EventSlot will not guess from the venue name.
+                    </p>
+                  </div>
+                )}
+                {isRegistrationEvent && (
+                  <div>
+                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                      Entry / contribution note <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={200}
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      style={inputStyle}
+                      placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
+                      value={entryFeeLabel}
+                      onChange={e => setEntryFeeLabel(e.target.value)}
+                    />
+                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
+                      This only displays the organizer's fee note. It does not collect payment.
                     </p>
                   </div>
                 )}

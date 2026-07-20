@@ -4,8 +4,10 @@ import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
+import type { PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
+import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 
 type EventQuestion = {
   id: string
@@ -48,6 +50,7 @@ type EventProps = {
     deadline?: Date | string | null
     location?: string | null
     mapDirectionsUrl?: string | null
+    entryFeeLabel?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     createdAt: Date | string
@@ -176,6 +179,20 @@ type PaidCheckoutResponse = {
   paymentMethod: "mpesa" | "paystack"
 }
 
+function getFormCopy(language: SupportedLanguageCode | null) {
+  const copy = {
+    en: { registrationForm: "Registration form", date: "Date", location: "Location", entryAmount: "Entry amount", hostedBy: "Hosted by", getDirections: "Get directions", venueDirections: "Venue directions", routePreview: "Preview the route and open full directions if needed.", openMap: "Open map", intro: "Fill in the details below to secure your spot. You can save progress with your email and continue later.", saveProgress: "Save your progress with email", restoreProgress: "Open this same link again to restore your saved progress.", registeringOne: "Registering 1 person", registeringMany: "Registering {count} people", attendee: "Attendee", emailAddress: "Email address", forTicket: "for your ticket", select: "Select...", consentTitle: "Consent for Data Processing", consentBody: "Do you consent to {organizer} collecting and using your personal information for registration, event communication, attendee coordination, and event-day planning purposes?", sendCopy: "Send me a copy of my responses.", submit: "Submit", submitting: "Submitting...", submitMany: "Submit {count} responses", closed: "Registration closed", paidPaused: "Paid registration paused", clear: "Clear form", passwordNotice: "Never submit passwords or sensitive financial credentials through this form.", hostNotice: "This form is created by the event organiser and hosted through EventSlot. It is not attendee account signup." },
+    sw: { registrationForm: "Fomu ya usajili", date: "Tarehe", location: "Mahali", entryAmount: "Kiasi cha kiingilio", hostedBy: "Imeandaliwa na", getDirections: "Pata maelekezo", venueDirections: "Maelekezo ya ukumbi", routePreview: "Angalia njia kisha ufungue maelekezo kamili ukihitaji.", openMap: "Fungua ramani", intro: "Jaza maelezo hapa chini kuhifadhi nafasi yako. Unaweza kuhifadhi maendeleo kwa barua pepe na kuendelea baadaye.", saveProgress: "Hifadhi maendeleo kwa barua pepe", restoreProgress: "Fungua linki hii tena kurejesha maendeleo yako.", registeringOne: "Unamsajili mtu 1", registeringMany: "Unasajili watu {count}", attendee: "Mshiriki", emailAddress: "Barua pepe", forTicket: "kwa tiketi yako", select: "Chagua...", consentTitle: "Idhini ya Uchakataji wa Data", consentBody: "Je, unakubali {organizer} akusanye na kutumia taarifa zako binafsi kwa usajili, mawasiliano ya tukio, uratibu wa washiriki, na mipango ya siku ya tukio?", sendCopy: "Nitumie nakala ya majibu yangu.", submit: "Wasilisha", submitting: "Inawasilisha...", submitMany: "Wasilisha majibu {count}", closed: "Usajili umefungwa", paidPaused: "Usajili wa malipo umesitishwa", clear: "Futa fomu", passwordNotice: "Usiwahi kuwasilisha nywila au taarifa nyeti za kifedha kupitia fomu hii.", hostNotice: "Fomu hii imeundwa na mwandaaji wa tukio na kuhifadhiwa kupitia EventSlot. Huu si usajili wa akaunti ya mshiriki." },
+    fr: { registrationForm: "Formulaire d'inscription", date: "Date", location: "Lieu", entryAmount: "Montant d'entree", hostedBy: "Organise par", getDirections: "Itineraire", venueDirections: "Itineraire du lieu", routePreview: "Previsualisez l'itineraire et ouvrez les indications completes si besoin.", openMap: "Ouvrir la carte", intro: "Remplissez les details ci-dessous pour reserver votre place. Vous pouvez enregistrer votre progression avec votre e-mail et continuer plus tard.", saveProgress: "Enregistrer avec l'e-mail", restoreProgress: "Rouvrez ce meme lien pour restaurer votre progression.", registeringOne: "Inscription d'une personne", registeringMany: "Inscription de {count} personnes", attendee: "Participant", emailAddress: "Adresse e-mail", forTicket: "pour votre billet", select: "Selectionner...", consentTitle: "Consentement au traitement des donnees", consentBody: "Acceptez-vous que {organizer} collecte et utilise vos informations personnelles pour l'inscription, les communications de l'evenement, la coordination des participants et l'organisation du jour de l'evenement ?", sendCopy: "M'envoyer une copie de mes reponses.", submit: "Envoyer", submitting: "Envoi...", submitMany: "Envoyer {count} reponses", closed: "Inscription fermee", paidPaused: "Inscription payante en pause", clear: "Effacer le formulaire", passwordNotice: "Ne soumettez jamais de mots de passe ou d'identifiants financiers sensibles via ce formulaire.", hostNotice: "Ce formulaire est cree par l'organisateur de l'evenement et heberge via EventSlot. Ce n'est pas une inscription de compte participant." },
+    pt: { registrationForm: "Formulario de inscricao", date: "Data", location: "Local", entryAmount: "Valor de entrada", hostedBy: "Organizado por", getDirections: "Ver direcoes", venueDirections: "Direcoes do local", routePreview: "Previsualize a rota e abra as direcoes completas se necessario.", openMap: "Abrir mapa", intro: "Preencha os detalhes abaixo para garantir sua vaga. Pode guardar o progresso com seu e-mail e continuar depois.", saveProgress: "Guardar progresso com e-mail", restoreProgress: "Abra este mesmo link novamente para restaurar seu progresso.", registeringOne: "Inscrevendo 1 pessoa", registeringMany: "Inscrevendo {count} pessoas", attendee: "Participante", emailAddress: "Endereco de e-mail", forTicket: "para seu bilhete", select: "Selecionar...", consentTitle: "Consentimento para processamento de dados", consentBody: "Voce consente que {organizer} recolha e use suas informacoes pessoais para inscricao, comunicacao do evento, coordenacao de participantes e planejamento do dia do evento?", sendCopy: "Enviar-me uma copia das minhas respostas.", submit: "Enviar", submitting: "Enviando...", submitMany: "Enviar {count} respostas", closed: "Inscricoes encerradas", paidPaused: "Inscricao paga pausada", clear: "Limpar formulario", passwordNotice: "Nunca envie senhas ou credenciais financeiras sensiveis por este formulario.", hostNotice: "Este formulario e criado pelo organizador do evento e hospedado pelo EventSlot. Nao e cadastro de conta de participante." },
+    es: { registrationForm: "Formulario de registro", date: "Fecha", location: "Lugar", entryAmount: "Monto de entrada", hostedBy: "Organizado por", getDirections: "Ver indicaciones", venueDirections: "Indicaciones del lugar", routePreview: "Previsualiza la ruta y abre las indicaciones completas si es necesario.", openMap: "Abrir mapa", intro: "Completa los datos abajo para asegurar tu cupo. Puedes guardar el progreso con tu correo y continuar despues.", saveProgress: "Guardar progreso con correo", restoreProgress: "Abre este mismo enlace otra vez para restaurar tu progreso.", registeringOne: "Registrando 1 persona", registeringMany: "Registrando {count} personas", attendee: "Asistente", emailAddress: "Correo electronico", forTicket: "para tu entrada", select: "Seleccionar...", consentTitle: "Consentimiento para procesamiento de datos", consentBody: "Aceptas que {organizer} recopile y use tu informacion personal para registro, comunicacion del evento, coordinacion de asistentes y planificacion del dia del evento?", sendCopy: "Enviarme una copia de mis respuestas.", submit: "Enviar", submitting: "Enviando...", submitMany: "Enviar {count} respuestas", closed: "Registro cerrado", paidPaused: "Registro pagado pausado", clear: "Limpiar formulario", passwordNotice: "Nunca envies contrasenas ni credenciales financieras sensibles mediante este formulario.", hostNotice: "Este formulario lo crea el organizador del evento y esta alojado en EventSlot. No es registro de cuenta de asistente." },
+    de: { registrationForm: "Registrierungsformular", date: "Datum", location: "Ort", entryAmount: "Eintrittsbetrag", hostedBy: "Veranstaltet von", getDirections: "Route anzeigen", venueDirections: "Anfahrt zum Ort", routePreview: "Vorschau der Route anzeigen und bei Bedarf vollstaendige Wegbeschreibung oeffnen.", openMap: "Karte oeffnen", intro: "Fuellen Sie die Angaben unten aus, um Ihren Platz zu sichern. Sie koennen den Fortschritt mit Ihrer E-Mail speichern und spaeter fortfahren.", saveProgress: "Fortschritt mit E-Mail speichern", restoreProgress: "Oeffnen Sie denselben Link erneut, um Ihren Fortschritt wiederherzustellen.", registeringOne: "1 Person registrieren", registeringMany: "{count} Personen registrieren", attendee: "Teilnehmer", emailAddress: "E-Mail-Adresse", forTicket: "fuer Ihr Ticket", select: "Auswaehlen...", consentTitle: "Einwilligung zur Datenverarbeitung", consentBody: "Stimmen Sie zu, dass {organizer} Ihre personenbezogenen Daten fuer Registrierung, Event-Kommunikation, Teilnehmerkoordination und Planung am Veranstaltungstag erhebt und nutzt?", sendCopy: "Senden Sie mir eine Kopie meiner Antworten.", submit: "Absenden", submitting: "Wird gesendet...", submitMany: "{count} Antworten absenden", closed: "Registrierung geschlossen", paidPaused: "Bezahlte Registrierung pausiert", clear: "Formular loeschen", passwordNotice: "Senden Sie niemals Passwoerter oder sensible Finanzdaten ueber dieses Formular.", hostNotice: "Dieses Formular wird vom Event-Organisator erstellt und ueber EventSlot gehostet. Es ist keine Teilnehmerkonto-Registrierung." },
+    ar: { registrationForm: "نموذج التسجيل", date: "التاريخ", location: "المكان", entryAmount: "قيمة الدخول", hostedBy: "بواسطة", getDirections: "احصل على الاتجاهات", venueDirections: "اتجاهات المكان", routePreview: "عاين المسار وافتح الاتجاهات الكاملة عند الحاجة.", openMap: "افتح الخريطة", intro: "املأ التفاصيل أدناه لتأكيد مكانك. يمكنك حفظ التقدم ببريدك الإلكتروني والمتابعة لاحقًا.", saveProgress: "احفظ التقدم بالبريد الإلكتروني", restoreProgress: "افتح الرابط نفسه مرة أخرى لاستعادة تقدمك.", registeringOne: "تسجيل شخص واحد", registeringMany: "تسجيل {count} أشخاص", attendee: "المشارك", emailAddress: "البريد الإلكتروني", forTicket: "لتذكرتك", select: "اختر...", consentTitle: "الموافقة على معالجة البيانات", consentBody: "هل توافق على أن يقوم {organizer} بجمع واستخدام معلوماتك الشخصية للتسجيل والتواصل بشأن الفعالية وتنسيق الحضور والتخطيط ليوم الفعالية؟", sendCopy: "أرسل لي نسخة من إجاباتي.", submit: "إرسال", submitting: "جارٍ الإرسال...", submitMany: "إرسال {count} إجابات", closed: "تم إغلاق التسجيل", paidPaused: "التسجيل المدفوع متوقف مؤقتًا", clear: "مسح النموذج", passwordNotice: "لا ترسل كلمات مرور أو بيانات مالية حساسة عبر هذا النموذج.", hostNotice: "تم إنشاء هذا النموذج بواسطة منظم الفعالية واستضافته عبر EventSlot. هذا ليس تسجيل حساب للحضور." },
+    zh: { registrationForm: "报名表", date: "日期", location: "地点", entryAmount: "入场金额", hostedBy: "主办方", getDirections: "获取路线", venueDirections: "场地方向", routePreview: "预览路线，需要时打开完整导航。", openMap: "打开地图", intro: "填写以下信息以保留名额。你可以用邮箱保存进度，稍后继续。", saveProgress: "用邮箱保存进度", restoreProgress: "再次打开同一链接即可恢复已保存的进度。", registeringOne: "正在登记 1 人", registeringMany: "正在登记 {count} 人", attendee: "参加者", emailAddress: "电子邮箱", forTicket: "用于你的门票", select: "请选择...", consentTitle: "数据处理同意", consentBody: "你是否同意 {organizer} 收集并使用你的个人信息，用于报名、活动沟通、参加者协调和活动当天安排？", sendCopy: "把我的回复副本发送给我。", submit: "提交", submitting: "正在提交...", submitMany: "提交 {count} 份回复", closed: "报名已关闭", paidPaused: "付费报名已暂停", clear: "清空表单", passwordNotice: "切勿通过此表单提交密码或敏感财务凭据。", hostNotice: "此表单由活动主办方创建，并通过 EventSlot 托管。它不是参加者账号注册。" },
+  } satisfies Record<SupportedLanguageCode, Record<string, string>>
+  return copy[language ?? "en"] ?? copy.en
+}
+
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
@@ -205,6 +222,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [paymentPolling, setPaymentPolling] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({})
+  const [publicTranslation, setPublicTranslation] = useState<PublicEventTranslation | null>(null)
   const [draftEmail, setDraftEmail] = useState("")
   const [draftState, setDraftState] = useState<"idle" | "loading" | "saving" | "saved" | "error">("idle")
   const [draftMessage, setDraftMessage] = useState("")
@@ -214,13 +232,44 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     return new Date(event.deadline).getTime() <= Date.now()
   })
   const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
-  const entryLabel = event.isPaid && activeTicketTiers.length > 0
+  const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
       ? `${activeTicketTiers[0].currency || "KSh"} ${activeTicketTiers[0].priceKes.toLocaleString()}`
       : activeTicketTiers
           .map(tier => `${tier.name}: ${tier.currency || "KSh"} ${tier.priceKes.toLocaleString()}`)
           .join(" / ")
     : null
+  const entryLabel = event.entryFeeLabel?.trim() || tierEntryLabel
+  const formCopy = getFormCopy(publicTranslation?.targetLanguage ?? null)
+  const displayTitle = publicTranslation?.title || event.title
+  const displayLocation = publicTranslation?.location || event.location
+  const displayOrganizerName = publicTranslation?.organizerName || event.organizerName
+  const displayEntryLabel = publicTranslation?.entryFeeLabel || entryLabel
+  const translatedQuestionById = new Map((publicTranslation?.questions ?? []).map((question) => [question.id, question]))
+  const displayQuestions = event.questions.map((question) => {
+    const translatedQuestion = translatedQuestionById.get(question.id)
+    if (!translatedQuestion) return question
+    return {
+      ...question,
+      label: translatedQuestion.label || question.label,
+      options: question.options,
+    }
+  })
+  const getOptionLabel = (question: EventQuestion, option: string, optionIndex: number) => {
+    const translatedQuestion = translatedQuestionById.get(question.id)
+    if (!translatedQuestion?.options || translatedQuestion.options.length !== question.options?.length) return option
+    return translatedQuestion.options[optionIndex] || option
+  }
+
+  useEffect(() => {
+    const eventName = `eventslot:public-translation:${event.slug}`
+    const handleTranslation = (customEvent: Event) => {
+      const detail = (customEvent as CustomEvent<PublicEventTranslation | null>).detail
+      setPublicTranslation(detail ?? null)
+    }
+    window.addEventListener(eventName, handleTranslation)
+    return () => window.removeEventListener(eventName, handleTranslation)
+  }, [event.slug])
 
   useEffect(() => {
     const sourceKey = `event_source_${event.slug}`
@@ -1020,12 +1069,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
         <div className="space-y-6 p-5 sm:p-7">
           <div className="space-y-5">
+            {!compactHeader && (
+              <>
             <p style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Registration form
+              {formCopy.registrationForm}
             </p>
             <div className="space-y-3">
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.65rem,4vw,2.3rem)", color: "var(--text-primary)", lineHeight: 1.12, margin: 0 }}>
-                {event.title}
+                {displayTitle}
               </h2>
             </div>
 
@@ -1092,6 +1143,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               </div>
             )}
 
+              </>
+            )}
+
             <div className="rounded-[18px] px-4 py-4" style={{ border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)", background: "color-mix(in srgb, var(--accent) 8%, var(--surface) 92%)" }}>
               <div className="flex flex-col gap-3 md:flex-row md:items-end">
                 <div className="flex-1">
@@ -1100,7 +1154,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       <rect x="1.5" y="3" width="13" height="10" rx="2" />
                       <path d="M2 4l6 4 6-4" />
                     </svg>
-                    Save your progress with email
+                    {formCopy.saveProgress}
                   </label>
                   <input
                     type="email"
@@ -1112,7 +1166,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   />
                 </div>
                 <div className="min-w-[180px] text-[0.76rem]" style={{ color: "var(--text-secondary)" }}>
-                  {draftState === "saving" || draftState === "loading" ? draftMessage : draftMessage || "Open this same link again to restore your saved progress."}
+                  {draftState === "saving" || draftState === "loading" ? draftMessage : draftMessage || formCopy.restoreProgress}
                 </div>
               </div>
             </div>
@@ -1125,7 +1179,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         {/* Bulk prompt row */}
       <div className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3" style={mutedCardStyle}>
         <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
-          {attendees.length > 1 ? `Registering ${attendees.length} people` : "Registering 1 person"}
+          {attendees.length > 1 ? formCopy.registeringMany.replace("{count}", String(attendees.length)) : formCopy.registeringOne}
         </span>
         {canAddMore && (
           <button
@@ -1164,7 +1218,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           {/* Attendee header */}
           <div className="flex items-center justify-between mb-3">
             <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
-              Attendee {attendeeIndex + 1}
+              {formCopy.attendee} {attendeeIndex + 1}
             </span>
             {attendeeIndex > 0 && (
               <button
@@ -1196,7 +1250,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   className={subtleLabelClassName}
                   style={subtleLabelStyle}
                 >
-                  Email address <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(for your ticket)</span>
+                  {formCopy.emailAddress} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>({formCopy.forTicket})</span>
                 </label>
                 <input
                   id={`base-email-${attendeeIndex}`}
@@ -1209,7 +1263,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 />
               </div>
             )}
-            {event.questions.map(q => (
+            {displayQuestions.map(q => (
               <div key={q.id}>
                 <label
                   htmlFor={`attendee-${attendeeIndex}-${q.id}`}
@@ -1302,10 +1356,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       value={form[q.id]}
                       onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
                     >
-                      <option value="" className="bg-[#141414] text-[#F0EDE6]">Select...</option>
-                      {q.options?.map(opt => (
+                      <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
+                      {q.options?.map((opt, optionIndex) => (
                         <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
-                          {opt}
+                          {getOptionLabel(q, opt, optionIndex)}
                         </option>
                       ))}
                     </select>
@@ -1318,7 +1372,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 )}
                 {q.type === "checkbox" && (
                   <div className="mt-1 space-y-2 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
-                    {q.options?.map(opt => {
+                    {q.options?.map((opt, optionIndex) => {
                       const selectedValues = parseCheckboxValue(form[q.id])
                       const isChecked = selectedValues.includes(opt)
                       return (
@@ -1335,7 +1389,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                             className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
                             style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
                           />
-                          <span>{opt}</span>
+                          <span>{getOptionLabel(q, opt, optionIndex)}</span>
                         </label>
                       )
                     })}
@@ -1355,9 +1409,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       <div className="rounded-[18px] p-4 sm:p-5" style={questionCardStyle}>
         <div className="mb-4">
-          <p className="m-0 text-[1rem] font-semibold" style={{ color: "var(--text-primary)" }}>Consent for Data Processing</p>
+          <p className="m-0 text-[1rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formCopy.consentTitle}</p>
           <p className="mt-2 text-[0.92rem] leading-8" style={{ color: "var(--text-secondary)" }}>
-            Do you consent to {event.organizerName ?? "the organiser"} collecting and using your personal information for registration, event communication, attendee coordination, and event-day planning purposes?
+            {formCopy.consentBody.replace("{organizer}", displayOrganizerName ?? "the organiser")}
           </p>
         </div>
 
@@ -1479,7 +1533,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             <rect x="1.5" y="3" width="13" height="10" rx="2" />
             <path d="M2 4l6 4 6-4" />
           </svg>
-          <span>Send me a copy of my responses.</span>
+          <span>{formCopy.sendCopy}</span>
         </span>
       </label>
 
@@ -1489,7 +1543,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           className={`rounded-[10px] px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${isSubmitBlocked ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
           disabled={isSubmitBlocked}
         >
-          {deadlineExpired ? "Registration closed" : loading ? "Submitting..." : event.isPaid ? "Paid registration paused" : attendees.length > 1 ? `Submit ${attendees.length} responses` : "Submit"}
+          {deadlineExpired ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
         </button>
         <button
           type="button"
@@ -1497,18 +1551,18 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           className="text-[0.9rem]"
           style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-secondary)" }}
         >
-          Clear form
+          {formCopy.clear}
         </button>
       </div>
       <div className="flex flex-col gap-2 text-center">
         <p className="m-0 text-[0.76rem]" style={{ color: "var(--text-muted)" }}>
-          Never submit passwords or sensitive financial credentials through this form.
+          {formCopy.passwordNotice}
         </p>
         <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
           By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Terms of Service</a>.
         </p>
         <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
-          This form is created by the event organiser and hosted through EventSlot. It is not attendee account signup.
+          {formCopy.hostNotice}
         </p>
       </div>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}

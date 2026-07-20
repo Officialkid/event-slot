@@ -28,6 +28,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         joinOpensAt: true,
         location: true,
         mapDirectionsUrl: true,
+        entryFeeLabel: true,
         communityLink: true,
         imageUrl: true,
         questions: true,

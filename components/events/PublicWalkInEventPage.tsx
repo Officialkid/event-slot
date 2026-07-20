@@ -18,6 +18,7 @@ type WalkInEventPageProps = {
     eventEndAt?: Date | string | null
     location: string | null
     mapDirectionsUrl?: string | null
+    entryFeeLabel?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     status: string
@@ -104,6 +105,7 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
           eventDate={event.eventDate ? new Date(event.eventDate) : null}
           location={event.location}
           mapDirectionsUrl={event.mapDirectionsUrl}
+          entryFeeLabel={event.entryFeeLabel}
           imageUrl={event.imageUrl}
           organizerName={event.organizer?.name ?? null}
           organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}

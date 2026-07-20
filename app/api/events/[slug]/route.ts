@@ -148,6 +148,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         joinOpensAt: event.joinOpensAt,
         location: event.location,
         mapDirectionsUrl: event.mapDirectionsUrl,
+        entryFeeLabel: event.entryFeeLabel,
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
         archived: event.archived,
         status: event.status,
@@ -199,7 +200,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
+    const { action, title, description, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -286,6 +287,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
         location: location || null,
         mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
+        entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,
         communityLink: normalizeCommunityLink(communityLink),
         imageUrl: nextImageUrl || null,
         questions: isWalkInEvent ? [] : questions,

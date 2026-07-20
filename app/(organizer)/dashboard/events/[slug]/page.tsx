@@ -69,6 +69,7 @@ type EventData = {
   joinOpensAt: string | null
   location: string | null
   mapDirectionsUrl: string | null
+  entryFeeLabel: string | null
   communityLink: string | null
   whatsappNumber?: string | null
   contactMode?: "WHATSAPP" | "CALL"
@@ -797,6 +798,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [joinOpensAt, setJoinOpensAt] = useState(toDatetimeLocal(event.joinOpensAt))
   const [location, setLocation] = useState(event.location ?? "")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState(event.mapDirectionsUrl ?? "")
+  const [entryFeeLabel, setEntryFeeLabel] = useState(event.entryFeeLabel ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
   const [whatsappNumber, setWhatsappNumber] = useState(event.whatsappNumber ?? "")
   const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
@@ -815,12 +817,13 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     setJoinOpensAt(toDatetimeLocal(event.joinOpensAt))
     setLocation(event.location ?? "")
     setMapDirectionsUrl(event.mapDirectionsUrl ?? "")
+    setEntryFeeLabel(event.entryFeeLabel ?? "")
     setCommunityLink(event.communityLink ?? "")
     setWhatsappNumber(event.whatsappNumber ?? "")
     setContactMode(event.contactMode ?? "WHATSAPP")
     setDeadline(toDatetimeLocal(event.deadline))
     setTicketTiers(event.ticketTiers ?? [])
-  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
+  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.entryFeeLabel, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
 
   const handleSave = async () => {
     setSaving(true)
@@ -834,6 +837,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
       joinOpensAt: toIsoFromDatetimeLocal(joinOpensAt),
       location: location || null,
       mapDirectionsUrl: mapDirectionsUrl || null,
+      entryFeeLabel: entryFeeLabel || null,
       communityLink: normalizedCommunityLink,
       whatsappNumber: whatsappNumber || null,
       contactMode,
@@ -975,6 +979,21 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           />
           <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
             Attendees only see Get directions when this organiser-provided link is saved.
+          </p>
+        </div>
+
+        <div>
+          <label style={fieldLabel}>Entry / contribution note</label>
+          <input
+            type="text"
+            maxLength={200}
+            value={entryFeeLabel}
+            onChange={e => setEntryFeeLabel(e.target.value)}
+            placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
+            style={{ ...inputStyle, maxWidth: 720 }}
+          />
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            This is display-only for registration-only events. It does not collect payment.
           </p>
         </div>
 
