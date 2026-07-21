@@ -11,7 +11,7 @@
   "navigationDividerColor": "#0a0a0a",
   "navigationDividerColorDark": "#0a0a0a",
   "backgroundColor": "#0a0a0a",
-  "enableNotifications": true,
+  "enableNotifications": false,
   "startUrl": "/dashboard",
   "iconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
   "maskableIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
@@ -59,5 +59,9 @@
     "enabled": false
   },
   "fullyIsolatedCsp": false,
-  "fingerprints": []
+  "fingerprints": [
+    {
+      "value": "AE:6E:70:05:A1:3C:18:D7:6A:DA:90:25:90:5A:1E:DF:23:47:56:3F:53:89:C0:45:7D:F4:53:63:0B:39:8E:B5"
+    }
+  ]
 }

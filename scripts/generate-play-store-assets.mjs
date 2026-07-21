@@ -5,7 +5,8 @@
  *   icon-512x512.png     — copy of twa/store_icon.png
  *   feature-graphic.png  — 1024×500 banner per spec
  *   screenshot-*.png     — 6 placeholder frames (1080×1920, 9:16)
- *                          Replace with real app screenshots before submitting.
+ *                          For internal testing only. Replace with real app
+ *                          screenshots before store listing submission.
  *
  * Run: node scripts/generate-play-store-assets.mjs
  */
@@ -162,4 +163,4 @@ for (const { n, label, sub } of screenshots) {
 }
 
 console.log("\nAll Play Store assets written to play-store-assets/")
-console.log("⚠ Replace screenshot-*.png with real app screenshots before uploading to Play Console.")
+console.log("⚠ Use screenshot-*.png only for planning/internal testing. Replace with real app screenshots before Play Store listing submission.")
