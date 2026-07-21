@@ -786,6 +786,23 @@ model FeatureInterest {
   @@unique([email, featureName])
 }
 
+model AppTesterProgress {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  inviteSentAt DateTime?
+  installedAt  DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model AppTesterSettings {
+  id            String   @id @default("default")
+  promptEnabled Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model BillingLaunchInterest {
   id          String   @id @default(cuid())
   userId      String?

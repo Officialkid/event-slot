@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, X } from "lucide-react"
 const DISMISS_KEY = "eventslot-early-tester-dismissed"
 const TESTER_PROMPT_ENABLED = process.env.NEXT_PUBLIC_APP_TESTER_PROMPT_ENABLED !== "false"
 
-export function EarlyTesterPrompt() {
+export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [email, setEmail] = useState("")
@@ -15,12 +15,12 @@ export function EarlyTesterPrompt() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!TESTER_PROMPT_ENABLED) return
+    if (!enabled || !TESTER_PROMPT_ENABLED) return
     if (window.localStorage.getItem(DISMISS_KEY) !== "true") {
       const timer = window.setTimeout(() => setVisible(true), 900)
       return () => window.clearTimeout(timer)
     }
-  }, [])
+  }, [enabled])
 
   if (!visible) return null
 

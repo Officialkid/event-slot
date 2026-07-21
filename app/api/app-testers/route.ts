@@ -27,6 +27,14 @@ export async function POST(req: NextRequest) {
       create: { email, featureName: FEATURE_NAME },
       update: {},
     })
+    await prisma.appTesterProgress.upsert({
+      where: { email },
+      create: {
+        email,
+        inviteSentAt: PLAY_TESTING_OPT_IN_URL ? new Date() : null,
+      },
+      update: PLAY_TESTING_OPT_IN_URL ? { inviteSentAt: new Date() } : {},
+    })
 
     let emailSent = true
     try {

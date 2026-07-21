@@ -6,6 +6,7 @@ import { MarketingFooter } from "@/components/MarketingFooter"
 import SmartCTA from "@/components/SmartCTA"
 import { MobileInstallButton } from "@/components/MobileInstallButton"
 import { EarlyTesterPrompt } from "@/components/marketing/EarlyTesterPrompt"
+import prisma from "@/lib/prisma"
 
 export const metadata: Metadata = {
   title: "EventSlot - Smart Event Registration Platform with Built-in Waitlist",
@@ -122,14 +123,25 @@ const jsonLd = [
   },
 ]
 
-export default function Home() {
+async function isTesterPromptEnabled() {
+  try {
+    const settings = await prisma.appTesterSettings.findUnique({ where: { id: "default" } })
+    return settings?.promptEnabled ?? true
+  } catch {
+    return process.env.NEXT_PUBLIC_APP_TESTER_PROMPT_ENABLED !== "false"
+  }
+}
+
+export default async function Home() {
+  const testerPromptEnabled = await isTesterPromptEnabled()
+
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <EarlyTesterPrompt />
+      <EarlyTesterPrompt enabled={testerPromptEnabled} />
 
       <section className="marketing-shell px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-14 lg:pt-10">
         <div className="marketing-panel marketing-grid overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
