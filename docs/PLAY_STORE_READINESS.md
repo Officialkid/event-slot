@@ -4,7 +4,7 @@ Last checked: 2026-07-21
 
 ## Current Status
 
-EventSlot is ready to begin Play Console setup and internal testing preparation, but the Android App Bundle still needs to be generated after Android SDK setup is fixed on the build machine.
+EventSlot is ready to continue Play Console setup and internal testing preparation. The first Android App Bundle has been generated locally for upload/testing review.
 
 ## Confirmed
 
@@ -21,44 +21,41 @@ EventSlot is ready to begin Play Console setup and internal testing preparation,
 - Play Billing is disabled while EventSlot payments remain hidden/coming soon.
 - Privacy policy and terms pages are available at `/privacy` and `/terms`.
 - Store icon and feature graphic assets exist in `play-store-assets/`.
+- Release Android App Bundle generated at `twa/app/build/outputs/bundle/release/app-release.aab`.
 
 ## Not Yet Ready
 
 - The final Play Store screenshots in `play-store-assets/screenshot-*.png` are placeholders. Replace them with real screenshots before a public store listing submission.
-- A release `.aab` has not been generated in this environment because Gradle cannot find a valid Android SDK.
 - Play Console app listing, Data Safety, app access, content rating, and internal testing track still need to be completed in the Play Console UI.
 
-## Android SDK Blocker
+## Android Build Notes
 
-Gradle failed with:
+The build machine uses a local Android SDK path in `twa/local.properties`. That file is intentionally ignored because it is machine-specific.
 
-```text
-SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in twa/local.properties.
-```
-
-Current environment:
-
-```text
-ANDROID_HOME=C:\Users\DANIEL\AppData\Local\Android\Sdk
-```
-
-That path does not currently exist. Install Android SDK through Android Studio, then create `twa/local.properties` with:
+Example local setup:
 
 ```properties
-sdk.dir=C\:\\Users\\DANIEL\\AppData\\Local\\Android\\Sdk
+sdk.dir=C\:\\Users\\DANIEL\\.android
 ```
 
-After that, run:
+Generate the Play upload bundle with:
 
 ```powershell
 cd twa
-.\gradlew.bat bundleRelease
+.\gradlew.bat --no-daemon bundleRelease
 ```
 
 Expected output:
 
 ```text
 twa/app/build/outputs/bundle/release/app-release.aab
+```
+
+Current generated file:
+
+```text
+twa/app/build/outputs/bundle/release/app-release.aab
+880,718 bytes
 ```
 
 ## Play Console Checklist

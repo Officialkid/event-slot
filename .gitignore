@@ -57,3 +57,4 @@ keystore.properties
 # Android build outputs
 twa/app/build/
 twa/.gradle/
+twa/local.properties

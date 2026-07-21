@@ -181,6 +181,7 @@ task generateShorcutsFile {
     xml.append('<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">\n')
 
     twaManifest.shortcuts.eachWithIndex { s, i ->
+        def shortcutUrl = s.url.startsWith('http') ? s.url : "https://${twaManifest.hostName}${s.url}"
         xml.append('    <shortcut')
         xml.append(' android:shortcutId="shortcut').append(i).append('"')
         xml.append(' android:enabled="true"')
@@ -188,10 +189,10 @@ task generateShorcutsFile {
         xml.append(' android:shortcutShortLabel="@string/shortcut_short_name_').append(i).append('"')
         xml.append(' android:shortcutLongLabel="@string/shortcut_name_').append(i).append('">\n')
         xml.append('        <intent')
-        xml.append(' android:action="android.intent.action.MAIN"')
+        xml.append(' android:action="android.intent.action.VIEW"')
         xml.append(' android:targetPackage="').append(twaManifest.applicationId).append('"')
-        xml.append(' android:targetClass="').append(twaManifest.applicationId).append('.LauncherActivity"')
-        xml.append(' android:data="').append(s.url).append('" />\n')
+        xml.append(' android:targetClass="com.google.androidbrowserhelper.trusted.LauncherActivity"')
+        xml.append(' android:data="').append(shortcutUrl).append('" />\n')
         xml.append('        <categories android:name="android.intent.category.LAUNCHER" />\n')
         xml.append('    </shortcut>\n')
     }
