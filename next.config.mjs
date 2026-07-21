@@ -88,6 +88,26 @@ const nextConfig = {
           destination: '/verify-tickets',
         },
         {
+          source: '/verify-tickets',
+          has: [{ type: 'host', value: 'verify.eventsslot.com' }],
+          destination: '/verify-tickets',
+        },
+        {
+          source: '/verify-tickets',
+          has: [{ type: 'host', value: 'verify.www.eventsslot.com' }],
+          destination: '/verify-tickets',
+        },
+        {
+          source: '/verify-tickets/:slug',
+          has: [{ type: 'host', value: 'verify.eventsslot.com' }],
+          destination: '/verify-tickets/:slug',
+        },
+        {
+          source: '/verify-tickets/:slug',
+          has: [{ type: 'host', value: 'verify.www.eventsslot.com' }],
+          destination: '/verify-tickets/:slug',
+        },
+        {
           source: '/:slug',
           has: [{ type: 'host', value: 'verify.eventsslot.com' }],
           destination: '/verify-tickets/:slug',
