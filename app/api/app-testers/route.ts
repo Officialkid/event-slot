@@ -5,6 +5,7 @@ import { ratelimit } from "@/lib/ratelimit"
 import { sendAppTesterSignupEmail } from "@/lib/email"
 
 const FEATURE_NAME = "EventSlot Play Store early tester"
+const PLAY_TESTING_OPT_IN_URL = process.env.PLAY_TESTING_OPT_IN_URL?.trim()
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,13 +30,13 @@ export async function POST(req: NextRequest) {
 
     let emailSent = true
     try {
-      await sendAppTesterSignupEmail({ to: email })
+      await sendAppTesterSignupEmail({ to: email, optInUrl: PLAY_TESTING_OPT_IN_URL })
     } catch (error) {
       emailSent = false
       console.error("[app-testers] confirmation email failed:", error)
     }
 
-    return NextResponse.json({ ok: true, emailSent })
+    return NextResponse.json({ ok: true, emailSent, optInUrlAvailable: Boolean(PLAY_TESTING_OPT_IN_URL) })
   } catch (error) {
     console.error("[app-testers] POST error:", error)
     return NextResponse.json({ error: "Could not save your tester request right now." }, { status: 500 })

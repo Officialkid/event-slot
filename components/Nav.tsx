@@ -27,6 +27,25 @@ const marketingRoutes = new Set([
   "/signup",
 ])
 
+function getAccountInitials(name?: string | null, email?: string | null) {
+  const normalizedEmail = email?.trim().toLowerCase() ?? ""
+  if (normalizedEmail === "eventslot.co@gmail.com" || normalizedEmail.startsWith("eventslot")) {
+    return "ES"
+  }
+
+  const displayName = name?.trim()
+  if (displayName) {
+    return displayName
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase()
+  }
+
+  return normalizedEmail[0]?.toUpperCase() ?? "?"
+}
+
 export default function Nav() {
   const pathname = usePathname()
   const { data: session } = useSession()
@@ -101,9 +120,7 @@ export default function Nav() {
 
   if (!marketingRoutes.has(pathname)) return null
 
-  const initials = session?.user?.name
-    ? session.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
-    : session?.user?.email?.[0]?.toUpperCase() ?? "?"
+  const initials = getAccountInitials(session?.user?.name, session?.user?.email)
 
   const isLight = theme === "light"
   const navShellStyle: React.CSSProperties = {

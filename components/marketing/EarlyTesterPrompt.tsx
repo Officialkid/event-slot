@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from "react"
 import { ArrowRight, CheckCircle2, X } from "lucide-react"
 
 const DISMISS_KEY = "eventslot-early-tester-dismissed"
+const TESTER_PROMPT_ENABLED = process.env.NEXT_PUBLIC_APP_TESTER_PROMPT_ENABLED !== "false"
 
 export function EarlyTesterPrompt() {
   const [visible, setVisible] = useState(false)
@@ -14,6 +15,7 @@ export function EarlyTesterPrompt() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!TESTER_PROMPT_ENABLED) return
     if (window.localStorage.getItem(DISMISS_KEY) !== "true") {
       const timer = window.setTimeout(() => setVisible(true), 900)
       return () => window.clearTimeout(timer)
@@ -51,7 +53,9 @@ export function EarlyTesterPrompt() {
       setMessage(
         payload?.emailSent === false
           ? "You are on the early tester list. We saved your email, but the confirmation email could not be sent yet."
-          : "You are on the early tester list. Please check your email for confirmation."
+          : payload?.optInUrlAvailable
+            ? "You are on the early tester list. Please check your email for the Play Store testing invite."
+            : "You are on the early tester list. Please check your email for confirmation."
       )
       setEmail("")
     } catch (err) {
