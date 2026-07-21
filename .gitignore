@@ -51,6 +51,7 @@ eventslot_google_client_secret.txt
 
 # Android signing — NEVER commit these
 *.keystore
+*.keystore.backup-*
 *.jks
 keystore.properties
 
