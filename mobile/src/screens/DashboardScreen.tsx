@@ -3,17 +3,16 @@ import { StyleSheet, Text, View } from "react-native";
 import { ActionCard } from "../components/ActionCard";
 import { MetricCard } from "../components/MetricCard";
 import { dashboardMetrics } from "../data/demo";
-import { AppTheme } from "../theme";
+import { NativeScreenProps } from "./types";
 
-type ScreenProps = {
-  theme: AppTheme;
-};
-
-export function DashboardScreen({ theme }: ScreenProps) {
+export function DashboardScreen({ theme, session, navigate }: NativeScreenProps) {
   return (
     <View style={styles.stack}>
       <View style={[styles.hero, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>BUILT FOR EVENT TEAMS</Text>
+        <Text style={[styles.greeting, { color: theme.colors.secondary }]}>
+          Welcome back, {session.displayName}
+        </Text>
         <Text style={[styles.title, { color: theme.colors.text }]}>
           Run registration, waitlist, and check-in from one sharp app.
         </Text>
@@ -33,12 +32,14 @@ export function DashboardScreen({ theme }: ScreenProps) {
         title="Create an event"
         caption="A simplified native flow will mirror the web version without exposing unfinished payments."
         action="Start"
+        onPress={() => navigate("events")}
       />
       <ActionCard
         theme={theme}
         title="Verify tickets"
         caption="Camera and manual lookup will become first-class native tools for event teams."
         action="Scan"
+        onPress={() => navigate("verify")}
       />
     </View>
   );
@@ -59,6 +60,10 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 2.4
   },
+  greeting: {
+    fontSize: 14,
+    fontWeight: "700"
+  },
   title: {
     fontSize: 34,
     fontWeight: "900",
@@ -74,4 +79,3 @@ const styles = StyleSheet.create({
     gap: 12
   }
 });
-

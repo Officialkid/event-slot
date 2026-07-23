@@ -1,12 +1,8 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AppTheme } from "../theme";
+import { NativeScreenProps } from "./types";
 
-type ScreenProps = {
-  theme: AppTheme;
-};
-
-export function VerifyScreen({ theme }: ScreenProps) {
+export function VerifyScreen({ theme }: NativeScreenProps) {
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Verify Tickets</Text>
@@ -87,4 +83,3 @@ const styles = StyleSheet.create({
     paddingVertical: 14
   }
 });
-

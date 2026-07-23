@@ -1,13 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
 import { demoEvents } from "../data/demo";
-import { AppTheme } from "../theme";
+import { NativeScreenProps } from "./types";
 
-type ScreenProps = {
-  theme: AppTheme;
-};
-
-export function EventsScreen({ theme }: ScreenProps) {
+export function EventsScreen({ theme, navigate }: NativeScreenProps) {
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>My Events</Text>
@@ -27,6 +23,14 @@ export function EventsScreen({ theme }: ScreenProps) {
             <Text style={[styles.metaText, { color: theme.colors.secondary }]}>{event.date}</Text>
             <Text style={[styles.metaText, { color: theme.colors.secondary }]}>
               {event.attendees}/{event.capacity} confirmed
+            </Text>
+          </View>
+          <View style={styles.actionRow}>
+            <Text style={[styles.linkAction, { color: theme.colors.accent }]} onPress={() => navigate("verify")}>
+              Verify tickets
+            </Text>
+            <Text style={[styles.linkAction, { color: theme.colors.accent }]}>
+              View insights
             </Text>
           </View>
         </View>
@@ -80,6 +84,16 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     fontWeight: "700"
+  },
+  actionRow: {
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.18)",
+    flexDirection: "row",
+    gap: 18,
+    paddingTop: 14
+  },
+  linkAction: {
+    fontSize: 13,
+    fontWeight: "900"
   }
 });
-

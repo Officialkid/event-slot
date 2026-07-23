@@ -1,10 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { AppTheme } from "../theme";
-
-type ScreenProps = {
-  theme: AppTheme;
-};
+import { NativeScreenProps } from "./types";
 
 const settings = [
   ["Profile", "View and update account details"],
@@ -13,16 +9,17 @@ const settings = [
   ["Privacy", "Terms, policy, and account deletion"]
 ];
 
-export function ProfileScreen({ theme }: ScreenProps) {
+export function ProfileScreen({ theme, session, onSignOut }: NativeScreenProps) {
   return (
     <View style={styles.stack}>
       <View style={[styles.profileHero, { backgroundColor: theme.colors.greenPanel }]}>
         <View style={[styles.avatar, { backgroundColor: theme.colors.avatar }]}>
-          <Text style={[styles.avatarText, { color: theme.colors.text }]}>E</Text>
+          <Text style={[styles.avatarText, { color: theme.colors.text }]}>{session.displayName.slice(0, 1)}</Text>
         </View>
         <View>
-          <Text style={[styles.name, { color: theme.colors.text }]}>EventSlot</Text>
-          <Text style={[styles.role, { color: theme.colors.accent }]}>SUPER ADMIN</Text>
+          <Text style={[styles.name, { color: theme.colors.text }]}>{session.displayName}</Text>
+          <Text style={[styles.email, { color: theme.colors.secondary }]}>{session.email}</Text>
+          <Text style={[styles.role, { color: theme.colors.accent }]}>{session.role.toUpperCase()} · {session.plan.toUpperCase()}</Text>
         </View>
       </View>
 
@@ -36,6 +33,9 @@ export function ProfileScreen({ theme }: ScreenProps) {
           <Text style={[styles.chevron, { color: theme.colors.muted }]}>›</Text>
         </View>
       ))}
+      <Text style={[styles.signOut, { color: theme.colors.error }]} onPress={onSignOut}>
+        Sign out of native demo
+      </Text>
     </View>
   );
 }
@@ -72,6 +72,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     marginTop: 4
   },
+  email: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 3
+  },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "900",
@@ -96,6 +101,12 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 32
+  },
+  signOut: {
+    fontSize: 15,
+    fontWeight: "900",
+    paddingHorizontal: 4,
+    paddingVertical: 14,
+    textAlign: "center"
   }
 });
-
