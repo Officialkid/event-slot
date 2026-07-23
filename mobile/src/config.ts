@@ -19,7 +19,8 @@ function getAuthMode(value: string | undefined): NativeAuthMode {
 export const nativeConfig = {
   apiBaseUrl: cleanBaseUrl(process.env.EXPO_PUBLIC_EVENTSSLOT_API_BASE_URL),
   authMode: getAuthMode(process.env.EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE),
-  uploadsEnabled: process.env.EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED === "true"
+  uploadsEnabled: process.env.EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED === "true",
+  pushEnabled: process.env.EXPO_PUBLIC_EVENTSSLOT_PUSH_ENABLED === "true"
 };
 
 export type NativeConfig = typeof nativeConfig;

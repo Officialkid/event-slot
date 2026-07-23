@@ -122,6 +122,26 @@ Before enabling native uploads:
 - Update Google Play Data Safety for user-uploaded files and images.
 - Add retry/cancel UI for poor mobile networks.
 
+## Push Notifications
+
+The native profile page now models notification channels:
+
+- Event reminders.
+- Team invites.
+- Waitlist promotions.
+- Tester updates.
+
+Current implementation is a scaffold only. It does not request notification permission, create an Expo push token, or register a device with the backend.
+
+Before enabling native push:
+
+- Add Expo notifications dependency and platform configuration.
+- Ask permission only after explaining why notifications help.
+- Register device push tokens against the authenticated user/session.
+- Add backend APIs for token registration, token revocation, and per-channel preferences.
+- Update privacy policy and Google Play Data Safety for device identifiers and notification use.
+- Test token rotation, logout, account deletion, and duplicate devices.
+
 ## Ticket Verification
 
 The native verifier is structured around the existing web API paths:

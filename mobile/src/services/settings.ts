@@ -31,6 +31,12 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
     title: "File uploads",
     caption: "Attachment questions are scaffolded; native picker and bucket upload are still gated.",
     status: nativeConfig.uploadsEnabled ? "in-progress" : "blocked"
+  },
+  {
+    key: "push",
+    title: "Push notifications",
+    caption: "Notification channels are scaffolded; push tokens and permission prompts are still gated.",
+    status: nativeConfig.pushEnabled ? "in-progress" : "blocked"
   }
 ];
 
@@ -51,7 +57,7 @@ export const nativePermissionItems: NativePermissionItem[] = [
     key: "notifications",
     title: "Notifications",
     caption: "Required for reminders, invites, and waitlist promotion alerts.",
-    enabled: false
+    enabled: nativeConfig.pushEnabled
   },
   {
     key: "maps",

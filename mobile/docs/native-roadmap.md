@@ -29,6 +29,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Offline registration drafts.
 - File/image upload questions are scaffolded; device picker and bucket upload still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.
+- Notification channels are scaffolded; push token registration and permission prompts are still gated.
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
 - Persisted user settings for theme, notification preferences, and account support links.
@@ -49,6 +50,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Create event, verifier code, ticket verification, and profile settings work on-device.
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
 - File uploads use bucket storage with size/type validation and updated Play Data Safety disclosures.
+- Push notifications have token registration, logout cleanup, and updated privacy/Data Safety disclosures.
 - Maps links are tested on Android with Google Maps installed and browser fallback.
 - Duplicate ticket scans, wrong-event tickets, used tickets, and multi-admission tickets are tested.
 - Dark and light themes are visually checked on at least one Android phone.

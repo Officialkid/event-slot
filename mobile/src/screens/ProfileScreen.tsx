@@ -1,7 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { nativeConfig } from "../config";
+import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
+import { defaultNotificationPreferences, getPushReadinessMessage } from "../services/notifications";
 import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
 import { NativeScreenProps } from "./types";
 
@@ -13,6 +15,8 @@ const settings = [
 ];
 
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
+  const pushReadiness = getPushReadinessMessage();
+
   return (
     <View style={styles.stack}>
       <View style={[styles.profileHero, { backgroundColor: theme.colors.greenPanel }]}>
@@ -63,6 +67,15 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
         <PermissionRow key={item.key} item={item} theme={theme} />
       ))}
 
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>NOTIFICATION CHANNELS</Text>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Push readiness</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushReadiness}</Text>
+      </View>
+      {defaultNotificationPreferences.map((preference) => (
+        <NotificationRow key={preference.channel} preference={preference} theme={theme} />
+      ))}
+
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Workspace summary</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
@@ -73,6 +86,25 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <Pressable accessibilityRole="button" onPress={onSignOut} style={[styles.signOutButton, { borderColor: theme.colors.border }]}>
         <Text style={[styles.signOut, { color: theme.colors.error }]}>Sign out of native demo</Text>
       </Pressable>
+    </View>
+  );
+}
+
+type NotificationRowProps = {
+  preference: NativeNotificationPreference;
+  theme: NativeScreenProps["theme"];
+};
+
+function NotificationRow({ preference, theme }: NotificationRowProps) {
+  return (
+    <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{preference.title}</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{preference.caption}</Text>
+      </View>
+      <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: preference.enabled ? theme.colors.success : theme.colors.muted }]}>
+        {preference.enabled ? "ON" : "OFF"}
+      </Text>
     </View>
   );
 }
