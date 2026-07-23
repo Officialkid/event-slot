@@ -26,6 +26,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Export actions now have native prepare/share interaction scaffolding.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
+- Native event publish preparation is scaffolded and guarded behind live bearer-token mode.
 - Use the current in-memory draft and session stores only as a preview; add persistent native storage before real offline drafts or live token restore.
 - Keep `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=demo` until the native token endpoints are implemented and verified.
 - Keep native uploads disabled until bucket upload permissions, file-size limits, and mobile error handling are complete.

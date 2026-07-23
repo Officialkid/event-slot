@@ -4,16 +4,18 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { NativeAttachmentKind } from "../domain/attachments";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
 import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
+import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, submitNativeEventDraft } from "../services/eventSubmission";
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { getUploadReadinessMessage } from "../services/uploads";
 import { NativeScreenProps } from "./types";
 
-export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
+export function CreateEventScreen({ theme, navigate, refreshEvents, session }: NativeScreenProps) {
   const [draft, setDraft] = useState<EventDraft>(emptyEventDraft);
   const [draftStatus, setDraftStatus] = useState("Loading saved native draft...");
   const [draftLoading, setDraftLoading] = useState(true);
+  const [submitStatus, setSubmitStatus] = useState("Native publishing is not active until live API mode is enabled.");
 
   useEffect(() => {
     let mounted = true;
@@ -44,7 +46,9 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
   const validation = useMemo(() => validateEventDraft(draft), [draft]);
+  const submissionPreparation = useMemo(() => prepareNativeCreateEventRequest(draft), [draft]);
   const mapUrlSupported = isSupportedMapUrl(preview.mapDirectionsUrl);
+  const publishReadiness = getNativeCreateEventReadinessMessage(session);
   const uploadReadiness = getUploadReadinessMessage();
 
   const updateDraft = <Key extends keyof EventDraft>(key: Key, value: EventDraft[Key]) => {
@@ -61,6 +65,32 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
     await clearEventDraft();
     setDraft({ ...emptyEventDraft });
     setDraftStatus("Draft cleared from this native preview.");
+    setSubmitStatus("Native publishing is not active until live API mode is enabled.");
+  };
+
+  const handleNativeSubmit = async () => {
+    if (!submissionPreparation.ready) {
+      setSubmitStatus(submissionPreparation.reason);
+      return;
+    }
+
+    if (session.authMode !== "live") {
+      setSubmitStatus("This draft is ready, but native publishing is intentionally disabled in demo mode.");
+      return;
+    }
+
+    setSubmitStatus("Publishing event through the native API...");
+    try {
+      const createdEvent = await submitNativeEventDraft(session, draft);
+      await clearEventDraft();
+      setDraft({ ...emptyEventDraft });
+      setDraftStatus("Draft published and cleared from this device.");
+      setSubmitStatus(`Created ${createdEvent.title}. Refreshing your native events...`);
+      refreshEvents();
+      navigate({ name: "eventDetail", eventId: createdEvent.id });
+    } catch (error) {
+      setSubmitStatus(error instanceof Error ? error.message : "Could not publish this native event draft.");
+    }
   };
 
   return (
@@ -105,6 +135,21 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
             {validation.warnings.length - 3} more suggestion{validation.warnings.length - 3 === 1 ? "" : "s"} will be checked before live publishing.
           </Text>
         ) : null}
+      </View>
+
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.hero, borderColor: submissionPreparation.ready ? theme.colors.success : theme.colors.border }]}>
+        <View style={styles.validationHeader}>
+          <Text style={[styles.statusTitle, { color: submissionPreparation.ready ? theme.colors.success : theme.colors.accent }]}>
+            NATIVE PUBLISH
+          </Text>
+          <Text style={[styles.validationPill, { backgroundColor: theme.colors.activeTab, color: session.authMode === "live" ? theme.colors.success : theme.colors.muted }]}>
+            {session.authMode.toUpperCase()}
+          </Text>
+        </View>
+        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>{publishReadiness}</Text>
+        <Text style={[styles.statusCopy, { color: submissionPreparation.ready ? theme.colors.secondary : theme.colors.error }]}>
+          {submissionPreparation.ready ? submitStatus : submissionPreparation.reason}
+        </Text>
       </View>
 
       <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -285,6 +330,20 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
       <View style={[styles.actionRow, { borderColor: theme.colors.border }]}>
         <Pressable accessibilityRole="button" onPress={handleSaveDraft} style={[styles.actionButton, { backgroundColor: theme.colors.accent }]}>
           <Text style={styles.actionButtonText}>Save draft</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!submissionPreparation.ready}
+          onPress={handleNativeSubmit}
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: submissionPreparation.ready ? theme.colors.success : theme.colors.border,
+              opacity: submissionPreparation.ready ? 1 : 0.55
+            }
+          ]}
+        >
+          <Text style={styles.actionButtonText}>Publish</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={handleClearDraft} style={[styles.outlineButton, { borderColor: theme.colors.border }]}>
           <Text style={[styles.outlineButtonText, { color: theme.colors.text }]}>Clear</Text>

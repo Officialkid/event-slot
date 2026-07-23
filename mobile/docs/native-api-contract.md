@@ -129,11 +129,18 @@ The native create-event screen is still draft-only. It mirrors the web API shape
 Before enabling live creation:
 
 - Add native-safe bearer session support for `POST /api/events`.
+- Add the planned `POST /api/native/events` route or route adapter used by the native publish service.
 - Convert native date/time fields into ISO strings expected by the backend.
 - Keep `isPaid=false` until the payment rollout is officially enabled.
 - Preserve multiline descriptions exactly as the organiser typed them.
 - Convert the draft readiness checks into submit blockers for the live create-event request.
 - Add deadline/time validation and WhatsApp number normalization before submit.
+
+The mobile app now has a guarded native publish service:
+
+- `prepareNativeCreateEventRequest` maps a validated draft into `CreateEventRequest`.
+- `submitNativeEventDraft` posts to `POST /api/native/events` only when a live bearer session exists.
+- Demo mode keeps the action disabled from production writes while still showing readiness and validation states.
 
 ## Offline Drafts
 
