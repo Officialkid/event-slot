@@ -6,6 +6,7 @@ import { findNativeEvent } from "../services/events";
 import { buildExportActions, getExportReadinessMessage } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace } from "../services/registrations";
+import { shareNativePayload } from "../services/share";
 import { EventDetailScreenProps } from "./types";
 
 export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
@@ -107,6 +108,18 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
           <Text style={[styles.verifierCode, { color: theme.colors.accent }]}>{verifierInvite.verifierCode}</Text>
           <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{verifierInvite.caption}</Text>
           <Text style={[styles.exportEndpoint, { color: theme.colors.muted }]}>{verifierInvite.shareLabel}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              shareNativePayload({
+                title: verifierInvite.title,
+                message: verifierInvite.shareLabel
+              }).catch(() => {})
+            }
+            style={[styles.shareButton, { borderColor: theme.colors.border }]}
+          >
+            <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Share verifier code</Text>
+          </Pressable>
         </View>
       </View>
 
@@ -389,6 +402,14 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "900",
     letterSpacing: 3
+  },
+  shareButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 11
   },
   registrationTabs: {
     flexDirection: "row",
