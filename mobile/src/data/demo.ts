@@ -15,7 +15,13 @@ export const demoEvents: NativeEvent[] = [
     verifierCode: "897L",
     role: "Owner",
     paymentMode: "Paid externally",
-    exportsReady: true
+    exportsReady: true,
+    eventType: "physical",
+    accessType: "public",
+    mapDirectionsUrl: "https://maps.app.goo.gl/MHaicqJoWDunCLEV8",
+    entryFeeLabel: "KSh 1,000 paid via organiser",
+    whatsappNumber: "+254794059895",
+    attendeeConsentEnabled: false
   },
   {
     id: "volunteer-checkin",
@@ -31,7 +37,9 @@ export const demoEvents: NativeEvent[] = [
     verifierCode: "V160",
     role: "Team",
     paymentMode: "Registration only",
-    exportsReady: false
+    exportsReady: false,
+    eventType: "physical",
+    accessType: "private"
   }
 ];
 

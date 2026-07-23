@@ -30,6 +30,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - File/image upload from device storage.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Native maps handoff for event directions.
+- Organiser-provided Maps links can be opened from native event details and draft preview.
 - Persisted user settings for theme, notification preferences, and account support links.
 
 ## Phase 4: Store Readiness
@@ -47,6 +48,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Dashboard and events load from EventSlot APIs for owned and invited team events.
 - Create event, verifier code, ticket verification, and profile settings work on-device.
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
+- Maps links are tested on Android with Google Maps installed and browser fallback.
 - Duplicate ticket scans, wrong-event tickets, used tickets, and multi-admission tickets are tested.
 - Dark and light themes are visually checked on at least one Android phone.
 - The current TWA closed test remains available while native development continues.

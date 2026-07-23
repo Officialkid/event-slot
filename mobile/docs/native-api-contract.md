@@ -85,6 +85,23 @@ Before shipping real offline drafts:
 - Add conflict handling when a local draft is later submitted to the live API.
 - Add device QA for app restart, low-memory termination, and network loss.
 
+## Maps Handoff
+
+The native app can validate and open organiser-provided Google Maps links using React Native `Linking`.
+
+Current behavior:
+
+- Event details show an Open directions action when `mapDirectionsUrl` is a supported Google Maps URL.
+- Create Event draft preview validates the pasted Maps link and lets the organiser test it.
+- No GPS/location permission is requested yet.
+
+Before shipping full native maps:
+
+- Decide whether EventSlot needs GPS permission or only Maps URL handoff.
+- Add a place-search picker if mobile copying/pasting Maps links remains too hard for organisers.
+- Validate shortened `maps.app.goo.gl` links against abuse/spam rules before saving live events.
+- Test Android devices with Google Maps installed, browser-only devices, and iOS Apple Maps fallback.
+
 ## Ticket Verification
 
 The native verifier is structured around the existing web API paths:

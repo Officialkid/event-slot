@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
 import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
 import { createDraftPreview } from "../services/events";
+import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
@@ -39,6 +40,7 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
   }, []);
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
+  const mapUrlSupported = isSupportedMapUrl(preview.mapDirectionsUrl);
 
   const updateDraft = <Key extends keyof EventDraft>(key: Key, value: EventDraft[Key]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -187,7 +189,16 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
           {draft.description || "Your event description will appear here with the spacing and wording preserved."}
         </Text>
         {preview.mapDirectionsUrl ? (
-          <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>Maps link ready</Text>
+          <View style={[styles.mapStatus, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.previewMeta, { color: mapUrlSupported ? theme.colors.accent : theme.colors.error }]}>
+              {mapUrlSupported ? "Maps link ready" : "Maps link needs a Google Maps URL"}
+            </Text>
+            {mapUrlSupported ? (
+              <Pressable accessibilityRole="button" onPress={() => openMapUrl(preview.mapDirectionsUrl)} style={[styles.mapButton, { borderColor: theme.colors.border }]}>
+                <Text style={[styles.mapButtonText, { color: theme.colors.accent }]}>Open map</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : null}
         {preview.attendeeConsentEnabled ? (
           <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>Custom consent screen enabled</Text>
@@ -425,5 +436,23 @@ const styles = StyleSheet.create({
   previewBody: {
     fontSize: 14,
     lineHeight: 22
+  },
+  mapStatus: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    paddingTop: 10
+  },
+  mapButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  mapButtonText: {
+    fontSize: 12,
+    fontWeight: "900"
   }
 });
