@@ -192,14 +192,16 @@ The native profile page is currently a readiness hub. It shows:
 - Native readiness state for shell, auth, live data, and scanner work.
 - Permission placeholders for camera, file uploads, notifications, and maps.
 - Memory-backed theme and notification-channel preferences.
+- Hosted privacy policy, terms, website, and tester-support link actions.
+- Account deletion readiness messaging while the authenticated deletion API remains gated.
 
 Before these become real settings:
 
 - Store user preferences in secure native storage.
 - Connect appearance settings to persisted theme preference.
 - Request camera, file, notification, and location/map permissions only at the moment they are needed.
-- Add account deletion/privacy links that open the hosted EventSlot policy pages.
-- Add tester feedback/support links before closed native builds.
+- Add authenticated account deletion and data export routes for native users.
+- Confirm hosted policy URLs, support inbox handling, and app-store account deletion wording before closed native builds.
 
 ## Native Preferences
 

@@ -33,7 +33,9 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Notification channels are scaffolded; push token registration and permission prompts are still gated.
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
-- Memory-backed preference service exists; persistent user settings for theme, notification preferences, and account support links still need native storage.
+- Hosted privacy, terms, website, and tester-support links are available from native Profile.
+- Memory-backed preference service exists; persistent user settings for theme and notification preferences still need native storage.
+- Account deletion remains gated until authenticated deletion and data export routes are available to native sessions.
 
 ## Phase 4: Store Readiness
 

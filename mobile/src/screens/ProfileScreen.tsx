@@ -8,19 +8,69 @@ import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
 import { buildNotificationPreferences, getPushReadinessMessage } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
+import { getAccountDeletionReadinessMessage, openSupportLink, supportLinks } from "../services/support";
 import { NativeScreenProps } from "./types";
 
-const settings = [
-  ["Profile", "Account details, name, email, and organiser identity"],
-  ["Appearance", "Dark default with a light option across native screens"],
-  ["Privacy", "Terms, policy, data access, and account deletion"],
-  ["Support", "Help, feedback, and tester reporting"]
-];
+type AccountSetting = {
+  title: string;
+  caption: string;
+  actionLabel: string;
+  onPress?: () => void;
+};
 
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
   const [preferences, setPreferences] = useState<NativePreferences>(defaultNativePreferences);
   const pushReadiness = getPushReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
+  const accountSettings: AccountSetting[] = [
+    {
+      title: "Profile",
+      caption: "Account editing will connect after live native auth is ready.",
+      actionLabel: "SOON"
+    },
+    {
+      title: "Appearance",
+      caption: "Theme switching is available from the top native app controls.",
+      actionLabel: preferences.themeName.toUpperCase()
+    },
+    {
+      title: "Privacy policy",
+      caption: "Open the hosted EventSlot privacy policy.",
+      actionLabel: "OPEN",
+      onPress: () => {
+        openSupportLink(supportLinks.privacyPolicy).catch(() => {});
+      }
+    },
+    {
+      title: "Terms of service",
+      caption: "Open the hosted EventSlot terms for organizers and attendees.",
+      actionLabel: "OPEN",
+      onPress: () => {
+        openSupportLink(supportLinks.terms).catch(() => {});
+      }
+    },
+    {
+      title: "Support",
+      caption: "Email EventSlot support for app testing feedback or account help.",
+      actionLabel: "EMAIL",
+      onPress: () => {
+        openSupportLink(supportLinks.testerSupport).catch(() => {});
+      }
+    },
+    {
+      title: "Website",
+      caption: "Open the live EventSlot web app while native features are being completed.",
+      actionLabel: "OPEN",
+      onPress: () => {
+        openSupportLink(supportLinks.website).catch(() => {});
+      }
+    },
+    {
+      title: "Account deletion",
+      caption: getAccountDeletionReadinessMessage(),
+      actionLabel: "GATED"
+    }
+  ];
 
   useEffect(() => {
     loadNativePreferences()
@@ -64,14 +114,8 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>ACCOUNT</Text>
-      {settings.map(([title, caption]) => (
-        <View key={title} style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{title}</Text>
-            <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{caption}</Text>
-          </View>
-          <Text style={[styles.chevron, { color: theme.colors.muted }]}>{">"}</Text>
-        </View>
+      {accountSettings.map((item) => (
+        <SettingRow key={item.title} item={item} theme={theme} />
       ))}
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>NATIVE READINESS</Text>
@@ -109,6 +153,30 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
         <Text style={[styles.signOut, { color: theme.colors.error }]}>Sign out of native demo</Text>
       </Pressable>
     </View>
+  );
+}
+
+type SettingRowProps = {
+  item: AccountSetting;
+  theme: NativeScreenProps["theme"];
+};
+
+function SettingRow({ item, theme }: SettingRowProps) {
+  return (
+    <Pressable
+      accessibilityRole={item.onPress ? "button" : "text"}
+      disabled={!item.onPress}
+      onPress={item.onPress}
+      style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+    >
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.title}</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{item.caption}</Text>
+      </View>
+      <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: item.onPress ? theme.colors.accent : theme.colors.muted }]}>
+        {item.actionLabel}
+      </Text>
+    </Pressable>
   );
 }
 
