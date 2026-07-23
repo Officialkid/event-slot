@@ -85,6 +85,7 @@ The native Event Detail screen now has an Export Centre scaffold for:
 - Confirmed registration CSV.
 - All response PDF.
 - AI event intelligence report.
+- Preparing an export action and handing a returned download URL to the native share sheet.
 
 Planned native endpoints:
 
@@ -97,7 +98,7 @@ Before enabling real native downloads:
 - Require bearer-token organizer/team access.
 - Return signed short-lived download URLs or streamed files.
 - Preserve the current web export permissions and super-admin access rules.
-- Add native progress/error states for large exports and AI report preparation.
+- Replace demo export URLs with live signed URLs and stronger progress states for large exports and AI report preparation.
 - Test downloads on Android file managers, share sheets, and low-storage devices.
 
 ## Event Creation

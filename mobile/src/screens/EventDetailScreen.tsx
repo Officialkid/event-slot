@@ -1,16 +1,18 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NativeExportAction } from "../domain/exports";
 import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
-import { buildExportActions, getExportReadinessMessage } from "../services/exports";
+import { buildExportActions, getExportReadinessMessage, prepareNativeExport } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace } from "../services/registrations";
 import { shareNativePayload } from "../services/share";
 import { EventDetailScreenProps } from "./types";
 
-export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
+export function EventDetailScreen({ eventId, theme, session, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
   const event = findNativeEvent(events, eventId);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   if (eventsLoading) {
     return (
@@ -53,6 +55,30 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
   const exportActions = buildExportActions(event);
   const accessSummary = getEventAccessSummary(event);
   const verifierInvite = buildVerifierInviteAction(event);
+
+  const handlePrepareExport = async (action: NativeExportAction) => {
+    setExportStatus(`Preparing ${action.title.toLowerCase()}...`);
+
+    try {
+      const result = await prepareNativeExport(session, event, action);
+      const message =
+        result.status === "preparing"
+          ? `${action.title} is preparing. Job: ${result.jobId ?? "pending"}`
+          : `${action.title} is ready${result.expiresAt ? ` until ${new Date(result.expiresAt).toLocaleTimeString()}` : ""}.`;
+
+      setExportStatus(message);
+
+      if (result.downloadUrl) {
+        await shareNativePayload({
+          title: action.title,
+          message,
+          url: result.downloadUrl
+        }).catch(() => {});
+      }
+    } catch (error) {
+      setExportStatus(error instanceof Error ? error.message : "Could not prepare this export right now.");
+    }
+  };
 
   return (
     <View style={styles.stack}>
@@ -128,9 +154,12 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
         <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
           {getExportReadinessMessage(event)}
         </Text>
+        {exportStatus ? (
+          <Text style={[styles.exportStatus, { color: theme.colors.accent }]}>{exportStatus}</Text>
+        ) : null}
         <View style={styles.exportGrid}>
           {exportActions.map((action) => (
-            <ExportActionCard key={action.kind} action={action} theme={theme} />
+            <ExportActionCard key={action.kind} action={action} onPrepare={() => handlePrepareExport(action)} theme={theme} />
           ))}
         </View>
       </View>
@@ -211,10 +240,11 @@ function ActionLine({ label, value, action, onPress, theme }: ActionLineProps) {
 
 type ExportActionCardProps = {
   action: NativeExportAction;
+  onPrepare: () => void;
   theme: EventDetailScreenProps["theme"];
 };
 
-function ExportActionCard({ action, theme }: ExportActionCardProps) {
+function ExportActionCard({ action, onPrepare, theme }: ExportActionCardProps) {
   const ready = action.state === "ready";
 
   return (
@@ -225,6 +255,9 @@ function ExportActionCard({ action, theme }: ExportActionCardProps) {
       <Text style={[styles.registrationStatus, { backgroundColor: theme.colors.activeTab, color: ready ? theme.colors.accent : theme.colors.muted }]}>
         {ready ? "READY" : "LIVE API"}
       </Text>
+      <Pressable accessibilityRole="button" onPress={onPrepare} style={[styles.shareButton, { borderColor: theme.colors.border }]}>
+        <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Prepare export</Text>
+      </Pressable>
     </View>
   );
 }
@@ -376,6 +409,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     lineHeight: 16
+  },
+  exportStatus: {
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 20,
+    marginTop: 10
   },
   capabilityRow: {
     flexDirection: "row",
