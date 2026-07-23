@@ -1,7 +1,6 @@
-const DEFAULT_API_BASE_URL = "https://www.eventsslot.com";
+import { nativeConfig } from "../config";
 
-export const apiBaseUrl =
-  process.env.EXPO_PUBLIC_EVENTSSLOT_API_BASE_URL ?? DEFAULT_API_BASE_URL;
+export const apiBaseUrl = nativeConfig.apiBaseUrl;
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

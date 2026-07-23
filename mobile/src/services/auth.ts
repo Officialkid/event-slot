@@ -1,5 +1,6 @@
 import { SendOtpRequest, SignupRequest } from "../api/contracts";
 import { eventslotRequest } from "../api/client";
+import { nativeConfig } from "../config";
 import { AppSession } from "../session";
 
 export const demoSession: AppSession = {
@@ -8,7 +9,7 @@ export const demoSession: AppSession = {
   role: "Super Admin",
   plan: "Pioneer",
   tokenBalance: 5,
-  authMode: "demo"
+  authMode: nativeConfig.authMode
 };
 
 export async function requestOrganizerOtp(input: SendOtpRequest): Promise<void> {

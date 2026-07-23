@@ -16,6 +16,8 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Load organizer dashboard metrics from the live API.
 - Load owned and invited events.
 - Add event detail, confirmed registrations, waitlist, and export status views.
+- Keep `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=demo` until the native token endpoints are implemented and verified.
+- Keep native uploads disabled until bucket upload permissions, file-size limits, and mobile error handling are complete.
 
 ## Phase 3: Native Capabilities
 
@@ -32,3 +34,13 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Privacy/data safety review updated for native permissions.
 - QA on Android devices before iOS work begins.
 
+## Native Release Gate
+
+Do not submit the Expo native app to Play Store or App Store until all of these are proven:
+
+- Real native sign-in creates a secure session without relying on web cookies.
+- Dashboard and events load from EventSlot APIs for owned and invited team events.
+- Create event, verifier code, ticket verification, and profile settings work on-device.
+- Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
+- Dark and light themes are visually checked on at least one Android phone.
+- The current TWA closed test remains available while native development continues.
