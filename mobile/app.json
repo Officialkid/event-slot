@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "EventSlot",
+    "slug": "eventslot-native",
+    "scheme": "eventslot",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.alphatech.eventslot.native"
+    },
+    "android": {
+      "package": "com.alphatech.eventslot.native"
+    },
+    "extra": {
+      "apiBaseUrl": "https://www.eventsslot.com"
+    }
+  }
+}
