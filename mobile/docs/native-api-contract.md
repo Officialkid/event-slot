@@ -88,3 +88,19 @@ Before enabling live mode:
 - Add camera QR scanning and pass the parsed QR payload to the same verification service.
 - Add explicit unverify/reverse-check-in handling for super admins or permitted event teams.
 - Test duplicate scans, wrong-event scans, expired/closed events, and multi-admission tickets.
+
+## Profile And Settings
+
+The native profile page is currently a readiness hub. It shows:
+
+- Current account identity and app mode.
+- Native readiness state for shell, auth, live data, and scanner work.
+- Permission placeholders for camera, file uploads, notifications, and maps.
+
+Before these become real settings:
+
+- Store user preferences in secure native storage.
+- Connect appearance settings to persisted theme preference.
+- Request camera, file, notification, and location/map permissions only at the moment they are needed.
+- Add account deletion/privacy links that open the hosted EventSlot policy pages.
+- Add tester feedback/support links before closed native builds.

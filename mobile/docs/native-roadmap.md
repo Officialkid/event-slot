@@ -9,6 +9,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Floating create action.
 - Sign-in gate with placeholder session.
 - Dashboard, events, verifier, and profile screens.
+- Profile/settings readiness hub for account mode, permissions, and native launch blockers.
 
 ## Phase 2: Real Data
 
@@ -28,6 +29,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - File/image upload from device storage.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Native maps handoff for event directions.
+- Persisted user settings for theme, notification preferences, and account support links.
 
 ## Phase 4: Store Readiness
 
