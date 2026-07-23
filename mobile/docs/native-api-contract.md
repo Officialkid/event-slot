@@ -47,6 +47,26 @@ Use `.env` values from `.env.example`:
 
 That keeps the native UI ready for the real backend without duplicating fetch logic in each screen.
 
+## Event Creation
+
+The native create-event screen is still draft-only. It mirrors the web API shape without posting live data yet:
+
+- `title`, `description`, `capacity`, `eventDate`, and `deadline`.
+- `eventType`: `physical` or `virtual`.
+- `accessType`: `public` or `private`.
+- `mapDirectionsUrl`: organiser-provided Google Maps link.
+- `entryFeeLabel`: external fee/contribution wording while EventSlot payments remain hidden.
+- `whatsappNumber` and `contactMode` for organiser contact.
+- `attendeeConsentEnabled` and `attendeeConsentText` for optional custom consent clauses.
+
+Before enabling live creation:
+
+- Add native-safe bearer session support for `POST /api/events`.
+- Convert native date/time fields into ISO strings expected by the backend.
+- Keep `isPaid=false` until the payment rollout is officially enabled.
+- Preserve multiline descriptions exactly as the organiser typed them.
+- Add validation for map URLs, capacity, deadline, and WhatsApp number before submit.
+
 ## Ticket Verification
 
 The native verifier is structured around the existing web API paths:

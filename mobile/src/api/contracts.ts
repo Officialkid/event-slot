@@ -39,6 +39,7 @@ export type CreateEventRequest = {
   attendeeConsentEnabled?: boolean;
   attendeeConsentText?: string;
   isPaid?: false;
+  ticketsEnabled?: true;
   communityLink?: string;
   whatsappNumber?: string;
   contactMode?: "email" | "whatsapp" | "both";

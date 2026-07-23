@@ -28,7 +28,14 @@ export function createDraftPreview(draft: EventDraft): NativeEvent {
     capacity: Number.parseInt(draft.capacity, 10) || 0,
     verifierCode: "NEW",
     role: "Owner",
-    paymentMode: "Registration only",
-    exportsReady: false
+    paymentMode: draft.entryFeeLabel ? "Paid externally" : "Registration only",
+    exportsReady: false,
+    eventType: draft.eventType,
+    accessType: draft.accessType,
+    mapDirectionsUrl: draft.mapDirectionsUrl.trim() || undefined,
+    entryFeeLabel: draft.entryFeeLabel.trim() || undefined,
+    whatsappNumber: draft.whatsappNumber.trim() || undefined,
+    attendeeConsentEnabled: draft.attendeeConsentEnabled,
+    attendeeConsentText: draft.attendeeConsentText.trim() || undefined
   };
 }

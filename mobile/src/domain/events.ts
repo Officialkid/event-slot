@@ -1,4 +1,6 @@
 export type EventStatus = "Active" | "Draft" | "Closed";
+export type NativeEventType = "physical" | "virtual";
+export type NativeAccessType = "public" | "private";
 
 export type NativeEvent = {
   id: string;
@@ -15,6 +17,13 @@ export type NativeEvent = {
   role: "Owner" | "Team";
   paymentMode: "Registration only" | "Paid externally";
   exportsReady: boolean;
+  eventType?: NativeEventType;
+  accessType?: NativeAccessType;
+  mapDirectionsUrl?: string;
+  entryFeeLabel?: string;
+  whatsappNumber?: string;
+  attendeeConsentEnabled?: boolean;
+  attendeeConsentText?: string;
 };
 
 export type EventDraft = {
@@ -23,5 +32,11 @@ export type EventDraft = {
   venue: string;
   capacity: string;
   description: string;
+  eventType: NativeEventType;
+  accessType: NativeAccessType;
+  mapDirectionsUrl: string;
+  entryFeeLabel: string;
+  whatsappNumber: string;
+  attendeeConsentEnabled: boolean;
+  attendeeConsentText: string;
 };
-
