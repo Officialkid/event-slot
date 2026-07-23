@@ -1,4 +1,4 @@
-import { NativeRegistrationSummary } from "../api/contracts";
+import { NativeEventWorkspaceResponse, NativeRegistrationSummary } from "../api/contracts";
 import { NativeEvent } from "../domain/events";
 import { NativeRegistrationPreview, NativeRegistrationWorkspace } from "../domain/registrations";
 
@@ -41,6 +41,13 @@ export function buildDemoRegistrationWorkspace(event: NativeEvent): NativeRegist
   }));
 
   return { confirmed, waitlist };
+}
+
+export function buildWorkspaceRegistrationPreview(workspace: NativeEventWorkspaceResponse): NativeRegistrationWorkspace {
+  return {
+    confirmed: workspace.confirmed.map((registration) => mapRegistrationSummary(registration, "confirmed")),
+    waitlist: workspace.waitlist.map((registration) => mapRegistrationSummary(registration, "waitlist"))
+  };
 }
 
 export function mapRegistrationSummary(

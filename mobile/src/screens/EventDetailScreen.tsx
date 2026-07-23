@@ -1,18 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { NativeEventWorkspaceResponse } from "../api/contracts";
 import { NativeExportAction } from "../domain/exports";
 import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
 import { buildExportActions, getExportReadinessMessage, prepareNativeExport } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
-import { buildDemoRegistrationWorkspace } from "../services/registrations";
+import { buildDemoRegistrationWorkspace, buildWorkspaceRegistrationPreview } from "../services/registrations";
 import { shareNativePayload } from "../services/share";
+import { loadNativeEventWorkspace } from "../services/workspace";
 import { EventDetailScreenProps } from "./types";
 
 export function EventDetailScreen({ eventId, theme, session, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
   const event = findNativeEvent(events, eventId);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<NativeEventWorkspaceResponse | null>(null);
+  const [workspaceStatus, setWorkspaceStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    setWorkspace(null);
+    setWorkspaceStatus(null);
+
+    if (!event || session.authMode !== "live") {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setWorkspaceStatus("Loading live event workspace...");
+    loadNativeEventWorkspace(session, event.slug)
+      .then((response) => {
+        if (!mounted) {
+          return;
+        }
+        setWorkspace(response);
+        setWorkspaceStatus("Live workspace loaded from EventSlot.");
+      })
+      .catch((error: unknown) => {
+        if (!mounted) {
+          return;
+        }
+        setWorkspaceStatus(error instanceof Error ? error.message : "Could not load the live event workspace.");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [event, session]);
 
   if (eventsLoading) {
     return (
@@ -51,7 +88,7 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
 
   const fillPercent = event.capacity > 0 ? Math.round((event.attendees / event.capacity) * 100) : 0;
   const canOpenMap = isSupportedMapUrl(event.mapDirectionsUrl);
-  const registrationWorkspace = buildDemoRegistrationWorkspace(event);
+  const registrationWorkspace = workspace ? buildWorkspaceRegistrationPreview(workspace) : buildDemoRegistrationWorkspace(event);
   const exportActions = buildExportActions(event);
   const accessSummary = getEventAccessSummary(event);
   const verifierInvite = buildVerifierInviteAction(event);
@@ -108,7 +145,12 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Native workspace</Text>
-        <ActionLine label="Registrations" value="View confirmed, waitlist, and attendee records" theme={theme} />
+        <ActionLine
+          label="Workspace source"
+          value={workspaceStatus ?? (session.authMode === "live" ? "Preparing live workspace..." : "Demo mode uses local preview data.")}
+          theme={theme}
+        />
+        <ActionLine label="Registrations" value={workspace ? "Loaded confirmed and waitlist records from the live API" : "View confirmed, waitlist, and attendee records"} theme={theme} />
         <ActionLine label="Access role" value={accessSummary.caption} theme={theme} />
         <ActionLine
           label="Maps"
@@ -167,7 +209,9 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Registrations</Text>
         <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
-          Native confirmed and waitlist records will load here from the event workspace API. Demo mode shows a small preview.
+          {workspace
+            ? "These attendee previews are loaded from the native event workspace API."
+            : "Demo mode shows a small preview until the live workspace is available."}
         </Text>
         <View style={styles.registrationTabs}>
           <Text style={[styles.registrationTab, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>

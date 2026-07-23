@@ -24,6 +24,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native dashboard stats, event list, and event detail backend adapters exist behind bearer-token access.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Event detail now has native confirmed/waitlist preview UI and registration mappers.
+- Event detail now loads live confirmed/waitlist previews from `/api/native/events/:slug` when live mode is active.
 - Event detail now has a native Export Centre scaffold for CSV, response PDF, and AI report actions.
 - Export actions now have native prepare/share interaction scaffolding.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.

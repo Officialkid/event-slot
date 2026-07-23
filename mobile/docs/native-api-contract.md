@@ -92,6 +92,7 @@ Current backend behavior:
 
 - Event lists include owned events, events matching the organizer email, and accepted team-assigned events.
 - Event detail requires owner/email/team assignment access and returns confirmed plus waitlist previews.
+- The native Event Detail screen consumes the live detail endpoint in live mode and falls back to demo registration previews in demo mode.
 - Dashboard stats include owned and accepted team-assigned event activity.
 - Event list/detail currently return `accessType: "public"` until native private-link behavior is fully modelled.
 
