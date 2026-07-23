@@ -28,7 +28,7 @@ Before switching native mode from `demo` to `live`, add a mobile-safe session fl
 - `POST /api/native/auth/logout`
 - Bearer-token support for organizer event list and event workspace routes.
 
-Native request/response contracts and client service functions are now scaffolded for this flow. The expected response includes:
+Native request/response contracts, client service functions, and backend route scaffolds are now in place for this flow. The expected response includes:
 
 - `accessToken`
 - `refreshToken`
@@ -47,12 +47,19 @@ Drafts, preferences, and sessions now go through one shared native storage adapt
 
 Still gated before live use:
 
-- Backend implementations for the three native auth endpoints.
+- Production hardening for the three native auth endpoints.
 - Secure storage for refresh tokens.
 - Token revocation on logout and account deletion.
 - Refresh retry behavior for expired access tokens.
 - Replacing the current memory-backed session store with Expo SecureStore or another reviewed native storage layer.
 - Replacing the shared memory driver with durable native storage and deciding which values belong in encrypted storage.
+
+Current backend behavior:
+
+- `POST /api/native/auth/login` validates email/password against the existing user table and respects suspended accounts, login backoff, and OTP-required accounts.
+- `POST /api/native/auth/refresh` accepts a native refresh bearer payload and returns a fresh access/refresh pair.
+- `POST /api/native/auth/logout` is intentionally stateless for now; persistent revocation is still required before production native auth.
+- Tokens are HMAC-signed with the existing `AUTH_SECRET` or `NEXTAUTH_SECRET`, separate from browser cookies.
 
 ## Runtime Flags
 
@@ -141,6 +148,15 @@ The mobile app now has a guarded native publish service:
 - `prepareNativeCreateEventRequest` maps a validated draft into `CreateEventRequest`.
 - `submitNativeEventDraft` posts to `POST /api/native/events` only when a live bearer session exists.
 - Demo mode keeps the action disabled from production writes while still showing readiness and validation states.
+
+Current backend behavior for `POST /api/native/events`:
+
+- Requires a native bearer access token.
+- Creates registration-only events with default full-name, email, and phone questions.
+- Forces `isPaid=false` and `paymentsLive=false` while payments remain hidden.
+- Maps native `physical/virtual` to the existing Prisma `EventType`.
+- Blocks native virtual-event publishing until the mobile draft collects and validates a Google Meet link.
+- Keeps native `public/private` as a client contract for now; the current database still stores registration events as `REGISTRATION`, so true private-link behavior remains a backend follow-up.
 
 ## Offline Drafts
 

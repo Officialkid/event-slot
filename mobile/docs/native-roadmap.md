@@ -15,6 +15,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 
 - Add secure session handling for EventSlot API auth.
 - Native login, refresh, logout, and session response contracts are scaffolded in the app.
+- Native login, refresh, and logout backend route scaffolds exist under `/api/native/auth/*`.
 - Native session restore and refresh lifecycle is scaffolded behind a session-store service.
 - Drafts, preferences, and sessions now use a shared native storage adapter so the future persistent driver can be swapped in one place.
 - Load organizer dashboard metrics from the live API.
@@ -27,6 +28,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
 - Native event publish preparation is scaffolded and guarded behind live bearer-token mode.
+- A first `POST /api/native/events` backend adapter exists for registration-only native events.
 - Use the current in-memory draft and session stores only as a preview; add persistent native storage before real offline drafts or live token restore.
 - Keep `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=demo` until the native token endpoints are implemented and verified.
 - Keep native uploads disabled until bucket upload permissions, file-size limits, and mobile error handling are complete.

@@ -43,6 +43,13 @@ export function prepareNativeCreateEventRequest(draft: EventDraft): NativeCreate
     };
   }
 
+  if (draft.eventType === "virtual") {
+    return {
+      ready: false,
+      reason: "Native virtual publishing still needs a Google Meet link field before it can go live."
+    };
+  }
+
   const eventDate = parseEventDate(draft.dateLabel);
   if (!eventDate) {
     return {
