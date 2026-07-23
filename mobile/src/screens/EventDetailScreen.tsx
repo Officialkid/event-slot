@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { findNativeEvent } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
+import { buildDemoRegistrationWorkspace } from "../services/registrations";
 import { EventDetailScreenProps } from "./types";
 
 export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
@@ -44,6 +45,7 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
 
   const fillPercent = event.capacity > 0 ? Math.round((event.attendees / event.capacity) * 100) : 0;
   const canOpenMap = isSupportedMapUrl(event.mapDirectionsUrl);
+  const registrationWorkspace = buildDemoRegistrationWorkspace(event);
 
   return (
     <View style={styles.stack}>
@@ -83,6 +85,36 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
           onPress={canOpenMap ? () => openMapUrl(event.mapDirectionsUrl) : undefined}
           theme={theme}
         />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Registrations</Text>
+        <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+          Native confirmed and waitlist records will load here from the event workspace API. Demo mode shows a small preview.
+        </Text>
+        <View style={styles.registrationTabs}>
+          <Text style={[styles.registrationTab, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
+            Confirmed {event.attendees}
+          </Text>
+          <Text style={[styles.registrationTab, { backgroundColor: theme.colors.activeTab, color: theme.colors.secondary }]}>
+            Waitlist {event.waitlist}
+          </Text>
+        </View>
+        {registrationWorkspace.confirmed.length > 0 ? (
+          registrationWorkspace.confirmed.map((registration) => (
+            <RegistrationLine key={registration.id} registration={registration} theme={theme} />
+          ))
+        ) : (
+          <Text style={[styles.emptyText, { color: theme.colors.secondary }]}>No confirmed attendees yet.</Text>
+        )}
+        {registrationWorkspace.waitlist.length > 0 ? (
+          <View style={[styles.waitlistPreview, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.actionLabel, { color: theme.colors.text }]}>Waitlist preview</Text>
+            {registrationWorkspace.waitlist.map((registration) => (
+              <RegistrationLine key={registration.id} registration={registration} theme={theme} />
+            ))}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -125,6 +157,32 @@ function ActionLine({ label, value, action, onPress, theme }: ActionLineProps) {
           <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>{action}</Text>
         </Pressable>
       ) : null}
+    </View>
+  );
+}
+
+type RegistrationLineProps = {
+  registration: ReturnType<typeof buildDemoRegistrationWorkspace>["confirmed"][number];
+  theme: EventDetailScreenProps["theme"];
+};
+
+function RegistrationLine({ registration, theme }: RegistrationLineProps) {
+  const meta = [
+    registration.attendeePhone,
+    registration.attendeeEmail,
+    registration.waitlistPosition ? `#${registration.waitlistPosition} waitlist` : undefined,
+    registration.submittedAtLabel
+  ].filter(Boolean);
+
+  return (
+    <View style={[styles.registrationLine, { borderColor: theme.colors.border }]}>
+      <View style={styles.actionCopy}>
+        <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{registration.attendeeName}</Text>
+        <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{meta.join(" | ")}</Text>
+      </View>
+      <Text style={[styles.registrationStatus, { backgroundColor: theme.colors.activeTab, color: registration.status === "confirmed" ? theme.colors.success : theme.colors.accent }]}>
+        {registration.status.toUpperCase()}
+      </Text>
     </View>
   );
 }
@@ -235,5 +293,47 @@ const styles = StyleSheet.create({
   inlineButtonText: {
     fontSize: 12,
     fontWeight: "900"
+  },
+  registrationTabs: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10
+  },
+  registrationTab: {
+    borderRadius: 999,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "900",
+    overflow: "hidden",
+    paddingVertical: 10,
+    textAlign: "center"
+  },
+  registrationLine: {
+    alignItems: "center",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    paddingVertical: 13
+  },
+  registrationStatus: {
+    borderRadius: 999,
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1,
+    overflow: "hidden",
+    paddingHorizontal: 9,
+    paddingVertical: 6
+  },
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 20,
+    paddingTop: 12
+  },
+  waitlistPreview: {
+    borderTopWidth: 1,
+    gap: 2,
+    marginTop: 8,
+    paddingTop: 12
   }
 });

@@ -67,7 +67,7 @@ Live native workspace contracts are now scaffolded for:
 - `GET /api/native/events?limit=100`
 - `GET /api/native/events/:slug`
 
-The native app maps those responses into the existing dashboard and event list UI. Demo mode still uses local sample data, while live mode requires a bearer access token from the native auth flow.
+The native app maps those responses into the existing dashboard, event list, event detail, and registration preview UI. Demo mode still uses local sample data, while live mode requires a bearer access token from the native auth flow.
 
 Before enabling live event loading:
 
@@ -75,6 +75,7 @@ Before enabling live event loading:
 - Return owned events and accepted team-invite events in the same list.
 - Keep payment state hidden from native creation until the payment rollout is approved.
 - Include `mapDirectionsUrl`, `entryFeeLabel`, custom consent settings, verifier codes, and export readiness in event responses.
+- Return confirmed and waitlist records in a stable shape that native can summarize without exposing sensitive raw answers unnecessarily.
 - Add pagination/refresh handling for organizers with more than 100 events.
 
 ## Event Creation

@@ -19,6 +19,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Load owned and invited events.
 - Native dashboard stats, event list, and event workspace contracts are scaffolded behind bearer-token calls.
 - Add event detail, confirmed registrations, waitlist, and export status views.
+- Event detail now has native confirmed/waitlist preview UI and registration mappers.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
 - Use the current in-memory draft store only as a preview; add persistent native storage before real offline drafts.
