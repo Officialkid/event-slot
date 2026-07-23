@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { NativeAttachmentKind } from "../domain/attachments";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
 import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
+import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { getUploadReadinessMessage } from "../services/uploads";
@@ -42,6 +43,7 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
   }, []);
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
+  const validation = useMemo(() => validateEventDraft(draft), [draft]);
   const mapUrlSupported = isSupportedMapUrl(preview.mapDirectionsUrl);
   const uploadReadiness = getUploadReadinessMessage();
 
@@ -76,6 +78,33 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
           {draftLoading ? "Checking this device for saved work..." : draftStatus}
         </Text>
+      </View>
+
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: validation.canSubmit ? theme.colors.success : theme.colors.border }]}>
+        <View style={styles.validationHeader}>
+          <Text style={[styles.statusTitle, { color: validation.canSubmit ? theme.colors.success : theme.colors.accent }]}>
+            DRAFT READINESS
+          </Text>
+          <Text style={[styles.validationPill, { backgroundColor: theme.colors.activeTab, color: validation.canSubmit ? theme.colors.success : theme.colors.error }]}>
+            {validation.canSubmit ? "READY" : `${validation.errors.length} FIX`}
+          </Text>
+        </View>
+        {validation.errors.length === 0 && validation.warnings.length === 0 ? (
+          <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+            This draft has the minimum information needed for the future native publish step.
+          </Text>
+        ) : null}
+        {validation.errors.map((issue) => (
+          <ValidationLine key={`error-${issue.field}-${issue.message}`} message={issue.message} tone="error" theme={theme} />
+        ))}
+        {validation.warnings.slice(0, 3).map((issue) => (
+          <ValidationLine key={`warning-${issue.field}-${issue.message}`} message={issue.message} tone="warning" theme={theme} />
+        ))}
+        {validation.warnings.length > 3 ? (
+          <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+            {validation.warnings.length - 3} more suggestion{validation.warnings.length - 3 === 1 ? "" : "s"} will be checked before live publishing.
+          </Text>
+        ) : null}
       </View>
 
       <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -299,6 +328,21 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
   );
 }
 
+type ValidationLineProps = {
+  message: string;
+  tone: "error" | "warning";
+  theme: NativeScreenProps["theme"];
+};
+
+function ValidationLine({ message, tone, theme }: ValidationLineProps) {
+  return (
+    <Text style={[styles.validationLine, { color: tone === "error" ? theme.colors.error : theme.colors.secondary }]}>
+      {tone === "error" ? "Fix: " : "Tip: "}
+      {message}
+    </Text>
+  );
+}
+
 type FieldProps = {
   label: string;
   value: string;
@@ -403,6 +447,24 @@ const styles = StyleSheet.create({
   },
   statusCopy: {
     fontSize: 14,
+    lineHeight: 20
+  },
+  validationHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  validationPill: {
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: "900",
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  validationLine: {
+    fontSize: 13,
+    fontWeight: "800",
     lineHeight: 20
   },
   formCard: {

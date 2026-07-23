@@ -88,6 +88,7 @@ The native create-event screen is still draft-only. It mirrors the web API shape
 - `entryFeeLabel`: external fee/contribution wording while EventSlot payments remain hidden.
 - `whatsappNumber` and `contactMode` for organiser contact.
 - `attendeeConsentEnabled` and `attendeeConsentText` for optional custom consent clauses.
+- Native draft validation for required basics, capacity, Maps URL support, consent wording, and upload-question setup.
 
 Before enabling live creation:
 
@@ -95,7 +96,8 @@ Before enabling live creation:
 - Convert native date/time fields into ISO strings expected by the backend.
 - Keep `isPaid=false` until the payment rollout is officially enabled.
 - Preserve multiline descriptions exactly as the organiser typed them.
-- Add validation for map URLs, capacity, deadline, and WhatsApp number before submit.
+- Convert the draft readiness checks into submit blockers for the live create-event request.
+- Add deadline/time validation and WhatsApp number normalization before submit.
 
 ## Offline Drafts
 
