@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NativeExportAction } from "../domain/exports";
+import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
 import { buildExportActions, getExportReadinessMessage } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
@@ -49,6 +50,8 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
   const canOpenMap = isSupportedMapUrl(event.mapDirectionsUrl);
   const registrationWorkspace = buildDemoRegistrationWorkspace(event);
   const exportActions = buildExportActions(event);
+  const accessSummary = getEventAccessSummary(event);
+  const verifierInvite = buildVerifierInviteAction(event);
 
   return (
     <View style={styles.stack}>
@@ -79,7 +82,7 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Native workspace</Text>
         <ActionLine label="Registrations" value="View confirmed, waitlist, and attendee records" theme={theme} />
-        <ActionLine label="Verifier team" value="Invite scanners with event-specific code" theme={theme} />
+        <ActionLine label="Access role" value={accessSummary.caption} theme={theme} />
         <ActionLine
           label="Maps"
           value={canOpenMap ? "Organiser-provided directions are ready" : "Add organiser-provided directions before launch"}
@@ -87,6 +90,24 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
           onPress={canOpenMap ? () => openMapUrl(event.mapDirectionsUrl) : undefined}
           theme={theme}
         />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Verifier Team</Text>
+        <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{accessSummary.title}</Text>
+        <View style={styles.capabilityRow}>
+          {accessSummary.capabilities.map((capability) => (
+            <Text key={capability} style={[styles.capabilityPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
+              {formatCapabilityLabel(capability)}
+            </Text>
+          ))}
+        </View>
+        <View style={[styles.verifierCard, { backgroundColor: theme.colors.input, borderColor: theme.colors.border }]}>
+          <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{verifierInvite.title}</Text>
+          <Text style={[styles.verifierCode, { color: theme.colors.accent }]}>{verifierInvite.verifierCode}</Text>
+          <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{verifierInvite.caption}</Text>
+          <Text style={[styles.exportEndpoint, { color: theme.colors.muted }]}>{verifierInvite.shareLabel}</Text>
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -342,6 +363,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     lineHeight: 16
+  },
+  capabilityRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10
+  },
+  capabilityPill: {
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: "900",
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 7
+  },
+  verifierCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 12,
+    padding: 14
+  },
+  verifierCode: {
+    fontSize: 30,
+    fontWeight: "900",
+    letterSpacing: 3
   },
   registrationTabs: {
     flexDirection: "row",

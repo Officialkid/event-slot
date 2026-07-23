@@ -32,6 +32,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Camera QR scanner for ticket verification.
 - Camera scanner UI and simulated QR flow are scaffolded; real camera dependency is still gated.
 - Manual verification with clear valid, used, missing, and error states.
+- Event detail now models owner/team capabilities and verifier-code sharing readiness.
 - Offline registration drafts.
 - File/image upload questions are scaffolded; device picker and bucket upload still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.

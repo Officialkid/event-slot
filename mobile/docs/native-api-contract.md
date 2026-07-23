@@ -212,11 +212,14 @@ Current native behavior:
 - Codes containing `404` simulate a missing ticket.
 - Other non-empty codes simulate a successful check-in.
 - Camera mode is scaffolded with a simulated QR payload that feeds the same verification service.
+- Event Detail now shows owner/team access capabilities and the event-specific verifier code share prompt.
 
 Before enabling live mode:
 
 - Confirm whether native should send verifier `code`, verifier `token`, or a mobile bearer token.
 - Add camera QR scanning and pass the parsed QR payload to the same verification service.
+- Add native share-sheet support for verifier access codes.
+- Add backend tracking for verifier invite issuance, expiry, and revocation if codes should rotate.
 - Add explicit unverify/reverse-check-in handling for super admins or permitted event teams.
 - Test duplicate scans, wrong-event scans, expired/closed events, and multi-admission tickets.
 
