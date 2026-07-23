@@ -28,6 +28,20 @@ Before switching native mode from `demo` to `live`, add a mobile-safe session fl
 - `POST /api/native/auth/logout`
 - Bearer-token support for organizer event list and event workspace routes.
 
+Native request/response contracts and client service functions are now scaffolded for this flow. The expected response includes:
+
+- `accessToken`
+- `refreshToken`
+- `expiresAt`
+- `user` profile with display name, email, role, plan, and token balance.
+
+Still gated before live use:
+
+- Backend implementations for the three native auth endpoints.
+- Secure storage for refresh tokens.
+- Token revocation on logout and account deletion.
+- Refresh retry behavior for expired access tokens.
+
 ## Runtime Flags
 
 Use `.env` values from `.env.example`:

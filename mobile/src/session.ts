@@ -8,4 +8,6 @@ export type AppSession = {
   tokenBalance: number;
   authMode: NativeAuthMode;
   accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: string;
 };

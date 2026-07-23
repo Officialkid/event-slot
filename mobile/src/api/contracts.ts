@@ -22,6 +22,38 @@ export type SendOtpRequest = {
   email: string;
 };
 
+export type NativeLoginRequest = {
+  email: string;
+  password?: string;
+  otp?: string;
+  deviceName?: string;
+};
+
+export type NativeSessionUser = {
+  id: string;
+  displayName: string;
+  email: string;
+  role: string;
+  plan: string;
+  tokenBalance: number;
+};
+
+export type NativeSessionResponse = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+  user: NativeSessionUser;
+};
+
+export type NativeRefreshRequest = {
+  refreshToken: string;
+};
+
+export type NativeLogoutRequest = {
+  refreshToken?: string;
+  deviceId?: string;
+};
+
 export type CreateEventRequest = {
   title: string;
   description?: string;

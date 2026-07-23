@@ -14,6 +14,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 ## Phase 2: Real Data
 
 - Add secure session handling for EventSlot API auth.
+- Native login, refresh, logout, and session response contracts are scaffolded in the app.
 - Load organizer dashboard metrics from the live API.
 - Load owned and invited events.
 - Add event detail, confirmed registrations, waitlist, and export status views.
