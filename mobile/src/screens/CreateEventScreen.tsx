@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { NativeAttachmentKind } from "../domain/attachments";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
 import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
 import { createDraftPreview } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
+import { getUploadReadinessMessage } from "../services/uploads";
 import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
@@ -41,6 +43,7 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
   const mapUrlSupported = isSupportedMapUrl(preview.mapDirectionsUrl);
+  const uploadReadiness = getUploadReadinessMessage();
 
   const updateDraft = <Key extends keyof EventDraft>(key: Key, value: EventDraft[Key]) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -167,6 +170,89 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         ) : null}
       </View>
 
+      <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.sectionLabel, { color: theme.colors.accent }]}>ATTENDEE UPLOADS</Text>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: draft.attachmentRequirement.enabled }}
+          onPress={() =>
+            updateDraft("attachmentRequirement", {
+              ...draft.attachmentRequirement,
+              enabled: !draft.attachmentRequirement.enabled
+            })
+          }
+          style={[styles.switchRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.input }]}
+        >
+          <Text style={[styles.switchText, { color: theme.colors.text }]}>
+            {draft.attachmentRequirement.enabled ? "File upload question enabled" : "File upload question disabled"}
+          </Text>
+          <Text style={[styles.switchPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
+            {draft.attachmentRequirement.enabled ? "ON" : "OFF"}
+          </Text>
+        </Pressable>
+        <Text style={[styles.helper, { color: theme.colors.secondary }]}>{uploadReadiness}</Text>
+        {draft.attachmentRequirement.enabled ? (
+          <>
+            <Field
+              label="Upload label"
+              value={draft.attachmentRequirement.label}
+              onChangeText={(value) =>
+                updateDraft("attachmentRequirement", {
+                  ...draft.attachmentRequirement,
+                  label: value
+                })
+              }
+              placeholder="Attach a document or image"
+              theme={theme}
+            />
+            <Field
+              label="Upload help text"
+              value={draft.attachmentRequirement.caption}
+              onChangeText={(value) =>
+                updateDraft("attachmentRequirement", {
+                  ...draft.attachmentRequirement,
+                  caption: value
+                })
+              }
+              placeholder="Tell attendees what to upload."
+              theme={theme}
+              multiline
+            />
+            <OptionRow
+              label="Accepted files"
+              options={[
+                { label: "Any", value: "any" },
+                { label: "Images", value: "image" },
+                { label: "Documents", value: "document" }
+              ]}
+              selected={draft.attachmentRequirement.acceptedKind}
+              onSelect={(value: NativeAttachmentKind) =>
+                updateDraft("attachmentRequirement", {
+                  ...draft.attachmentRequirement,
+                  acceptedKind: value
+                })
+              }
+              theme={theme}
+            />
+            <OptionRow
+              label="Required"
+              options={[
+                { label: "Optional", value: "optional" },
+                { label: "Required", value: "required" }
+              ]}
+              selected={draft.attachmentRequirement.required ? "required" : "optional"}
+              onSelect={(value) =>
+                updateDraft("attachmentRequirement", {
+                  ...draft.attachmentRequirement,
+                  required: value === "required"
+                })
+              }
+              theme={theme}
+            />
+          </>
+        ) : null}
+      </View>
+
       <View style={[styles.actionRow, { borderColor: theme.colors.border }]}>
         <Pressable accessibilityRole="button" onPress={handleSaveDraft} style={[styles.actionButton, { backgroundColor: theme.colors.accent }]}>
           <Text style={styles.actionButtonText}>Save draft</Text>
@@ -202,6 +288,11 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         ) : null}
         {preview.attendeeConsentEnabled ? (
           <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>Custom consent screen enabled</Text>
+        ) : null}
+        {preview.attachmentRequirement ? (
+          <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>
+            Upload question: {preview.attachmentRequirement.label} ({preview.attachmentRequirement.acceptedKind})
+          </Text>
         ) : null}
       </View>
     </View>

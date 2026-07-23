@@ -36,6 +36,7 @@ export function createDraftPreview(draft: EventDraft): NativeEvent {
     entryFeeLabel: draft.entryFeeLabel.trim() || undefined,
     whatsappNumber: draft.whatsappNumber.trim() || undefined,
     attendeeConsentEnabled: draft.attendeeConsentEnabled,
-    attendeeConsentText: draft.attendeeConsentText.trim() || undefined
+    attendeeConsentText: draft.attendeeConsentText.trim() || undefined,
+    attachmentRequirement: draft.attachmentRequirement.enabled ? draft.attachmentRequirement : undefined
   };
 }

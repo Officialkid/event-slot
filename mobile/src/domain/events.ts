@@ -1,3 +1,5 @@
+import { NativeAttachmentRequirement } from "./attachments";
+
 export type EventStatus = "Active" | "Draft" | "Closed";
 export type NativeEventType = "physical" | "virtual";
 export type NativeAccessType = "public" | "private";
@@ -24,6 +26,7 @@ export type NativeEvent = {
   whatsappNumber?: string;
   attendeeConsentEnabled?: boolean;
   attendeeConsentText?: string;
+  attachmentRequirement?: NativeAttachmentRequirement;
 };
 
 export type EventDraft = {
@@ -40,4 +43,5 @@ export type EventDraft = {
   whatsappNumber: string;
   attendeeConsentEnabled: boolean;
   attendeeConsentText: string;
+  attachmentRequirement: NativeAttachmentRequirement;
 };

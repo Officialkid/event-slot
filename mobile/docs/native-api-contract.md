@@ -102,6 +102,26 @@ Before shipping full native maps:
 - Validate shortened `maps.app.goo.gl` links against abuse/spam rules before saving live events.
 - Test Android devices with Google Maps installed, browser-only devices, and iOS Apple Maps fallback.
 
+## File And Image Uploads
+
+The native create-event flow can now model an attendee upload question:
+
+- Enable or disable the upload question per event draft.
+- Set organiser-facing label and help text.
+- Choose accepted file type: `any`, `image`, or `document`.
+- Mark the upload as optional or required.
+
+Current implementation is a scaffold only. It does not open a native file picker and does not send files to the production bucket.
+
+Before enabling native uploads:
+
+- Add a reviewed Expo document/image picker dependency.
+- Request file/media permissions only when the attendee taps upload.
+- Upload files directly to the approved bucket path, not into the database.
+- Enforce size limits, MIME validation, malware-safety strategy, and signed download URLs.
+- Update Google Play Data Safety for user-uploaded files and images.
+- Add retry/cancel UI for poor mobile networks.
+
 ## Ticket Verification
 
 The native verifier is structured around the existing web API paths:

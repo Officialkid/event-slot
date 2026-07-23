@@ -27,7 +27,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Camera QR scanner for ticket verification.
 - Manual verification with clear valid, used, missing, and error states.
 - Offline registration drafts.
-- File/image upload from device storage.
+- File/image upload questions are scaffolded; device picker and bucket upload still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
@@ -48,6 +48,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Dashboard and events load from EventSlot APIs for owned and invited team events.
 - Create event, verifier code, ticket verification, and profile settings work on-device.
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
+- File uploads use bucket storage with size/type validation and updated Play Data Safety disclosures.
 - Maps links are tested on Android with Google Maps installed and browser fallback.
 - Duplicate ticket scans, wrong-event tickets, used tickets, and multi-admission tickets are tested.
 - Dark and light themes are visually checked on at least one Android phone.

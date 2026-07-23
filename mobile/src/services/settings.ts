@@ -25,6 +25,12 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
     title: "Camera scanner",
     caption: "Manual verification is scaffolded; camera permissions and QR parsing come next.",
     status: "in-progress"
+  },
+  {
+    key: "uploads",
+    title: "File uploads",
+    caption: "Attachment questions are scaffolded; native picker and bucket upload are still gated.",
+    status: nativeConfig.uploadsEnabled ? "in-progress" : "blocked"
   }
 ];
 

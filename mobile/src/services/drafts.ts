@@ -1,4 +1,5 @@
 import { EventDraft } from "../domain/events";
+import { defaultAttachmentRequirement } from "./uploads";
 
 export const emptyEventDraft: EventDraft = {
   id: "local-event-draft",
@@ -13,7 +14,8 @@ export const emptyEventDraft: EventDraft = {
   entryFeeLabel: "",
   whatsappNumber: "",
   attendeeConsentEnabled: false,
-  attendeeConsentText: ""
+  attendeeConsentText: "",
+  attachmentRequirement: defaultAttachmentRequirement
 };
 
 type DraftStore = {
