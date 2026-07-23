@@ -1,17 +1,77 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { NativeDashboardStatsResponse } from "../api/contracts";
 import { ActionCard } from "../components/ActionCard";
 import { MetricCard } from "../components/MetricCard";
+import { loadNativeDashboardStats } from "../services/workspace";
 import { NativeScreenProps } from "./types";
 
-export function DashboardScreen({ theme, session, navigate, events, eventsLoading, eventsError }: NativeScreenProps) {
+export function DashboardScreen({ theme, session, navigate, events, eventsLoading, eventsError, refreshEvents }: NativeScreenProps) {
+  const [liveStats, setLiveStats] = useState<NativeDashboardStatsResponse | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsReloadKey, setStatsReloadKey] = useState(0);
   const confirmed = events.reduce((total, event) => total + event.attendees, 0);
   const waitlist = events.reduce((total, event) => total + event.waitlist, 0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    setLiveStats(null);
+    setStatsError(null);
+
+    if (session.authMode !== "live") {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setStatsLoading(true);
+    loadNativeDashboardStats(session)
+      .then((stats) => {
+        if (mounted) {
+          setLiveStats(stats);
+        }
+      })
+      .catch((error: unknown) => {
+        if (mounted) {
+          setStatsError(error instanceof Error ? error.message : "Could not load live dashboard stats.");
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setStatsLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [session, statsReloadKey]);
+
+  const handleRefreshDashboard = () => {
+    refreshEvents();
+    setStatsReloadKey((value) => value + 1);
+  };
+
+  const totalEvents = liveStats?.totalEvents ?? events.length;
+  const totalConfirmed = liveStats?.totalRegistrations ?? confirmed;
+  const totalWaitlist = liveStats?.totalWaitlisted ?? waitlist;
+  const conversionRate = liveStats?.conversionRate ?? 0;
+  const dataSource = session.authMode === "live"
+    ? statsError
+      ? "Live stats need attention"
+      : liveStats
+        ? "Live API"
+        : "Loading live API"
+    : "Demo preview";
+
   const dashboardMetrics = [
-    { label: "Events", value: eventsLoading ? "..." : `${events.length}`, trend: eventsError ? "Needs live auth" : "Live workspace" },
-    { label: "Confirmed", value: eventsLoading ? "..." : `${confirmed}`, trend: "Ready for export" },
-    { label: "Waitlist", value: eventsLoading ? "..." : `${waitlist}`, trend: "Auto promotion" },
-    { label: "Mode", value: session.authMode === "demo" ? "Demo" : "Live", trend: session.authMode === "demo" ? "Safe preview" : "Connected" }
+    { label: "Events", value: eventsLoading || statsLoading ? "..." : `${totalEvents}`, trend: dataSource },
+    { label: "Confirmed", value: eventsLoading || statsLoading ? "..." : `${totalConfirmed}`, trend: "Ready for export" },
+    { label: "Waitlist", value: eventsLoading || statsLoading ? "..." : `${totalWaitlist}`, trend: liveStats ? `${liveStats.waitlistEventCount} events` : "Auto promotion" },
+    { label: "Conversion", value: statsLoading ? "..." : `${conversionRate}%`, trend: session.authMode === "demo" ? "Demo estimate" : "Live views" }
   ];
 
   return (
@@ -33,6 +93,22 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
         {dashboardMetrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} theme={theme} />
         ))}
+      </View>
+
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: statsError ? theme.colors.error : theme.colors.border }]}>
+        <Text style={[styles.statusTitle, { color: statsError ? theme.colors.error : theme.colors.accent }]}>DASHBOARD DATA</Text>
+        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+          {statsError ?? (session.authMode === "live"
+            ? liveStats
+              ? `${liveStats.activeEvents} active events, ${liveStats.eventsClosingThisWeek} closing this week.`
+              : "Loading dashboard metrics from the native API."
+            : "Demo mode uses local preview events until live native auth is enabled.")}
+        </Text>
+        {statsError ? (
+          <Pressable accessibilityRole="button" onPress={handleRefreshDashboard} style={[styles.retryButton, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.retryText, { color: theme.colors.accent }]}>Refresh workspace</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <ActionCard
@@ -85,5 +161,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12
+  },
+  statusCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 8,
+    padding: 18
+  },
+  statusTitle: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 2.2
+  },
+  statusCopy: {
+    fontSize: 14,
+    lineHeight: 21
+  },
+  retryButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: "900"
   }
 });
