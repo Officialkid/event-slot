@@ -21,6 +21,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Load organizer dashboard metrics from the live API.
 - Load owned and invited events.
 - Native dashboard stats, event list, and event workspace contracts are scaffolded behind bearer-token calls.
+- Native dashboard stats, event list, and event detail backend adapters exist behind bearer-token access.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Event detail now has native confirmed/waitlist preview UI and registration mappers.
 - Event detail now has a native Export Centre scaffold for CSV, response PDF, and AI report actions.

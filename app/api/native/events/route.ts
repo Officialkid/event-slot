@@ -168,3 +168,86 @@ export async function POST(req: NextRequest) {
     return createNativeAuthErrorResponse(error);
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const nativeUser = await requireNativeAccessToken(req.headers.get("authorization"));
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(Number.parseInt(searchParams.get("page") || "1", 10), 1);
+    const limit = Math.min(Math.max(Number.parseInt(searchParams.get("limit") || "20", 10), 1), 100);
+    const skip = (page - 1) * limit;
+
+    const memberships = await prisma.teamMember.findMany({
+      where: {
+        memberId: nativeUser.id,
+        status: "accepted"
+      },
+      select: {
+        eventAccess: { select: { eventId: true } }
+      }
+    });
+    const teamEventIds = memberships.flatMap((membership) => membership.eventAccess.map((access) => access.eventId));
+
+    const where = {
+      OR: [
+        { organizerId: nativeUser.id },
+        ...(nativeUser.email ? [{ organizerEmail: nativeUser.email }] : []),
+        ...(teamEventIds.length > 0 ? [{ id: { in: teamEventIds } }] : [])
+      ]
+    };
+
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        select: {
+          accessType: true,
+          archived: true,
+          capacity: true,
+          confirmedCount: true,
+          createdAt: true,
+          dashboardToken: true,
+          deadline: true,
+          entryFeeLabel: true,
+          eventDate: true,
+          eventEndAt: true,
+          eventType: true,
+          id: true,
+          location: true,
+          mapDirectionsUrl: true,
+          organizerId: true,
+          slug: true,
+          status: true,
+          title: true,
+          verifierCode: true,
+          waitlistCount: true
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      prisma.event.count({ where })
+    ]);
+
+    return Response.json({
+      success: true,
+      events: events.map((event) => ({
+        ...event,
+        accessType: "public",
+        createdAt: event.createdAt.toISOString(),
+        deadline: event.deadline?.toISOString() ?? null,
+        eventDate: event.eventDate?.toISOString() ?? null,
+        eventEndAt: event.eventEndAt?.toISOString() ?? null,
+        exportsReady: true,
+        role: event.organizerId === nativeUser.id ? "Owner" : "Team"
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1)
+      }
+    });
+  } catch (error) {
+    return createNativeAuthErrorResponse(error);
+  }
+}

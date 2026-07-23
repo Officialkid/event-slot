@@ -80,7 +80,7 @@ Use `.env` values from `.env.example`:
 
 That keeps the native UI ready for the real backend without duplicating fetch logic in each screen.
 
-Live native workspace contracts are now scaffolded for:
+Live native workspace contracts and backend adapters are now scaffolded for:
 
 - `GET /api/native/dashboard/stats`
 - `GET /api/native/events?limit=100`
@@ -88,10 +88,17 @@ Live native workspace contracts are now scaffolded for:
 
 The native app maps those responses into the existing dashboard, event list, event detail, and registration preview UI. Demo mode still uses local sample data, while live mode requires a bearer access token from the native auth flow.
 
+Current backend behavior:
+
+- Event lists include owned events, events matching the organizer email, and accepted team-assigned events.
+- Event detail requires owner/email/team assignment access and returns confirmed plus waitlist previews.
+- Dashboard stats include owned and accepted team-assigned event activity.
+- Event list/detail currently return `accessType: "public"` until native private-link behavior is fully modelled.
+
 Before enabling live event loading:
 
-- Implement the `/api/native/*` routes on the backend or adapt the existing cookie-based routes to accept verified bearer tokens.
-- Return owned events and accepted team-invite events in the same list.
+- Harden the `/api/native/*` route adapters and confirm their responses match the final mobile UI needs.
+- Keep returning owned events and accepted team-invite events in the same list.
 - Keep payment state hidden from native creation until the payment rollout is approved.
 - Include `mapDirectionsUrl`, `entryFeeLabel`, custom consent settings, verifier codes, and export readiness in event responses.
 - Return confirmed and waitlist records in a stable shape that native can summarize without exposing sensitive raw answers unnecessarily.
