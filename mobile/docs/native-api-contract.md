@@ -35,12 +35,21 @@ Native request/response contracts and client service functions are now scaffolde
 - `expiresAt`
 - `user` profile with display name, email, role, plan, and token balance.
 
+The app also has a native session-store boundary for:
+
+- Loading the last session on app start.
+- Saving the active session after sign-in.
+- Clearing the session on sign-out.
+- Detecting expired access tokens.
+- Calling the native refresh endpoint when a live refresh token is available.
+
 Still gated before live use:
 
 - Backend implementations for the three native auth endpoints.
 - Secure storage for refresh tokens.
 - Token revocation on logout and account deletion.
 - Refresh retry behavior for expired access tokens.
+- Replacing the current memory-backed session store with Expo SecureStore or another reviewed native storage layer.
 
 ## Runtime Flags
 
@@ -132,6 +141,8 @@ The native create-event flow now has a draft-store abstraction:
 - `clearEventDraft`
 
 Current implementation is in-memory only, which is safe for the unfinished native preview and does not touch production data.
+
+The native session-store abstraction is also memory-backed for now. That lets the app screens wire sign-in, restore, refresh, and sign-out behavior without storing production tokens on disk before the storage decision is reviewed.
 
 Before shipping real offline drafts:
 

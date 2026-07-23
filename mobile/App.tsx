@@ -6,6 +6,7 @@ import { SignInScreen } from "./src/screens/SignInScreen";
 import { AppSession } from "./src/session";
 import { demoSession } from "./src/services/auth";
 import { loadNativePreferences, saveThemePreference } from "./src/services/preferences";
+import { clearStoredSession, restoreStoredSession, saveStoredSession } from "./src/services/sessionStore";
 import { ThemeName, createTheme } from "./src/theme";
 
 export default function App() {
@@ -17,7 +18,25 @@ export default function App() {
     loadNativePreferences()
       .then((preferences) => setThemeName(preferences.themeName))
       .catch(() => setThemeName("dark"));
+
+    restoreStoredSession()
+      .then((storedSession) => {
+        if (storedSession) {
+          setSession(storedSession);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const handleDemoSignIn = () => {
+    saveStoredSession(demoSession).catch(() => {});
+    setSession(demoSession);
+  };
+
+  const handleSignOut = () => {
+    clearStoredSession().catch(() => {});
+    setSession(null);
+  };
 
   const toggleTheme = () => {
     const nextThemeName = themeName === "dark" ? "light" : "dark";
@@ -32,13 +51,13 @@ export default function App() {
         <AppShell
           session={session}
           theme={theme}
-          onSignOut={() => setSession(null)}
+          onSignOut={handleSignOut}
           onToggleTheme={toggleTheme}
         />
       ) : (
         <SignInScreen
           theme={theme}
-          onDemoSignIn={() => setSession(demoSession)}
+          onDemoSignIn={handleDemoSignIn}
           onToggleTheme={toggleTheme}
         />
       )}
