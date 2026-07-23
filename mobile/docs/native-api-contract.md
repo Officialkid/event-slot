@@ -46,3 +46,25 @@ Use `.env` values from `.env.example`:
 - `refreshEvents`
 
 That keeps the native UI ready for the real backend without duplicating fetch logic in each screen.
+
+## Ticket Verification
+
+The native verifier is structured around the existing web API paths:
+
+- `POST /api/verify-tickets/access`
+- `POST /api/events/:slug/verify-ticket`
+- `POST /api/events/:slug/verify-ticket/lookup`
+
+Current native behavior:
+
+- Demo mode verifies sample ticket codes locally.
+- Codes containing `USED` simulate an already-used ticket.
+- Codes containing `404` simulate a missing ticket.
+- Other non-empty codes simulate a successful check-in.
+
+Before enabling live mode:
+
+- Confirm whether native should send verifier `code`, verifier `token`, or a mobile bearer token.
+- Add camera QR scanning and pass the parsed QR payload to the same verification service.
+- Add explicit unverify/reverse-check-in handling for super admins or permitted event teams.
+- Test duplicate scans, wrong-event scans, expired/closed events, and multi-admission tickets.

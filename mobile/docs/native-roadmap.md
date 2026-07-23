@@ -22,6 +22,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 ## Phase 3: Native Capabilities
 
 - Camera QR scanner for ticket verification.
+- Manual verification with clear valid, used, missing, and error states.
 - Offline registration drafts.
 - File/image upload from device storage.
 - Push notifications for reminders, invites, and waitlist promotions.
@@ -42,5 +43,6 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Dashboard and events load from EventSlot APIs for owned and invited team events.
 - Create event, verifier code, ticket verification, and profile settings work on-device.
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
+- Duplicate ticket scans, wrong-event tickets, used tickets, and multi-admission tickets are tested.
 - Dark and light themes are visually checked on at least one Android phone.
 - The current TWA closed test remains available while native development continues.

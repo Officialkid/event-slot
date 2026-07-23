@@ -1,0 +1,89 @@
+import { eventslotRequest } from "../api/client";
+import { nativeConfig } from "../config";
+import { NativeEvent } from "../domain/events";
+import {
+  VerificationRequest,
+  VerificationResult,
+  VerifierAccessRequest,
+  VerifierAccessResult
+} from "../domain/verification";
+import { AppSession } from "../session";
+
+function buildDemoTicket(code: string, event: NativeEvent): VerificationResult {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!normalizedCode) {
+    return {
+      status: "error",
+      message: "Enter a ticket code, attendee name, or email to verify."
+    };
+  }
+
+  if (normalizedCode.includes("USED")) {
+    return {
+      status: "already-used",
+      message: "This demo ticket has already been checked in.",
+      ticket: {
+        registrationId: "demo-used",
+        attendeeName: "Used Demo Attendee",
+        ticketCode: normalizedCode,
+        checkedIn: true,
+        checkedInAt: new Date().toISOString(),
+        admissionsTotal: 1,
+        admissionsUsed: 1,
+        admissionsRemaining: 0
+      }
+    };
+  }
+
+  if (normalizedCode.includes("404")) {
+    return {
+      status: "not-found",
+      message: `No demo ticket matched ${normalizedCode} for ${event.title}.`
+    };
+  }
+
+  return {
+    status: "verified",
+    message: `${normalizedCode} is valid for ${event.title}.`,
+    ticket: {
+      registrationId: "demo-verified",
+      attendeeName: "Demo Attendee",
+      attendeeEmail: "attendee@example.com",
+      ticketCode: normalizedCode,
+      confirmationCode: normalizedCode,
+      checkedIn: true,
+      checkedInAt: new Date().toISOString(),
+      admissionsTotal: 1,
+      admissionsUsed: 1,
+      admissionsRemaining: 0
+    }
+  };
+}
+
+export async function requestVerifierAccess(input: VerifierAccessRequest): Promise<VerifierAccessResult> {
+  return eventslotRequest<VerifierAccessResult>("/api/verify-tickets/access", {
+    method: "POST",
+    body: input
+  });
+}
+
+export async function verifyNativeTicket(
+  session: AppSession,
+  event: NativeEvent,
+  input: Omit<VerificationRequest, "eventSlug" | "verifierToken">
+): Promise<VerificationResult> {
+  const lookupValue = input.ticketCode ?? input.identity ?? input.qrPayload ?? "";
+
+  if (session.authMode === "demo" || nativeConfig.authMode === "demo") {
+    return buildDemoTicket(lookupValue, event);
+  }
+
+  return eventslotRequest<VerificationResult>(`/api/events/${event.slug}/verify-ticket`, {
+    method: "POST",
+    body: {
+      token: event.verifierCode,
+      ...input
+    }
+  });
+}
