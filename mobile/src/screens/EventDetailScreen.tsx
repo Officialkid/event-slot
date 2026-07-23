@@ -1,10 +1,46 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { demoEvents } from "../data/demo";
+import { findNativeEvent } from "../services/events";
 import { EventDetailScreenProps } from "./types";
 
-export function EventDetailScreen({ eventId, theme, navigate }: EventDetailScreenProps) {
-  const event = demoEvents.find((item) => item.id === eventId) ?? demoEvents[0];
+export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
+  const event = findNativeEvent(events, eventId);
+
+  if (eventsLoading) {
+    return (
+      <View style={styles.stack}>
+        <Pressable accessibilityRole="button" onPress={() => navigate({ name: "events" })}>
+          <Text style={[styles.backLink, { color: theme.colors.accent }]}>Back to events</Text>
+        </Pressable>
+        <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Loading event</Text>
+          <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+            We are opening the native event workspace.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!event) {
+    return (
+      <View style={styles.stack}>
+        <Pressable accessibilityRole="button" onPress={() => navigate({ name: "events" })}>
+          <Text style={[styles.backLink, { color: theme.colors.accent }]}>Back to events</Text>
+        </Pressable>
+        <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Event unavailable</Text>
+          <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+            {eventsError ?? "This event could not be found in the native workspace."}
+          </Text>
+          <Text style={[styles.backLink, { color: theme.colors.accent }]} onPress={refreshEvents}>
+            Refresh events
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const fillPercent = event.capacity > 0 ? Math.round((event.attendees / event.capacity) * 100) : 0;
 
   return (

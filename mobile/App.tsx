@@ -4,15 +4,8 @@ import { useMemo, useState } from "react";
 import { AppShell } from "./src/AppShell";
 import { SignInScreen } from "./src/screens/SignInScreen";
 import { AppSession } from "./src/session";
+import { demoSession } from "./src/services/auth";
 import { ThemeName, createTheme } from "./src/theme";
-
-const demoSession: AppSession = {
-  displayName: "EventSlot",
-  email: "eventslot.co@gmail.com",
-  role: "Super Admin",
-  plan: "Pioneer",
-  tokenBalance: 5
-};
 
 export default function App() {
   const [session, setSession] = useState<AppSession | null>(null);
@@ -39,4 +32,3 @@ export default function App() {
     </>
   );
 }
-

@@ -1,12 +1,17 @@
 import { demoEvents } from "../data/demo";
 import { EventDraft, NativeEvent } from "../domain/events";
+import { AppSession } from "../session";
 
-export async function listNativeEvents(): Promise<NativeEvent[]> {
+export async function listNativeEvents(session: AppSession): Promise<NativeEvent[]> {
+  if (session.authMode === "live") {
+    throw new Error("Live native event loading needs the mobile session endpoint before it can be enabled.");
+  }
+
   return demoEvents;
 }
 
-export async function getNativeEvent(eventId: string): Promise<NativeEvent | undefined> {
-  return demoEvents.find((event) => event.id === eventId);
+export function findNativeEvent(events: NativeEvent[], eventId: string): NativeEvent | undefined {
+  return events.find((event) => event.id === eventId);
 }
 
 export function createDraftPreview(draft: EventDraft): NativeEvent {
@@ -27,4 +32,3 @@ export function createDraftPreview(draft: EventDraft): NativeEvent {
     exportsReady: false
   };
 }
-

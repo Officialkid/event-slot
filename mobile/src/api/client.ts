@@ -7,6 +7,7 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string;
+  headers?: Record<string, string>;
 };
 
 export async function eventslotRequest<T>(
@@ -18,6 +19,7 @@ export async function eventslotRequest<T>(
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      ...options.headers,
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
     },
     body: options.body ? JSON.stringify(options.body) : undefined
@@ -30,4 +32,3 @@ export async function eventslotRequest<T>(
 
   return response.json() as Promise<T>;
 }
-

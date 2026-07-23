@@ -1,9 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { demoEvents } from "../data/demo";
 import { NativeScreenProps } from "./types";
 
-export function EventsScreen({ theme, navigate }: NativeScreenProps) {
+export function EventsScreen({ theme, navigate, events, eventsLoading, eventsError, refreshEvents }: NativeScreenProps) {
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>My Events</Text>
@@ -11,7 +10,35 @@ export function EventsScreen({ theme, navigate }: NativeScreenProps) {
         The native app will show owned events and invited-team events in one clear list.
       </Text>
 
-      {demoEvents.map((event) => (
+      {eventsLoading ? (
+        <View style={[styles.stateCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.stateTitle, { color: theme.colors.text }]}>Loading events</Text>
+          <Text style={[styles.stateCopy, { color: theme.colors.secondary }]}>
+            We are preparing your owned and invited event workspace.
+          </Text>
+        </View>
+      ) : null}
+
+      {eventsError ? (
+        <View style={[styles.stateCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.stateTitle, { color: theme.colors.text }]}>Events need live auth</Text>
+          <Text style={[styles.stateCopy, { color: theme.colors.secondary }]}>{eventsError}</Text>
+          <Text style={[styles.linkAction, { color: theme.colors.accent }]} onPress={refreshEvents}>
+            Retry
+          </Text>
+        </View>
+      ) : null}
+
+      {!eventsLoading && !eventsError && events.length === 0 ? (
+        <View style={[styles.stateCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.stateTitle, { color: theme.colors.text }]}>No events yet</Text>
+          <Text style={[styles.stateCopy, { color: theme.colors.secondary }]}>
+            Create your first event or accept a team invite to see it here.
+          </Text>
+        </View>
+      ) : null}
+
+      {events.map((event) => (
         <Pressable
           accessibilityRole="button"
           key={event.id}
@@ -100,5 +127,19 @@ const styles = StyleSheet.create({
   linkAction: {
     fontSize: 13,
     fontWeight: "900"
+  },
+  stateCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 8,
+    padding: 18
+  },
+  stateTitle: {
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  stateCopy: {
+    fontSize: 14,
+    lineHeight: 21
   }
 });

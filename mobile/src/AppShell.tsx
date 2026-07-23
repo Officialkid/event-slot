@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   SafeAreaView,
@@ -15,8 +15,10 @@ import { EventsScreen } from "./screens/EventsScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
 import { AppSession } from "./session";
+import { listNativeEvents } from "./services/events";
 import { AppTheme } from "./theme";
 import { AppRoute, tabs } from "./tabs";
+import { NativeEvent } from "./domain/events";
 
 type AppShellProps = {
   session: AppSession;
@@ -27,14 +29,36 @@ type AppShellProps = {
 
 export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellProps) {
   const [route, setRoute] = useState<AppRoute>({ name: "home" });
+  const [events, setEvents] = useState<NativeEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const activeTab = route.name === "eventDetail" || route.name === "createEvent" ? "events" : route.name;
+
+  const refreshEvents = useCallback(() => {
+    setEventsLoading(true);
+    setEventsError(null);
+    listNativeEvents(session)
+      .then(setEvents)
+      .catch((error: unknown) => {
+        setEventsError(error instanceof Error ? error.message : "Could not load events.");
+      })
+      .finally(() => setEventsLoading(false));
+  }, [session]);
+
+  useEffect(() => {
+    refreshEvents();
+  }, [refreshEvents]);
 
   const screen = useMemo(() => {
     const props = {
       session,
       theme,
       navigate: setRoute,
-      onSignOut
+      onSignOut,
+      events,
+      eventsLoading,
+      eventsError,
+      refreshEvents
     };
 
     switch (route.name) {
@@ -52,7 +76,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
       default:
         return <DashboardScreen {...props} />;
     }
-  }, [onSignOut, route, session, theme]);
+  }, [events, eventsError, eventsLoading, onSignOut, refreshEvents, route, session, theme]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.page }]}>

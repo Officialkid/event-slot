@@ -2,10 +2,18 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { ActionCard } from "../components/ActionCard";
 import { MetricCard } from "../components/MetricCard";
-import { dashboardMetrics } from "../data/demo";
 import { NativeScreenProps } from "./types";
 
-export function DashboardScreen({ theme, session, navigate }: NativeScreenProps) {
+export function DashboardScreen({ theme, session, navigate, events, eventsLoading, eventsError }: NativeScreenProps) {
+  const confirmed = events.reduce((total, event) => total + event.attendees, 0);
+  const waitlist = events.reduce((total, event) => total + event.waitlist, 0);
+  const dashboardMetrics = [
+    { label: "Events", value: eventsLoading ? "..." : `${events.length}`, trend: eventsError ? "Needs live auth" : "Live workspace" },
+    { label: "Confirmed", value: eventsLoading ? "..." : `${confirmed}`, trend: "Ready for export" },
+    { label: "Waitlist", value: eventsLoading ? "..." : `${waitlist}`, trend: "Auto promotion" },
+    { label: "Mode", value: session.authMode === "demo" ? "Demo" : "Live", trend: session.authMode === "demo" ? "Safe preview" : "Connected" }
+  ];
+
   return (
     <View style={styles.stack}>
       <View style={[styles.hero, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
