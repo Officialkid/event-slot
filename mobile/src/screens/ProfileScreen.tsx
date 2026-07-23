@@ -1,9 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { nativeConfig } from "../config";
 import { NativeNotificationPreference } from "../domain/notifications";
+import { NativePreferences } from "../domain/preferences";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
-import { defaultNotificationPreferences, getPushReadinessMessage } from "../services/notifications";
+import { buildNotificationPreferences, getPushReadinessMessage } from "../services/notifications";
+import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
 import { NativeScreenProps } from "./types";
 
@@ -15,7 +18,21 @@ const settings = [
 ];
 
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
+  const [preferences, setPreferences] = useState<NativePreferences>(defaultNativePreferences);
   const pushReadiness = getPushReadinessMessage();
+  const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
+
+  useEffect(() => {
+    loadNativePreferences()
+      .then(setPreferences)
+      .catch(() => setPreferences(defaultNativePreferences));
+  }, []);
+
+  const toggleNotificationPreference = (preference: NativeNotificationPreference) => {
+    saveNotificationPreference(preference.channel, !preference.enabled)
+      .then(setPreferences)
+      .catch(() => {});
+  };
 
   return (
     <View style={styles.stack}>
@@ -72,8 +89,13 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Push readiness</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushReadiness}</Text>
       </View>
-      {defaultNotificationPreferences.map((preference) => (
-        <NotificationRow key={preference.channel} preference={preference} theme={theme} />
+      {notificationPreferences.map((preference) => (
+        <NotificationRow
+          key={preference.channel}
+          preference={preference}
+          onToggle={() => toggleNotificationPreference(preference)}
+          theme={theme}
+        />
       ))}
 
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
@@ -92,12 +114,18 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
 
 type NotificationRowProps = {
   preference: NativeNotificationPreference;
+  onToggle: () => void;
   theme: NativeScreenProps["theme"];
 };
 
-function NotificationRow({ preference, theme }: NotificationRowProps) {
+function NotificationRow({ preference, onToggle, theme }: NotificationRowProps) {
   return (
-    <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: preference.enabled }}
+      onPress={onToggle}
+      style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+    >
       <View style={styles.rowCopy}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{preference.title}</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{preference.caption}</Text>
@@ -105,7 +133,7 @@ function NotificationRow({ preference, theme }: NotificationRowProps) {
       <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: preference.enabled ? theme.colors.success : theme.colors.muted }]}>
         {preference.enabled ? "ON" : "OFF"}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 

@@ -171,6 +171,7 @@ The native profile page is currently a readiness hub. It shows:
 - Current account identity and app mode.
 - Native readiness state for shell, auth, live data, and scanner work.
 - Permission placeholders for camera, file uploads, notifications, and maps.
+- Memory-backed theme and notification-channel preferences.
 
 Before these become real settings:
 
@@ -179,3 +180,19 @@ Before these become real settings:
 - Request camera, file, notification, and location/map permissions only at the moment they are needed.
 - Add account deletion/privacy links that open the hosted EventSlot policy pages.
 - Add tester feedback/support links before closed native builds.
+
+## Native Preferences
+
+The native app now has a preferences service for:
+
+- Theme preference, defaulting to dark.
+- Notification-channel preferences.
+
+Current implementation is memory-backed only. It gives the app a stable API while avoiding a premature storage dependency.
+
+Before release:
+
+- Choose AsyncStorage for ordinary preferences or SecureStore for sensitive preferences.
+- Persist theme before first paint to avoid a flash of the wrong theme.
+- Sync notification preferences with the backend after native auth exists.
+- Clear local preferences on logout if they become user-specific.

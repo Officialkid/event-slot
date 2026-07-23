@@ -1,5 +1,6 @@
 import { nativeConfig } from "../config";
 import { NativeNotificationPreference, NativePushRegistration } from "../domain/notifications";
+import { NativePreferences } from "../domain/preferences";
 
 export const defaultNotificationPreferences: NativeNotificationPreference[] = [
   {
@@ -34,6 +35,13 @@ export function getPushReadinessMessage(): string {
   }
 
   return "Push notifications are enabled for integration testing.";
+}
+
+export function buildNotificationPreferences(preferences: NativePreferences): NativeNotificationPreference[] {
+  return defaultNotificationPreferences.map((preference) => ({
+    ...preference,
+    enabled: Boolean(preferences.notificationChannels[preference.channel])
+  }));
 }
 
 export async function registerPushToken(_registration: NativePushRegistration): Promise<never> {
