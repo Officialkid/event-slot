@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { NativeScanMode, NativeScannerState } from "../domain/scanner";
 import { VerificationResult } from "../domain/verification";
+import { buildDemoScanPayload, getScannerReadinessMessage, initialScannerState, requestCameraPermissionPreview } from "../services/scanner";
 import { verifyNativeTicket } from "../services/verification";
 import { NativeScreenProps } from "./types";
 
@@ -14,11 +16,12 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
   const [lookup, setLookup] = useState("");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [scannerState, setScannerState] = useState<NativeScannerState>(initialScannerState);
 
   const selectedEvent =
     verifierEvents.find((event) => event.id === selectedEventId) ?? verifierEvents[0];
 
-  const handleVerify = async () => {
+  const runVerification = async (input: { ticketCode?: string; qrPayload?: string }) => {
     if (!selectedEvent) {
       setResult({
         status: "error",
@@ -31,9 +34,7 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
     setResult(null);
 
     try {
-      const verification = await verifyNativeTicket(session, selectedEvent, {
-        ticketCode: lookup
-      });
+      const verification = await verifyNativeTicket(session, selectedEvent, input);
       setResult(verification);
     } catch (error) {
       setResult({
@@ -45,6 +46,30 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
     }
   };
 
+  const handleVerify = async () => {
+    await runVerification({ ticketCode: lookup });
+  };
+
+  const handleModeChange = async (mode: NativeScanMode) => {
+    if (mode === "camera") {
+      const nextScannerState = await requestCameraPermissionPreview();
+      setScannerState(nextScannerState);
+    } else {
+      setScannerState((current) => ({ ...current, activeMode: "manual" }));
+    }
+    setResult(null);
+  };
+
+  const handleDemoScan = async () => {
+    const payload = buildDemoScanPayload(lookup);
+    setScannerState((current) => ({
+      ...current,
+      activeMode: "camera",
+      lastPayload: payload
+    }));
+    await runVerification({ qrPayload: payload.rawValue });
+  };
+
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Verify Tickets</Text>
@@ -54,10 +79,30 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
 
       <View style={[styles.scanCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.scanIcon, { color: theme.colors.accent }]}>SCAN</Text>
-        <Text style={[styles.scanTitle, { color: theme.colors.text }]}>Camera scanner coming next</Text>
+        <Text style={[styles.scanTitle, { color: theme.colors.text }]}>Camera scanner scaffold</Text>
         <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
-          Manual lookup is functional in the native shell now. The next milestone adds camera permissions and QR parsing.
+          {getScannerReadinessMessage()}
         </Text>
+        <View style={styles.modeRow}>
+          <ModeButton label="Manual" mode="manual" activeMode={scannerState.activeMode} onPress={() => handleModeChange("manual")} theme={theme} />
+          <ModeButton label="Camera" mode="camera" activeMode={scannerState.activeMode} onPress={() => handleModeChange("camera")} theme={theme} />
+        </View>
+        <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
+          Camera permission: {scannerState.permissionStatus}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={loading}
+          onPress={handleDemoScan}
+          style={[styles.scanButton, { borderColor: theme.colors.border, opacity: loading ? 0.62 : 1 }]}
+        >
+          <Text style={[styles.scanButtonText, { color: theme.colors.accent }]}>Simulate QR scan</Text>
+        </Pressable>
+        {scannerState.lastPayload ? (
+          <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
+            Last scan: {scannerState.lastPayload.rawValue}
+          </Text>
+        ) : null}
       </View>
 
       <View style={[styles.lookupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -157,6 +202,37 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
   );
 }
 
+type ModeButtonProps = {
+  label: string;
+  mode: NativeScanMode;
+  activeMode: NativeScanMode;
+  onPress: () => void;
+  theme: NativeScreenProps["theme"];
+};
+
+function ModeButton({ label, mode, activeMode, onPress, theme }: ModeButtonProps) {
+  const active = mode === activeMode;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={[
+        styles.modeButton,
+        {
+          backgroundColor: active ? theme.colors.activeTab : theme.colors.input,
+          borderColor: active ? theme.colors.accent : theme.colors.border
+        }
+      ]}
+    >
+      <Text style={[styles.modeButtonText, { color: active ? theme.colors.accent : theme.colors.secondary }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   stack: {
     gap: 14
@@ -190,6 +266,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     textAlign: "center"
+  },
+  modeRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%"
+  },
+  modeButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 12
+  },
+  modeButtonText: {
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  scanButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
+  scanButtonText: {
+    fontSize: 13,
+    fontWeight: "900"
   },
   lookupCard: {
     borderRadius: 24,

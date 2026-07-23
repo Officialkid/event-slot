@@ -156,6 +156,7 @@ Current native behavior:
 - Codes containing `USED` simulate an already-used ticket.
 - Codes containing `404` simulate a missing ticket.
 - Other non-empty codes simulate a successful check-in.
+- Camera mode is scaffolded with a simulated QR payload that feeds the same verification service.
 
 Before enabling live mode:
 
@@ -163,6 +164,25 @@ Before enabling live mode:
 - Add camera QR scanning and pass the parsed QR payload to the same verification service.
 - Add explicit unverify/reverse-check-in handling for super admins or permitted event teams.
 - Test duplicate scans, wrong-event scans, expired/closed events, and multi-admission tickets.
+
+## Camera Scanner
+
+The native app now has scanner types and a scanner service for:
+
+- Camera permission status.
+- Manual vs camera mode.
+- QR payload shape and scan timestamps.
+- Demo scan payload generation.
+
+Current implementation does not use the device camera. It lets the verifier screen exercise camera-mode UI and QR verification flow safely.
+
+Before enabling real scanning:
+
+- Add and configure Expo Camera or the chosen scanner dependency.
+- Request camera permission only when the verifier opens scanner mode.
+- Parse EventSlot QR payloads and reject malformed or wrong-event payloads.
+- Keep manual lookup available as a fallback.
+- Test low light, duplicate scans, fast repeated scans, offline/network failure, and Android permission denial.
 
 ## Profile And Settings
 
