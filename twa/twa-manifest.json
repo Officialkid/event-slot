@@ -12,12 +12,12 @@
   "navigationDividerColorDark": "#0a0a0a",
   "backgroundColor": "#0a0a0a",
   "enableNotifications": false,
-  "startUrl": "/dashboard",
+  "startUrl": "/",
   "iconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
   "maskableIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
   "monochromeIconUrl": "https://www.eventsslot.com/icons/icon-512x512.png",
-  "appVersion": "1.1.1",
-  "appVersionCode": 4,
+  "appVersion": "1.1.2",
+  "appVersionCode": 5,
   "signingKey": {
     "path": "./eventslot-release.keystore",
     "alias": "eventslot"

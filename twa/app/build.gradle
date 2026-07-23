@@ -27,7 +27,7 @@ if (keystorePropertiesFile.exists()) {
 def twaManifest = [
     applicationId: 'com.alphatech.eventslot',
     hostName: 'www.eventsslot.com', // The domain being opened in the TWA.
-    launchUrl: '/dashboard', // The start path for the TWA. Must be relative to the domain.
+    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'EventSlot', // The application name.
     launcherName: 'EventSlot', // The name shown on the Android Launcher.
     themeColor: '#A3E635', // The color used for the status bar.
@@ -64,8 +64,8 @@ android {
         applicationId "com.alphatech.eventslot"
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 4
-        versionName "1.1.1"
+        versionCode 5
+        versionName "1.1.2"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
