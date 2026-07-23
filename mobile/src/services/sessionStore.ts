@@ -1,18 +1,19 @@
 import { AppSession } from "../session";
 import { refreshNativeSession, toAppSession } from "./auth";
+import { loadNativeStorageValue, removeNativeStorageValue, saveNativeStorageValue } from "./nativeStorage";
 
-let cachedSession: AppSession | null = null;
+const sessionStorageKey = "eventslot.native.session";
 
 export async function loadStoredSession(): Promise<AppSession | null> {
-  return cachedSession;
+  return loadNativeStorageValue<AppSession>(sessionStorageKey);
 }
 
 export async function saveStoredSession(session: AppSession): Promise<void> {
-  cachedSession = session;
+  await saveNativeStorageValue(sessionStorageKey, session);
 }
 
 export async function clearStoredSession(): Promise<void> {
-  cachedSession = null;
+  await removeNativeStorageValue(sessionStorageKey);
 }
 
 export function isSessionExpired(session: AppSession, now = new Date()): boolean {
@@ -54,5 +55,5 @@ export async function restoreStoredSession(): Promise<AppSession | null> {
 }
 
 export function getSessionStorageReadinessMessage(): string {
-  return "Native session restore is scaffolded, but it is memory-backed until SecureStore or AsyncStorage is installed and reviewed for token safety.";
+  return "Native session restore is scaffolded through the shared storage adapter, but tokens still need SecureStore or another reviewed encrypted driver before live auth.";
 }

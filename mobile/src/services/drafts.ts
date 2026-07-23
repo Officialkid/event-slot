@@ -1,4 +1,5 @@
 import { EventDraft } from "../domain/events";
+import { loadNativeStorageValue, removeNativeStorageValue, saveNativeStorageValue } from "./nativeStorage";
 import { defaultAttachmentRequirement } from "./uploads";
 
 export const emptyEventDraft: EventDraft = {
@@ -18,24 +19,19 @@ export const emptyEventDraft: EventDraft = {
   attachmentRequirement: defaultAttachmentRequirement
 };
 
-type DraftStore = {
-  eventDraft: EventDraft | null;
-};
-
-const memoryStore: DraftStore = {
-  eventDraft: null
-};
+const eventDraftStorageKey = "eventslot.native.event-draft";
 
 export async function loadEventDraft(): Promise<EventDraft> {
-  return memoryStore.eventDraft ? { ...memoryStore.eventDraft } : { ...emptyEventDraft };
+  const eventDraft = await loadNativeStorageValue<EventDraft>(eventDraftStorageKey);
+  return eventDraft ? cloneEventDraft(eventDraft) : cloneEventDraft(emptyEventDraft);
 }
 
 export async function saveEventDraft(draft: EventDraft): Promise<void> {
-  memoryStore.eventDraft = { ...draft };
+  await saveNativeStorageValue(eventDraftStorageKey, cloneEventDraft(draft));
 }
 
 export async function clearEventDraft(): Promise<void> {
-  memoryStore.eventDraft = null;
+  await removeNativeStorageValue(eventDraftStorageKey);
 }
 
 export function hasEventDraftChanges(draft: EventDraft): boolean {
@@ -43,4 +39,11 @@ export function hasEventDraftChanges(draft: EventDraft): boolean {
     const baseline = emptyEventDraft[key as keyof EventDraft];
     return value !== baseline;
   });
+}
+
+function cloneEventDraft(draft: EventDraft): EventDraft {
+  return {
+    ...draft,
+    attachmentRequirement: { ...draft.attachmentRequirement }
+  };
 }

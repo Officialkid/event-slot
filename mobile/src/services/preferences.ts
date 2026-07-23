@@ -1,6 +1,7 @@
 import { NativeNotificationChannel } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { ThemeName } from "../theme";
+import { loadNativeStorageValue, saveNativeStorageValue } from "./nativeStorage";
 
 export const defaultNativePreferences: NativePreferences = {
   themeName: "dark",
@@ -12,14 +13,15 @@ export const defaultNativePreferences: NativePreferences = {
   }
 };
 
-let storedPreferences: NativePreferences | null = null;
+const preferencesStorageKey = "eventslot.native.preferences";
 
 export async function loadNativePreferences(): Promise<NativePreferences> {
+  const storedPreferences = await loadNativeStorageValue<NativePreferences>(preferencesStorageKey);
   return storedPreferences ? clonePreferences(storedPreferences) : clonePreferences(defaultNativePreferences);
 }
 
 export async function saveNativePreferences(preferences: NativePreferences): Promise<void> {
-  storedPreferences = clonePreferences(preferences);
+  await saveNativeStorageValue(preferencesStorageKey, clonePreferences(preferences));
 }
 
 export async function saveThemePreference(themeName: ThemeName): Promise<NativePreferences> {

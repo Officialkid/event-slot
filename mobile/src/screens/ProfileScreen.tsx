@@ -9,6 +9,7 @@ import { buildNotificationPreferences, getPushReadinessMessage } from "../servic
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
+import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import { getAccountDeletionReadinessMessage, openSupportLink, supportLinks } from "../services/support";
 import { NativeScreenProps } from "./types";
 
@@ -22,6 +23,7 @@ type AccountSetting = {
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
   const [preferences, setPreferences] = useState<NativePreferences>(defaultNativePreferences);
   const pushReadiness = getPushReadinessMessage();
+  const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
   const accountSettings: AccountSetting[] = [
@@ -113,6 +115,11 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
         <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
           {nativeConfig.authMode.toUpperCase()}
         </Text>
+      </View>
+
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Native storage</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{nativeStorageReadiness}</Text>
       </View>
 
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
