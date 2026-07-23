@@ -32,14 +32,14 @@ export function DashboardScreen({ theme, session, navigate }: NativeScreenProps)
         title="Create an event"
         caption="A simplified native flow will mirror the web version without exposing unfinished payments."
         action="Start"
-        onPress={() => navigate("events")}
+        onPress={() => navigate({ name: "createEvent" })}
       />
       <ActionCard
         theme={theme}
         title="Verify tickets"
         caption="Camera and manual lookup will become first-class native tools for event teams."
         action="Scan"
-        onPress={() => navigate("verify")}
+        onPress={() => navigate({ name: "verify" })}
       />
     </View>
   );

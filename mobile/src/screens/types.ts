@@ -1,11 +1,14 @@
 import { AppSession } from "../session";
 import { AppTheme } from "../theme";
-import { TabKey } from "../tabs";
+import { AppRoute } from "../tabs";
 
 export type NativeScreenProps = {
   session: AppSession;
   theme: AppTheme;
-  navigate: (tab: TabKey) => void;
+  navigate: (route: AppRoute) => void;
   onSignOut: () => void;
 };
 
+export type EventDetailScreenProps = NativeScreenProps & {
+  eventId: string;
+};

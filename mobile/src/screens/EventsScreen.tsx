@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { demoEvents } from "../data/demo";
 import { NativeScreenProps } from "./types";
@@ -12,7 +12,12 @@ export function EventsScreen({ theme, navigate }: NativeScreenProps) {
       </Text>
 
       {demoEvents.map((event) => (
-        <View key={event.title} style={[styles.eventCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Pressable
+          accessibilityRole="button"
+          key={event.id}
+          onPress={() => navigate({ name: "eventDetail", eventId: event.id })}
+          style={[styles.eventCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        >
           <View style={styles.eventHeader}>
             <Text style={[styles.eventTitle, { color: theme.colors.text }]}>{event.title}</Text>
             <Text style={[styles.badge, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
@@ -20,20 +25,20 @@ export function EventsScreen({ theme, navigate }: NativeScreenProps) {
             </Text>
           </View>
           <View style={styles.eventMeta}>
-            <Text style={[styles.metaText, { color: theme.colors.secondary }]}>{event.date}</Text>
+            <Text style={[styles.metaText, { color: theme.colors.secondary }]}>{event.dateLabel}</Text>
             <Text style={[styles.metaText, { color: theme.colors.secondary }]}>
               {event.attendees}/{event.capacity} confirmed
             </Text>
           </View>
           <View style={styles.actionRow}>
-            <Text style={[styles.linkAction, { color: theme.colors.accent }]} onPress={() => navigate("verify")}>
+            <Text style={[styles.linkAction, { color: theme.colors.accent }]} onPress={() => navigate({ name: "verify" })}>
               Verify tickets
             </Text>
             <Text style={[styles.linkAction, { color: theme.colors.accent }]}>
               View insights
             </Text>
           </View>
-        </View>
+        </Pressable>
       ))}
     </View>
   );

@@ -8,13 +8,15 @@ import {
   View
 } from "react-native";
 
+import { CreateEventScreen } from "./screens/CreateEventScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
+import { EventDetailScreen } from "./screens/EventDetailScreen";
 import { EventsScreen } from "./screens/EventsScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
 import { AppSession } from "./session";
 import { AppTheme } from "./theme";
-import { TabKey, tabs } from "./tabs";
+import { AppRoute, tabs } from "./tabs";
 
 type AppShellProps = {
   session: AppSession;
@@ -24,17 +26,22 @@ type AppShellProps = {
 };
 
 export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [route, setRoute] = useState<AppRoute>({ name: "home" });
+  const activeTab = route.name === "eventDetail" || route.name === "createEvent" ? "events" : route.name;
 
   const screen = useMemo(() => {
     const props = {
       session,
       theme,
-      navigate: setActiveTab,
+      navigate: setRoute,
       onSignOut
     };
 
-    switch (activeTab) {
+    switch (route.name) {
+      case "createEvent":
+        return <CreateEventScreen {...props} />;
+      case "eventDetail":
+        return <EventDetailScreen {...props} eventId={route.eventId} />;
       case "events":
         return <EventsScreen {...props} />;
       case "verify":
@@ -45,7 +52,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
       default:
         return <DashboardScreen {...props} />;
     }
-  }, [activeTab, onSignOut, session, theme]);
+  }, [onSignOut, route, session, theme]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.page }]}>
@@ -80,7 +87,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
           accessibilityRole="button"
           accessibilityLabel="Create event"
           style={[styles.fab, { backgroundColor: theme.colors.accent }]}
-          onPress={() => setActiveTab("events")}
+          onPress={() => setRoute({ name: "createEvent" })}
         >
           <Text style={styles.fabText}>+</Text>
         </Pressable>
@@ -93,7 +100,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
                 key={tab.key}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => setRoute({ name: tab.key })}
                 style={[
                   styles.tabItem,
                   active && { backgroundColor: theme.colors.activeTab }
@@ -215,4 +222,3 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   }
 });
-
