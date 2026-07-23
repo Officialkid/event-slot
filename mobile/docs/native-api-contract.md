@@ -61,6 +61,22 @@ Use `.env` values from `.env.example`:
 
 That keeps the native UI ready for the real backend without duplicating fetch logic in each screen.
 
+Live native workspace contracts are now scaffolded for:
+
+- `GET /api/native/dashboard/stats`
+- `GET /api/native/events?limit=100`
+- `GET /api/native/events/:slug`
+
+The native app maps those responses into the existing dashboard and event list UI. Demo mode still uses local sample data, while live mode requires a bearer access token from the native auth flow.
+
+Before enabling live event loading:
+
+- Implement the `/api/native/*` routes on the backend or adapt the existing cookie-based routes to accept verified bearer tokens.
+- Return owned events and accepted team-invite events in the same list.
+- Keep payment state hidden from native creation until the payment rollout is approved.
+- Include `mapDirectionsUrl`, `entryFeeLabel`, custom consent settings, verifier codes, and export readiness in event responses.
+- Add pagination/refresh handling for organizers with more than 100 events.
+
 ## Event Creation
 
 The native create-event screen is still draft-only. It mirrors the web API shape without posting live data yet:

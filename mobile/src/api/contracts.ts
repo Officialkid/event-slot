@@ -89,3 +89,97 @@ export type CreatedEventResponse = {
   accessType: "public" | "private";
   capacity: number;
 };
+
+export type NativeDashboardStatsResponse = {
+  totalEvents: number;
+  totalRegistrations: number;
+  activeEvents: number;
+  totalWaitlisted: number;
+  eventsThisMonth: number;
+  registrationsThisMonth: number;
+  registrationsLastMonth: number;
+  conversionRate: number;
+  eventsClosingThisWeek: number;
+  waitlistEventCount: number;
+  upcomingEvents: Array<{
+    title: string;
+    slug: string;
+    confirmedCount: number;
+    capacity: number | null;
+    eventDate: string | null;
+    deadline: string | null;
+  }>;
+  eventsNearCapacity: Array<{
+    title: string;
+    slug: string;
+    confirmedCount: number;
+    capacity: number;
+    dashboardToken?: string;
+  }>;
+  recentActivity: Array<{
+    id: string;
+    name: string;
+    eventTitle: string;
+    eventSlug: string;
+    submittedAt: string;
+  }>;
+};
+
+export type NativeWorkspaceEvent = {
+  id: string;
+  title: string;
+  slug: string;
+  capacity: number | null;
+  deadline: string | null;
+  confirmedCount: number;
+  waitlistCount: number;
+  dashboardToken?: string | null;
+  createdAt: string;
+  archived: boolean;
+  status: string | null;
+  eventDate: string | null;
+  eventEndAt?: string | null;
+  location: string | null;
+  mapDirectionsUrl?: string | null;
+  entryFeeLabel?: string | null;
+  eventType?: string | null;
+  accessType?: string | null;
+  verifierCode?: string | null;
+  role?: "Owner" | "Team";
+  exportsReady?: boolean;
+};
+
+export type NativeWorkspaceEventsResponse = {
+  success: true;
+  events: NativeWorkspaceEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export type NativeRegistrationSummary = {
+  id: string;
+  answers: unknown;
+  submittedAt: string;
+  source?: string | null;
+  waitlistPosition?: number | null;
+};
+
+export type NativeEventWorkspaceResponse = {
+  success: true;
+  event: NativeWorkspaceEvent & {
+    description?: string | null;
+    questions?: unknown;
+    ticketsEnabled?: boolean;
+    verifierCodeEnabled?: boolean;
+    canEdit?: boolean;
+    attendeeConsentEnabled?: boolean | null;
+    attendeeConsentText?: string | null;
+    imageUrl?: string | null;
+  };
+  confirmed: NativeRegistrationSummary[];
+  waitlist: NativeRegistrationSummary[];
+};

@@ -1,10 +1,11 @@
 import { demoEvents } from "../data/demo";
 import { EventDraft, NativeEvent } from "../domain/events";
 import { AppSession } from "../session";
+import { loadNativeWorkspaceEvents } from "./workspace";
 
 export async function listNativeEvents(session: AppSession): Promise<NativeEvent[]> {
   if (session.authMode === "live") {
-    throw new Error("Live native event loading needs the mobile session endpoint before it can be enabled.");
+    return loadNativeWorkspaceEvents(session);
   }
 
   return demoEvents;
