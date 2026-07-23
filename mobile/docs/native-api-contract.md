@@ -86,6 +86,7 @@ Live native workspace contracts and backend adapters are now scaffolded for:
 - `GET /api/native/dashboard/stats`
 - `GET /api/native/events?limit=100`
 - `GET /api/native/events/:slug`
+- `POST /api/native/events/:slug/verify-ticket`
 
 The native app maps those responses into the existing dashboard, event list, event detail, and registration preview UI. Demo mode still uses local sample data, while live mode requires a bearer access token from the native auth flow.
 
@@ -97,6 +98,7 @@ Current backend behavior:
 - Dashboard stats include owned and accepted team-assigned event activity.
 - The native Dashboard screen consumes live dashboard stats in live mode and keeps demo-derived metrics in demo mode.
 - Event list/detail currently return `accessType: "public"` until native private-link behavior is fully modelled.
+- Native ticket verification now uses a bearer-protected endpoint in live mode. It supports ticket code, confirmation code, signed QR payload, and exact name/email lookup, then records admissions and entry logs using the same EventSlot database.
 
 Before enabling live event loading:
 
@@ -106,6 +108,40 @@ Before enabling live event loading:
 - Include `mapDirectionsUrl`, `entryFeeLabel`, custom consent settings, verifier codes, and export readiness in event responses.
 - Return confirmed and waitlist records in a stable shape that native can summarize without exposing sensitive raw answers unnecessarily.
 - Add pagination/refresh handling for organizers with more than 100 events.
+
+## Native Verification
+
+The native Verify screen can now verify real registrations in live mode through:
+
+- `POST /api/native/events/:slug/verify-ticket`
+
+Request body:
+
+- `ticketCode`
+- `code`
+- `qrPayload`
+- `identity`
+- `entrantName`
+
+Response body:
+
+- `status`: `verified`, `already-used`, `not-found`, or `error`.
+- `message`: user-facing verification result.
+- `ticket`: registration/ticket summary when a ticket is found.
+
+Current backend behavior:
+
+- Requires a native bearer access token.
+- Allows event owners and accepted team members to verify tickets for the selected event.
+- Supports multi-admission tickets by incrementing `admissionsUsed`.
+- Marks the registration checked in and writes an `EntryLog`.
+- Rejects wrong-event and invalid signed QR payloads.
+
+Still gated before full device QA:
+
+- Add the real Expo Camera dependency and permission flow.
+- Parse real QR/barcode scans from the camera stream instead of simulated scan payloads.
+- Test duplicate scans, wrong-event tickets, malformed payloads, offline/network failure, and multi-admission tickets on Android hardware.
 
 ## Native Exports
 

@@ -42,6 +42,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Camera QR scanner for ticket verification.
 - Camera scanner UI and simulated QR flow are scaffolded; real camera dependency is still gated.
 - Manual verification with clear valid, used, missing, and error states.
+- Native live verification now calls `/api/native/events/:slug/verify-ticket` with the signed native access token and records real check-ins for owner/team-accessible events.
 - Event detail now models owner/team capabilities and verifier-code sharing readiness.
 - Native share-sheet handoff is scaffolded for verifier access codes.
 - Offline registration drafts.

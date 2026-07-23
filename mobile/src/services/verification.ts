@@ -79,11 +79,13 @@ export async function verifyNativeTicket(
     return buildDemoTicket(lookupValue, event);
   }
 
-  return eventslotRequest<VerificationResult>(`/api/events/${event.slug}/verify-ticket`, {
+  if (!session.accessToken) {
+    throw new Error("Sign in again before verifying tickets.");
+  }
+
+  return eventslotRequest<VerificationResult>(`/api/native/events/${event.slug}/verify-ticket`, {
     method: "POST",
-    body: {
-      token: event.verifierCode,
-      ...input
-    }
+    body: input,
+    token: session.accessToken
   });
 }
