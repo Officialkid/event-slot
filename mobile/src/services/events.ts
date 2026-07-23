@@ -16,7 +16,7 @@ export function findNativeEvent(events: NativeEvent[], eventId: string): NativeE
 
 export function createDraftPreview(draft: EventDraft): NativeEvent {
   return {
-    id: "draft-preview",
+    id: draft.id || "draft-preview",
     slug: "draft-preview",
     title: draft.title || "Untitled Event",
     status: "Draft",

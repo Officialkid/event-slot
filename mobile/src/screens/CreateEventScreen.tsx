@@ -1,55 +1,60 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { NativeAccessType, NativeEventType } from "../domain/events";
+import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
+import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
 import { createDraftPreview } from "../services/events";
 import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
-  const [title, setTitle] = useState("");
-  const [dateLabel, setDateLabel] = useState("");
-  const [venue, setVenue] = useState("");
-  const [capacity, setCapacity] = useState("");
-  const [description, setDescription] = useState("");
-  const [eventType, setEventType] = useState<NativeEventType>("physical");
-  const [accessType, setAccessType] = useState<NativeAccessType>("public");
-  const [mapDirectionsUrl, setMapDirectionsUrl] = useState("");
-  const [entryFeeLabel, setEntryFeeLabel] = useState("");
-  const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(false);
-  const [attendeeConsentText, setAttendeeConsentText] = useState("");
+  const [draft, setDraft] = useState<EventDraft>(emptyEventDraft);
+  const [draftStatus, setDraftStatus] = useState("Loading saved native draft...");
+  const [draftLoading, setDraftLoading] = useState(true);
 
-  const preview = useMemo(
-    () =>
-      createDraftPreview({
-        title,
-        dateLabel,
-        venue,
-        capacity,
-        description,
-        eventType,
-        accessType,
-        mapDirectionsUrl,
-        entryFeeLabel,
-        whatsappNumber,
-        attendeeConsentEnabled,
-        attendeeConsentText
-      }),
-    [
-      accessType,
-      attendeeConsentEnabled,
-      attendeeConsentText,
-      capacity,
-      dateLabel,
-      description,
-      entryFeeLabel,
-      eventType,
-      mapDirectionsUrl,
-      title,
-      venue,
-      whatsappNumber
-    ]
-  );
+  useEffect(() => {
+    let mounted = true;
+
+    loadEventDraft()
+      .then((savedDraft) => {
+        if (!mounted) {
+          return;
+        }
+        setDraft(savedDraft);
+        setDraftStatus(hasEventDraftChanges(savedDraft) ? "Saved draft restored on this device." : "No saved draft yet.");
+      })
+      .catch(() => {
+        if (mounted) {
+          setDraftStatus("Could not load saved draft.");
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setDraftLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const preview = useMemo(() => createDraftPreview(draft), [draft]);
+
+  const updateDraft = <Key extends keyof EventDraft>(key: Key, value: EventDraft[Key]) => {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setDraftStatus("Unsaved changes on this device.");
+  };
+
+  const handleSaveDraft = async () => {
+    await saveEventDraft(draft);
+    setDraftStatus("Draft saved locally in the native app preview.");
+  };
+
+  const handleClearDraft = async () => {
+    await clearEventDraft();
+    setDraft({ ...emptyEventDraft });
+    setDraftStatus("Draft cleared from this native preview.");
+  };
 
   return (
     <View style={styles.stack}>
@@ -58,23 +63,30 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
       </Pressable>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Create Event</Text>
       <Text style={[styles.subcopy, { color: theme.colors.secondary }]}>
-        This is the native draft flow. It does not publish anything yet; live event creation will be wired after API/session work.
+        This native draft flow can save and restore progress locally. It still does not publish anything until live API/session work is approved.
       </Text>
+
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>LOCAL DRAFT</Text>
+        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+          {draftLoading ? "Checking this device for saved work..." : draftStatus}
+        </Text>
+      </View>
 
       <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.sectionLabel, { color: theme.colors.accent }]}>EVENT BASICS</Text>
-        <Field label="Event title" value={title} onChangeText={setTitle} placeholder="e.g. Annual team summit" theme={theme} />
-        <Field label="Date" value={dateLabel} onChangeText={setDateLabel} placeholder="e.g. 22 Aug 2026" theme={theme} />
-        <Field label="Venue" value={venue} onChangeText={setVenue} placeholder="Venue or online link" theme={theme} />
-        <Field label="Capacity" value={capacity} onChangeText={setCapacity} placeholder="100" theme={theme} keyboardType="number-pad" />
+        <Field label="Event title" value={draft.title} onChangeText={(value) => updateDraft("title", value)} placeholder="e.g. Annual team summit" theme={theme} />
+        <Field label="Date" value={draft.dateLabel} onChangeText={(value) => updateDraft("dateLabel", value)} placeholder="e.g. 22 Aug 2026" theme={theme} />
+        <Field label="Venue" value={draft.venue} onChangeText={(value) => updateDraft("venue", value)} placeholder="Venue or online link" theme={theme} />
+        <Field label="Capacity" value={draft.capacity} onChangeText={(value) => updateDraft("capacity", value)} placeholder="100" theme={theme} keyboardType="number-pad" />
         <OptionRow
           label="Event type"
           options={[
             { label: "Physical", value: "physical" },
             { label: "Virtual", value: "virtual" }
           ]}
-          selected={eventType}
-          onSelect={setEventType}
+          selected={draft.eventType}
+          onSelect={(value) => updateDraft("eventType", value)}
           theme={theme}
         />
         <OptionRow
@@ -83,14 +95,14 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
             { label: "Public", value: "public" },
             { label: "Private", value: "private" }
           ]}
-          selected={accessType}
-          onSelect={setAccessType}
+          selected={draft.accessType}
+          onSelect={(value) => updateDraft("accessType", value)}
           theme={theme}
         />
         <Field
           label="Caption / description"
-          value={description}
-          onChangeText={setDescription}
+          value={draft.description}
+          onChangeText={(value) => updateDraft("description", value)}
           placeholder="Keep spacing, emojis, and event wording exactly as entered."
           theme={theme}
           multiline
@@ -101,8 +113,8 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         <Text style={[styles.sectionLabel, { color: theme.colors.accent }]}>ORGANIZER DETAILS</Text>
         <Field
           label="Entry / contribution label"
-          value={entryFeeLabel}
-          onChangeText={setEntryFeeLabel}
+          value={draft.entryFeeLabel}
+          onChangeText={(value) => updateDraft("entryFeeLabel", value)}
           placeholder="e.g. KSh 1,000 paid via organiser"
           theme={theme}
         />
@@ -111,15 +123,15 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         </Text>
         <Field
           label="Google Maps link"
-          value={mapDirectionsUrl}
-          onChangeText={setMapDirectionsUrl}
+          value={draft.mapDirectionsUrl}
+          onChangeText={(value) => updateDraft("mapDirectionsUrl", value)}
           placeholder="Paste organiser-provided Maps link"
           theme={theme}
         />
         <Field
           label="WhatsApp contact"
-          value={whatsappNumber}
-          onChangeText={setWhatsappNumber}
+          value={draft.whatsappNumber}
+          onChangeText={(value) => updateDraft("whatsappNumber", value)}
           placeholder="+254..."
           theme={theme}
           keyboardType="phone-pad"
@@ -130,27 +142,36 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
         <Text style={[styles.sectionLabel, { color: theme.colors.accent }]}>CONSENT</Text>
         <Pressable
           accessibilityRole="switch"
-          accessibilityState={{ checked: attendeeConsentEnabled }}
-          onPress={() => setAttendeeConsentEnabled((current) => !current)}
+          accessibilityState={{ checked: draft.attendeeConsentEnabled }}
+          onPress={() => updateDraft("attendeeConsentEnabled", !draft.attendeeConsentEnabled)}
           style={[styles.switchRow, { borderColor: theme.colors.border, backgroundColor: theme.colors.input }]}
         >
           <Text style={[styles.switchText, { color: theme.colors.text }]}>
-            {attendeeConsentEnabled ? "Consent screen enabled" : "Consent screen disabled"}
+            {draft.attendeeConsentEnabled ? "Consent screen enabled" : "Consent screen disabled"}
           </Text>
           <Text style={[styles.switchPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
-            {attendeeConsentEnabled ? "ON" : "OFF"}
+            {draft.attendeeConsentEnabled ? "ON" : "OFF"}
           </Text>
         </Pressable>
-        {attendeeConsentEnabled ? (
+        {draft.attendeeConsentEnabled ? (
           <Field
             label="Consent wording"
-            value={attendeeConsentText}
-            onChangeText={setAttendeeConsentText}
+            value={draft.attendeeConsentText}
+            onChangeText={(value) => updateDraft("attendeeConsentText", value)}
             placeholder="Write the consent clause attendees must review."
             theme={theme}
             multiline
           />
         ) : null}
+      </View>
+
+      <View style={[styles.actionRow, { borderColor: theme.colors.border }]}>
+        <Pressable accessibilityRole="button" onPress={handleSaveDraft} style={[styles.actionButton, { backgroundColor: theme.colors.accent }]}>
+          <Text style={styles.actionButtonText}>Save draft</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={handleClearDraft} style={[styles.outlineButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.outlineButtonText, { color: theme.colors.text }]}>Clear</Text>
+        </Pressable>
       </View>
 
       <View style={[styles.preview, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
@@ -163,7 +184,7 @@ export function CreateEventScreen({ theme, navigate }: NativeScreenProps) {
           {preview.eventType} | {preview.accessType} | {preview.entryFeeLabel ?? "Registration only"}
         </Text>
         <Text style={[styles.previewBody, { color: theme.colors.secondary }]}>
-          {description || "Your event description will appear here with the spacing and wording preserved."}
+          {draft.description || "Your event description will appear here with the spacing and wording preserved."}
         </Text>
         {preview.mapDirectionsUrl ? (
           <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>Maps link ready</Text>
@@ -267,6 +288,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23
   },
+  statusCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 6,
+    padding: 16
+  },
+  statusTitle: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 2
+  },
+  statusCopy: {
+    fontSize: 14,
+    lineHeight: 20
+  },
   formCard: {
     borderRadius: 26,
     borderWidth: 1,
@@ -336,6 +372,35 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingHorizontal: 10,
     paddingVertical: 6
+  },
+  actionRow: {
+    borderRadius: 24,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    padding: 10
+  },
+  actionButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    flex: 1,
+    paddingVertical: 14
+  },
+  actionButtonText: {
+    color: "#0A0A0A",
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  outlineButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 14
+  },
+  outlineButtonText: {
+    fontSize: 14,
+    fontWeight: "900"
   },
   preview: {
     borderRadius: 26,

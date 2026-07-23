@@ -67,6 +67,24 @@ Before enabling live creation:
 - Preserve multiline descriptions exactly as the organiser typed them.
 - Add validation for map URLs, capacity, deadline, and WhatsApp number before submit.
 
+## Offline Drafts
+
+The native create-event flow now has a draft-store abstraction:
+
+- `loadEventDraft`
+- `saveEventDraft`
+- `clearEventDraft`
+
+Current implementation is in-memory only, which is safe for the unfinished native preview and does not touch production data.
+
+Before shipping real offline drafts:
+
+- Add Expo SecureStore or AsyncStorage after deciding what data is sensitive.
+- Encrypt or avoid storing private attendee/payment-like data locally.
+- Add draft versioning so old saved drafts do not break after app updates.
+- Add conflict handling when a local draft is later submitted to the live API.
+- Add device QA for app restart, low-memory termination, and network loss.
+
 ## Ticket Verification
 
 The native verifier is structured around the existing web API paths:

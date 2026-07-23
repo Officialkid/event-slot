@@ -18,6 +18,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Load owned and invited events.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
+- Use the current in-memory draft store only as a preview; add persistent native storage before real offline drafts.
 - Keep `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=demo` until the native token endpoints are implemented and verified.
 - Keep native uploads disabled until bucket upload permissions, file-size limits, and mobile error handling are complete.
 

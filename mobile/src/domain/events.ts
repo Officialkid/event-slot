@@ -27,6 +27,7 @@ export type NativeEvent = {
 };
 
 export type EventDraft = {
+  id: string;
   title: string;
   dateLabel: string;
   venue: string;
