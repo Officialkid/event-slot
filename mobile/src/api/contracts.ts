@@ -183,3 +183,12 @@ export type NativeEventWorkspaceResponse = {
   confirmed: NativeRegistrationSummary[];
   waitlist: NativeRegistrationSummary[];
 };
+
+export type NativeExportPrepareResponse = {
+  success: true;
+  kind: "confirmed-csv" | "responses-pdf" | "ai-report";
+  downloadUrl?: string;
+  expiresAt?: string;
+  jobId?: string;
+  status: "ready" | "preparing";
+};

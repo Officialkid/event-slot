@@ -20,6 +20,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native dashboard stats, event list, and event workspace contracts are scaffolded behind bearer-token calls.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Event detail now has native confirmed/waitlist preview UI and registration mappers.
+- Event detail now has a native Export Centre scaffold for CSV, response PDF, and AI report actions.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
 - Use the current in-memory draft store only as a preview; add persistent native storage before real offline drafts.
@@ -59,6 +60,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Real camera scanning handles permission denial, duplicate scans, malformed payloads, and network failure.
 - File uploads use bucket storage with size/type validation and updated Play Data Safety disclosures.
 - Push notifications have token registration, logout cleanup, and updated privacy/Data Safety disclosures.
+- Export downloads use native authenticated endpoints with signed URLs, progress states, and device download/share testing.
 - Preferences persist across app restart and clear correctly on logout/account deletion.
 - Maps links are tested on Android with Google Maps installed and browser fallback.
 - Duplicate ticket scans, wrong-event tickets, used tickets, and multi-admission tickets are tested.

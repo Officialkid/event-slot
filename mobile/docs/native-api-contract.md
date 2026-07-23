@@ -78,6 +78,28 @@ Before enabling live event loading:
 - Return confirmed and waitlist records in a stable shape that native can summarize without exposing sensitive raw answers unnecessarily.
 - Add pagination/refresh handling for organizers with more than 100 events.
 
+## Native Exports
+
+The native Event Detail screen now has an Export Centre scaffold for:
+
+- Confirmed registration CSV.
+- All response PDF.
+- AI event intelligence report.
+
+Planned native endpoints:
+
+- `GET /api/native/events/:slug/exports/confirmed.csv`
+- `GET /api/native/events/:slug/exports/responses.pdf`
+- `POST /api/native/events/:slug/exports/ai-report`
+
+Before enabling real native downloads:
+
+- Require bearer-token organizer/team access.
+- Return signed short-lived download URLs or streamed files.
+- Preserve the current web export permissions and super-admin access rules.
+- Add native progress/error states for large exports and AI report preparation.
+- Test downloads on Android file managers, share sheets, and low-storage devices.
+
 ## Event Creation
 
 The native create-event screen is still draft-only. It mirrors the web API shape without posting live data yet:

@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { NativeExportAction } from "../domain/exports";
 import { findNativeEvent } from "../services/events";
+import { buildExportActions, getExportReadinessMessage } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace } from "../services/registrations";
 import { EventDetailScreenProps } from "./types";
@@ -46,6 +48,7 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
   const fillPercent = event.capacity > 0 ? Math.round((event.attendees / event.capacity) * 100) : 0;
   const canOpenMap = isSupportedMapUrl(event.mapDirectionsUrl);
   const registrationWorkspace = buildDemoRegistrationWorkspace(event);
+  const exportActions = buildExportActions(event);
 
   return (
     <View style={styles.stack}>
@@ -76,7 +79,6 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Native workspace</Text>
         <ActionLine label="Registrations" value="View confirmed, waitlist, and attendee records" theme={theme} />
-        <ActionLine label="Exports" value={event.exportsReady ? "CSV and PDF ready" : "No exports yet"} theme={theme} />
         <ActionLine label="Verifier team" value="Invite scanners with event-specific code" theme={theme} />
         <ActionLine
           label="Maps"
@@ -85,6 +87,18 @@ export function EventDetailScreen({ eventId, theme, navigate, events, eventsLoad
           onPress={canOpenMap ? () => openMapUrl(event.mapDirectionsUrl) : undefined}
           theme={theme}
         />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Export Centre</Text>
+        <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+          {getExportReadinessMessage(event)}
+        </Text>
+        <View style={styles.exportGrid}>
+          {exportActions.map((action) => (
+            <ExportActionCard key={action.kind} action={action} theme={theme} />
+          ))}
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -157,6 +171,26 @@ function ActionLine({ label, value, action, onPress, theme }: ActionLineProps) {
           <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>{action}</Text>
         </Pressable>
       ) : null}
+    </View>
+  );
+}
+
+type ExportActionCardProps = {
+  action: NativeExportAction;
+  theme: EventDetailScreenProps["theme"];
+};
+
+function ExportActionCard({ action, theme }: ExportActionCardProps) {
+  const ready = action.state === "ready";
+
+  return (
+    <View style={[styles.exportCard, { backgroundColor: theme.colors.input, borderColor: ready ? theme.colors.accent : theme.colors.border }]}>
+      <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{action.title}</Text>
+      <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{action.caption}</Text>
+      <Text style={[styles.exportEndpoint, { color: theme.colors.muted }]}>{action.endpoint}</Text>
+      <Text style={[styles.registrationStatus, { backgroundColor: theme.colors.activeTab, color: ready ? theme.colors.accent : theme.colors.muted }]}>
+        {ready ? "READY" : "LIVE API"}
+      </Text>
     </View>
   );
 }
@@ -293,6 +327,21 @@ const styles = StyleSheet.create({
   inlineButtonText: {
     fontSize: 12,
     fontWeight: "900"
+  },
+  exportGrid: {
+    gap: 10,
+    marginTop: 12
+  },
+  exportCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 7,
+    padding: 14
+  },
+  exportEndpoint: {
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 16
   },
   registrationTabs: {
     flexDirection: "row",
