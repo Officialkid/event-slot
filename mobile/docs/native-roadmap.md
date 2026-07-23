@@ -16,6 +16,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Add secure session handling for EventSlot API auth.
 - Native login, refresh, logout, and session response contracts are scaffolded in the app.
 - Native login, refresh, and logout backend route scaffolds exist under `/api/native/auth/*`.
+- Native Sign In can call the live native auth endpoint and save the returned app session when live mode is enabled.
 - Native session restore and refresh lifecycle is scaffolded behind a session-store service.
 - Drafts, preferences, and sessions now use a shared native storage adapter so the future persistent driver can be swapped in one place.
 - Load organizer dashboard metrics from the live API.

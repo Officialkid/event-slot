@@ -60,6 +60,7 @@ Current backend behavior:
 - `POST /api/native/auth/refresh` accepts a native refresh bearer payload and returns a fresh access/refresh pair.
 - `POST /api/native/auth/logout` is intentionally stateless for now; persistent revocation is still required before production native auth.
 - Tokens are HMAC-signed with the existing `AUTH_SECRET` or `NEXTAUTH_SECRET`, separate from browser cookies.
+- The native Sign In screen calls the live login endpoint only when `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=live`; demo mode still enters the safe local shell.
 
 ## Runtime Flags
 

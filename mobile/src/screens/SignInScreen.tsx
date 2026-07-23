@@ -2,19 +2,26 @@ import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { nativeConfig } from "../config";
-import { requestOrganizerOtp } from "../services/auth";
+import { loginNativeOrganizer, requestOrganizerOtp, toAppSession } from "../services/auth";
+import { AppSession } from "../session";
 import { AppTheme } from "../theme";
 
 type SignInScreenProps = {
   theme: AppTheme;
   onDemoSignIn: () => void;
+  onLiveSignIn: (session: AppSession) => void;
   onToggleTheme: () => void;
 };
 
-export function SignInScreen({ theme, onDemoSignIn, onToggleTheme }: SignInScreenProps) {
+export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme }: SignInScreenProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [otpStatus, setOtpStatus] = useState<string | null>(null);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [loginStatus, setLoginStatus] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const liveMode = nativeConfig.authMode === "live";
 
   const handleOtpRequest = async () => {
     const trimmedEmail = email.trim();
@@ -34,6 +41,36 @@ export function SignInScreen({ theme, onDemoSignIn, onToggleTheme }: SignInScree
       setOtpStatus(error instanceof Error ? error.message : "Could not request OTP right now.");
     } finally {
       setOtpLoading(false);
+    }
+  };
+
+  const handlePrimarySignIn = async () => {
+    if (!liveMode) {
+      onDemoSignIn();
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setLoginStatus("Enter your email and password to continue.");
+      return;
+    }
+
+    setLoginLoading(true);
+    setLoginStatus("Signing in with native auth...");
+
+    try {
+      const nativeSession = await loginNativeOrganizer({
+        email: trimmedEmail,
+        password,
+        otp: otp.trim() || undefined,
+        deviceName: "EventSlot native app"
+      });
+      onLiveSignIn(toAppSession(nativeSession));
+    } catch (error) {
+      setLoginStatus(error instanceof Error ? error.message : "Could not sign in with native auth.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -76,18 +113,45 @@ export function SignInScreen({ theme, onDemoSignIn, onToggleTheme }: SignInScree
           />
           <Text style={[styles.label, { color: theme.colors.muted }]}>PASSWORD</Text>
           <TextInput
+            onChangeText={setPassword}
             placeholder="Enter password"
             placeholderTextColor={theme.colors.muted}
             secureTextEntry
             style={[styles.input, { backgroundColor: theme.colors.input, borderColor: theme.colors.border, color: theme.colors.text }]}
+            value={password}
           />
+          {liveMode ? (
+            <>
+              <Text style={[styles.label, { color: theme.colors.muted }]}>OTP CODE</Text>
+              <TextInput
+                keyboardType="number-pad"
+                onChangeText={setOtp}
+                placeholder="Only if your account asks for it"
+                placeholderTextColor={theme.colors.muted}
+                style={[styles.input, { backgroundColor: theme.colors.input, borderColor: theme.colors.border, color: theme.colors.text }]}
+                value={otp}
+              />
+            </>
+          ) : null}
           <Pressable
             accessibilityRole="button"
-            onPress={onDemoSignIn}
-            style={[styles.primaryButton, { backgroundColor: theme.colors.accent }]}
+            disabled={loginLoading}
+            onPress={handlePrimarySignIn}
+            style={[styles.primaryButton, { backgroundColor: theme.colors.accent, opacity: loginLoading ? 0.65 : 1 }]}
           >
-            <Text style={styles.primaryButtonText}>Continue to demo shell</Text>
+            <Text style={styles.primaryButtonText}>
+              {loginLoading ? "Signing in..." : liveMode ? "Sign in to native app" : "Continue to demo shell"}
+            </Text>
           </Pressable>
+          {liveMode ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onDemoSignIn}
+              style={[styles.secondaryButton, { borderColor: theme.colors.border }]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Use demo shell instead</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             accessibilityRole="button"
             disabled={otpLoading}
@@ -103,8 +167,15 @@ export function SignInScreen({ theme, onDemoSignIn, onToggleTheme }: SignInScree
               {otpStatus}
             </Text>
           ) : null}
+          {loginStatus ? (
+            <Text style={[styles.disclaimer, { color: theme.colors.secondary }]}>
+              {loginStatus}
+            </Text>
+          ) : null}
           <Text style={[styles.disclaimer, { color: theme.colors.muted }]}>
-            Real auth wiring comes next. This keeps the native work separate from the live web system until it is fully ready.
+            {liveMode
+              ? "Live native auth uses bearer tokens and stays separate from browser cookies."
+              : "Demo mode keeps the native work separate from the live web system until it is fully ready."}
           </Text>
         </View>
       </View>

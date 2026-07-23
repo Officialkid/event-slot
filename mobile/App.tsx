@@ -33,6 +33,11 @@ export default function App() {
     setSession(demoSession);
   };
 
+  const handleLiveSignIn = (nextSession: AppSession) => {
+    saveStoredSession(nextSession).catch(() => {});
+    setSession(nextSession);
+  };
+
   const handleSignOut = () => {
     clearStoredSession().catch(() => {});
     setSession(null);
@@ -58,6 +63,7 @@ export default function App() {
         <SignInScreen
           theme={theme}
           onDemoSignIn={handleDemoSignIn}
+          onLiveSignIn={handleLiveSignIn}
           onToggleTheme={toggleTheme}
         />
       )}

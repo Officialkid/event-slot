@@ -70,5 +70,5 @@ export function toAppSession(nativeSession: NativeSessionResponse): AppSession {
 }
 
 export function getNativeAuthReadinessNote(): string {
-  return "Live native organizer sessions are typed in the app, but backend token endpoints and secure token storage must be completed before enabling live mode.";
+  return "Live native organizer sign-in is wired to bearer-token endpoints, but secure persistent token storage and production revocation still need completion before release.";
 }
