@@ -55,6 +55,15 @@ export function buildNotificationPreferences(preferences: NativePreferences): Na
   }));
 }
 
+export function buildNativeNotificationPreferenceSummary(preferences: NativePreferences): string {
+  const notificationPreferences = buildNotificationPreferences(preferences);
+  const enabledCount = notificationPreferences.filter((preference) => preference.enabled).length;
+  const totalCount = notificationPreferences.length;
+  const backendState = nativeConfig.pushEnabled ? "backend registration enabled" : "backend registration gated";
+
+  return `${enabledCount}/${totalCount} notification channel${totalCount === 1 ? "" : "s"} enabled; ${backendState}. Physical-device token capture is still required before release.`;
+}
+
 export async function prepareNativePushRegistration(session: AppSession): Promise<NativePushRegistrationResult> {
   if (!Device.isDevice) {
     return {

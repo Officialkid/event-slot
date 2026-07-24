@@ -15,7 +15,13 @@ import {
   resetNativeDeviceQaItemStatus,
   saveNativeDeviceQaItemStatus
 } from "../services/deviceQaProgress";
-import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
+import {
+  buildNativeNotificationPreferenceSummary,
+  buildNotificationPreferences,
+  getPushReadinessMessage,
+  prepareNativePushRegistration,
+  registerPushToken
+} from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
 import { buildNativeReleaseGateItems, nativePermissionItems, nativeReadinessItems } from "../services/settings";
@@ -51,6 +57,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
+  const notificationPreferenceSummary = useMemo(() => buildNativeNotificationPreferenceSummary(preferences), [preferences]);
   const deviceQaChecklist = useMemo(
     () => applyNativeDeviceQaProgress(buildNativeDeviceQaChecklist(session, events.length), deviceQaProgress),
     [deviceQaProgress, events.length, session]
@@ -329,6 +336,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Push readiness</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushReadiness}</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.accent }]}>{notificationPreferenceSummary}</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushStatus}</Text>
         <Pressable accessibilityRole="button" onPress={handlePreparePushRegistration} style={[styles.inlineButton, { borderColor: theme.colors.border }]}>
           <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Prepare push token</Text>

@@ -60,6 +60,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native upload questions now let organisers set accepted file type, required/optional status, and maximum file size before picker QA.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Notification channels, permission prompts, Android channel setup, and Expo push token capture are wired; backend token storage and delivery jobs are still gated.
+- Native Profile summarizes enabled notification channels and whether backend push registration is gated before token capture QA.
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
 - Native maps now prefer organiser-provided directions and fall back to Google Maps venue search when only the venue is available.

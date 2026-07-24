@@ -114,6 +114,12 @@ requireFileIncludes(
   "release readiness should reflect connectivity and device QA progress instead of static labels only"
 );
 requireFileIncludes(
+  "Native push preferences show channel summary",
+  "src/services/notifications.ts",
+  "buildNativeNotificationPreferenceSummary",
+  "testers need visible notification channel and backend-gate state before push release"
+);
+requireFileIncludes(
   "Native upload questions expose file size limits",
   "src/screens/CreateEventScreen.tsx",
   "Max file size (MB)",
