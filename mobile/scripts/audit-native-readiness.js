@@ -66,6 +66,12 @@ requireFileIncludes(
   "testers need a structured feedback path before native release"
 );
 requireFileIncludes(
+  "Native compliance links are grouped",
+  "src/services/support.ts",
+  "buildNativeComplianceLinkItems",
+  "store-required privacy, terms, deletion, website, and support links need one reviewable native source"
+);
+requireFileIncludes(
   "Native prepared exports can open device links",
   "src/services/exports.ts",
   "openPreparedNativeExport",

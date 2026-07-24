@@ -21,6 +21,7 @@ This document tracks what the Expo native EventSlot app currently does so Play C
 | Push token | Expo push token capture and registration client. | Token capture wired; backend registration disabled. | Declare device identifiers/push token only when backend registration is enabled. |
 | Maps links | Opens organizer-provided map links via device browser/maps app. | Wired without GPS permission. | No location permission is requested by native config. |
 | Policy/account links | Opens privacy, terms, account deletion policy, support email, and deletion-request email. | Wired. | Store listing must include hosted privacy policy and account deletion URL. |
+| Store compliance links | Profile groups hosted privacy, terms, account deletion, website, and tester-support destinations for QA review. | Wired. | Testers should open each link before native upload approval. |
 
 ## Permission Notes
 

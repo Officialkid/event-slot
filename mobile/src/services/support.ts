@@ -25,6 +25,44 @@ export async function openSupportLink(url: string): Promise<boolean> {
   }
 }
 
+export function buildNativeComplianceLinkItems(): Array<{
+  key: keyof typeof supportLinks;
+  title: string;
+  url: string;
+}> {
+  return [
+    {
+      key: "privacyPolicy",
+      title: "Privacy policy",
+      url: supportLinks.privacyPolicy
+    },
+    {
+      key: "terms",
+      title: "Terms of service",
+      url: supportLinks.terms
+    },
+    {
+      key: "accountDeletion",
+      title: "Account deletion",
+      url: supportLinks.accountDeletion
+    },
+    {
+      key: "website",
+      title: "Website",
+      url: supportLinks.website
+    },
+    {
+      key: "testerSupport",
+      title: "Tester support",
+      url: supportLinks.testerSupport
+    }
+  ];
+}
+
+export function getNativeComplianceLinksReadinessMessage(): string {
+  return "Hosted policy, account deletion, website, and support links are grouped here so testers can verify store-required destinations before any native upload.";
+}
+
 export function getAccountDeletionReadinessMessage() {
   return "Native account deletion now opens the hosted deletion policy and can prepare an email request. A direct authenticated in-app deletion API remains gated before public release.";
 }

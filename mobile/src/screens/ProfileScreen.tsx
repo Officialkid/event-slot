@@ -31,7 +31,9 @@ import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import {
   getAccountDeletionReadinessMessage,
+  buildNativeComplianceLinkItems,
   buildNativeTesterFeedbackEmailUrl,
+  getNativeComplianceLinksReadinessMessage,
   openAccountDeletionPolicy,
   openSupportLink,
   requestAccountDeletionByEmail,
@@ -67,6 +69,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     [connectivityProbe, deviceQaChecklist]
   );
   const runtimeInfo = useMemo(() => buildNativeRuntimeInfo(), []);
+  const complianceLinks = useMemo(() => buildNativeComplianceLinkItems(), []);
   const accountSettings: AccountSetting[] = [
     {
       title: "Profile",
@@ -261,6 +264,28 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>ACCOUNT</Text>
       {accountSettings.map((item) => (
         <SettingRow key={item.title} item={item} theme={theme} />
+      ))}
+
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>STORE COMPLIANCE LINKS</Text>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Review destinations</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{getNativeComplianceLinksReadinessMessage()}</Text>
+      </View>
+      {complianceLinks.map((item) => (
+        <Pressable
+          accessibilityRole="button"
+          key={item.key}
+          onPress={() => {
+            openSupportLink(item.url).catch(() => {});
+          }}
+          style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+        >
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.title}</Text>
+            <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{item.url}</Text>
+          </View>
+          <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>OPEN</Text>
+        </Pressable>
       ))}
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>NATIVE READINESS</Text>
