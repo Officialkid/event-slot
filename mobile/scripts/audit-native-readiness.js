@@ -57,6 +57,9 @@ requireFile("docs/play-data-safety.md");
 requireFile("docs/native-build-gates.md");
 requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
+requireFile("src/domain/uiStates.ts");
+requireFile("src/services/uiStates.ts");
+requireFile("src/components/StateCard.tsx");
 requireFile("src/services/sessionCleanup.ts");
 requireFile("src/services/deviceQaProgress.ts");
 requireFile("src/services/dashboardInsights.ts");
@@ -173,6 +176,18 @@ requireFileIncludes(
   "src/screens/SignInScreen.tsx",
   "NATIVE AUTH READINESS",
   "testers need to know whether the native build is using demo auth or live EventSlot API auth"
+);
+requireFileIncludes(
+  "Native app exposes ten reusable UI states",
+  "src/services/uiStates.ts",
+  "session-expired",
+  "mobile QA needs consistent empty, loading, error, offline, slow-network, search, permission, session, validation, and success states"
+);
+requireFileIncludes(
+  "Native profile renders UI state catalogue",
+  "src/screens/ProfileScreen.tsx",
+  "APP STATES",
+  "testers need a visible place to review the ten app state patterns"
 );
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];

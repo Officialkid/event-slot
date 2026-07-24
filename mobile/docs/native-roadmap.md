@@ -69,6 +69,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native Profile can prepare structured tester feedback emails with session, runtime, connectivity, and checklist context.
 - Native device QA checklist statuses can be marked pass/needs-review/reset and persist locally for stronger tester evidence.
 - Native release gates derive Android QA readiness from connectivity results and persisted device checklist progress.
+- Native Profile now includes a reusable 10-state UI catalogue for empty, loading, error, no-internet, slow-network, no-search-results, permission-denied, session-expired, form-validation, and success flows.
 - Preference, draft, and session storage are wired through native storage dependencies; Android app-restart and logout clearing still need device proof.
 - Native sign-out now attempts live bearer-token logout and always clears SecureStore session data locally.
 - Account deletion remains gated until authenticated deletion and data export routes are available to native sessions.

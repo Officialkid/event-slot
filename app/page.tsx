@@ -136,7 +136,7 @@ export default async function Home() {
   const testerPromptEnabled = await isTesterPromptEnabled()
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
+    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -205,7 +205,7 @@ export default async function Home() {
                   </span>
                 </div>
                 <div className="relative px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-                  <div className="relative overflow-hidden rounded-[20px] border border-[rgba(240,237,230,0.08)] bg-[#0E0E0E]">
+                  <div className="relative overflow-hidden rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface)]">
                     <Image
                       src="/assets/dashboard-laptop.png"
                       alt="EventSlot dashboard preview"
@@ -216,8 +216,8 @@ export default async function Home() {
                     />
                   </div>
 
-                  <div className="absolute -bottom-4 right-0 hidden w-[34%] max-w-[220px] rounded-[22px] border border-[rgba(240,237,230,0.12)] bg-[rgba(10,10,10,0.92)] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.4)] sm:block">
-                    <div className="overflow-hidden rounded-[16px] border border-[rgba(240,237,230,0.08)] bg-[#111111]">
+                  <div className="absolute -bottom-4 right-0 hidden w-[34%] max-w-[220px] rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface)] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:block">
+                    <div className="overflow-hidden rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface)]">
                       <Image
                         src="/assets/organizer-mobile.png"
                         alt="EventSlot mobile organizer preview"
@@ -234,7 +234,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0D0F0C] px-4 py-5 sm:px-6 lg:px-8">
+      <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-5 sm:px-6 lg:px-8">
         <div className="marketing-shell flex flex-wrap items-center justify-between gap-4">
           <div className="text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.4)]">
             Registration events, waitlists, and walk-in attendance
@@ -324,7 +324,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0C0D0B] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="marketing-shell">
           <div className="marketing-section-label">How it works</div>
           <div className="mt-5 grid gap-4 lg:grid-cols-3">

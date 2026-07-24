@@ -66,11 +66,11 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
   }
 
   return (
-    <aside className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-xl rounded-[28px] border border-[rgba(200,245,90,0.25)] bg-[rgba(12,15,11,0.96)] p-4 text-[#F0EDE6] shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:left-auto sm:right-5 sm:w-[420px]">
+    <aside className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-xl rounded-[28px] border border-[var(--border-emphasis)] bg-[var(--surface)] p-4 text-[var(--text-primary)] shadow-[0_24px_90px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:left-auto sm:right-5 sm:w-[420px]">
       <button
         type="button"
         onClick={dismiss}
-        className="absolute right-4 top-4 rounded-full border border-[rgba(240,237,230,0.12)] p-2 text-[rgba(240,237,230,0.62)] transition hover:text-white"
+        className="absolute right-4 top-4 rounded-full border border-[var(--border-subtle)] p-2 text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
         aria-label="Dismiss early tester invite"
       >
         <X className="h-4 w-4" />
@@ -81,10 +81,10 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
           <span className="h-2 w-2 rounded-full bg-[#C8F55A]" />
           App testing
         </div>
-        <h2 className="mt-3 text-[1.25rem] font-semibold leading-tight text-white">
+        <h2 className="mt-3 text-[1.25rem] font-semibold leading-tight text-[var(--text-primary)]">
           EventSlot is preparing for Play Store testing.
         </h2>
-        <p className="mt-2 text-[0.9rem] leading-6 text-[rgba(240,237,230,0.68)]">
+        <p className="mt-2 text-[0.9rem] leading-6 text-[var(--text-secondary)]">
           Join the early tester list and we will email you when the app testing track opens.
         </p>
       </div>
@@ -95,7 +95,7 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="your@email.com"
-          className="min-h-[48px] flex-1 rounded-full border border-[rgba(240,237,230,0.16)] bg-[#080808] px-4 text-sm text-white outline-none transition placeholder:text-[rgba(240,237,230,0.42)] focus:border-[#C8F55A]"
+          className="min-h-[48px] flex-1 rounded-full border border-[var(--border)] bg-[var(--bg-input)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
         />
         <button
           type="submit"
@@ -119,7 +119,7 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
       </button>
 
       {expanded ? (
-        <div className="mt-3 grid gap-2 rounded-[20px] border border-[rgba(240,237,230,0.08)] bg-[rgba(255,255,255,0.03)] p-3 text-[0.82rem] leading-5 text-[rgba(240,237,230,0.72)]">
+        <div className="mt-3 grid gap-2 rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-3 text-[0.82rem] leading-5 text-[var(--text-secondary)]">
           {[
             "Use the app regularly so we can catch real mobile issues.",
             "Create test events, register, verify tickets, and check exports.",

@@ -7,6 +7,7 @@ import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
+import { StateCard } from "../components/StateCard";
 import { buildNativeDeviceQaChecklist, buildNativeQaEvidenceReport, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
 import {
   applyNativeDeviceQaProgress,
@@ -29,6 +30,7 @@ import { shareNativePayload } from "../services/share";
 import { getNativeLogoutCleanupReadinessMessage } from "../services/sessionCleanup";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
+import { getNativeUiStatesReadinessMessage, nativeUiStatePatterns } from "../services/uiStates";
 import {
   getAccountDeletionReadinessMessage,
   buildNativeComplianceLinkItems,
@@ -305,6 +307,15 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>RELEASE GATES</Text>
       {releaseGateItems.map((item) => (
         <ReadinessRow key={item.key} item={item} theme={theme} />
+      ))}
+
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>APP STATES</Text>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Reusable mobile states</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{getNativeUiStatesReadinessMessage()}</Text>
+      </View>
+      {nativeUiStatePatterns.map((state) => (
+        <StateCard key={state.key} state={state} theme={theme} />
       ))}
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>DEVICE QA</Text>

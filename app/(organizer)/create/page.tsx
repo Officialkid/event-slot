@@ -850,12 +850,12 @@ export default function CreateEventPage() {
                 <button
                   type="button"
                   onClick={() => setAccessType("REGISTRATION")}
-                  className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
+                  className="min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition"
+                  style={
                     accessType === "REGISTRATION"
-                      ? "border-[rgba(200,245,90,0.65)] bg-[rgba(200,245,90,0.08)] text-[#F0EDE6]"
-                      : ""
-                  }`}
-                  style={accessType === "REGISTRATION" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      ? { borderColor: "var(--border-emphasis)", background: "var(--accent-muted)", color: "var(--text-primary)" }
+                      : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
+                  }
                 >
                   <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
                     <span aria-hidden="true">{accessType === "REGISTRATION" ? "◉" : "○"}</span>
@@ -868,12 +868,12 @@ export default function CreateEventPage() {
                 <button
                   type="button"
                   onClick={() => setAccessType("WALK_IN")}
-                  className={`min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition ${
+                  className="min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition"
+                  style={
                     accessType === "WALK_IN"
-                      ? "border-[rgba(124,198,255,0.7)] bg-[rgba(79,172,254,0.09)] text-[#F0EDE6]"
-                      : ""
-                  }`}
-                  style={accessType === "WALK_IN" ? undefined : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                      ? { borderColor: "rgba(79,172,254,0.5)", background: "rgba(79,172,254,0.1)", color: "var(--text-primary)" }
+                      : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
+                  }
                 >
                   <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
                     <span aria-hidden="true">{accessType === "WALK_IN" ? "◉" : "○"}</span>
