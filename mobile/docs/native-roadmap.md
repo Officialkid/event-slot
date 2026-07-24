@@ -57,6 +57,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Hosted privacy, terms, website, and tester-support links are available from native Profile.
 - Native Profile can prepare structured tester feedback emails with session, runtime, connectivity, and checklist context.
 - Preference, draft, and session storage are wired through native storage dependencies; Android app-restart and logout clearing still need device proof.
+- Native sign-out now attempts live bearer-token logout and always clears SecureStore session data locally.
 - Account deletion remains gated until authenticated deletion and data export routes are available to native sessions.
 
 ## Phase 4: Store Readiness

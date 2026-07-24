@@ -6,7 +6,8 @@ import { SignInScreen } from "./src/screens/SignInScreen";
 import { AppSession } from "./src/session";
 import { demoSession } from "./src/services/auth";
 import { loadNativePreferences, saveThemePreference } from "./src/services/preferences";
-import { clearStoredSession, restoreStoredSession, saveStoredSession } from "./src/services/sessionStore";
+import { cleanupNativeSession } from "./src/services/sessionCleanup";
+import { restoreStoredSession, saveStoredSession } from "./src/services/sessionStore";
 import { ThemeName, createTheme } from "./src/theme";
 
 export default function App() {
@@ -39,7 +40,7 @@ export default function App() {
   };
 
   const handleSignOut = () => {
-    clearStoredSession().catch(() => {});
+    cleanupNativeSession(session).catch(() => {});
     setSession(null);
   };
 

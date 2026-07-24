@@ -13,6 +13,7 @@ import { defaultNativePreferences, loadNativePreferences, saveNotificationPrefer
 import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
 import { shareNativePayload } from "../services/share";
+import { getNativeLogoutCleanupReadinessMessage } from "../services/sessionCleanup";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import {
@@ -214,6 +215,11 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Session storage</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{sessionStorageReadiness}</Text>
+      </View>
+
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Logout cleanup</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{getNativeLogoutCleanupReadinessMessage()}</Text>
       </View>
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>ACCOUNT</Text>

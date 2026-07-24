@@ -56,6 +56,7 @@ requireFile("assets/splash.png");
 requireFile("docs/play-data-safety.md");
 requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
+requireFile("src/services/sessionCleanup.ts");
 requireFileIncludes(
   "Native tester feedback email is available",
   "src/services/support.ts",
@@ -79,6 +80,12 @@ requireFileIncludes(
   "src/screens/VerifyScreen.tsx",
   "Activate verifier access",
   "event-day verifiers need a native code-entry path before scanning"
+);
+requireFileIncludes(
+  "Native sign-out uses cleanup service",
+  "App.tsx",
+  "cleanupNativeSession",
+  "native logout must clear local session storage and attempt live logout"
 );
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
