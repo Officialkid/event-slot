@@ -84,6 +84,12 @@ requireFileIncludes(
   "event-day verifiers need a native code-entry path before scanning"
 );
 requireFileIncludes(
+  "Native verifier history is available",
+  "src/screens/VerifyScreen.tsx",
+  "RECENT CHECKS",
+  "event-day teams need on-device verification history for Android QA and door troubleshooting"
+);
+requireFileIncludes(
   "Native sign-out uses cleanup service",
   "App.tsx",
   "cleanupNativeSession",

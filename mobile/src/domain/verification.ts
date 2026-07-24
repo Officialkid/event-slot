@@ -41,3 +41,18 @@ export type VerifierAccessResult = {
   verifierToken: string;
   ticketsEnabled: boolean;
 };
+
+export type NativeVerificationHistoryMethod = "manual" | "camera" | "preview";
+
+export type NativeVerificationHistoryEntry = {
+  id: string;
+  eventTitle: string;
+  eventSlug: string;
+  method: NativeVerificationHistoryMethod;
+  status: VerificationStatus;
+  message: string;
+  lookupValue: string;
+  attendeeName?: string;
+  ticketCode?: string;
+  checkedAt: string;
+};

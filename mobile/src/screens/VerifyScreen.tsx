@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarcodeScanningResult, CameraView } from "expo-camera";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { NativeScanMode, NativeScannerState } from "../domain/scanner";
-import { VerificationResult, VerifierAccessResult } from "../domain/verification";
+import { NativeVerificationHistoryEntry, NativeVerificationHistoryMethod, VerificationResult, VerifierAccessResult } from "../domain/verification";
 import {
   buildDemoScanPayload,
   buildNativeScanPayload,
@@ -13,6 +13,12 @@ import {
   requestCameraScannerAccess
 } from "../services/scanner";
 import { requestNativeVerifierAccess, verifyNativeTicket } from "../services/verification";
+import {
+  clearNativeVerificationHistory,
+  getVerificationHistoryReadinessMessage,
+  loadNativeVerificationHistory,
+  saveNativeVerificationHistoryEntry
+} from "../services/verificationHistory";
 import { NativeScreenProps } from "./types";
 
 export function VerifyScreen({ theme, session, events, eventsLoading, eventsError }: NativeScreenProps) {
@@ -30,11 +36,35 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
   const [verifierAccessLoading, setVerifierAccessLoading] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
   const [scannerState, setScannerState] = useState<NativeScannerState>(initialScannerState);
+  const [verificationHistory, setVerificationHistory] = useState<NativeVerificationHistoryEntry[]>([]);
 
   const selectedEvent =
     verifierEvents.find((event) => event.id === selectedEventId) ?? verifierEvents[0];
 
-  const runVerification = async (input: { ticketCode?: string; qrPayload?: string }) => {
+  useEffect(() => {
+    let mounted = true;
+
+    loadNativeVerificationHistory()
+      .then((history) => {
+        if (mounted) {
+          setVerificationHistory(history);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setVerificationHistory([]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const runVerification = async (
+    input: { ticketCode?: string; qrPayload?: string },
+    method: NativeVerificationHistoryMethod
+  ) => {
     if (!selectedEvent) {
       setResult({
         status: "error",
@@ -49,18 +79,33 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
     try {
       const verification = await verifyNativeTicket(session, selectedEvent, input);
       setResult(verification);
+      const nextHistory = await saveNativeVerificationHistoryEntry(verificationHistory, {
+        event: selectedEvent,
+        lookupValue: input.ticketCode ?? input.qrPayload ?? "",
+        method,
+        result: verification
+      });
+      setVerificationHistory(nextHistory);
     } catch (error) {
-      setResult({
+      const errorResult: VerificationResult = {
         status: "error",
         message: error instanceof Error ? error.message : "Could not verify this ticket right now."
+      };
+      setResult(errorResult);
+      const nextHistory = await saveNativeVerificationHistoryEntry(verificationHistory, {
+        event: selectedEvent,
+        lookupValue: input.ticketCode ?? input.qrPayload ?? "",
+        method,
+        result: errorResult
       });
+      setVerificationHistory(nextHistory);
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerify = async () => {
-    await runVerification({ ticketCode: lookup });
+    await runVerification({ ticketCode: lookup }, "manual");
   };
 
   const handleRequestVerifierAccess = async () => {
@@ -102,7 +147,7 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
       activeMode: "camera",
       lastPayload: payload
     }));
-    await runVerification({ qrPayload: payload.rawValue });
+    await runVerification({ qrPayload: payload.rawValue }, "preview");
   };
 
   const handleBarcodeScanned = async (scanResult: BarcodeScanningResult) => {
@@ -118,8 +163,13 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
       lastPayload: payload
     }));
 
-    await runVerification({ qrPayload: payload.rawValue });
+    await runVerification({ qrPayload: payload.rawValue }, "camera");
     setTimeout(() => setScanLocked(false), 1800);
+  };
+
+  const handleClearHistory = async () => {
+    await clearNativeVerificationHistory();
+    setVerificationHistory([]);
   };
 
   return (
@@ -303,8 +353,49 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
           ) : null}
         </View>
       ) : null}
+
+      <View style={[styles.lookupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <View style={styles.historyHeader}>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>RECENT CHECKS</Text>
+          <Pressable accessibilityRole="button" onPress={handleClearHistory}>
+            <Text style={[styles.clearHistoryText, { color: theme.colors.accent }]}>Clear</Text>
+          </Pressable>
+        </View>
+        <Text style={[styles.helper, { color: theme.colors.secondary }]}>
+          {getVerificationHistoryReadinessMessage()}
+        </Text>
+        {verificationHistory.length === 0 ? (
+          <Text style={[styles.helper, { color: theme.colors.muted }]}>
+            No native verification attempts saved on this device yet.
+          </Text>
+        ) : (
+          verificationHistory.slice(0, 5).map((entry) => (
+            <View key={entry.id} style={[styles.historyItem, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.historyTitle, { color: theme.colors.text }]}>
+                {entry.status.replace("-", " ").toUpperCase()} - {entry.method.toUpperCase()}
+              </Text>
+              <Text style={[styles.helper, { color: theme.colors.secondary }]}>
+                {entry.eventTitle} - {entry.ticketCode ?? entry.lookupValue}
+              </Text>
+              <Text style={[styles.helper, { color: theme.colors.muted }]}>
+                {formatHistoryTime(entry.checkedAt)}
+                {entry.attendeeName ? ` - ${entry.attendeeName}` : ""}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
     </View>
   );
+}
+
+function formatHistoryTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString();
 }
 
 type ModeButtonProps = {
@@ -442,6 +533,24 @@ const styles = StyleSheet.create({
   },
   eventChipText: {
     fontSize: 12,
+    fontWeight: "900"
+  },
+  historyHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  clearHistoryText: {
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  historyItem: {
+    borderTopWidth: 1,
+    gap: 4,
+    paddingTop: 12
+  },
+  historyTitle: {
+    fontSize: 13,
     fontWeight: "900"
   },
   label: {
