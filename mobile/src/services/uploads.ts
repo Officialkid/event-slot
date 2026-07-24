@@ -1,5 +1,11 @@
+import * as DocumentPicker from "expo-document-picker";
 import { nativeConfig } from "../config";
-import { NativeAttachmentDraft, NativeAttachmentKind, NativeAttachmentRequirement } from "../domain/attachments";
+import {
+  NativeAttachmentDraft,
+  NativeAttachmentKind,
+  NativeAttachmentPickResult,
+  NativeAttachmentRequirement
+} from "../domain/attachments";
 
 export const defaultAttachmentRequirement: NativeAttachmentRequirement = {
   enabled: false,
@@ -12,10 +18,83 @@ export const defaultAttachmentRequirement: NativeAttachmentRequirement = {
 
 export function getUploadReadinessMessage(): string {
   if (!nativeConfig.uploadsEnabled) {
-    return "Native uploads are disabled until file picker, bucket upload permissions, and mobile error handling are reviewed.";
+    return "Native file picker support is wired, but bucket upload writes remain disabled until permissions, size limits, and Android error handling are reviewed.";
   }
 
   return "Native uploads are enabled for integration testing.";
+}
+
+export async function pickNativeAttachment(requirement: NativeAttachmentRequirement): Promise<NativeAttachmentPickResult> {
+  if (!requirement.enabled) {
+    return {
+      status: "error",
+      message: "This event is not requesting file uploads."
+    };
+  }
+
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: false,
+      type: getDocumentPickerTypes(requirement.acceptedKind)
+    });
+
+    if (result.canceled) {
+      return {
+        status: "cancelled",
+        message: "No file selected."
+      };
+    }
+
+    const asset = result.assets[0];
+    if (!asset) {
+      return {
+        status: "error",
+        message: "No file details were returned by the picker."
+      };
+    }
+
+    const attachment: NativeAttachmentDraft = {
+      id: `${Date.now()}-${asset.name}`,
+      localUri: asset.uri,
+      mimeType: asset.mimeType ?? "application/octet-stream",
+      name: asset.name,
+      sizeBytes: asset.size ?? 0,
+      source: "document-picker"
+    };
+
+    return {
+      status: "picked",
+      attachment: {
+        ...attachment,
+        validationError: validateAttachmentDraft(attachment, requirement)
+      }
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to open the native file picker."
+    };
+  }
+}
+
+export function getDocumentPickerTypes(kind: NativeAttachmentKind): string | string[] {
+  if (kind === "image") {
+    return "image/*";
+  }
+
+  if (kind === "document") {
+    return [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/plain"
+    ];
+  }
+
+  return "*/*";
 }
 
 export function isAttachmentKindAllowed(kind: NativeAttachmentKind, mimeType: string): boolean {
@@ -49,4 +128,29 @@ export function validateAttachmentDraft(
   }
 
   return null;
+}
+
+export function prepareNativeAttachmentUpload(attachment: NativeAttachmentDraft, requirement: NativeAttachmentRequirement): {
+  ready: boolean;
+  message: string;
+} {
+  const validationError = validateAttachmentDraft(attachment, requirement);
+  if (validationError) {
+    return {
+      ready: false,
+      message: validationError
+    };
+  }
+
+  if (!nativeConfig.uploadsEnabled) {
+    return {
+      ready: false,
+      message: "File selection is ready, but bucket upload is still disabled for native release safety."
+    };
+  }
+
+  return {
+    ready: true,
+    message: "Attachment is ready for bucket upload."
+  };
 }

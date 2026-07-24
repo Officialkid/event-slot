@@ -46,7 +46,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Event detail now models owner/team capabilities and verifier-code sharing readiness.
 - Native share-sheet handoff is scaffolded for verifier access codes.
 - Offline registration drafts.
-- File/image upload questions are scaffolded; device picker and bucket upload still need implementation.
+- File/image upload questions and native document picker support are scaffolded; bucket upload writes still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Notification channels are scaffolded; push token registration and permission prompts are still gated.
 - Native maps handoff for event directions.
@@ -71,7 +71,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Create event, verifier code, ticket verification, and profile settings work on-device.
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
 - Real camera scanning handles permission denial, duplicate scans, malformed payloads, and network failure.
-- File uploads use bucket storage with size/type validation and updated Play Data Safety disclosures.
+- File uploads use bucket storage with size/type validation, native picker QA, and updated Play Data Safety disclosures.
 - Push notifications have token registration, logout cleanup, and updated privacy/Data Safety disclosures.
 - Export downloads use native authenticated endpoints with signed URLs, progress states, and device download/share testing.
 - Preferences persist across app restart and clear correctly on logout/account deletion.

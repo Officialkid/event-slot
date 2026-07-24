@@ -221,6 +221,23 @@ Before shipping real offline drafts:
 - Add conflict handling when a local draft is later submitted to the live API.
 - Add device QA for app restart, low-memory termination, and network loss.
 
+## Native File Picker And Uploads
+
+The native app now has a document-picker boundary for attendee upload questions:
+
+- `expo-document-picker` is included in the mobile package.
+- `pickNativeAttachment` opens the native picker for image, document, or any-file requirements.
+- `validateAttachmentDraft` checks type and maximum file size locally.
+- Create Event can test the native picker from the upload-question section without writing to the bucket.
+
+Still gated before real uploads:
+
+- Add authenticated bucket upload routes for native sessions.
+- Enforce server-side file type and size validation.
+- Store uploaded files in the bucket, not the database.
+- Add progress, retry, and cancellation UI for slow mobile networks.
+- Complete Android device QA for permissions, cancelled picker flows, large files, unsupported file types, and low-storage devices.
+
 ## Maps Handoff
 
 The native app can validate and open organiser-provided Google Maps links using React Native `Linking`.

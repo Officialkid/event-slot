@@ -16,4 +16,20 @@ export type NativeAttachmentDraft = {
   sizeBytes: number;
   localUri?: string;
   uploadedUrl?: string;
+  source?: "document-picker" | "camera-roll" | "demo";
+  validationError?: string | null;
 };
+
+export type NativeAttachmentPickResult =
+  | {
+      status: "picked";
+      attachment: NativeAttachmentDraft;
+    }
+  | {
+      status: "cancelled";
+      message: string;
+    }
+  | {
+      status: "error";
+      message: string;
+    };

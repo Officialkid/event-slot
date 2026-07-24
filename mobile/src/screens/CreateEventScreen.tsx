@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { NativeAttachmentKind } from "../domain/attachments";
+import { NativeAttachmentDraft, NativeAttachmentKind } from "../domain/attachments";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
 import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
 import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, submitNativeEventDraft } from "../services/eventSubmission";
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
-import { getUploadReadinessMessage } from "../services/uploads";
+import { getUploadReadinessMessage, pickNativeAttachment, prepareNativeAttachmentUpload } from "../services/uploads";
 import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate, refreshEvents, session }: NativeScreenProps) {
@@ -16,6 +16,8 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
   const [draftStatus, setDraftStatus] = useState("Loading saved native draft...");
   const [draftLoading, setDraftLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState("Native publishing is not active until live API mode is enabled.");
+  const [attachmentPreview, setAttachmentPreview] = useState<NativeAttachmentDraft | null>(null);
+  const [attachmentStatus, setAttachmentStatus] = useState("No attachment selected in this native preview.");
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +93,21 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
     } catch (error) {
       setSubmitStatus(error instanceof Error ? error.message : "Could not publish this native event draft.");
     }
+  };
+
+  const handlePickAttachment = async () => {
+    setAttachmentStatus("Opening native file picker...");
+    const result = await pickNativeAttachment(draft.attachmentRequirement);
+
+    if (result.status !== "picked") {
+      setAttachmentPreview(null);
+      setAttachmentStatus(result.message);
+      return;
+    }
+
+    setAttachmentPreview(result.attachment);
+    const readiness = prepareNativeAttachmentUpload(result.attachment, draft.attachmentRequirement);
+    setAttachmentStatus(readiness.message);
   };
 
   return (
@@ -323,6 +340,19 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
               }
               theme={theme}
             />
+            <Pressable accessibilityRole="button" onPress={handlePickAttachment} style={[styles.outlineButton, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.outlineButtonText, { color: theme.colors.text }]}>Test native file picker</Text>
+            </Pressable>
+            <View style={[styles.attachmentPreview, { borderColor: theme.colors.border, backgroundColor: theme.colors.input }]}>
+              <Text style={[styles.helper, { color: attachmentPreview?.validationError ? theme.colors.error : theme.colors.secondary }]}>
+                {attachmentStatus}
+              </Text>
+              {attachmentPreview ? (
+                <Text style={[styles.helper, { color: theme.colors.muted }]}>
+                  {attachmentPreview.name} | {Math.ceil(attachmentPreview.sizeBytes / 1024)} KB | {attachmentPreview.mimeType}
+                </Text>
+              ) : null}
+            </View>
           </>
         ) : null}
       </View>
@@ -624,6 +654,12 @@ const styles = StyleSheet.create({
   outlineButtonText: {
     fontSize: 14,
     fontWeight: "900"
+  },
+  attachmentPreview: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 4,
+    padding: 12
   },
   preview: {
     borderRadius: 26,
