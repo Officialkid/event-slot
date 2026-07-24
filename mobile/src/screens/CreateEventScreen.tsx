@@ -14,7 +14,7 @@ import {
 import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, submitNativeEventDraft } from "../services/eventSubmission";
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
-import { isSupportedMapUrl, openMapUrl } from "../services/maps";
+import { buildNativeMapAction, openMapUrl } from "../services/maps";
 import { getUploadReadinessMessage, pickNativeAttachment, prepareNativeAttachmentUpload, uploadNativeAttachment } from "../services/uploads";
 import { NativeScreenProps } from "./types";
 
@@ -86,7 +86,10 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
   const validation = useMemo(() => validateEventDraft(draft), [draft]);
   const submissionPreparation = useMemo(() => prepareNativeCreateEventRequest(draft), [draft]);
-  const mapUrlSupported = isSupportedMapUrl(preview.mapDirectionsUrl);
+  const mapAction = buildNativeMapAction({
+    mapDirectionsUrl: preview.mapDirectionsUrl,
+    venue: preview.venue
+  });
   const publishReadiness = getNativeCreateEventReadinessMessage(session);
   const uploadReadiness = getUploadReadinessMessage();
 
@@ -476,16 +479,14 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
         <Text style={[styles.previewBody, { color: theme.colors.secondary }]}>
           {draft.description || "Your event description will appear here with the spacing and wording preserved."}
         </Text>
-        {preview.mapDirectionsUrl ? (
+        {mapAction.ready ? (
           <View style={[styles.mapStatus, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.previewMeta, { color: mapUrlSupported ? theme.colors.accent : theme.colors.error }]}>
-              {mapUrlSupported ? "Maps link ready" : "Maps link needs a Google Maps URL"}
+            <Text style={[styles.previewMeta, { color: mapAction.source === "organiser-link" || mapAction.source === "venue-search" ? theme.colors.accent : theme.colors.error }]}>
+              {mapAction.source === "organiser-link" ? "Organiser Maps link ready" : "Venue can be searched on Google Maps"}
             </Text>
-            {mapUrlSupported ? (
-              <Pressable accessibilityRole="button" onPress={() => openMapUrl(preview.mapDirectionsUrl)} style={[styles.mapButton, { borderColor: theme.colors.border }]}>
-                <Text style={[styles.mapButtonText, { color: theme.colors.accent }]}>Open map</Text>
-              </Pressable>
-            ) : null}
+            <Pressable accessibilityRole="button" onPress={() => openMapUrl(mapAction.url)} style={[styles.mapButton, { borderColor: theme.colors.border }]}>
+              <Text style={[styles.mapButtonText, { color: theme.colors.accent }]}>{mapAction.label}</Text>
+            </Pressable>
           </View>
         ) : null}
         {preview.attendeeConsentEnabled ? (

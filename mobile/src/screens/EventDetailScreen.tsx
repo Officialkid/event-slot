@@ -6,7 +6,7 @@ import { NativeExportAction, NativePreparedExport } from "../domain/exports";
 import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
 import { buildExportActions, buildPreparedNativeExport, getExportReadinessMessage, openPreparedNativeExport, prepareNativeExport } from "../services/exports";
-import { isSupportedMapUrl, openMapUrl } from "../services/maps";
+import { buildNativeMapAction, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace, buildWorkspaceRegistrationPreview } from "../services/registrations";
 import { shareNativePayload } from "../services/share";
 import { loadNativeEventWorkspace } from "../services/workspace";
@@ -88,7 +88,10 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
   }
 
   const fillPercent = event.capacity > 0 ? Math.round((event.attendees / event.capacity) * 100) : 0;
-  const canOpenMap = isSupportedMapUrl(event.mapDirectionsUrl);
+  const mapAction = buildNativeMapAction({
+    mapDirectionsUrl: event.mapDirectionsUrl,
+    venue: event.venue
+  });
   const registrationWorkspace = workspace ? buildWorkspaceRegistrationPreview(workspace) : buildDemoRegistrationWorkspace(event);
   const exportActions = buildExportActions(event);
   const accessSummary = getEventAccessSummary(event);
@@ -145,9 +148,9 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
         <Text style={[styles.body, { color: theme.colors.secondary }]}>
           {event.dateLabel} | {event.timeLabel} | {event.venue}
         </Text>
-        {canOpenMap ? (
-          <Pressable accessibilityRole="button" onPress={() => openMapUrl(event.mapDirectionsUrl)} style={[styles.mapButton, { backgroundColor: theme.colors.accent }]}>
-            <Text style={styles.mapButtonText}>Open directions</Text>
+        {mapAction.ready ? (
+          <Pressable accessibilityRole="button" onPress={() => openMapUrl(mapAction.url)} style={[styles.mapButton, { backgroundColor: theme.colors.accent }]}>
+            <Text style={styles.mapButtonText}>{mapAction.label}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -170,9 +173,9 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
         <ActionLine label="Access role" value={accessSummary.caption} theme={theme} />
         <ActionLine
           label="Maps"
-          value={canOpenMap ? "Organiser-provided directions are ready" : "Add organiser-provided directions before launch"}
-          action={canOpenMap ? "Open map" : undefined}
-          onPress={canOpenMap ? () => openMapUrl(event.mapDirectionsUrl) : undefined}
+          value={mapAction.source === "organiser-link" ? "Organiser-provided directions are ready" : mapAction.source === "venue-search" ? "No organiser link yet; native app can search the venue on Maps." : "Add organiser-provided directions before launch"}
+          action={mapAction.ready ? mapAction.label : undefined}
+          onPress={mapAction.ready ? () => openMapUrl(mapAction.url) : undefined}
           theme={theme}
         />
       </View>

@@ -100,6 +100,12 @@ requireFileIncludes(
   "Max file size (MB)",
   "organizers need native control over attendee upload limits before bucket writes are enabled"
 );
+requireFileIncludes(
+  "Native maps can search by venue",
+  "src/services/maps.ts",
+  "buildGoogleMapsSearchUrl",
+  "attendees need a native map fallback when an organiser link has not been pasted yet"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");
