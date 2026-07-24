@@ -1,4 +1,5 @@
 import { nativeConfig } from "../config";
+import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
 
 export const nativeReadinessItems: NativeReadinessItem[] = [
@@ -78,6 +79,33 @@ export const nativeReleaseGateItems: NativeReadinessItem[] = [
     status: "blocked"
   }
 ];
+
+export function buildNativeReleaseGateItems(input: {
+  connectivityProbe: NativeConnectivityProbeResult | null;
+  deviceQaChecklist: NativeDeviceQaItem[];
+}): NativeReadinessItem[] {
+  const checkedItems = input.deviceQaChecklist.filter((item) => item.status !== "blocked");
+  const passedItems = checkedItems.filter((item) => item.status === "pass");
+  const qaHasStarted = Boolean(input.connectivityProbe) || passedItems.length > 0;
+  const connectivityPassed = input.connectivityProbe?.status === "pass";
+  const deviceQaReady = connectivityPassed && checkedItems.length > 0 && passedItems.length === checkedItems.length;
+  const androidQaStatus = deviceQaReady ? "ready" : qaHasStarted ? "in-progress" : "blocked";
+  const androidQaCaption = deviceQaReady
+    ? "Connectivity passed and all non-blocked device QA items are marked pass on this device."
+    : qaHasStarted
+      ? `Connectivity ${connectivityPassed ? "passed" : "still needs proof"}; ${passedItems.length}/${checkedItems.length} non-blocked QA item${checkedItems.length === 1 ? "" : "s"} marked pass.`
+      : "Install an internal native build, run the connectivity probe, complete the Profile device QA checklist, and share the QA evidence report from a physical Android phone.";
+
+  return nativeReleaseGateItems.map((item) =>
+    item.key === "android-device-qa"
+      ? {
+          ...item,
+          caption: androidQaCaption,
+          status: androidQaStatus
+        }
+      : item
+  );
+}
 
 export const nativePermissionItems: NativePermissionItem[] = [
   {

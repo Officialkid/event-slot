@@ -18,7 +18,7 @@ import {
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
-import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
+import { buildNativeReleaseGateItems, nativePermissionItems, nativeReadinessItems } from "../services/settings";
 import { shareNativePayload } from "../services/share";
 import { getNativeLogoutCleanupReadinessMessage } from "../services/sessionCleanup";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
@@ -54,6 +54,10 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const deviceQaChecklist = useMemo(
     () => applyNativeDeviceQaProgress(buildNativeDeviceQaChecklist(session, events.length), deviceQaProgress),
     [deviceQaProgress, events.length, session]
+  );
+  const releaseGateItems = useMemo(
+    () => buildNativeReleaseGateItems({ connectivityProbe, deviceQaChecklist }),
+    [connectivityProbe, deviceQaChecklist]
   );
   const runtimeInfo = useMemo(() => buildNativeRuntimeInfo(), []);
   const accountSettings: AccountSetting[] = [
@@ -180,7 +184,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       checklist: deviceQaChecklist,
       connectivityProbe,
       eventsCount: events.length,
-      releaseGates: nativeReleaseGateItems,
+      releaseGates: releaseGateItems,
       runtimeInfo,
       session
     });
@@ -267,7 +271,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       ))}
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>RELEASE GATES</Text>
-      {nativeReleaseGateItems.map((item) => (
+      {releaseGateItems.map((item) => (
         <ReadinessRow key={item.key} item={item} theme={theme} />
       ))}
 

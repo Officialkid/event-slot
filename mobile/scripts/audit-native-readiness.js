@@ -102,6 +102,12 @@ requireFileIncludes(
   "device testers need persistent pass/review evidence before release"
 );
 requireFileIncludes(
+  "Native release gates derive from QA evidence",
+  "src/services/settings.ts",
+  "buildNativeReleaseGateItems",
+  "release readiness should reflect connectivity and device QA progress instead of static labels only"
+);
+requireFileIncludes(
   "Native upload questions expose file size limits",
   "src/screens/CreateEventScreen.tsx",
   "Max file size (MB)",
