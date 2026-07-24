@@ -56,6 +56,8 @@ npm run ios
 
 Do not upload this native app to Play Store or App Store until it is fully developed, tested, and approved. The current Play testing bridge remains the TWA.
 
+Before any native Play Console upload, review `docs/play-data-safety.md` against the final `app.json`, enabled runtime flags, and Android device QA results.
+
 ## Internal Native Build Profiles
 
 `eas.json` is configured for internal QA builds only:

@@ -47,6 +47,7 @@ requireValue("iOS bundle is separate from web/TWA identity", expo.ios && expo.io
 requireFile("assets/icon.png");
 requireFile("assets/adaptive-icon.png");
 requireFile("assets/splash.png");
+requireFile("docs/play-data-safety.md");
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");
