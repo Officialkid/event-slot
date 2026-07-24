@@ -106,6 +106,12 @@ requireFileIncludes(
   "buildGoogleMapsSearchUrl",
   "attendees need a native map fallback when an organiser link has not been pasted yet"
 );
+requireFileIncludes(
+  "Native event list has organizer filters",
+  "src/screens/EventsScreen.tsx",
+  "filterNativeEvents",
+  "organizers need mobile filters for active, draft, closed, owner, and team events"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

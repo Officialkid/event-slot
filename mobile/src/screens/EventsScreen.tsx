@@ -1,14 +1,64 @@
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { NativeEvent } from "../domain/events";
 import { NativeScreenProps } from "./types";
 
+type NativeEventFilter = "all" | "active" | "draft" | "closed" | "owner" | "team";
+
+const eventFilters: Array<{ key: NativeEventFilter; label: string }> = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active" },
+  { key: "draft", label: "Drafts" },
+  { key: "closed", label: "Closed" },
+  { key: "owner", label: "Owner" },
+  { key: "team", label: "Team" }
+];
+
 export function EventsScreen({ theme, navigate, events, eventsLoading, eventsError, refreshEvents }: NativeScreenProps) {
+  const [activeFilter, setActiveFilter] = useState<NativeEventFilter>("all");
+  const filteredEvents = filterNativeEvents(events, activeFilter);
+  const activeCount = events.filter((event) => event.status === "Active").length;
+  const teamCount = events.filter((event) => event.role === "Team").length;
+
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>My Events</Text>
       <Text style={[styles.subcopy, { color: theme.colors.secondary }]}>
         The native app will show owned events and invited-team events in one clear list.
       </Text>
+
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.summaryTitle, { color: theme.colors.text }]}>Native event workspace</Text>
+        <Text style={[styles.summaryCopy, { color: theme.colors.secondary }]}>
+          {events.length} events loaded, {activeCount} active, {teamCount} team-accessible.
+        </Text>
+      </View>
+
+      <View style={styles.filterRow}>
+        {eventFilters.map((filter) => {
+          const active = filter.key === activeFilter;
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              key={filter.key}
+              onPress={() => setActiveFilter(filter.key)}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: active ? theme.colors.activeTab : theme.colors.input,
+                  borderColor: active ? theme.colors.accent : theme.colors.border
+                }
+              ]}
+            >
+              <Text style={[styles.filterText, { color: active ? theme.colors.accent : theme.colors.secondary }]}>
+                {filter.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {eventsLoading ? (
         <View style={[styles.stateCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -38,7 +88,16 @@ export function EventsScreen({ theme, navigate, events, eventsLoading, eventsErr
         </View>
       ) : null}
 
-      {events.map((event) => (
+      {!eventsLoading && !eventsError && events.length > 0 && filteredEvents.length === 0 ? (
+        <View style={[styles.stateCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.stateTitle, { color: theme.colors.text }]}>No matching events</Text>
+          <Text style={[styles.stateCopy, { color: theme.colors.secondary }]}>
+            Change the filter to see more events in this native workspace.
+          </Text>
+        </View>
+      ) : null}
+
+      {filteredEvents.map((event) => (
         <Pressable
           accessibilityRole="button"
           key={event.id}
@@ -71,6 +130,30 @@ export function EventsScreen({ theme, navigate, events, eventsLoading, eventsErr
   );
 }
 
+function filterNativeEvents(events: NativeEvent[], filter: NativeEventFilter): NativeEvent[] {
+  if (filter === "active") {
+    return events.filter((event) => event.status === "Active");
+  }
+
+  if (filter === "draft") {
+    return events.filter((event) => event.status === "Draft");
+  }
+
+  if (filter === "closed") {
+    return events.filter((event) => event.status === "Closed");
+  }
+
+  if (filter === "owner") {
+    return events.filter((event) => event.role === "Owner");
+  }
+
+  if (filter === "team") {
+    return events.filter((event) => event.role === "Team");
+  }
+
+  return events;
+}
+
 const styles = StyleSheet.create({
   stack: {
     gap: 14
@@ -82,6 +165,35 @@ const styles = StyleSheet.create({
   subcopy: {
     fontSize: 15,
     lineHeight: 23
+  },
+  summaryCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 6,
+    padding: 18
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  summaryCopy: {
+    fontSize: 14,
+    lineHeight: 21
+  },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  filterChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: "900"
   },
   eventCard: {
     borderRadius: 24,
