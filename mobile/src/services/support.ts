@@ -1,4 +1,7 @@
 import { Linking } from "react-native";
+
+import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
+import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 import { AppSession } from "../session";
 
 export const supportLinks = {
@@ -43,6 +46,65 @@ export function buildAccountDeletionRequestUrl(session: AppSession): string {
   ].join("\n");
 
   return `mailto:info@eventsslot.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+export function buildNativeTesterFeedbackEmailUrl(params: {
+  checklist: NativeDeviceQaItem[];
+  connectivityProbe: NativeConnectivityProbeResult | null;
+  eventsCount: number;
+  runtimeInfo: NativeRuntimeInfoItem[];
+  session: AppSession;
+}): string {
+  const subject = "EventSlot native app tester feedback";
+  const runtimeLines = params.runtimeInfo.map((item) => `- ${item.label}: ${item.value}`);
+  const checklistLines = params.checklist.map((item) => `- ${item.title}: ${item.status}`);
+  const connectivity = params.connectivityProbe
+    ? `${params.connectivityProbe.status} - ${params.connectivityProbe.message}`
+    : "Not checked yet";
+  const body = [
+    "Hello EventSlot team,",
+    "",
+    "I am sharing feedback from the EventSlot native mobile app test.",
+    "",
+    "Tester details",
+    `Account email: ${params.session.email}`,
+    `Display name: ${params.session.displayName}`,
+    `Session mode: ${params.session.authMode}`,
+    `Events visible in app: ${params.eventsCount}`,
+    "",
+    "Device details",
+    "Phone model:",
+    "Android/iOS version:",
+    "Network used: Wi-Fi / mobile data",
+    "",
+    "What I tested",
+    "- Sign in:",
+    "- Dashboard:",
+    "- Events:",
+    "- Ticket verification:",
+    "- Profile/settings:",
+    "- Theme switching:",
+    "- Maps/files/push, if tested:",
+    "",
+    "Issue or feedback",
+    "What happened:",
+    "What I expected:",
+    "Steps to repeat:",
+    "Screenshot/video attached: Yes / No",
+    "",
+    "Native runtime",
+    ...runtimeLines,
+    "",
+    "Connectivity",
+    connectivity,
+    "",
+    "QA checklist status",
+    ...checklistLines,
+    "",
+    "Thank you."
+  ].join("\n");
+
+  return `mailto:eventslot.co@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 export async function openAccountDeletionPolicy(): Promise<boolean> {

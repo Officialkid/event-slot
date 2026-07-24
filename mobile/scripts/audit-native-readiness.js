@@ -25,6 +25,12 @@ function requireFile(relativePath) {
   addCheck(`Asset exists: ${relativePath}`, fs.existsSync(path.join(root, relativePath)), "required for native build/store presentation");
 }
 
+function requireFileIncludes(name, relativePath, expectedText, detail) {
+  const absolutePath = path.join(root, relativePath);
+  const content = fs.existsSync(absolutePath) ? fs.readFileSync(absolutePath, "utf8") : "";
+  addCheck(name, content.includes(expectedText), detail);
+}
+
 const packageJson = readJson("package.json");
 const appJson = readJson("app.json");
 const easJson = readJson("eas.json");
@@ -50,6 +56,12 @@ requireFile("assets/splash.png");
 requireFile("docs/play-data-safety.md");
 requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
+requireFileIncludes(
+  "Native tester feedback email is available",
+  "src/services/support.ts",
+  "buildNativeTesterFeedbackEmailUrl",
+  "testers need a structured feedback path before native release"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

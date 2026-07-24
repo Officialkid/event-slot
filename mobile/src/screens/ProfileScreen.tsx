@@ -17,6 +17,7 @@ import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import {
   getAccountDeletionReadinessMessage,
+  buildNativeTesterFeedbackEmailUrl,
   openAccountDeletionPolicy,
   openSupportLink,
   requestAccountDeletionByEmail,
@@ -76,6 +77,22 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       actionLabel: "EMAIL",
       onPress: () => {
         openSupportLink(supportLinks.testerSupport).catch(() => {});
+      }
+    },
+    {
+      title: "Tester feedback",
+      caption: "Open a structured native QA feedback email with your runtime, connectivity, and checklist context.",
+      actionLabel: "EMAIL",
+      onPress: () => {
+        openSupportLink(
+          buildNativeTesterFeedbackEmailUrl({
+            checklist: deviceQaChecklist,
+            connectivityProbe,
+            eventsCount: events.length,
+            runtimeInfo,
+            session
+          })
+        ).catch(() => {});
       }
     },
     {
