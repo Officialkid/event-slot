@@ -78,6 +78,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Android package and iOS bundle IDs confirmed.
 - Native Expo config declares app identity, icon, splash screen, camera, notification, file/media, SecureStore, and document-picker permissions.
 - Internal EAS build profiles exist for QA only; no native Play/App Store submit path is approved yet.
+- `docs/native-build-gates.md` records the no-upload rules, native/TWA separation, and required proof before any Expo native store upload.
 - App screenshots and feature graphics created from final native UI.
 - Privacy/data safety review updated for native permissions.
 - QA on Android devices before iOS work begins.

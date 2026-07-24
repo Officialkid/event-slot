@@ -54,6 +54,7 @@ requireFile("assets/icon.png");
 requireFile("assets/adaptive-icon.png");
 requireFile("assets/splash.png");
 requireFile("docs/play-data-safety.md");
+requireFile("docs/native-build-gates.md");
 requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
 requireFile("src/services/sessionCleanup.ts");
@@ -70,6 +71,12 @@ requireFileIncludes(
   "src/services/support.ts",
   "buildNativeComplianceLinkItems",
   "store-required privacy, terms, deletion, website, and support links need one reviewable native source"
+);
+requireFileIncludes(
+  "Native build gates block premature upload",
+  "docs/native-build-gates.md",
+  "Do not upload an Expo native AAB/IPA while release gates are blocked.",
+  "native app must stay separate from the TWA bridge until full device QA and approval"
 );
 requireFileIncludes(
   "Native prepared exports can open device links",
