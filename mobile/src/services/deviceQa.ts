@@ -1,6 +1,8 @@
 import { apiBaseUrl } from "../api/client";
 import { AppSession } from "../session";
 import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
+import { NativeReadinessItem } from "../domain/settings";
+import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 
 export function buildNativeDeviceQaChecklist(session: AppSession, eventsCount: number): NativeDeviceQaItem[] {
   return [
@@ -109,4 +111,40 @@ export function formatConnectivityCheckedAt(checkedAt: string | null): string {
     minute: "2-digit",
     month: "short"
   });
+}
+
+export function buildNativeQaEvidenceReport(params: {
+  checklist: NativeDeviceQaItem[];
+  connectivityProbe: NativeConnectivityProbeResult | null;
+  eventsCount: number;
+  releaseGates: NativeReadinessItem[];
+  runtimeInfo: NativeRuntimeInfoItem[];
+  session: AppSession;
+}): string {
+  const runtimeLines = params.runtimeInfo.map((item) => `- ${item.label}: ${item.value} (${item.tone})`);
+  const checklistLines = params.checklist.map((item) => `- ${item.title}: ${item.status} - ${item.expected}`);
+  const gateLines = params.releaseGates.map((item) => `- ${item.title}: ${item.status} - ${item.caption}`);
+  const connectivity = params.connectivityProbe
+    ? `${params.connectivityProbe.status} - ${params.connectivityProbe.message} (${formatConnectivityCheckedAt(params.connectivityProbe.checkedAt)})`
+    : "not checked yet";
+
+  return [
+    "EventSlot Native QA Evidence",
+    "",
+    `Tester account: ${params.session.email}`,
+    `Session mode: ${params.session.authMode}`,
+    `Native event count: ${params.eventsCount}`,
+    `Connectivity: ${connectivity}`,
+    "",
+    "Runtime",
+    ...runtimeLines,
+    "",
+    "Device QA Checklist",
+    ...checklistLines,
+    "",
+    "Release Gates",
+    ...gateLines,
+    "",
+    "Note: This evidence is generated from the native app Profile screen. Physical device behavior still needs manual confirmation before public release."
+  ].join("\n");
 }

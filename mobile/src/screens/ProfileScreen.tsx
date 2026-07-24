@@ -7,11 +7,12 @@ import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
-import { buildNativeDeviceQaChecklist, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
+import { buildNativeDeviceQaChecklist, buildNativeQaEvidenceReport, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
+import { shareNativePayload } from "../services/share";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import {
@@ -35,6 +36,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const [pushStatus, setPushStatus] = useState("Push token has not been requested on this device.");
   const [connectivityProbe, setConnectivityProbe] = useState<NativeConnectivityProbeResult | null>(null);
   const [connectivityChecking, setConnectivityChecking] = useState(false);
+  const [qaShareStatus, setQaShareStatus] = useState("No QA evidence shared yet.");
   const pushReadiness = getPushReadinessMessage();
   const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
@@ -140,6 +142,24 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     setConnectivityChecking(false);
   };
 
+  const handleShareQaEvidence = async () => {
+    const message = buildNativeQaEvidenceReport({
+      checklist: deviceQaChecklist,
+      connectivityProbe,
+      eventsCount: events.length,
+      releaseGates: nativeReleaseGateItems,
+      runtimeInfo,
+      session
+    });
+
+    const shared = await shareNativePayload({
+      title: "EventSlot Native QA Evidence",
+      message
+    });
+
+    setQaShareStatus(shared ? "QA evidence shared from this device." : "QA evidence share sheet was closed.");
+  };
+
   return (
     <View style={styles.stack}>
       <View style={[styles.profileHero, { backgroundColor: theme.colors.greenPanel }]}>
@@ -226,6 +246,16 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       {deviceQaChecklist.map((item) => (
         <DeviceQaRow key={item.key} item={item} theme={theme} />
       ))}
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>QA evidence report</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
+          Share runtime info, connectivity result, checklist items, and release gates after testing on the Android device.
+        </Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.muted }]}>{qaShareStatus}</Text>
+        <Pressable accessibilityRole="button" onPress={handleShareQaEvidence} style={[styles.inlineButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Share QA evidence</Text>
+        </Pressable>
+      </View>
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>PERMISSIONS</Text>
       {nativePermissionItems.map((item) => (

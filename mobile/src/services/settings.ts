@@ -50,7 +50,7 @@ export const nativeReleaseGateItems: NativeReadinessItem[] = [
   {
     key: "android-device-qa",
     title: "Android device QA",
-    caption: "Install an internal native build, run the in-app connectivity probe, and complete the Profile device QA checklist on a physical Android phone.",
+    caption: "Install an internal native build, run the in-app connectivity probe, complete the Profile device QA checklist, and share the QA evidence report from a physical Android phone.",
     status: "blocked"
   },
   {
