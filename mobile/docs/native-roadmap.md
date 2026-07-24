@@ -17,6 +17,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native login, refresh, logout, and session response contracts are scaffolded in the app.
 - Native login, refresh, and logout backend route scaffolds exist under `/api/native/auth/*`.
 - Native Sign In can call the live native auth endpoint and save the returned app session when live mode is enabled.
+- Native Sign In shows an auth-readiness card with API host, demo/live mode, secure storage, and logout expectations before testers enter credentials.
 - Native session restore and refresh lifecycle is scaffolded behind a session-store service.
 - Drafts, preferences, and sessions now use a shared native storage adapter with SecureStore for session tokens and AsyncStorage for preferences/drafts.
 - Load organizer dashboard metrics from the live API.

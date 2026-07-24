@@ -72,3 +72,14 @@ export function toAppSession(nativeSession: NativeSessionResponse): AppSession {
 export function getNativeAuthReadinessNote(): string {
   return "Live native organizer sign-in is wired to bearer-token endpoints, secure token storage is available, and sign-out now attempts native logout before clearing local session data. Production refresh-token revocation still needs backend proof before release.";
 }
+
+export function getNativeAuthReadinessItems(): string[] {
+  const apiHost = nativeConfig.apiBaseUrl.replace(/^https?:\/\//, "");
+
+  return [
+    `API host: ${apiHost}`,
+    nativeConfig.authMode === "live" ? "Live organizer auth enabled" : "Safe demo shell enabled",
+    "Session tokens use secure native storage",
+    "Logout clears local session and calls live logout when available"
+  ];
+}

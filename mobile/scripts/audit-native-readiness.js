@@ -119,6 +119,12 @@ requireFileIncludes(
   "TODAY'S FOCUS",
   "organizers need action-oriented mobile insights before release"
 );
+requireFileIncludes(
+  "Native sign-in shows auth readiness",
+  "src/screens/SignInScreen.tsx",
+  "NATIVE AUTH READINESS",
+  "testers need to know whether the native build is using demo auth or live EventSlot API auth"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

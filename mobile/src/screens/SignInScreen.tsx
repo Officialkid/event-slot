@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { nativeConfig } from "../config";
-import { loginNativeOrganizer, requestOrganizerOtp, toAppSession } from "../services/auth";
+import { getNativeAuthReadinessItems, loginNativeOrganizer, requestOrganizerOtp, toAppSession } from "../services/auth";
 import { AppSession } from "../session";
 import { AppTheme } from "../theme";
 
@@ -22,6 +22,7 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
   const [loginStatus, setLoginStatus] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const liveMode = nativeConfig.authMode === "live";
+  const authReadinessItems = getNativeAuthReadinessItems();
 
   const handleOtpRequest = async () => {
     const trimmedEmail = email.trim();
@@ -98,6 +99,16 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
           <Text style={[styles.modePill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
             {nativeConfig.authMode === "demo" ? "SAFE DEMO MODE" : "LIVE API MODE"}
           </Text>
+        </View>
+
+        <View style={[styles.readinessCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <Text style={[styles.label, { color: theme.colors.muted }]}>NATIVE AUTH READINESS</Text>
+          {authReadinessItems.map((item) => (
+            <View key={item} style={styles.readinessRow}>
+              <Text style={[styles.readinessDot, { color: theme.colors.accent }]}>*</Text>
+              <Text style={[styles.readinessText, { color: theme.colors.secondary }]}>{item}</Text>
+            </View>
+          ))}
         </View>
 
         <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -241,6 +252,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
     padding: 20
+  },
+  readinessCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 10,
+    padding: 18
+  },
+  readinessDot: {
+    fontSize: 18,
+    lineHeight: 21
+  },
+  readinessRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 8
+  },
+  readinessText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20
   },
   label: {
     fontSize: 11,
