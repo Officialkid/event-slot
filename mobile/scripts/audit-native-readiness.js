@@ -72,6 +72,12 @@ requireFileIncludes(
   "organizers need an explicit open/download path after preparing exports"
 );
 requireFileIncludes(
+  "Native prepared export history is available",
+  "src/screens/EventDetailScreen.tsx",
+  "Recent exports",
+  "organizers need on-device export handoff history during Android QA"
+);
+requireFileIncludes(
   "Native event drafts support virtual links",
   "src/services/eventSubmission.ts",
   "virtualLink",

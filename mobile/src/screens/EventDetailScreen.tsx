@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NativeEventWorkspaceResponse } from "../api/contracts";
-import { NativeExportAction, NativePreparedExport } from "../domain/exports";
+import { NativeExportAction, NativeExportHistoryEntry, NativePreparedExport } from "../domain/exports";
 import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
+import {
+  clearNativeExportHistory,
+  getNativeExportHistoryReadinessMessage,
+  loadNativeExportHistory,
+  saveNativeExportHistoryEntry
+} from "../services/exportHistory";
 import { buildExportActions, buildPreparedNativeExport, getExportReadinessMessage, openPreparedNativeExport, prepareNativeExport } from "../services/exports";
 import { buildNativeMapAction, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace, buildWorkspaceRegistrationPreview } from "../services/registrations";
@@ -16,6 +22,7 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
   const event = findNativeEvent(events, eventId);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [preparedExport, setPreparedExport] = useState<NativePreparedExport | null>(null);
+  const [exportHistory, setExportHistory] = useState<NativeExportHistoryEntry[]>([]);
   const [workspace, setWorkspace] = useState<NativeEventWorkspaceResponse | null>(null);
   const [workspaceStatus, setWorkspaceStatus] = useState<string | null>(null);
 
@@ -51,6 +58,33 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
       mounted = false;
     };
   }, [event, session]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!event) {
+      setExportHistory([]);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    loadNativeExportHistory(event.slug)
+      .then((history) => {
+        if (mounted) {
+          setExportHistory(history);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setExportHistory([]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [event]);
 
   if (eventsLoading) {
     return (
@@ -107,6 +141,8 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
 
       setPreparedExport(prepared);
       setExportStatus(prepared.message);
+      const nextHistory = await saveNativeExportHistoryEntry(exportHistory, event, prepared);
+      setExportHistory(nextHistory);
     } catch (error) {
       setExportStatus(error instanceof Error ? error.message : "Could not prepare this export right now.");
     }
@@ -134,6 +170,12 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
     });
 
     setExportStatus(shared ? "Shared the prepared export link." : "Export share sheet was closed.");
+  };
+
+  const handleClearExportHistory = async () => {
+    await clearNativeExportHistory(event.slug);
+    setExportHistory([]);
+    setExportStatus("Cleared prepared export history on this device.");
   };
 
   return (
@@ -250,6 +292,34 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
             <ExportActionCard key={action.kind} action={action} onPrepare={() => handlePrepareExport(action)} theme={theme} />
           ))}
         </View>
+        <View style={[styles.exportHistoryCard, { backgroundColor: theme.colors.input, borderColor: theme.colors.border }]}>
+          <View style={styles.exportHistoryHeader}>
+            <Text style={[styles.actionLabel, { color: theme.colors.text }]}>Recent exports</Text>
+            <Pressable accessibilityRole="button" onPress={handleClearExportHistory}>
+              <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Clear</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+            {getNativeExportHistoryReadinessMessage()}
+          </Text>
+          {exportHistory.length === 0 ? (
+            <Text style={[styles.actionValue, { color: theme.colors.muted }]}>
+              No prepared exports saved on this device for this event yet.
+            </Text>
+          ) : (
+            exportHistory.slice(0, 4).map((entry) => (
+              <View key={entry.id} style={[styles.exportHistoryItem, { borderColor: theme.colors.border }]}>
+                <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{entry.title}</Text>
+                <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>
+                  {entry.status.toUpperCase()} - {formatExportHistoryTime(entry.preparedAt)}
+                </Text>
+                {entry.downloadUrl ? (
+                  <Text style={[styles.exportEndpoint, { color: theme.colors.muted }]}>{entry.downloadUrl}</Text>
+                ) : null}
+              </View>
+            ))
+          )}
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -285,6 +355,20 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
       </View>
     </View>
   );
+}
+
+function formatExportHistoryTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString(undefined, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short"
+  });
 }
 
 type TileProps = {
@@ -506,6 +590,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8
+  },
+  exportHistoryCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 12,
+    padding: 14
+  },
+  exportHistoryHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between"
+  },
+  exportHistoryItem: {
+    borderTopWidth: 1,
+    gap: 4,
+    paddingTop: 10
   },
   exportEndpoint: {
     fontSize: 11,

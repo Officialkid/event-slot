@@ -19,3 +19,10 @@ export type NativePreparedExport = {
   expiresAt?: string;
   jobId?: string;
 };
+
+export type NativeExportHistoryEntry = NativePreparedExport & {
+  id: string;
+  eventSlug: string;
+  eventTitle: string;
+  preparedAt: string;
+};
