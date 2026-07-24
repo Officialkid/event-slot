@@ -5,7 +5,7 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
   {
     key: "shell",
     title: "Native shell",
-    caption: "Dashboard, events, create draft, event detail, verifier, profile, tab bar, FAB quick actions, bottom sheet, dark mode, and light mode are in place.",
+    caption: "Dashboard, events, create draft, event detail, verifier, profile, build info, tab bar, FAB quick actions, bottom sheet, dark mode, and light mode are in place.",
     status: "ready"
   },
   {

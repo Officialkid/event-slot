@@ -48,6 +48,8 @@ requireFile("assets/icon.png");
 requireFile("assets/adaptive-icon.png");
 requireFile("assets/splash.png");
 requireFile("docs/play-data-safety.md");
+requireFile("src/services/runtimeInfo.ts");
+requireFile("src/domain/runtimeInfo.ts");
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

@@ -5,10 +5,12 @@ import { nativeConfig } from "../config";
 import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
 import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
+import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
 import { buildNativeDeviceQaChecklist, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
+import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
@@ -38,6 +40,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
   const deviceQaChecklist = useMemo(() => buildNativeDeviceQaChecklist(session, events.length), [events.length, session]);
+  const runtimeInfo = useMemo(() => buildNativeRuntimeInfo(), []);
   const accountSettings: AccountSetting[] = [
     {
       title: "Profile",
@@ -186,6 +189,15 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
         <ReadinessRow key={item.key} item={item} theme={theme} />
       ))}
 
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>BUILD INFO</Text>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Native runtime</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{getRuntimeInfoReadinessMessage()}</Text>
+      </View>
+      {runtimeInfo.map((item) => (
+        <RuntimeInfoRow key={item.key} item={item} theme={theme} />
+      ))}
+
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>RELEASE GATES</Text>
       {nativeReleaseGateItems.map((item) => (
         <ReadinessRow key={item.key} item={item} theme={theme} />
@@ -318,6 +330,27 @@ function ReadinessRow({ item, theme }: ReadinessRowProps) {
       </View>
       <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: statusColor }]}>
         {item.status.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+type RuntimeInfoRowProps = {
+  item: NativeRuntimeInfoItem;
+  theme: NativeScreenProps["theme"];
+};
+
+function RuntimeInfoRow({ item, theme }: RuntimeInfoRowProps) {
+  const valueColor = item.tone === "ready" ? theme.colors.success : item.tone === "blocked" ? theme.colors.error : theme.colors.secondary;
+
+  return (
+    <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.label}</Text>
+        <Text style={[styles.rowCaption, { color: valueColor }]}>{item.value}</Text>
+      </View>
+      <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: valueColor }]}>
+        {item.tone.toUpperCase()}
       </Text>
     </View>
   );
