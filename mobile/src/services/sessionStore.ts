@@ -5,15 +5,15 @@ import { loadNativeStorageValue, removeNativeStorageValue, saveNativeStorageValu
 const sessionStorageKey = "eventslot.native.session";
 
 export async function loadStoredSession(): Promise<AppSession | null> {
-  return loadNativeStorageValue<AppSession>(sessionStorageKey);
+  return loadNativeStorageValue<AppSession>(sessionStorageKey, { sensitive: true });
 }
 
 export async function saveStoredSession(session: AppSession): Promise<void> {
-  await saveNativeStorageValue(sessionStorageKey, session);
+  await saveNativeStorageValue(sessionStorageKey, session, { sensitive: true });
 }
 
 export async function clearStoredSession(): Promise<void> {
-  await removeNativeStorageValue(sessionStorageKey);
+  await removeNativeStorageValue(sessionStorageKey, { sensitive: true });
 }
 
 export function isSessionExpired(session: AppSession, now = new Date()): boolean {
@@ -55,5 +55,5 @@ export async function restoreStoredSession(): Promise<AppSession | null> {
 }
 
 export function getSessionStorageReadinessMessage(): string {
-  return "Native session restore is scaffolded through the shared storage adapter, but tokens still need SecureStore or another reviewed encrypted driver before live auth.";
+  return "Native session restore now uses the shared storage adapter with SecureStore for access and refresh tokens; Android device QA and logout/account-deletion cleanup still need final proof.";
 }

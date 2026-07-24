@@ -18,7 +18,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native login, refresh, and logout backend route scaffolds exist under `/api/native/auth/*`.
 - Native Sign In can call the live native auth endpoint and save the returned app session when live mode is enabled.
 - Native session restore and refresh lifecycle is scaffolded behind a session-store service.
-- Drafts, preferences, and sessions now use a shared native storage adapter so the future persistent driver can be swapped in one place.
+- Drafts, preferences, and sessions now use a shared native storage adapter with SecureStore for session tokens and AsyncStorage for preferences/drafts.
 - Load organizer dashboard metrics from the live API.
 - Load owned and invited events.
 - Native dashboard stats, event list, and event workspace contracts are scaffolded behind bearer-token calls.
@@ -33,7 +33,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
 - Native event publish preparation is scaffolded and guarded behind live bearer-token mode.
 - A first `POST /api/native/events` backend adapter exists for registration-only native events.
-- Use the current in-memory draft and session stores only as a preview; add persistent native storage before real offline drafts or live token restore.
+- Use Android device QA to prove persistent native storage before relying on real offline drafts or live token restore.
 - Keep `EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE=demo` until the native token endpoints are implemented and verified.
 - Keep native uploads disabled until bucket upload permissions, file-size limits, and mobile error handling are complete.
 
@@ -52,9 +52,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
 - Hosted privacy, terms, website, and tester-support links are available from native Profile.
-- Memory-backed preference service exists; persistent user settings for theme and notification preferences still need native storage.
-- Memory-backed session storage exists; SecureStore or another reviewed native storage layer is still required before live auth.
-- Shared memory-backed native storage adapter exists; durable storage is still disabled until dependency and privacy review are complete.
+- Preference, draft, and session storage are wired through native storage dependencies; Android app-restart and logout clearing still need device proof.
 - Account deletion remains gated until authenticated deletion and data export routes are available to native sessions.
 
 ## Phase 4: Store Readiness
