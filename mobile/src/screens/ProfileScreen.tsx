@@ -7,7 +7,7 @@ import { NativePreferences } from "../domain/preferences";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
-import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
+import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
 import { getAccountDeletionReadinessMessage, openSupportLink, supportLinks } from "../services/support";
@@ -30,8 +30,8 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const accountSettings: AccountSetting[] = [
     {
       title: "Profile",
-      caption: "Account editing will connect after live native auth is ready.",
-      actionLabel: "SOON"
+      caption: "Live profile identity is available from the native session; profile editing remains a later native account screen.",
+      actionLabel: "GATED"
     },
     {
       title: "Appearance",
@@ -122,7 +122,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
           <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
             {nativeConfig.authMode === "demo"
               ? "Safe demo mode is active until real native auth is ready."
-              : "Live API mode is enabled for native integration testing."}
+              : "Live API mode is enabled for native integration testing with bearer-token sessions."}
           </Text>
         </View>
         <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
@@ -147,6 +147,11 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>NATIVE READINESS</Text>
       {nativeReadinessItems.map((item) => (
+        <ReadinessRow key={item.key} item={item} theme={theme} />
+      ))}
+
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>RELEASE GATES</Text>
+      {nativeReleaseGateItems.map((item) => (
         <ReadinessRow key={item.key} item={item} theme={theme} />
       ))}
 
@@ -176,7 +181,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Workspace summary</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
-          {events.length} native events are available in this preview. Live owned and invited events will replace demo data after the native session API is complete.
+          {events.length} native events are available in this preview. Live mode uses owned and invited events from the native workspace API; demo mode keeps local sample data.
         </Text>
       </View>
 
