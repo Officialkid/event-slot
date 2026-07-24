@@ -36,6 +36,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Prepared native exports now stay visible with explicit open and share actions for downloadable links.
 - Keep native event creation in draft mode until bearer-token auth and API validation are ready.
 - Native event draft validation is scaffolded for required details, capacity, maps, consent, and upload-question readiness.
+- Native event drafts show a launch checklist for required basics, attendee clarity, directions, consent/uploads, and native publish mode.
 - Native event drafts now include virtual meeting links so virtual events can pass native publish preparation.
 - Native event publish preparation is scaffolded and guarded behind live bearer-token mode.
 - A first `POST /api/native/events` backend adapter exists for registration-only native events.

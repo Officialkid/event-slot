@@ -12,6 +12,7 @@ import {
   saveEventDraft
 } from "../services/drafts";
 import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, submitNativeEventDraft } from "../services/eventSubmission";
+import { buildNativeEventLaunchChecklist } from "../services/eventLaunchChecklist";
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
 import { buildNativeMapAction, openMapUrl } from "../services/maps";
@@ -85,6 +86,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
   const validation = useMemo(() => validateEventDraft(draft), [draft]);
+  const launchChecklist = useMemo(() => buildNativeEventLaunchChecklist(draft, validation, session), [draft, session, validation]);
   const submissionPreparation = useMemo(() => prepareNativeCreateEventRequest(draft), [draft]);
   const mapAction = buildNativeMapAction({
     mapDirectionsUrl: preview.mapDirectionsUrl,
@@ -227,6 +229,32 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
         <Text style={[styles.statusCopy, { color: submissionPreparation.ready ? theme.colors.secondary : theme.colors.error }]}>
           {submissionPreparation.ready ? submitStatus : submissionPreparation.reason}
         </Text>
+      </View>
+
+      <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>NATIVE LAUNCH CHECKLIST</Text>
+        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+          Use this before Android QA so the native app does not publish confusing event details.
+        </Text>
+        {launchChecklist.map((item) => (
+          <View key={item.key} style={[styles.checklistItem, { borderColor: theme.colors.border }]}>
+            <Text
+              style={[
+                styles.checklistBadge,
+                {
+                  backgroundColor: theme.colors.activeTab,
+                  color: item.tone === "ready" ? theme.colors.success : item.tone === "blocked" ? theme.colors.error : theme.colors.accent
+                }
+              ]}
+            >
+              {item.tone.toUpperCase()}
+            </Text>
+            <View style={styles.checklistCopy}>
+              <Text style={[styles.checklistTitle, { color: theme.colors.text }]}>{item.title}</Text>
+              <Text style={[styles.helper, { color: theme.colors.secondary }]}>{item.caption}</Text>
+            </View>
+          </View>
+        ))}
       </View>
 
       <View style={[styles.formCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -654,6 +682,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
     lineHeight: 20
+  },
+  checklistItem: {
+    alignItems: "flex-start",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    paddingTop: 12
+  },
+  checklistBadge: {
+    borderRadius: 999,
+    fontSize: 10,
+    fontWeight: "900",
+    overflow: "hidden",
+    paddingHorizontal: 9,
+    paddingVertical: 5
+  },
+  checklistCopy: {
+    flex: 1,
+    gap: 3
+  },
+  checklistTitle: {
+    fontSize: 14,
+    fontWeight: "900"
   },
   formCard: {
     borderRadius: 26,

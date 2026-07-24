@@ -108,6 +108,12 @@ requireFileIncludes(
   "organizers need native control over attendee upload limits before bucket writes are enabled"
 );
 requireFileIncludes(
+  "Native event drafts show launch checklist",
+  "src/screens/CreateEventScreen.tsx",
+  "NATIVE LAUNCH CHECKLIST",
+  "organizers need a mobile readiness checklist before testing native event publishing"
+);
+requireFileIncludes(
   "Native maps can search by venue",
   "src/services/maps.ts",
   "buildGoogleMapsSearchUrl",
