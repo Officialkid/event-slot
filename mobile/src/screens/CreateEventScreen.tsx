@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { NativeAttachmentDraft, NativeAttachmentKind } from "../domain/attachments";
 import { EventDraft, NativeAccessType, NativeEventType } from "../domain/events";
-import { clearEventDraft, emptyEventDraft, hasEventDraftChanges, loadEventDraft, saveEventDraft } from "../services/drafts";
+import {
+  clearEventDraft,
+  emptyEventDraft,
+  formatDraftSavedAt,
+  hasEventDraftChanges,
+  loadEventDraftRecord,
+  saveEventDraft
+} from "../services/drafts";
 import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, submitNativeEventDraft } from "../services/eventSubmission";
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
@@ -14,21 +21,25 @@ import { NativeScreenProps } from "./types";
 export function CreateEventScreen({ theme, navigate, refreshEvents, session }: NativeScreenProps) {
   const [draft, setDraft] = useState<EventDraft>(emptyEventDraft);
   const [draftStatus, setDraftStatus] = useState("Loading saved native draft...");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState("Native publishing is not active until live API mode is enabled.");
   const [attachmentPreview, setAttachmentPreview] = useState<NativeAttachmentDraft | null>(null);
   const [attachmentStatus, setAttachmentStatus] = useState("No attachment selected in this native preview.");
+  const draftHydratedRef = useRef(false);
+  const clearingDraftRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
 
-    loadEventDraft()
-      .then((savedDraft) => {
+    loadEventDraftRecord()
+      .then((record) => {
         if (!mounted) {
           return;
         }
-        setDraft(savedDraft);
-        setDraftStatus(hasEventDraftChanges(savedDraft) ? "Saved draft restored on this device." : "No saved draft yet.");
+        setDraft(record.draft);
+        setLastSavedAt(record.savedAt);
+        setDraftStatus(hasEventDraftChanges(record.draft) ? `Saved draft restored from ${formatDraftSavedAt(record.savedAt)}.` : "No saved draft yet.");
       })
       .catch(() => {
         if (mounted) {
@@ -38,6 +49,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       .finally(() => {
         if (mounted) {
           setDraftLoading(false);
+          draftHydratedRef.current = true;
         }
       });
 
@@ -45,6 +57,31 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current || draftLoading || clearingDraftRef.current) {
+      return;
+    }
+
+    if (!hasEventDraftChanges(draft)) {
+      return;
+    }
+
+    setDraftStatus("Auto-saving changes on this device...");
+
+    const autoSaveTimer = setTimeout(() => {
+      saveEventDraft(draft)
+        .then((savedAt) => {
+          setLastSavedAt(savedAt);
+          setDraftStatus(`Autosaved ${formatDraftSavedAt(savedAt)}.`);
+        })
+        .catch(() => {
+          setDraftStatus("Could not auto-save this native draft. Use Save draft before leaving.");
+        });
+    }, 900);
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [draft, draftLoading]);
 
   const preview = useMemo(() => createDraftPreview(draft), [draft]);
   const validation = useMemo(() => validateEventDraft(draft), [draft]);
@@ -55,19 +92,25 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
 
   const updateDraft = <Key extends keyof EventDraft>(key: Key, value: EventDraft[Key]) => {
     setDraft((current) => ({ ...current, [key]: value }));
-    setDraftStatus("Unsaved changes on this device.");
+    setDraftStatus("Unsaved changes on this device. Auto-save is preparing...");
   };
 
   const handleSaveDraft = async () => {
-    await saveEventDraft(draft);
-    setDraftStatus("Draft saved locally in the native app preview.");
+    const savedAt = await saveEventDraft(draft);
+    setLastSavedAt(savedAt);
+    setDraftStatus(`Draft saved locally ${formatDraftSavedAt(savedAt)}.`);
   };
 
   const handleClearDraft = async () => {
+    clearingDraftRef.current = true;
     await clearEventDraft();
     setDraft({ ...emptyEventDraft });
+    setLastSavedAt(null);
     setDraftStatus("Draft cleared from this native preview.");
     setSubmitStatus("Native publishing is not active until live API mode is enabled.");
+    setTimeout(() => {
+      clearingDraftRef.current = false;
+    }, 0);
   };
 
   const handleNativeSubmit = async () => {
@@ -84,12 +127,17 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
     setSubmitStatus("Publishing event through the native API...");
     try {
       const createdEvent = await submitNativeEventDraft(session, draft);
+      clearingDraftRef.current = true;
       await clearEventDraft();
       setDraft({ ...emptyEventDraft });
+      setLastSavedAt(null);
       setDraftStatus("Draft published and cleared from this device.");
       setSubmitStatus(`Created ${createdEvent.title}. Refreshing your native events...`);
       refreshEvents();
       navigate({ name: "eventDetail", eventId: createdEvent.id });
+      setTimeout(() => {
+        clearingDraftRef.current = false;
+      }, 0);
     } catch (error) {
       setSubmitStatus(error instanceof Error ? error.message : "Could not publish this native event draft.");
     }
@@ -117,13 +165,16 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       </Pressable>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Create Event</Text>
       <Text style={[styles.subcopy, { color: theme.colors.secondary }]}>
-        This native draft flow can save and restore progress locally. It still does not publish anything until live API/session work is approved.
+        This native draft flow auto-saves locally and restores progress on this device. Publishing stays guarded until live API/session work is approved.
       </Text>
 
       <View style={[styles.statusCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>LOCAL DRAFT</Text>
         <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
           {draftLoading ? "Checking this device for saved work..." : draftStatus}
+        </Text>
+        <Text style={[styles.statusMeta, { color: theme.colors.muted }]}>
+          Last saved: {formatDraftSavedAt(lastSavedAt)}
         </Text>
       </View>
 
@@ -537,6 +588,11 @@ const styles = StyleSheet.create({
   statusCopy: {
     fontSize: 14,
     lineHeight: 20
+  },
+  statusMeta: {
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 18
   },
   validationHeader: {
     alignItems: "center",

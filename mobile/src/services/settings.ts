@@ -21,6 +21,12 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
     status: nativeConfig.authMode === "live" ? "in-progress" : "blocked"
   },
   {
+    key: "offline-drafts",
+    title: "Offline drafts",
+    caption: "Native event creation now auto-saves locally, restores saved work after restart, and records the last saved time on device.",
+    status: "in-progress"
+  },
+  {
     key: "scanner",
     title: "Camera scanner",
     caption: "Manual lookup, CameraView permissions, QR parsing, and the native verify endpoint are wired; real Android scan QA remains.",
