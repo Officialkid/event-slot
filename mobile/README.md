@@ -34,6 +34,12 @@ Run locally:
 npm run start
 ```
 
+Run the native preflight audit:
+
+```powershell
+npm run audit:readiness
+```
+
 Android development build:
 
 ```powershell
