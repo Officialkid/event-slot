@@ -7,6 +7,8 @@ export type NativeDeviceQaItem = {
   status: NativeDeviceQaStatus;
 };
 
+export type NativeDeviceQaProgress = Record<string, NativeDeviceQaStatus>;
+
 export type NativeConnectivityProbeResult = {
   status: "pass" | "error";
   message: string;

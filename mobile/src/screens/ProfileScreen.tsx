@@ -2,12 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { nativeConfig } from "../config";
-import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
+import { NativeConnectivityProbeResult, NativeDeviceQaItem, NativeDeviceQaProgress, NativeDeviceQaStatus } from "../domain/deviceQa";
 import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativeRuntimeInfoItem } from "../domain/runtimeInfo";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
 import { buildNativeDeviceQaChecklist, buildNativeQaEvidenceReport, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
+import {
+  applyNativeDeviceQaProgress,
+  getDeviceQaProgressReadinessMessage,
+  loadNativeDeviceQaProgress,
+  resetNativeDeviceQaItemStatus,
+  saveNativeDeviceQaItemStatus
+} from "../services/deviceQaProgress";
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { buildNativeRuntimeInfo, getRuntimeInfoReadinessMessage } from "../services/runtimeInfo";
@@ -39,11 +46,15 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const [connectivityProbe, setConnectivityProbe] = useState<NativeConnectivityProbeResult | null>(null);
   const [connectivityChecking, setConnectivityChecking] = useState(false);
   const [qaShareStatus, setQaShareStatus] = useState("No QA evidence shared yet.");
+  const [deviceQaProgress, setDeviceQaProgress] = useState<NativeDeviceQaProgress>({});
   const pushReadiness = getPushReadinessMessage();
   const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
-  const deviceQaChecklist = useMemo(() => buildNativeDeviceQaChecklist(session, events.length), [events.length, session]);
+  const deviceQaChecklist = useMemo(
+    () => applyNativeDeviceQaProgress(buildNativeDeviceQaChecklist(session, events.length), deviceQaProgress),
+    [deviceQaProgress, events.length, session]
+  );
   const runtimeInfo = useMemo(() => buildNativeRuntimeInfo(), []);
   const accountSettings: AccountSetting[] = [
     {
@@ -131,6 +142,10 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     loadNativePreferences()
       .then(setPreferences)
       .catch(() => setPreferences(defaultNativePreferences));
+
+    loadNativeDeviceQaProgress()
+      .then(setDeviceQaProgress)
+      .catch(() => setDeviceQaProgress({}));
   }, []);
 
   const toggleNotificationPreference = (preference: NativeNotificationPreference) => {
@@ -176,6 +191,16 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     });
 
     setQaShareStatus(shared ? "QA evidence shared from this device." : "QA evidence share sheet was closed.");
+  };
+
+  const handleDeviceQaStatusChange = async (key: string, status: NativeDeviceQaStatus) => {
+    const nextProgress = await saveNativeDeviceQaItemStatus(deviceQaProgress, key, status);
+    setDeviceQaProgress(nextProgress);
+  };
+
+  const handleDeviceQaStatusReset = async (key: string) => {
+    const nextProgress = await resetNativeDeviceQaItemStatus(deviceQaProgress, key);
+    setDeviceQaProgress(nextProgress);
   };
 
   return (
@@ -266,8 +291,19 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
           </Text>
         </Pressable>
       </View>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>QA progress</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{getDeviceQaProgressReadinessMessage()}</Text>
+      </View>
       {deviceQaChecklist.map((item) => (
-        <DeviceQaRow key={item.key} item={item} theme={theme} />
+        <DeviceQaRow
+          key={item.key}
+          item={item}
+          onMarkPass={() => handleDeviceQaStatusChange(item.key, "pass")}
+          onMarkReview={() => handleDeviceQaStatusChange(item.key, "needs-review")}
+          onReset={() => handleDeviceQaStatusReset(item.key)}
+          theme={theme}
+        />
       ))}
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>QA evidence report</Text>
@@ -411,10 +447,13 @@ function RuntimeInfoRow({ item, theme }: RuntimeInfoRowProps) {
 
 type DeviceQaRowProps = {
   item: NativeDeviceQaItem;
+  onMarkPass: () => void;
+  onMarkReview: () => void;
+  onReset: () => void;
   theme: NativeScreenProps["theme"];
 };
 
-function DeviceQaRow({ item, theme }: DeviceQaRowProps) {
+function DeviceQaRow({ item, onMarkPass, onMarkReview, onReset, theme }: DeviceQaRowProps) {
   const statusColor =
     item.status === "pass"
       ? theme.colors.success
@@ -433,6 +472,17 @@ function DeviceQaRow({ item, theme }: DeviceQaRowProps) {
       <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: statusColor }]}>
         {item.status.toUpperCase()}
       </Text>
+      <View style={styles.qaActionRow}>
+        <Pressable accessibilityRole="button" onPress={onMarkPass} style={[styles.qaActionButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.qaActionText, { color: theme.colors.success }]}>Pass</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onMarkReview} style={[styles.qaActionButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.qaActionText, { color: theme.colors.accent }]}>Review</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onReset} style={[styles.qaActionButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.qaActionText, { color: theme.colors.muted }]}>Reset</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -516,6 +566,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
     padding: 18
@@ -562,6 +613,22 @@ const styles = StyleSheet.create({
   },
   inlineButtonText: {
     fontSize: 13,
+    fontWeight: "900"
+  },
+  qaActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    width: "100%"
+  },
+  qaActionButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8
+  },
+  qaActionText: {
+    fontSize: 12,
     fontWeight: "900"
   },
   signOutButton: {

@@ -57,6 +57,7 @@ requireFile("docs/play-data-safety.md");
 requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
 requireFile("src/services/sessionCleanup.ts");
+requireFile("src/services/deviceQaProgress.ts");
 requireFileIncludes(
   "Native tester feedback email is available",
   "src/services/support.ts",
@@ -86,6 +87,12 @@ requireFileIncludes(
   "App.tsx",
   "cleanupNativeSession",
   "native logout must clear local session storage and attempt live logout"
+);
+requireFileIncludes(
+  "Native QA checklist statuses persist locally",
+  "src/services/deviceQaProgress.ts",
+  "saveNativeDeviceQaItemStatus",
+  "device testers need persistent pass/review evidence before release"
 );
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
