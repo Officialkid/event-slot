@@ -15,7 +15,7 @@ import { getNativeCreateEventReadinessMessage, prepareNativeCreateEventRequest, 
 import { validateEventDraft } from "../services/eventValidation";
 import { createDraftPreview } from "../services/events";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
-import { getUploadReadinessMessage, pickNativeAttachment, prepareNativeAttachmentUpload } from "../services/uploads";
+import { getUploadReadinessMessage, pickNativeAttachment, prepareNativeAttachmentUpload, uploadNativeAttachment } from "../services/uploads";
 import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate, refreshEvents, session }: NativeScreenProps) {
@@ -155,7 +155,13 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
 
     setAttachmentPreview(result.attachment);
     const readiness = prepareNativeAttachmentUpload(result.attachment, draft.attachmentRequirement);
-    setAttachmentStatus(readiness.message);
+    if (!readiness.ready) {
+      setAttachmentStatus(readiness.message);
+      return;
+    }
+
+    const uploadResult = await uploadNativeAttachment(result.attachment, draft.attachmentRequirement);
+    setAttachmentStatus(uploadResult.message);
   };
 
   return (

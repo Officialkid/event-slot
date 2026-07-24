@@ -1,10 +1,13 @@
 import * as DocumentPicker from "expo-document-picker";
 import { nativeConfig } from "../config";
+import { apiBaseUrl } from "../api/client";
 import {
   NativeAttachmentDraft,
   NativeAttachmentKind,
   NativeAttachmentPickResult,
-  NativeAttachmentRequirement
+  NativeAttachmentRequirement,
+  NativeAttachmentUploadResult,
+  NativeAttachmentUploadTarget
 } from "../domain/attachments";
 
 export const defaultAttachmentRequirement: NativeAttachmentRequirement = {
@@ -18,10 +21,10 @@ export const defaultAttachmentRequirement: NativeAttachmentRequirement = {
 
 export function getUploadReadinessMessage(): string {
   if (!nativeConfig.uploadsEnabled) {
-    return "Native file picker support is wired, but bucket upload writes remain disabled until permissions, size limits, and Android error handling are reviewed.";
+    return "Native file picker, validation, and multipart upload path are wired, but bucket writes remain disabled until live event targets and Android error handling are reviewed.";
   }
 
-  return "Native uploads are enabled for integration testing.";
+  return "Native uploads are enabled for integration testing when a live event slug and file-question id are available.";
 }
 
 export async function pickNativeAttachment(requirement: NativeAttachmentRequirement): Promise<NativeAttachmentPickResult> {
@@ -145,12 +148,87 @@ export function prepareNativeAttachmentUpload(attachment: NativeAttachmentDraft,
   if (!nativeConfig.uploadsEnabled) {
     return {
       ready: false,
-      message: "File selection is ready, but bucket upload is still disabled for native release safety."
+      message: "File selection is ready, but bucket upload writes are still disabled for native release safety."
     };
   }
 
   return {
     ready: true,
-    message: "Attachment is ready for bucket upload."
+    message: "Attachment is valid and ready for a live EventSlot upload target."
   };
+}
+
+export async function uploadNativeAttachment(
+  attachment: NativeAttachmentDraft,
+  requirement: NativeAttachmentRequirement,
+  target?: NativeAttachmentUploadTarget
+): Promise<NativeAttachmentUploadResult> {
+  const preparation = prepareNativeAttachmentUpload(attachment, requirement);
+  if (!preparation.ready) {
+    return {
+      status: "blocked",
+      message: preparation.message
+    };
+  }
+
+  if (!target?.eventSlug || !target.questionId) {
+    return {
+      status: "blocked",
+      message: "This file is valid, but native upload needs a live event slug and file-question id before writing to the bucket."
+    };
+  }
+
+  if (!attachment.localUri) {
+    return {
+      status: "error",
+      message: "This selected file is missing a local URI."
+    };
+  }
+
+  const formData = new FormData();
+  formData.append("eventSlug", target.eventSlug);
+  formData.append("questionId", target.questionId);
+  formData.append("file", {
+    uri: attachment.localUri,
+    name: attachment.name,
+    type: attachment.mimeType
+  } as unknown as Blob);
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/register/upload`, {
+      method: "POST",
+      body: formData
+    });
+
+    const payload = await response.json().catch(() => null) as {
+      error?: string;
+      file?: { url?: string };
+    } | null;
+
+    if (!response.ok) {
+      return {
+        status: "error",
+        message: payload?.error ?? `Native upload failed with ${response.status}.`
+      };
+    }
+
+    const uploadedUrl = payload?.file?.url;
+    if (!uploadedUrl) {
+      return {
+        status: "error",
+        message: "Native upload completed but no file URL was returned."
+      };
+    }
+
+    return {
+      status: "uploaded",
+      uploadedUrl,
+      message: "Attachment uploaded to EventSlot storage."
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Native upload failed before reaching EventSlot."
+    };
+  }
 }

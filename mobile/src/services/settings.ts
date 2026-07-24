@@ -35,7 +35,7 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
   {
     key: "uploads",
     title: "File uploads",
-    caption: "Attachment questions, document picker, type checks, and size validation are wired; bucket upload writes remain gated.",
+    caption: "Attachment questions, document picker, type checks, size validation, and multipart upload client are wired; bucket writes remain gated.",
     status: nativeConfig.uploadsEnabled ? "in-progress" : "blocked"
   },
   {
@@ -56,7 +56,7 @@ export const nativeReleaseGateItems: NativeReadinessItem[] = [
   {
     key: "uploads-backend",
     title: "Bucket upload enablement",
-    caption: "Keep upload writes blocked until storage rules, file size limits, signed URLs, and failure handling are reviewed end to end.",
+    caption: "Keep upload writes blocked until live event file-question targets, storage rules, file size limits, and failure handling are reviewed end to end.",
     status: nativeConfig.uploadsEnabled ? "in-progress" : "blocked"
   },
   {

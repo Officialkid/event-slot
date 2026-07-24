@@ -20,6 +20,22 @@ export type NativeAttachmentDraft = {
   validationError?: string | null;
 };
 
+export type NativeAttachmentUploadTarget = {
+  eventSlug: string;
+  questionId: string;
+};
+
+export type NativeAttachmentUploadResult =
+  | {
+      status: "uploaded";
+      uploadedUrl: string;
+      message: string;
+    }
+  | {
+      status: "blocked" | "error";
+      message: string;
+    };
+
 export type NativeAttachmentPickResult =
   | {
       status: "picked";
