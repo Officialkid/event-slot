@@ -58,7 +58,9 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 ## Phase 4: Store Readiness
 
 - Android package and iOS bundle IDs confirmed.
-- App icon, splash screen, screenshots, and feature graphics created from final native UI.
+- Native Expo config declares app identity, icon, splash screen, camera, notification, file/media, SecureStore, and document-picker permissions.
+- Internal EAS build profiles exist for QA only; no native Play/App Store submit path is approved yet.
+- App screenshots and feature graphics created from final native UI.
 - Privacy/data safety review updated for native permissions.
 - QA on Android devices before iOS work begins.
 

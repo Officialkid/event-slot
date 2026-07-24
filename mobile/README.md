@@ -50,3 +50,22 @@ npm run ios
 
 Do not upload this native app to Play Store or App Store until it is fully developed, tested, and approved. The current Play testing bridge remains the TWA.
 
+## Internal Native Build Profiles
+
+`eas.json` is configured for internal QA builds only:
+
+```powershell
+npx eas build --platform android --profile preview
+npx eas build --platform ios --profile preview
+```
+
+Current native permissions declared in `app.json`:
+
+- Camera for QR ticket scanning.
+- Notifications for reminders, invites, waitlist promotions, and tester updates.
+- File/media access for document and image picker flows.
+- SecureStore for native session token storage.
+
+Do not run `eas submit` or upload a native AAB/IPA until Android device QA, backend upload/push token routes, account/privacy flows, and final store review are complete.
+
+Before push-notification device QA, create/link the Expo EAS project so `Constants.easConfig.projectId` is available in builds.
