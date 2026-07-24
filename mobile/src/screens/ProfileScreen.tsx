@@ -10,7 +10,13 @@ import { defaultNativePreferences, loadNativePreferences, saveNotificationPrefer
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
 import { getNativeStorageReadinessMessage } from "../services/nativeStorage";
-import { getAccountDeletionReadinessMessage, openSupportLink, supportLinks } from "../services/support";
+import {
+  getAccountDeletionReadinessMessage,
+  openAccountDeletionPolicy,
+  openSupportLink,
+  requestAccountDeletionByEmail,
+  supportLinks
+} from "../services/support";
 import { NativeScreenProps } from "./types";
 
 type AccountSetting = {
@@ -74,6 +80,22 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       title: "Account deletion",
       caption: getAccountDeletionReadinessMessage(),
       actionLabel: "GATED"
+    },
+    {
+      title: "Deletion policy",
+      caption: "Open the hosted account deletion page required for store compliance.",
+      actionLabel: "OPEN",
+      onPress: () => {
+        openAccountDeletionPolicy().catch(() => {});
+      }
+    },
+    {
+      title: "Request deletion by email",
+      caption: "Prepare an email from this signed-in account while direct native deletion remains gated.",
+      actionLabel: "EMAIL",
+      onPress: () => {
+        requestAccountDeletionByEmail(session).catch(() => {});
+      }
     }
   ];
 

@@ -62,7 +62,7 @@ export const nativeReleaseGateItems: NativeReadinessItem[] = [
   {
     key: "account-compliance",
     title: "Account and privacy compliance",
-    caption: "Hosted privacy and terms links are present; in-app account deletion must call a real authenticated deletion/request flow before public release.",
+    caption: "Privacy, terms, deletion policy, and email deletion request are present; direct authenticated in-app deletion remains gated before public release.",
     status: "blocked"
   },
   {
