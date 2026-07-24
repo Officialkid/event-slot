@@ -94,6 +94,12 @@ requireFileIncludes(
   "saveNativeDeviceQaItemStatus",
   "device testers need persistent pass/review evidence before release"
 );
+requireFileIncludes(
+  "Native upload questions expose file size limits",
+  "src/screens/CreateEventScreen.tsx",
+  "Max file size (MB)",
+  "organizers need native control over attendee upload limits before bucket writes are enabled"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

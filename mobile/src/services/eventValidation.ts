@@ -2,7 +2,7 @@ import { EventDraft } from "../domain/events";
 import { isSupportedMapUrl } from "./maps";
 
 export type NativeDraftValidationIssue = {
-  field: keyof EventDraft | "attachmentRequirement.label" | "attachmentRequirement.caption";
+  field: keyof EventDraft | "attachmentRequirement.label" | "attachmentRequirement.caption" | "attachmentRequirement.maxFileSizeMb";
   message: string;
   severity: "error" | "warning";
 };
@@ -56,6 +56,10 @@ export function validateEventDraft(draft: EventDraft): NativeDraftValidationResu
 
     if (!draft.attachmentRequirement.caption.trim()) {
       issues.push({ field: "attachmentRequirement.caption", message: "Add help text so attendees know what to upload.", severity: "warning" });
+    }
+
+    if (!Number.isFinite(draft.attachmentRequirement.maxFileSizeMb) || draft.attachmentRequirement.maxFileSizeMb <= 0) {
+      issues.push({ field: "attachmentRequirement.maxFileSizeMb", message: "Set a valid maximum upload size in MB.", severity: "error" });
     }
   }
 

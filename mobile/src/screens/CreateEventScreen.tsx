@@ -391,6 +391,19 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
               }
               theme={theme}
             />
+            <Field
+              label="Max file size (MB)"
+              value={`${draft.attachmentRequirement.maxFileSizeMb}`}
+              onChangeText={(value) =>
+                updateDraft("attachmentRequirement", {
+                  ...draft.attachmentRequirement,
+                  maxFileSizeMb: parseNativeFileSizeLimit(value)
+                })
+              }
+              placeholder="10"
+              theme={theme}
+              keyboardType="number-pad"
+            />
             <OptionRow
               label="Required"
               options={[
@@ -480,7 +493,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
         ) : null}
         {preview.attachmentRequirement ? (
           <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>
-            Upload question: {preview.attachmentRequirement.label} ({preview.attachmentRequirement.acceptedKind})
+            Upload question: {preview.attachmentRequirement.label} ({preview.attachmentRequirement.acceptedKind}, max {preview.attachmentRequirement.maxFileSizeMb} MB)
           </Text>
         ) : null}
       </View>
@@ -532,6 +545,15 @@ function Field({ label, value, onChangeText, placeholder, theme, keyboardType = 
       />
     </View>
   );
+}
+
+function parseNativeFileSizeLimit(value: string): number {
+  const parsed = Number.parseInt(value.replace(/[^0-9]/g, ""), 10);
+  if (Number.isNaN(parsed)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(parsed, 1), 50);
 }
 
 type Option<T extends string> = {

@@ -124,6 +124,10 @@ export function validateAttachmentDraft(
     return `This upload does not match the accepted file type: ${requirement.acceptedKind}.`;
   }
 
+  if (!Number.isFinite(requirement.maxFileSizeMb) || requirement.maxFileSizeMb <= 0) {
+    return "Set a valid maximum file size before testing uploads.";
+  }
+
   const maxBytes = requirement.maxFileSizeMb * 1024 * 1024;
 
   if (attachment.sizeBytes > maxBytes) {

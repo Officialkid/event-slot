@@ -50,6 +50,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native Verify can activate verifier access from organiser-shared codes and select the matching event before check-in.
 - Offline registration drafts.
 - File/image upload questions and native document picker support are scaffolded; bucket upload writes still need implementation.
+- Native upload questions now let organisers set accepted file type, required/optional status, and maximum file size before picker QA.
 - Push notifications for reminders, invites, and waitlist promotions.
 - Notification channels, permission prompts, Android channel setup, and Expo push token capture are wired; backend token storage and delivery jobs are still gated.
 - Native maps handoff for event directions.
