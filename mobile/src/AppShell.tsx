@@ -32,6 +32,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
   const [events, setEvents] = useState<NativeEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const activeTab = route.name === "eventDetail" || route.name === "createEvent" ? "events" : route.name;
 
   const refreshEvents = useCallback(() => {
@@ -78,6 +79,11 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
     }
   }, [events, eventsError, eventsLoading, onSignOut, refreshEvents, route, session, theme]);
 
+  const navigateFromSheet = (nextRoute: AppRoute) => {
+    setQuickActionsOpen(false);
+    setRoute(nextRoute);
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.page }]}>
       <View style={[styles.shell, { backgroundColor: theme.colors.page }]}>
@@ -109,12 +115,64 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Create event"
+          accessibilityLabel="Open quick actions"
           style={[styles.fab, { backgroundColor: theme.colors.accent }]}
-          onPress={() => setRoute({ name: "createEvent" })}
+          onPress={() => setQuickActionsOpen(true)}
         >
           <Text style={styles.fabText}>+</Text>
         </Pressable>
+
+        {quickActionsOpen ? (
+          <View style={styles.sheetLayer} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close quick actions"
+              onPress={() => setQuickActionsOpen(false)}
+              style={styles.sheetScrim}
+            />
+            <View style={[styles.bottomSheet, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View style={[styles.sheetHandle, { backgroundColor: theme.colors.border }]} />
+              <Text style={[styles.sheetEyebrow, { color: theme.colors.accent }]}>QUICK ACTIONS</Text>
+              <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>What do you want to do?</Text>
+              <Text style={[styles.sheetCopy, { color: theme.colors.secondary }]}>
+                Fast mobile shortcuts for the actions organizers use most during an event day.
+              </Text>
+              <View style={styles.sheetGrid}>
+                <SheetAction
+                  label="Create event"
+                  caption="Start a saved native draft"
+                  theme={theme}
+                  onPress={() => navigateFromSheet({ name: "createEvent" })}
+                />
+                <SheetAction
+                  label="Verify tickets"
+                  caption="Scan or enter ticket codes"
+                  theme={theme}
+                  onPress={() => navigateFromSheet({ name: "verify" })}
+                />
+                <SheetAction
+                  label="My events"
+                  caption="Open live event workspace"
+                  theme={theme}
+                  onPress={() => navigateFromSheet({ name: "events" })}
+                />
+                <SheetAction
+                  label="Profile"
+                  caption="Settings and release gates"
+                  theme={theme}
+                  onPress={() => navigateFromSheet({ name: "profile" })}
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setQuickActionsOpen(false)}
+                style={[styles.sheetCloseButton, { borderColor: theme.colors.border }]}
+              >
+                <Text style={[styles.sheetCloseText, { color: theme.colors.text }]}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         <View style={[styles.tabBar, { borderColor: theme.colors.border, backgroundColor: theme.colors.nav }]}>
           {tabs.map((tab) => {
@@ -142,6 +200,26 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
         </View>
       </View>
     </SafeAreaView>
+  );
+}
+
+type SheetActionProps = {
+  label: string;
+  caption: string;
+  theme: AppTheme;
+  onPress: () => void;
+};
+
+function SheetAction({ label, caption, theme, onPress }: SheetActionProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.sheetAction, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}
+    >
+      <Text style={[styles.sheetActionLabel, { color: theme.colors.text }]}>{label}</Text>
+      <Text style={[styles.sheetActionCaption, { color: theme.colors.secondary }]}>{caption}</Text>
+    </Pressable>
   );
 }
 
@@ -216,6 +294,89 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: "500",
     lineHeight: 36
+  },
+  sheetLayer: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 20
+  },
+  sheetScrim: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0
+  },
+  bottomSheet: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    borderWidth: 1,
+    bottom: 0,
+    gap: 12,
+    left: 0,
+    padding: 18,
+    paddingBottom: 104,
+    position: "absolute",
+    right: 0,
+    shadowColor: "#000",
+    shadowOpacity: 0.26,
+    shadowRadius: 22
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    borderRadius: 999,
+    height: 4,
+    marginBottom: 4,
+    width: 48
+  },
+  sheetEyebrow: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 2.4
+  },
+  sheetTitle: {
+    fontSize: 24,
+    fontWeight: "900"
+  },
+  sheetCopy: {
+    fontSize: 14,
+    lineHeight: 20
+  },
+  sheetGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  sheetAction: {
+    borderRadius: 20,
+    borderWidth: 1,
+    flexBasis: "48%",
+    flexGrow: 1,
+    gap: 5,
+    minHeight: 92,
+    padding: 14
+  },
+  sheetActionLabel: {
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  sheetActionCaption: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17
+  },
+  sheetCloseButton: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingVertical: 13
+  },
+  sheetCloseText: {
+    fontSize: 14,
+    fontWeight: "900"
   },
   tabBar: {
     alignItems: "center",
