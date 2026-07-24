@@ -48,7 +48,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Offline registration drafts.
 - File/image upload questions and native document picker support are scaffolded; bucket upload writes still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.
-- Notification channels are scaffolded; push token registration and permission prompts are still gated.
+- Notification channels, permission prompts, Android channel setup, and Expo push token capture are wired; backend token storage and delivery jobs are still gated.
 - Native maps handoff for event directions.
 - Organiser-provided Maps links can be opened from native event details and draft preview.
 - Hosted privacy, terms, website, and tester-support links are available from native Profile.
@@ -72,7 +72,7 @@ Do not submit the Expo native app to Play Store or App Store until all of these 
 - Camera scanner, file uploads, maps handoff, and push-notification permissions are reviewed.
 - Real camera scanning handles permission denial, duplicate scans, malformed payloads, and network failure.
 - File uploads use bucket storage with size/type validation, native picker QA, and updated Play Data Safety disclosures.
-- Push notifications have token registration, logout cleanup, and updated privacy/Data Safety disclosures.
+- Push notifications have backend token registration, logout cleanup, delivery jobs, device QA, and updated privacy/Data Safety disclosures.
 - Export downloads use native authenticated endpoints with signed URLs, progress states, and device download/share testing.
 - Preferences persist across app restart and clear correctly on logout/account deletion.
 - Sessions persist securely across app restart, refresh correctly, and clear on logout/account deletion.

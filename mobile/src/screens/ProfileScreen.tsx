@@ -5,7 +5,7 @@ import { nativeConfig } from "../config";
 import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
-import { buildNotificationPreferences, getPushReadinessMessage } from "../services/notifications";
+import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
@@ -22,6 +22,7 @@ type AccountSetting = {
 
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
   const [preferences, setPreferences] = useState<NativePreferences>(defaultNativePreferences);
+  const [pushStatus, setPushStatus] = useState("Push token has not been requested on this device.");
   const pushReadiness = getPushReadinessMessage();
   const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
@@ -88,6 +89,18 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       .catch(() => {});
   };
 
+  const handlePreparePushRegistration = async () => {
+    setPushStatus("Requesting notification permission...");
+    const result = await prepareNativePushRegistration(session.email);
+
+    if (result.status === "registered-local") {
+      setPushStatus(`${result.message} Token ending ${result.registration.pushToken.slice(-8)}.`);
+      return;
+    }
+
+    setPushStatus(result.message);
+  };
+
   return (
     <View style={styles.stack}>
       <View style={[styles.profileHero, { backgroundColor: theme.colors.greenPanel }]}>
@@ -146,6 +159,10 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Push readiness</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushReadiness}</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{pushStatus}</Text>
+        <Pressable accessibilityRole="button" onPress={handlePreparePushRegistration} style={[styles.inlineButton, { borderColor: theme.colors.border }]}>
+          <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Prepare push token</Text>
+        </Pressable>
       </View>
       {notificationPreferences.map((preference) => (
         <NotificationRow
@@ -355,6 +372,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     padding: 18
+  },
+  inlineButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  inlineButtonText: {
+    fontSize: 13,
+    fontWeight: "900"
   },
   signOutButton: {
     borderRadius: 999,

@@ -35,8 +35,8 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
   {
     key: "push",
     title: "Push notifications",
-    caption: "Notification channels are scaffolded; push tokens and permission prompts are still gated.",
-    status: nativeConfig.pushEnabled ? "in-progress" : "blocked"
+    caption: "Notification channels, permission prompts, and Expo token capture are wired; backend token registration is still gated.",
+    status: "in-progress"
   }
 ];
 
@@ -57,7 +57,7 @@ export const nativePermissionItems: NativePermissionItem[] = [
     key: "notifications",
     title: "Notifications",
     caption: "Required for reminders, invites, and waitlist promotion alerts.",
-    enabled: nativeConfig.pushEnabled
+    enabled: true
   },
   {
     key: "maps",

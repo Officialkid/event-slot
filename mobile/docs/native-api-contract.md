@@ -242,6 +242,23 @@ Still gated before real uploads:
 - Add progress, retry, and cancellation UI for slow mobile networks.
 - Complete Android device QA for permissions, cancelled picker flows, large files, unsupported file types, and low-storage devices.
 
+## Native Push Notifications
+
+The native app now has an app-side push registration boundary:
+
+- `expo-notifications` and `expo-device` are included in the mobile package.
+- Profile can request notification permission from a physical device.
+- Android creates the `eventslot-default` notification channel.
+- `prepareNativePushRegistration` captures an Expo push token plus device/platform metadata.
+
+Still gated before real notification delivery:
+
+- Add bearer-protected backend routes to save and revoke native push tokens.
+- Register tokens after sign-in and clear them on logout/account deletion.
+- Wire server jobs for reminders, team invites, waitlist promotions, and tester build updates.
+- Update Play Data Safety for push token/device metadata.
+- Complete Android device QA for permission denial, token refresh, logout cleanup, and notification tap routing.
+
 ## Maps Handoff
 
 The native app can validate and open organiser-provided Google Maps links using React Native `Linking`.
