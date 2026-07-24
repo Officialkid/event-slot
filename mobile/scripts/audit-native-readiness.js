@@ -58,6 +58,7 @@ requireFile("src/services/runtimeInfo.ts");
 requireFile("src/domain/runtimeInfo.ts");
 requireFile("src/services/sessionCleanup.ts");
 requireFile("src/services/deviceQaProgress.ts");
+requireFile("src/services/dashboardInsights.ts");
 requireFileIncludes(
   "Native tester feedback email is available",
   "src/services/support.ts",
@@ -111,6 +112,12 @@ requireFileIncludes(
   "src/screens/EventsScreen.tsx",
   "filterNativeEvents",
   "organizers need mobile filters for active, draft, closed, owner, and team events"
+);
+requireFileIncludes(
+  "Native dashboard has action insights",
+  "src/screens/DashboardScreen.tsx",
+  "TODAY'S FOCUS",
+  "organizers need action-oriented mobile insights before release"
 );
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];

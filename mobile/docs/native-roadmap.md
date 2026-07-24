@@ -24,6 +24,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native dashboard stats, event list, and event workspace contracts are scaffolded behind bearer-token calls.
 - Native dashboard stats, event list, and event detail backend adapters exist behind bearer-token access.
 - Native Dashboard reads live metrics from `/api/native/dashboard/stats` in live mode and falls back to demo-derived metrics in demo mode.
+- Native Dashboard includes a Today's Focus insight panel for closing events, near-capacity events, waitlist follow-up, and verifier readiness.
 - Native Events includes mobile filters for all, active, draft, closed, owner, and team-accessible events.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Event detail now has native confirmed/waitlist preview UI and registration mappers.

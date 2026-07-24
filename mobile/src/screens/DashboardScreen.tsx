@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NativeDashboardStatsResponse } from "../api/contracts";
 import { ActionCard } from "../components/ActionCard";
 import { MetricCard } from "../components/MetricCard";
+import { NativeDashboardInsight } from "../domain/dashboardInsights";
+import { buildNativeDashboardInsights } from "../services/dashboardInsights";
 import { loadNativeDashboardStats } from "../services/workspace";
 import { NativeScreenProps } from "./types";
 
@@ -73,6 +75,11 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
     { label: "Waitlist", value: eventsLoading || statsLoading ? "..." : `${totalWaitlist}`, trend: liveStats ? `${liveStats.waitlistEventCount} events` : "Auto promotion" },
     { label: "Conversion", value: statsLoading ? "..." : `${conversionRate}%`, trend: session.authMode === "demo" ? "Demo estimate" : "Live views" }
   ];
+  const insights = buildNativeDashboardInsights({ events, liveStats });
+
+  const handleInsightPress = (insight: NativeDashboardInsight) => {
+    navigate({ name: insight.target });
+  };
 
   return (
     <View style={styles.stack}>
@@ -92,6 +99,37 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
       <View style={styles.metricsGrid}>
         {dashboardMetrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} theme={theme} />
+        ))}
+      </View>
+
+      <View style={[styles.insightPanel, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>TODAY'S FOCUS</Text>
+        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
+          Native insights use loaded events and live dashboard stats to suggest what needs attention first.
+        </Text>
+        {insights.map((insight) => (
+          <Pressable
+            accessibilityRole="button"
+            key={insight.key}
+            onPress={() => handleInsightPress(insight)}
+            style={[styles.insightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+          >
+            <View style={styles.insightCopy}>
+              <Text style={[styles.insightTitle, { color: theme.colors.text }]}>{insight.title}</Text>
+              <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>{insight.caption}</Text>
+            </View>
+            <Text
+              style={[
+                styles.insightPill,
+                {
+                  backgroundColor: theme.colors.activeTab,
+                  color: insight.tone === "ready" ? theme.colors.success : insight.tone === "attention" ? theme.colors.accent : theme.colors.muted
+                }
+              ]}
+            >
+              {insight.actionLabel}
+            </Text>
+          </Pressable>
         ))}
       </View>
 
@@ -167,6 +205,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     padding: 18
+  },
+  insightPanel: {
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 10,
+    padding: 18
+  },
+  insightCard: {
+    alignItems: "center",
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    padding: 14
+  },
+  insightCopy: {
+    flex: 1,
+    gap: 4
+  },
+  insightTitle: {
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  insightPill: {
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: "900",
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 7
   },
   statusTitle: {
     fontSize: 12,
