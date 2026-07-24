@@ -137,8 +137,7 @@ Current backend behavior:
 
 Still gated before full device QA:
 
-- Add the real Expo Camera dependency and permission flow.
-- Parse real QR/barcode scans from the camera stream instead of simulated scan payloads.
+- Render the live `CameraView` stream in the scanner card and feed `BarcodeScanningResult` into `buildNativeScanPayload`.
 - Test duplicate scans, wrong-event tickets, malformed payloads, offline/network failure, and multi-admission tickets on Android hardware.
 
 ## Native Exports

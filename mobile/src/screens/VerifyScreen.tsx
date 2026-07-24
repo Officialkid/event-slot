@@ -3,7 +3,13 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { NativeScanMode, NativeScannerState } from "../domain/scanner";
 import { VerificationResult } from "../domain/verification";
-import { buildDemoScanPayload, getScannerReadinessMessage, initialScannerState, requestCameraPermissionPreview } from "../services/scanner";
+import {
+  buildDemoScanPayload,
+  getCameraPermissionLabel,
+  getScannerReadinessMessage,
+  initialScannerState,
+  requestCameraScannerAccess
+} from "../services/scanner";
 import { verifyNativeTicket } from "../services/verification";
 import { NativeScreenProps } from "./types";
 
@@ -52,7 +58,7 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
 
   const handleModeChange = async (mode: NativeScanMode) => {
     if (mode === "camera") {
-      const nextScannerState = await requestCameraPermissionPreview();
+      const nextScannerState = await requestCameraScannerAccess();
       setScannerState(nextScannerState);
     } else {
       setScannerState((current) => ({ ...current, activeMode: "manual" }));
@@ -79,7 +85,7 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
 
       <View style={[styles.scanCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.scanIcon, { color: theme.colors.accent }]}>SCAN</Text>
-        <Text style={[styles.scanTitle, { color: theme.colors.text }]}>Camera scanner scaffold</Text>
+        <Text style={[styles.scanTitle, { color: theme.colors.text }]}>Native camera scanner</Text>
         <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
           {getScannerReadinessMessage()}
         </Text>
@@ -88,15 +94,20 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
           <ModeButton label="Camera" mode="camera" activeMode={scannerState.activeMode} onPress={() => handleModeChange("camera")} theme={theme} />
         </View>
         <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
-          Camera permission: {scannerState.permissionStatus}
+          Camera permission: {getCameraPermissionLabel(scannerState)}
         </Text>
+        {scannerState.cameraReady ? (
+          <Text style={[styles.scanText, { color: theme.colors.accent }]}>
+            Camera access is ready for Android QR scan QA.
+          </Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           disabled={loading}
           onPress={handleDemoScan}
           style={[styles.scanButton, { borderColor: theme.colors.border, opacity: loading ? 0.62 : 1 }]}
         >
-          <Text style={[styles.scanButtonText, { color: theme.colors.accent }]}>Simulate QR scan</Text>
+          <Text style={[styles.scanButtonText, { color: theme.colors.accent }]}>Preview scan payload</Text>
         </Pressable>
         {scannerState.lastPayload ? (
           <Text style={[styles.scanText, { color: theme.colors.secondary }]}>
