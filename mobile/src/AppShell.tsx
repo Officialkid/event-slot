@@ -19,6 +19,7 @@ import { listNativeEvents } from "./services/events";
 import { AppTheme } from "./theme";
 import { AppRoute, tabs } from "./tabs";
 import { NativeEvent } from "./domain/events";
+import { buildNativeWorkspaceSyncSummary, getNativeWorkspaceSyncReadinessMessage } from "./services/workspaceSync";
 
 type AppShellProps = {
   session: AppSession;
@@ -32,14 +33,25 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
   const [events, setEvents] = useState<NativeEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [eventsLastSyncedAt, setEventsLastSyncedAt] = useState<string | null>(null);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const activeTab = route.name === "eventDetail" || route.name === "createEvent" ? "events" : route.name;
+  const workspaceSyncSummary = buildNativeWorkspaceSyncSummary({
+    error: eventsError,
+    events,
+    lastSyncedAt: eventsLastSyncedAt,
+    loading: eventsLoading,
+    session
+  });
 
   const refreshEvents = useCallback(() => {
     setEventsLoading(true);
     setEventsError(null);
     listNativeEvents(session)
-      .then(setEvents)
+      .then((nextEvents) => {
+        setEvents(nextEvents);
+        setEventsLastSyncedAt(new Date().toISOString());
+      })
       .catch((error: unknown) => {
         setEventsError(error instanceof Error ? error.message : "Could not load events.");
       })
@@ -110,6 +122,41 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={[styles.syncCard, { backgroundColor: theme.colors.hero, borderColor: workspaceSyncSummary.status === "error" ? theme.colors.error : theme.colors.border }]}>
+            <View style={styles.syncCopy}>
+              <Text
+                style={[
+                  styles.syncTitle,
+                  {
+                    color:
+                      workspaceSyncSummary.status === "ready"
+                        ? theme.colors.success
+                        : workspaceSyncSummary.status === "error"
+                          ? theme.colors.error
+                          : theme.colors.accent
+                  }
+                ]}
+              >
+                {workspaceSyncSummary.title}
+              </Text>
+              <Text style={[styles.syncCaption, { color: theme.colors.secondary }]}>
+                {workspaceSyncSummary.caption}
+              </Text>
+              <Text style={[styles.syncMeta, { color: theme.colors.muted }]}>
+                {getNativeWorkspaceSyncReadinessMessage()}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={eventsLoading}
+              onPress={refreshEvents}
+              style={[styles.syncButton, { borderColor: theme.colors.border, opacity: eventsLoading ? 0.55 : 1 }]}
+            >
+              <Text style={[styles.syncButtonText, { color: theme.colors.accent }]}>
+                {eventsLoading ? "Syncing" : "Retry"}
+              </Text>
+            </Pressable>
+          </View>
           {screen}
         </ScrollView>
 
@@ -275,6 +322,44 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 130,
     paddingTop: 18
+  },
+  syncCard: {
+    alignItems: "center",
+    borderRadius: 22,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 14,
+    padding: 14
+  },
+  syncCopy: {
+    flex: 1,
+    gap: 4
+  },
+  syncTitle: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1.8,
+    textTransform: "uppercase"
+  },
+  syncCaption: {
+    fontSize: 13,
+    lineHeight: 19
+  },
+  syncMeta: {
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 16
+  },
+  syncButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9
+  },
+  syncButtonText: {
+    fontSize: 12,
+    fontWeight: "900"
   },
   fab: {
     alignItems: "center",

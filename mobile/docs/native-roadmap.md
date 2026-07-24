@@ -27,6 +27,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native Dashboard reads live metrics from `/api/native/dashboard/stats` in live mode and falls back to demo-derived metrics in demo mode.
 - Native Dashboard includes a Today's Focus insight panel for closing events, near-capacity events, waitlist follow-up, and verifier readiness.
 - Native Events includes mobile filters for all, active, draft, closed, owner, and team-accessible events.
+- Native shell shows workspace sync source, event count, last refresh time, and retry action for Android live API QA.
 - Native Verify saves recent manual, preview, and camera verification attempts on-device for Android event-day QA.
 - Add event detail, confirmed registrations, waitlist, and export status views.
 - Event detail now has native confirmed/waitlist preview UI and registration mappers.

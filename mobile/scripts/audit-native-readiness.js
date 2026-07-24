@@ -138,6 +138,12 @@ requireFileIncludes(
   "organizers need mobile filters for active, draft, closed, owner, and team events"
 );
 requireFileIncludes(
+  "Native workspace sync status is visible",
+  "src/AppShell.tsx",
+  "getNativeWorkspaceSyncReadinessMessage",
+  "testers need visible live/demo sync state, last refresh, and retry controls in the native shell"
+);
+requireFileIncludes(
   "Native dashboard has action insights",
   "src/screens/DashboardScreen.tsx",
   "TODAY'S FOCUS",
