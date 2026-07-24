@@ -68,6 +68,37 @@ export async function requestVerifierAccess(input: VerifierAccessRequest): Promi
   });
 }
 
+export async function requestNativeVerifierAccess(
+  input: VerifierAccessRequest,
+  events: NativeEvent[]
+): Promise<VerifierAccessResult> {
+  const verifierCode = input.verifierCode.trim().toUpperCase();
+
+  if (!verifierCode) {
+    throw new Error("Enter the verifier code shared by the event organiser.");
+  }
+
+  if (nativeConfig.authMode === "demo") {
+    const matchedEvent = events.find((event) => event.verifierCode.toUpperCase() === verifierCode);
+    if (!matchedEvent) {
+      throw new Error("No native demo event matched that verifier code.");
+    }
+
+    return {
+      eventId: matchedEvent.id,
+      slug: matchedEvent.slug,
+      title: matchedEvent.title,
+      verifierToken: `demo-verifier-${matchedEvent.slug}`,
+      ticketsEnabled: true
+    };
+  }
+
+  return requestVerifierAccess({
+    ...input,
+    verifierCode
+  });
+}
+
 export async function verifyNativeTicket(
   session: AppSession,
   event: NativeEvent,

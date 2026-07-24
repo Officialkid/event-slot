@@ -74,6 +74,12 @@ requireFileIncludes(
   "virtualLink",
   "virtual events need a native meeting-link payload before publishing can be trusted"
 );
+requireFileIncludes(
+  "Native verifier-code access is available",
+  "src/screens/VerifyScreen.tsx",
+  "Activate verifier access",
+  "event-day verifiers need a native code-entry path before scanning"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

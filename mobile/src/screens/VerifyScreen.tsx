@@ -3,7 +3,7 @@ import { BarcodeScanningResult, CameraView } from "expo-camera";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { NativeScanMode, NativeScannerState } from "../domain/scanner";
-import { VerificationResult } from "../domain/verification";
+import { VerificationResult, VerifierAccessResult } from "../domain/verification";
 import {
   buildDemoScanPayload,
   buildNativeScanPayload,
@@ -12,7 +12,7 @@ import {
   initialScannerState,
   requestCameraScannerAccess
 } from "../services/scanner";
-import { verifyNativeTicket } from "../services/verification";
+import { requestNativeVerifierAccess, verifyNativeTicket } from "../services/verification";
 import { NativeScreenProps } from "./types";
 
 export function VerifyScreen({ theme, session, events, eventsLoading, eventsError }: NativeScreenProps) {
@@ -24,6 +24,10 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
   const [lookup, setLookup] = useState("");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [verifierCode, setVerifierCode] = useState("");
+  const [verifierAccess, setVerifierAccess] = useState<VerifierAccessResult | null>(null);
+  const [verifierAccessStatus, setVerifierAccessStatus] = useState("Enter an organiser verifier code to unlock event-day check-in access.");
+  const [verifierAccessLoading, setVerifierAccessLoading] = useState(false);
   const [scanLocked, setScanLocked] = useState(false);
   const [scannerState, setScannerState] = useState<NativeScannerState>(initialScannerState);
 
@@ -57,6 +61,28 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
 
   const handleVerify = async () => {
     await runVerification({ ticketCode: lookup });
+  };
+
+  const handleRequestVerifierAccess = async () => {
+    setVerifierAccessLoading(true);
+    setVerifierAccess(null);
+    setVerifierAccessStatus("Checking verifier code...");
+
+    try {
+      const access = await requestNativeVerifierAccess({ verifierCode }, verifierEvents);
+      const matchedEvent = verifierEvents.find((event) => event.slug === access.slug || event.id === access.eventId);
+
+      setVerifierAccess(access);
+      setVerifierAccessStatus(`Verifier access ready for ${access.title}.`);
+      if (matchedEvent) {
+        setSelectedEventId(matchedEvent.id);
+      }
+      setResult(null);
+    } catch (error) {
+      setVerifierAccessStatus(error instanceof Error ? error.message : "Could not activate verifier access.");
+    } finally {
+      setVerifierAccessLoading(false);
+    }
   };
 
   const handleModeChange = async (mode: NativeScanMode) => {
@@ -102,6 +128,41 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
       <Text style={[styles.subcopy, { color: theme.colors.secondary }]}>
         Native verification will support camera scanning, manual ticket lookup, and verifier access codes.
       </Text>
+
+      <View style={[styles.lookupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <Text style={[styles.label, { color: theme.colors.muted }]}>VERIFIER ACCESS</Text>
+        <Text style={[styles.helper, { color: theme.colors.secondary }]}>
+          Use the code shared by an organiser to select the event and prepare this device for check-in.
+        </Text>
+        <TextInput
+          autoCapitalize="characters"
+          onChangeText={(value) => {
+            setVerifierCode(value);
+            setVerifierAccess(null);
+            setVerifierAccessStatus("Verifier code entered. Tap activate when ready.");
+          }}
+          placeholder="Enter verifier code"
+          placeholderTextColor={theme.colors.muted}
+          style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text, backgroundColor: theme.colors.input }]}
+          value={verifierCode}
+        />
+        <Pressable
+          accessibilityRole="button"
+          disabled={verifierAccessLoading}
+          onPress={handleRequestVerifierAccess}
+          style={[styles.verifyButton, { backgroundColor: theme.colors.accent, opacity: verifierAccessLoading ? 0.62 : 1 }]}
+        >
+          <Text style={styles.verifyButtonText}>{verifierAccessLoading ? "Activating..." : "Activate verifier access"}</Text>
+        </Pressable>
+        <Text style={[styles.helper, { color: verifierAccess ? theme.colors.success : theme.colors.secondary }]}>
+          {verifierAccessStatus}
+        </Text>
+        {verifierAccess ? (
+          <Text style={[styles.helper, { color: theme.colors.muted }]}>
+            Token ready for {verifierAccess.slug}. Tickets enabled: {verifierAccess.ticketsEnabled ? "yes" : "no"}.
+          </Text>
+        ) : null}
+      </View>
 
       <View style={[styles.scanCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.scanIcon, { color: theme.colors.accent }]}>SCAN</Text>

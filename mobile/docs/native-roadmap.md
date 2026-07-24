@@ -47,6 +47,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 - Native live verification now calls `/api/native/events/:slug/verify-ticket` with the signed native access token and records real check-ins for owner/team-accessible events.
 - Event detail now models owner/team capabilities and verifier-code sharing readiness.
 - Native share-sheet handoff is scaffolded for verifier access codes.
+- Native Verify can activate verifier access from organiser-shared codes and select the matching event before check-in.
 - Offline registration drafts.
 - File/image upload questions and native document picker support are scaffolded; bucket upload writes still need implementation.
 - Push notifications for reminders, invites, and waitlist promotions.
