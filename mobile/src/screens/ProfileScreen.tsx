@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { nativeConfig } from "../config";
+import { NativeConnectivityProbeResult, NativeDeviceQaItem } from "../domain/deviceQa";
 import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
+import { buildNativeDeviceQaChecklist, formatConnectivityCheckedAt, runNativeConnectivityProbe } from "../services/deviceQa";
 import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
@@ -29,10 +31,13 @@ type AccountSetting = {
 export function ProfileScreen({ theme, session, events, onSignOut }: NativeScreenProps) {
   const [preferences, setPreferences] = useState<NativePreferences>(defaultNativePreferences);
   const [pushStatus, setPushStatus] = useState("Push token has not been requested on this device.");
+  const [connectivityProbe, setConnectivityProbe] = useState<NativeConnectivityProbeResult | null>(null);
+  const [connectivityChecking, setConnectivityChecking] = useState(false);
   const pushReadiness = getPushReadinessMessage();
   const nativeStorageReadiness = getNativeStorageReadinessMessage();
   const sessionStorageReadiness = getSessionStorageReadinessMessage();
   const notificationPreferences = useMemo(() => buildNotificationPreferences(preferences), [preferences]);
+  const deviceQaChecklist = useMemo(() => buildNativeDeviceQaChecklist(session, events.length), [events.length, session]);
   const accountSettings: AccountSetting[] = [
     {
       title: "Profile",
@@ -125,6 +130,13 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     setPushStatus(result.message);
   };
 
+  const handleConnectivityProbe = async () => {
+    setConnectivityChecking(true);
+    const result = await runNativeConnectivityProbe();
+    setConnectivityProbe(result);
+    setConnectivityChecking(false);
+  };
+
   return (
     <View style={styles.stack}>
       <View style={[styles.profileHero, { backgroundColor: theme.colors.greenPanel }]}>
@@ -177,6 +189,30 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>RELEASE GATES</Text>
       {nativeReleaseGateItems.map((item) => (
         <ReadinessRow key={item.key} item={item} theme={theme} />
+      ))}
+
+      <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>DEVICE QA</Text>
+      <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Connectivity probe</Text>
+        <Text style={[styles.rowCaption, { color: connectivityProbe?.status === "error" ? theme.colors.error : theme.colors.secondary }]}>
+          {connectivityProbe?.message ?? "Run this on the Android test device before signing off native QA."}
+        </Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.muted }]}>
+          Last checked: {formatConnectivityCheckedAt(connectivityProbe?.checkedAt ?? null)}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={connectivityChecking}
+          onPress={handleConnectivityProbe}
+          style={[styles.inlineButton, { borderColor: theme.colors.border, opacity: connectivityChecking ? 0.6 : 1 }]}
+        >
+          <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>
+            {connectivityChecking ? "Checking..." : "Run connectivity check"}
+          </Text>
+        </Pressable>
+      </View>
+      {deviceQaChecklist.map((item) => (
+        <DeviceQaRow key={item.key} item={item} theme={theme} />
       ))}
 
       <Text style={[styles.sectionTitle, { color: theme.colors.muted }]}>PERMISSIONS</Text>
@@ -279,6 +315,34 @@ function ReadinessRow({ item, theme }: ReadinessRowProps) {
       <View style={styles.rowCopy}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.title}</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{item.caption}</Text>
+      </View>
+      <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: statusColor }]}>
+        {item.status.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+type DeviceQaRowProps = {
+  item: NativeDeviceQaItem;
+  theme: NativeScreenProps["theme"];
+};
+
+function DeviceQaRow({ item, theme }: DeviceQaRowProps) {
+  const statusColor =
+    item.status === "pass"
+      ? theme.colors.success
+      : item.status === "needs-review"
+        ? theme.colors.accent
+        : item.status === "blocked"
+          ? theme.colors.error
+          : theme.colors.muted;
+
+  return (
+    <View style={[styles.row, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={styles.rowCopy}>
+        <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.title}</Text>
+        <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>{item.expected}</Text>
       </View>
       <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: statusColor }]}>
         {item.status.toUpperCase()}
