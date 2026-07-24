@@ -75,7 +75,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
   const accountSettings: AccountSetting[] = [
     {
       title: "Profile",
-      caption: "Live profile identity is available from the native session; profile editing remains a later native account screen.",
+      caption: "Review the signed-in EventSlot account being used on this device.",
       actionLabel: "GATED"
     },
     {
@@ -101,7 +101,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     },
     {
       title: "Support",
-      caption: "Email EventSlot support for app testing feedback or account help.",
+      caption: "Email EventSlot support for feedback or account help.",
       actionLabel: "EMAIL",
       onPress: () => {
         openSupportLink(supportLinks.testerSupport).catch(() => {});
@@ -125,7 +125,7 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
     },
     {
       title: "Website",
-      caption: "Open the live EventSlot web app while native features are being completed.",
+      caption: "Open the live EventSlot web app in your browser.",
       actionLabel: "OPEN",
       onPress: () => {
         openSupportLink(supportLinks.website).catch(() => {});
@@ -239,8 +239,8 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
           <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Native app mode</Text>
           <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
             {nativeConfig.authMode === "demo"
-              ? "Safe demo mode is active until real native auth is ready."
-              : "Live API mode is enabled for native integration testing with bearer-token sessions."}
+              ? "Demo mode is active for internal QA."
+              : "This device is connected to EventSlot through live authenticated API sessions."}
           </Text>
         </View>
         <Text style={[styles.statusPill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
@@ -390,12 +390,12 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
       <View style={[styles.summaryCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
         <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Workspace summary</Text>
         <Text style={[styles.rowCaption, { color: theme.colors.secondary }]}>
-          {events.length} native events are available in this preview. Live mode uses owned and invited events from the native workspace API; demo mode keeps local sample data.
+          {events.length} events are available on this device. Live mode uses owned and invited events from your EventSlot workspace.
         </Text>
       </View>
 
       <Pressable accessibilityRole="button" onPress={onSignOut} style={[styles.signOutButton, { borderColor: theme.colors.border }]}>
-        <Text style={[styles.signOut, { color: theme.colors.error }]}>Sign out of native demo</Text>
+        <Text style={[styles.signOut, { color: theme.colors.error }]}>Sign out</Text>
       </Pressable>
     </View>
   );

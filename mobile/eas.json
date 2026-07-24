@@ -26,7 +26,7 @@
     },
     "production": {
       "autoIncrement": true,
-      "distribution": "internal",
+      "distribution": "store",
       "env": {
         "EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE": "live",
         "EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED": "false",

@@ -92,7 +92,7 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
           Run registration, waitlist, and check-in from one sharp app.
         </Text>
         <Text style={[styles.body, { color: theme.colors.secondary }]}>
-          Native EventSlot starts with the same mobile-first experience, then adds camera scanning, offline drafts, and push-ready workflows.
+          EventSlot keeps your event team close to registrations, check-in, waitlists, exports, and mobile event-day actions.
         </Text>
       </View>
 
@@ -140,7 +140,7 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
             ? liveStats
               ? `${liveStats.activeEvents} active events, ${liveStats.eventsClosingThisWeek} closing this week.`
               : "Loading dashboard metrics from the native API."
-            : "Demo mode uses local preview events until live native auth is enabled.")}
+            : "Demo mode uses local events for internal QA builds.")}
         </Text>
         {statsError ? (
           <Pressable accessibilityRole="button" onPress={handleRefreshDashboard} style={[styles.retryButton, { borderColor: theme.colors.border }]}>
@@ -152,14 +152,14 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
       <ActionCard
         theme={theme}
         title="Create an event"
-        caption="A simplified native flow will mirror the web version without exposing unfinished payments."
+        caption="Start an event draft, save progress locally, and publish when the details are ready."
         action="Start"
         onPress={() => navigate({ name: "createEvent" })}
       />
       <ActionCard
         theme={theme}
         title="Verify tickets"
-        caption="Camera and manual lookup will become first-class native tools for event teams."
+        caption="Use camera scanning or manual lookup to support event-day entry."
         action="Scan"
         onPress={() => navigate({ name: "verify" })}
       />

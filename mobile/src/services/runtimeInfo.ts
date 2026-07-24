@@ -42,13 +42,13 @@ export function buildNativeRuntimeInfo(): NativeRuntimeInfoItem[] {
       key: "android",
       label: "Android package",
       value: androidPackage,
-      tone: androidPackage.includes(".native") ? "ready" : "neutral"
+      tone: androidPackage === "com.alphatech.eventslot" ? "ready" : "neutral"
     },
     {
       key: "ios",
       label: "iOS bundle",
       value: iosBundle,
-      tone: iosBundle.includes(".native") ? "ready" : "neutral"
+      tone: iosBundle === "com.alphatech.eventslot" ? "ready" : "neutral"
     }
   ];
 }

@@ -22,6 +22,7 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
   const [loginStatus, setLoginStatus] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const liveMode = nativeConfig.authMode === "live";
+  const allowDemoFallback = !liveMode;
   const authReadinessItems = getNativeAuthReadinessItems();
 
   const handleOtpRequest = async () => {
@@ -37,7 +38,7 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
 
     try {
       await requestOrganizerOtp({ email: trimmedEmail });
-      setOtpStatus("OTP request sent. Full native session verification comes in the live-auth milestone.");
+      setOtpStatus("OTP request sent. Check your email, then enter the code if EventSlot asks for it.");
     } catch (error) {
       setOtpStatus(error instanceof Error ? error.message : "Could not request OTP right now.");
     } finally {
@@ -94,10 +95,10 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
             Manage events from a real mobile app.
           </Text>
           <Text style={[styles.body, { color: theme.colors.secondary }]}>
-            This native rebuild will keep the EventSlot web platform stable while we add native sign-in, scanning, offline drafts, push notifications, and smoother mobile navigation.
+            Sign in to manage events, registrations, ticket verification, exports, settings, and mobile-ready event operations.
           </Text>
           <Text style={[styles.modePill, { backgroundColor: theme.colors.activeTab, color: theme.colors.accent }]}>
-            {nativeConfig.authMode === "demo" ? "SAFE DEMO MODE" : "LIVE API MODE"}
+            {nativeConfig.authMode === "demo" ? "DEMO MODE" : "EVENTSLOT ACCOUNT"}
           </Text>
         </View>
 
@@ -151,16 +152,16 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
             style={[styles.primaryButton, { backgroundColor: theme.colors.accent, opacity: loginLoading ? 0.65 : 1 }]}
           >
             <Text style={styles.primaryButtonText}>
-              {loginLoading ? "Signing in..." : liveMode ? "Sign in to native app" : "Continue to demo shell"}
+              {loginLoading ? "Signing in..." : liveMode ? "Sign in to EventSlot" : "Continue to demo"}
             </Text>
           </Pressable>
-          {liveMode ? (
+          {allowDemoFallback ? (
             <Pressable
               accessibilityRole="button"
               onPress={onDemoSignIn}
               style={[styles.secondaryButton, { borderColor: theme.colors.border }]}
             >
-              <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Use demo shell instead</Text>
+              <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>Use demo instead</Text>
             </Pressable>
           ) : null}
           <Pressable
@@ -170,7 +171,7 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
             style={[styles.secondaryButton, { borderColor: theme.colors.border, opacity: otpLoading ? 0.6 : 1 }]}
           >
             <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>
-              {otpLoading ? "Requesting OTP..." : "Test OTP request"}
+              {otpLoading ? "Requesting OTP..." : "Send OTP code"}
             </Text>
           </Pressable>
           {otpStatus ? (
@@ -185,8 +186,8 @@ export function SignInScreen({ theme, onDemoSignIn, onLiveSignIn, onToggleTheme 
           ) : null}
           <Text style={[styles.disclaimer, { color: theme.colors.muted }]}>
             {liveMode
-              ? "Live native auth uses bearer tokens and stays separate from browser cookies."
-              : "Demo mode keeps the native work separate from the live web system until it is fully ready."}
+              ? "EventSlot keeps your signed-in session in secure device storage."
+              : "Demo mode is only for internal QA builds."}
           </Text>
         </View>
       </View>

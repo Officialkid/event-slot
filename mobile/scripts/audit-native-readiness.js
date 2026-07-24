@@ -47,8 +47,9 @@ requireTruthy("Notifications dependency is present", packageJson.dependencies["e
 requireValue("Native app name is EventSlot", expo.name, "EventSlot");
 requireValue("Native URL scheme is eventslot", expo.scheme, "eventslot");
 requireValue("Native API points at production web API", expo.extra && expo.extra.apiBaseUrl, "https://www.eventsslot.com");
-requireValue("Android package is separate from TWA", expo.android && expo.android.package, "com.alphatech.eventslot.native");
-requireValue("iOS bundle is separate from web/TWA identity", expo.ios && expo.ios.bundleIdentifier, "com.alphatech.eventslot.native");
+requireValue("Android package matches existing Play listing", expo.android && expo.android.package, "com.alphatech.eventslot");
+requireValue("Android native versionCode can replace TWA v5", expo.android && expo.android.versionCode, 6);
+requireValue("iOS bundle uses final EventSlot identity", expo.ios && expo.ios.bundleIdentifier, "com.alphatech.eventslot");
 
 requireFile("assets/icon.png");
 requireFile("assets/adaptive-icon.png");
@@ -78,8 +79,8 @@ requireFileIncludes(
 requireFileIncludes(
   "Native build gates block premature upload",
   "docs/native-build-gates.md",
-  "Do not upload an Expo native AAB/IPA while release gates are blocked.",
-  "native app must stay separate from the TWA bridge until full device QA and approval"
+  "Do not upload an Expo native AAB/IPA to public production while release gates are blocked.",
+  "native app can replace the TWA bridge for closed testing, but public production still needs device QA and approval"
 );
 requireFileIncludes(
   "Native prepared exports can open device links",
@@ -202,10 +203,14 @@ if (cameraPlugin) {
 
 const buildProfiles = easJson.build || {};
 for (const [profileName, profile] of Object.entries(buildProfiles)) {
+  if (profileName === "production") {
+    continue;
+  }
   requireValue(`EAS ${profileName} build remains internal`, profile.distribution, "internal");
 }
 
 addCheck("No EAS submit profile exists", !easJson.submit, "native app must not be uploaded automatically before approval");
+requireValue("EAS production build targets Play Store upload", buildProfiles.production && buildProfiles.production.distribution, "store");
 requireValue("Production native auth uses live mode", buildProfiles.production && buildProfiles.production.env && buildProfiles.production.env.EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE, "live");
 requireValue("Production native uploads remain gated", buildProfiles.production && buildProfiles.production.env && buildProfiles.production.env.EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED, "false");
 requireValue("Production native push backend remains gated", buildProfiles.production && buildProfiles.production.env && buildProfiles.production.env.EXPO_PUBLIC_EVENTSSLOT_PUSH_ENABLED, "false");

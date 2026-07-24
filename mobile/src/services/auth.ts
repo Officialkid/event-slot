@@ -78,7 +78,7 @@ export function getNativeAuthReadinessItems(): string[] {
 
   return [
     `API host: ${apiHost}`,
-    nativeConfig.authMode === "live" ? "Live organizer auth enabled" : "Safe demo shell enabled",
+    nativeConfig.authMode === "live" ? "Live organizer auth enabled" : "Demo auth enabled",
     "Session tokens use secure native storage",
     "Logout clears local session and calls live logout when available"
   ];

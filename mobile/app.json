@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "EventSlot",
-    "slug": "eventslot-native",
+    "slug": "eventslot",
     "scheme": "eventslot",
-    "version": "0.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
@@ -16,14 +16,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.alphatech.eventslot.native",
+      "bundleIdentifier": "com.alphatech.eventslot",
       "infoPlist": {
         "NSCameraUsageDescription": "EventSlot uses the camera to scan attendee ticket QR codes at events.",
         "NSPhotoLibraryUsageDescription": "EventSlot lets organizers and attendees select images or documents when an event form requests an upload."
       }
     },
     "android": {
-      "package": "com.alphatech.eventslot.native",
+      "package": "com.alphatech.eventslot",
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#B9FF3B"

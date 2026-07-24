@@ -21,12 +21,12 @@ import { NativeScreenProps } from "./types";
 
 export function CreateEventScreen({ theme, navigate, refreshEvents, session }: NativeScreenProps) {
   const [draft, setDraft] = useState<EventDraft>(emptyEventDraft);
-  const [draftStatus, setDraftStatus] = useState("Loading saved native draft...");
+  const [draftStatus, setDraftStatus] = useState("Loading saved event draft...");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [draftLoading, setDraftLoading] = useState(true);
-  const [submitStatus, setSubmitStatus] = useState("Native publishing is not active until live API mode is enabled.");
+  const [submitStatus, setSubmitStatus] = useState("Complete the required event details before publishing.");
   const [attachmentPreview, setAttachmentPreview] = useState<NativeAttachmentDraft | null>(null);
-  const [attachmentStatus, setAttachmentStatus] = useState("No attachment selected in this native preview.");
+  const [attachmentStatus, setAttachmentStatus] = useState("No attachment selected yet.");
   const draftHydratedRef = useRef(false);
   const clearingDraftRef = useRef(false);
 
@@ -77,7 +77,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
           setDraftStatus(`Autosaved ${formatDraftSavedAt(savedAt)}.`);
         })
         .catch(() => {
-          setDraftStatus("Could not auto-save this native draft. Use Save draft before leaving.");
+          setDraftStatus("Could not auto-save this draft. Use Save draft before leaving.");
         });
     }, 900);
 
@@ -111,8 +111,8 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
     await clearEventDraft();
     setDraft({ ...emptyEventDraft });
     setLastSavedAt(null);
-    setDraftStatus("Draft cleared from this native preview.");
-    setSubmitStatus("Native publishing is not active until live API mode is enabled.");
+    setDraftStatus("Draft cleared from this device.");
+    setSubmitStatus("Complete the required event details before publishing.");
     setTimeout(() => {
       clearingDraftRef.current = false;
     }, 0);
@@ -125,11 +125,11 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
     }
 
     if (session.authMode !== "live") {
-      setSubmitStatus("This draft is ready, but native publishing is intentionally disabled in demo mode.");
+      setSubmitStatus("This draft is ready. Sign in with a live EventSlot account before publishing.");
       return;
     }
 
-    setSubmitStatus("Publishing event through the native API...");
+    setSubmitStatus("Publishing event to EventSlot...");
     try {
       const createdEvent = await submitNativeEventDraft(session, draft);
       clearingDraftRef.current = true;
@@ -137,14 +137,14 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       setDraft({ ...emptyEventDraft });
       setLastSavedAt(null);
       setDraftStatus("Draft published and cleared from this device.");
-      setSubmitStatus(`Created ${createdEvent.title}. Refreshing your native events...`);
+      setSubmitStatus(`Created ${createdEvent.title}. Refreshing your events...`);
       refreshEvents();
       navigate({ name: "eventDetail", eventId: createdEvent.id });
       setTimeout(() => {
         clearingDraftRef.current = false;
       }, 0);
     } catch (error) {
-      setSubmitStatus(error instanceof Error ? error.message : "Could not publish this native event draft.");
+      setSubmitStatus(error instanceof Error ? error.message : "Could not publish this event draft.");
     }
   };
 
@@ -176,7 +176,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       </Pressable>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Create Event</Text>
       <Text style={[styles.subcopy, { color: theme.colors.secondary }]}>
-        This native draft flow auto-saves locally and restores progress on this device. Publishing stays guarded until live API/session work is approved.
+        Create events from your phone, preserve spacing and wording, save progress locally, and publish with your EventSlot account.
       </Text>
 
       <View style={[styles.statusCard, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
@@ -200,7 +200,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
         </View>
         {validation.errors.length === 0 && validation.warnings.length === 0 ? (
           <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
-            This draft has the minimum information needed for the future native publish step.
+            This draft has the minimum information needed before publishing.
           </Text>
         ) : null}
         {validation.errors.map((issue) => (
@@ -234,7 +234,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
       <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
         <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>NATIVE LAUNCH CHECKLIST</Text>
         <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
-          Use this before Android QA so the native app does not publish confusing event details.
+          Use this checklist so attendees receive clear event details.
         </Text>
         {launchChecklist.map((item) => (
           <View key={item.key} style={[styles.checklistItem, { borderColor: theme.colors.border }]}>
@@ -451,7 +451,7 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
               theme={theme}
             />
             <Pressable accessibilityRole="button" onPress={handlePickAttachment} style={[styles.outlineButton, { borderColor: theme.colors.border }]}>
-              <Text style={[styles.outlineButtonText, { color: theme.colors.text }]}>Test native file picker</Text>
+              <Text style={[styles.outlineButtonText, { color: theme.colors.text }]}>Choose file</Text>
             </Pressable>
             <View style={[styles.attachmentPreview, { borderColor: theme.colors.border, backgroundColor: theme.colors.input }]}>
               <Text style={[styles.helper, { color: attachmentPreview?.validationError ? theme.colors.error : theme.colors.secondary }]}>

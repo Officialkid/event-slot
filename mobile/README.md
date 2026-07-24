@@ -1,6 +1,6 @@
 # EventSlot Native App
 
-This folder is the isolated native rebuild for EventSlot. It does not replace or alter the existing Next.js web/PWA app or the current TWA wrapper.
+This folder contains the Expo native EventSlot app. It does not replace or alter the existing Next.js web/PWA app, but its Android package is aligned to the existing Play listing so the native build can replace the temporary TWA app in closed testing.
 
 ## Direction
 
@@ -63,7 +63,7 @@ Before any native Play Console upload, review `docs/play-data-safety.md` against
 `eas.json` is configured for internal QA builds only:
 
 ```powershell
-npx eas build --platform android --profile preview
+npx eas build --platform android --profile production
 npx eas build --platform ios --profile preview
 ```
 
