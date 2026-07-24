@@ -9,3 +9,13 @@ export type NativeExportAction = {
   state: NativeExportState;
   endpoint: string;
 };
+
+export type NativePreparedExport = {
+  kind: NativeExportKind;
+  title: string;
+  message: string;
+  status: "ready" | "preparing";
+  downloadUrl?: string;
+  expiresAt?: string;
+  jobId?: string;
+};

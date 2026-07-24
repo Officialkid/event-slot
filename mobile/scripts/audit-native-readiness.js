@@ -62,6 +62,12 @@ requireFileIncludes(
   "buildNativeTesterFeedbackEmailUrl",
   "testers need a structured feedback path before native release"
 );
+requireFileIncludes(
+  "Native prepared exports can open device links",
+  "src/services/exports.ts",
+  "openPreparedNativeExport",
+  "organizers need an explicit open/download path after preparing exports"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

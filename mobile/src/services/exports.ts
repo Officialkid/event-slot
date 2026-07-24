@@ -1,5 +1,7 @@
+import { Linking } from "react-native";
+
 import { NativeEvent } from "../domain/events";
-import { NativeExportAction, NativeExportKind } from "../domain/exports";
+import { NativeExportAction, NativeExportKind, NativePreparedExport } from "../domain/exports";
 import { NativeExportPrepareResponse } from "../api/contracts";
 import { eventslotRequest } from "../api/client";
 import { AppSession } from "../session";
@@ -61,6 +63,59 @@ export async function prepareNativeExport(
     method,
     token: session.accessToken
   });
+}
+
+export function buildPreparedNativeExport(
+  action: NativeExportAction,
+  result: NativeExportPrepareResponse
+): NativePreparedExport {
+  const message =
+    result.status === "preparing"
+      ? `${action.title} is preparing. Job: ${result.jobId ?? "pending"}`
+      : `${action.title} is ready${result.expiresAt ? ` until ${new Date(result.expiresAt).toLocaleTimeString()}` : ""}.`;
+
+  return {
+    kind: action.kind,
+    title: action.title,
+    message,
+    status: result.status,
+    downloadUrl: result.downloadUrl,
+    expiresAt: result.expiresAt,
+    jobId: result.jobId
+  };
+}
+
+export async function openPreparedNativeExport(preparedExport: NativePreparedExport): Promise<{
+  opened: boolean;
+  message: string;
+}> {
+  if (!preparedExport.downloadUrl) {
+    return {
+      opened: false,
+      message: "This export does not have a downloadable link yet."
+    };
+  }
+
+  try {
+    const canOpen = await Linking.canOpenURL(preparedExport.downloadUrl);
+    if (!canOpen) {
+      return {
+        opened: false,
+        message: "This device could not open the prepared export link."
+      };
+    }
+
+    await Linking.openURL(preparedExport.downloadUrl);
+    return {
+      opened: true,
+      message: "Opened the prepared export link."
+    };
+  } catch (error) {
+    return {
+      opened: false,
+      message: error instanceof Error ? error.message : "Could not open the prepared export link."
+    };
+  }
 }
 
 function buildExportEndpoint(slug: string, kind: NativeExportKind) {

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { NativeEventWorkspaceResponse } from "../api/contracts";
-import { NativeExportAction } from "../domain/exports";
+import { NativeExportAction, NativePreparedExport } from "../domain/exports";
 import { getEventAccessSummary, buildVerifierInviteAction, formatCapabilityLabel } from "../services/eventAccess";
 import { findNativeEvent } from "../services/events";
-import { buildExportActions, getExportReadinessMessage, prepareNativeExport } from "../services/exports";
+import { buildExportActions, buildPreparedNativeExport, getExportReadinessMessage, openPreparedNativeExport, prepareNativeExport } from "../services/exports";
 import { isSupportedMapUrl, openMapUrl } from "../services/maps";
 import { buildDemoRegistrationWorkspace, buildWorkspaceRegistrationPreview } from "../services/registrations";
 import { shareNativePayload } from "../services/share";
@@ -15,6 +15,7 @@ import { EventDetailScreenProps } from "./types";
 export function EventDetailScreen({ eventId, theme, session, navigate, events, eventsLoading, eventsError, refreshEvents }: EventDetailScreenProps) {
   const event = findNativeEvent(events, eventId);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [preparedExport, setPreparedExport] = useState<NativePreparedExport | null>(null);
   const [workspace, setWorkspace] = useState<NativeEventWorkspaceResponse | null>(null);
   const [workspaceStatus, setWorkspaceStatus] = useState<string | null>(null);
 
@@ -95,26 +96,41 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
 
   const handlePrepareExport = async (action: NativeExportAction) => {
     setExportStatus(`Preparing ${action.title.toLowerCase()}...`);
+    setPreparedExport(null);
 
     try {
       const result = await prepareNativeExport(session, event, action);
-      const message =
-        result.status === "preparing"
-          ? `${action.title} is preparing. Job: ${result.jobId ?? "pending"}`
-          : `${action.title} is ready${result.expiresAt ? ` until ${new Date(result.expiresAt).toLocaleTimeString()}` : ""}.`;
+      const prepared = buildPreparedNativeExport(action, result);
 
-      setExportStatus(message);
-
-      if (result.downloadUrl) {
-        await shareNativePayload({
-          title: action.title,
-          message,
-          url: result.downloadUrl
-        }).catch(() => {});
-      }
+      setPreparedExport(prepared);
+      setExportStatus(prepared.message);
     } catch (error) {
       setExportStatus(error instanceof Error ? error.message : "Could not prepare this export right now.");
     }
+  };
+
+  const handleOpenPreparedExport = async () => {
+    if (!preparedExport) {
+      return;
+    }
+
+    const result = await openPreparedNativeExport(preparedExport);
+    setExportStatus(result.message);
+  };
+
+  const handleSharePreparedExport = async () => {
+    if (!preparedExport?.downloadUrl) {
+      setExportStatus("Prepare a downloadable export before sharing.");
+      return;
+    }
+
+    const shared = await shareNativePayload({
+      title: preparedExport.title,
+      message: preparedExport.message,
+      url: preparedExport.downloadUrl
+    });
+
+    setExportStatus(shared ? "Shared the prepared export link." : "Export share sheet was closed.");
   };
 
   return (
@@ -198,6 +214,33 @@ export function EventDetailScreen({ eventId, theme, session, navigate, events, e
         </Text>
         {exportStatus ? (
           <Text style={[styles.exportStatus, { color: theme.colors.accent }]}>{exportStatus}</Text>
+        ) : null}
+        {preparedExport ? (
+          <View style={[styles.preparedExportCard, { backgroundColor: theme.colors.input, borderColor: theme.colors.border }]}>
+            <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{preparedExport.title}</Text>
+            <Text style={[styles.actionValue, { color: theme.colors.secondary }]}>{preparedExport.message}</Text>
+            {preparedExport.downloadUrl ? (
+              <Text style={[styles.exportEndpoint, { color: theme.colors.muted }]}>{preparedExport.downloadUrl}</Text>
+            ) : null}
+            <View style={styles.preparedExportActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={!preparedExport.downloadUrl}
+                onPress={handleOpenPreparedExport}
+                style={[styles.shareButton, { borderColor: theme.colors.border, opacity: preparedExport.downloadUrl ? 1 : 0.5 }]}
+              >
+                <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Open export</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={!preparedExport.downloadUrl}
+                onPress={handleSharePreparedExport}
+                style={[styles.shareButton, { borderColor: theme.colors.border, opacity: preparedExport.downloadUrl ? 1 : 0.5 }]}
+              >
+                <Text style={[styles.inlineButtonText, { color: theme.colors.accent }]}>Share link</Text>
+              </Pressable>
+            </View>
+          </View>
         ) : null}
         <View style={styles.exportGrid}>
           {exportActions.map((action) => (
@@ -448,6 +491,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 7,
     padding: 14
+  },
+  preparedExportCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 12,
+    padding: 14
+  },
+  preparedExportActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
   },
   exportEndpoint: {
     fontSize: 11,
