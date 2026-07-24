@@ -242,6 +242,15 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
           onSelect={(value) => updateDraft("eventType", value)}
           theme={theme}
         />
+        {draft.eventType === "virtual" ? (
+          <Field
+            label="Virtual meeting link"
+            value={draft.virtualLink}
+            onChangeText={(value) => updateDraft("virtualLink", value)}
+            placeholder="https://meet.google.com/..."
+            theme={theme}
+          />
+        ) : null}
         <OptionRow
           label="Access"
           options={[
@@ -446,6 +455,11 @@ export function CreateEventScreen({ theme, navigate, refreshEvents, session }: N
         <Text style={[styles.previewMeta, { color: theme.colors.secondary }]}>
           {preview.eventType} | {preview.accessType} | {preview.entryFeeLabel ?? "Registration only"}
         </Text>
+        {preview.eventType === "virtual" && preview.virtualLink ? (
+          <Text style={[styles.previewMeta, { color: theme.colors.accent }]}>
+            Virtual link ready: {preview.virtualLink}
+          </Text>
+        ) : null}
         <Text style={[styles.previewBody, { color: theme.colors.secondary }]}>
           {draft.description || "Your event description will appear here with the spacing and wording preserved."}
         </Text>

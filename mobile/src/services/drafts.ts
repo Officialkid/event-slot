@@ -10,6 +10,7 @@ export const emptyEventDraft: EventDraft = {
   capacity: "",
   description: "",
   eventType: "physical",
+  virtualLink: "",
   accessType: "public",
   mapDirectionsUrl: "",
   entryFeeLabel: "",
@@ -95,8 +96,13 @@ export function formatDraftSavedAt(savedAt: string | null): string {
 
 function cloneEventDraft(draft: EventDraft): EventDraft {
   return {
+    ...emptyEventDraft,
     ...draft,
-    attachmentRequirement: { ...draft.attachmentRequirement }
+    virtualLink: draft.virtualLink ?? "",
+    attachmentRequirement: {
+      ...defaultAttachmentRequirement,
+      ...(draft.attachmentRequirement ?? defaultAttachmentRequirement)
+    }
   };
 }
 

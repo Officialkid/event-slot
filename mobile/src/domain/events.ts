@@ -21,6 +21,7 @@ export type NativeEvent = {
   exportsReady: boolean;
   eventType?: NativeEventType;
   accessType?: NativeAccessType;
+  virtualLink?: string;
   mapDirectionsUrl?: string;
   entryFeeLabel?: string;
   whatsappNumber?: string;
@@ -37,6 +38,7 @@ export type EventDraft = {
   capacity: string;
   description: string;
   eventType: NativeEventType;
+  virtualLink: string;
   accessType: NativeAccessType;
   mapDirectionsUrl: string;
   entryFeeLabel: string;

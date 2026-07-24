@@ -33,6 +33,7 @@ export function createDraftPreview(draft: EventDraft): NativeEvent {
     exportsReady: false,
     eventType: draft.eventType,
     accessType: draft.accessType,
+    virtualLink: draft.virtualLink.trim() || undefined,
     mapDirectionsUrl: draft.mapDirectionsUrl.trim() || undefined,
     entryFeeLabel: draft.entryFeeLabel.trim() || undefined,
     whatsappNumber: draft.whatsappNumber.trim() || undefined,

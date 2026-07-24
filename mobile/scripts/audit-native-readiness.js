@@ -68,6 +68,12 @@ requireFileIncludes(
   "openPreparedNativeExport",
   "organizers need an explicit open/download path after preparing exports"
 );
+requireFileIncludes(
+  "Native event drafts support virtual links",
+  "src/services/eventSubmission.ts",
+  "virtualLink",
+  "virtual events need a native meeting-link payload before publishing can be trusted"
+);
 
 const androidPermissions = (expo.android && expo.android.permissions) || [];
 addCheck("Android does not request RECORD_AUDIO", !androidPermissions.includes("RECORD_AUDIO"), "QR scanning must not request microphone/audio");

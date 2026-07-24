@@ -43,13 +43,6 @@ export function prepareNativeCreateEventRequest(draft: EventDraft): NativeCreate
     };
   }
 
-  if (draft.eventType === "virtual") {
-    return {
-      ready: false,
-      reason: "Native virtual publishing still needs a Google Meet link field before it can go live."
-    };
-  }
-
   const eventDate = parseEventDate(draft.dateLabel);
   if (!eventDate) {
     return {
@@ -75,6 +68,7 @@ export function prepareNativeCreateEventRequest(draft: EventDraft): NativeCreate
     mapDirectionsUrl: draft.mapDirectionsUrl.trim() || undefined,
     ticketsEnabled: true,
     title: draft.title.trim(),
+    virtualLink: draft.eventType === "virtual" ? draft.virtualLink.trim() : undefined,
     whatsappNumber: draft.whatsappNumber.trim() || undefined
   };
 

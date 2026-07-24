@@ -37,6 +37,14 @@ export function validateEventDraft(draft: EventDraft): NativeDraftValidationResu
     issues.push({ field: "mapDirectionsUrl", message: "Use a supported Google Maps link for directions.", severity: "error" });
   }
 
+  if (draft.eventType === "virtual" && !draft.virtualLink.trim()) {
+    issues.push({ field: "virtualLink", message: "Add the virtual meeting link before publishing a virtual event.", severity: "error" });
+  }
+
+  if (draft.virtualLink.trim() && !isSupportedVirtualLink(draft.virtualLink)) {
+    issues.push({ field: "virtualLink", message: "Use a secure https meeting link for the virtual event.", severity: "error" });
+  }
+
   if (draft.attendeeConsentEnabled && !draft.attendeeConsentText.trim()) {
     issues.push({ field: "attendeeConsentText", message: "Write the consent wording or disable the consent screen.", severity: "error" });
   }
@@ -71,4 +79,13 @@ export function validateEventDraft(draft: EventDraft): NativeDraftValidationResu
     errors,
     warnings
   };
+}
+
+function isSupportedVirtualLink(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
