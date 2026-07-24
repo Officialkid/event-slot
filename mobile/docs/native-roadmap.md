@@ -40,7 +40,7 @@ The native app is developed separately from the current web/PWA and TWA bridge. 
 ## Phase 3: Native Capabilities
 
 - Camera QR scanner for ticket verification.
-- Expo Camera dependency, permission flow, and barcode payload mapper are wired; live `CameraView` stream and Android scan QA are still gated.
+- Expo Camera dependency, permission flow, live `CameraView`, and barcode payload mapper are wired; Android scan QA is still gated.
 - Manual verification with clear valid, used, missing, and error states.
 - Native live verification now calls `/api/native/events/:slug/verify-ticket` with the signed native access token and records real check-ins for owner/team-accessible events.
 - Event detail now models owner/team capabilities and verifier-code sharing readiness.

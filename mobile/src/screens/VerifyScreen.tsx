@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { BarcodeScanningResult, CameraView } from "expo-camera";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { NativeScanMode, NativeScannerState } from "../domain/scanner";
 import { VerificationResult } from "../domain/verification";
 import {
   buildDemoScanPayload,
+  buildNativeScanPayload,
   getCameraPermissionLabel,
   getScannerReadinessMessage,
   initialScannerState,
@@ -22,6 +24,7 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
   const [lookup, setLookup] = useState("");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [scanLocked, setScanLocked] = useState(false);
   const [scannerState, setScannerState] = useState<NativeScannerState>(initialScannerState);
 
   const selectedEvent =
@@ -76,6 +79,23 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
     await runVerification({ qrPayload: payload.rawValue });
   };
 
+  const handleBarcodeScanned = async (scanResult: BarcodeScanningResult) => {
+    if (loading || scanLocked || !scanResult.data) {
+      return;
+    }
+
+    const payload = buildNativeScanPayload(scanResult);
+    setScanLocked(true);
+    setScannerState((current) => ({
+      ...current,
+      activeMode: "camera",
+      lastPayload: payload
+    }));
+
+    await runVerification({ qrPayload: payload.rawValue });
+    setTimeout(() => setScanLocked(false), 1800);
+  };
+
   return (
     <View style={styles.stack}>
       <Text style={[styles.heading, { color: theme.colors.text }]}>Verify Tickets</Text>
@@ -100,6 +120,19 @@ export function VerifyScreen({ theme, session, events, eventsLoading, eventsErro
           <Text style={[styles.scanText, { color: theme.colors.accent }]}>
             Camera access is ready for Android QR scan QA.
           </Text>
+        ) : null}
+        {scannerState.activeMode === "camera" && scannerState.cameraReady ? (
+          <View style={[styles.cameraFrame, { borderColor: theme.colors.accent }]}>
+            <CameraView
+              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+              facing="back"
+              onBarcodeScanned={scanLocked ? undefined : handleBarcodeScanned}
+              style={styles.cameraView}
+            />
+            <View style={styles.scanGuide}>
+              <Text style={styles.scanGuideText}>{scanLocked ? "Checking ticket..." : "Place QR inside the frame"}</Text>
+            </View>
+          </View>
         ) : null}
         <Pressable
           accessibilityRole="button"
@@ -303,6 +336,31 @@ const styles = StyleSheet.create({
   scanButtonText: {
     fontSize: 13,
     fontWeight: "900"
+  },
+  cameraFrame: {
+    borderRadius: 24,
+    borderWidth: 2,
+    height: 260,
+    overflow: "hidden",
+    width: "100%"
+  },
+  cameraView: {
+    flex: 1
+  },
+  scanGuide: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.62)",
+    bottom: 0,
+    left: 0,
+    paddingVertical: 10,
+    position: "absolute",
+    right: 0
+  },
+  scanGuideText: {
+    color: "#F8FAFC",
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0.5
   },
   lookupCard: {
     borderRadius: 24,

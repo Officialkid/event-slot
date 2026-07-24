@@ -135,10 +135,15 @@ Current backend behavior:
 - Marks the registration checked in and writes an `EntryLog`.
 - Rejects wrong-event and invalid signed QR payloads.
 
+Current camera behavior:
+
+- The Verify screen renders an Expo `CameraView` after camera permission is granted.
+- QR scans feed `BarcodeScanningResult` into `buildNativeScanPayload`.
+- The screen temporarily locks repeated scan callbacks while the native verification request is running.
+
 Still gated before full device QA:
 
-- Render the live `CameraView` stream in the scanner card and feed `BarcodeScanningResult` into `buildNativeScanPayload`.
-- Test duplicate scans, wrong-event tickets, malformed payloads, offline/network failure, and multi-admission tickets on Android hardware.
+- Test live Android scan speed, duplicate scans, wrong-event tickets, malformed payloads, offline/network failure, and multi-admission tickets on hardware.
 
 ## Native Exports
 
