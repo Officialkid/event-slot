@@ -5,7 +5,7 @@ import { nativeConfig } from "../config";
 import { NativeNotificationPreference } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
 import { NativePermissionItem, NativeReadinessItem } from "../domain/settings";
-import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration } from "../services/notifications";
+import { buildNotificationPreferences, getPushReadinessMessage, prepareNativePushRegistration, registerPushToken } from "../services/notifications";
 import { defaultNativePreferences, loadNativePreferences, saveNotificationPreference } from "../services/preferences";
 import { nativePermissionItems, nativeReadinessItems, nativeReleaseGateItems } from "../services/settings";
 import { getSessionStorageReadinessMessage } from "../services/sessionStore";
@@ -113,10 +113,12 @@ export function ProfileScreen({ theme, session, events, onSignOut }: NativeScree
 
   const handlePreparePushRegistration = async () => {
     setPushStatus("Requesting notification permission...");
-    const result = await prepareNativePushRegistration(session.email);
+    const result = await prepareNativePushRegistration(session);
 
     if (result.status === "registered-local") {
       setPushStatus(`${result.message} Token ending ${result.registration.pushToken.slice(-8)}.`);
+      const backendResult = await registerPushToken(result.registration, session);
+      setPushStatus(`${result.message} Token ending ${result.registration.pushToken.slice(-8)}. ${backendResult.message}`);
       return;
     }
 

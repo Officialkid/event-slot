@@ -26,3 +26,13 @@ export type NativePushRegistrationResult =
       status: "denied" | "unavailable" | "error";
       message: string;
     };
+
+export type NativePushBackendRegistrationResult =
+  | {
+      status: "registered-backend";
+      message: string;
+    }
+  | {
+      status: "blocked" | "error";
+      message: string;
+    };

@@ -2,8 +2,11 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { eventslotRequest } from "../api/client";
 import { nativeConfig } from "../config";
+import { AppSession } from "../session";
 import {
+  NativePushBackendRegistrationResult,
   NativeNotificationPreference,
   NativePushRegistration,
   NativePushRegistrationResult
@@ -39,10 +42,10 @@ export const defaultNotificationPreferences: NativeNotificationPreference[] = [
 
 export function getPushReadinessMessage(): string {
   if (!nativeConfig.pushEnabled) {
-    return "Native push permission and Expo token capture are wired, but backend token registration remains disabled until the native push API is reviewed.";
+    return "Native push permission, Expo token capture, and backend registration client are wired, but server writes remain disabled until the native push API is reviewed.";
   }
 
-  return "Push notifications are enabled for integration testing.";
+  return "Push notifications are enabled for integration testing with the native backend registration endpoint.";
 }
 
 export function buildNotificationPreferences(preferences: NativePreferences): NativeNotificationPreference[] {
@@ -52,7 +55,7 @@ export function buildNotificationPreferences(preferences: NativePreferences): Na
   }));
 }
 
-export async function prepareNativePushRegistration(userEmail: string): Promise<NativePushRegistrationResult> {
+export async function prepareNativePushRegistration(session: AppSession): Promise<NativePushRegistrationResult> {
   if (!Device.isDevice) {
     return {
       status: "unavailable",
@@ -85,7 +88,7 @@ export async function prepareNativePushRegistration(userEmail: string): Promise<
       experienceId: Constants.expoConfig?.slug ?? null,
       platform: Platform.OS === "ios" ? "ios" : "android",
       pushToken: token.data,
-      userEmail
+      userEmail: session.email
     },
     message: nativeConfig.pushEnabled
       ? "Expo push token captured and ready for backend registration."
@@ -93,8 +96,47 @@ export async function prepareNativePushRegistration(userEmail: string): Promise<
   };
 }
 
-export async function registerPushToken(_registration: NativePushRegistration): Promise<never> {
-  throw new Error("Backend native push registration is not enabled yet.");
+export async function registerPushToken(
+  registration: NativePushRegistration,
+  session: AppSession
+): Promise<NativePushBackendRegistrationResult> {
+  if (!nativeConfig.pushEnabled) {
+    return {
+      status: "blocked",
+      message: "Backend push token registration is disabled for native release safety."
+    };
+  }
+
+  if (session.authMode !== "live" || !session.accessToken) {
+    return {
+      status: "blocked",
+      message: "Backend push registration needs a live authenticated native session."
+    };
+  }
+
+  try {
+    await eventslotRequest("/api/native/push/register", {
+      method: "POST",
+      token: session.accessToken,
+      body: {
+        deviceId: registration.deviceId,
+        deviceName: registration.deviceName,
+        experienceId: registration.experienceId,
+        platform: registration.platform,
+        pushToken: registration.pushToken
+      }
+    });
+
+    return {
+      status: "registered-backend",
+      message: "Push token registered with EventSlot."
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Push token registration failed."
+    };
+  }
 }
 
 async function configureAndroidNotificationChannel() {

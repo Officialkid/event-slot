@@ -41,7 +41,7 @@ export const nativeReadinessItems: NativeReadinessItem[] = [
   {
     key: "push",
     title: "Push notifications",
-    caption: "Notification channels, permission prompts, and Expo token capture are wired; backend token registration is still gated.",
+    caption: "Notification channels, permission prompts, Expo token capture, and backend registration client are wired; server writes are still gated.",
     status: "in-progress"
   }
 ];
@@ -62,7 +62,7 @@ export const nativeReleaseGateItems: NativeReadinessItem[] = [
   {
     key: "push-backend",
     title: "Push backend registration",
-    caption: "Expo push token capture is local-ready; the live token registration API, opt-out, and delivery jobs still need final wiring.",
+    caption: "Native client registration is ready, but the live token storage API, opt-out handling, and delivery jobs still need final server wiring.",
     status: nativeConfig.pushEnabled ? "in-progress" : "blocked"
   },
   {
