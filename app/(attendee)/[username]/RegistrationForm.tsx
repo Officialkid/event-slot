@@ -51,11 +51,13 @@ type EventProps = {
     location?: string | null
     mapDirectionsUrl?: string | null
     entryFeeLabel?: string | null
+    showRemainingSpots?: boolean
     attendeeConsentEnabled?: boolean
     attendeeConsentText?: string | null
     communityLink?: string | null
     imageUrl?: string | null
     createdAt: Date | string
+    status?: string | null
     isPaid?: boolean
     ticketTiers?: EventTicketTier[]
   }
@@ -230,9 +232,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [draftMessage, setDraftMessage] = useState("")
   const [restoredDraftEmail, setRestoredDraftEmail] = useState("")
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
-    if (!event.deadline) return false
-    return new Date(event.deadline).getTime() <= Date.now()
+      if (!event.deadline) return false
+      return new Date(event.deadline).getTime() <= Date.now()
   })
+  const registrationClosed = deadlineExpired || event.status === "closed"
   const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
@@ -527,8 +530,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     sendResponseCopy,
   ])
 
-  const canAddMore = !event.isPaid && attendees.length < maxAttendees
-  const isSubmitBlocked = loading || deadlineExpired || event.isPaid
+  const canAddMore = !event.isPaid && !registrationClosed && attendees.length < maxAttendees
+  const isSubmitBlocked = loading || registrationClosed || event.isPaid
   function addAttendee() {
     if (!canAddMore) return
     setAttendees(a => [...a, emptyAnswers(event.questions)])
@@ -586,7 +589,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     e.preventDefault()
     setError("")
 
-    if (deadlineExpired) {
+    if (registrationClosed) {
       setError("Registration has closed.")
       return
     }
@@ -1174,12 +1177,44 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 </div>
               </div>
             </div>
+
+            {registrationClosed && (
+              <div
+                className="rounded-[18px] px-4 py-4"
+                style={{
+                  border: "1px solid rgba(255,107,107,0.22)",
+                  background: "color-mix(in srgb, rgba(255,107,107,0.08) 55%, var(--surface) 45%)",
+                }}
+              >
+                <p
+                  className="m-0 text-[0.72rem] uppercase tracking-[0.08em]"
+                  style={{ color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Event closed
+                </p>
+                <p
+                  className="m-0 mt-2 text-[0.92rem] leading-7"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Registration is closed, but attendees can still review the event details, open directions, and contact the organiser from this page.
+                </p>
+              </div>
+            )}
           </div>
 
         {event.isPaid && (
           <BillingPausedNotice context="paidEventRegistration" compact />
         )}
 
+        <fieldset
+          disabled={registrationClosed}
+          style={{
+            border: "none",
+            margin: 0,
+            padding: 0,
+            display: "contents",
+          }}
+        >
         {/* Bulk prompt row */}
       <div className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3" style={mutedCardStyle}>
         <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
@@ -1480,7 +1515,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           className={`rounded-[10px] px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${isSubmitBlocked ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
           disabled={isSubmitBlocked}
         >
-          {deadlineExpired ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
+          {registrationClosed ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
         </button>
         <button
           type="button"
@@ -1503,6 +1538,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </p>
       </div>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
+        </fieldset>
         </div>
       </form>
       {showBranding && <BrandingFooter />}
