@@ -134,6 +134,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         id: event.id,
         title: event.title,
         description: event.description,
+        visibility: event.visibility,
         accessType: event.accessType,
         eventType: event.eventType,
         isPaid: event.isPaid,
@@ -149,6 +150,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         location: event.location,
         mapDirectionsUrl: event.mapDirectionsUrl,
         entryFeeLabel: event.entryFeeLabel,
+        showRemainingSpots: event.showRemainingSpots,
         attendeeConsentEnabled: event.attendeeConsentEnabled,
         attendeeConsentText: event.attendeeConsentText,
         communityLink: normalizeCommunityLink(event.communityLink) ?? event.communityLink,
@@ -202,7 +204,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
+    const { action, title, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -261,6 +263,20 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       )
     }
 
+    if (isWalkInEvent && visibility === 'PUBLIC') {
+      return NextResponse.json(
+        { success: false, error: 'Walk-in events stay private in this version.' },
+        { status: 400 }
+      )
+    }
+
+    if (visibility === 'PUBLIC' && !nextImageUrl) {
+      return NextResponse.json(
+        { success: false, error: 'Public events require a poster image so they can appear on the Events page.' },
+        { status: 400 }
+      )
+    }
+
     for (const question of isWalkInEvent ? [] : questions) {
       const usesOptions = question?.type === 'select' || question?.type === 'checkbox'
       if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
@@ -282,6 +298,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       data: {
         title,
         description: description || null,
+        visibility: visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
         capacity: capacity ? Number(capacity) : null,
         deadline: deadline ? new Date(deadline) : null,
         eventDate: eventDate ? new Date(eventDate) : null,
@@ -290,6 +307,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         location: location || null,
         mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
         entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,
+        showRemainingSpots: typeof showRemainingSpots === 'boolean' ? showRemainingSpots : undefined,
         attendeeConsentEnabled: typeof attendeeConsentEnabled === 'boolean' ? attendeeConsentEnabled : undefined,
         attendeeConsentText: typeof attendeeConsentText === 'string' ? attendeeConsentText.trim() || null : undefined,
         communityLink: normalizeCommunityLink(communityLink),

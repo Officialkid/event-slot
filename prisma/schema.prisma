@@ -16,6 +16,7 @@ model Event {
   title            String
   description      String?
   slug             String    @unique
+  visibility       EventVisibility @default(PRIVATE)
   accessType       EventAccessType @default(REGISTRATION)
   capacity         Int?
   deadline         DateTime?
@@ -35,6 +36,7 @@ model Event {
   location         String?
   mapDirectionsUrl String?
   entryFeeLabel    String?
+  showRemainingSpots Boolean @default(true)
   attendeeConsentEnabled Boolean @default(true)
   attendeeConsentText String?
   communityLink    String?
@@ -96,6 +98,11 @@ enum EventType {
 enum EventAccessType {
   REGISTRATION
   WALK_IN
+}
+
+enum EventVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 model WalkInCheckin {
@@ -185,6 +192,7 @@ model User {
   weeklyRankingNotifications WeeklyRankingNotification[]
   googleCalendarToken        GoogleCalendarToken?
   calendarEventSyncs         CalendarEventSync[]
+  nativePushDevices          NativePushDevice[]
   subscriptions              Subscription[]
   eventPasses                EventPass[]
   paygSettings               PaygSettings?
@@ -789,6 +797,8 @@ model FeatureInterest {
 model AppTesterProgress {
   id           String    @id @default(cuid())
   email        String    @unique
+  addedToPlayAt DateTime?
+  optInLinkSentAt DateTime?
   inviteSentAt DateTime?
   installedAt  DateTime?
   notes        String?
@@ -801,6 +811,23 @@ model AppTesterSettings {
   promptEnabled Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model NativePushDevice {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId       String
+  deviceName     String?
+  experienceId   String?
+  platform       String
+  pushToken      String   @unique
+  createdAt      DateTime @default(now())
+  lastRegisteredAt DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([userId, platform])
 }
 
 model BillingLaunchInterest {

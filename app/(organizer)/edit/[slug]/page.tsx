@@ -149,6 +149,8 @@ export default function EditEventPage() {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
@@ -157,6 +159,7 @@ export default function EditEventPage() {
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [showRemainingSpots, setShowRemainingSpots] = useState(true)
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
   const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [communityLink, setCommunityLink] = useState("")
@@ -178,6 +181,11 @@ export default function EditEventPage() {
   }, [status, router])
 
   useEffect(() => {
+    if (accessType !== "WALK_IN") return
+    setVisibility("PRIVATE")
+  }, [accessType])
+
+  useEffect(() => {
     if (status !== "authenticated" || !slug) return
     fetch(`/api/events/${slug}/edit`)
       .then(r => r.json())
@@ -189,6 +197,8 @@ export default function EditEventPage() {
         const e = data.event
         setTitle(e.title ?? "")
         setDescription(e.description ?? "")
+        setAccessType(e.accessType === "WALK_IN" ? "WALK_IN" : "REGISTRATION")
+        setVisibility(e.visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE")
         setCapacity(e.capacity != null ? String(e.capacity) : "")
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
@@ -197,6 +207,7 @@ export default function EditEventPage() {
         setLocation(e.location ?? "")
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
         setEntryFeeLabel(e.entryFeeLabel ?? "")
+        setShowRemainingSpots(e.showRemainingSpots !== false)
         setAttendeeConsentEnabled(e.attendeeConsentEnabled !== false)
         setAttendeeConsentText(e.attendeeConsentText ?? "")
         setCommunityLink(e.communityLink ?? "")
@@ -441,6 +452,11 @@ export default function EditEventPage() {
         return
       }
     }
+    if (visibility === "PUBLIC" && !imageUrl.trim()) {
+      setSaving(false)
+      setError("Public events require a poster image so they can appear on the Events page.")
+      return
+    }
     try {
       const res = await fetch(`/api/events/${slug}`, {
         method: "PATCH",
@@ -448,6 +464,7 @@ export default function EditEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
+          visibility,
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
@@ -456,6 +473,7 @@ export default function EditEventPage() {
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
+          showRemainingSpots,
           attendeeConsentEnabled,
           attendeeConsentText: attendeeConsentText || undefined,
           communityLink: communityLink || undefined,
@@ -937,13 +955,57 @@ export default function EditEventPage() {
             </div>
           </div>
 
+          <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+              Event Visibility
+            </h2>
+            <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              Choose whether this event should appear on the public Events discovery page.
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (accessType === "WALK_IN") return
+                  setVisibility("PUBLIC")
+                }}
+                className="rounded-[10px] border p-4 text-left"
+                disabled={accessType === "WALK_IN"}
+                style={visibility === "PUBLIC" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
+              >
+                <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PUBLIC" ? "var(--accent)" : "var(--text-primary)" }}>Public</div>
+                <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
+                  Show this event on the EventSlot Events page so anyone can discover and register.
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility("PRIVATE")}
+                className="rounded-[10px] border p-4 text-left"
+                style={visibility === "PRIVATE" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
+              >
+                <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PRIVATE" ? "var(--accent)" : "var(--text-primary)" }}>Private</div>
+                <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
+                  Keep this event off public discovery and accessible only through the shared registration link.
+                </p>
+              </button>
+            </div>
+            {accessType === "WALK_IN" && (
+              <p className="mt-3 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                Walk-in events stay private for now because the discovery page is built for standard registration events.
+              </p>
+            )}
+          </div>
+
           {/* Event Poster */}
           <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
             <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Event Poster
             </h2>
             <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
-              Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF, up to 15 MB.
+              {visibility === "PUBLIC"
+                ? "Required for public events so your listing has a strong visual on the Events page. JPEG, PNG, WebP or GIF, up to 15 MB."
+                : "Upload a banner or flyer. Attendees will see it on the registration page. JPEG, PNG, WebP or GIF, up to 15 MB."}
             </p>
 
             {imageUrl && (

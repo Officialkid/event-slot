@@ -10,13 +10,16 @@ import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClie
 
 const navItems = [
   { title: "Home", href: "/", sectionId: null },
+  { title: "Events", href: "/events", sectionId: null },
   { title: "Pricing", href: "/pricing", sectionId: null },
   { title: "Universities", href: "/for-universities", sectionId: null },
   { title: "Benefits", href: "/#benefits", sectionId: "benefits" },
+  { title: "Verify tickets", href: "/verify-tickets", sectionId: null },
 ]
 
 const marketingRoutes = new Set([
   "/",
+  "/events",
   "/pricing",
   "/for-universities",
   "/how-it-works",

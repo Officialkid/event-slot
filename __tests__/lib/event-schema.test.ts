@@ -272,3 +272,47 @@ describe('createEventSchema â€” WhatsApp number validation', () => {
     expect(result.success).toBe(true)
   })
 })
+
+describe('createEventSchema Ã¢â‚¬â€ event visibility', () => {
+  it('accepts a private event without a poster image', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      visibility: 'PRIVATE',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a public event without a poster image', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      visibility: 'PUBLIC',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.includes('imageUrl'))).toBe(true)
+    }
+  })
+
+  it('accepts a public event with a poster image', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      visibility: 'PUBLIC',
+      imageUrl: 'https://cdn.eventslot.test/poster.png',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects walk-in events marked public', () => {
+    const result = createEventSchema.safeParse({
+      ...physicalBase,
+      accessType: 'WALK_IN',
+      visibility: 'PUBLIC',
+      imageUrl: 'https://cdn.eventslot.test/poster.png',
+      questions: [],
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.includes('visibility'))).toBe(true)
+    }
+  })
+})

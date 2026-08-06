@@ -78,12 +78,14 @@ async function getEventMetaBySlug(slug: string) {
     select: {
       title: true,
       description: true,
+      visibility: true,
       capacity: true,
       confirmedCount: true,
       organizerEmail: true,
       location: true,
       mapDirectionsUrl: true,
       entryFeeLabel: true,
+      showRemainingSpots: true,
       attendeeConsentEnabled: true,
       attendeeConsentText: true,
       eventDate: true,
@@ -103,6 +105,7 @@ const getPublicUserProfile = unstable_cache(
         where: {
           archived: false,
           status: "active",
+          visibility: "PUBLIC",
         },
         select: {
           id: true,
@@ -112,6 +115,7 @@ const getPublicUserProfile = unstable_cache(
           location: true,
           mapDirectionsUrl: true,
           entryFeeLabel: true,
+          showRemainingSpots: true,
           attendeeConsentEnabled: true,
           attendeeConsentText: true,
           capacity: true,
@@ -135,6 +139,7 @@ async function getEventBySlug(slug: string) {
       id: true,
       title: true,
       description: true,
+      visibility: true,
       capacity: true,
       confirmedCount: true,
       questions: true,
@@ -149,6 +154,7 @@ async function getEventBySlug(slug: string) {
       location: true,
       mapDirectionsUrl: true,
       entryFeeLabel: true,
+      showRemainingSpots: true,
       attendeeConsentEnabled: true,
       attendeeConsentText: true,
       communityLink: true,
@@ -219,6 +225,7 @@ export async function generateMetadata({
     return {
       title: `${event.title} — EventSlot`,
       description: richDescription,
+      robots: event.visibility === "PUBLIC" ? undefined : { index: false, follow: false },
       alternates: { canonical },
       openGraph: {
         title: event.title,
@@ -267,42 +274,6 @@ export default async function PublicProfilePage({
 
     const isWalkInEvent = event.accessType === "WALK_IN"
 
-    if (!isWalkInEvent && event.deadline && new Date(event.deadline) < new Date()) {
-      return (
-        <div className="min-h-screen px-4 py-12" style={{ background: "var(--page-bg)" }}>
-          <div className="mx-auto max-w-[480px] rounded-xl border p-10 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <h1 className="text-[1.4rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-              Registration closed
-            </h1>
-            <p className="mt-3 text-[0.9rem] font-[300]" style={{ color: "var(--text-muted)" }}>
-              Registration for this event is closed.
-            </p>
-            <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
-              Closed
-            </span>
-          </div>
-        </div>
-      )
-    }
-
-    if (!isWalkInEvent && event.status === "closed") {
-      return (
-        <div className="min-h-screen px-4 py-12" style={{ background: "var(--page-bg)" }}>
-          <div className="mx-auto max-w-[480px] rounded-xl border p-10 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <h1 className="text-[1.4rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-              {event.title}
-            </h1>
-            <p className="mt-3 text-[0.9rem] font-[300]" style={{ color: "var(--text-muted)" }}>
-              Unfortunately the slots are full and registration is not available at this time.
-            </p>
-            <span className="mt-4 inline-flex rounded-full border border-[rgba(255,107,107,0.3)] bg-[rgba(255,107,107,0.1)] px-3 py-1 text-[0.7rem] text-[#FF6B6B]">
-              Closed
-            </span>
-          </div>
-        </div>
-      )
-    }
-
     if (event.organizer?.suspended) {
       return (
         <main style={{ background: "var(--page-bg)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -341,6 +312,7 @@ export default async function PublicProfilePage({
             location={event.location}
             mapDirectionsUrl={event.mapDirectionsUrl}
             entryFeeLabel={event.entryFeeLabel}
+            showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}
             organizerName={event.organizer?.name ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
@@ -371,8 +343,10 @@ export default async function PublicProfilePage({
                   organizerName: event.organizer?.name ?? null,
                   mapDirectionsUrl: event.mapDirectionsUrl,
                   entryFeeLabel: event.entryFeeLabel,
+                  showRemainingSpots: event.showRemainingSpots,
                   attendeeConsentEnabled: event.attendeeConsentEnabled,
                   attendeeConsentText: event.attendeeConsentText,
+                  status: event.status,
                   deadline: toIsoOrNull(event.deadline),
                   eventDate: toIsoOrNull(event.eventDate),
                   isPaid: event.isPaid,

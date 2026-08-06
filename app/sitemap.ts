@@ -5,6 +5,7 @@ const BASE = "https://www.eventsslot.com"
 
 const STATIC_ROUTES: MetadataRoute.Sitemap = [
   { url: BASE, lastModified: new Date(), changeFrequency: "daily", priority: 1.0 },
+  { url: `${BASE}/events`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
   { url: `${BASE}/how-it-works`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE}/waitlist-system`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   { url: `${BASE}/for-universities`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
@@ -18,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let eventEntries: MetadataRoute.Sitemap = []
   try {
     const events = await prisma.event.findMany({
-      where: { archived: false, status: "active" },
+      where: { archived: false, status: "active", visibility: "PUBLIC", accessType: "REGISTRATION" },
       select: { slug: true, createdAt: true },
       orderBy: { createdAt: "desc" },
       take: 500,

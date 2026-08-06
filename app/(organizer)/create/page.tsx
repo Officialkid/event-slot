@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { CREATE_EVENT_COPY } from "@/lib/createEventContent"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
@@ -154,6 +155,7 @@ export default function CreateEventPage() {
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
   const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
   const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
   const [virtualLink, setVirtualLink] = useState("")
@@ -165,6 +167,7 @@ export default function CreateEventPage() {
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [showRemainingSpots, setShowRemainingSpots] = useState(true)
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
   const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [isPaid, setIsPaid] = useState(false)
@@ -243,6 +246,7 @@ export default function CreateEventPage() {
   useEffect(() => {
     if (!isWalkInEvent) return
     setEventType("PHYSICAL")
+    setVisibility("PRIVATE")
     setVirtualLink("")
     setIsPaid(false)
     setTicketPrice("")
@@ -552,6 +556,12 @@ export default function CreateEventPage() {
       return
     }
 
+    if (visibility === "PUBLIC" && !imageUrl.trim()) {
+      setLoading(false)
+      setError("Public events require a poster image so they can appear on the Events page.")
+      return
+    }
+
     if (isPaid) {
       const invalidTier = ticketTiers.find((tier) => {
         const price = Number(tier.priceKes)
@@ -580,6 +590,7 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           title,
           description: description || undefined,
+          visibility,
           accessType,
           eventType,
           virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
@@ -591,6 +602,7 @@ export default function CreateEventPage() {
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
+          showRemainingSpots,
           attendeeConsentEnabled,
           attendeeConsentText: attendeeConsentText || undefined,
           isPaid: isRegistrationEvent ? isPaid : false,
@@ -731,15 +743,15 @@ export default function CreateEventPage() {
 
         <div>
           <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-            Create your event
+            {CREATE_EVENT_COPY.header.title}
           </h1>
           <p className="mt-2 text-[0.9rem] font-[300]" style={{ color: "var(--text-secondary)" }}>
-            Set it up once. Share the link. Done.
+            {CREATE_EVENT_COPY.header.caption}
           </p>
           <div className="mt-4 rounded-[12px] border px-4 py-3 text-[0.82rem] leading-6" style={{ borderColor: "rgba(124,199,255,0.22)", background: "rgba(124,199,255,0.08)", color: "color-mix(in srgb, var(--text-primary) 82%, #9FD8FF 18%)" }}>
             {pricingActive
-              ? "Your current plan limits apply here. If you need more room, EventSlot will guide you clearly before anything changes."
-              : "Free event creation is fully open right now. Paid-event tools and billing controls will appear later when they are ready."}
+              ? CREATE_EVENT_COPY.banner.pricingActive
+              : CREATE_EVENT_COPY.banner.pricingPaused}
           </div>
         </div>
 
@@ -754,7 +766,7 @@ export default function CreateEventPage() {
               margin: "0 0 0.375rem",
             }}
           >
-            Start with a template
+            {CREATE_EVENT_COPY.sections.template.title}
           </h2>
           <p
             style={{
@@ -765,7 +777,7 @@ export default function CreateEventPage() {
               fontFamily: "var(--font-dm-sans)",
             }}
           >
-            Choose a template or start from scratch.
+            {CREATE_EVENT_COPY.sections.template.caption}
           </p>
           <div
             style={{
@@ -844,7 +856,7 @@ export default function CreateEventPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-[12px] p-6" style={cardStyle}>
               <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                What kind of event is this?
+                {CREATE_EVENT_COPY.sections.eventKind.title}
               </h2>
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
@@ -888,18 +900,19 @@ export default function CreateEventPage() {
 
             <div className="rounded-[12px] p-6" style={cardStyle}>
               <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                Event Details
+                {CREATE_EVENT_COPY.sections.eventDetails.title}
               </h2>
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Event Title <span style={accentTextStyle}>*</span>
+                    {CREATE_EVENT_COPY.fields.eventTitle.label} <span style={accentTextStyle}>*</span>
                   </label>
                   <input
                     type="text"
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={inputStyle}
                     required
+                    placeholder={CREATE_EVENT_COPY.fields.eventTitle.placeholder}
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     onBlur={e => fetchAiPrediction(e.target.value, description)}
@@ -907,19 +920,19 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Description
+                    {CREATE_EVENT_COPY.fields.description.label}
                   </label>
                   <textarea
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
-                    placeholder="Briefly describe what this event is about. Line breaks, spacing, and emojis are kept as written."
+                    placeholder={CREATE_EVENT_COPY.fields.description.placeholder}
                     rows={5}
                     maxLength={5000}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                   />
                   <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.35rem" }}>
-                    Tip: Date, time, and location are shown automatically from the fields above. Use this field for your caption, spacing, extra notes, and emojis exactly as you want attendees to read them.
+                    {CREATE_EVENT_COPY.fields.description.helper}
                   </p>
                   <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.25rem" }}>
                     {description.length} / 5000 characters
@@ -927,7 +940,7 @@ export default function CreateEventPage() {
                 </div>
                 <div className="space-y-3">
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Event Type
+                    {CREATE_EVENT_COPY.fields.eventType.label}
                   </label>
                   <div className="mt-1 grid grid-cols-2 gap-2">
                     <button
@@ -964,14 +977,14 @@ export default function CreateEventPage() {
                 {eventType === "VIRTUAL" && (
                   <div className="space-y-2">
                     <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Google Meet Link <span style={accentTextStyle}>*</span>
+                      {CREATE_EVENT_COPY.fields.googleMeetLink.label} <span style={accentTextStyle}>*</span>
                     </label>
                     <input
                       type="text"
                       required
                       className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                       style={inputStyle}
-                      placeholder="meet.google.com/abc-defg-hij"
+                      placeholder={CREATE_EVENT_COPY.fields.googleMeetLink.placeholder}
                       value={virtualLink}
                       onChange={e => setVirtualLink(e.target.value)}
                     />
@@ -1476,6 +1489,22 @@ export default function CreateEventPage() {
                     <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
                       <input
                         type="checkbox"
+                        checked={showRemainingSpots}
+                        onChange={e => setShowRemainingSpots(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      Show remaining spots on the attendee page
+                    </label>
+                    <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                      Keep this on if attendees should see how many places are left. Turn it off to hide the count while keeping the rest of the event details visible.
+                    </p>
+                  </div>
+                )}
+                {isRegistrationEvent && (
+                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
+                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                      <input
+                        type="checkbox"
                         checked={attendeeConsentEnabled}
                         onChange={e => setAttendeeConsentEnabled(e.target.checked)}
                         className="h-4 w-4"
@@ -1576,6 +1605,48 @@ export default function CreateEventPage() {
                     </p>
                   )}
                 </div>
+
+                <div className="space-y-3 md:col-span-2">
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                    Event Visibility
+                  </label>
+                  <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+                    Who should be able to discover this event?
+                  </p>
+                  <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isWalkInEvent) return
+                        setVisibility("PUBLIC")
+                      }}
+                      className="rounded-[10px] border p-4 text-left"
+                      disabled={isWalkInEvent}
+                      style={visibility === "PUBLIC" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
+                    >
+                      <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PUBLIC" ? "var(--accent)" : "var(--text-primary)" }}>Public</div>
+                      <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
+                        Your event will appear on the EventSlot Events page for anyone to discover and register.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisibility("PRIVATE")}
+                      className="rounded-[10px] border p-4 text-left"
+                      style={visibility === "PRIVATE" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
+                    >
+                      <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PRIVATE" ? "var(--accent)" : "var(--text-primary)" }}>Private</div>
+                      <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
+                        Your event will only be accessible through the registration link you share.
+                      </p>
+                    </button>
+                  </div>
+                  {isWalkInEvent && (
+                    <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                      Walk-in events stay private for now because the discovery page is built around the existing registration flow.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1587,6 +1658,8 @@ export default function CreateEventPage() {
               <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
                 {isWalkInEvent
                   ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF, up to 15 MB."
+                  : visibility === "PUBLIC"
+                    ? "Required for public events so your event can be listed on the Events page. JPEG, PNG, WebP or GIF, up to 15 MB."
                   : "Optional flyer or banner. JPEG, PNG, WebP or GIF, up to 15 MB."}
               </p>
               {imageUrl && (

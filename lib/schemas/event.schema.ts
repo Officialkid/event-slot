@@ -28,6 +28,7 @@ const ticketTierSchema = z.object({
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(5000).optional().nullable(),
+  visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PRIVATE'),
   accessType: z.enum(['REGISTRATION', 'WALK_IN']).default('REGISTRATION'),
   eventType: z.enum(['PHYSICAL', 'VIRTUAL']).default('PHYSICAL'),
   virtualLink: z.string().max(1000).optional().nullable().or(z.literal('')),  // URL format validated in superRefine (accepts with or without https://)
@@ -39,6 +40,7 @@ export const createEventSchema = z.object({
   location: z.string().max(300).optional().nullable(),
   mapDirectionsUrl: z.string().url('Please provide a valid map directions URL').max(1000).optional().nullable().or(z.literal('')),
   entryFeeLabel: z.string().max(200, 'Entry fee note must be 200 characters or less').optional().nullable().or(z.literal('')),
+  showRemainingSpots: z.boolean().optional().default(true),
   attendeeConsentEnabled: z.boolean().optional().default(true),
   attendeeConsentText: z.string().max(1000, 'Consent text must be 1000 characters or less').optional().nullable().or(z.literal('')),
   isPaid: z.boolean().optional().default(false),
@@ -112,6 +114,14 @@ export const createEventSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['capacity'],
       message: 'Walk-In events do not use capacity limits',
+    })
+  }
+
+  if (data.accessType === 'WALK_IN' && data.visibility === 'PUBLIC') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['visibility'],
+      message: 'Walk-In events stay private in this version',
     })
   }
 
@@ -202,6 +212,14 @@ export const createEventSchema = z.object({
       })
     }
   }
+
+  if (data.visibility === 'PUBLIC' && !data.imageUrl?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['imageUrl'],
+      message: 'Public events require a poster image',
+    })
+  }
 })
 
 export const updateEventSettingsSchema = z.object({
@@ -212,6 +230,7 @@ export const updateEventSettingsSchema = z.object({
   location: z.string().max(300).optional().nullable(),
   mapDirectionsUrl: z.string().url('Please provide a valid map directions URL').max(1000).optional().nullable().or(z.literal('')),
   entryFeeLabel: z.string().max(200, 'Entry fee note must be 200 characters or less').optional().nullable().or(z.literal('')),
+  showRemainingSpots: z.boolean().optional(),
   attendeeConsentEnabled: z.boolean().optional(),
   attendeeConsentText: z.string().max(1000, 'Consent text must be 1000 characters or less').optional().nullable().or(z.literal('')),
   communityLink: z.string().max(500).optional().nullable().or(z.literal('')),

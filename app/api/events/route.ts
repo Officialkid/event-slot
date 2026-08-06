@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     const {
       title,
       description,
+      visibility,
       accessType,
       eventType,
       virtualLink,
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       location,
       mapDirectionsUrl,
       entryFeeLabel,
+      showRemainingSpots,
       attendeeConsentEnabled,
       attendeeConsentText,
       isPaid,
@@ -128,6 +130,20 @@ export async function POST(req: NextRequest) {
     if (isWalkInEvent && !imageUrl?.trim()) {
       return NextResponse.json(
         { success: false, error: 'Walk-in events need a poster image so the share card always includes one.' },
+        { status: 400 }
+      )
+    }
+
+    if (isWalkInEvent && visibility === 'PUBLIC') {
+      return NextResponse.json(
+        { success: false, error: 'Walk-in events stay private in this version.' },
+        { status: 400 }
+      )
+    }
+
+    if (visibility === 'PUBLIC' && !imageUrl?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Public events require a poster image so they can appear on the Events page.' },
         { status: 400 }
       )
     }
@@ -205,6 +221,7 @@ export async function POST(req: NextRequest) {
       data: {
         title: normalizedTitle,
         description,
+        visibility,
         accessType,
         eventType,
         virtualLink: encryptedVirtualLink?.encrypted,
@@ -217,6 +234,7 @@ export async function POST(req: NextRequest) {
         location: eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || undefined,
         mapDirectionsUrl: eventType === 'VIRTUAL' ? undefined : mapDirectionsUrl?.trim() || undefined,
         entryFeeLabel: entryFeeLabel?.trim() || undefined,
+        showRemainingSpots: showRemainingSpots ?? true,
         attendeeConsentEnabled: attendeeConsentEnabled ?? true,
         attendeeConsentText: attendeeConsentText?.trim() || undefined,
         isPaid: isWalkInEvent ? false : isPaid,
@@ -258,6 +276,7 @@ export async function POST(req: NextRequest) {
         slug: true,
         dashboardToken: true,
         verifierCode: true,
+        visibility: true,
         accessType: true,
         capacity: true,
       },
