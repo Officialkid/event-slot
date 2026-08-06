@@ -14,6 +14,7 @@ export type EventInvitationCardProps = {
   location?: string | null
   mapDirectionsUrl?: string | null
   entryFeeLabel?: string | null
+  showRemainingSpots?: boolean
   imageUrl?: string | null
   organizerName?: string | null
   organizerIsPioneer?: boolean
@@ -136,6 +137,7 @@ export default function EventInvitationCard({
   location,
   mapDirectionsUrl,
   entryFeeLabel,
+  showRemainingSpots = true,
   imageUrl,
   organizerName,
   organizerIsPioneer,
@@ -410,7 +412,7 @@ export default function EventInvitationCard({
           </div>
         )}
 
-        {accessType === "REGISTRATION" && spotsLeft !== null && badge.label !== "Registration Closed" && (
+        {accessType === "REGISTRATION" && showRemainingSpots && spotsLeft !== null && (
           <div style={{ marginTop: "0.2rem" }}>
             <span
               style={{
