@@ -132,7 +132,6 @@ export async function askAIWithMeta({
     if (!status?.configured) {
       const msg = `${provider} not configured`
       errors.push(msg)
-      await logAIFailure(route, msg)
       continue
     }
 
@@ -150,11 +149,11 @@ export async function askAIWithMeta({
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       errors.push(`${provider} failed: ${message}`)
-      await logAIFailure(route, `${provider} failed: ${message}`)
     }
   }
 
   const retryRecommended = errors.some((message) => isRetryableAIError(message))
+  await logAIFailure(route, errors.join(' | ').slice(0, 1000))
   return {
     content: null,
     provider: null,

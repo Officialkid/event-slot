@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
       select: {
         id: true,
         title: true,
+        organizerName: true,
         description: true,
         visibility: true,
         accessType: true,

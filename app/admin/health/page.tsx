@@ -117,12 +117,14 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
   if (error.route.startsWith("AI-") && error.message.toLowerCase().includes("empty response")) {
     return {
       ...error,
-      status: stale ? "info" : "resolved",
-      label: "AI provider fallback",
-      summary: "Groq returned an empty response, and the AI layer now treats this as retryable/fallback-safe.",
+      status: "info",
+      label: stale ? "AI fallback history" : "AI provider fallback",
+      summary: stale
+        ? "A previous AI provider returned an empty response, but this is logged as historical fallback noise."
+        : "An AI provider returned an empty response, but the request path is designed to retry or fall back safely.",
       hint: stale
-        ? "Historical only unless the same route logs a fresh error after the latest deploy."
-        : "Retest the AI action once; if OpenRouter is configured, EventSlot should continue through the fallback chain.",
+        ? "Only investigate if the same route starts failing again after Friday, August 7, 2026."
+        : "Investigate only if users report a failed AI result, not just a single provider fallback.",
       stale,
     }
   }
@@ -134,6 +136,23 @@ function classifyIssue(error: ErrorLog, data: HealthData): ClassifiedIssue {
       label: "Old health-check bug",
       summary: "This was created by the previous Resend health-check implementation.",
       hint: "The current health route no longer uses that broken code path.",
+      stale,
+    }
+  }
+
+  if (
+    error.route === "/api/register" &&
+    error.message.includes("consentDataProcessing") &&
+    error.message.toLowerCase().includes("does not exist in the current database")
+  ) {
+    return {
+      ...error,
+      status: stale ? "info" : "resolved",
+      label: "Old registration schema mismatch",
+      summary: "This came from a missing consent column before the registration schema migration landed.",
+      hint: stale
+        ? "Historical only unless a fresh registration on or after Friday, August 7, 2026 fails again."
+        : "Retest a live registration once; the current production schema includes the consent column.",
       stale,
     }
   }

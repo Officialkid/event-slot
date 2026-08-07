@@ -204,7 +204,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
+    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -249,6 +249,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     if (!title) {
       return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
     }
+    const normalizedOrganizerName =
+      typeof organizerName === 'string' && organizerName.trim().length > 0
+        ? organizerName.trim()
+        : event.organizerName ?? session.user.name?.trim() ?? 'Organizer'
     const isWalkInEvent = event.accessType === 'WALK_IN'
 
     if (!isWalkInEvent && (!Array.isArray(questions) || questions.length === 0)) {
@@ -297,6 +301,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       where: { slug },
       data: {
         title,
+        organizerName: normalizedOrganizerName,
         description: description || null,
         visibility: visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
         capacity: capacity ? Number(capacity) : null,

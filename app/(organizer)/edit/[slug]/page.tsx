@@ -148,6 +148,7 @@ export default function EditEventPage() {
   const [success, setSuccess] = useState(false)
 
   const [title, setTitle] = useState("")
+  const [organizerName, setOrganizerName] = useState("")
   const [description, setDescription] = useState("")
   const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
@@ -201,6 +202,7 @@ export default function EditEventPage() {
         }
         const e = data.event
         setTitle(e.title ?? "")
+        setOrganizerName(e.organizerName ?? "")
         setDescription(e.description ?? "")
         setAccessType(e.accessType === "WALK_IN" ? "WALK_IN" : "REGISTRATION")
         setVisibility(e.visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE")
@@ -478,6 +480,7 @@ export default function EditEventPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          organizerName,
           description: description || undefined,
           visibility,
           capacity: capacity ? Number(capacity) : undefined,
@@ -610,6 +613,23 @@ export default function EditEventPage() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                  Organizer Name <span style={accentTextStyle}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  style={inputStyle}
+                  placeholder="Shown on the event page"
+                  value={organizerName}
+                  onChange={e => setOrganizerName(e.target.value)}
+                />
+                <p className="mt-1 text-[0.72rem]" style={helperStyle}>
+                  This updates the host name for this event only. Your profile name stays unchanged.
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
