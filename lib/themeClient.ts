@@ -1,4 +1,6 @@
-export type ThemeMode = "dark" | "light"
+import { getEventSlotTheme, type EventSlotThemeMode } from "@/lib/eventslot-theme"
+
+export type ThemeMode = EventSlotThemeMode
 
 export function resolveCurrentTheme(): ThemeMode {
   if (typeof document === "undefined") return "dark"
@@ -8,10 +10,11 @@ export function resolveCurrentTheme(): ThemeMode {
 
 export function applyTheme(nextTheme: ThemeMode) {
   if (typeof document === "undefined") return
+  const palette = getEventSlotTheme(nextTheme)
 
   document.documentElement.setAttribute("data-theme", nextTheme)
-  document.documentElement.style.background = nextTheme === "light" ? "#F7F7F2" : "#0A0A0A"
-  document.documentElement.style.color = nextTheme === "light" ? "#171717" : "#F0EDE6"
+  document.documentElement.style.background = palette.page
+  document.documentElement.style.color = palette.text
 
   if (typeof window !== "undefined") {
     window.localStorage.setItem("eventslot-theme", nextTheme)

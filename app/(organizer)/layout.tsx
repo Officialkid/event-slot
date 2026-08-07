@@ -67,8 +67,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     <>
       <style>{`
         .dash-nav-link:not(.dash-active):hover {
-          background: rgba(240,237,230,0.04) !important;
-          color: #F0EDE6 !important;
+          background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
+          color: var(--text-primary) !important;
         }
       `}</style>
 
@@ -79,8 +79,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           style={{
             width: 240,
             flexShrink: 0,
-            background: "#0D0D0D",
-            borderRight: "0.5px solid rgba(240,237,230,0.06)",
+            background: "color-mix(in srgb, var(--surface) 94%, var(--surface-muted) 6%)",
+            borderRight: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
             position: "sticky",
             top: 0,
             height: "100vh",
@@ -91,7 +91,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           <div
             style={{
               padding: "1.25rem 1.25rem 1rem",
-              borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+              borderBottom: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
               flexShrink: 0,
             }}
           >
@@ -100,7 +100,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                 style={{
                   fontFamily: "var(--font-instrument-serif)",
                   fontSize: "1.3rem",
-                  color: "#F0EDE6",
+                  color: "var(--text-primary)",
                 }}
               >
                 Event
@@ -143,8 +143,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                     fontSize: "0.875rem",
                     fontFamily: "var(--font-dm-sans)",
                     textDecoration: "none",
-                    background: active ? "rgba(200,245,90,0.08)" : "transparent",
-                    color: active ? "#C8F55A" : "rgba(240,237,230,0.45)",
+                    background: active ? "var(--accent-dim)" : "transparent",
+                    color: active ? "var(--accent)" : "var(--text-secondary)",
                   }}
                 >
                   {item.icon}
@@ -158,7 +158,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           <div
             style={{
               padding: "0.875rem 1.25rem",
-              borderTop: "0.5px solid rgba(240,237,230,0.06)",
+              borderTop: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
               flexShrink: 0,
             }}
           >
@@ -175,14 +175,14 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  background: "rgba(200,245,90,0.12)",
-                  border: "0.5px solid rgba(200,245,90,0.2)",
+                  background: "var(--accent-dim)",
+                  border: "0.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "0.65rem",
                   fontWeight: 500,
-                  color: "#C8F55A",
+                  color: "var(--accent)",
                   flexShrink: 0,
                 }}
               >
@@ -191,7 +191,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               <span
                 style={{
                   fontSize: "0.8rem",
-                  color: "rgba(240,237,230,0.55)",
+                  color: "var(--text-secondary)",
                   fontFamily: "var(--font-dm-sans)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -206,11 +206,11 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               style={{
                 width: "100%",
                 background: "transparent",
-                border: "0.5px solid rgba(240,237,230,0.1)",
+                border: "0.5px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
                 borderRadius: 8,
                 padding: "0.45rem 0.75rem",
                 fontSize: "0.75rem",
-                color: "rgba(240,237,230,0.4)",
+                color: "var(--text-secondary)",
                 cursor: "pointer",
                 fontFamily: "var(--font-dm-sans)",
                 textAlign: "left",
@@ -228,8 +228,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             style={{
               height: 56,
               flexShrink: 0,
-              background: "#0A0A0A",
-              borderBottom: "0.5px solid rgba(240,237,230,0.06)",
+              background: "color-mix(in srgb, var(--surface) 92%, var(--bg-page) 8%)",
+              borderBottom: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -245,7 +245,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                 style={{
                   fontFamily: "var(--font-instrument-serif)",
                   fontSize: "1.2rem",
-                  color: "#F0EDE6",
+                  color: "var(--text-primary)",
                 }}
               >
                 Event
@@ -268,7 +268,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                 style={{
                   fontSize: "0.82rem",
                   fontFamily: "var(--font-dm-sans)",
-                  color: "rgba(240,237,230,0.4)",
+                  color: "var(--text-secondary)",
                 }}
               >
                 {pageTitle}
@@ -282,14 +282,14 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  background: "rgba(200,245,90,0.12)",
-                  border: "0.5px solid rgba(200,245,90,0.2)",
+                  background: "var(--accent-dim)",
+                  border: "0.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "0.65rem",
                   fontWeight: 500,
-                  color: "#C8F55A",
+                  color: "var(--accent)",
                 }}
               >
                 {initials}
@@ -298,7 +298,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                 className="hidden md:block"
                 style={{
                   fontSize: "0.82rem",
-                  color: "rgba(240,237,230,0.4)",
+                  color: "var(--text-secondary)",
                   fontFamily: "var(--font-dm-sans)",
                 }}
               >
@@ -308,7 +308,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           </header>
 
           {/* Page content — pb-20 clears mobile tab bar */}
-          <main className="md:pb-0" style={{ flex: 1, background: "#0A0A0A", paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>
+          <main className="md:pb-0" style={{ flex: 1, background: "var(--bg-page)", paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>
             {children}
           </main>
         </div>
@@ -322,8 +322,8 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
           bottom: 0,
           left: 0,
           right: 0,
-          background: "#0D0D0D",
-          borderTop: "0.5px solid rgba(240,237,230,0.08)",
+          background: "color-mix(in srgb, var(--surface) 94%, var(--surface-muted) 6%)",
+          borderTop: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
           justifyContent: "space-around",
           padding: "0.5rem 0",
           paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))",
@@ -342,7 +342,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                 alignItems: "center",
                 gap: 3,
                 padding: "0.3rem 1.5rem",
-                color: active ? "#C8F55A" : "rgba(240,237,230,0.4)",
+                color: active ? "var(--accent)" : "var(--text-secondary)",
                 textDecoration: "none",
                 fontSize: "0.7rem",
                 fontFamily: "var(--font-dm-sans)",

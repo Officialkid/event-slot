@@ -426,6 +426,10 @@ html[data-theme="light"] .marketing-card p {
   color: var(--text-secondary) !important;
 }
 
+html[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+
 .marketing-card:hover {
   transform: translateY(-3px);
   border-color: rgba(200, 245, 90, 0.16);
