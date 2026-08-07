@@ -25,6 +25,20 @@ function isClaudeFallbackEnabled() {
   return process.env.AI_ENABLE_CLAUDE_FALLBACK?.trim().toLowerCase() === 'true'
 }
 
+function sanitizeAIContent(content: string): string | null {
+  const withoutThinkingBlocks = content
+    .replace(/<think>[\s\S]*?<\/think>/gi, ' ')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, ' ')
+
+  const cleaned = withoutThinkingBlocks
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  return cleaned.length > 0 ? cleaned : null
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -137,7 +151,11 @@ export async function askAIWithMeta({
 
     attemptedProviders.push(provider)
     try {
-      const content = await runWithRetries(runners[provider], 2)
+      const rawContent = await runWithRetries(runners[provider], 2)
+      const content = sanitizeAIContent(rawContent)
+      if (!content) {
+        throw new Error('Empty response after sanitization')
+      }
       return {
         content,
         provider,
