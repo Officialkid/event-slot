@@ -3,6 +3,8 @@ import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { APP_URL } from "@/lib/config"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Events — EventSlot",
   description: "Browse public events on EventSlot and register with the existing EventSlot flow.",
