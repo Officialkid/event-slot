@@ -47,6 +47,7 @@ type EventProps = {
     organizerEmail: string
     organizerName?: string | null
     eventDate?: Date | string | null
+    eventEndAt?: Date | string | null
     deadline?: Date | string | null
     location?: string | null
     mapDirectionsUrl?: string | null
@@ -105,6 +106,23 @@ type UploadedFileAnswer = {
   type: string
   size: number
   url: string
+}
+
+function formatEventDateRange(startValue: Date | string | null | undefined, endValue: Date | string | null | undefined) {
+  if (!startValue) return ""
+
+  const start = startValue instanceof Date ? startValue : new Date(startValue)
+  if (Number.isNaN(start.getTime())) return ""
+
+  const formatFull = (date: Date) =>
+    date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+
+  if (!endValue) return formatFull(start)
+
+  const end = endValue instanceof Date ? endValue : new Date(endValue)
+  if (Number.isNaN(end.getTime()) || start.toDateString() === end.toDateString()) return formatFull(start)
+
+  return `${formatFull(start)} to ${formatFull(end)}`
 }
 
 function parseCheckboxValue(raw: string | undefined): string[] {
@@ -1091,7 +1109,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               {event.eventDate && (
                 <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
                   <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Date</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{new Date(event.eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{formatEventDateRange(event.eventDate, event.eventEndAt)}</p>
                 </div>
               )}
               {event.location && (

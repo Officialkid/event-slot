@@ -45,15 +45,23 @@ function toIsoOrNull(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
-function formatEventDateLabel(value: Date | string | null | undefined): string | undefined {
+function formatEventDateLabel(value: Date | string | null | undefined, endValue?: Date | string | null | undefined): string | undefined {
   if (!value) return undefined
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return undefined
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
+  const start = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(start.getTime())) return undefined
+
+  const formatFull = (date: Date) =>
+    date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+
+  if (!endValue) return formatFull(start)
+  const end = endValue instanceof Date ? endValue : new Date(endValue)
+  if (Number.isNaN(end.getTime()) || start.toDateString() === end.toDateString()) return formatFull(start)
+
+  return `${formatFull(start)} to ${formatFull(end)}`
 }
 
 const RESERVED = [
@@ -292,7 +300,7 @@ export default async function PublicProfilePage({
     const eventFaqs = (event as unknown as { faqs: { id: string; question: string; answer: string }[] }).faqs ?? []
     const eventWhatsapp = (event as unknown as { whatsappNumber: string | null }).whatsappNumber ?? null
     const parsedContact = parseEventContact(eventWhatsapp)
-    const eventDateLabel = formatEventDateLabel(event.eventDate)
+    const eventDateLabel = formatEventDateLabel(event.eventDate, event.eventEndAt)
     const hasWhatsapp = Boolean(parsedContact?.number)
 
     if (isWalkInEvent) {
@@ -309,6 +317,7 @@ export default async function PublicProfilePage({
             title={event.title}
             description={event.description}
             eventDate={event.eventDate}
+            eventEndAt={event.eventEndAt}
             location={event.location}
             mapDirectionsUrl={event.mapDirectionsUrl}
             entryFeeLabel={event.entryFeeLabel}
@@ -367,7 +376,7 @@ export default async function PublicProfilePage({
                   eventId={event.id}
                   eventType={event.eventType}
                   startDate={event.eventDate}
-                  endDate={null}
+                  endDate={event.eventEndAt ? new Date(event.eventEndAt) : null}
                   opensAt={event.joinOpensAt}
                 />
               )}

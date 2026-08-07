@@ -11,13 +11,21 @@ export const metadata: Metadata = {
   alternates: { canonical: `${APP_URL}/events` },
 }
 
-function formatEventDate(value: Date | null) {
+function formatEventDate(value: Date | null, endValue?: Date | null) {
   if (!value) return "Date to be announced"
-  return value.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
+
+  const formatFull = (date: Date) =>
+    date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+
+  if (!endValue || value.toDateString() === endValue.toDateString()) {
+    return formatFull(value)
+  }
+
+  return `${formatFull(value)} to ${formatFull(endValue)}`
 }
 
 export default async function EventsPage() {
@@ -43,6 +51,7 @@ export default async function EventsPage() {
       title: true,
       slug: true,
       eventDate: true,
+      eventEndAt: true,
       location: true,
       imageUrl: true,
       isPaid: true,
@@ -188,7 +197,7 @@ export default async function EventsPage() {
                       {event.title}
                     </h2>
                     <p className="mt-2 text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
-                      {formatEventDate(event.eventDate)}
+                      {formatEventDate(event.eventDate, event.eventEndAt)}
                     </p>
                     <p className="mt-1 min-h-[1.2rem] text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
                       {event.location || "Location to be announced"}

@@ -3,6 +3,24 @@ import prisma from "@/lib/prisma"
 type EventQuestion = { id: string; type: string; label: string }
 type Answer = { questionId: string; value: string }
 
+function formatEventDateRange(startValue: Date | null, endValue?: Date | null) {
+  if (!startValue) return ""
+
+  const formatFull = (date: Date) =>
+    date.toLocaleString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+
+  if (!endValue || startValue.toDateString() === endValue.toDateString()) return formatFull(startValue)
+  return `${formatFull(startValue)} to ${formatFull(endValue)}`
+}
+
 export default async function VerifyPage({ params }: { params: Promise<{ confirmationCode: string }> }) {
   const { confirmationCode } = await params
 
@@ -13,6 +31,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
         select: {
           title: true,
           eventDate: true,
+          eventEndAt: true,
           location: true,
           questions: true,
         },
@@ -124,15 +143,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
             {registration.event.eventDate && (
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.25rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
                 📅{" "}
-                {new Date(registration.event.eventDate).toLocaleString("en-GB", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {formatEventDateRange(registration.event.eventDate, registration.event.eventEndAt)}
               </p>
             )}
             {registration.event.location && (

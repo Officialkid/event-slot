@@ -30,6 +30,57 @@ function extractField(answers: Answer[], questions: EventQuestion[], types: stri
   return null
 }
 
+function extractAttendanceDays(answers: Answer[], questions: EventQuestion[]): string | null {
+  const dayQuestion = questions.find((question) => {
+    const label = question.label.toLowerCase()
+    return label.includes("day") && (label.includes("attend") || label.includes("coming") || label.includes("which"))
+  })
+
+  if (!dayQuestion) return null
+  const raw = answers.find((answer) => answer.questionId === dayQuestion.id)?.value?.trim()
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0).join(", ")
+    }
+  } catch {
+    // Fall back to plain strings below.
+  }
+
+  return raw.split("|").map((value) => value.trim()).filter(Boolean).join(", ")
+}
+
+function formatEventDateRange(startDate: Date | null, endDate: Date | null): string | null {
+  if (!startDate) return null
+
+  const fullDate = (value: Date) =>
+    value.toLocaleString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+
+  if (!endDate) return fullDate(startDate)
+
+  const sameDay = startDate.toDateString() === endDate.toDateString()
+  if (sameDay) {
+    const endTime = endDate.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+    return `${fullDate(startDate)} to ${endTime}`
+  }
+
+  return `${fullDate(startDate)} to ${fullDate(endDate)}`
+}
+
 const BASE_URL = APP_URL
 
 export default async function TicketSuccessPage({
@@ -71,23 +122,15 @@ export default async function TicketSuccessPage({
   const attendeeName = extractField(answers, questions, ["text"], ["name"]) ?? ""
   const attendeeEmail = extractField(answers, questions, ["email"], ["email"]) ?? registration.attendeeEmail
   const attendeePhone = extractField(answers, questions, ["tel"], ["phone", "mobile"])
+  const attendanceDays = extractAttendanceDays(answers, questions)
 
-  const eventDate = event.eventDate
-    ? new Date(event.eventDate).toLocaleString("en-GB", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : null
+  const eventDate = event.eventDate ? formatEventDateRange(new Date(event.eventDate), event.eventEndAt ? new Date(event.eventEndAt) : null) : null
 
   const ticket: TicketData = {
     confirmationCode,
     eventTitle: event.title,
     eventDate,
+    attendanceDays,
     eventLocation: event.location,
     attendeeName,
     attendeeEmail: attendeeEmail || null,

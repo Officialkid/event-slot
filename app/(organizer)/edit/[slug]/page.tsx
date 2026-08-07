@@ -457,6 +457,16 @@ export default function EditEventPage() {
       setError("Public events require a poster image so they can appear on the Events page.")
       return
     }
+    if (visibility === "PUBLIC" && !eventDate) {
+      setSaving(false)
+      setError("Public events require a start date so attendees can see when the event is happening.")
+      return
+    }
+    if (visibility === "PUBLIC" && !location.trim()) {
+      setSaving(false)
+      setError("Public events require a visible location or venue label so attendees can discover where to go.")
+      return
+    }
     try {
       const res = await fetch(`/api/events/${slug}`, {
         method: "PATCH",
@@ -821,7 +831,7 @@ export default function EditEventPage() {
                   onChange={e => setEventEndAt(e.target.value)}
                 />
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                  If you leave the deadline blank, registration closes when the event ends.
+                  If you leave the deadline blank, registration stays open during the event and closes when the event ends.
                 </p>
               </div>
               <div>
@@ -851,7 +861,7 @@ export default function EditEventPage() {
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Google Maps directions link <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                  Google Maps directions link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                 </label>
                 <input
                   type="url"
@@ -877,7 +887,7 @@ export default function EditEventPage() {
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Entry / contribution note <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                  Entry / contribution note <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                 </label>
                 <input
                   type="text"

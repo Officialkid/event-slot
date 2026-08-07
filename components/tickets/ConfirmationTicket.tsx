@@ -8,6 +8,7 @@ export type TicketData = {
   confirmationCode: string
   eventTitle: string
   eventDate: string | null
+  attendanceDays?: string | null
   eventLocation: string | null
   attendeeName: string
   attendeeEmail: string | null
@@ -93,6 +94,11 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
           {ticket.eventDate && (
             <p style={{ fontSize: "0.78rem", color: ticketTextSecondary, margin: "0 0 0.15rem" }}>
               Date: {ticket.eventDate}
+            </p>
+          )}
+          {ticket.attendanceDays && (
+            <p style={{ fontSize: "0.78rem", color: ticketTextSecondary, margin: "0 0 0.15rem" }}>
+              Attending: {ticket.attendanceDays}
             </p>
           )}
           {ticket.eventLocation && (

@@ -562,6 +562,18 @@ export default function CreateEventPage() {
       return
     }
 
+    if (visibility === "PUBLIC" && !eventDate) {
+      setLoading(false)
+      setError("Public events require a start date so attendees can see when the event is happening.")
+      return
+    }
+
+    if (visibility === "PUBLIC" && eventType === "PHYSICAL" && !location.trim()) {
+      setLoading(false)
+      setError("Public physical events require a location so attendees can discover where to go.")
+      return
+    }
+
     if (isPaid) {
       const invalidTier = ticketTiers.find((tier) => {
         const price = Number(tier.priceKes)
@@ -680,8 +692,8 @@ export default function CreateEventPage() {
             <div
               onClick={e => e.stopPropagation()}
               style={{
-                background: "#141414",
-                border: "0.5px solid rgba(240,237,230,0.1)",
+                background: "var(--surface)",
+                border: "0.5px solid var(--border)",
                 borderRadius: "16px",
                 padding: "2rem",
                 maxWidth: "360px",
@@ -690,27 +702,27 @@ export default function CreateEventPage() {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-                <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "#F0EDE6", margin: 0 }}>
+                <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: "var(--text-primary)", margin: 0 }}>
                   Event QR Code
                 </h3>
                 <button
                   onClick={() => setShowQrModal(false)}
-                  style={{ background: "none", border: "none", color: "rgba(240,237,230,0.4)", fontSize: "1.2rem", cursor: "pointer" }}
+                  style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "1.2rem", cursor: "pointer" }}
                 >
                   ×
                 </button>
               </div>
 
-              <div style={{ background: "#F0EDE6", borderRadius: "12px", padding: "1rem", marginBottom: "1rem", display: "inline-block" }}>
+              <div style={{ background: "var(--surface-muted)", borderRadius: "12px", padding: "1rem", marginBottom: "1rem", display: "inline-block" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qrDataUrl} alt="Event QR Code" style={{ width: "220px", height: "220px", display: "block" }} />
               </div>
 
-              <p style={{ fontSize: "0.82rem", color: "rgba(240,237,230,0.55)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
-                {isWalkInEvent ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: "#F0EDE6" }}>{eventInfo.title}</strong>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginBottom: "1.25rem", fontFamily: "var(--font-dm-sans)" }}>
+                {isWalkInEvent ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: "var(--text-primary)" }}>{eventInfo.title}</strong>
               </p>
 
-              <p style={{ fontSize: "0.75rem", color: "rgba(240,237,230,0.35)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
                 {isWalkInEvent
                   ? "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the walk-in check-in page directly."
                   : "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly."}
@@ -734,7 +746,7 @@ export default function CreateEventPage() {
                 ↓ Download High-Res PNG
               </button>
 
-              <p style={{ fontSize: "0.7rem", color: "rgba(240,237,230,0.25)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+              <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                 1024x1024px · Print-ready resolution
               </p>
             </div>
@@ -1404,7 +1416,7 @@ export default function CreateEventPage() {
                   <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
                       ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
-                      : "If the deadline is empty, registration will close automatically when the event ends."}
+                      : "If the deadline is empty, registration stays open during the event and closes when the event ends."}
                   </p>
                 </div>
                 <div>
@@ -1440,7 +1452,7 @@ export default function CreateEventPage() {
                 {eventType === "PHYSICAL" && (
                   <div>
                     <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Google Maps directions link <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                      Google Maps directions link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                     </label>
                     <input
                       type="url"
@@ -1468,7 +1480,7 @@ export default function CreateEventPage() {
                 {isRegistrationEvent && (
                   <div>
                     <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Entry / contribution note <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                      Entry / contribution note <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                     </label>
                     <input
                       type="text"
@@ -1542,7 +1554,7 @@ export default function CreateEventPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Organizer Email <span style={{ fontWeight: 400, color: "rgba(240,237,230,0.3)" }}>(optional)</span>
+                    Organizer Email <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                   </label>
                   <input
                     type="email"

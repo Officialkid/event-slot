@@ -10,7 +10,8 @@ export type EventInvitationCardProps = {
   eventSlug: string
   title: string
   description?: string | null
-  eventDate?: Date | null
+  eventDate?: Date | string | null
+  eventEndAt?: Date | string | null
   location?: string | null
   mapDirectionsUrl?: string | null
   entryFeeLabel?: string | null
@@ -26,7 +27,7 @@ export type EventInvitationCardProps = {
   walkInOpenToday?: boolean
 }
 
-function formatEventDate(date: Date): string {
+function formatEventDate(date: Date | string): string {
   const d = new Date(date)
   const dayName = d.toLocaleDateString("en-GB", { weekday: "long" })
   const day = d.toLocaleDateString("en-GB", { day: "numeric" })
@@ -34,6 +35,26 @@ function formatEventDate(date: Date): string {
   const year = d.toLocaleDateString("en-GB", { year: "numeric" })
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })
   return `${dayName}, ${day} ${month} ${year} - ${time.toUpperCase()}`
+}
+
+function formatEventDateRange(startDate: Date | string | null | undefined, endDate: Date | string | null | undefined): string {
+  if (!startDate) return ""
+  if (!endDate) return formatEventDate(startDate)
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return formatEventDate(startDate)
+  }
+
+  const sameDay = start.toDateString() === end.toDateString()
+  if (sameDay) {
+    const startLabel = formatEventDate(start)
+    const endTime = end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase()
+    return `${startLabel} to ${endTime}`
+  }
+
+  return `${formatEventDate(start)} to ${formatEventDate(end)}`
 }
 
 function getStatusBadge(
@@ -134,6 +155,7 @@ export default function EventInvitationCard({
   title,
   description,
   eventDate,
+  eventEndAt,
   location,
   mapDirectionsUrl,
   entryFeeLabel,
@@ -161,6 +183,7 @@ export default function EventInvitationCard({
   const mapPreviewUrl = buildMapPreviewUrl(mapDirectionsUrl, displayLocation)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
+  const eventDateLabel = eventDate ? formatEventDateRange(eventDate, eventEndAt) : ""
   const spotsLeft =
     capacity !== null && capacity !== undefined
       ? Math.max(0, capacity - confirmedCount)
@@ -309,7 +332,7 @@ export default function EventInvitationCard({
                 }}
                 suppressHydrationWarning
               >
-                {isMounted ? formatEventDate(eventDate) : ""}
+                {isMounted ? eventDateLabel : ""}
               </span>
             </div>
           )}
