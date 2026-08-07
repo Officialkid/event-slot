@@ -176,6 +176,11 @@ export default function EditEventPage() {
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const bindDateTimeField = (setter: React.Dispatch<React.SetStateAction<string>>) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value),
+    onInput: (e: React.FormEvent<HTMLInputElement>) => setter(e.currentTarget.value),
+  })
+
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/signin")
   }, [status, router])
@@ -804,7 +809,7 @@ export default function EditEventPage() {
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                   style={inputStyle}
                   value={deadline}
-                  onChange={e => setDeadline(e.target.value)}
+                  {...bindDateTimeField(setDeadline)}
                 />
               </div>
               <div>
@@ -816,7 +821,7 @@ export default function EditEventPage() {
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                   style={inputStyle}
                   value={eventDate}
-                  onChange={e => setEventDate(e.target.value)}
+                  {...bindDateTimeField(setEventDate)}
                 />
               </div>
               <div>
@@ -828,7 +833,7 @@ export default function EditEventPage() {
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                   style={inputStyle}
                   value={eventEndAt}
-                  onChange={e => setEventEndAt(e.target.value)}
+                  {...bindDateTimeField(setEventEndAt)}
                 />
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   If you leave the deadline blank, registration stays open during the event and closes when the event ends.
@@ -843,7 +848,7 @@ export default function EditEventPage() {
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                   style={inputStyle}
                   value={joinOpensAt}
-                  onChange={e => setJoinOpensAt(e.target.value)}
+                  {...bindDateTimeField(setJoinOpensAt)}
                 />
               </div>
               <div>

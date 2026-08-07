@@ -218,6 +218,11 @@ export default function CreateEventPage() {
   const lockedCapacity = pricingActive && isRegistrationEvent && !isPaid && attendeeLimit !== -1
   const nextPlan = getNextPlanKey(organizerPlan)
 
+  const bindDateTimeField = (setter: React.Dispatch<React.SetStateAction<string>>) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value),
+    onInput: (e: React.FormEvent<HTMLInputElement>) => setter(e.currentTarget.value),
+  })
+
   // Auto-fill organizer details from signed-in account
   useEffect(() => {
     markFeatureUsed("create_event")
@@ -1386,7 +1391,7 @@ export default function CreateEventPage() {
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={inputStyle}
                     value={deadline}
-                    onChange={e => setDeadline(e.target.value)}
+                    {...bindDateTimeField(setDeadline)}
                   />
                 </div>
                 )}
@@ -1399,7 +1404,7 @@ export default function CreateEventPage() {
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={inputStyle}
                     value={eventDate}
-                    onChange={e => setEventDate(e.target.value)}
+                    {...bindDateTimeField(setEventDate)}
                   />
                 </div>
                 <div>
@@ -1411,7 +1416,7 @@ export default function CreateEventPage() {
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={inputStyle}
                     value={eventEndAt}
-                    onChange={e => setEventEndAt(e.target.value)}
+                    {...bindDateTimeField(setEventEndAt)}
                   />
                   <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
@@ -1428,7 +1433,7 @@ export default function CreateEventPage() {
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
                     style={inputStyle}
                     value={joinOpensAt}
-                    onChange={e => setJoinOpensAt(e.target.value)}
+                    {...bindDateTimeField(setJoinOpensAt)}
                   />
                   <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
