@@ -1,0 +1,2 @@
+ALTER TABLE "Event"
+ADD COLUMN "showRemainingSpots" BOOLEAN NOT NULL DEFAULT true;
