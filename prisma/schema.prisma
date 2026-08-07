@@ -23,6 +23,7 @@ model Event {
   confirmedCount   Int       @default(0)
   waitlistCount    Int       @default(0)
   organizerEmail   String
+  organizerName    String?
   dashboardToken   String    @unique
   verifierCode     String?   @unique
   verifierCodeEnabled Boolean @default(true)

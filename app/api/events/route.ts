@@ -167,12 +167,6 @@ export async function POST(req: NextRequest) {
       organizerId = organizer.id
       sessionEmail = organizer.email ?? sessionEmail
 
-      if ((organizer.name ?? '').trim() !== normalizedOrganizerName) {
-        await prisma.user.update({
-          where: { id: organizer.id },
-          data: { name: normalizedOrganizerName },
-        })
-      }
     }
 
     const effectivePlan = getEffectivePlanPolicy(organizer?.plan ?? 'free')
@@ -246,6 +240,7 @@ export async function POST(req: NextRequest) {
         imageUrl: imageUrl || undefined,
         questions: isWalkInEvent ? [] : questions,
         organizerEmail: eventOrganizerEmail,
+        organizerName: normalizedOrganizerName,
         slug,
         dashboardToken,
         verifierCode,
@@ -280,7 +275,7 @@ export async function POST(req: NextRequest) {
         accessType: true,
         capacity: true,
       },
-    })
+    } as any)
 
     if (organizerId) {
       try {

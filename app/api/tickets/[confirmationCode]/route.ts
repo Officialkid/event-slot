@@ -28,10 +28,33 @@ function extractField(answers: Answer[], questions: EventQuestion[], types: stri
   return null
 }
 
+function extractAttendanceDays(answers: Answer[], questions: EventQuestion[]): string | null {
+  const dayQuestion = questions.find((question) => {
+    const label = question.label.toLowerCase()
+    return label.includes("day") && (label.includes("attend") || label.includes("coming") || label.includes("which"))
+  })
+
+  if (!dayQuestion) return null
+
+  const raw = answers.find((answer) => answer.questionId === dayQuestion.id)?.value?.trim()
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return parsed.filter((value): value is string => typeof value === "string" && value.trim().length > 0).join(", ")
+    }
+  } catch {
+    return raw.split("|").map((value) => value.trim()).filter(Boolean).join(", ")
+  }
+
+  return null
+}
+
 export async function GET(_req: NextRequest, props: { params: Promise<{ confirmationCode: string }> }) {
   const { confirmationCode } = await props.params
 
-  const registration = await prisma.registration.findUnique({
+  const registration: any = await prisma.registration.findUnique({
     where: { confirmationCode },
     include: {
       ticket: true,
@@ -41,7 +64,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
           id: true,
           title: true,
           eventDate: true,
+          eventEndAt: true,
           location: true,
+          organizerName: true,
           questions: true,
           ticketsEnabled: true,
           isPaid: true,
@@ -51,7 +76,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
         },
       },
     },
-  })
+  } as any)
 
   if (!registration) {
     return NextResponse.json({ error: 'Ticket not found' }, { status: 404 })
@@ -75,6 +100,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
   const answers = (registration.answers as Answer[]) ?? []
 
   const attendeeName = extractField(answers, questions, ['text'], ['name']) || 'Attendee'
+  const attendanceDays = extractAttendanceDays(answers, questions)
 
   let pdfBuffer: Buffer
   try {
@@ -85,8 +111,10 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
       eventId: registration.event.id,
       userId: registration.id,
       eventDate: registration.event.eventDate,
+      eventEndAt: registration.event.eventEndAt,
+      attendanceDays,
       location: registration.event.location,
-      organizerName: registration.event.organizer?.name ?? 'Organizer',
+      organizerName: registration.event.organizerName ?? registration.event.organizer?.name ?? 'Organizer',
       isPaid: registration.event.isPaid,
       ticketPrice: registration.ticket?.amountPaidKes ?? undefined,
       ticketTierName: registration.ticket?.ticketTierName ?? registration.ticketTier?.name ?? undefined,

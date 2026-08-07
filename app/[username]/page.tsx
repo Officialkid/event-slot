@@ -171,6 +171,7 @@ async function getEventBySlug(slug: string) {
       isPaid: true,
       faqEnabled: true,
       whatsappNumber: true,
+      organizerName: true,
       ticketTiers: {
         where: { status: "ACTIVE" },
         orderBy: { sortOrder: "asc" },
@@ -194,7 +195,7 @@ async function getEventBySlug(slug: string) {
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
       organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
     },
-  })
+  } as any)
 }
 
 export async function generateMetadata({
@@ -272,7 +273,7 @@ export default async function PublicProfilePage({
   }
 
   if (!user) {
-    let event: Awaited<ReturnType<typeof getEventBySlug>> = null
+    let event: any = null
     try {
       event = await getEventBySlug(username)
     } catch {
@@ -323,7 +324,7 @@ export default async function PublicProfilePage({
             entryFeeLabel={event.entryFeeLabel}
             showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}
-            organizerName={event.organizer?.name ?? null}
+            organizerName={event.organizerName ?? event.organizer?.name ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
             capacity={event.capacity}
             confirmedCount={event.confirmedCount}
@@ -349,7 +350,7 @@ export default async function PublicProfilePage({
                   ...event,
                   slug: username,
                   questions: event.questions as EventQuestion[],
-                  organizerName: event.organizer?.name ?? null,
+                  organizerName: event.organizerName ?? event.organizer?.name ?? null,
                   mapDirectionsUrl: event.mapDirectionsUrl,
                   entryFeeLabel: event.entryFeeLabel,
                   showRemainingSpots: event.showRemainingSpots,

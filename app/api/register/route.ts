@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     if (event.status === 'closed' || event.status === 'COMPLETED') {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
-    const effectiveCloseAt = event.deadline ?? event.eventEndAt ?? null
+    const effectiveCloseAt = event.deadline ?? null
     if (effectiveCloseAt && new Date(effectiveCloseAt) < new Date()) {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }

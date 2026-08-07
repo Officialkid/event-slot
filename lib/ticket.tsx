@@ -111,6 +111,8 @@ export interface TicketPDFData {
   eventId: string
   userId: string
   eventDate: Date | null
+  eventEndAt?: Date | null
+  attendanceDays?: string | null
   location: string | null
   organizerName: string
   isPaid?: boolean
@@ -119,6 +121,43 @@ export interface TicketPDFData {
   ticketTierBadgeColor?: string | null
   ticketTierTextColor?: string | null
   ticketTierMetallic?: boolean | null
+}
+
+function formatTicketDateRange(startDate: Date | null, endDate: Date | null | undefined) {
+  if (!startDate) return "TBA"
+
+  const formatDate = (value: Date) =>
+    value.toLocaleDateString('en-KE', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+
+  if (!endDate) return formatDate(startDate)
+
+  const sameDay = startDate.toDateString() === endDate.toDateString()
+  if (sameDay) return formatDate(startDate)
+
+  return `${formatDate(startDate)} to ${formatDate(endDate)}`
+}
+
+function formatTicketTimeRange(startDate: Date | null, endDate: Date | null | undefined) {
+  if (!startDate) return 'TBA'
+
+  const formatTime = (value: Date) =>
+    value.toLocaleTimeString('en-KE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Africa/Nairobi',
+    })
+
+  if (!endDate) return `${formatTime(startDate)} EAT`
+
+  const sameDay = startDate.toDateString() === endDate.toDateString()
+  if (sameDay) return `${formatTime(startDate)} to ${formatTime(endDate)} EAT`
+
+  return `${formatTime(startDate)} EAT to ${formatTime(endDate)} EAT`
 }
 
 export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
@@ -130,22 +169,8 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
     color: { dark: '#000000', light: '#FFFFFF' },
   })
 
-  const dateStr = data.eventDate
-    ? data.eventDate.toLocaleDateString('en-KE', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    : 'TBA'
-
-  const timeStr = data.eventDate
-    ? data.eventDate.toLocaleTimeString('en-KE', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Africa/Nairobi',
-      })
-    : 'TBA'
+  const dateStr = formatTicketDateRange(data.eventDate, data.eventEndAt)
+  const timeStr = formatTicketTimeRange(data.eventDate, data.eventEndAt)
 
   const doc = (
     <Document>
@@ -184,8 +209,14 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
               </View>
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>TIME</Text>
-                <Text style={styles.metaValue}>{timeStr} EAT</Text>
+                <Text style={styles.metaValue}>{timeStr}</Text>
               </View>
+              {data.attendanceDays ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>DAYS</Text>
+                  <Text style={styles.metaValue}>{data.attendanceDays}</Text>
+                </View>
+              ) : null}
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>VENUE</Text>
                 <Text style={styles.metaValue}>{data.location ?? 'TBA'}</Text>

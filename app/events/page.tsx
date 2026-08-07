@@ -36,15 +36,26 @@ export default async function EventsPage() {
       archived: false,
       status: "active",
       accessType: "REGISTRATION",
-      OR: [
-        { deadline: null },
-        { deadline: { gt: now } },
-      ],
-      organizer: {
-        is: {
-          suspended: false,
+      AND: [
+        {
+          OR: [
+            { deadline: null },
+            { deadline: { gt: now } },
+          ],
         },
-      },
+        {
+          OR: [
+            { organizerId: null },
+            {
+              organizer: {
+                is: {
+                  suspended: false,
+                },
+              },
+            },
+          ],
+        },
+      ],
     },
     select: {
       id: true,
