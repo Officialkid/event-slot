@@ -20,9 +20,10 @@ if (!fs.existsSync(SCREENSHOT_DIR)) {
     const page = await context.newPage();
 
     for (const route of [
-      { name: '01-signup', url: 'http://localhost:3000/signup' },
-      { name: '02-signin', url: 'http://localhost:3000/signin' },
-      { name: '03-pricing', url: 'http://localhost:3000/pricing' },
+      { name: '01-home', url: 'https://www.eventsslot.com/' },
+      { name: '02-signup', url: 'https://www.eventsslot.com/signup' },
+      { name: '03-signin', url: 'https://www.eventsslot.com/signin' },
+      { name: '04-pricing', url: 'https://www.eventsslot.com/pricing' },
     ]) {
       try {
         console.log(`Navigating to ${route.name} (${route.url})...`);
