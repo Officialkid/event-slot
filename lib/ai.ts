@@ -26,11 +26,20 @@ function isClaudeFallbackEnabled() {
 }
 
 function sanitizeAIContent(content: string): string | null {
-  const withoutThinkingBlocks = content
-    .replace(/<think>[\s\S]*?<\/think>/gi, ' ')
-    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, ' ')
+  // Strip complete <think>...</think> and <thinking>...</thinking> blocks
+  let withoutThinking = content
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
 
-  const cleaned = withoutThinkingBlocks
+  // If thinking was cut off without a closing tag (e.g. truncated output)
+  if (withoutThinking.includes('<think>')) {
+    withoutThinking = withoutThinking.split('<think>')[0]
+  }
+  if (withoutThinking.includes('<thinking>')) {
+    withoutThinking = withoutThinking.split('<thinking>')[0]
+  }
+
+  const cleaned = withoutThinking
     .replace(/\r/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

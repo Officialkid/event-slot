@@ -1,6 +1,15 @@
-import { EventDraft } from "../domain/events";
+import { EventDraft, NativeRegistrationQuestion } from "../domain/events";
 import { loadNativeStorageValue, removeNativeStorageValue, saveNativeStorageValue } from "./nativeStorage";
 import { defaultAttachmentRequirement } from "./uploads";
+
+const defaultTicketTiers = [
+  { id: "regular", name: "Regular", price: "", capacity: "" }
+];
+
+const defaultRegistrationQuestions: NativeRegistrationQuestion[] = [
+  { id: "name", label: "Full name", type: "text", required: true },
+  { id: "email", label: "Email address", type: "email", required: true }
+];
 
 export const emptyEventDraft: EventDraft = {
   id: "local-event-draft",
@@ -12,11 +21,16 @@ export const emptyEventDraft: EventDraft = {
   eventType: "physical",
   virtualLink: "",
   accessType: "public",
+  monetization: "free",
   mapDirectionsUrl: "",
   entryFeeLabel: "",
+  showRemainingSpots: true,
+  standardPrice: "",
+  ticketTiers: defaultTicketTiers,
   whatsappNumber: "",
   attendeeConsentEnabled: false,
   attendeeConsentText: "",
+  registrationQuestions: defaultRegistrationQuestions,
   attachmentRequirement: defaultAttachmentRequirement
 };
 
@@ -99,6 +113,30 @@ function cloneEventDraft(draft: EventDraft): EventDraft {
     ...emptyEventDraft,
     ...draft,
     virtualLink: draft.virtualLink ?? "",
+    monetization: draft.monetization ?? "free",
+    showRemainingSpots: draft.showRemainingSpots ?? true,
+    standardPrice: draft.standardPrice ?? "",
+    ticketTiers: (draft.ticketTiers ?? defaultTicketTiers).map((tier, index) => ({
+      id: tier.id || `tier-${index + 1}`,
+      name: tier.name ?? "",
+      price: tier.price ?? "",
+      capacity: tier.capacity ?? ""
+    })),
+    registrationQuestions: (draft.registrationQuestions ?? defaultRegistrationQuestions).map((question, index) => ({
+      id: question.id || `question-${index + 1}`,
+      label: question.label ?? "",
+      type: question.type ?? "text",
+      required: question.required ?? false,
+      options: question.options?.map((option) => option ?? "").filter(Boolean),
+      allowMultiple: question.allowMultiple ?? false,
+      optionLimits: question.optionLimits
+        ? Object.fromEntries(
+            Object.entries(question.optionLimits)
+              .map(([option, limit]) => [option, typeof limit === "number" && Number.isFinite(limit) ? limit : null] as const)
+              .filter(([option]) => option.trim().length > 0)
+          )
+        : undefined
+    })),
     attachmentRequirement: {
       ...defaultAttachmentRequirement,
       ...(draft.attachmentRequirement ?? defaultAttachmentRequirement)
@@ -113,6 +151,12 @@ function isStoredEventDraft(value: EventDraft | StoredEventDraft): value is Stor
 function stableDraftSnapshot(draft: EventDraft): string {
   return JSON.stringify({
     ...draft,
+    ticketTiers: draft.ticketTiers.map((tier) => ({ ...tier })),
+    registrationQuestions: draft.registrationQuestions.map((question) => ({
+      ...question,
+      options: question.options ? [...question.options] : undefined,
+      optionLimits: question.optionLimits ? { ...question.optionLimits } : undefined
+    })),
     attachmentRequirement: { ...draft.attachmentRequirement }
   });
 }

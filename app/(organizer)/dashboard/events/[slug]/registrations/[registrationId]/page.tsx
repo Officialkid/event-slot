@@ -96,7 +96,7 @@ export default function RegistrationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const pageBg = 'var(--bg)'
+  const pageBg = 'var(--bg-page)'
   const surfaceBg = 'var(--surface)'
   const mutedSurfaceBg = 'var(--surface-muted)'
   const borderColor = 'var(--border)'
@@ -142,7 +142,10 @@ export default function RegistrationDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: pageBg }}>
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C8F55A] border-t-transparent" />
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2"
+          style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+        />
       </div>
     )
   }
@@ -150,7 +153,9 @@ export default function RegistrationDetailPage() {
   if (error || !registration) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: pageBg }}>
-        <p className="text-red-400">{error ?? 'Registration not found'}</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--error)' }}>
+          {error ?? 'Registration not found'}
+        </p>
       </div>
     )
   }
@@ -163,7 +168,7 @@ export default function RegistrationDetailPage() {
       <div className="mx-auto max-w-2xl px-4 py-8">
         <Link
           href={`/dashboard/events/${slug}?tab=${fromTab}`}
-          className="mb-6 inline-flex items-center gap-2 text-sm transition-colors hover:text-[#C8F55A]"
+          className="mb-6 inline-flex items-center gap-2 text-sm transition-colors hover:text-[var(--accent)]"
           style={{ color: textSecondary }}
         >
           ← Back to registrations
@@ -180,7 +185,7 @@ export default function RegistrationDetailPage() {
                 router.push(`/dashboard/events/${slug}/registrations/${neighbours.prevId}${fromTab !== 'confirmed' ? `?from=${fromTab}` : ''}`)
               }
               disabled={!neighbours.prevId}
-              className="flex items-center gap-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:text-[#C8F55A]"
+              className="flex items-center gap-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:text-[var(--accent)]"
               style={{ color: textSecondary }}
             >
               ← Previous
@@ -194,7 +199,7 @@ export default function RegistrationDetailPage() {
                 router.push(`/dashboard/events/${slug}/registrations/${neighbours.nextId}${fromTab !== 'confirmed' ? `?from=${fromTab}` : ''}`)
               }
               disabled={!neighbours.nextId}
-              className="flex items-center gap-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:text-[#C8F55A]"
+              className="flex items-center gap-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-30 hover:text-[var(--accent)]"
               style={{ color: textSecondary }}
             >
               Next →
@@ -205,8 +210,11 @@ export default function RegistrationDetailPage() {
         <div className="mb-6 rounded-xl border p-6" style={{ background: surfaceBg, borderColor }}>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#C8F55A]/10">
-                <span className="text-lg font-semibold text-[#C8F55A]">
+              <div
+                className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}
+              >
+                <span className="text-lg font-semibold" style={{ color: 'var(--accent)' }}>
                   {displayName.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -226,17 +234,27 @@ export default function RegistrationDetailPage() {
             </div>
             <div className="flex items-start gap-3">
               <span
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                  registration.status === 'confirmed'
-                    ? 'bg-[#C8F55A]/10 text-[#C8F55A]'
-                    : 'bg-yellow-500/10 text-yellow-400'
-                }`}
+                className="shrink-0 rounded-full px-3 py-1 text-xs font-medium"
+                style={{
+                  background:
+                    registration.status === 'confirmed'
+                      ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
+                      : registration.status === 'cancelled' || registration.status === 'rejected'
+                      ? 'color-mix(in srgb, var(--error) 10%, transparent)'
+                      : 'color-mix(in srgb, var(--warning) 10%, transparent)',
+                  color:
+                    registration.status === 'confirmed'
+                      ? 'var(--accent)'
+                      : registration.status === 'cancelled' || registration.status === 'rejected'
+                      ? 'var(--error)'
+                      : 'var(--warning)',
+                }}
               >
                 {registration.status}
               </span>
               <button
                 onClick={() => downloadResponseAsCSV(registration, displayName)}
-                className="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:text-[#C8F55A]"
+                className="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors hover:text-[var(--accent)]"
                 style={{ background: mutedSurfaceBg, color: textSecondary, borderColor }}
                 title="Download this response as CSV"
               >
@@ -305,7 +323,7 @@ export default function RegistrationDetailPage() {
                     {index + 1}.
                   </span>
                   {qa.label}
-                  {qa.required && <span className="ml-1 text-[#C8F55A]">*</span>}
+                  {qa.required && <span className="ml-1" style={{ color: 'var(--accent)' }}>*</span>}
                 </p>
                 {qa.answer ? (
                   <p className="whitespace-pre-wrap text-base leading-relaxed" style={{ color: textPrimary }}>

@@ -52,6 +52,7 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
         id: true,
         slug: true,
         title: true,
+        organizerName: true,
         accessType: true,
         eventDate: true,
         eventEndAt: true,
@@ -172,7 +173,7 @@ export async function POST(req: Request, props: { params: Promise<{ slug: string
       event: {
         title: event.title,
         slug: event.slug,
-        organizerName: event.organizer?.name ?? null,
+        organizerName: event.organizerName ?? event.organizer?.name ?? null,
       },
       day: {
         key: todayKey,

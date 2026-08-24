@@ -26,7 +26,22 @@ export function TokenChip() {
   return (
     <Link
       href="/tokens"
-      className="flex items-center gap-1.5 bg-[#C8F55A]/10 border border-[#C8F55A]/30 text-[#C8F55A] text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-[#C8F55A]/20 transition-colors"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.375rem",
+        background: "color-mix(in srgb, var(--accent) 14%, var(--surface))",
+        border: "0.5px solid color-mix(in srgb, var(--accent) 35%, var(--border))",
+        color: "var(--text-primary)",
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        padding: "0.35rem 0.65rem",
+        borderRadius: 999,
+        textDecoration: "none",
+        fontFamily: "var(--font-dm-sans)",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}
       title="Your token balance - click to buy more"
     >
       <span aria-hidden="true" style={{ color: "#F5C542", display: "inline-flex", alignItems: "center" }}>

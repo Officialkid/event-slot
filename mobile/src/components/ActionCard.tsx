@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppTheme } from "../theme";
+import { fontFamily, typeScale } from "../typography";
 
 type ActionCardProps = {
   title: string;
@@ -39,12 +40,12 @@ const styles = StyleSheet.create({
     gap: 8
   },
   title: {
-    fontSize: 20,
-    fontWeight: "900"
+    fontFamily: fontFamily.display,
+    fontSize: 22,
+    fontWeight: "400"
   },
   caption: {
-    fontSize: 14,
-    lineHeight: 21
+    ...typeScale.body
   },
   pill: {
     alignItems: "center",
@@ -59,4 +60,3 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   }
 });
-

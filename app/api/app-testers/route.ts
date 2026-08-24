@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 })
     }
 
+    const existingInterest = await prisma.featureInterest.findUnique({
+      where: { email_featureName: { email, featureName: FEATURE_NAME } },
+      select: { id: true },
+    })
+
     await prisma.featureInterest.upsert({
       where: { email_featureName: { email, featureName: FEATURE_NAME } },
       create: { email, featureName: FEATURE_NAME },
@@ -31,10 +36,30 @@ export async function POST(req: NextRequest) {
       where: { email },
       create: {
         email,
+        optInLinkSentAt: PLAY_TESTING_OPT_IN_URL ? new Date() : null,
         inviteSentAt: PLAY_TESTING_OPT_IN_URL ? new Date() : null,
       },
-      update: PLAY_TESTING_OPT_IN_URL ? { inviteSentAt: new Date() } : {},
+      update: PLAY_TESTING_OPT_IN_URL ? { optInLinkSentAt: new Date(), inviteSentAt: new Date() } : {},
     })
+
+    if (!existingInterest) {
+      const adminUsers = await prisma.user.findMany({
+        where: { isAdmin: true, email: { not: null } },
+        select: { id: true },
+      })
+
+      if (adminUsers.length > 0) {
+        await prisma.notification.createMany({
+          data: adminUsers.map((admin) => ({
+            userId: admin.id,
+            type: "PLATFORM",
+            title: "New app tester signup",
+            message: `${email} joined the EventSlot Play Store tester registry.`,
+            link: "/admin/app-testers",
+          })),
+        })
+      }
+    }
 
     let emailSent = true
     try {

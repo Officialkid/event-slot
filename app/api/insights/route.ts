@@ -6,6 +6,29 @@ import { askAIWithMeta } from '@/lib/ai'
 
 type InsightsRange = '30d' | '90d' | '1y' | 'all'
 
+function isPIIQuestion(label: string): boolean {
+  const normalized = label.trim().toLowerCase()
+  const piiPatterns = [
+    /\b(full\s*)?name\b/i,
+    /\blovely\s*name\b/i,
+    /\bfirst\s*name\b/i,
+    /\blast\s*name\b/i,
+    /\bsir\s*name\b/i,
+    /\bsurname\b/i,
+    /\bphone(\s*number)?\b/i,
+    /\bcontact(\s*number)?\b/i,
+    /\bmobile(\s*number)?\b/i,
+    /\btel(ephone)?\b/i,
+    /\bwhatsapp\b/i,
+    /\bemail(\s*address)?\b/i,
+    /\bid\s*number\b/i,
+    /\bnational\s*id\b/i,
+    /\bpassport\b/i,
+  ]
+  return piiPatterns.some(pattern => pattern.test(normalized))
+}
+
+
 function getStartDate(range: InsightsRange): Date | undefined {
   const now = Date.now()
   if (range === '30d') return new Date(now - 30 * 86_400_000)
@@ -132,6 +155,9 @@ export async function GET(req: NextRequest) {
         for (const answer of answers) {
           const question = questions.find(q => q.id === answer.questionId)
           if (!question || !answer.value?.trim()) continue
+          // Filter out PII (names, phone numbers, emails) from statistical aggregations
+          if (isPIIQuestion(question.label)) continue
+
           const existing = questionAggMap.get(question.label)
           if (existing) {
             existing.answers.push(answer.value.trim())
@@ -234,7 +260,7 @@ ${registrationsByMonth.map((m) => `${m.month}: ${m.count}`).join(', ')}`
       system: trackerSystem,
       prompt: trackerPrompt,
       taskType: 'tracker',
-      maxTokens: 180,
+      maxTokens: 350,
     })
 
     const aiSummary = aiSummaryResult.content

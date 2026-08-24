@@ -56,18 +56,21 @@ model Event {
   reminderSent     Boolean   @default(false)
   dataExpired      Boolean   @default(false)
   expiresAt        DateTime?
-  countryCode      String?   // ISO 3166-1 alpha-2 — country detected when event was created
+  countryCode      String?   // ISO 3166-1 alpha-2  country detected when event was created
   category         String?   // e.g. CONFERENCE, WORKSHOP, NETWORKING, CHURCH, CAMPUS, CONCERT, VIRTUAL
   faqEnabled       Boolean   @default(false)
   aiInsightsFreeUsed Boolean @default(false)
   whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
   summaryEmailSent Boolean   @default(false)
+  groupRegistrationEnabled Boolean @default(false)
+  allowGroupSelfClaim      Boolean @default(true)
   ticketTiers      TicketTier[]
   paidOrders       PaidEventOrder[]
   payments         Payment[]
   registrations    Registration[]
   registrationDrafts RegistrationDraft[]
   walkInCheckins   WalkInCheckin[]
+  groupBookings    GroupBooking[]
   views            EventView[]
   feedback         AttendeeFeedback[]
   unlocks          EventUnlock[]
@@ -148,7 +151,7 @@ model User {
   paystackCustomerCode     String?  @unique
   paystackSubscriptionCode String?  @unique
   creditBalance            Float    @default(0)
-  signupCountry            String?  // ISO 3166-1 alpha-2 — set at signup, never changes
+  signupCountry            String?  // ISO 3166-1 alpha-2  set at signup, never changes
   countryCode              String?  // most recently detected country
   countryName              String?
   preferredLanguage        String   @default("en")
@@ -157,7 +160,7 @@ model User {
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
   marketingConsent         Boolean   @default(false)
-  twoFactorEnabled         Boolean   @default(false)
+  twoFactorEnabled         Boolean   @default(true)
   otpRequired              Boolean   @default(false)
   paymentPinHash           String?
   paymentPinEnabled        Boolean   @default(false)
@@ -407,7 +410,7 @@ model Registration {
   source                String    @default("form")
   refCode               String?
   utmSource             String?
-  countryCode           String?   // ISO 3166-1 alpha-2 — country detected when attendee registered
+  countryCode           String?   // ISO 3166-1 alpha-2  country detected when attendee registered
   ticketTierId          String?
   ticketTier            TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
   paidOrderId           String?
@@ -985,7 +988,7 @@ enum TransactionType {
   MONTHLY_VOICE
 }
 
-// ── Email Campaigns ────────────────────────────────────────────────────────
+//  Email Campaigns 
 
 model EmailCampaign {
   id             String              @id @default(cuid())
@@ -1016,7 +1019,7 @@ enum EmailCampaignStatus {
   FAILED
 }
 
-// ── Exchange Rates ─────────────────────────────────────────────────────────
+//  Exchange Rates 
 
 model ExchangeRate {
   id        String   @id @default(cuid())
@@ -1026,7 +1029,7 @@ model ExchangeRate {
   updatedAt DateTime @updatedAt
 }
 
-// ── Country Intelligence ───────────────────────────────────────────────────
+//  Country Intelligence 
 
 model CountrySnapshot {
   id             String   @id @default(cuid())
@@ -1041,7 +1044,7 @@ model CountrySnapshot {
   @@unique([countryCode, snapshotDate])
 }
 
-// ── Google Calendar Integration ────────────────────────────────────────────
+//  Google Calendar Integration 
 
 model GoogleCalendarToken {
   id            String   @id @default(cuid())
@@ -1073,7 +1076,7 @@ model CalendarEventSync {
   @@unique([userId, eventId, role])
 }
 
-// ─── Subscription Plans (seeded, not user-created) ───────────────────────────
+//  Subscription Plans (seeded, not user-created) 
 model Plan {
   id                     String         @id @default(cuid())
   name                   String         @unique // "free" | "standard" | "pro" | "business"
@@ -1109,7 +1112,7 @@ model Plan {
   subscriptions          Subscription[]
 }
 
-// ─── User Subscriptions ───────────────────────────────────────────────────────
+//  User Subscriptions 
 model Subscription {
   id                 String             @id @default(cuid())
   userId             String
@@ -1159,7 +1162,7 @@ enum EventPassStatus {
   CANCELLED
 }
 
-// ─── Individual payment records ───────────────────────────────────────────────
+//  Individual payment records 
 model SubscriptionPayment {
   id                String        @id @default(cuid())
   subscriptionId    String
@@ -1187,7 +1190,7 @@ enum PaymentStatus {
   CANCELLED
 }
 
-// ─── PAYG opt-in and settings per user ───────────────────────────────────────
+//  PAYG opt-in and settings per user 
 enum WithdrawalMethod {
   MPESA
   PAYBILL
@@ -1222,7 +1225,6 @@ model PaygSettings {
   invoices        PaygInvoice[]
 }
 
-// ─── Individual PAYG usage events ────────────────────────────────────────────
 model PaygUsage {
   id             String        @id @default(cuid())
   paygSettingsId String
@@ -1250,7 +1252,6 @@ enum PaygUsageType {
   DATA_RETENTION
 }
 
-// ─── Monthly PAYG invoices ────────────────────────────────────────────────────
 model PaygInvoice {
   id             String        @id @default(cuid())
   paygSettingsId String
@@ -1273,4 +1274,58 @@ enum InvoiceStatus {
   PAID
   FAILED
   WAIVED
+}
+
+// Group & Organization Booking
+
+enum OrganizationType {
+  CHURCH
+  COMPANY
+  SCHOOL
+  UNIVERSITY
+  NGO
+  SPONSOR
+  FAMILY_TEAM
+  OTHER
+}
+
+model GroupBooking {
+  id           String            @id @default(cuid())
+  eventId      String
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orgName      String
+  orgType      OrganizationType  @default(OTHER)
+  contactName  String
+  contactEmail String
+  contactPhone String
+  totalSlots   Int               @default(1)
+  bookingToken String            @unique @default(uuid())
+  claimToken   String            @unique @default(uuid())
+  status       String            @default("ACTIVE")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  slots        GroupTicketSlot[]
+
+  @@index([eventId])
+  @@index([contactEmail])
+}
+
+model GroupTicketSlot {
+  id           String       @id @default(cuid())
+  bookingId    String
+  booking      GroupBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  slotIndex    Int
+  attendeeName String?
+  attendeeEmail String?
+  attendeePhone String?
+  ticketId     String?      @unique
+  qrToken      String?      @unique @default(uuid())
+  status       String       @default("UNASSIGNED")
+  assignedAt   DateTime?
+  checkedInAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([bookingId])
+  @@index([qrToken])
 }

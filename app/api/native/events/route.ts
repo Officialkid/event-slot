@@ -22,6 +22,7 @@ type NativeCreateEventInput = {
   location?: string | null;
   mapDirectionsUrl?: string | null;
   entryFeeLabel?: string | null;
+  showRemainingSpots?: boolean;
   attendeeConsentEnabled?: boolean;
   attendeeConsentText?: string | null;
   isPaid?: false;
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
         eventDate,
         eventEndAt: body.eventEndAt ? new Date(body.eventEndAt) : undefined,
         eventType,
+        showRemainingSpots: body.showRemainingSpots ?? true,
         imageUrl: body.imageUrl?.trim() || undefined,
         isPaid: false,
         joinOpensAt: body.joinOpensAt ? new Date(body.joinOpensAt) : undefined,
@@ -214,6 +216,7 @@ export async function GET(req: NextRequest) {
           id: true,
           location: true,
           mapDirectionsUrl: true,
+          showRemainingSpots: true,
           organizerId: true,
           slug: true,
           status: true,

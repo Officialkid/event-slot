@@ -25,6 +25,7 @@ export type EventInvitationCardProps = {
   deadline?: Date | string | null
   accessType?: "REGISTRATION" | "WALK_IN"
   walkInOpenToday?: boolean
+  mapPreviewImageUrl?: string | null
 }
 
 function formatEventDate(date: Date | string): string {
@@ -129,25 +130,16 @@ function getCardCopy(language: SupportedLanguageCode | null) {
   return copy[language ?? "en"] ?? copy.en
 }
 
-function buildMapPreviewUrl(mapUrl: string | null | undefined, location: string | null | undefined) {
-  if (!mapUrl) return null
-  try {
-    const url = new URL(mapUrl)
-    const query = url.searchParams.get("query") || url.searchParams.get("q")
-    if (query) return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`
-
-    const coordinates = mapUrl.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
-    if (coordinates) return `https://www.google.com/maps?q=${coordinates[1]},${coordinates[2]}&output=embed`
-
-    const placeMatch = url.pathname.match(/\/place\/([^/]+)/)
-    if (placeMatch?.[1]) {
-      return `https://www.google.com/maps?q=${encodeURIComponent(decodeURIComponent(placeMatch[1].replace(/\+/g, " ")))}&output=embed`
-    }
-  } catch {
-    // Short maps links are still useful as the button target, even if they cannot be embedded directly.
+function buildNativeMapsUrl(mapUrl: string | null | undefined, location: string | null | undefined) {
+  if (location?.trim()) {
+    return `geo:0,0?q=${encodeURIComponent(location.trim())}`
   }
 
-  return location ? `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed` : null
+  if (mapUrl?.trim()) {
+    return mapUrl
+  }
+
+  return null
 }
 
 export default function EventInvitationCard({
@@ -169,6 +161,7 @@ export default function EventInvitationCard({
   deadline,
   accessType = "REGISTRATION",
   walkInOpenToday = false,
+  mapPreviewImageUrl = null,
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
@@ -180,7 +173,7 @@ export default function EventInvitationCard({
   const displayLocation = translation?.location || location
   const displayEntryFeeLabel = translation?.entryFeeLabel || entryFeeLabel
   const displayOrganizerName = translation?.organizerName || organizerName
-  const mapPreviewUrl = buildMapPreviewUrl(mapDirectionsUrl, displayLocation)
+  const nativeMapsUrl = buildNativeMapsUrl(mapDirectionsUrl, displayLocation)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
   const eventDateLabel = eventDate ? formatEventDateRange(eventDate, eventEndAt) : ""
@@ -198,6 +191,35 @@ export default function EventInvitationCard({
     posterErrorHandledRef.current = true
     setPosterFailed(true)
   }, [])
+
+  const openNativeMaps = useCallback(() => {
+    const fallbackUrl =
+      mapDirectionsUrl ||
+      (displayLocation ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayLocation)}` : null)
+
+    if (typeof window === "undefined") return
+
+    if (!nativeMapsUrl) {
+      if (fallbackUrl) {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer")
+      }
+      return
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      if (fallbackUrl) {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer")
+      }
+    }, 900)
+
+    window.addEventListener(
+      "blur",
+      () => window.clearTimeout(fallbackTimer),
+      { once: true }
+    )
+
+    window.location.href = nativeMapsUrl
+  }, [displayLocation, mapDirectionsUrl, nativeMapsUrl])
 
   return (
     <div
@@ -401,30 +423,60 @@ export default function EventInvitationCard({
           </>
         )}
 
-        {mapDirectionsUrl && (
+        {(mapDirectionsUrl || displayLocation) && (
           <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.35rem" }}>
-            {mapPreviewUrl ? (
-              <iframe
-                title={`${displayTitle} map preview`}
-                src={mapPreviewUrl}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                style={{ display: "block", width: "100%", height: 150, border: 0 }}
-              />
+            {mapPreviewImageUrl ? (
+              <div style={{ position: "relative", width: "100%", minHeight: 180, background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08))" }}>
+                <img
+                  src={mapPreviewImageUrl}
+                  alt={`${displayTitle} map preview`}
+                  loading="lazy"
+                  style={{ display: "block", width: "100%", height: 180, objectFit: "cover" }}
+                />
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(10,10,10,0.02), rgba(10,10,10,0.14))",
+                    pointerEvents: "none",
+                  }}
+                />
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 46,
+                    height: 46,
+                    borderRadius: "999px",
+                    background: "rgba(10,10,10,0.8)",
+                    border: "1px solid rgba(255,255,255,0.22)",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#C8F55A",
+                    fontSize: "1.15rem",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  📍
+                </div>
+              </div>
             ) : (
               <div style={{ height: 120, display: "grid", placeItems: "center", color: "var(--text-muted)", fontSize: "0.82rem", padding: "1rem", textAlign: "center" }}>
                 Map preview is available after opening the organizer-provided directions link.
               </div>
             )}
-            <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "center" }}>
-              <a
-                href={mapDirectionsUrl}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: "inline-flex", justifyContent: "center", width: "100%", borderRadius: 999, background: "var(--accent)", color: "#0A0A0A", padding: "0.72rem 1rem", fontSize: "0.86rem", fontWeight: 800, textDecoration: "none" }}
+            <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "grid", gap: "0.55rem" }}>
+              <button
+                type="button"
+                onClick={openNativeMaps}
+                style={{ display: "inline-flex", justifyContent: "center", width: "100%", borderRadius: 999, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", padding: "0.72rem 1rem", fontSize: "0.84rem", fontWeight: 700 }}
               >
-                Open in Google Maps
-              </a>
+                Open with maps app
+              </button>
             </div>
           </div>
         )}

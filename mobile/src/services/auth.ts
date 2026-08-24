@@ -1,4 +1,5 @@
 import {
+  ForgotPasswordRequest,
   NativeLoginRequest,
   NativeLogoutRequest,
   NativeRefreshRequest,
@@ -10,15 +11,6 @@ import { eventslotRequest } from "../api/client";
 import { nativeConfig } from "../config";
 import { AppSession } from "../session";
 
-export const demoSession: AppSession = {
-  displayName: "EventSlot",
-  email: "eventslot.co@gmail.com",
-  role: "Super Admin",
-  plan: "Pioneer",
-  tokenBalance: 5,
-  authMode: nativeConfig.authMode
-};
-
 export async function requestOrganizerOtp(input: SendOtpRequest): Promise<void> {
   await eventslotRequest("/api/auth/send-otp", {
     method: "POST",
@@ -28,6 +20,13 @@ export async function requestOrganizerOtp(input: SendOtpRequest): Promise<void> 
 
 export async function signupOrganizer(input: SignupRequest): Promise<void> {
   await eventslotRequest("/api/auth/signup", {
+    method: "POST",
+    body: input
+  });
+}
+
+export async function requestPasswordReset(input: ForgotPasswordRequest): Promise<void> {
+  await eventslotRequest("/api/auth/forgot-password", {
     method: "POST",
     body: input
   });
@@ -78,7 +77,7 @@ export function getNativeAuthReadinessItems(): string[] {
 
   return [
     `API host: ${apiHost}`,
-    nativeConfig.authMode === "live" ? "Live organizer auth enabled" : "Demo auth enabled",
+    "Live organizer auth enabled",
     "Session tokens use secure native storage",
     "Logout clears local session and calls live logout when available"
   ];

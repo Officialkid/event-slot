@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       )
     }
 
-    const { description, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, attendeeConsentEnabled, attendeeConsentText, communityLink, deadline, whatsappNumber, contactMode } = parsed.data
+    const { description, organizerName, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, imageUrl, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, deadline, whatsappNumber, contactMode } = parsed.data
 
     let storedEventContact: string | null = null
     if (whatsappNumber?.trim()) {
@@ -57,12 +57,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       where: { slug },
       data: {
         description: description !== undefined ? ((description && description.trim().length > 0) ? description : null) : undefined,
+        organizerName: organizerName !== undefined ? organizerName.trim() : undefined,
         eventDate: eventDate !== undefined ? (eventDate ? new Date(eventDate) : null) : undefined,
         eventEndAt: eventEndAt !== undefined ? (eventEndAt ? new Date(eventEndAt) : null) : undefined,
         joinOpensAt: joinOpensAt !== undefined ? (joinOpensAt ? new Date(joinOpensAt) : null) : undefined,
         location: location !== undefined ? (location?.trim() || null) : undefined,
         mapDirectionsUrl: mapDirectionsUrl !== undefined ? (mapDirectionsUrl?.trim() || null) : undefined,
         entryFeeLabel: entryFeeLabel !== undefined ? (entryFeeLabel?.trim() || null) : undefined,
+        imageUrl: imageUrl !== undefined ? (imageUrl?.trim() || null) : undefined,
+        showRemainingSpots: showRemainingSpots !== undefined ? showRemainingSpots : undefined,
         attendeeConsentEnabled: attendeeConsentEnabled !== undefined ? attendeeConsentEnabled : undefined,
         attendeeConsentText: attendeeConsentText !== undefined ? (attendeeConsentText?.trim() || null) : undefined,
         communityLink: communityLink !== undefined ? normalizeCommunityLink(communityLink) : undefined,
@@ -71,12 +74,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       },
       select: {
         description: true,
+        organizerName: true,
         eventDate: true,
         eventEndAt: true,
         joinOpensAt: true,
         location: true,
         mapDirectionsUrl: true,
         entryFeeLabel: true,
+        imageUrl: true,
+        showRemainingSpots: true,
         attendeeConsentEnabled: true,
         attendeeConsentText: true,
         communityLink: true,

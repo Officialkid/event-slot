@@ -13,7 +13,7 @@ function cleanBaseUrl(value: string | undefined): string {
 }
 
 function getAuthMode(value: string | undefined): NativeAuthMode {
-  return value === "live" ? "live" : "demo";
+  return value === "demo" ? "demo" : "live";
 }
 
 export const nativeConfig = {

@@ -50,8 +50,10 @@ export async function sendBulkEmails(
   }
 
   try {
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      const batch = recipients.slice(i, i + BATCH_SIZE)
+    // Process in controlled rate-safe sub-batches (2 emails per second)
+    const CHUNK_SIZE = 2
+    for (let i = 0; i < recipients.length; i += CHUNK_SIZE) {
+      const batch = recipients.slice(i, i + CHUNK_SIZE)
       const results = await Promise.allSettled(
         batch.map((r) =>
           sendCampaignEmail({
@@ -72,9 +74,9 @@ export async function sendBulkEmails(
           if (!firstFailureReason) firstFailureReason = message
         })
       }
-      // Small delay between batches to respect Resend rate limits
-      if (i + BATCH_SIZE < recipients.length) {
-        await new Promise((res) => setTimeout(res, 1000))
+      // 550ms delay between pairs to strictly comply with Resend rate limits
+      if (i + CHUNK_SIZE < recipients.length) {
+        await new Promise((res) => setTimeout(res, 550))
       }
     }
 

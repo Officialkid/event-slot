@@ -137,7 +137,7 @@ export function SidebarInstallPrompt({ collapsed = false }: SidebarInstallPrompt
             borderRadius: 999,
             border: `0.5px solid ${cardBorder}`,
             background: "var(--accent)",
-            color: "#0A0A0A",
+            color: "var(--accent-contrast, #0A0A0A)",
             padding: "0.62rem 0.9rem",
             fontFamily: "var(--font-dm-sans)",
             fontSize: "0.78rem",

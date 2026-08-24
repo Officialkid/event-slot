@@ -106,14 +106,14 @@ const errorTextStyle: React.CSSProperties = {
 }
 
 const warningCardStyle: React.CSSProperties = {
-  background: "rgba(255,184,77,0.05)",
-  border: "1px solid rgba(255,184,77,0.22)",
+  background: "color-mix(in srgb, var(--warning) 5%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--warning) 22%, transparent)",
   borderRadius: 10,
 }
 
 const warningInsetStyle: React.CSSProperties = {
-  background: "rgba(255,184,77,0.04)",
-  border: "1px solid rgba(255,184,77,0.18)",
+  background: "color-mix(in srgb, var(--warning) 4%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--warning) 18%, transparent)",
   borderRadius: 10,
 }
 
@@ -166,6 +166,9 @@ export default function EditEventPage() {
   const [communityLink, setCommunityLink] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [questions, setQuestions] = useState<Question[]>([])
+  const [initialQuestions, setInitialQuestions] = useState<Question[]>([])
+  const [registrationCount, setRegistrationCount] = useState(0)
+  const [showQuestionChangePrompt, setShowQuestionChangePrompt] = useState(false)
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
 
   const [imageUploading, setImageUploading] = useState(false)
@@ -176,6 +179,8 @@ export default function EditEventPage() {
   const [isPaid, setIsPaid] = useState(false)
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const questionChangeModeRef = useRef<"KEEP_EXISTING" | "RESET_EXISTING" | null>(null)
 
   const bindDateTimeField = (setter: React.Dispatch<React.SetStateAction<string>>) => ({
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value),
@@ -219,6 +224,7 @@ export default function EditEventPage() {
         setAttendeeConsentText(e.attendeeConsentText ?? "")
         setCommunityLink(e.communityLink ?? "")
         setImageUrl(e.imageUrl ?? "")
+        setRegistrationCount((e.confirmedCount ?? 0) + (e.waitlistCount ?? 0))
         setCategory(e.category ?? "")
         setWhatsappNumber(e.whatsappNumber ?? "")
         setContactMode(e.contactMode === "CALL" ? "CALL" : "WHATSAPP")
@@ -260,17 +266,17 @@ export default function EditEventPage() {
               }))
             : [defaultTicketTier()]
         )
-        setQuestions(
-          Array.isArray(e.questions)
-            ? e.questions.map((q: Question) => ({
-                ...q,
-                options: q.options ?? [],
-                optionLimits: Object.fromEntries(
-                  Object.entries(q.optionLimits ?? {}).map(([key, value]) => [key, value == null ? "" : String(value)])
-                ),
-              }))
-            : []
-        )
+        const normalizedQuestions = Array.isArray(e.questions)
+          ? e.questions.map((q: Question) => ({
+              ...q,
+              options: q.options ?? [],
+              optionLimits: Object.fromEntries(
+                Object.entries(q.optionLimits ?? {}).map(([key, value]) => [key, value == null ? "" : String(value)])
+              ),
+            }))
+          : []
+        setQuestions(normalizedQuestions)
+        setInitialQuestions(normalizedQuestions)
       })
       .catch(() => setError("Failed to load event"))
       .finally(() => setLoading(false))
@@ -436,8 +442,25 @@ export default function EditEventPage() {
     setTicketTiers((current) => (current.length > 1 ? current.filter((tier) => tier.id !== id) : current))
   }
 
+  function serializeQuestions(source: Question[]) {
+    return JSON.stringify(
+      source.map((question) => ({
+        label: question.label.trim(),
+        type: question.type,
+        required: question.required,
+        options: question.options.map((option) => option.trim()),
+        allowMultiple: !!question.allowMultiple,
+      }))
+    )
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    const questionsChanged = serializeQuestions(questions) !== serializeQuestions(initialQuestions)
+    if (registrationCount > 0 && questionsChanged && !questionChangeModeRef.current) {
+      setShowQuestionChangePrompt(true)
+      return
+    }
     setSaving(true)
     setError("")
     const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
@@ -499,6 +522,7 @@ export default function EditEventPage() {
           category: category || undefined,
           whatsappNumber: whatsappNumber || undefined,
           contactMode,
+          questionChangeMode: questionChangeModeRef.current ?? "KEEP_EXISTING",
           questions: questions.map(q => ({
             id: q.id,
             label: q.label,
@@ -512,6 +536,7 @@ export default function EditEventPage() {
       })
       const data = await res.json()
       if (data.success) {
+        questionChangeModeRef.current = null
         if (isPaid) {
           const tierRes = await fetch(`/api/events/${slug}/ticket-tiers`, {
             method: "PATCH",
@@ -543,9 +568,11 @@ export default function EditEventPage() {
         setSuccess(true)
         setTimeout(() => router.push("/my-events"), 1500)
       } else {
+        questionChangeModeRef.current = null
         setError(data.error || "Failed to save changes.")
       }
     } catch {
+      questionChangeModeRef.current = null
       setError("Unexpected error. Please try again.")
     } finally {
       setSaving(false)
@@ -594,7 +621,7 @@ export default function EditEventPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           {/* Event Details */}
           <div className="rounded-[12px] p-6" style={cardStyle}>
             <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
@@ -608,7 +635,7 @@ export default function EditEventPage() {
                 <input
                   type="text"
                   required
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
@@ -621,7 +648,7 @@ export default function EditEventPage() {
                 <input
                   type="text"
                   required
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="Shown on the event page"
                   value={organizerName}
@@ -636,7 +663,7 @@ export default function EditEventPage() {
                   Description
                 </label>
                 <textarea
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
                   rows={5}
                   maxLength={5000}
@@ -660,7 +687,7 @@ export default function EditEventPage() {
                   <div className="mb-4 p-4" style={warningCardStyle}>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Paid ticket tiers</p>
+                        <p className="text-[0.78rem] font-semibold" style={{ color: "var(--warning)" }}>Paid ticket tiers</p>
                         <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
                           Manage prices, capacities, and bundle sizes without changing existing registrations.
                         </p>
@@ -708,7 +735,7 @@ export default function EditEventPage() {
                               <select
                                 value={tier.presetKey}
                                 onChange={e => updateTicketTier(tier.id, "presetKey", e.target.value)}
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                 style={inputStyle}
                               >
                                 <option value="">Custom tier</option>
@@ -734,7 +761,7 @@ export default function EditEventPage() {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <input
                               type="text"
-                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                               style={inputStyle}
                               placeholder="Tier name"
                               value={tier.name}
@@ -743,7 +770,7 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="50"
-                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                               style={inputStyle}
                               placeholder="Price (KES)"
                               value={tier.priceKes}
@@ -776,7 +803,7 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                               style={inputStyle}
                               placeholder="Tier capacity"
                               value={tier.capacity}
@@ -785,7 +812,7 @@ export default function EditEventPage() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                               style={inputStyle}
                               placeholder="Bundle size"
                               value={tier.bundleSize}
@@ -794,7 +821,7 @@ export default function EditEventPage() {
                           </div>
 
                           <textarea
-                            className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                            className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                             style={inputStyle}
                             rows={2}
                             placeholder="Optional description"
@@ -813,7 +840,7 @@ export default function EditEventPage() {
                 <input
                   type="number"
                   min="1"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="Leave empty for unlimited"
                   value={capacity}
@@ -826,7 +853,7 @@ export default function EditEventPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={deadline}
                   {...bindDateTimeField(setDeadline)}
@@ -838,7 +865,7 @@ export default function EditEventPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={eventDate}
                   {...bindDateTimeField(setEventDate)}
@@ -850,7 +877,7 @@ export default function EditEventPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={eventEndAt}
                   {...bindDateTimeField(setEventEndAt)}
@@ -865,7 +892,7 @@ export default function EditEventPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={joinOpensAt}
                   {...bindDateTimeField(setJoinOpensAt)}
@@ -877,7 +904,7 @@ export default function EditEventPage() {
                 </label>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="e.g. iHub, Nairobi"
                   value={location}
@@ -891,7 +918,7 @@ export default function EditEventPage() {
                 <input
                   type="url"
                   inputMode="url"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="Paste the exact Google Maps share link"
                   value={mapDirectionsUrl}
@@ -917,7 +944,7 @@ export default function EditEventPage() {
                 <input
                   type="text"
                   maxLength={200}
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
                   value={entryFeeLabel}
@@ -939,7 +966,7 @@ export default function EditEventPage() {
                 </label>
                 {attendeeConsentEnabled && (
                   <textarea
-                    className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     rows={3}
                     maxLength={1000}
@@ -959,7 +986,7 @@ export default function EditEventPage() {
                 <input
                   type="text"
                   inputMode="url"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   placeholder="e.g. WhatsApp group, Telegram, website"
                   value={communityLink}
@@ -971,7 +998,7 @@ export default function EditEventPage() {
                   Event Category (optional)
                 </label>
                 <select
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
                   value={category}
                   onChange={e => setCategory(e.target.value)}
@@ -1084,6 +1111,11 @@ export default function EditEventPage() {
             <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Registration Questions
             </h2>
+            {registrationCount > 0 && (
+              <div className="mb-4 rounded-[10px] border p-3 text-[0.8rem]" style={{ borderColor: "color-mix(in srgb, var(--warning) 22%, transparent)", background: "color-mix(in srgb, var(--warning) 6%, transparent)", color: "var(--text-secondary)" }}>
+                {registrationCount} attendee registration{registrationCount === 1 ? "" : "s"} already exist for this event. If you change the questions, you will choose whether earlier registrations stay as they are or the event starts fresh.
+              </div>
+            )}
             <div className="space-y-4">
               {questions.map((q, idx) => (
                 <div key={q.id} className="rounded-[8px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
@@ -1095,7 +1127,7 @@ export default function EditEventPage() {
                       <input
                         type="text"
                         required
-                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                         style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         value={q.label}
                         onChange={e => handleQuestionChange(idx, "label", e.target.value)}
@@ -1106,7 +1138,7 @@ export default function EditEventPage() {
                         Type
                       </label>
                       <select
-                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                         style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         value={q.type}
                         onChange={e => handleQuestionChange(idx, "type", e.target.value)}
@@ -1126,7 +1158,7 @@ export default function EditEventPage() {
                         <div className="mt-1 flex gap-2">
                           <input
                             type="text"
-                            className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                            className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                             style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                             placeholder="Add option"
                             value={optionDrafts[q.id] ?? ""}
@@ -1178,7 +1210,7 @@ export default function EditEventPage() {
                                 <input
                                   type="text"
                                   inputMode="numeric"
-                                  className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                                  className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                                   style={{ background: "var(--surface-muted)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                                   placeholder="Slots"
                                   value={q.optionLimits?.[opt] ?? ""}
@@ -1198,7 +1230,7 @@ export default function EditEventPage() {
                         <input
                           type="checkbox"
                           id={`allow-multiple-${q.id}`}
-                          className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                          className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
                           style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                           checked={!!q.allowMultiple}
                           onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
@@ -1212,7 +1244,7 @@ export default function EditEventPage() {
                       <input
                         type="checkbox"
                         id={`required-${q.id}`}
-                        className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                        className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
                         style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                         checked={q.required}
                         onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
@@ -1246,8 +1278,8 @@ export default function EditEventPage() {
           <div className="space-y-4">
             <button
               type="submit"
-              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
-              style={{ background: "var(--accent)" }}
+              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold"
+              style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
               disabled={saving}
             >
               {saving ? "Saving…" : "Save Changes"}
@@ -1269,6 +1301,62 @@ export default function EditEventPage() {
             setContactMode(mode)
           }}
         />
+
+        {showQuestionChangePrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "color-mix(in srgb, var(--bg-page) 62%, transparent)" }}>
+            <div className="w-full max-w-[540px] rounded-[16px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <h2 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                Apply question changes
+              </h2>
+              <p className="mt-3 text-[0.9rem]" style={{ color: "var(--text-secondary)" }}>
+                This event already has registrations. Should the new question changes affect people who registered before?
+              </p>
+              <div className="mt-5 grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    questionChangeModeRef.current = "KEEP_EXISTING"
+                    setShowQuestionChangePrompt(false)
+                    formRef.current?.requestSubmit()
+                  }}
+                  className="rounded-[12px] border px-4 py-3 text-left"
+                  style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
+                >
+                  Keep earlier registrations
+                  <div className="mt-1 text-[0.78rem]" style={{ color: "var(--text-muted)" }}>
+                    Existing attendees keep their current answers. The new question will apply only to future registrations.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    questionChangeModeRef.current = "RESET_EXISTING"
+                    setShowQuestionChangePrompt(false)
+                    formRef.current?.requestSubmit()
+                  }}
+                  className="rounded-[12px] border px-4 py-3 text-left"
+                  style={{ borderColor: "color-mix(in srgb, var(--error) 35%, transparent)", background: "color-mix(in srgb, var(--error) 8%, transparent)", color: "var(--text-primary)" }}
+                >
+                  Reset registrations and start fresh
+                  <div className="mt-1 text-[0.78rem]" style={{ color: "var(--text-muted)" }}>
+                    Existing registrations and saved drafts will be removed so everyone registers again using the updated form.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    questionChangeModeRef.current = null
+                    setShowQuestionChangePrompt(false)
+                  }}
+                  className="rounded-full border px-4 py-2 text-[0.82rem] font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

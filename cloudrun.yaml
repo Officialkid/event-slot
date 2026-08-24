@@ -15,7 +15,8 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-        - image: us-central1-docker.pkg.dev/eventslot/eventslot/eventslot-web:latest
+        # Template image reference. Replace YOUR_PROJECT_ID when applying this file manually.
+        - image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/eventslot/eventslot-web:latest
           ports:
             - containerPort: 3000
           resources:

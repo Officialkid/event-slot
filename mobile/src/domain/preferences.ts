@@ -1,7 +1,8 @@
 import { NativeNotificationChannel } from "./notifications";
-import { ThemeName } from "../theme";
 
 export type NativePreferences = {
-  themeName: ThemeName;
+  onboardingCompleted: boolean;
+  preferredLanguage: string;
+  themeName: "dark";
   notificationChannels: Record<NativeNotificationChannel, boolean>;
 };

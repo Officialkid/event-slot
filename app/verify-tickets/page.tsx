@@ -33,10 +33,10 @@ export default function VerifyTicketsLandingPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/events"
+          href="/"
           className="mt-8 inline-flex w-fit rounded-full bg-[#C8F55A] px-5 py-3 text-sm font-bold text-black"
         >
-          Back to organiser events
+          Back to EventSlot
         </Link>
       </section>
     </main>

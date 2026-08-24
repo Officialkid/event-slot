@@ -5,6 +5,29 @@ import { authOptions } from '@/lib/auth'
 import { askAIWithMeta } from '@/lib/ai'
 
 type InsightsRange = '30d' | '90d' | '1y' | 'all'
+
+function isPIIQuestion(label: string): boolean {
+  const normalized = label.trim().toLowerCase()
+  const piiPatterns = [
+    /\b(full\s*)?name\b/i,
+    /\blovely\s*name\b/i,
+    /\bfirst\s*name\b/i,
+    /\blast\s*name\b/i,
+    /\bsir\s*name\b/i,
+    /\bsurname\b/i,
+    /\bphone(\s*number)?\b/i,
+    /\bcontact(\s*number)?\b/i,
+    /\bmobile(\s*number)?\b/i,
+    /\btel(ephone)?\b/i,
+    /\bwhatsapp\b/i,
+    /\bemail(\s*address)?\b/i,
+    /\bid\s*number\b/i,
+    /\bnational\s*id\b/i,
+    /\bpassport\b/i,
+  ]
+  return piiPatterns.some(pattern => pattern.test(normalized))
+}
+
 type EventQuestion = { id: string; label: string; type: string }
 type AnswerRow = { questionId: string; value: string }
 
@@ -58,6 +81,8 @@ export async function POST(req: NextRequest) {
         for (const answer of answers) {
           const question = questions.find((q) => q.id === answer.questionId)
           if (!question || !answer.value?.trim()) continue
+          // Filter out PII (names, phone numbers, emails)
+          if (isPIIQuestion(question.label)) continue
 
           if (!valueMaps.has(question.label)) {
             valueMaps.set(question.label, new Map<string, number>())
@@ -88,7 +113,7 @@ export async function POST(req: NextRequest) {
       system: 'Write concise audience profile summaries for event organizers.',
       prompt,
       taskType: 'tracker',
-      maxTokens: 120,
+      maxTokens: 350,
     })
 
     const profile = aiResult.content?.trim() || 'Audience profile is temporarily unavailable. Try regenerating in a moment.'

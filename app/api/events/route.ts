@@ -93,6 +93,8 @@ export async function POST(req: NextRequest) {
       questions,
       organizerEmail,
       organizerName,
+      groupRegistrationEnabled,
+      allowGroupSelfClaim,
     } = parsed.data
 
     const normalizedTitle = title.trim()
@@ -101,7 +103,6 @@ export async function POST(req: NextRequest) {
     const isWalkInEvent = accessType === 'WALK_IN'
     const isRegistrationEvent = !isWalkInEvent
     const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
-    // Accept links entered as meet.google.com/... (without protocol) or with http:// and normalise to https://.
     let normalizedVirtualLink = rawVirtualLink
     if (/^meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = `https://${rawVirtualLink}`
     else if (/^http:\/\/meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = rawVirtualLink.replace(/^http:\/\//i, 'https://')
@@ -238,6 +239,8 @@ export async function POST(req: NextRequest) {
         communityLink: normalizeCommunityLink(communityLink) || undefined,
         whatsappNumber: storedEventContact || undefined,
         imageUrl: imageUrl || undefined,
+        groupRegistrationEnabled: groupRegistrationEnabled ?? false,
+        allowGroupSelfClaim: allowGroupSelfClaim ?? true,
         questions: isWalkInEvent ? [] : questions,
         organizerEmail: eventOrganizerEmail,
         organizerName: normalizedOrganizerName,

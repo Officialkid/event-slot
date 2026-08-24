@@ -1,7 +1,6 @@
 param(
   [Parameter(Mandatory = $false)]
-  [ValidateSet("eventslot")]
-  [string]$ProjectId = "eventslot",
+  [string]$ProjectId = $env:GCP_PROJECT_ID,
 
   [Parameter(Mandatory = $false)]
   [string]$Region = "us-central1",
@@ -21,6 +20,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($ProjectId)) {
+  throw "ProjectId is required. Pass -ProjectId <your-gcp-project-id> or set GCP_PROJECT_ID in your environment."
+}
 
 Write-Host "Setting active gcloud project..."
 gcloud config set project $ProjectId

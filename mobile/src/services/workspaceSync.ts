@@ -34,9 +34,9 @@ export function buildNativeWorkspaceSyncSummary(input: {
 
   if (input.session.authMode === "demo") {
     return {
-      caption: `${input.events.length} demo event${input.events.length === 1 ? "" : "s"} loaded. Last refresh: ${syncedAt}.`,
+      caption: `${input.events.length} preview event${input.events.length === 1 ? "" : "s"} loaded from the local workspace. Last refresh: ${syncedAt}.`,
       status: "demo",
-      title: "Demo workspace"
+      title: "Preview workspace"
     };
   }
 
@@ -48,7 +48,7 @@ export function buildNativeWorkspaceSyncSummary(input: {
 }
 
 export function getNativeWorkspaceSyncReadinessMessage(): string {
-  return "Native workspace sync now shows the current data source, event count, last refresh time, and retry action so Android QA can prove live API loading.";
+  return "Workspace sync now shows the data source, event count, last refresh time, and retry action so device QA can confirm the app is loading the right EventSlot data.";
 }
 
 function formatNativeWorkspaceSyncTime(value: string | null): string {

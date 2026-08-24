@@ -44,6 +44,8 @@ export const createEventSchema = z.object({
   attendeeConsentEnabled: z.boolean().optional().default(true),
   attendeeConsentText: z.string().max(1000, 'Consent text must be 1000 characters or less').optional().nullable().or(z.literal('')),
   isPaid: z.boolean().optional().default(false),
+  groupRegistrationEnabled: z.boolean().optional().default(false),
+  allowGroupSelfClaim: z.boolean().optional().default(true),
   ticketPrice: z.number().int().positive().optional().nullable(),
   ticketTiers: z.array(ticketTierSchema).max(10, 'Maximum 10 ticket tiers').optional().default([]),
   communityLink: z.string().max(500).optional().nullable().or(z.literal('')),
@@ -220,16 +222,34 @@ export const createEventSchema = z.object({
       message: 'Public events require a poster image',
     })
   }
+
+  if (data.visibility === 'PUBLIC' && !data.eventDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['eventDate'],
+      message: 'Public events require a start date',
+    })
+  }
+
+  if (data.visibility === 'PUBLIC' && data.eventType === 'PHYSICAL' && !data.location?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['location'],
+      message: 'Public physical events require a location',
+    })
+  }
 })
 
 export const updateEventSettingsSchema = z.object({
   description: z.string().max(5000).optional().nullable(),
+  organizerName: z.string().min(1, 'Organizer name is required').max(200).optional(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
   eventEndAt: z.string().datetime({ offset: true }).optional().nullable(),
   joinOpensAt: z.string().datetime({ offset: true }).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
   mapDirectionsUrl: z.string().url('Please provide a valid map directions URL').max(1000).optional().nullable().or(z.literal('')),
   entryFeeLabel: z.string().max(200, 'Entry fee note must be 200 characters or less').optional().nullable().or(z.literal('')),
+  imageUrl: z.string().url().max(1000).optional().nullable().or(z.literal('')),
   showRemainingSpots: z.boolean().optional(),
   attendeeConsentEnabled: z.boolean().optional(),
   attendeeConsentText: z.string().max(1000, 'Consent text must be 1000 characters or less').optional().nullable().or(z.literal('')),

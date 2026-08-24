@@ -22,6 +22,10 @@ export type SendOtpRequest = {
   email: string;
 };
 
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
 export type NativeLoginRequest = {
   email: string;
   password?: string;
@@ -68,16 +72,32 @@ export type CreateEventRequest = {
   location?: string;
   mapDirectionsUrl?: string;
   entryFeeLabel?: string;
+  showRemainingSpots?: boolean;
   attendeeConsentEnabled?: boolean;
   attendeeConsentText?: string;
-  isPaid?: false;
+  isPaid?: boolean;
   ticketsEnabled?: true;
+  standardPrice?: number;
+  ticketTiers?: Array<{
+    name: string;
+    price: number;
+    capacity?: number;
+  }>;
   communityLink?: string;
   whatsappNumber?: string;
   contactMode?: "email" | "whatsapp" | "both";
   imageUrl?: string;
   organizerEmail?: string;
   organizerName?: string;
+  questions?: Array<{
+    id: string;
+    label: string;
+    type: "text" | "email" | "phone" | "select" | "checkbox" | "textarea" | "number" | "file";
+    required?: boolean;
+    options?: string[];
+    allowMultiple?: boolean;
+    optionLimits?: Record<string, number | null | undefined>;
+  }>;
 };
 
 export type CreatedEventResponse = {
@@ -139,9 +159,12 @@ export type NativeWorkspaceEvent = {
   status: string | null;
   eventDate: string | null;
   eventEndAt?: string | null;
+  joinOpensAt?: string | null;
   location: string | null;
   mapDirectionsUrl?: string | null;
   entryFeeLabel?: string | null;
+  showRemainingSpots?: boolean | null;
+  standardPrice?: number | null;
   eventType?: string | null;
   accessType?: string | null;
   verifierCode?: string | null;
@@ -168,6 +191,23 @@ export type NativeRegistrationSummary = {
   waitlistPosition?: number | null;
 };
 
+export type NativeWorkspaceTicketTier = {
+  id: string;
+  name: string;
+  presetKey?: string | null;
+  badgeColor?: string | null;
+  textColor?: string | null;
+  metallic?: boolean | null;
+  prestige?: number | null;
+  priceKes: number;
+  capacity: number;
+  description?: string | null;
+  bundleSize?: number | null;
+  soldCount: number;
+  waitlistCount: number;
+  status: string;
+};
+
 export type NativeEventWorkspaceResponse = {
   success: true;
   event: NativeWorkspaceEvent & {
@@ -175,13 +215,164 @@ export type NativeEventWorkspaceResponse = {
     questions?: unknown;
     ticketsEnabled?: boolean;
     verifierCodeEnabled?: boolean;
+    showRemainingSpots?: boolean | null;
     canEdit?: boolean;
+    isPaid?: boolean;
     attendeeConsentEnabled?: boolean | null;
     attendeeConsentText?: string | null;
+    communityLink?: string | null;
+    whatsappNumber?: string | null;
+    contactMode?: "WHATSAPP" | "CALL" | null;
     imageUrl?: string | null;
+    ticketTiers?: NativeWorkspaceTicketTier[];
   };
   confirmed: NativeRegistrationSummary[];
   waitlist: NativeRegistrationSummary[];
+};
+
+export type NativeEventSettingsUpdateRequest = {
+  title: string;
+  eventType: "physical" | "virtual";
+  description?: string;
+  location?: string;
+  mapDirectionsUrl?: string;
+  entryFeeLabel?: string;
+  deadline?: string;
+  eventDate?: string;
+  eventEndAt?: string;
+  joinOpensAt?: string;
+  showRemainingSpots: boolean;
+  attendeeConsentEnabled: boolean;
+  attendeeConsentText?: string;
+  communityLink?: string;
+  whatsappNumber?: string;
+  contactMode: "WHATSAPP" | "CALL";
+};
+
+export type NativeCapacityUpdateRequest = {
+  newCapacity: number;
+};
+
+export type NativeCapacityUpdateResponse = {
+  success: true;
+  promoted: number;
+  newConfirmedCount: number;
+  newWaitlistCount: number;
+  remainingSlots: number;
+  capacity: number | null;
+};
+
+export type NativeTicketTierUpdateRequest = {
+  ticketTiers: Array<{
+    id?: string;
+    name: string;
+    presetKey?: string | null;
+    priceKes: number;
+    capacity: number;
+    description?: string | null;
+    bundleSize?: number;
+  }>;
+};
+
+export type NativeTicketTierUpdateResponse = {
+  success: true;
+  ticketTiers: NativeWorkspaceTicketTier[];
+};
+
+export type NativeEventSettingsUpdateResponse = {
+  success: true;
+  event: {
+    slug: string;
+    title: string;
+    eventType: "physical" | "virtual";
+    description: string | null;
+    location: string | null;
+    mapDirectionsUrl: string | null;
+    entryFeeLabel: string | null;
+    deadline: string | null;
+    eventDate: string | null;
+    eventEndAt: string | null;
+    joinOpensAt: string | null;
+    showRemainingSpots: boolean;
+    attendeeConsentEnabled: boolean;
+    attendeeConsentText: string | null;
+    communityLink: string | null;
+    whatsappNumber: string | null;
+    contactMode: "WHATSAPP" | "CALL";
+  };
+};
+
+export type NativeArchiveEventRequest = {
+  action: "archive";
+  archived: boolean;
+};
+
+export type NativeArchiveEventResponse = {
+  success: true;
+  event: {
+    slug: string;
+    archived: boolean;
+  };
+};
+
+export type NativeDuplicateEventResponse = {
+  success: true;
+  event: {
+    id: string;
+    slug: string;
+    title: string;
+  };
+};
+
+export type NativePublicTicketTier = {
+  id: string;
+  name: string;
+  presetKey?: string | null;
+  badgeColor?: string | null;
+  textColor?: string | null;
+  metallic?: boolean | null;
+  prestige?: number | null;
+  priceKes: number;
+  capacity: number;
+  soldCount?: number;
+  waitlistCount?: number;
+  description?: string | null;
+  bundleSize?: number;
+  status?: string;
+};
+
+export type NativePublicEventResponse = {
+  success: true;
+  event: {
+    id: string;
+    slug: string;
+    title: string;
+    description?: string | null;
+    capacity?: number | null;
+    confirmedCount: number;
+    waitlistCount?: number | null;
+    questions?: unknown;
+    deadline?: string | null;
+    eventDate?: string | null;
+    eventEndAt?: string | null;
+    joinOpensAt?: string | null;
+    eventType?: string | null;
+    accessType?: string | null;
+    location?: string | null;
+    mapDirectionsUrl?: string | null;
+    entryFeeLabel?: string | null;
+    showRemainingSpots?: boolean | null;
+    attendeeConsentEnabled?: boolean | null;
+    attendeeConsentText?: string | null;
+    communityLink?: string | null;
+    whatsappNumber?: string | null;
+    contactMode?: "WHATSAPP" | "CALL" | null;
+    imageUrl?: string | null;
+    status?: string | null;
+    isPaid?: boolean | null;
+    organizerName?: string | null;
+    ticketTiers?: NativePublicTicketTier[] | null;
+  };
 };
 
 export type NativeExportPrepareResponse = {

@@ -1,6 +1,6 @@
 import { CreatedEventResponse, CreateEventRequest } from "../api/contracts";
 import { eventslotRequest } from "../api/client";
-import { EventDraft } from "../domain/events";
+import { EventDraft, NativeTicketTierDraft } from "../domain/events";
 import { AppSession } from "../session";
 import { validateEventDraft } from "./eventValidation";
 
@@ -52,6 +52,9 @@ export function prepareNativeCreateEventRequest(draft: EventDraft): NativeCreate
   }
 
   const capacity = Number.parseInt(draft.capacity, 10);
+  const standardPrice = parseCurrencyValue(draft.standardPrice);
+  const ticketTiers = buildTicketTierPayload(draft.ticketTiers);
+  const isPaid = draft.monetization === "paid";
   const request: CreateEventRequest = {
     accessType: draft.accessType,
     attendeeConsentEnabled: draft.attendeeConsentEnabled,
@@ -60,14 +63,32 @@ export function prepareNativeCreateEventRequest(draft: EventDraft): NativeCreate
     contactMode: draft.whatsappNumber.trim() ? "whatsapp" : "email",
     deadline: eventDate.toISOString(),
     description: draft.description,
-    entryFeeLabel: draft.entryFeeLabel.trim() || undefined,
+    entryFeeLabel: buildEntryFeeLabel(draft, standardPrice),
     eventDate: eventDate.toISOString(),
     eventType: draft.eventType,
-    isPaid: false,
+    isPaid,
     location: draft.venue.trim(),
     mapDirectionsUrl: draft.mapDirectionsUrl.trim() || undefined,
+    showRemainingSpots: draft.showRemainingSpots,
+    standardPrice: isPaid && standardPrice > 0 ? standardPrice : undefined,
+    ticketTiers: isPaid && ticketTiers.length > 0 ? ticketTiers : undefined,
     ticketsEnabled: true,
     title: draft.title.trim(),
+    questions: draft.registrationQuestions
+      .map((question) => {
+        const options = question.options?.map((option) => option.trim()).filter(Boolean);
+
+        return {
+          id: question.id,
+          label: question.label.trim(),
+          type: question.type,
+          required: question.required,
+          options,
+          allowMultiple: question.type === "checkbox" ? !!question.allowMultiple : undefined,
+          optionLimits: buildQuestionOptionLimits(question, options)
+        };
+      })
+      .filter((question) => question.label),
     virtualLink: draft.eventType === "virtual" ? draft.virtualLink.trim() : undefined,
     whatsappNumber: draft.whatsappNumber.trim() || undefined
   };
@@ -97,4 +118,62 @@ function parseEventDate(dateLabel: string): Date | null {
   }
 
   return new Date(timestamp);
+}
+
+function parseCurrencyValue(value: string): number {
+  const parsed = Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildTicketTierPayload(ticketTiers: NativeTicketTierDraft[]) {
+  return ticketTiers
+    .filter((tier) => tier.name.trim() || tier.price.trim() || tier.capacity.trim())
+    .map((tier) => {
+      const capacity = Number.parseInt(tier.capacity, 10);
+
+      return {
+        name: tier.name.trim(),
+        price: parseCurrencyValue(tier.price),
+        capacity: Number.isFinite(capacity) && capacity > 0 ? capacity : undefined
+      };
+    });
+}
+
+function buildEntryFeeLabel(draft: EventDraft, standardPrice: number): string | undefined {
+  if (draft.monetization === "free") {
+    return undefined;
+  }
+
+  if (draft.entryFeeLabel.trim()) {
+    return draft.entryFeeLabel.trim();
+  }
+
+  if (standardPrice > 0) {
+    return `KES ${standardPrice.toLocaleString()}`;
+  }
+
+  const firstTier = draft.ticketTiers.find((tier) => tier.name.trim() && parseCurrencyValue(tier.price) > 0);
+  if (!firstTier) {
+    return undefined;
+  }
+
+  return `${firstTier.name.trim()} - KES ${parseCurrencyValue(firstTier.price).toLocaleString()}`;
+}
+
+function buildQuestionOptionLimits(
+  question: EventDraft["registrationQuestions"][number],
+  options: string[] | undefined
+): Record<string, number | null | undefined> | undefined {
+  if (!options || options.length === 0 || !question.optionLimits) {
+    return undefined;
+  }
+
+  const entries = options
+    .map((option) => {
+      const rawLimit = question.optionLimits?.[option];
+      return [option, typeof rawLimit === "number" && Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : null] as const;
+    })
+    .filter(([, limit]) => limit != null);
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }

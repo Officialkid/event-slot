@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { useTutorial } from "@/hooks/useTutorial"
+import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,8 +95,8 @@ function StatusBadge({ event }: { event: OrgEvent }) {
           fontSize: "0.65rem",
           fontWeight: 600,
           letterSpacing: "0.04em",
-          background: "rgba(255,107,107,0.12)",
-          color: "#FF6B6B",
+          background: "color-mix(in srgb, var(--error) 12%, transparent)",
+          color: "var(--error)",
           borderRadius: 100,
           padding: "2px 8px",
           fontFamily: "var(--font-dm-sans)",
@@ -111,8 +112,8 @@ function StatusBadge({ event }: { event: OrgEvent }) {
         fontSize: "0.65rem",
         fontWeight: 600,
         letterSpacing: "0.04em",
-        background: "rgba(200,245,90,0.12)",
-        color: "#C8F55A",
+        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+        color: "var(--accent)",
         borderRadius: 100,
         padding: "2px 8px",
         fontFamily: "var(--font-dm-sans)",
@@ -127,6 +128,7 @@ function StatusBadge({ event }: { event: OrgEvent }) {
 
 interface ThreeDotMenuProps {
   event: OrgEvent
+  onEdit: () => void
   onRename: () => void
   onArchive: () => void
   onDelete: () => void
@@ -137,6 +139,7 @@ interface ThreeDotMenuProps {
 
 function ThreeDotMenu({
   event,
+  onEdit,
   onRename,
   onArchive,
   onDelete,
@@ -177,7 +180,7 @@ function ThreeDotMenu({
 
   const dangerStyle: React.CSSProperties = {
     ...itemStyle,
-    color: "#FF6B6B",
+    color: "var(--error)",
   }
 
   return (
@@ -218,6 +221,14 @@ function ThreeDotMenu({
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}
         >
+          <button
+            className="dot-menu-item"
+            style={itemStyle}
+            onClick={() => { setOpen(false); onEdit() }}
+          >
+            Edit event
+          </button>
+
           <button
             className="dot-menu-item"
             style={itemStyle}
@@ -378,7 +389,7 @@ function RenameModal({
           }}
         />
         {error && (
-          <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ fontSize: "0.78rem", color: "var(--error)", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>
             {error}
           </p>
         )}
@@ -392,7 +403,7 @@ function RenameModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
+            style={{ background: "var(--accent)", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--accent-contrast)", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
           >
             {saving ? "Saving…" : "Save"}
           </button>
@@ -463,7 +474,7 @@ function ArchiveConfirm({
           It will be moved to your archived tab.
         </p>
         {error && (
-          <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ fontSize: "0.78rem", color: "var(--error)", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
             {error}
           </p>
         )}
@@ -474,7 +485,7 @@ function ArchiveConfirm({
           <button
             onClick={handleConfirm}
             disabled={saving}
-            style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
+            style={{ background: "var(--accent)", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--accent-contrast)", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
           >
             {saving ? "Archiving…" : "Archive"}
           </button>
@@ -537,8 +548,8 @@ function DeleteModal({
             width: 40,
             height: 40,
             borderRadius: "50%",
-            background: "rgba(255,107,107,0.12)",
-            border: "0.5px solid rgba(255,107,107,0.3)",
+            background: "color-mix(in srgb, var(--error) 12%, transparent)",
+            border: "0.5px solid color-mix(in srgb, var(--error) 30%, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -568,7 +579,7 @@ function DeleteModal({
           registrations. This cannot be undone.
         </p>
         {error && (
-          <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+          <p style={{ fontSize: "0.78rem", color: "var(--error)", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
             {error}
           </p>
         )}
@@ -579,7 +590,7 @@ function DeleteModal({
           <button
             onClick={handleDelete}
             disabled={deleting}
-            style={{ background: "#FF6B6B", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: deleting ? 0.7 : 1 }}
+            style={{ background: "var(--error)", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#fff", cursor: deleting ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: deleting ? 0.7 : 1 }}
           >
             {deleting ? "Deleting…" : "Delete permanently"}
           </button>
@@ -725,13 +736,14 @@ function EventCard({
           </div>
 
           {event.eventPassStatus === "ACTIVE" && event.eventPassTier ? (
-            <p style={{ margin: "0.3rem 0 0", fontSize: "0.74rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+            <p style={{ margin: "0.3rem 0 0", fontSize: "0.74rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>
               {event.eventPassTier.charAt(0).toUpperCase() + event.eventPassTier.slice(1)} Pass Active
               {event.eventPassExpiresAt ? ` - Expires ${formatDate(event.eventPassExpiresAt)}` : ""}
             </p>
           ) : null}
           <ThreeDotMenu
             event={event}
+            onEdit={() => router.push(`/edit/${event.slug}`)}
             onRename={() => setModal("rename")}
             onArchive={() => setModal("archive")}
             onDelete={() => setModal("delete")}
@@ -789,18 +801,9 @@ function EventCard({
 
 function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => void }) {
   const messages: Record<TabKey, { heading: string; body: string }> = {
-    active: {
-      heading: "No events yet",
-      body: "Create your first event to get started.",
-    },
-    past: {
-      heading: "No past events",
-      body: "Events with a past deadline will appear here.",
-    },
-    archived: {
-      heading: "Nothing archived yet",
-      body: "Archived events will appear here.",
-    },
+    active: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.active,
+    past: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.past,
+    archived: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.archived,
   }
 
   const { heading, body } = messages[tab]
@@ -818,7 +821,7 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
       {tab === "active" ? (
         <div className="flex flex-col items-center justify-center py-10 text-center">
           <div style={{ fontSize: "3.2rem", marginBottom: "0.7rem" }}>EV</div>
-          <h2 style={{ margin: 0, color: "var(--text-primary)", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>No events yet</h2>
+          <h2 style={{ margin: 0, color: "var(--text-primary)", fontSize: "1.25rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{ORGANIZER_SURFACE_COPY.eventsList.emptyStates.active.heading}</h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.84rem", margin: "0.65rem 0 1.1rem", maxWidth: 360, lineHeight: 1.6, fontFamily: "var(--font-dm-sans)" }}>
             Create your first event in under 2 minutes. Set a name, date, venue, and slot limit - then share the link.
           </p>
@@ -827,8 +830,8 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
             data-tutorial="create-event-btn"
             style={{
               display: "inline-block",
-              background: "#a3e635",
-              color: "#0A0A0A",
+              background: "var(--accent)",
+              color: "var(--accent-contrast)",
               borderRadius: 12,
               padding: "0.65rem 1.2rem",
               fontSize: "0.82rem",
@@ -953,13 +956,13 @@ export default function DashboardEventsPage() {
               lineHeight: 1.1,
             }}
           >
-            Your events
+            {ORGANIZER_SURFACE_COPY.eventsList.title}
           </h1>
           <Link
             href="/create"
             style={{
-              background: "#C8F55A",
-              color: "#0A0A0A",
+              background: "var(--accent)",
+              color: "var(--accent-contrast)",
               borderRadius: 8,
               padding: "0.55rem 1.1rem",
               fontSize: "0.82rem",
@@ -969,7 +972,7 @@ export default function DashboardEventsPage() {
               whiteSpace: "nowrap",
             }}
           >
-            Create new event
+            {ORGANIZER_SURFACE_COPY.eventsList.createCta}
           </Link>
         </div>
 
@@ -990,7 +993,7 @@ export default function DashboardEventsPage() {
                 background: "transparent",
                 border: "none",
                 borderBottom: activeTab === tab.key
-                  ? "2px solid #C8F55A"
+                  ? "2px solid var(--accent)"
                   : "2px solid transparent",
                 padding: "0.6rem 1.1rem",
                 fontSize: "0.875rem",
@@ -1011,7 +1014,7 @@ export default function DashboardEventsPage() {
                     fontSize: "0.65rem",
                     fontWeight: 600,
                     background: activeTab === tab.key
-                      ? "rgba(200,245,90,0.12)"
+                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
                       : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
                     color: activeTab === tab.key ? "var(--accent)" : "var(--text-muted)",
                     borderRadius: 100,

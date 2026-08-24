@@ -105,6 +105,8 @@ const communityBorderSoft = "var(--border-subtle)"
 const communityTextPrimary = "var(--text-primary)"
 const communityTextSecondary = "var(--text-secondary)"
 const communityTextMuted = "var(--text-muted)"
+const communityAccent = "var(--accent)"
+const communityAccentContrast = "var(--accent-contrast, #0A0A0A)"
 
 const BADGE_META: Record<BadgeKey, { icon: string; label: string; description: string }> = {
   PIONEER: {
@@ -356,13 +358,14 @@ export default function CommunityPage() {
         <div
           className="flex items-center gap-4 flex-wrap rounded-xl border bg-gradient-to-r p-5"
           style={{
-            borderColor: "rgba(186, 230, 90, 0.28)",
-            backgroundImage: "linear-gradient(to right, rgba(186,230,90,0.12), rgba(186,230,90,0.04))",
+            borderColor: "color-mix(in srgb, var(--accent) 28%, transparent)",
+            backgroundImage:
+              "linear-gradient(to right, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 4%, transparent))",
           }}
         >
           <span className="text-4xl">🏆</span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-[#C8F55A]">EventSlot Pioneer</p>
+            <p className="text-sm font-bold" style={{ color: communityAccent }}>EventSlot Pioneer</p>
             <p className="mt-0.5 text-xs" style={{ color: communityTextSecondary }}>
               You are one of EventSlot&apos;s earliest supporters. This badge belongs to a limited group and you&apos;re in it.
             </p>
@@ -401,7 +404,7 @@ export default function CommunityPage() {
         className="border rounded-2xl p-5"
         style={{ borderColor: communityBorder, backgroundColor: communitySurface }}
       >
-        <p className="text-xs text-[#C8F55A] font-semibold uppercase tracking-wider mb-1">Invite &amp; Earn</p>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: communityAccent }}>Invite &amp; Earn</p>
         <p className="text-sm leading-relaxed mb-4" style={{ color: communityTextSecondary }}>
           Earn <span className="font-bold" style={{ color: communityTextPrimary }}>5 tokens</span> when someone signs up, and{" "}
           <span className="font-bold" style={{ color: communityTextPrimary }}>+5 tokens</span> when they create their first event.
@@ -418,7 +421,8 @@ export default function CommunityPage() {
           <button
             type="button"
             onClick={() => void copyLink()}
-            className="text-[#C8F55A] text-xs font-semibold shrink-0 hover:text-white transition-colors"
+            className="text-xs font-semibold shrink-0 hover:text-white transition-colors"
+            style={{ color: communityAccent }}
           >
             {copied ? "Copied" : "Copy"}
           </button>
@@ -428,7 +432,8 @@ export default function CommunityPage() {
           type="button"
           onClick={() => void shareInvite()}
           data-tutorial="community-share-invite"
-          className="w-full bg-[#C8F55A] text-black font-bold py-3 rounded-xl hover:bg-[#b8e040] transition-colors flex items-center justify-center gap-2"
+          className="w-full font-bold py-3 rounded-xl hover:bg-[#b8e040] transition-colors flex items-center justify-center gap-2"
+          style={{ backgroundColor: communityAccent, color: communityAccentContrast }}
         >
           <ShareIcon /> Share Invite
         </button>
@@ -445,7 +450,7 @@ export default function CommunityPage() {
                 className="border rounded-xl p-3 text-center"
                 style={{ backgroundColor: communitySurfaceAlt, borderColor: communityBorderSoft }}
               >
-                <p className="text-[#C8F55A] font-bold text-2xl">{stat.value}</p>
+                <p className="font-bold text-2xl" style={{ color: communityAccent }}>{stat.value}</p>
                 <p className="text-xs mt-0.5" style={{ color: communityTextMuted }}>
                   {stat.label}
                 </p>
@@ -473,7 +478,7 @@ export default function CommunityPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-semibold text-[#C8F55A]">+{referral.earned} tokens</span>
+                    <span className="text-xs font-semibold" style={{ color: communityAccent }}>+{referral.earned} tokens</span>
                     <p className="text-xs" style={{ color: communityTextMuted }}>
                       {referral.status === "EVENT_CREATED" ? "Complete" : "Waiting for first event"}
                     </p>
@@ -495,10 +500,12 @@ export default function CommunityPage() {
               key={tab.key}
               type="button"
               onClick={() => setPeriod(tab.key)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                period === tab.key ? "text-[#C8F55A] border-b-2 border-[#C8F55A]" : ""
-              }`}
-              style={period === tab.key ? undefined : { color: communityTextMuted }}
+              className="flex-1 py-3 text-sm font-medium transition-colors border-b-2"
+              style={
+                period === tab.key
+                  ? { color: communityAccent, borderColor: communityAccent }
+                  : { color: communityTextMuted, borderColor: "transparent" }
+              }
             >
               {tab.label}
             </button>
@@ -511,12 +518,10 @@ export default function CommunityPage() {
               key={tab.key}
               type="button"
               onClick={() => setType(tab.key)}
-              className={`flex-1 min-w-[92px] py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                type === tab.key ? "bg-[#C8F55A] text-black" : ""
-              }`}
+              className="flex-1 min-w-[92px] py-1.5 text-xs font-medium rounded-lg transition-colors"
               style={
                 type === tab.key
-                  ? undefined
+                  ? { backgroundColor: communityAccent, color: communityAccentContrast }
                   : { backgroundColor: communitySurfaceAlt, color: communityTextMuted }
               }
             >
@@ -537,7 +542,7 @@ export default function CommunityPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate" style={{ color: communityTextPrimary }}>
                     {entry.name ?? "Unknown"}
-                    {entry.userId === myId && <span className="text-[#C8F55A] text-xs ml-2">(you)</span>}
+                    {entry.userId === myId && <span className="text-xs ml-2" style={{ color: communityAccent }}>(you)</span>}
                   </p>
                   <p className="text-xs" style={{ color: communityTextMuted }}>
                     Ref: {entry.referralPts}pts · Events: {entry.organiserPts}pts
@@ -554,10 +559,16 @@ export default function CommunityPage() {
             {rest.map((entry, index) => (
               <div
                 key={entry.userId}
-                className={`flex items-center gap-3 px-4 py-3 border-b transition-colors ${
-                  entry.userId === myId ? "bg-[#C8F55A]/5 border-l-2 border-l-[#C8F55A]" : ""
-                }`}
-                style={{ borderColor: communityBorderSoft }}
+                className="flex items-center gap-3 px-4 py-3 border-b transition-colors"
+                style={{
+                  borderColor: communityBorderSoft,
+                  backgroundColor:
+                    entry.userId === myId
+                      ? "color-mix(in srgb, var(--accent) 5%, transparent)"
+                      : undefined,
+                  borderLeftWidth: entry.userId === myId ? "2px" : undefined,
+                  borderLeftColor: entry.userId === myId ? communityAccent : undefined,
+                }}
               >
                 <span className="text-sm w-6 text-center" style={{ color: communityTextMuted }}>
                   {index + 4}
@@ -565,7 +576,7 @@ export default function CommunityPage() {
                 <Avatar src={entry.avatar} name={entry.name} size={7} />
                 <span className="text-sm flex-1 truncate" style={{ color: communityTextSecondary }}>
                   {entry.name ?? "Unknown"}
-                  {entry.userId === myId && <span className="text-[#C8F55A] text-xs ml-2">(you)</span>}
+                  {entry.userId === myId && <span className="text-xs ml-2" style={{ color: communityAccent }}>(you)</span>}
                 </span>
                 <span className="text-sm font-medium" style={{ color: communityTextPrimary }}>
                   {score(entry)} pts

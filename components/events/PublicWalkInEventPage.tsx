@@ -23,6 +23,7 @@ type WalkInEventPageProps = {
     attendeeConsentText?: string | null
     communityLink?: string | null
     imageUrl?: string | null
+    organizerName?: string | null
     status: string
     faqEnabled?: boolean
     whatsappNumber?: string | null
@@ -32,6 +33,7 @@ type WalkInEventPageProps = {
       plan?: string | null
       pioneerBadge?: { id: string } | null
     } | null
+    mapPreviewImageUrl?: string | null
   }
 }
 
@@ -107,9 +109,10 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
           eventDate={event.eventDate ? new Date(event.eventDate) : null}
           location={event.location}
           mapDirectionsUrl={event.mapDirectionsUrl}
+          mapPreviewImageUrl={event.mapPreviewImageUrl ?? null}
           entryFeeLabel={event.entryFeeLabel}
           imageUrl={event.imageUrl}
-          organizerName={event.organizer?.name ?? null}
+          organizerName={event.organizerName ?? event.organizer?.name ?? null}
           organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
           confirmedCount={0}
           status={event.status}
@@ -147,7 +150,7 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
                     eventDate: eventDateLabel ?? null,
                     eventEndAt: event.eventEndAt ? String(event.eventEndAt) : null,
                     communityLink: event.communityLink ?? null,
-                    organizerName: event.organizer?.name ?? null,
+                    organizerName: event.organizerName ?? event.organizer?.name ?? null,
                   }}
                   dayLabel={statusData.dayLabel}
                   dayTitle={dayTitle}

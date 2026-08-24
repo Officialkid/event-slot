@@ -1,7 +1,9 @@
 import { AppSession } from "../session";
 import { AppTheme } from "../theme";
-import { AppRoute } from "../tabs";
+import { AppRoute, EventWorkspaceRouteTab } from "../tabs";
 import { NativeEvent } from "../domain/events";
+
+export type EventDetailTab = EventWorkspaceRouteTab;
 
 export type NativeScreenProps = {
   session: AppSession;
@@ -16,4 +18,10 @@ export type NativeScreenProps = {
 
 export type EventDetailScreenProps = NativeScreenProps & {
   eventId: string;
+  initialTab?: EventDetailTab;
+};
+
+export type RegistrationDetailScreenProps = NativeScreenProps & {
+  eventSlug: string;
+  registrationId: string;
 };

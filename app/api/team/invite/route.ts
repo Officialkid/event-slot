@@ -67,11 +67,24 @@ export async function POST(req: NextRequest) {
       }),
     ])
 
-    if (currentMembers >= TEAM_MEMBER_LIMIT) {
+    if (eventId) {
+      const eventMembers = await prisma.teamMemberEvent.count({
+        where: { eventId },
+      })
+      if (eventMembers >= 10) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This event already has 10 assigned team members. You can have up to 10 members per event.`,
+          },
+          { status: 403 }
+        )
+      }
+    } else if (currentMembers >= 50) {
       return NextResponse.json(
         {
           success: false,
-          error: `You can have up to ${TEAM_MEMBER_LIMIT} team members. Remove one to invite another.`,
+          error: `Your workspace has reached the limit of 50 team collaborators across all events.`,
         },
         { status: 403 }
       )

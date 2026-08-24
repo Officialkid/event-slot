@@ -1,38 +1,53 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
 
 import { AppShell } from "./src/AppShell";
+import { OnboardingScreen, onboardingSlideCount } from "./src/screens/OnboardingScreen";
 import { SignInScreen } from "./src/screens/SignInScreen";
+import { SplashScreen } from "./src/screens/SplashScreen";
 import { AppSession } from "./src/session";
-import { demoSession } from "./src/services/auth";
-import { loadNativePreferences, saveThemePreference } from "./src/services/preferences";
+import { loadNativePreferences, saveOnboardingCompletion } from "./src/services/preferences";
 import { cleanupNativeSession } from "./src/services/sessionCleanup";
 import { restoreStoredSession, saveStoredSession } from "./src/services/sessionStore";
-import { ThemeName, createTheme } from "./src/theme";
+import { createTheme } from "./src/theme";
 
 export default function App() {
   const [session, setSession] = useState<AppSession | null>(null);
-  const [themeName, setThemeName] = useState<ThemeName>("dark");
-  const theme = useMemo(() => createTheme(themeName), [themeName]);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const theme = useMemo(() => createTheme(), []);
 
   useEffect(() => {
-    loadNativePreferences()
-      .then((preferences) => setThemeName(preferences.themeName))
-      .catch(() => setThemeName("dark"));
+    let mounted = true;
 
-    restoreStoredSession()
-      .then((storedSession) => {
-        if (storedSession) {
-          setSession(storedSession);
+    Promise.allSettled([loadNativePreferences(), restoreStoredSession()]).then(([preferencesResult, sessionResult]) => {
+      if (!mounted) {
+        return;
+      }
+
+      if (preferencesResult.status === "fulfilled") {
+        setOnboardingCompleted(preferencesResult.value.onboardingCompleted);
+      } else {
+        setOnboardingCompleted(false);
+      }
+
+      if (sessionResult.status === "fulfilled" && sessionResult.value) {
+        setSession(sessionResult.value);
+      }
+
+      setTimeout(() => {
+        if (mounted) {
+          setBootLoading(false);
         }
-      })
-      .catch(() => {});
-  }, []);
+      }, 1200);
+    });
 
-  const handleDemoSignIn = () => {
-    saveStoredSession(demoSession).catch(() => {});
-    setSession(demoSession);
-  };
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleLiveSignIn = (nextSession: AppSession) => {
     saveStoredSession(nextSession).catch(() => {});
@@ -44,30 +59,36 @@ export default function App() {
     setSession(null);
   };
 
-  const toggleTheme = () => {
-    const nextThemeName = themeName === "dark" ? "light" : "dark";
-    setThemeName(nextThemeName);
-    saveThemePreference(nextThemeName).catch(() => {});
+  const finishOnboarding = () => {
+    setOnboardingCompleted(true);
+    saveOnboardingCompletion(true).catch(() => {});
   };
 
   return (
-    <>
-      <StatusBar style={themeName === "dark" ? "light" : "dark"} />
-      {session ? (
+    <View style={{ flex: 1, backgroundColor: theme.colors.page }}>
+      <StatusBar style="light" backgroundColor="#0A0A0A" />
+      {bootLoading ? (
+        <SplashScreen theme={theme} />
+      ) : session ? (
         <AppShell
           session={session}
           theme={theme}
           onSignOut={handleSignOut}
-          onToggleTheme={toggleTheme}
+        />
+      ) : !onboardingCompleted ? (
+        <OnboardingScreen
+          theme={theme}
+          stepIndex={onboardingStep}
+          onNext={() => setOnboardingStep((current) => Math.min(current + 1, onboardingSlideCount - 1))}
+          onSkip={finishOnboarding}
+          onFinish={finishOnboarding}
         />
       ) : (
         <SignInScreen
           theme={theme}
-          onDemoSignIn={handleDemoSignIn}
           onLiveSignIn={handleLiveSignIn}
-          onToggleTheme={toggleTheme}
         />
       )}
-    </>
+    </View>
   );
 }

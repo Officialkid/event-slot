@@ -6,6 +6,8 @@ type AppTester = {
   id: string
   email: string
   createdAt: string
+  addedToPlayAt: string | null
+  optInLinkSentAt: string | null
   inviteSentAt: string | null
   installedAt: string | null
   notes: string | null
@@ -16,8 +18,10 @@ type AppTestersPayload = {
   testers: AppTester[]
   summary: {
     total: number
-    invited: number
+    addedToPlay: number
+    optInLinkSent: number
     installed: number
+    pendingReview: number
     latestSignupAt: string | null
   }
   settings: {
@@ -34,12 +38,25 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString("en-GB") : "-"
 }
 
+function getTesterStage(tester: AppTester) {
+  if (tester.installedAt) return "Installed"
+  if (tester.optInLinkSentAt) return "Opt-in sent"
+  if (tester.addedToPlayAt) return "Added to Play"
+  return "Collected"
+}
+
+function isRecentSignup(value: string) {
+  const ageMs = Date.now() - new Date(value).getTime()
+  return ageMs <= 1000 * 60 * 60 * 24
+}
+
 export default function AdminAppTestersPage() {
   const [data, setData] = useState<AppTestersPayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [newSignupNotice, setNewSignupNotice] = useState<string | null>(null)
 
   const load = async () => {
     setError(null)
@@ -56,6 +73,28 @@ export default function AdminAppTestersPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load app testers."))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!data) return
+
+    const currentTotal = data.summary.total
+    const intervalId = window.setInterval(async () => {
+      try {
+        const response = await fetch("/api/admin/app-testers", { cache: "no-store" })
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok) return
+        if (typeof payload?.summary?.total === "number" && payload.summary.total > currentTotal) {
+          const latest = payload?.testers?.[0]?.email
+          setNewSignupNotice(latest ? `New tester signup: ${latest}` : "A new tester just joined the list.")
+        }
+        setData(payload)
+      } catch {
+        // keep current state if background refresh fails
+      }
+    }, 30000)
+
+    return () => window.clearInterval(intervalId)
+  }, [data])
 
   const emailList = useMemo(
     () => data?.testers.map((tester) => tester.email).join("\n") ?? "",
@@ -103,9 +142,10 @@ export default function AdminAppTestersPage() {
       <div className="grid gap-4 md:grid-cols-4">
         {[
           { label: "Total testers", value: data?.summary.total ?? 0 },
-          { label: "Invite sent", value: data?.summary.invited ?? 0 },
+          { label: "Added to Play", value: data?.summary.addedToPlay ?? 0 },
+          { label: "Opt-in sent", value: data?.summary.optInLinkSent ?? 0 },
           { label: "Installed / confirmed", value: data?.summary.installed ?? 0 },
-          { label: "Popup", value: data?.settings.promptEnabled ? "Active" : "Hidden" },
+          { label: "Needs action", value: data?.summary.pendingReview ?? 0 },
         ].map((item) => (
           <div key={item.label} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{item.label}</p>
@@ -137,6 +177,10 @@ export default function AdminAppTestersPage() {
               ? "The Play testing opt-in link is configured. New tester signups will receive it automatically by email."
               : "The Play testing opt-in link is not configured yet. Google shows the link after the internal release is published."}
           </div>
+          <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 text-sm text-[var(--text-secondary)]">
+            Current track: <span className="font-semibold text-[var(--text-primary)]">{data?.playConsole.track ?? "Closed testing"}</span>
+            <div className="mt-1">{data?.playConsole.note}</div>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -161,21 +205,36 @@ export default function AdminAppTestersPage() {
         </div>
       ) : null}
 
+      {newSignupNotice ? (
+        <div className="rounded-xl border border-[#C8F55A]/40 bg-[#1A2208] p-4 text-sm text-[#E8F7B0]">
+          <div className="flex items-center justify-between gap-3">
+            <span>{newSignupNotice}</span>
+            <button
+              type="button"
+              onClick={() => setNewSignupNotice(null)}
+              className="rounded-full border border-[#C8F55A]/30 px-3 py-1 text-xs font-bold text-[#C8F55A]"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-        <div className="grid min-w-[980px] grid-cols-[1.5fr_1fr_1fr_1fr_1.4fr] gap-4 border-b border-[var(--border)] bg-[var(--surface-muted)] px-5 py-3">
-          {["Email", "Joined", "Invite sent", "Installed", "Actions"].map((heading) => (
+        <div className="grid min-w-[1220px] grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_1.4fr] gap-4 border-b border-[var(--border)] bg-[var(--surface-muted)] px-5 py-3">
+          {["Email", "Status", "Joined", "Added to Play", "Opt-in sent", "Installed", "Actions"].map((heading) => (
             <p key={heading} className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               {heading}
             </p>
           ))}
         </div>
         <div className="overflow-x-auto">
-          <div className="min-w-[980px]">
+          <div className="min-w-[1220px]">
             {loading ? (
               <div className="space-y-3 p-5">
                 {[1, 2, 3].map((item) => (
-                  <div key={item} className="grid animate-pulse grid-cols-5 gap-4">
-                    {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={item} className="grid animate-pulse grid-cols-7 gap-4">
+                    {Array.from({ length: 7 }).map((_, index) => (
                       <div key={index} className="h-4 rounded bg-[var(--bg-elevated)]" />
                     ))}
                   </div>
@@ -185,19 +244,40 @@ export default function AdminAppTestersPage() {
               <div className="p-8 text-center text-sm text-[var(--text-muted)]">No app tester signups yet.</div>
             ) : (
               data?.testers.map((tester) => (
-                <div key={tester.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.4fr] gap-4 border-b border-[var(--border-subtle)] px-5 py-4 text-sm">
-                  <div className="break-all font-medium text-[var(--text-primary)]">{tester.email}</div>
+                <div key={tester.id} className="grid grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_1.4fr] gap-4 border-b border-[var(--border-subtle)] px-5 py-4 text-sm">
+                  <div className="break-all font-medium text-[var(--text-primary)]">
+                    {tester.email}
+                    {isRecentSignup(tester.createdAt) ? (
+                      <span className="ml-2 inline-flex rounded-full border border-[#C8F55A]/30 bg-[#C8F55A]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#C8F55A]">
+                        New
+                      </span>
+                    ) : null}
+                  </div>
+                  <div>
+                    <span className="inline-flex rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-bold text-[var(--text-primary)]">
+                      {getTesterStage(tester)}
+                    </span>
+                  </div>
                   <div className="text-[var(--text-secondary)]">{formatDate(tester.createdAt)}</div>
-                  <div className={tester.inviteSentAt ? "text-[#C8F55A]" : "text-[var(--text-muted)]"}>{formatDate(tester.inviteSentAt)}</div>
+                  <div className={tester.addedToPlayAt ? "text-[#C8F55A]" : "text-[var(--text-muted)]"}>{formatDate(tester.addedToPlayAt)}</div>
+                  <div className={tester.optInLinkSentAt ? "text-[#C8F55A]" : "text-[var(--text-muted)]"}>{formatDate(tester.optInLinkSentAt)}</div>
                   <div className={tester.installedAt ? "text-[#C8F55A]" : "text-[var(--text-muted)]"}>{formatDate(tester.installedAt)}</div>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateProgress("markAddedToPlay", tester.email)}
+                      disabled={saving === `markAddedToPlay:${tester.email}`}
+                      className="rounded-full border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] disabled:opacity-50"
+                    >
+                      Added to Play
+                    </button>
                     <button
                       type="button"
                       onClick={() => updateProgress("markInviteSent", tester.email)}
                       disabled={saving === `markInviteSent:${tester.email}`}
                       className="rounded-full border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] disabled:opacity-50"
                     >
-                      Mark invited
+                      Opt-in sent
                     </button>
                     <button
                       type="button"

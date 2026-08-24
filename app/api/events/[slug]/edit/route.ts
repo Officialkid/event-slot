@@ -38,6 +38,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         imageUrl: true,
         questions: true,
         organizerId: true,
+        confirmedCount: true,
+        waitlistCount: true,
         category: true,
         whatsappNumber: true,
         isPaid: true,

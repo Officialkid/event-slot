@@ -5,11 +5,11 @@ type AITaskType = 'insights' | 'qa' | 'capacity' | 'tracker' | 'report'
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const TASK_MODELS: Record<AITaskType, string> = {
-  insights: 'openrouter/auto',
-  qa: 'openrouter/auto',
-  capacity: 'openrouter/auto',
-  tracker: 'openrouter/auto',
-  report: 'openrouter/auto',
+  insights: 'meta-llama/llama-3.3-70b-instruct',
+  qa: 'meta-llama/llama-3.3-70b-instruct',
+  capacity: 'meta-llama/llama-3.3-70b-instruct',
+  tracker: 'meta-llama/llama-3.3-70b-instruct',
+  report: 'meta-llama/llama-3.3-70b-instruct',
 }
 
 function getOpenRouterModelByTask(taskType: AITaskType): string {

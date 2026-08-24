@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { TEAM_MEMBER_LIMIT } from "@/lib/plans"
+import { copyTextToClipboard } from "@/lib/browserClipboard"
 
 // --- Types ---
 
@@ -36,7 +37,7 @@ const teamBorderSoft = "1px solid color-mix(in srgb, var(--border-subtle) 70%, t
 const teamTextPrimary = "var(--text-primary)"
 const teamTextSecondary = "var(--text-secondary)"
 const teamTextMuted = "var(--text-muted)"
-const teamOverlay = "rgba(10,10,10,0.65)"
+const teamOverlay = "color-mix(in srgb, var(--bg-page) 65%, transparent)"
 
 
 // --- Page ---
@@ -161,11 +162,14 @@ export default function TeamPage() {
 
   async function copyToClipboard(text: string, key: string) {
     try {
-      await navigator.clipboard.writeText(text)
+      const copied = await copyTextToClipboard(text)
+      if (!copied) {
+        throw new Error("copy failed")
+      }
       setCopiedId(key)
       setTimeout(() => setCopiedId(null), 2500)
     } catch {
-      // fallback
+      setInviteErrors(["Couldn't copy the invite link automatically. Please copy it manually."])
     }
   }
 
@@ -265,7 +269,7 @@ export default function TeamPage() {
               <button
                 onClick={() => handleRemove(confirmTarget.id)}
                 disabled={removingId === confirmTarget.id}
-                style={{ background: "rgba(239,68,68,0.12)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, color: "#EF4444", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
+                style={{ background: "color-mix(in srgb, var(--error) 12%, transparent)", border: "0.5px solid color-mix(in srgb, var(--error) 25%, transparent)", borderRadius: 8, color: "var(--error)", fontSize: "0.8125rem", padding: "0.5rem 1rem", cursor: "pointer", opacity: removingId === confirmTarget.id ? 0.6 : 1 }}
               >
                 {removingId === confirmTarget.id ? "Removing..." : "Remove"}
               </button>
@@ -321,8 +325,8 @@ export default function TeamPage() {
                         display: "flex",
                         alignItems: "center",
                         gap: "0.75rem",
-                        background: checked ? "rgba(200,245,90,0.05)" : "var(--surface-2)",
-                        border: checked ? "0.5px solid rgba(200,245,90,0.2)" : teamBorderSoft,
+                        background: checked ? "color-mix(in srgb, var(--accent) 5%, transparent)" : "var(--surface-2)",
+                        border: checked ? "0.5px solid color-mix(in srgb, var(--accent) 20%, transparent)" : teamBorderSoft,
                         borderRadius: 8,
                         padding: "0.6875rem 0.875rem",
                         cursor: "pointer",
@@ -337,7 +341,7 @@ export default function TeamPage() {
                             prev.includes(ev.id) ? prev.filter(id => id !== ev.id) : [...prev, ev.id]
                           )
                         }
-                        style={{ accentColor: "#C8F55A", width: 15, height: 15, flexShrink: 0 }}
+                        style={{ accentColor: "var(--accent)", width: 15, height: 15, flexShrink: 0 }}
                       />
                       <span style={{ flex: 1, fontSize: "0.875rem", color: teamTextPrimary, lineHeight: 1.4, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {ev.title}
@@ -347,8 +351,8 @@ export default function TeamPage() {
                           fontSize: "0.6875rem",
                           borderRadius: 5,
                           padding: "0.15rem 0.4rem",
-                          background: ev.status === "active" ? "rgba(200,245,90,0.1)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
-                          color: ev.status === "active" ? "#C8F55A" : teamTextMuted,
+                          background: ev.status === "active" ? "color-mix(in srgb, var(--accent) 10%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                          color: ev.status === "active" ? "var(--accent)" : teamTextMuted,
                           flexShrink: 0,
                         }}
                       >
@@ -369,7 +373,7 @@ export default function TeamPage() {
               <button
                 onClick={handleSaveAccess}
                 disabled={assignSaving}
-                style={{ background: "#C8F55A", color: "#0A0A0A", fontWeight: 600, fontSize: "0.8125rem", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", cursor: assignSaving ? "not-allowed" : "pointer", opacity: assignSaving ? 0.7 : 1 }}
+                style={{ background: "var(--accent)", color: "var(--accent-contrast)", fontWeight: 600, fontSize: "0.8125rem", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", cursor: assignSaving ? "not-allowed" : "pointer", opacity: assignSaving ? 0.7 : 1 }}
               >
                 {assignSaving ? "Saving..." : "Save access"}
               </button>
@@ -392,22 +396,23 @@ export default function TeamPage() {
       </h1>
       <p
         style={{
-          fontSize: "0.8rem",
+          fontSize: "0.875rem",
           color: teamTextSecondary,
           fontFamily: "var(--font-dm-sans)",
-          marginBottom: "0.75rem",
+          margin: "0 0 0.5rem",
         }}
       >
-        {activeCount} of {maxMembers} team members
+        {activeCount} active team member{activeCount === 1 ? "" : "s"} across your events
       </p>
 
-      {/* Team usage progress bar */}
+      {/* Progress bar */}
       <div
         style={{
-          height: 3,
+          width: "100%",
+          height: 4,
+          background: teamSurfaceAlt,
           borderRadius: 100,
-          background: "color-mix(in srgb, var(--text-primary) 7%, transparent)",
-          marginBottom: "1.5rem",
+          marginBottom: "1.25rem",
           overflow: "hidden",
         }}
       >
@@ -415,8 +420,8 @@ export default function TeamPage() {
           style={{
             height: "100%",
             borderRadius: 100,
-            background: "#C8F55A",
-            width: `${Math.min(100, maxMembers > 0 ? (activeCount / maxMembers) * 100 : 0)}%`,
+            background: "var(--accent)",
+            width: `${Math.min(100, (activeCount / 50) * 100)}%`,
             transition: "width 0.3s ease",
           }}
         />
@@ -425,8 +430,8 @@ export default function TeamPage() {
       {/* Team limit note */}
       <div
         style={{
-          background: "rgba(200,245,90,0.04)",
-          border: "0.5px solid rgba(200,245,90,0.12)",
+          background: "color-mix(in srgb, var(--accent) 4%, transparent)",
+          border: "0.5px solid color-mix(in srgb, var(--accent) 12%, transparent)",
           borderRadius: 10,
           padding: "0.875rem 1rem",
           marginBottom: "1.75rem",
@@ -436,7 +441,7 @@ export default function TeamPage() {
           lineHeight: 1.55,
         }}
       >
-        Team workspaces support up to 10 members.
+        Team workspaces support up to 10 active collaborators per event.
       </div>
 
       {/* Current members */}
@@ -479,12 +484,12 @@ export default function TeamPage() {
                         width: 36,
                         height: 36,
                         borderRadius: "50%",
-                        background: "rgba(200,245,90,0.15)",
-                        border: "0.5px solid rgba(200,245,90,0.25)",
+                        background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                        border: "0.5px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: "#C8F55A",
+                        color: "var(--accent)",
                         fontSize: "0.75rem",
                         fontWeight: 600,
                         fontFamily: "var(--font-dm-sans)",
@@ -528,9 +533,9 @@ export default function TeamPage() {
                       onClick={() => openAssignModal(m)}
                       style={{
                         background: "transparent",
-                        border: "0.5px solid rgba(200,245,90,0.2)",
+                        border: "0.5px solid color-mix(in srgb, var(--accent) 20%, transparent)",
                         borderRadius: 7,
-                        color: "#C8F55A",
+                        color: "var(--accent)",
                         fontSize: "0.75rem",
                         fontFamily: "var(--font-dm-sans)",
                         padding: "0.3rem 0.625rem",
@@ -545,9 +550,9 @@ export default function TeamPage() {
                       onClick={() => setConfirmRemoveId(m.id)}
                       style={{
                         background: "transparent",
-                        border: "0.5px solid rgba(239,68,68,0.2)",
+                        border: "0.5px solid color-mix(in srgb, var(--error) 20%, transparent)",
                         borderRadius: 7,
-                        color: "#EF4444",
+                        color: "var(--error)",
                         fontSize: "0.75rem",
                         fontFamily: "var(--font-dm-sans)",
                         padding: "0.3rem 0.625rem",
@@ -571,9 +576,9 @@ export default function TeamPage() {
                           style={{
                             fontSize: "0.6875rem",
                             fontFamily: "var(--font-dm-sans)",
-                            background: a.event.status === "active" ? "rgba(200,245,90,0.08)" : "color-mix(in srgb, var(--text-primary) 5%, transparent)",
-                            border: `0.5px solid ${a.event.status === "active" ? "rgba(200,245,90,0.2)" : "var(--border-subtle)"}`,
-                            color: a.event.status === "active" ? "#C8F55A" : teamTextSecondary,
+                            background: a.event.status === "active" ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "color-mix(in srgb, var(--text-primary) 5%, transparent)",
+                            border: `0.5px solid ${a.event.status === "active" ? "color-mix(in srgb, var(--accent) 20%, transparent)" : "var(--border-subtle)"}`,
+                            color: a.event.status === "active" ? "var(--accent)" : teamTextSecondary,
                             borderRadius: 5,
                             padding: "0.2rem 0.5rem",
                             maxWidth: 180,
@@ -645,8 +650,8 @@ export default function TeamPage() {
                   style={{
                     fontSize: "0.6875rem",
                     fontFamily: "var(--font-dm-sans)",
-                    background: "rgba(250,199,117,0.1)",
-                    color: "#FAC775",
+                    background: "color-mix(in srgb, var(--warning) 10%, transparent)",
+                    color: "var(--warning)",
                     borderRadius: 6,
                     padding: "0.2rem 0.5rem",
                     flexShrink: 0,
@@ -662,7 +667,7 @@ export default function TeamPage() {
                     background: "transparent",
                     border: teamBorderSoft,
                     borderRadius: 7,
-                    color: resendSuccess === m.id ? "#C8F55A" : teamTextSecondary,
+                    color: resendSuccess === m.id ? "var(--accent)" : teamTextSecondary,
                     fontSize: "0.75rem",
                     fontFamily: "var(--font-dm-sans)",
                     padding: "0.3rem 0.625rem",
@@ -673,15 +678,16 @@ export default function TeamPage() {
                   }}
                 >
                   {resendSuccess === m.id ? "Sent!" : resendingId === m.id ? "Sending..." : "Resend invite"}
-                </button>                {/* Copy link (shown when resend email failed) */}
+                </button>
+                {/* Copy link (shown when resend email failed) */}
                 {resendFailedUrls[m.id] && (
                   <button
                     onClick={() => copyToClipboard(resendFailedUrls[m.id], `resend-${m.id}`)}
                     style={{
                       background: "transparent",
-                      border: "0.5px solid rgba(200,245,90,0.2)",
+                      border: "0.5px solid color-mix(in srgb, var(--accent) 20%, transparent)",
                       borderRadius: 7,
-                      color: copiedId === `resend-${m.id}` ? "#C8F55A" : "rgba(200,245,90,0.7)",
+                      color: copiedId === `resend-${m.id}` ? "var(--accent)" : "color-mix(in srgb, var(--accent) 70%, transparent)",
                       fontSize: "0.75rem",
                       fontFamily: "var(--font-dm-sans)",
                       padding: "0.3rem 0.625rem",
@@ -691,14 +697,15 @@ export default function TeamPage() {
                   >
                     {copiedId === `resend-${m.id}` ? "Copied!" : "Copy link"}
                   </button>
-                )}                {/* Cancel */}
+                )}
+                {/* Cancel */}
                 <button
                   onClick={() => setConfirmRemoveId(m.id)}
                   style={{
                     background: "transparent",
-                    border: "0.5px solid rgba(239,68,68,0.2)",
+                    border: "0.5px solid color-mix(in srgb, var(--error) 20%, transparent)",
                     borderRadius: 7,
-                    color: "#EF4444",
+                    color: "var(--error)",
                     fontSize: "0.75rem",
                     fontFamily: "var(--font-dm-sans)",
                     padding: "0.3rem 0.625rem",
@@ -760,91 +767,91 @@ export default function TeamPage() {
               You&apos;ve reached your team member limit ({maxMembers}). Remove a member to invite another.
             </p>
           ) : (
-              <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {inviteEmails.map((email, idx) => (
-                  <input
-                    key={idx}
-                    ref={idx === 0 ? emailRef : undefined}
-                    type="email"
-                    value={email}
-                    onChange={e => {
-                      const next = [...inviteEmails]
-                      next[idx] = e.target.value
-                      setInviteEmails(next)
-                      setInviteErrors([])
-                      setInviteResults([])
-                    }}
-                    placeholder={idx === 0 ? "teammate@example.com" : "second@example.com (optional)"}
-                    required={idx === 0}
-                    style={{
-                      background: "var(--surface-2)",
-                      border: teamBorderSoft,
-                      borderRadius: 8,
-                      padding: "0.5625rem 0.875rem",
-                      color: teamTextPrimary,
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "0.875rem",
-                      outline: "none",
-                      width: "100%",
-                    }}
-                  />
-                ))}
-                <button
-                  type="submit"
-                  disabled={inviting}
-                  style={{
-                    background: "#C8F55A",
-                    color: "#0A0A0A",
-                    fontFamily: "var(--font-dm-sans)",
-                    fontWeight: 600,
-                    fontSize: "0.875rem",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "0.5625rem 1.25rem",
-                    cursor: inviting ? "not-allowed" : "pointer",
-                    opacity: inviting ? 0.7 : 1,
-                    alignSelf: "flex-end",
-                    marginTop: "0.125rem",
+            <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {inviteEmails.map((email, idx) => (
+                <input
+                  key={idx}
+                  ref={idx === 0 ? emailRef : undefined}
+                  type="email"
+                  value={email}
+                  onChange={e => {
+                    const next = [...inviteEmails]
+                    next[idx] = e.target.value
+                    setInviteEmails(next)
+                    setInviteErrors([])
+                    setInviteResults([])
                   }}
-                >
-                  {inviting ? "Sending..." : "Send invites"}
-                </button>
+                  placeholder={idx === 0 ? "teammate@example.com" : "second@example.com (optional)"}
+                  required={idx === 0}
+                  style={{
+                    background: "var(--surface-2)",
+                    border: teamBorderSoft,
+                    borderRadius: 8,
+                    padding: "0.5625rem 0.875rem",
+                    color: teamTextPrimary,
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "0.875rem",
+                    outline: "none",
+                    width: "100%",
+                  }}
+                />
+              ))}
+              <button
+                type="submit"
+                disabled={inviting}
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-contrast)",
+                  fontFamily: "var(--font-dm-sans)",
+                  fontWeight: 600,
+                  fontSize: "0.875rem",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "0.5625rem 1.25rem",
+                  cursor: inviting ? "not-allowed" : "pointer",
+                  opacity: inviting ? 0.7 : 1,
+                  alignSelf: "flex-end",
+                  marginTop: "0.125rem",
+                }}
+              >
+                {inviting ? "Sending..." : "Send invites"}
+              </button>
             </form>
           )}
-            {inviteErrors.length > 0 && (
-              <p style={{ marginTop: "0.625rem", fontSize: "0.8125rem", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
-                {inviteErrors[0]}
-              </p>
-            )}
-            {inviteResults.length > 0 && (
-              <div style={{ marginTop: "0.625rem", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-                {inviteResults.map((r, idx) => (
-                  <div key={idx}>
-                    {r.ok ? (
-                      <div>
-                        <p style={{ fontSize: "0.8125rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: r.emailFailed ? "0.375rem" : 0 }}>
-                          {r.emailFailed ? `Invite created for ${r.email} - email failed, share the link:` : `Invite sent to ${r.email}`}
-                        </p>
-                        {r.emailFailed && r.acceptUrl && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                            <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: teamTextSecondary, fontFamily: "var(--font-dm-sans)", background: "var(--surface-2)", border: teamBorderSoft, borderRadius: 6, padding: "0.375rem 0.625rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {r.acceptUrl}
-                            </span>
-                            <button onClick={() => copyToClipboard(r.acceptUrl!, `invite-${idx}`)} style={{ background: "#C8F55A", color: "#0A0A0A", fontFamily: "var(--font-dm-sans)", fontWeight: 600, fontSize: "0.75rem", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", cursor: "pointer", flexShrink: 0 }}>
-                              {copiedId === `invite-${idx}` ? "Copied!" : "Copy link"}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p style={{ fontSize: "0.8125rem", color: r.alreadyInvited ? "#FAC775" : "#EF4444", fontFamily: "var(--font-dm-sans)" }}>
-                        {r.email}: {r.alreadyInvited ? "Already invited or a member" : (r.error ?? "Failed")}
+          {inviteErrors.length > 0 && (
+            <p style={{ marginTop: "0.625rem", fontSize: "0.8125rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)" }}>
+              {inviteErrors[0]}
+            </p>
+          )}
+          {inviteResults.length > 0 && (
+            <div style={{ marginTop: "0.625rem", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+              {inviteResults.map((r, idx) => (
+                <div key={idx}>
+                  {r.ok ? (
+                    <div>
+                      <p style={{ fontSize: "0.8125rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)", marginBottom: r.emailFailed ? "0.375rem" : 0 }}>
+                        {r.emailFailed ? `Invite created for ${r.email} - email failed, share the link:` : `Invite sent to ${r.email}`}
                       </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      {r.emailFailed && r.acceptUrl && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: "0.75rem", color: teamTextSecondary, fontFamily: "var(--font-dm-sans)", background: "var(--surface-2)", border: teamBorderSoft, borderRadius: 6, padding: "0.375rem 0.625rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {r.acceptUrl}
+                          </span>
+                          <button onClick={() => copyToClipboard(r.acceptUrl!, `invite-${idx}`)} style={{ background: "var(--accent)", color: "var(--accent-contrast)", fontFamily: "var(--font-dm-sans)", fontWeight: 600, fontSize: "0.75rem", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", cursor: "pointer", flexShrink: 0 }}>
+                            {copiedId === `invite-${idx}` ? "Copied!" : "Copy link"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "0.8125rem", color: r.alreadyInvited ? "var(--warning)" : "var(--error)", fontFamily: "var(--font-dm-sans)" }}>
+                      {r.email}: {r.alreadyInvited ? "Already invited or a member" : (r.error ?? "Failed")}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

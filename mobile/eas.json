@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE": "demo",
+        "EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE": "live",
         "EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED": "false",
         "EXPO_PUBLIC_EVENTSSLOT_PUSH_ENABLED": "false"
       }
@@ -19,7 +19,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE": "demo",
+        "EXPO_PUBLIC_EVENTSSLOT_AUTH_MODE": "live",
         "EXPO_PUBLIC_EVENTSSLOT_UPLOADS_ENABLED": "false",
         "EXPO_PUBLIC_EVENTSSLOT_PUSH_ENABLED": "false"
       }

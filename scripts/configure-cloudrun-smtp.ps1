@@ -1,11 +1,15 @@
 param(
-  [string]$ProjectId = "eventslot",
+  [string]$ProjectId = $env:GCP_PROJECT_ID,
   [string]$Service = "eventslot-web",
   [string]$Region = "us-central1",
   [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($ProjectId)) {
+  throw "ProjectId is required. Pass -ProjectId <your-gcp-project-id> or set GCP_PROJECT_ID in your environment."
+}
 
 $requiredSecrets = @(
   "SMTP_HOST",

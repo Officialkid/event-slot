@@ -107,6 +107,7 @@ function buildShareCardSvg(params: {
   checkinNumber: number | null
   location: string | null
   posterDataUri: string | null
+  checkinTime?: string | null
 }) {
   const titleLines = wrapSvgText(params.title, 24).slice(0, 3)
   const titleTspans = titleLines
@@ -117,7 +118,7 @@ function buildShareCardSvg(params: {
     .join("")
 
   const attendeeName = escapeXml(truncateText(params.attendeeName || "Event guest", 28))
-  const dayLabel = escapeXml(truncateText(params.dayLabel, 62))
+  const dayLabel = escapeXml(truncateText(params.dayLabel + (params.checkinTime ? ` at ${params.checkinTime}` : ""), 62))
   const location = escapeXml(truncateText(params.location || "See event page for venue details", 58))
   const checkinNumber = params.checkinNumber ? `#${params.checkinNumber}` : "Confirmed"
   const poster = params.posterDataUri
@@ -200,6 +201,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const { slug } = await props.params
     const { searchParams } = new URL(req.url)
     const requestedDay = searchParams.get("day")
+    const checkinTime = (searchParams.get("time") ?? "").trim().slice(0, 16)
     const attendeeName = (searchParams.get("name") ?? "").trim().slice(0, 56)
     const checkinNumber = parsePositiveInt(searchParams.get("spot"))
     const shouldDownload = searchParams.get("download") === "1"
@@ -251,6 +253,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       checkinNumber,
       location: event.location,
       posterDataUri,
+      checkinTime: checkinTime || undefined,
     })
     const png = await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer()
 

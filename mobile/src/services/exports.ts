@@ -32,7 +32,7 @@ export function buildExportActions(event: NativeEvent): NativeExportAction[] {
 
 export function getExportReadinessMessage(event: NativeEvent) {
   if (event.exportsReady) {
-    return "Export actions are ready in demo mode. Live native downloads will use authenticated API endpoints.";
+    return "Export actions are wired and will open authenticated download links when the live workspace makes them available.";
   }
 
   return "Exports need the live native event workspace API before downloads can run on-device.";

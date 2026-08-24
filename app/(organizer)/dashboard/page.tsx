@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { formatDistanceToNow } from "date-fns"
+import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -258,7 +259,7 @@ function CapacityModal({
           <p
             style={{
               fontSize: "0.78rem",
-              color: "#FF6B6B",
+              color: "var(--error)",
               fontFamily: "var(--font-dm-sans)",
               marginTop: "0.4rem",
             }}
@@ -294,13 +295,13 @@ function CapacityModal({
             onClick={handleSave}
             disabled={saving}
             style={{
-              background: "#C8F55A",
+              background: "var(--accent)",
               border: "none",
               borderRadius: 8,
               padding: "0.5rem 1.25rem",
               fontSize: "0.82rem",
               fontWeight: 600,
-              color: "#0A0A0A",
+              color: "var(--accent-contrast, #0A0A0A)",
               cursor: saving ? "not-allowed" : "pointer",
               fontFamily: "var(--font-dm-sans)",
               opacity: saving ? 0.7 : 1,
@@ -433,15 +434,15 @@ export default function DashboardOverviewPage() {
                 fontFamily: "var(--font-dm-sans)",
               }}
             >
-              Here is what is happening with your events.
+              {ORGANIZER_SURFACE_COPY.dashboard.header.caption}
             </p>
           </div>
           <Link
             href="/create"
             data-tutorial="create-event-btn"
             style={{
-              background: "#C8F55A",
-              color: "#0A0A0A",
+              background: "var(--accent)",
+              color: "var(--accent-contrast, #0A0A0A)",
               borderRadius: 8,
               padding: "0.6rem 1.25rem",
               fontSize: "0.82rem",
@@ -452,7 +453,7 @@ export default function DashboardOverviewPage() {
               alignSelf: "flex-start",
             }}
           >
-            Create new event
+            {ORGANIZER_SURFACE_COPY.dashboard.header.createCta}
           </Link>
         </div>
 
@@ -468,39 +469,39 @@ export default function DashboardOverviewPage() {
           className="sm:grid-cols-4"
         >
           <StatCard
-            label="Total events"
+            label={ORGANIZER_SURFACE_COPY.dashboard.metrics.totalEvents}
             value={loading ? "—" : (stats?.totalEvents ?? 0)}
             trend={!loading && stats && (
-              <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: stats.eventsThisMonth > 0 ? "#C8F55A" : "var(--text-muted)" }}>
+              <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: stats.eventsThisMonth > 0 ? "var(--accent)" : "var(--text-muted)" }}>
                 {stats.eventsThisMonth > 0 ? `+${stats.eventsThisMonth} this month` : "None this month"}
               </span>
             )}
           />
           <StatCard
-            label="Registrations"
+            label={ORGANIZER_SURFACE_COPY.dashboard.metrics.registrations}
             value={loading ? "—" : (stats?.totalRegistrations ?? 0)}
             trend={!loading && stats && (() => {
               const diff = stats.registrationsThisMonth - stats.registrationsLastMonth
-              if (diff > 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#C8F55A" }}>↑ {diff} more than last month</span>
-              if (diff < 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "rgba(255,107,107,0.8)" }}>↓ {Math.abs(diff)} fewer than last month</span>
+              if (diff > 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--accent)" }}>↑ {diff} more than last month</span>
+              if (diff < 0) return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--error)" }}>↓ {Math.abs(diff)} fewer than last month</span>
               return <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>Same as last month</span>
             })()}
           />
           <StatCard
-            label="Active now"
+            label={ORGANIZER_SURFACE_COPY.dashboard.metrics.activeNow}
             value={loading ? "—" : (stats?.activeEvents ?? 0)}
             trend={!loading && stats && (
               stats.eventsClosingThisWeek > 0
-                ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#FAC775" }}>⚠ {stats.eventsClosingThisWeek} closing this week</span>
+                ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--warning)" }}>⚠ {stats.eventsClosingThisWeek} closing this week</span>
                 : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>No closures this week</span>
             )}
           />
           <StatCard
-            label="On waitlist"
+            label={ORGANIZER_SURFACE_COPY.dashboard.metrics.onWaitlist}
             value={loading ? "—" : (stats?.totalWaitlisted ?? 0)}
             trend={!loading && stats && (
               stats.totalWaitlisted === 0
-                ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "#C8F55A" }}>All caught up</span>
+                ? <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--accent)" }}>All caught up</span>
                 : <span style={{ fontSize: "0.72rem", fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>across {stats.waitlistEventCount} event{stats.waitlistEventCount !== 1 ? "s" : ""}</span>
             )}
           />
@@ -513,7 +514,7 @@ export default function DashboardOverviewPage() {
           {(loading || (stats?.eventsNearCapacity?.length ?? 0) > 0) && (
           <section>
             <h2 style={sectionHeadingStyle}>
-              Needs attention
+              {ORGANIZER_SURFACE_COPY.dashboard.sections.needsAttention.title}
             </h2>
 
             {loading ? (
@@ -555,7 +556,7 @@ export default function DashboardOverviewPage() {
                     margin: 0,
                   }}
                 >
-                  All events have plenty of room.
+                  {ORGANIZER_SURFACE_COPY.dashboard.sections.needsAttention.webEmptyCaption}
                 </p>
               </div>
             ) : (
@@ -632,7 +633,7 @@ export default function DashboardOverviewPage() {
                           style={{
                             height: "100%",
                             width: `${pct}%`,
-                            background: pct >= 95 ? "#FF6B6B" : "#C8F55A",
+                            background: pct >= 95 ? "var(--error)" : "var(--accent)",
                             borderRadius: 100,
                             transition: "width 0.4s ease",
                           }}
@@ -660,7 +661,7 @@ export default function DashboardOverviewPage() {
             <h2
               style={sectionHeadingStyle}
             >
-              Upcoming events
+              {ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.title}
             </h2>
 
             {loading ? (
@@ -724,7 +725,7 @@ export default function DashboardOverviewPage() {
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
-                  No upcoming events
+                  {ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.webEmptyTitle}
                 </p>
                 <p
                   style={{
@@ -734,14 +735,14 @@ export default function DashboardOverviewPage() {
                     fontFamily: "var(--font-dm-sans)",
                   }}
                 >
-                  Create an event to get started.
+                  {ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.webEmptyCaption}
                 </p>
                 <Link
                   href="/create"
                   style={{
                     marginTop: "0.5rem",
-                    background: "#C8F55A",
-                    color: "#0A0A0A",
+                    background: "var(--accent)",
+                    color: "var(--accent-contrast, #0A0A0A)",
                     borderRadius: 8,
                     padding: "0.5rem 1.1rem",
                     fontSize: "0.78rem",
@@ -845,7 +846,7 @@ export default function DashboardOverviewPage() {
                             style={{
                               height: "100%",
                               width: `${pct}%`,
-                              background: "#C8F55A",
+                              background: "var(--accent)",
                               borderRadius: 100,
                               transition: "width 0.4s ease",
                             }}
@@ -862,7 +863,7 @@ export default function DashboardOverviewPage() {
           {/* Recent activity feed */}
           <section>
             <h2 style={sectionHeadingStyle}>
-              Recent activity
+              {ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.title}
             </h2>
 
             {loading ? (
@@ -904,7 +905,7 @@ export default function DashboardOverviewPage() {
                     margin: 0,
                   }}
                 >
-                  No recent activity. Create a new event to get started.
+                  {ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.webEmptyCaption}
                 </p>
               </div>
             ) : (
@@ -944,7 +945,7 @@ export default function DashboardOverviewPage() {
                         <Link
                           href={`/dashboard/${item.eventSlug}`}
                           style={{
-                            color: "#C8F55A",
+                            color: "var(--accent)",
                             textDecoration: "none",
                             fontWeight: 500,
                           }}
@@ -970,7 +971,7 @@ export default function DashboardOverviewPage() {
                   href="/dashboard/events"
                   style={{ display: "block", padding: "0.75rem 1.25rem", textAlign: "center", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", textDecoration: "none", borderTop: subtleDivider }}
                 >
-                  View all activity
+                  {ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.viewAllLabel}
                 </Link>
               </>
             )}
@@ -985,10 +986,10 @@ export default function DashboardOverviewPage() {
                   <span style={{
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
                     width: 22, height: 22, borderRadius: 6,
-                    background: "rgba(200,245,90,0.12)", border: "0.5px solid rgba(200,245,90,0.25)",
+                    background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "0.5px solid color-mix(in srgb, var(--accent) 25%, transparent)",
                     flexShrink: 0,
                   }}>
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#C8F55A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M8 1.5L2 4v4c0 3.3 2.5 5.5 6 6 3.5-.5 6-2.7 6-6V4L8 1.5z" />
                     </svg>
                   </span>
@@ -998,7 +999,7 @@ export default function DashboardOverviewPage() {
                 </div>
                 <Link
                   href="/admin"
-                  style={{ fontSize: "0.75rem", color: "#C8F55A", textDecoration: "none", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                  style={{ fontSize: "0.75rem", color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
                 >
                   Open Admin Panel →
                 </Link>
@@ -1007,22 +1008,22 @@ export default function DashboardOverviewPage() {
               {/* Mini stat cards */}
               <div className="admin-stat-grid" style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1rem" }}>
                 <style>{`.admin-stat-grid { grid-template-columns: repeat(3, 1fr) !important; }`}</style>
-                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                <div style={{ background: mutedCardBg, border: "0.5px solid color-mix(in srgb, var(--accent) 12%, transparent)", borderRadius: 10, padding: "1rem 1.25rem" }}>
                   <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Total Users</div>
                   <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "var(--text-primary)", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminStats?.totalUsers ?? 0)}
                   </div>
                 </div>
-                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                <div style={{ background: mutedCardBg, border: "0.5px solid color-mix(in srgb, var(--accent) 12%, transparent)", borderRadius: 10, padding: "1rem 1.25rem" }}>
                   <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>New Signups</div>
-                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "#C8F55A", lineHeight: 1 }}>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: "var(--accent)", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminStats?.newUsersThisMonth ?? 0)}
                   </div>
                   <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginTop: "0.2rem" }}>this month</div>
                 </div>
-                <div style={{ background: mutedCardBg, border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "1rem 1.25rem" }}>
+                <div style={{ background: mutedCardBg, border: "0.5px solid color-mix(in srgb, var(--accent) 12%, transparent)", borderRadius: 10, padding: "1rem 1.25rem" }}>
                   <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.4rem" }}>Unread Feedback</div>
-                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: adminFeedback && adminFeedback.unreadCount > 0 ? "#FAC775" : "var(--text-primary)", lineHeight: 1 }}>
+                  <div style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.65rem", color: adminFeedback && adminFeedback.unreadCount > 0 ? "var(--warning)" : "var(--text-primary)", lineHeight: 1 }}>
                     {adminLoading ? "—" : (adminFeedback?.unreadCount ?? 0)}
                   </div>
                 </div>
@@ -1082,8 +1083,8 @@ export default function DashboardOverviewPage() {
                           <span style={{
                             fontSize: "0.6rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em",
                             padding: "0.12rem 0.4rem", borderRadius: 99, fontFamily: "var(--font-dm-sans)",
-                            background: fb.type === "complaint" ? "rgba(255,107,107,0.12)" : fb.type === "compliment" ? "rgba(74,222,128,0.12)" : fb.type === "suggestion" ? "rgba(96,165,250,0.12)" : "color-mix(in srgb, var(--text-primary) 7%, transparent)",
-                            color: fb.type === "complaint" ? "#FF6B6B" : fb.type === "compliment" ? "#4ADE80" : fb.type === "suggestion" ? "#60A5FA" : "var(--text-secondary)",
+                            background: fb.type === "complaint" ? "color-mix(in srgb, var(--error) 12%, transparent)" : fb.type === "compliment" ? "rgba(74,222,128,0.12)" : fb.type === "suggestion" ? "rgba(96,165,250,0.12)" : "color-mix(in srgb, var(--text-primary) 7%, transparent)",
+                            color: fb.type === "complaint" ? "var(--error)" : fb.type === "compliment" ? "#4ADE80" : fb.type === "suggestion" ? "#60A5FA" : "var(--text-secondary)",
                           }}>{fb.type}</span>
                           <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>{fb.organizer.name ?? fb.organizer.email ?? "—"}</span>
                         </div>
@@ -1105,12 +1106,12 @@ export default function DashboardOverviewPage() {
                 ] as const).map(item => (
                   <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}>
                     <div style={{
-                      background: "rgba(200,245,90,0.04)", border: "0.5px solid rgba(200,245,90,0.1)",
+                      background: "color-mix(in srgb, var(--accent) 6%, var(--surface))", border: "0.5px solid color-mix(in srgb, var(--accent) 18%, var(--border-subtle))",
                       borderRadius: 8, padding: "0.6rem 0.75rem", display: "flex", alignItems: "center",
                       gap: "0.5rem",
                     }}>
                       <span style={{ fontSize: "0.9rem" }}>{item.icon}</span>
-                      <span style={{ fontSize: "0.75rem", fontWeight: 500, color: "rgba(200,245,90,0.75)", fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>{item.label}</span>
                     </div>
                   </Link>
                 ))}

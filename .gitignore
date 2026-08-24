@@ -59,3 +59,15 @@ keystore.properties
 twa/app/build/
 twa/.gradle/
 twa/local.properties
+
+# Temporary logs, audit dumps and screenshots
+.tmp-*
+.tmp*/
+*.log
+*.err
+*.out
+build.log
+scripts/screenshots/
+scripts/screenshots_verification/
+.cache/
+

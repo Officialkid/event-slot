@@ -1,0 +1,272 @@
+{"kind":"deck","id":"pr/srp63w","name":"Deck"}
+{"kind":"layout","layoutId":"98b64625-cf95-4567-bb93-2b39755280ec","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"1cad6ca3-aebf-4963-b205-c2555a13b566","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/5afghz","slide":1,"title":"EVENTSLOT","textShapes":13}
+{"kind":"textbox","id":"sh/3q983mtg","slide":1,"text":"EVENTSLOT","textPreview":"EVENTSLOT","textChars":9,"textLines":1,"bbox":[52,40,180,24]}
+{"kind":"textbox","id":"sh/4ripwru1","slide":1,"text":"A working event operations platform for organizers","textPreview":"A working event operations platform for organizers","textChars":50,"textLines":1,"bbox":[52,132,760,120]}
+{"kind":"textbox","id":"sh/5srq5wbm","slide":1,"text":"Raising USD 100,000 for 10% equity to turn early usage into repeatable growth and paid conversion.","textPreview":"Raising USD 100,000 for 10% equity to turn early usage into repeatable growth and paid conversion.","textChars":98,"textLines":1,"bbox":[52,286,650,80]}
+{"kind":"shape","id":"sh/ulg7qhcz","slide":1,"bbox":[838,104,346,458]}
+{"kind":"textbox","id":"sh/vm98zmtk","slide":1,"text":"Round","textPreview":"Round","textChars":5,"textLines":1,"bbox":[870,136,120,28]}
+{"kind":"textbox","id":"sh/gnipsru5","slide":1,"text":"USD 100,000","textPreview":"USD 100,000","textChars":11,"textLines":1,"bbox":[870,168,240,46]}
+{"kind":"textbox","id":"sh/horq1cba","slide":1,"text":"Pre-money valuation","textPreview":"Pre-money valuation","textChars":19,"textLines":1,"bbox":[870,246,180,24]}
+{"kind":"textbox","id":"sh/mxg7mxcn","slide":1,"text":"USD 900,000","textPreview":"USD 900,000","textChars":11,"textLines":1,"bbox":[870,276,220,36]}
+{"kind":"textbox","id":"sh/7ypov2d8","slide":1,"text":"Post-money valuation","textPreview":"Post-money valuation","textChars":20,"textLines":1,"bbox":[870,348,180,24]}
+{"kind":"textbox","id":"sh/325onydg","slide":1,"text":"USD 1,000,000","textPreview":"USD 1,000,000","textChars":13,"textLines":1,"bbox":[870,378,240,36]}
+{"kind":"textbox","id":"sh/i1wnutwv","slide":1,"text":"Runway target","textPreview":"Runway target","textChars":13,"textLines":1,"bbox":[870,450,120,24]}
+{"kind":"textbox","id":"sh/5on6p8v6","slide":1,"text":"12 months base,\nstretchable toward 18 months","textPreview":"12 months base, | stretchable toward 18 months","textChars":44,"textLines":2,"bbox":[870,480,250,72]}
+{"kind":"textbox","id":"sh/4ne5w3el","slide":1,"text":"EventSlot | Nairobi, Kenya | August 2026","textPreview":"EventSlot | Nairobi, Kenya | August 2026","textChars":40,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/rqporydc","slide":1,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/5afghz","slide":1,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/h4m4yk","slide":2,"title":"THE PROBLEM","textShapes":13}
+{"kind":"textbox","id":"sh/5cvq9wji","slide":2,"text":"THE PROBLEM","textPreview":"THE PROBLEM","textChars":11,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/ip47eh0r","slide":2,"text":"Event organizers still run one event across too many disconnected tools","textPreview":"Event organizers still run one event across too many disconnected tools","textChars":71,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/jqd87m1c","slide":2,"text":"The result is manual work, weak visibility, and a messy attendee experience.","textPreview":"The result is manual work, weak visibility, and a messy attendee experience.","textChars":76,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/sf6pkri9","slide":2,"bbox":[52,228,270,270]}
+{"kind":"textbox","id":"sh/tgfqdwze","slide":2,"text":"Registration","textPreview":"Registration","textChars":12,"textLines":1,"bbox":[70,248,234,28]}
+{"kind":"shape","id":"sh/6d47i103","slide":2,"bbox":[70,288,234,2]}
+{"kind":"textbox","id":"sh/rex8b61o","slide":2,"text":"Google Forms or messages collect names, but operations remain manual.","textPreview":"Google Forms or messages collect names, but operations remain manual.","textChars":69,"textLines":1,"bbox":[70,312,234,150]}
+{"kind":"shape","id":"sh/8j2p87ip","slide":2,"bbox":[346,228,270,270]}
+{"kind":"textbox","id":"sh/9kbq1cja","slide":2,"text":"Communication","textPreview":"Communication","textChars":13,"textLines":1,"bbox":[364,248,234,28]}
+{"kind":"shape","id":"sh/lsva9kfi","slide":2,"bbox":[364,288,234,2]}
+{"kind":"textbox","id":"sh/k729gfex","slide":2,"text":"WhatsApp becomes the default inbox, with no clean event record.","textPreview":"WhatsApp becomes the default inbox, with no clean event record.","textChars":63,"textLines":1,"bbox":[364,312,234,150]}
+{"kind":"shape","id":"sh/z6ts7uxs","slide":2,"bbox":[640,228,270,270]}
+{"kind":"textbox","id":"sh/y5krepw7","slide":2,"text":"Payments","textPreview":"Payments","textChars":8,"textLines":1,"bbox":[658,248,234,28]}
+{"kind":"shape","id":"sh/9wvad4fu","slide":2,"bbox":[658,288,234,2]}
+{"kind":"textbox","id":"sh/8vm9kze9","slide":2,"text":"Mobile money confirmation is often handled manually and reconciled late.","textPreview":"Mobile money confirmation is often handled manually and reconciled late.","textChars":72,"textLines":1,"bbox":[658,312,234,150]}
+{"kind":"shape","id":"sh/7udsbuxo","slide":2,"bbox":[934,228,270,270]}
+{"kind":"textbox","id":"sh/mt4ripw3","slide":2,"text":"Attendance","textPreview":"Attendance","textChars":10,"textLines":1,"bbox":[952,248,234,28]}
+{"kind":"shape","id":"sh/h0fah4fq","slide":2,"bbox":[952,288,234,2]}
+{"kind":"textbox","id":"sh/wzmtoze5","slide":2,"text":"Check-in happens on paper, spreadsheets, or improvised lists.","textPreview":"Check-in happens on paper, spreadsheets, or improvised lists.","textChars":61,"textLines":1,"bbox":[952,312,234,150]}
+{"kind":"textbox","id":"sh/g3utknmh","slide":2,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/h4nudsn2","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/h4m4yk","slide":2,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/nfmgc4","slide":3,"title":"THE SOLUTION","textShapes":13}
+{"kind":"textbox","id":"sh/jil87y9w","slide":3,"text":"THE SOLUTION","textPreview":"THE SOLUTION","textChars":12,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/kjup03ah","slide":3,"text":"EventSlot gives organizers one operating workflow from setup to event-day control","textPreview":"EventSlot gives organizers one operating workflow from setup to event-day control","textChars":81,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/lk3q98r2","slide":3,"text":"Instead of switching between tools, organizers can create, manage, verify, and review events in one place.","textPreview":"Instead of switching between tools, organizers can create, manage, verify, and review events in one place.","textChars":106,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/ads7utsf","slide":3,"bbox":[72,236,1136,82]}
+{"kind":"textbox","id":"sh/be183y90","slide":3,"text":"1. Create","textPreview":"1. Create","textChars":9,"textLines":1,"bbox":[94,255,170,30]}
+{"kind":"textbox","id":"sh/wfapwjal","slide":3,"text":"Set up event details, registration flow, questions, and capacity.","textPreview":"Set up event details, registration flow, questions, and capacity.","textChars":65,"textLines":1,"bbox":[290,253,860,40]}
+{"kind":"shape","id":"sh/xgjq5or6","slide":3,"bbox":[72,332,1136,82]}
+{"kind":"textbox","id":"sh/u9wr6dsj","slide":3,"text":"2. Share","textPreview":"2. Share","textChars":8,"textLines":1,"bbox":[94,351,170,30]}
+{"kind":"textbox","id":"sh/va58fi94","slide":3,"text":"Publish one event link attendees can use to register.","textPreview":"Publish one event link attendees can use to register.","textChars":53,"textLines":1,"bbox":[290,349,860,40]}
+{"kind":"shape","id":"sh/zml8vmtk","slide":3,"bbox":[72,428,1136,82]}
+{"kind":"textbox","id":"sh/ylcrmhsf","slide":3,"text":"3. Manage","textPreview":"3. Manage","textChars":9,"textLines":1,"bbox":[94,447,170,30]}
+{"kind":"textbox","id":"sh/lo3qxcbq","slide":3,"text":"Track registrations, waitlists, attendee records, and operational status.","textPreview":"Track registrations, waitlists, attendee records, and operational status.","textChars":73,"textLines":1,"bbox":[290,445,860,40]}
+{"kind":"shape","id":"sh/0nu9ora5","slide":3,"bbox":[72,524,1136,82]}
+{"kind":"textbox","id":"sh/na58zmtw","slide":3,"text":"4. Deliver","textPreview":"4. Deliver","textChars":10,"textLines":1,"bbox":[94,543,170,30]}
+{"kind":"textbox","id":"sh/m9crqhsb","slide":3,"text":"Support verification, event-day attendance handling, and reporting.","textPreview":"Support verification, event-day attendance handling, and reporting.","textChars":67,"textLines":1,"bbox":[290,541,860,40]}
+{"kind":"textbox","id":"sh/9cnq1wb2","slide":3,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/8be9srah","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/nfmgc4","slide":3,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/1shnlx","slide":4,"title":"TRACTION","textShapes":18}
+{"kind":"textbox","id":"sh/sb2lkret","slide":4,"text":"TRACTION","textPreview":"TRACTION","textChars":8,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/7atkrmd8","slide":4,"text":"EventSlot already has live usage, even though monetization is still early","textPreview":"EventSlot already has live usage, even though monetization is still early","textChars":73,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/6903ihwn","slide":4,"text":"Verified platform snapshot as of August 6, 2026.","textPreview":"Verified platform snapshot as of August 6, 2026.","textChars":48,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/hgb2xwva","slide":4,"bbox":[72,220,344,118]}
+{"kind":"textbox","id":"sh/gf2lorep","slide":4,"text":"Users","textPreview":"Users","textChars":5,"textLines":1,"bbox":[90,238,220,22]}
+{"kind":"textbox","id":"sh/fetkv6d4","slide":4,"text":"120","textPreview":"120","textChars":3,"textLines":1,"bbox":[90,270,220,44]}
+{"kind":"shape","id":"sh/udk3m1wj","slide":4,"bbox":[448,220,344,118]}
+{"kind":"textbox","id":"sh/xkr2lcf6","slide":4,"text":"Events created","textPreview":"Events created","textChars":14,"textLines":1,"bbox":[466,238,220,22]}
+{"kind":"textbox","id":"sh/wji1c7el","slide":4,"text":"45","textPreview":"45","textChars":2,"textLines":1,"bbox":[466,270,220,44]}
+{"kind":"shape","id":"sh/axkf6lsv","slide":4,"bbox":[824,220,344,118]}
+{"kind":"textbox","id":"sh/vydwzqtg","slide":4,"text":"Registrations processed","textPreview":"Registrations processed","textChars":23,"textLines":1,"bbox":[842,238,220,22]}
+{"kind":"textbox","id":"sh/wzmx8val","slide":4,"text":"482","textPreview":"482","textChars":3,"textLines":1,"bbox":[842,270,220,44]}
+{"kind":"shape","id":"sh/x0ve10b6","slide":4,"bbox":[72,370,344,118]}
+{"kind":"textbox","id":"sh/i14fa5sr","slide":4,"text":"Active events","textPreview":"Active events","textChars":13,"textLines":1,"bbox":[90,388,220,22]}
+{"kind":"textbox","id":"sh/j2dw3atc","slide":4,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[90,420,220,44]}
+{"kind":"shape","id":"sh/k3mxcvax","slide":4,"bbox":[448,370,344,118]}
+{"kind":"textbox","id":"sh/54vy50bi","slide":4,"text":"Organizers with events","textPreview":"Organizers with events","textChars":22,"textLines":1,"bbox":[466,388,220,22]}
+{"kind":"textbox","id":"sh/65ofe5s3","slide":4,"text":"27","textPreview":"27","textChars":2,"textLines":1,"bbox":[466,420,220,44]}
+{"kind":"shape","id":"sh/7qxg7at8","slide":4,"bbox":[824,370,344,118]}
+{"kind":"textbox","id":"sh/3uxwvapg","slide":4,"text":"Paid users","textPreview":"Paid users","textChars":10,"textLines":1,"bbox":[842,388,220,22]}
+{"kind":"textbox","id":"sh/2tov258v","slide":4,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[842,420,220,44]}
+{"kind":"textbox","id":"sh/pwfexk7m","slide":4,"text":"What these numbers mean: EventSlot has real organizer and attendee activity, but this is still an early-validation business, not yet a mature revenue company.","textPreview":"What these numbers mean: EventSlot has real organizer and attendee activity, but this is still an early-validation business, not yet a ma...","textChars":158,"textLines":1,"bbox":[72,548,1080,48]}
+{"kind":"textbox","id":"sh/4v6d4fq1","slide":4,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/f6xwrapk","slide":4,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/1shnlx","slide":4,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/risjv8","slide":5,"title":"USAGE EVIDENCE","textShapes":5}
+{"kind":"textbox","id":"sh/cnmh4fq9","slide":5,"text":"USAGE EVIDENCE","textPreview":"USAGE EVIDENCE","textChars":14,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/bmd0ba9o","slide":5,"text":"The product is already supporting real events with meaningful attendance volume","textPreview":"The product is already supporting real events with meaningful attendance volume","textChars":79,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/lsfihk76","slide":5,"text":"This is still early traction, but it is better than a concept story: real organizers have already trusted EventSlot with live event operations.","textPreview":"This is still early traction, but it is better than a concept story: real organizers have already trusted EventSlot with live event opera...","textChars":143,"textLines":1,"bbox":[72,586,1100,42]}
+{"kind":"textbox","id":"sh/kr6h8fql","slide":5,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/zqx0fap0","slide":5,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"table","id":"tb/fqlwfy58","slide":5,"name":"","rows":5,"cols":3,"preview":"Event | Confirmed attendees | What it shows","bbox":[72,210,1136,340]}
+{"kind":"notes","id":"nt/risjv8","slide":5,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/8yjsbg","slide":6,"title":"BEACHHEAD MARKET","textShapes":13}
+{"kind":"textbox","id":"sh/jidgzy9s","slide":6,"text":"BEACHHEAD MARKET","textPreview":"BEACHHEAD MARKET","textChars":16,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/kjmhs3ad","slide":6,"text":"EventSlot should focus first on organizer segments with repeated coordination pain","textPreview":"EventSlot should focus first on organizer segments with repeated coordination pain","textChars":82,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/l4vi18ry","slide":6,"text":"The early opportunity is not every event organizer. It is the organizer who needs structure and repeats the workflow.","textPreview":"The early opportunity is not every event organizer. It is the organizer who needs structure and repeats the workflow.","textChars":117,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/ad4zmtsb","slide":6,"bbox":[72,232,558,134]}
+{"kind":"textbox","id":"sh/bedgvytw","slide":6,"text":"Churches and ministry teams","textPreview":"Churches and ministry teams","textChars":27,"textLines":1,"bbox":[90,250,340,28]}
+{"kind":"textbox","id":"sh/wfmho3ah","slide":6,"text":"High coordination needs, repeated events, volunteer-heavy operations.","textPreview":"High coordination needs, repeated events, volunteer-heavy operations.","textChars":69,"textLines":1,"bbox":[90,290,500,52]}
+{"kind":"shape","id":"sh/xgvyx8rm","slide":6,"bbox":[72,402,558,134]}
+{"kind":"textbox","id":"sh/m9kzi9sz","slide":6,"text":"Universities and student organizations","textPreview":"Universities and student organizations","textChars":38,"textLines":1,"bbox":[90,420,340,28]}
+{"kind":"textbox","id":"sh/natgretk","slide":6,"text":"Multiple events, capacity issues, check-in and communication needs.","textPreview":"Multiple events, capacity issues, check-in and communication needs.","textChars":67,"textLines":1,"bbox":[90,460,500,52]}
+{"kind":"shape","id":"sh/nep8nq5s","slide":6,"bbox":[650,232,558,134]}
+{"kind":"textbox","id":"sh/mdgrelo7","slide":6,"text":"Training providers","textPreview":"Training providers","textChars":18,"textLines":1,"bbox":[668,250,340,28]}
+{"kind":"textbox","id":"sh/9grqpgny","slide":6,"text":"Registration, payments, attendance, and follow-up all matter.","textPreview":"Registration, payments, attendance, and follow-up all matter.","textChars":61,"textLines":1,"bbox":[668,290,500,52]}
+{"kind":"shape","id":"sh/8fy9gb6d","slide":6,"bbox":[650,402,558,134]}
+{"kind":"textbox","id":"sh/vi9srq54","slide":6,"text":"Independent community organizers","textPreview":"Independent community organizers","textChars":32,"textLines":1,"bbox":[668,420,340,28]}
+{"kind":"textbox","id":"sh/ah0riloj","slide":6,"text":"Need one workflow instead of improvised admin across several tools.","textPreview":"Need one workflow instead of improvised admin across several tools.","textChars":67,"textLines":1,"bbox":[668,460,500,52]}
+{"kind":"textbox","id":"sh/hkrat0nu","slide":6,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/wji9kv6p","slide":6,"text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/8yjsbg","slide":6,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/7wo83k","slide":7,"title":"WHY NOW","textShapes":16}
+{"kind":"textbox","id":"sh/bi9gbe94","slide":7,"text":"WHY NOW","textPreview":"WHY NOW","textChars":7,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/wjih4jq9","slide":7,"text":"Event organization is becoming digital, but the workflow is still fragmented","textPreview":"Event organization is becoming digital, but the workflow is still fragmented","textChars":76,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/x4ridoru","slide":7,"text":"EventSlot exists because organizers increasingly expect digital coordination, yet many still operate with disconnected tools.","textPreview":"EventSlot exists because organizers increasingly expect digital coordination, yet many still operate with disconnected tools.","textChars":125,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"textbox","id":"sh/y50z6t8f","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[88,250,18,24]}
+{"kind":"textbox","id":"sh/j690fy90","slide":7,"text":"Organizers want one link, one dashboard, and one source of truth.","textPreview":"Organizers want one link, one dashboard, and one source of truth.","textChars":65,"textLines":1,"bbox":[106,248,542,40]}
+{"kind":"textbox","id":"sh/k7ih83ql","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[88,288,18,24]}
+{"kind":"textbox","id":"sh/l8rih8r6","slide":7,"text":"Attendees increasingly expect fast confirmation and smoother event-day flow.","textPreview":"Attendees increasingly expect fast confirmation and smoother event-day flow.","textChars":76,"textLines":1,"bbox":[106,286,542,40]}
+{"kind":"textbox","id":"sh/e9wzup8b","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[88,326,18,24]}
+{"kind":"textbox","id":"sh/zapg3u9w","slide":7,"text":"Mobile payments and digital registration behaviors are more normal than they were a few years ago.","textPreview":"Mobile payments and digital registration behaviors are more normal than they were a few years ago.","textChars":98,"textLines":1,"bbox":[106,324,542,40]}
+{"kind":"textbox","id":"sh/vil4nixg","slide":7,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[88,364,18,24]}
+{"kind":"textbox","id":"sh/uhcnedgv","slide":7,"text":"Communities, churches, universities, and training providers run recurring events but often lack purpose-built operating software.","textPreview":"Communities, churches, universities, and training providers run recurring events but often lack purpose-built operating software.","textChars":129,"textLines":1,"bbox":[106,362,542,40]}
+{"kind":"shape","id":"sh/hk3mpsfm","slide":7,"bbox":[730,236,438,338]}
+{"kind":"textbox","id":"sh/gju5gny1","slide":7,"text":"What this means commercially","textPreview":"What this means commercially","textChars":28,"textLines":1,"bbox":[756,262,310,26]}
+{"kind":"shape","id":"sh/7el4jixk","slide":7,"bbox":[756,298,364,2]}
+{"kind":"textbox","id":"sh/6dcnadgz","slide":7,"text":"The opening is not just ticketing. It is operational software for organizers who need registration, control, and visibility without enterprise complexity.","textPreview":"The opening is not just ticketing. It is operational software for organizers who need registration, control, and visibility without enter...","textChars":154,"textLines":1,"bbox":[756,326,350,150]}
+{"kind":"textbox","id":"sh/tg3ml8fq","slide":7,"text":"That is the gap EventSlot is trying to own early.","textPreview":"That is the gap EventSlot is trying to own early.","textChars":49,"textLines":1,"bbox":[756,494,330,36]}
+{"kind":"textbox","id":"sh/8fu5c3y5","slide":7,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/ja14fyx8","slide":7,"text":"7","textPreview":"7","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/7wo83k","slide":7,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/hok0rp","slide":8,"title":"BUSINESS MODEL","textShapes":13}
+{"kind":"textbox","id":"sh/y5s7itwr","slide":8,"text":"BUSINESS MODEL","textPreview":"BUSINESS MODEL","textChars":14,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/l836d8fi","slide":8,"text":"The goal of this round is to prove which revenue streams convert first","textPreview":"The goal of this round is to prove which revenue streams convert first","textChars":70,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/k7upk3ex","slide":8,"text":"EventSlot already has a paid path, but it still needs stronger commercial validation.","textPreview":"EventSlot already has a paid path, but it still needs stronger commercial validation.","textChars":85,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/b21o7exg","slide":8,"bbox":[72,242,558,128]}
+{"kind":"textbox","id":"sh/ahsne9wv","slide":8,"text":"Paid organizer plans","textPreview":"Paid organizer plans","textChars":20,"textLines":1,"bbox":[90,260,350,26]}
+{"kind":"textbox","id":"sh/x4j69ofm","slide":8,"text":"Convert organizers who need more capacity, more control, or premium workflows.","textPreview":"Convert organizers who need more capacity, more control, or premium workflows.","textChars":78,"textLines":1,"bbox":[90,296,510,46]}
+{"kind":"shape","id":"sh/c3apgje1","slide":8,"bbox":[72,402,558,128]}
+{"kind":"textbox","id":"sh/vy5ojixk","slide":8,"text":"Premium features","textPreview":"Premium features","textChars":16,"textLines":1,"bbox":[90,420,350,26]}
+{"kind":"textbox","id":"sh/udc7qdwz","slide":8,"text":"Reporting, advanced workflow controls, or team-grade tools that solve real organizer pain.","textPreview":"Reporting, advanced workflow controls, or team-grade tools that solve real organizer pain.","textChars":90,"textLines":1,"bbox":[90,456,510,46]}
+{"kind":"shape","id":"sh/kj2lc3q5","slide":8,"bbox":[650,242,558,128]}
+{"kind":"textbox","id":"sh/lkb2l8rq","slide":8,"text":"Transaction-linked revenue","textPreview":"Transaction-linked revenue","textChars":26,"textLines":1,"bbox":[668,260,350,26]}
+{"kind":"textbox","id":"sh/yhk3ad8z","slide":8,"text":"Use paid-event workflows to create revenue tied to event activity.","textPreview":"Use paid-event workflows to create revenue tied to event activity.","textChars":66,"textLines":1,"bbox":[668,296,510,46]}
+{"kind":"shape","id":"sh/jitkji9k","slide":8,"bbox":[650,402,558,128]}
+{"kind":"textbox","id":"sh/cf2l83a9","slide":8,"text":"Institutional packages","textPreview":"Institutional packages","textChars":22,"textLines":1,"bbox":[668,420,350,26]}
+{"kind":"textbox","id":"sh/xgb2h8re","slide":8,"text":"Over time, sell structured packages to repeat organizer groups and institutions.","textPreview":"Over time, sell structured packages to repeat organizer groups and institutions.","textChars":80,"textLines":1,"bbox":[668,456,510,46]}
+{"kind":"textbox","id":"sh/at0j6ts3","slide":8,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/bu9kfy9o","slide":8,"text":"8","textPreview":"8","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/hok0rp","slide":8,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/mm3o4f","slide":9,"title":"GO-TO-MARKET","textShapes":35}
+{"kind":"textbox","id":"sh/0nq5gnqp","slide":9,"text":"GO-TO-MARKET","textPreview":"GO-TO-MARKET","textChars":12,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/zmh4nip4","slide":9,"text":"The first growth engine should be focused, founder-led, and segment-specific","textPreview":"The first growth engine should be focused, founder-led, and segment-specific","textChars":76,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/e1oned8j","slide":9,"text":"At this stage, repeatable customer understanding matters more than broad awareness spend.","textPreview":"At this stage, repeatable customer understanding matters more than broad awareness spend.","textChars":89,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/9szmts76","slide":9,"bbox":[72,244,344,324]}
+{"kind":"textbox","id":"sh/orq5kn6l","slide":9,"text":"Phase 1","textPreview":"Phase 1","textChars":7,"textLines":1,"bbox":[90,266,140,22]}
+{"kind":"textbox","id":"sh/nqh4rip0","slide":9,"text":"Founder-led validation","textPreview":"Founder-led validation","textChars":22,"textLines":1,"bbox":[90,296,300,52]}
+{"kind":"textbox","id":"sh/mp8nix8f","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,360,18,24]}
+{"kind":"textbox","id":"sh/xwj6xc72","slide":9,"text":"Direct outreach","textPreview":"Direct outreach","textChars":15,"textLines":1,"bbox":[108,358,282,40]}
+{"kind":"textbox","id":"sh/wva5o76x","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,398,18,24]}
+{"kind":"textbox","id":"sh/e1c7mds3","slide":9,"text":"Live demos","textPreview":"Live demos","textChars":10,"textLines":1,"bbox":[108,396,282,40]}
+{"kind":"textbox","id":"sh/z2l8vito","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,436,18,24]}
+{"kind":"textbox","id":"sh/03upona9","slide":9,"text":"Hands-on onboarding","textPreview":"Hands-on onboarding","textChars":19,"textLines":1,"bbox":[108,434,282,40]}
+{"kind":"textbox","id":"sh/14nqxsbu","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,474,18,24]}
+{"kind":"textbox","id":"sh/m5wrqxsz","slide":9,"text":"Pilot-style event support","textPreview":"Pilot-style event support","textChars":25,"textLines":1,"bbox":[108,472,282,40]}
+{"kind":"shape","id":"sh/n658z2tk","slide":9,"bbox":[448,244,344,324]}
+{"kind":"textbox","id":"sh/o7e9sna5","slide":9,"text":"Phase 2","textPreview":"Phase 2","textChars":7,"textLines":1,"bbox":[466,266,140,22]}
+{"kind":"textbox","id":"sh/98nq1sbq","slide":9,"text":"Beachhead expansion","textPreview":"Beachhead expansion","textChars":19,"textLines":1,"bbox":[466,296,300,52]}
+{"kind":"textbox","id":"sh/29s7etsv","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[466,360,18,24]}
+{"kind":"textbox","id":"sh/3a18nytg","slide":9,"text":"Church/community clusters","textPreview":"Church/community clusters","textChars":25,"textLines":1,"bbox":[484,358,282,40]}
+{"kind":"textbox","id":"sh/72xwza5w","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[466,398,18,24]}
+{"kind":"textbox","id":"sh/m1ov654b","slide":9,"text":"University groups","textPreview":"University groups","textChars":17,"textLines":1,"bbox":[484,396,282,40]}
+{"kind":"textbox","id":"sh/94fe10n2","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[466,436,18,24]}
+{"kind":"textbox","id":"sh/836d8vmh","slide":9,"text":"Training providers","textPreview":"Training providers","textChars":18,"textLines":1,"bbox":[484,434,282,40]}
+{"kind":"textbox","id":"sh/zydwvq50","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[466,474,18,24]}
+{"kind":"textbox","id":"sh/yx4v2l4f","slide":9,"text":"Referral-driven growth","textPreview":"Referral-driven growth","textChars":22,"textLines":1,"bbox":[484,472,282,40]}
+{"kind":"shape","id":"sh/l0fex0n6","slide":9,"bbox":[824,244,344,324]}
+{"kind":"textbox","id":"sh/kzmd4vml","slide":9,"text":"Phase 3","textPreview":"Phase 3","textChars":7,"textLines":1,"bbox":[842,266,140,22]}
+{"kind":"textbox","id":"sh/3uhw7u54","slide":9,"text":"Commercial discipline","textPreview":"Commercial discipline","textChars":21,"textLines":1,"bbox":[842,296,300,52]}
+{"kind":"textbox","id":"sh/it8fep4j","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[842,360,18,24]}
+{"kind":"textbox","id":"sh/0fit8721","slide":9,"text":"Paid conversion","textPreview":"Paid conversion","textChars":15,"textLines":1,"bbox":[860,358,282,40]}
+{"kind":"textbox","id":"sh/1gra1c3m","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[842,398,18,24]}
+{"kind":"textbox","id":"sh/ed0b6hkv","slide":9,"text":"Partner channels","textPreview":"Partner channels","textChars":16,"textLines":1,"bbox":[860,396,282,40]}
+{"kind":"textbox","id":"sh/fe9szmlg","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[842,436,18,24]}
+{"kind":"textbox","id":"sh/o32tcr2d","slide":9,"text":"Stronger onboarding assets","textPreview":"Stronger onboarding assets","textChars":26,"textLines":1,"bbox":[860,434,282,40]}
+{"kind":"textbox","id":"sh/p4bu5w3y","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[842,474,18,24]}
+{"kind":"textbox","id":"sh/2hkbahk7","slide":9,"text":"Support and retention loops","textPreview":"Support and retention loops","textChars":27,"textLines":1,"bbox":[860,472,282,40]}
+{"kind":"textbox","id":"sh/n2tc3mls","slide":9,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/c72tgr29","slide":9,"text":"9","textPreview":"9","textChars":1,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/mm3o4f","slide":9,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/oj4hdq","slide":10,"title":"USE OF FUNDS","textShapes":12}
+{"kind":"textbox","id":"sh/c7qp47md","slide":10,"text":"USE OF FUNDS","textPreview":"USE OF FUNDS","textChars":12,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/r6hov25s","slide":10,"text":"This round is designed to buy 12 months of disciplined execution","textPreview":"This round is designed to buy 12 months of disciplined execution","textChars":64,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/q58n2x47","slide":10,"text":"The spending logic is simple: strengthen product, acquire organizers, support customers, and build operating credibility.","textPreview":"The spending logic is simple: strengthen product, acquire organizers, support customers, and build operating credibility.","textChars":121,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/43q50nm1","slide":10,"bbox":[736,238,432,340]}
+{"kind":"textbox","id":"sh/32hori5g","slide":10,"text":"Allocation logic","textPreview":"Allocation logic","textChars":16,"textLines":1,"bbox":[762,262,220,26]}
+{"kind":"shape","id":"sh/21onyd4b","slide":10,"bbox":[762,298,360,2]}
+{"kind":"textbox","id":"sh/hgf6p8nq","slide":10,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[762,324,22,22]}
+{"kind":"textbox","id":"sh/gf65w3m5","slide":10,"text":"Product gets the largest share because product quality still drives conversion and retention.","textPreview":"Product gets the largest share because product quality still drives conversion and retention.","textChars":93,"textLines":1,"bbox":[790,322,332,52]}
+{"kind":"textbox","id":"sh/y9cz2tw3","slide":10,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[762,404,22,22]}
+{"kind":"textbox","id":"sh/zul0byxo","slide":10,"text":"Growth spend is targeted toward organizer acquisition, demos, onboarding, and partnerships.","textPreview":"Growth spend is targeted toward organizer acquisition, demos, onboarding, and partnerships.","textChars":91,"textLines":1,"bbox":[790,402,332,52]}
+{"kind":"textbox","id":"sh/kvuh43e9","slide":10,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[762,484,22,22]}
+{"kind":"textbox","id":"sh/lw3idofu","slide":10,"text":"Security, support, and infrastructure stay in the plan because investors expect operational seriousness.","textPreview":"Security, support, and infrastructure stay in the plan because investors expect operational seriousness.","textChars":104,"textLines":1,"bbox":[790,482,332,52]}
+{"kind":"textbox","id":"sh/a5szy9w7","slide":10,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/b6lg7exs","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"chart","id":"ch/50b6lwj6","slide":10,"name":"","chartType":"bar","bbox":[72,238,620,340]}
+{"kind":"notes","id":"nt/oj4hdq","slide":10,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/9lrb0b","slide":11,"title":"12-MONTH MILESTONES","textShapes":15}
+{"kind":"textbox","id":"sh/n690f2lo","slide":11,"text":"12-MONTH MILESTONES","textPreview":"12-MONTH MILESTONES","textChars":19,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/o7iho7m9","slide":11,"text":"This round should prove that EventSlot can become a repeatable commercial business","textPreview":"This round should prove that EventSlot can become a repeatable commercial business","textChars":82,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"textbox","id":"sh/p8rihc3u","slide":11,"text":"The outcome is not just more activity. It is stronger organizer retention, clearer monetization, and a better next-round story.","textPreview":"The outcome is not just more activity. It is stronger organizer retention, clearer monetization, and a better next-round story.","textChars":127,"textLines":1,"bbox":[52,168,880,54]}
+{"kind":"shape","id":"sh/a90zqx4f","slide":11,"bbox":[72,232,1136,72]}
+{"kind":"textbox","id":"sh/bu90j2l0","slide":11,"text":"Product","textPreview":"Product","textChars":7,"textLines":1,"bbox":[92,251,230,28]}
+{"kind":"textbox","id":"sh/cvihs7ml","slide":11,"text":"Improve reliability, event-day operations, and the quality of organizer workflows.","textPreview":"Improve reliability, event-day operations, and the quality of organizer workflows.","textChars":82,"textLines":1,"bbox":[320,249,830,34]}
+{"kind":"shape","id":"sh/xwrilc36","slide":11,"bbox":[72,318,1136,72]}
+{"kind":"textbox","id":"sh/yx0zuh4b","slide":11,"text":"Growth","textPreview":"Growth","textChars":6,"textLines":1,"bbox":[92,337,230,28]}
+{"kind":"textbox","id":"sh/zyt0nmlw","slide":11,"text":"Increase active organizers and repeat event creation in focused segments.","textPreview":"Increase active organizers and repeat event creation in focused segments.","textChars":73,"textLines":1,"bbox":[320,335,830,34]}
+{"kind":"shape","id":"sh/juhgfqd0","slide":11,"bbox":[72,404,1136,72]}
+{"kind":"textbox","id":"sh/y9ofmlcf","slide":11,"text":"Revenue","textPreview":"Revenue","textChars":7,"textLines":1,"bbox":[92,423,230,28]}
+{"kind":"textbox","id":"sh/lwzyh0v6","slide":11,"text":"Turn early product value into more paid conversions and clearer pricing proof.","textPreview":"Turn early product value into more paid conversions and clearer pricing proof.","textChars":78,"textLines":1,"bbox":[320,421,830,34]}
+{"kind":"shape","id":"sh/kvqxovul","slide":11,"bbox":[72,490,1136,72]}
+{"kind":"textbox","id":"sh/b6xgr6do","slide":11,"text":"Operations","textPreview":"Operations","textChars":10,"textLines":1,"bbox":[92,509,230,28]}
+{"kind":"textbox","id":"sh/a5ofi1cj","slide":11,"text":"Tighten support response, security posture, and reporting discipline.","textPreview":"Tighten support response, security posture, and reporting discipline.","textChars":69,"textLines":1,"bbox":[320,507,830,34]}
+{"kind":"shape","id":"sh/x8fydgvu","slide":11,"bbox":[72,576,1136,72]}
+{"kind":"textbox","id":"sh/w76xkbu9","slide":11,"text":"Fundraising readiness","textPreview":"Fundraising readiness","textChars":21,"textLines":1,"bbox":[92,595,230,28]}
+{"kind":"textbox","id":"sh/v21gnat8","slide":11,"text":"Build a cleaner case for a stronger follow-on round.","textPreview":"Build a cleaner case for a stronger follow-on round.","textChars":52,"textLines":1,"bbox":[320,593,830,34]}
+{"kind":"textbox","id":"sh/u1szu5cn","slide":11,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/qxcjm9wv","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/9lrb0b","slide":11,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/zj2rub","slide":12,"title":"THE ROUND","textShapes":18}
+{"kind":"textbox","id":"sh/nil8jah0","slide":12,"text":"THE ROUND","textPreview":"THE ROUND","textChars":9,"textLines":1,"bbox":[52,38,260,24]}
+{"kind":"textbox","id":"sh/ojupsfy5","slide":12,"text":"EventSlot is raising USD 100,000 to move from working product to stronger commercial proof","textPreview":"EventSlot is raising USD 100,000 to move from working product to stronger commercial proof","textChars":90,"textLines":1,"bbox":[52,82,820,90]}
+{"kind":"shape","id":"sh/9k3qlkzq","slide":12,"bbox":[72,224,340,250]}
+{"kind":"textbox","id":"sh/alc7upgb","slide":12,"text":"Raise","textPreview":"Raise","textChars":5,"textLines":1,"bbox":[96,252,120,22]}
+{"kind":"textbox","id":"sh/bml8nuhw","slide":12,"text":"USD 100,000","textPreview":"USD 100,000","textChars":11,"textLines":1,"bbox":[96,282,220,42]}
+{"kind":"textbox","id":"sh/wnupwzyh","slide":12,"text":"Pre-money","textPreview":"Pre-money","textChars":9,"textLines":1,"bbox":[96,346,120,22]}
+{"kind":"textbox","id":"sh/xo3qp4z2","slide":12,"text":"USD 900,000","textPreview":"USD 900,000","textChars":11,"textLines":1,"bbox":[96,374,220,34]}
+{"kind":"textbox","id":"sh/qp87ilg7","slide":12,"text":"Equity","textPreview":"Equity","textChars":6,"textLines":1,"bbox":[96,426,120,22]}
+{"kind":"textbox","id":"sh/rq18bqhs","slide":12,"text":"10%","textPreview":"10%","textChars":3,"textLines":1,"bbox":[96,454,120,34]}
+{"kind":"shape","id":"sh/7q9cvit4","slide":12,"bbox":[446,224,762,250]}
+{"kind":"textbox","id":"sh/mp0vmdcj","slide":12,"text":"Why this round now","textPreview":"Why this round now","textChars":18,"textLines":1,"bbox":[476,252,240,26]}
+{"kind":"textbox","id":"sh/9cbux8ba","slide":12,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,304,18,24]}
+{"kind":"textbox","id":"sh/8bidonup","slide":12,"text":"The product already works and has live usage.","textPreview":"The product already works and has live usage.","textChars":45,"textLines":1,"bbox":[494,302,652,40]}
+{"kind":"textbox","id":"sh/zm9cryt8","slide":12,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,342,18,24]}
+{"kind":"textbox","id":"sh/yl0vitcn","slide":12,"text":"The company now needs focused capital to turn early adoption into stronger repeatability and paid demand.","textPreview":"The company now needs focused capital to turn early adoption into stronger repeatability and paid demand.","textChars":105,"textLines":1,"bbox":[494,340,652,40]}
+{"kind":"textbox","id":"sh/lorut8be","slide":12,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[476,380,18,24]}
+{"kind":"textbox","id":"sh/knidk3ut","slide":12,"text":"A small, disciplined round fits the stage better than pretending EventSlot is already at full seed-scale maturity.","textPreview":"A small, disciplined round fits the stage better than pretending EventSlot is already at full seed-scale maturity.","textChars":114,"textLines":1,"bbox":[494,378,652,40]}
+{"kind":"textbox","id":"sh/bipcnytw","slide":12,"text":"Target runway: 12 months base, stretchable toward 18 months with disciplined execution.","textPreview":"Target runway: 12 months base, stretchable toward 18 months with disciplined execution.","textChars":87,"textLines":1,"bbox":[72,548,1080,32]}
+{"kind":"textbox","id":"sh/ahgvetcr","slide":12,"text":"EventSlot investor deck","textPreview":"EventSlot investor deck","textChars":23,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/etgvqtwj","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/zj2rub","slide":12,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}
+{"kind":"slide","id":"sl/jy2vbi","slide":13,"title":"EVENTSLOT","textShapes":15}
+{"kind":"textbox","id":"sh/25sz29of","slide":13,"text":"EVENTSLOT","textPreview":"EVENTSLOT","textChars":9,"textLines":1,"bbox":[52,40,180,24]}
+{"kind":"textbox","id":"sh/98jixo7q","slide":13,"text":"A working product.\nReal organizer usage.\nA focused round to prove the business can scale.","textPreview":"A working product. | Real organizer usage. | A focused round to prove the business can scale.","textChars":89,"textLines":3,"bbox":[52,154,760,220]}
+{"kind":"textbox","id":"sh/o7ah4j65","slide":13,"text":"Raising USD 100,000 at a USD 900,000 pre-money valuation.","textPreview":"Raising USD 100,000 at a USD 900,000 pre-money valuation.","textChars":57,"textLines":1,"bbox":[52,418,700,40]}
+{"kind":"shape","id":"sh/ba10zypw","slide":13,"bbox":[856,164,300,238]}
+{"kind":"textbox","id":"sh/a9sj6tob","slide":13,"text":"What this unlocks","textPreview":"What this unlocks","textChars":17,"textLines":1,"bbox":[880,190,200,24]}
+{"kind":"textbox","id":"sh/xc3i1o72","slide":13,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[880,230,18,24]}
+{"kind":"textbox","id":"sh/wba18j6h","slide":13,"text":"Stronger product reliability","textPreview":"Stronger product reliability","textChars":28,"textLines":1,"bbox":[898,228,212,40]}
+{"kind":"textbox","id":"sh/reh0nups","slide":13,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[880,268,18,24]}
+{"kind":"textbox","id":"sh/qd8zupo7","slide":13,"text":"More active organizers","textPreview":"More active organizers","textChars":22,"textLines":1,"bbox":[898,266,212,40]}
+{"kind":"textbox","id":"sh/kbelc7y9","slide":13,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[880,306,18,24]}
+{"kind":"textbox","id":"sh/lcnmlcfu","slide":13,"text":"Cleaner paid conversion proof","textPreview":"Cleaner paid conversion proof","textChars":29,"textLines":1,"bbox":[898,304,212,40]}
+{"kind":"textbox","id":"sh/y9w3ahgj","slide":13,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[880,344,18,24]}
+{"kind":"textbox","id":"sh/za5kj2xo","slide":13,"text":"Better next-round readiness","textPreview":"Better next-round readiness","textChars":27,"textLines":1,"bbox":[898,342,212,40]}
+{"kind":"textbox","id":"sh/8zelgryl","slide":13,"text":"daniel@eventslot\nNairobi, Kenya","textPreview":"daniel@eventslot | Nairobi, Kenya","textChars":31,"textLines":2,"bbox":[52,584,280,56]}
+{"kind":"textbox","id":"sh/90nmpwf6","slide":13,"text":"EventSlot | Investor package","textPreview":"EventSlot | Investor package","textChars":28,"textLines":1,"bbox":[52,688,500,16]}
+{"kind":"textbox","id":"sh/mxw3ehgf","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1195,688,20,16]}
+{"kind":"notes","id":"nt/jy2vbi","slide":13,"text":"[Sources]\n- Internal EventSlot traction snapshot as of August 6, 2026; investor-package/data-room/traction_snapshot.json\n- Internal round terms and use-of-funds assumptions prepared for this investor package\n"}

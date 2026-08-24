@@ -3,19 +3,19 @@
     "name": "EventSlot",
     "slug": "eventslot",
     "scheme": "eventslot",
-    "version": "1.2.0",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "assetBundlePatterns": ["**/*"],
     "privacy": "unlisted",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
-      "backgroundColor": "#050806"
+      "backgroundColor": "#0A0A0A"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.alphatech.eventslot",
       "infoPlist": {
         "NSCameraUsageDescription": "EventSlot uses the camera to scan attendee ticket QR codes at events.",
@@ -24,16 +24,33 @@
     },
     "android": {
       "package": "com.alphatech.eventslot",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#B9FF3B"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "www.eventsslot.com"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
+      "expo-router",
       [
         "expo-camera",
         {
@@ -56,6 +73,9 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "apiBaseUrl": "https://www.eventsslot.com"
     }

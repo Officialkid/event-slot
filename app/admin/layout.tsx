@@ -64,9 +64,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           text-decoration: none;
         }
         .admin-topbar-link.primary {
-          border-color: rgba(200,245,90,0.26);
-          background: #C8F55A;
-          color: #0A0A0A;
+          border-color: color-mix(in srgb, var(--accent) 26%, transparent);
+          background: var(--accent);
+          color: var(--accent-contrast, #0A0A0A);
         }
         @media (max-width: 767px) {
           .admin-layout-main {

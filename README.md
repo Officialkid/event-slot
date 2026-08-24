@@ -50,10 +50,11 @@ This repository is configured for container-based deployment to Google Cloud Run
 	- Service Account User
 	- Artifact Registry Writer
 	- Cloud Build Editor (or equivalent)
+4. If you use the GitHub Actions deploy workflow, set the repository variable `GCP_PROJECT_ID` to your active Cloud Run project.
 
 ### One-time setup
 
-Create Artifact Registry repository (if not already created):
+Create Artifact Registry repository in your target GCP project (if not already created):
 
 ```bash
 gcloud artifacts repositories create eventslot --repository-format=docker --location=us-central1
@@ -70,13 +71,14 @@ Apply the repo cleanup policy after the repository exists:
 PowerShell helper:
 
 ```powershell
-./scripts/deploy-gcp.ps1 -Region us-central1 -Service eventslot-web -Repository eventslot
+$env:GCP_PROJECT_ID = "<your-gcp-project-id>"
+./scripts/deploy-gcp.ps1 -ProjectId $env:GCP_PROJECT_ID -Region us-central1 -Service eventslot-web -Repository eventslot
 ```
 
 Or direct Cloud Build command:
 
 ```bash
-gcloud builds submit --project eventslot --config cloudbuild.yaml --substitutions _REGION=us-central1,_SERVICE=eventslot-web,_REPOSITORY=eventslot
+gcloud builds submit --project "$GCP_PROJECT_ID" --config cloudbuild.yaml --substitutions _REGION=us-central1,_SERVICE=eventslot-web,_REPOSITORY=eventslot
 ```
 
 ### Configure Cloud Run environment variables
@@ -85,6 +87,7 @@ Set required runtime environment variables on Cloud Run after the first deploy:
 
 ```bash
 gcloud run services update eventslot-web \
+  --project="$GCP_PROJECT_ID" \
   --region=us-central1 \
   --set-env-vars=NEXTAUTH_URL=https://YOUR_CLOUD_RUN_URL,NODE_ENV=production
 ```
@@ -103,7 +106,7 @@ For Phase 4 signed ticket QR payloads, ensure Secret Manager contains:
 
 ## Current Deployment Model
 
-- Canonical Google Cloud project: `eventslot` (`458973844514`)
+- Canonical Google Cloud project: set `GCP_PROJECT_ID` to your active Cloud Run project
 - Primary deployment target: Google Cloud Run
 - Production scaling baseline: 0 minimum instances, 20 maximum instances
 - Artifact Registry cleanup: keep recent tagged images and prune old untagged images via `infra/artifact-registry-cleanup-policy.json`

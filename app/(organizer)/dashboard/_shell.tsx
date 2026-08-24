@@ -328,6 +328,18 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           <div className="dash-user-det" style={{ overflow: "hidden", minWidth: 0 }}>
             <div
               style={{
+                fontSize: "0.62rem",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-dm-sans)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: "0.12rem",
+              }}
+            >
+              Account profile
+            </div>
+            <div
+              style={{
                 fontSize: "0.8rem",
                 fontWeight: 500,
                 color: "var(--text-primary)",
@@ -579,14 +591,13 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
 
       {/* Admin Panel — only visible to superadmin */}
       {isAdmin && (
-        <div style={{ padding: "0 0.75rem 0.625rem" }}>
-          <div style={{ height: "0.5px", background: accentDivider, margin: "0 0.25rem 0.625rem" }} />
+        <div className="dash-admin-section" style={{ padding: "0 0.75rem 0.625rem" }}>
+          <div className="dash-admin-divider" style={{ height: "0.5px", background: accentDivider, margin: "0 0.25rem 0.625rem" }} />
           {(() => {
             const active = getIsActive(pathname, "/admin", false)
             return (
               <Link
                 href="/admin"
-                onClick={onNavClick}
                 onMouseEnter={e => {
                   if (collapsed) {
                     const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
@@ -1067,6 +1078,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .dash-sidebar-collapsed .dash-logo-e { display: inline-block !important; }
         .dash-sidebar-collapsed .dash-user-det { display: none !important; }
         .dash-sidebar-collapsed .dash-avatar-wrap { justify-content: center !important; }
+        .dash-sidebar-collapsed .dash-admin-section { padding: 0 0.25rem 0.625rem !important; }
+        .dash-sidebar-collapsed .dash-admin-section a { padding-left: 0 !important; padding-right: 0 !important; justify-content: center !important; }
+        .dash-sidebar-collapsed .dash-admin-section .dash-nav-lbl { display: none !important; }
+        .dash-sidebar-collapsed .dash-admin-section .dash-admin-divider { margin: 0 0 0.4rem !important; }
+        .dash-sidebar-collapsed .dash-admin-section { padding: 0 0.25rem 0.625rem !important; }
+        .dash-sidebar-collapsed .dash-admin-section a { padding-left: 0 !important; padding-right: 0 !important; justify-content: center !important; }
+        .dash-sidebar-collapsed .dash-admin-section .dash-nav-lbl { display: none !important; }
+        .dash-sidebar-collapsed .dash-admin-section .dash-admin-divider { margin: 0 0 0.4rem !important; }
         .dash-collapse-btn:hover { color: var(--text-secondary) !important; }
         @keyframes moreSheetSlideUp {
           from { transform: translateY(100%); }
@@ -1174,7 +1193,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               zIndex: 20,
             }}
           >
-            <div className="md:hidden" style={{ minWidth: 0 }}>
+            <div className="md:hidden" style={{ minWidth: 0, flex: 1, paddingRight: "0.5rem" }}>
               <p
                 style={{
                   margin: 0,
@@ -1182,6 +1201,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   fontSize: "1.06rem",
                   color: primaryText,
                   lineHeight: 1.1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
                 {mobilePageTitle}
@@ -1194,6 +1216,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                   textTransform: "uppercase",
                   color: mutedText,
                   fontFamily: "var(--font-dm-sans)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
                 {t("eventslotOrganizer")}
@@ -1203,7 +1228,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             {/* Empty spacer — desktop (keeps bell right-aligned) */}
             <div className="hidden md:block" />
 
-            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
               <TokenChip />
               <button
                 onClick={tutorial.restartTutorial}

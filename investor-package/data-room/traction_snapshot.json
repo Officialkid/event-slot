@@ -1,0 +1,77 @@
+{
+  "metrics": {
+    "as_of": "August 6, 2026",
+    "users": 120,
+    "events": 45,
+    "registrations": 482,
+    "active_events": 13,
+    "organizers_with_events": 27,
+    "organizers_with_30_plus_confirmed": 4,
+    "organizers_last_30_days": 5,
+    "pro_users": 1,
+    "free_users": 119,
+    "report_revenue_ksh": 0,
+    "report_downloads": 0,
+    "top_events": [
+      {
+        "title": "DISRUPTORS CONVECTION 7",
+        "confirmed_count": 92
+      },
+      {
+        "title": "IspeakDisruptors Convention 6 Disruptors Convention | Systemic Influence",
+        "confirmed_count": 91
+      },
+      {
+        "title": "Regina Daniels Children's Day Carnival (Spelling Bee)",
+        "confirmed_count": 50
+      },
+      {
+        "title": "Tum Sports Tournament",
+        "confirmed_count": 38
+      },
+      {
+        "title": "Event 002 (Copy)",
+        "confirmed_count": 37
+      }
+    ]
+  },
+  "round": {
+    "raise_usd": 100000,
+    "equity_pct": 10,
+    "pre_money_usd": 900000,
+    "post_money_usd": 1000000,
+    "runway_claim": "12 months base, stretchable toward 18 months with disciplined execution"
+  },
+  "use_of_funds": [
+    [
+      "Product and engineering",
+      "USD 28,000",
+      "Strengthen core product, reliability, bug fixing, and payment/event operations features."
+    ],
+    [
+      "Growth and customer acquisition",
+      "USD 25,000",
+      "Founder-led sales, field marketing, partnerships, demos, onboarding, and campaigns."
+    ],
+    [
+      "Customer support and operations",
+      "USD 14,000",
+      "Support capacity, helpdesk processes, onboarding material, event-day issue handling."
+    ],
+    [
+      "Security and compliance",
+      "USD 12,000",
+      "Security retainer, penetration testing, privacy/data-protection work, and governance basics."
+    ],
+    [
+      "Cloud and infrastructure",
+      "USD 13,000",
+      "Hosting, database, storage, email delivery, monitoring, backups, and scaling headroom."
+    ],
+    [
+      "Reserve and working capital",
+      "USD 8,000",
+      "Runway protection, finance admin, legal, and unforeseen operating pressure."
+    ]
+  ]
+}

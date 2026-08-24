@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Text,
   View
 } from "react-native";
@@ -12,37 +14,44 @@ import { CreateEventScreen } from "./screens/CreateEventScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
 import { EventDetailScreen } from "./screens/EventDetailScreen";
 import { EventsScreen } from "./screens/EventsScreen";
+import { ForgotPasswordScreen } from "./screens/ForgotPasswordScreen";
+import { NotificationsScreen } from "./screens/NotificationsScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { RegistrationDetailScreen } from "./screens/RegistrationDetailScreen";
+import { TeamScreen } from "./screens/TeamScreen";
+import { UiStatesScreen } from "./screens/UiStatesScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
 import { AppSession } from "./session";
 import { listNativeEvents } from "./services/events";
+import { buildNativeWorkspaceSyncSummary, getNativeWorkspaceSyncReadinessMessage } from "./services/workspaceSync";
 import { AppTheme } from "./theme";
 import { AppRoute, tabs } from "./tabs";
 import { NativeEvent } from "./domain/events";
-import { buildNativeWorkspaceSyncSummary, getNativeWorkspaceSyncReadinessMessage } from "./services/workspaceSync";
+import { getTabGlyph } from "./brand";
+import { fontFamily } from "./typography";
 
 type AppShellProps = {
   session: AppSession;
   theme: AppTheme;
   onSignOut: () => void;
-  onToggleTheme: () => void;
 };
 
-export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellProps) {
+export function AppShell({ session, theme, onSignOut }: AppShellProps) {
   const [route, setRoute] = useState<AppRoute>({ name: "home" });
   const [events, setEvents] = useState<NativeEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  const [eventsLastSyncedAt, setEventsLastSyncedAt] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
-  const activeTab = route.name === "eventDetail" || route.name === "createEvent" ? "events" : route.name;
-  const workspaceSyncSummary = buildNativeWorkspaceSyncSummary({
-    error: eventsError,
-    events,
-    lastSyncedAt: eventsLastSyncedAt,
-    loading: eventsLoading,
-    session
-  });
+  const topInset = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
+  const activeTab =
+    route.name === "eventDetail" || route.name === "registrationDetail" || route.name === "createEvent"
+      ? "events"
+      : route.name === "verify" || route.name === "profile" || route.name === "forgotPassword" || route.name === "team" || route.name === "states"
+        ? "more"
+        : route.name;
+  const currentTitle = getScreenTitle(route);
+  const currentSubtitle = getScreenSubtitle(route);
 
   const refreshEvents = useCallback(() => {
     setEventsLoading(true);
@@ -50,7 +59,7 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
     listNativeEvents(session)
       .then((nextEvents) => {
         setEvents(nextEvents);
-        setEventsLastSyncedAt(new Date().toISOString());
+        setLastSyncedAt(new Date().toISOString());
       })
       .catch((error: unknown) => {
         setEventsError(error instanceof Error ? error.message : "Could not load events.");
@@ -61,6 +70,18 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
   useEffect(() => {
     refreshEvents();
   }, [refreshEvents]);
+
+  const workspaceSync = useMemo(
+    () =>
+      buildNativeWorkspaceSyncSummary({
+        events,
+        error: eventsError,
+        lastSyncedAt,
+        loading: eventsLoading,
+        session
+      }),
+    [events, eventsError, eventsLoading, lastSyncedAt, session]
+  );
 
   const screen = useMemo(() => {
     const props = {
@@ -79,10 +100,21 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
         return <CreateEventScreen {...props} />;
       case "eventDetail":
         return <EventDetailScreen {...props} eventId={route.eventId} />;
+      case "registrationDetail":
+        return <RegistrationDetailScreen {...props} eventSlug={route.eventSlug} registrationId={route.registrationId} />;
       case "events":
         return <EventsScreen {...props} />;
+      case "alerts":
+        return <NotificationsScreen {...props} />;
       case "verify":
         return <VerifyScreen {...props} />;
+      case "forgotPassword":
+        return <ForgotPasswordScreen theme={theme} />;
+      case "team":
+        return <TeamScreen {...props} />;
+      case "states":
+        return <UiStatesScreen {...props} />;
+      case "more":
       case "profile":
         return <ProfileScreen {...props} />;
       case "home":
@@ -97,14 +129,14 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.page }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.page, paddingTop: topInset }]}>
       <View style={[styles.shell, { backgroundColor: theme.colors.page }]}>
         <View style={[styles.header, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
-          <View>
-            <Text style={[styles.brandEyebrow, { color: theme.colors.muted }]}>EVENTSLOT NATIVE</Text>
-            <Text style={[styles.brand, { color: theme.colors.text }]}>
-              Event<Text style={{ color: theme.colors.accent }}>Slot</Text>
-            </Text>
+          <View style={styles.brandWrap}>
+            <View style={styles.titleWrap}>
+              <Text style={[styles.pageTitle, { color: theme.colors.text }]}>{currentTitle}</Text>
+              <Text style={[styles.pageSubtitle, { color: theme.colors.muted }]}>{currentSubtitle}</Text>
+            </View>
           </View>
           <View style={styles.headerActions}>
             <View style={[styles.tokenChip, { borderColor: theme.colors.border, backgroundColor: theme.colors.activeTab }]}>
@@ -112,48 +144,59 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Toggle theme"
-              onPress={onToggleTheme}
+              accessibilityLabel="Open help and app states"
+              onPress={() => setRoute({ name: "states" })}
               style={[styles.iconButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.elevated }]}
             >
-              <Text style={{ color: theme.colors.text }}>{theme.name === "dark" ? "sun" : "moon"}</Text>
+              <Text style={[styles.iconGlyph, { color: theme.colors.text }]}>?</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open alerts"
+              onPress={() => setRoute({ name: "alerts" })}
+              style={[styles.iconButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.elevated }]}
+            >
+              <Text style={[styles.iconGlyph, { color: theme.colors.text }]}>{"\u25CB"}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open more actions"
+              onPress={() => setQuickActionsOpen(true)}
+              style={[styles.iconButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.elevated }]}
+            >
+              <Text style={[styles.iconGlyph, { color: theme.colors.text }]}>{"\u22EF"}</Text>
             </Pressable>
           </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.syncCard, { backgroundColor: theme.colors.hero, borderColor: workspaceSyncSummary.status === "error" ? theme.colors.error : theme.colors.border }]}>
+          <View
+            style={[
+              styles.syncBanner,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor:
+                  workspaceSync.status === "error"
+                    ? theme.colors.error
+                    : workspaceSync.status === "ready"
+                      ? theme.colors.success
+                      : theme.colors.border
+              }
+            ]}
+          >
             <View style={styles.syncCopy}>
-              <Text
-                style={[
-                  styles.syncTitle,
-                  {
-                    color:
-                      workspaceSyncSummary.status === "ready"
-                        ? theme.colors.success
-                        : workspaceSyncSummary.status === "error"
-                          ? theme.colors.error
-                          : theme.colors.accent
-                  }
-                ]}
-              >
-                {workspaceSyncSummary.title}
-              </Text>
-              <Text style={[styles.syncCaption, { color: theme.colors.secondary }]}>
-                {workspaceSyncSummary.caption}
-              </Text>
-              <Text style={[styles.syncMeta, { color: theme.colors.muted }]}>
-                {getNativeWorkspaceSyncReadinessMessage()}
-              </Text>
+              <Text style={[styles.syncEyebrow, { color: theme.colors.accent }]}>WORKSPACE SYNC</Text>
+              <Text style={[styles.syncTitle, { color: theme.colors.text }]}>{workspaceSync.title}</Text>
+              <Text style={[styles.syncCaption, { color: theme.colors.secondary }]}>{workspaceSync.caption}</Text>
+              <Text style={[styles.syncHelper, { color: theme.colors.muted }]}>{getNativeWorkspaceSyncReadinessMessage()}</Text>
             </View>
             <Pressable
               accessibilityRole="button"
-              disabled={eventsLoading}
               onPress={refreshEvents}
-              style={[styles.syncButton, { borderColor: theme.colors.border, opacity: eventsLoading ? 0.55 : 1 }]}
+              style={[styles.syncButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.activeTab }]}
             >
               <Text style={[styles.syncButtonText, { color: theme.colors.accent }]}>
-                {eventsLoading ? "Syncing" : "Retry"}
+                {eventsLoading ? "Syncing..." : "Retry sync"}
               </Text>
             </Pressable>
           </View>
@@ -179,43 +222,24 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
             />
             <View style={[styles.bottomSheet, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               <View style={[styles.sheetHandle, { backgroundColor: theme.colors.border }]} />
-              <Text style={[styles.sheetEyebrow, { color: theme.colors.accent }]}>QUICK ACTIONS</Text>
-              <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>What do you want to do?</Text>
+              <Text style={[styles.sheetEyebrow, { color: theme.colors.accent }]}>WORKSPACE</Text>
+              <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>More</Text>
               <Text style={[styles.sheetCopy, { color: theme.colors.secondary }]}>
-                Fast mobile shortcuts for the actions organizers use most during an event day.
+                Profile, team access, verifier tools, and app guidance live here so the main navigation stays simple.
               </Text>
               <View style={styles.sheetGrid}>
-                <SheetAction
-                  label="Create event"
-                  caption="Start a saved native draft"
-                  theme={theme}
-                  onPress={() => navigateFromSheet({ name: "createEvent" })}
-                />
-                <SheetAction
-                  label="Verify tickets"
-                  caption="Scan or enter ticket codes"
-                  theme={theme}
-                  onPress={() => navigateFromSheet({ name: "verify" })}
-                />
-                <SheetAction
-                  label="My events"
-                  caption="Open live event workspace"
-                  theme={theme}
-                  onPress={() => navigateFromSheet({ name: "events" })}
-                />
-                <SheetAction
-                  label="Profile"
-                  caption="Settings and release gates"
-                  theme={theme}
-                  onPress={() => navigateFromSheet({ name: "profile" })}
-                />
+                <SheetAction label="Create event" caption="Start a new draft" theme={theme} onPress={() => navigateFromSheet({ name: "createEvent" })} />
+                <SheetAction label="Verify tickets" caption="Scan or enter ticket codes" theme={theme} onPress={() => navigateFromSheet({ name: "verify" })} />
+                <SheetAction label="Profile" caption="Account and preferences" theme={theme} onPress={() => navigateFromSheet({ name: "profile" })} />
+                <SheetAction label="Team" caption="Invites and member access" theme={theme} onPress={() => navigateFromSheet({ name: "team" })} />
+                <SheetAction label="App states" caption="Review the 10 mobile UX states" theme={theme} onPress={() => navigateFromSheet({ name: "states" })} />
               </View>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setQuickActionsOpen(false)}
+                onPress={onSignOut}
                 style={[styles.sheetCloseButton, { borderColor: theme.colors.border }]}
               >
-                <Text style={[styles.sheetCloseText, { color: theme.colors.text }]}>Close</Text>
+                <Text style={[styles.sheetCloseText, { color: theme.colors.error }]}>Sign out</Text>
               </Pressable>
             </View>
           </View>
@@ -230,13 +254,10 @@ export function AppShell({ session, theme, onSignOut, onToggleTheme }: AppShellP
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
                 onPress={() => setRoute({ name: tab.key })}
-                style={[
-                  styles.tabItem,
-                  active && { backgroundColor: theme.colors.activeTab }
-                ]}
+                style={[styles.tabItem, active && { backgroundColor: theme.colors.activeTab }]}
               >
                 <Text style={[styles.tabIcon, { color: active ? theme.colors.accent : theme.colors.muted }]}>
-                  {tab.icon}
+                  {getTabGlyph(tab.key)}
                 </Text>
                 <Text style={[styles.tabLabel, { color: active ? theme.colors.accent : theme.colors.secondary }]}>
                   {tab.label}
@@ -270,6 +291,49 @@ function SheetAction({ label, caption, theme, onPress }: SheetActionProps) {
   );
 }
 
+function getScreenTitle(route: AppRoute) {
+  switch (route.name) {
+    case "home":
+      return "Dashboard";
+    case "events":
+      return "My Events";
+    case "alerts":
+      return "Notifications";
+    case "more":
+      return "More";
+    case "verify":
+      return "Verify";
+    case "profile":
+      return "Profile";
+    case "forgotPassword":
+      return "Reset password";
+    case "team":
+      return "Team";
+    case "states":
+      return "App states";
+    case "createEvent":
+      return "Create event";
+    case "eventDetail":
+      return "Event detail";
+    case "registrationDetail":
+      return "Attendee detail";
+    default:
+      return "Dashboard";
+  }
+}
+
+function getScreenSubtitle(route: AppRoute) {
+  if (route.name === "verify") {
+    return "EVENTSLOT VERIFIER";
+  }
+
+  if (route.name === "forgotPassword") {
+    return "EVENTSLOT ACCOUNT";
+  }
+
+  return "EVENTSLOT ORGANIZER";
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1
@@ -287,14 +351,24 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 18
   },
-  brandEyebrow: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 2.5
+  brandWrap: {
+    flex: 1,
+    minWidth: 0
   },
-  brand: {
-    fontSize: 26,
-    fontWeight: "900"
+  titleWrap: {
+    gap: 4
+  },
+  pageTitle: {
+    fontFamily: fontFamily.display,
+    fontSize: 28,
+    fontWeight: "400",
+    lineHeight: 32
+  },
+  pageSubtitle: {
+    fontFamily: fontFamily.body,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.8
   },
   headerActions: {
     alignItems: "center",
@@ -308,6 +382,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   tokenText: {
+    fontFamily: fontFamily.body,
     fontSize: 12,
     fontWeight: "900"
   },
@@ -319,46 +394,54 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 44
   },
+  iconGlyph: {
+    fontSize: 18,
+    fontWeight: "700"
+  },
   content: {
     paddingBottom: 130,
     paddingTop: 18
   },
-  syncCard: {
-    alignItems: "center",
+  syncBanner: {
     borderRadius: 22,
     borderWidth: 1,
-    flexDirection: "row",
     gap: 12,
-    marginBottom: 14,
-    padding: 14
+    marginBottom: 18,
+    padding: 16
   },
   syncCopy: {
-    flex: 1,
     gap: 4
   },
-  syncTitle: {
-    fontSize: 12,
+  syncEyebrow: {
+    fontFamily: fontFamily.body,
+    fontSize: 11,
     fontWeight: "900",
-    letterSpacing: 1.8,
-    textTransform: "uppercase"
+    letterSpacing: 2
+  },
+  syncTitle: {
+    fontFamily: fontFamily.medium,
+    fontSize: 18,
+    fontWeight: "900"
   },
   syncCaption: {
+    fontFamily: fontFamily.body,
     fontSize: 13,
-    lineHeight: 19
+    lineHeight: 18
   },
-  syncMeta: {
-    fontSize: 11,
-    fontWeight: "800",
-    lineHeight: 16
+  syncHelper: {
+    fontFamily: fontFamily.body,
+    fontSize: 12,
+    lineHeight: 17
   },
   syncButton: {
+    alignItems: "center",
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9
+    paddingVertical: 12
   },
   syncButtonText: {
-    fontSize: 12,
+    fontFamily: fontFamily.medium,
+    fontSize: 13,
     fontWeight: "900"
   },
   fab: {
@@ -423,10 +506,12 @@ const styles = StyleSheet.create({
     letterSpacing: 2.4
   },
   sheetTitle: {
-    fontSize: 24,
-    fontWeight: "900"
+    fontFamily: fontFamily.display,
+    fontSize: 28,
+    fontWeight: "400"
   },
   sheetCopy: {
+    fontFamily: fontFamily.body,
     fontSize: 14,
     lineHeight: 20
   },
@@ -445,10 +530,12 @@ const styles = StyleSheet.create({
     padding: 14
   },
   sheetActionLabel: {
+    fontFamily: fontFamily.medium,
     fontSize: 16,
     fontWeight: "900"
   },
   sheetActionCaption: {
+    fontFamily: fontFamily.body,
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 17
@@ -460,6 +547,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13
   },
   sheetCloseText: {
+    fontFamily: fontFamily.medium,
     fontSize: 14,
     fontWeight: "900"
   },
@@ -488,6 +576,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase"
   },
   tabLabel: {
+    fontFamily: fontFamily.body,
     fontSize: 12,
     fontWeight: "700"
   }

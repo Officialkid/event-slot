@@ -46,6 +46,7 @@ function isActive(pathname: string, matches: string[]): boolean {
 export default function OrganizerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const accountIdentity = session?.user?.name || session?.user?.email || "Organizer"
 
   // Dashboard routes have their own dedicated shell layout
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
@@ -188,7 +189,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               >
                 {initials}
               </div>
-              <span
+              <div
                 style={{
                   fontSize: "0.8rem",
                   color: "var(--text-secondary)",
@@ -198,8 +199,30 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   whiteSpace: "nowrap",
                 }}
               >
-                {session?.user?.name || session?.user?.email || "Organizer"}
-              </span>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "0.62rem",
+                      color: "var(--text-muted)",
+                      fontFamily: "var(--font-dm-sans)",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      marginBottom: "0.12rem",
+                    }}
+                  >
+                    Account profile
+                  </div>
+                  <div
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {accountIdentity}
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
@@ -294,16 +317,33 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               >
                 {initials}
               </div>
-              <span
-                className="hidden md:block"
-                style={{
-                  fontSize: "0.82rem",
-                  color: "var(--text-secondary)",
-                  fontFamily: "var(--font-dm-sans)",
-                }}
-              >
-                {session?.user?.name || session?.user?.email}
-              </span>
+              <div className="hidden md:block" style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "0.62rem",
+                    color: "var(--text-muted)",
+                    fontFamily: "var(--font-dm-sans)",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    lineHeight: 1.1,
+                    marginBottom: "0.08rem",
+                  }}
+                >
+                  Account profile
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.82rem",
+                    color: "var(--text-secondary)",
+                    fontFamily: "var(--font-dm-sans)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {accountIdentity}
+                </div>
+              </div>
             </div>
           </header>
 

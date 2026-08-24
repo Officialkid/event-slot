@@ -82,10 +82,10 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
           App testing
         </div>
         <h2 className="mt-3 text-[1.25rem] font-semibold leading-tight text-[var(--text-primary)]">
-          EventSlot is preparing for Play Store testing.
+          EventSlot app testing is now underway.
         </h2>
         <p className="mt-2 text-[0.9rem] leading-6 text-[var(--text-secondary)]">
-          Join the early tester list and we will email you when the app testing track opens.
+          Join the tester list and we will email your Play Store testing invite.
         </p>
       </div>
 

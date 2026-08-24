@@ -28,6 +28,8 @@ export async function GET() {
           id: true,
           email: true,
           createdAt: true,
+          addedToPlayAt: true,
+          optInLinkSentAt: true,
           inviteSentAt: true,
           installedAt: true,
           notes: true,
@@ -50,6 +52,8 @@ export async function GET() {
         id: tester?.id ?? progress?.id ?? email,
         email,
         createdAt: tester?.createdAt ?? progress?.createdAt ?? new Date(),
+        addedToPlayAt: progress?.addedToPlayAt ?? null,
+        optInLinkSentAt: progress?.optInLinkSentAt ?? progress?.inviteSentAt ?? null,
         inviteSentAt: progress?.inviteSentAt ?? null,
         installedAt: progress?.installedAt ?? null,
         notes: progress?.notes ?? null,
@@ -61,8 +65,10 @@ export async function GET() {
       testers: testersWithProgress,
       summary: {
         total: testersWithProgress.length,
-        invited: testersWithProgress.filter((tester) => tester.inviteSentAt).length,
+        addedToPlay: testersWithProgress.filter((tester) => tester.addedToPlayAt).length,
+        optInLinkSent: testersWithProgress.filter((tester) => tester.optInLinkSentAt).length,
         installed: testersWithProgress.filter((tester) => tester.installedAt).length,
+        pendingReview: testersWithProgress.filter((tester) => !tester.addedToPlayAt).length,
         latestSignupAt: testers[0]?.createdAt ?? null,
       },
       settings: {
@@ -70,8 +76,8 @@ export async function GET() {
         optInUrlConfigured: Boolean(process.env.PLAY_TESTING_OPT_IN_URL?.trim()),
       },
       playConsole: {
-        track: "Internal testing",
-        note: "Add these emails to the Play Console tester list, then send the opt-in testing link from Play Console.",
+        track: "Closed testing",
+        note: "Add these emails to the Play Console tester list or Google Group, then send the Play opt-in testing link.",
       },
     })
   } catch (error) {
@@ -108,8 +114,17 @@ export async function PATCH(req: NextRequest) {
     if (action === "markInviteSent") {
       const progress = await prisma.appTesterProgress.upsert({
         where: { email },
-        create: { email, inviteSentAt: new Date() },
-        update: { inviteSentAt: new Date() },
+        create: { email, optInLinkSentAt: new Date(), inviteSentAt: new Date() },
+        update: { optInLinkSentAt: new Date(), inviteSentAt: new Date() },
+      })
+      return NextResponse.json({ ok: true, progress })
+    }
+
+    if (action === "markAddedToPlay") {
+      const progress = await prisma.appTesterProgress.upsert({
+        where: { email },
+        create: { email, addedToPlayAt: new Date() },
+        update: { addedToPlayAt: new Date() },
       })
       return NextResponse.json({ ok: true, progress })
     }
@@ -128,6 +143,24 @@ export async function PATCH(req: NextRequest) {
         where: { email },
         create: { email, installedAt: null },
         update: { installedAt: null },
+      })
+      return NextResponse.json({ ok: true, progress })
+    }
+
+    if (action === "clearAddedToPlay") {
+      const progress = await prisma.appTesterProgress.upsert({
+        where: { email },
+        create: { email, addedToPlayAt: null },
+        update: { addedToPlayAt: null },
+      })
+      return NextResponse.json({ ok: true, progress })
+    }
+
+    if (action === "clearInviteSent") {
+      const progress = await prisma.appTesterProgress.upsert({
+        where: { email },
+        create: { email, optInLinkSentAt: null, inviteSentAt: null },
+        update: { optInLinkSentAt: null, inviteSentAt: null },
       })
       return NextResponse.json({ ok: true, progress })
     }

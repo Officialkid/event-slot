@@ -206,11 +206,22 @@ function getStatusText(status: IssueStatus) {
 export default function AdminHealthPage() {
   const [data, setData] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/admin/health")
-      .then((r) => r.json())
-      .then(setData)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Health check failed (HTTP ${r.status})`)
+        return r.json()
+      })
+      .then((payload) => {
+        if (payload?.error) {
+          setFetchError(payload.error)
+        } else {
+          setData(payload)
+        }
+      })
+      .catch((err) => setFetchError(err instanceof Error ? err.message : "Failed to load health data"))
       .finally(() => setLoading(false))
   }, [])
 
@@ -231,9 +242,40 @@ export default function AdminHealthPage() {
     )
   }
 
+  if (fetchError) {
+    return (
+      <div>
+        <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", fontWeight: 400, color: "var(--text-primary)", marginBottom: "0.4rem" }}>
+          Platform Health
+        </h1>
+        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", marginBottom: "2rem" }}>
+          System status and error monitoring.
+        </p>
+        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border-subtle)", borderRadius: 12, padding: "2rem", textAlign: "center" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", marginBottom: "0.75rem" }}>
+            <span style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--error)", flexShrink: 0 }} />
+            <span style={{ fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)", fontWeight: 500 }}>
+              Health check unavailable
+            </span>
+          </div>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>
+            {fetchError}
+          </p>
+          <button
+            onClick={() => { setFetchError(null); setLoading(true); window.location.reload() }}
+            style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!data) return null
 
-  const issues = data.recentErrors.map((error) => classifyIssue(error, data))
+  const recentErrors = Array.isArray(data.recentErrors) ? data.recentErrors : []
+  const issues = recentErrors.map((error) => classifyIssue(error, data))
   const actionableIssues = issues.filter(
     (issue) => (issue.status === "open" || issue.status === "config") && !issue.stale
   )

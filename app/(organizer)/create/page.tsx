@@ -138,14 +138,14 @@ const errorTextStyle: React.CSSProperties = {
 }
 
 const warningCardStyle: React.CSSProperties = {
-  background: "rgba(255,184,77,0.05)",
-  border: "1px solid rgba(255,184,77,0.22)",
+  background: "color-mix(in srgb, var(--warning) 5%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--warning) 22%, transparent)",
   borderRadius: 10,
 }
 
 const warningInsetStyle: React.CSSProperties = {
-  background: "rgba(255,184,77,0.04)",
-  border: "1px solid rgba(255,184,77,0.18)",
+  background: "color-mix(in srgb, var(--warning) 4%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--warning) 18%, transparent)",
   borderRadius: 10,
 }
 
@@ -737,7 +737,7 @@ export default function CreateEventPage() {
                 onClick={handleDownloadSuccessQR}
                 style={{
                   background: "var(--accent)",
-                  color: "#0A0A0A",
+                  color: "var(--accent-contrast)",
                   border: "none",
                   borderRadius: "100px",
                   padding: "0.7rem 1.8rem",
@@ -812,7 +812,7 @@ export default function CreateEventPage() {
                   onClick={() => handlePickTemplate(tpl.id)}
                   style={{
                     background: isSelected
-                      ? "rgba(200,245,90,0.06)"
+                      ? "color-mix(in srgb, var(--accent) 6%, transparent)"
                       : "var(--surface)",
                     border: isSelected
                       ? "1.5px solid var(--border-emphasis)"
@@ -828,8 +828,8 @@ export default function CreateEventPage() {
                   }}
                   onMouseEnter={e => {
                     if (!isSelected) {
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(200,245,90,0.4)"
-                      ;(e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--surface) 92%, rgba(200,245,90,0.08) 8%)"
+                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)"
+                      ;(e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--surface) 92%, color-mix(in srgb, var(--accent) 8%, transparent) 8%)"
                     }
                   }}
                   onMouseLeave={e => {
@@ -926,7 +926,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     required
                     placeholder={CREATE_EVENT_COPY.fields.eventTitle.placeholder}
@@ -940,7 +940,7 @@ export default function CreateEventPage() {
                     {CREATE_EVENT_COPY.fields.description.label}
                   </label>
                   <textarea
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
                     placeholder={CREATE_EVENT_COPY.fields.description.placeholder}
                     rows={5}
@@ -999,7 +999,7 @@ export default function CreateEventPage() {
                     <input
                       type="text"
                       required
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                       style={inputStyle}
                       placeholder={CREATE_EVENT_COPY.fields.googleMeetLink.placeholder}
                       value={virtualLink}
@@ -1064,7 +1064,7 @@ export default function CreateEventPage() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-[0.78rem] font-semibold text-[#FFB84D]">Ticket tiers</p>
+                          <p className="text-[0.78rem] font-semibold" style={{ color: "var(--warning)" }}>Ticket tiers</p>
                           <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
                             Add up to 10 paid tiers. Event capacity will be the sum of all tier capacities.
                           </p>
@@ -1073,7 +1073,7 @@ export default function CreateEventPage() {
                           type="button"
                           onClick={addTicketTier}
                           disabled={ticketTiers.length >= 10}
-                          className="rounded-full border border-[rgba(255,184,77,0.25)] px-3 py-1 text-[0.75rem] text-[#FFB84D] disabled:opacity-40"
+                          className="rounded-full border border-[color-mix(in_srgb,var(--warning)_25%,transparent)] px-3 py-1 text-[0.75rem] text-[var(--warning)] disabled:opacity-40"
                         >
                           + Add tier
                         </button>
@@ -1104,7 +1104,7 @@ export default function CreateEventPage() {
                                 <select
                                   value={tier.presetKey}
                                   onChange={(e) => updateTicketTier(tier.id, "presetKey", e.target.value)}
-                                  className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                   style={inputStyle}
                                 >
                                   <option value="">Custom tier</option>
@@ -1132,7 +1132,7 @@ export default function CreateEventPage() {
                             <div className="grid gap-3 sm:grid-cols-2">
                               <input
                                 type="text"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                 style={inputStyle}
                                 placeholder="Tier name"
                                 value={tier.name}
@@ -1141,7 +1141,7 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="50"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                 style={inputStyle}
                                 placeholder="Price (KES)"
                                 value={tier.priceKes}
@@ -1177,7 +1177,7 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="1"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                 style={inputStyle}
                                 placeholder="Tier capacity"
                                 value={tier.capacity}
@@ -1186,7 +1186,7 @@ export default function CreateEventPage() {
                               <input
                                 type="number"
                                 min="1"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                                 style={inputStyle}
                                 placeholder="Bundle size"
                                 value={tier.bundleSize}
@@ -1195,7 +1195,7 @@ export default function CreateEventPage() {
                             </div>
 
                             <textarea
-                              className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(255,184,77,0.5)] focus:outline-none"
+                              className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
                               style={inputStyle}
                               rows={2}
                               placeholder="Optional description of what this tier includes"
@@ -1219,7 +1219,7 @@ export default function CreateEventPage() {
                     type="number"
                     min="1"
                     max={lockedCapacity ? attendeeLimit : undefined}
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     placeholder={lockedCapacity ? `Choose any number up to ${attendeeLimit.toLocaleString()}` : "Leave empty for unlimited"}
                     value={capacity}
@@ -1388,7 +1388,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={deadline}
                     {...bindDateTimeField(setDeadline)}
@@ -1401,7 +1401,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={eventDate}
                     {...bindDateTimeField(setEventDate)}
@@ -1413,7 +1413,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={eventEndAt}
                     {...bindDateTimeField(setEventEndAt)}
@@ -1430,7 +1430,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={joinOpensAt}
                     {...bindDateTimeField(setJoinOpensAt)}
@@ -1447,7 +1447,7 @@ export default function CreateEventPage() {
                   </label>
                   <input
                     type="text"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     placeholder="e.g. iHub, Nairobi"
                     value={location}
@@ -1462,7 +1462,7 @@ export default function CreateEventPage() {
                     <input
                       type="url"
                       inputMode="url"
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                       style={inputStyle}
                       placeholder="Paste the exact Google Maps share link"
                       value={mapDirectionsUrl}
@@ -1490,7 +1490,7 @@ export default function CreateEventPage() {
                     <input
                       type="text"
                       maxLength={200}
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                       style={inputStyle}
                       placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
                       value={entryFeeLabel}
@@ -1530,7 +1530,7 @@ export default function CreateEventPage() {
                     </label>
                     {attendeeConsentEnabled && (
                       <textarea
-                        className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                        className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                         style={inputStyle}
                         rows={3}
                         maxLength={1000}
@@ -1548,22 +1548,25 @@ export default function CreateEventPage() {
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer Name <span style={accentTextStyle}>*</span>
                   </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
-                    style={inputStyle}
-                    required
-                    value={organizerName}
-                    onChange={e => setOrganizerName(e.target.value)}
-                  />
-                </div>
+                <input
+                  type="text"
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                  style={inputStyle}
+                  required
+                  value={organizerName}
+                  onChange={e => setOrganizerName(e.target.value)}
+                />
+                <p className="mt-1 text-[0.72rem]" style={helperStyle}>
+                  This sets the host name for this event only. Your account profile name stays unchanged.
+                </p>
+              </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
                     Organizer Email <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
                   </label>
                   <input
                     type="email"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={organizerEmail}
                     onChange={e => setOrganizerEmail(e.target.value)}
@@ -1576,7 +1579,7 @@ export default function CreateEventPage() {
                   <input
                     type="text"
                     inputMode="url"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     placeholder="e.g. WhatsApp group, Telegram, website"
                     value={communityLink}
@@ -1593,7 +1596,7 @@ export default function CreateEventPage() {
                     Contact action (optional)
                   </label>
                   <select
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                     style={inputStyle}
                     value={contactMode}
                     onChange={e => setContactMode(e.target.value === "CALL" ? "CALL" : "WHATSAPP")}
@@ -1709,7 +1712,7 @@ export default function CreateEventPage() {
               >
                 {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
               </button>
-              {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
+                {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
             </div>
 
             {isRegistrationEvent ? (
@@ -1750,7 +1753,7 @@ export default function CreateEventPage() {
                         </label>
                         <input
                           type="text"
-                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                           style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                           value={q.label}
                           onChange={e => handleQuestionChange(idx, "label", e.target.value)}
@@ -1762,7 +1765,7 @@ export default function CreateEventPage() {
                           Type
                         </label>
                         <select
-                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                           style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                           value={q.type}
                           onChange={e => handleQuestionChange(idx, "type", e.target.value)}
@@ -1782,7 +1785,7 @@ export default function CreateEventPage() {
                           <div className="mt-1 flex gap-2">
                             <input
                               type="text"
-                              className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                              className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                               style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                               placeholder="Add option"
                               value={optionDrafts[q.id] ?? ""}
@@ -1834,7 +1837,7 @@ export default function CreateEventPage() {
                                   <input
                                     type="text"
                                     inputMode="numeric"
-                                    className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[rgba(200,245,90,0.5)] focus:outline-none"
+                                    className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                                     style={{ background: "var(--surface-muted)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                                     placeholder="Slots"
                                     value={q.optionLimits?.[opt] ?? ""}
@@ -1854,7 +1857,7 @@ export default function CreateEventPage() {
                           <input
                             type="checkbox"
                             id={`allow-multiple-${q.id}`}
-                            className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                            className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
                             style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                             checked={!!q.allowMultiple}
                             onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
@@ -1868,7 +1871,7 @@ export default function CreateEventPage() {
                         <input
                           type="checkbox"
                           id={`required-${q.id}`}
-                          className="h-4 w-4 rounded border focus:ring-[#C8F55A]"
+                          className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
                           style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
                           checked={q.required}
                           onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
@@ -1914,7 +1917,7 @@ export default function CreateEventPage() {
             <div className="space-y-4">
               <button
                 type="submit"
-                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[var(--accent-contrast)]"
                 style={{ background: "var(--accent)" }}
                 disabled={loading}
               >
@@ -1981,7 +1984,7 @@ export default function CreateEventPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/events/${eventInfo.slug}`)}
-                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[#0A0A0A]"
+                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[var(--accent-contrast)]"
                 style={{ background: "var(--accent)" }}
               >
                 Continue to Dashboard

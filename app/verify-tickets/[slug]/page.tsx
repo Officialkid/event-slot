@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ScannerHome } from "@/components/scanner/ScannerHome"
+import { VerifyAccessForm } from "@/components/verify/VerifyAccessForm"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
@@ -62,7 +63,7 @@ export default async function StandaloneVerifyTicketsPage({ params, searchParams
             EventSlot Verify
           </Link>
           <Link href={`/${event.slug}`} className="rounded-full border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-secondary)]">
-            View public event
+            View attendee page
           </Link>
         </div>
 
@@ -89,11 +90,18 @@ export default async function StandaloneVerifyTicketsPage({ params, searchParams
         </header>
 
         {!token && (
-          <div className="mb-4 rounded-2xl border border-[rgba(245,158,11,0.35)] bg-[rgba(245,158,11,0.08)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
-            You are viewing this without an event token. If you are not signed in
-            as the organiser, assigned team member, or super admin, verification
-            actions will be rejected. Ask the organiser for the verifier code, or
-            open the verifier link copied from the event Settings page.
+          <div className="mb-4 rounded-3xl border border-[rgba(245,158,11,0.35)] bg-[rgba(245,158,11,0.08)] p-5 md:p-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#C8F55A]">
+              Verifier token needed
+            </p>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+              This page can open without a token, but ticket search, scan, and verification
+              will be rejected until the verifier code is entered or the copied verifier link
+              includes its token correctly.
+            </p>
+            <div className="mt-5">
+              <VerifyAccessForm />
+            </div>
           </div>
         )}
 
@@ -111,7 +119,18 @@ export default async function StandaloneVerifyTicketsPage({ params, searchParams
           </div>
         )}
 
-        <ScannerHome eventSlug={event.slug} accessToken={token} />
+        {token ? (
+          <ScannerHome eventSlug={event.slug} accessToken={token} />
+        ) : (
+          <div className="min-h-[28vh] rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--text-secondary)]">
+            <p className="text-lg font-semibold text-[var(--text-primary)]">Verifier tools locked</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6">
+              Unlock this workspace with the verifier code above. Once a valid token is present,
+              the same page will allow scan, upload, and manual ticket lookup without sending you
+              into an unauthorized state.
+            </p>
+          </div>
+        )}
       </section>
     </main>
   )

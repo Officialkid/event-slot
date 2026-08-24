@@ -56,7 +56,7 @@ const audiences = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-[#F0EDE6]">
+    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
       <section className="marketing-shell px-4 pb-10 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
         <div className="marketing-panel overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
           <div className="max-w-3xl">
@@ -64,10 +64,10 @@ export default function HowItWorksPage() {
               <span className="inline-flex h-2 w-2 rounded-full bg-[#C8F55A]" />
               How it works
             </div>
-            <h1 className="marketing-page-title mt-6 font-semibold text-white">
+            <h1 className="marketing-page-title mt-6 font-semibold text-[var(--text-primary)]">
               A simple event flow that feels organised from the first signup to the final check-in.
             </h1>
-            <p className="mt-6 max-w-2xl text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+            <p className="mt-6 max-w-2xl text-[1rem] leading-7 text-[var(--text-secondary)]">
               EventSlot replaces the usual mix of forms, chats, spreadsheets, and manual follow-up
               with one cleaner system. Here is the flow your team and your attendees actually move through.
             </p>
@@ -95,8 +95,8 @@ export default function HowItWorksPage() {
                 {step.n}
               </div>
               <div>
-                <h2 className="text-[1.2rem] font-semibold text-white">{step.title}</h2>
-                <p className="mt-3 max-w-3xl text-[0.98rem] leading-7 text-[rgba(240,237,230,0.66)]">
+                <h2 className="text-[1.2rem] font-semibold text-[var(--text-primary)]">{step.title}</h2>
+                <p className="mt-3 max-w-3xl text-[0.98rem] leading-7 text-[var(--text-secondary)]">
                   {step.body}
                 </p>
               </div>
@@ -105,11 +105,11 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="border-y border-[rgba(240,237,230,0.08)] bg-[#0D0F0C] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="marketing-shell">
           <div className="max-w-2xl">
             <div className="marketing-section-label">Who this fits</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-white">
+            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
               Built for teams that need control without adding complexity.
             </h2>
           </div>
@@ -117,7 +117,7 @@ export default function HowItWorksPage() {
             {audiences.map((audience) => (
               <div key={audience} className="marketing-card flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#C8F55A]" />
-                <span className="text-[0.96rem] text-[rgba(240,237,230,0.78)]">{audience}</span>
+                <span className="text-[0.96rem] text-[var(--text-secondary)]">{audience}</span>
               </div>
             ))}
           </div>
@@ -128,10 +128,10 @@ export default function HowItWorksPage() {
         <div className="marketing-panel overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
           <div className="max-w-2xl">
             <div className="marketing-section-label">Ready to start</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-white">
+            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
               Use the same calm workflow for your next event.
             </h2>
-            <p className="mt-5 text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+            <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]">
               Start with a free event, add ticketing when needed, and keep the attendee experience clear on both web and mobile.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

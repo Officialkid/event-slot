@@ -54,9 +54,9 @@ const emailTextMuted = 'var(--text-muted)'
 const emailSoftAccent = 'color-mix(in srgb, var(--accent) 12%, transparent)'
 
 const STATUS_COLORS: Record<CampaignStatus, string> = {
-  SENT: '#C8F55A',
+  SENT: 'var(--accent)',
   SENDING: 'var(--text-secondary)',
-  FAILED: '#FF6B6B',
+  FAILED: 'var(--error)',
   DRAFT: 'var(--text-muted)',
 }
 
@@ -77,6 +77,8 @@ export default function EmailDashboardPage() {
   const [loading, setLoading] = useState(true)
 
   const [type, setType] = useState<CampaignType>('CUSTOM')
+  const [segment, setSegment] = useState<'ALL' | 'CHECKED_IN' | 'NOT_CHECKED_IN' | 'WAITLIST'>('ALL')
+  const [scheduleTime, setScheduleTime] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [preview, setPreview] = useState(false)
@@ -126,7 +128,7 @@ export default function EmailDashboardPage() {
       const res = await fetch(`/api/events/${slug}/campaigns/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, body, type }),
+        body: JSON.stringify({ subject, body, type, segment, scheduledFor: scheduleTime || undefined }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -139,7 +141,15 @@ export default function EmailDashboardPage() {
       setType('CUSTOM')
       setPreview(false)
       fetchData()
-      setTimeout(() => setSuccessMsg(''), 6000)
+      // Poll campaign status dynamically after firing
+      const pollInterval = setInterval(() => {
+        fetchData()
+      }, 2500)
+      setTimeout(() => {
+        clearInterval(pollInterval)
+        fetchData()
+      }, 15000)
+      setTimeout(() => setSuccessMsg(''), 8000)
     } catch {
       setErrorMsg('Unable to send emails. Please try again.')
     } finally {
@@ -317,13 +327,13 @@ export default function EmailDashboardPage() {
             onClick={handleSend}
             disabled={!canSend}
             style={{
-              background: canSend ? '#C8F55A' : 'rgba(200,245,90,0.12)',
-              border: 'none',
+              background: canSend ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 6%, var(--surface))',
+              border: canSend ? 'none' : '0.5px solid var(--border-subtle)',
               borderRadius: 100,
               padding: '0.6rem 1.4rem',
               fontSize: '0.875rem',
               fontWeight: 600,
-              color: canSend ? '#0A0A0A' : 'rgba(200,245,90,0.35)',
+              color: canSend ? 'var(--accent-contrast, #0A0A0A)' : 'var(--text-muted)',
               cursor: canSend ? 'pointer' : 'not-allowed',
               fontFamily: 'var(--font-dm-sans)',
               display: 'flex',
@@ -340,33 +350,104 @@ export default function EmailDashboardPage() {
         </div>
 
         {successMsg && (
-          <div style={{ marginTop: '0.875rem', background: 'rgba(200,245,90,0.08)', border: '0.5px solid rgba(200,245,90,0.25)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#C8F55A', fontFamily: 'var(--font-dm-sans)' }}>
+          <div style={{ marginTop: '0.875rem', background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: 'var(--accent)', fontFamily: 'var(--font-dm-sans)' }}>
             {successMsg}
           </div>
         )}
         {errorMsg && (
-          <div style={{ marginTop: '0.875rem', background: 'rgba(255,107,107,0.08)', border: '0.5px solid rgba(255,107,107,0.25)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)' }}>
+          <div style={{ marginTop: '0.875rem', background: 'color-mix(in srgb, var(--error) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--error) 25%, transparent)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: 'var(--error)', fontFamily: 'var(--font-dm-sans)' }}>
             {errorMsg}
           </div>
         )}
       </div>
 
-      {/* Advanced features — Coming Up */}
-      <div style={{ background: emailSurface, border: emailBorder, borderRadius: 14, padding: '1.25rem', marginBottom: '1.25rem', opacity: 0.86 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
-            Advanced Email Features
-          </span>
-          <span style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 100, padding: '0.15rem 0.6rem', fontSize: '0.65rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Coming Up
-          </span>
+      {/* Advanced Email Intelligence & Controls */}
+      <div style={{ background: emailSurface, border: emailBorder, borderRadius: 14, padding: '1.25rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--accent)', fontFamily: 'var(--font-dm-sans)' }}>
+              Advanced Email Suite
+            </span>
+            <span style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '0.5px solid color-mix(in srgb, var(--accent) 25%, transparent)', borderRadius: 100, padding: '0.15rem 0.6rem', fontSize: '0.65rem', color: 'var(--text-primary)', fontFamily: 'var(--font-dm-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
+              Active
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem' }}>
-          {['Scheduled Sends', 'Segmented Lists', 'Open Rate Analytics'].map((f) => (
-            <div key={f} style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 8, padding: '0.65rem', fontSize: '0.75rem', textAlign: 'center', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)' }}>
-              {f}
+
+        {/* 3 Metric and Control Pillars */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+          {/* 1. Segmented Lists */}
+          <div style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 10, padding: '0.85rem' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem', fontFamily: 'var(--font-dm-sans)' }}>
+              Audience Segment
             </div>
-          ))}
+            <select
+              value={segment}
+              onChange={(e) => setSegment(e.target.value as any)}
+              style={{
+                width: '100%',
+                background: emailSurface,
+                border: emailBorder,
+                borderRadius: 6,
+                padding: '0.4rem 0.5rem',
+                fontSize: '0.78rem',
+                color: emailTextPrimary,
+                fontFamily: 'var(--font-dm-sans)',
+                outline: 'none',
+              }}
+            >
+              <option value="ALL">All Confirmed ({confirmedCount})</option>
+              <option value="CHECKED_IN">Checked-In Attendees Only</option>
+              <option value="NOT_CHECKED_IN">Not Yet Checked-In (Reminders)</option>
+              <option value="WAITLIST">Waitlist Attendees</option>
+            </select>
+          </div>
+
+          {/* 2. Scheduled Sends */}
+          <div style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 10, padding: '0.85rem' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem', fontFamily: 'var(--font-dm-sans)' }}>
+              Delivery Schedule
+            </div>
+            <input
+              type="datetime-local"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              placeholder="Send immediately"
+              style={{
+                width: '100%',
+                background: emailSurface,
+                border: emailBorder,
+                borderRadius: 6,
+                padding: '0.36rem 0.5rem',
+                fontSize: '0.75rem',
+                color: emailTextPrimary,
+                fontFamily: 'var(--font-dm-sans)',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* 3. Open Rate & Delivery Analytics */}
+          <div style={{ background: emailSurfaceAlt, border: emailBorder, borderRadius: 10, padding: '0.85rem' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem', fontFamily: 'var(--font-dm-sans)' }}>
+              Delivery Health
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent)', fontFamily: 'var(--font-instrument-serif)' }}>
+                  {campaigns.length > 0 ? `${Math.round((campaigns.filter(c => c.status === 'SENT').length / campaigns.length) * 100)}%` : '100%'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>delivery rate</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: emailTextPrimary, fontFamily: 'var(--font-instrument-serif)' }}>
+                  {campaigns.reduce((acc, c) => acc + (c.recipientCount || 0), 0)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>emails delivered</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -376,9 +457,9 @@ export default function EmailDashboardPage() {
           Sent History
         </div>
         {failedVerificationDomain && (
-          <div style={{ marginBottom: '0.875rem', background: 'rgba(255,107,107,0.08)', border: '0.5px solid rgba(255,107,107,0.24)', borderRadius: 10, padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: '0.875rem', background: 'color-mix(in srgb, var(--error) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--error) 24%, transparent)', borderRadius: 10, padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0 }}>
-              <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)', fontWeight: 600 }}>
+              <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', color: 'var(--error)', fontFamily: 'var(--font-dm-sans)', fontWeight: 600 }}>
                 Email sending is paused for {failedVerificationDomain}.
               </p>
               <p style={{ margin: 0, fontSize: '0.76rem', color: emailTextSecondary, fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
@@ -389,7 +470,7 @@ export default function EmailDashboardPage() {
               href='/admin/health'
               target='_blank'
               rel='noreferrer'
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '0.5px solid rgba(255,107,107,0.3)', borderRadius: 8, padding: '0.45rem 0.8rem', textDecoration: 'none', color: '#FF6B6B', fontSize: '0.75rem', fontFamily: 'var(--font-dm-sans)', whiteSpace: 'nowrap' }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '0.5px solid color-mix(in srgb, var(--error) 30%, transparent)', borderRadius: 8, padding: '0.45rem 0.8rem', textDecoration: 'none', color: 'var(--error)', fontSize: '0.75rem', fontFamily: 'var(--font-dm-sans)', whiteSpace: 'nowrap' }}
             >
               Open email health
             </a>
@@ -434,7 +515,7 @@ export default function EmailDashboardPage() {
                   )}
                   {failedDomain && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#FF6B6B', fontFamily: 'var(--font-dm-sans)' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--error)', fontFamily: 'var(--font-dm-sans)' }}>
                         Verify {failedDomain} in Resend before retrying this email.
                       </span>
                       <a
@@ -451,11 +532,11 @@ export default function EmailDashboardPage() {
                 <span
                   style={{
                     background: c.status === 'SENT'
-                      ? 'rgba(200,245,90,0.1)'
+                      ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
                       : c.status === 'FAILED'
-                        ? 'rgba(255,107,107,0.1)'
+                        ? 'color-mix(in srgb, var(--error) 10%, transparent)'
                         : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
-                    border: `0.5px solid ${STATUS_COLORS[c.status]}40`,
+                    border: `0.5px solid color-mix(in srgb, ${STATUS_COLORS[c.status]} 25%, transparent)`,
                     borderRadius: 100,
                     padding: '0.2rem 0.65rem',
                     fontSize: '0.68rem',

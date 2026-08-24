@@ -13,6 +13,7 @@ import { EventFAQDisplay } from "@/components/events/EventFAQDisplay"
 import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButton"
 import { APP_URL } from "@/lib/config"
 import { parseEventContact } from "@/lib/eventContact"
+import { resolveEventMapPreviewImageUrl } from "@/lib/mapPreview"
 
 type EventQuestion = {
   id: string
@@ -303,9 +304,20 @@ export default async function PublicProfilePage({
     const parsedContact = parseEventContact(eventWhatsapp)
     const eventDateLabel = formatEventDateLabel(event.eventDate, event.eventEndAt)
     const hasWhatsapp = Boolean(parsedContact?.number)
+    const mapPreviewImageUrl = await resolveEventMapPreviewImageUrl(event.mapDirectionsUrl, event.location)
 
     if (isWalkInEvent) {
-      return <PublicWalkInEventPage event={{ ...event, slug: username, faqs: eventFaqs, whatsappNumber: eventWhatsapp }} />
+      return (
+        <PublicWalkInEventPage
+          event={{
+            ...event,
+            slug: username,
+            faqs: eventFaqs,
+            whatsappNumber: eventWhatsapp,
+            mapPreviewImageUrl,
+          }}
+        />
+      )
     }
 
     return (
@@ -321,6 +333,7 @@ export default async function PublicProfilePage({
             eventEndAt={event.eventEndAt}
             location={event.location}
             mapDirectionsUrl={event.mapDirectionsUrl}
+            mapPreviewImageUrl={mapPreviewImageUrl}
             entryFeeLabel={event.entryFeeLabel}
             showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}

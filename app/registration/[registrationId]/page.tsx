@@ -31,6 +31,7 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
     select: {
       title: true,
       slug: true,
+      organizerName: true,
       organizerEmail: true,
       eventDate: true,
       eventEndAt: true,
@@ -86,7 +87,7 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
           {event.title}
         </h1>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 0.6rem' }}>
-          Organised by {event.organizer?.name || event.organizerEmail}
+          Organised by {event.organizerName || event.organizer?.name || event.organizerEmail}
         </p>
         {(event.eventDate || event.location) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

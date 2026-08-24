@@ -157,11 +157,11 @@ export const authOptions = {
   providers,
   session: {
     strategy: 'jwt' as const,
-    maxAge: 60 * 60 * 24 * 365,
-    updateAge: 60 * 60 * 24,
+    maxAge: 60 * 60 * 24 * 60, // 2 months (60 days) session expiry for inactive accounts
+    updateAge: 60 * 60 * 24,    // 1 day sliding refresh
   },
   jwt: {
-    maxAge: 60 * 60 * 24 * 365,
+    maxAge: 60 * 60 * 24 * 60, // 2 months (60 days) token expiry
   },
   pages: {
     signIn: '/signin',

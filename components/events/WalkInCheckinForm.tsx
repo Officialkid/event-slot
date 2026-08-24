@@ -103,10 +103,16 @@ export default function WalkInCheckinForm({
 
   const shareCardUrl = useMemo(() => {
     if (!result || typeof window === "undefined") return ""
+    const checkinTimeStr = new Date().toLocaleTimeString("en-KE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Africa/Nairobi",
+    }) + " EAT"
     const params = new URLSearchParams({
       day: String(result.day.index),
       name: result.attendee.name,
       spot: String(result.todayCount),
+      time: checkinTimeStr,
     })
     return `${window.location.origin}/api/walkin/${event.slug}/share-card?${params.toString()}`
   }, [event.slug, result])
@@ -309,15 +315,15 @@ export default function WalkInCheckinForm({
               <span
                 className={`rounded-full border px-3 py-1 text-[0.68rem] font-semibold ${
                   result.duplicate
-                    ? "border-[rgba(255,184,77,0.35)] bg-[rgba(255,184,77,0.08)] text-[#FFB84D]"
-                    : "border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] text-[#C8F55A]"
+                    ? "border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] text-[var(--warning)]"
+                    : "border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]"
                 }`}
               >
                 {result.duplicate ? "Already checked in" : "Checked in"}
               </span>
             </div>
 
-            <p className="mt-5 text-[0.8rem] uppercase tracking-[0.14em] text-[#C8F55A]">Congratulations</p>
+            <p className="mt-5 text-[0.8rem] uppercase tracking-[0.14em]" style={{ color: "var(--accent)" }}>Congratulations</p>
             <h2
               className="mt-2 text-[1.8rem]"
               style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}
@@ -343,18 +349,18 @@ export default function WalkInCheckinForm({
               <p className="mt-1 text-[1rem] font-medium" style={{ color: "var(--text-primary)" }}>{result.attendee.name}</p>
               <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Day attended</p>
               {result.day.title && (
-                <p className="mt-1 text-[0.82rem] font-semibold uppercase tracking-[0.08em] text-[#C8F55A]">{result.day.title}</p>
+                <p className="mt-1 text-[0.82rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--accent)" }}>{result.day.title}</p>
               )}
               <p className="mt-1 text-[0.9rem]" style={{ color: "var(--text-secondary)" }}>{result.day.label}</p>
               <p className="mt-3 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Check-in number</p>
-              <p className="mt-1 text-[1.35rem] text-[#C8F55A]" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+              <p className="mt-1 text-[1.35rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--accent)" }}>
                 #{result.todayCount.toLocaleString()}
               </p>
             </div>
 
             <div className="mt-6 text-center text-[0.78rem]" style={{ color: "var(--text-muted)" }}>
               Powered by EventSlot
-              <div className="mt-1 text-[#C8F55A]">Check us out at www.eventsslot.com</div>
+              <div className="mt-1" style={{ color: "var(--accent)" }}>Check us out at www.eventsslot.com</div>
             </div>
           </div>
 
@@ -373,7 +379,8 @@ export default function WalkInCheckinForm({
                 type="button"
                 onClick={() => void handleShare()}
                 disabled={sharing !== null}
-                className="rounded-full bg-[#C8F55A] px-5 py-2.5 text-[0.82rem] font-semibold text-[#0A0A0A] disabled:opacity-60"
+                className="rounded-full px-5 py-2.5 text-[0.82rem] font-semibold disabled:opacity-60"
+                style={{ background: "var(--accent)", color: "var(--accent-contrast, #0A0A0A)" }}
               >
                 {sharing === "poster" ? "Preparing..." : "Share poster"}
               </button>
@@ -401,14 +408,15 @@ export default function WalkInCheckinForm({
                 <button
                   type="button"
                   onClick={() => void handleCopyReturnLink()}
-                  className="rounded-full border border-[rgba(200,245,90,0.26)] px-5 py-2.5 text-[0.82rem] font-medium text-[#C8F55A]"
+                  className="rounded-full border px-5 py-2.5 text-[0.82rem] font-medium"
+                  style={{ borderColor: "color-mix(in srgb, var(--accent) 26%, transparent)", color: "var(--accent)" }}
                 >
                   {copiedReturnLink ? "Return link copied" : "Copy quick return link"}
                 </button>
               ) : null}
             </div>
 
-            {shareError && <p className="mt-3 text-[0.8rem] text-[#FFB84D]">{shareError}</p>}
+            {shareError && <p className="mt-3 text-[0.8rem]" style={{ color: "var(--warning)" }}>{shareError}</p>}
           </div>
         </div>
         {showBranding && <BrandingFooter />}
@@ -449,7 +457,7 @@ export default function WalkInCheckinForm({
               className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]"
               style={{ color: "var(--text-secondary)" }}
             >
-              Full name <span className="text-[#C8F55A]">*</span>
+              Full name <span style={{ color: "var(--accent)" }}>*</span>
             </label>
             <input
               type="text"
@@ -465,7 +473,7 @@ export default function WalkInCheckinForm({
               className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]"
               style={{ color: "var(--text-secondary)" }}
             >
-              Phone number <span className="text-[#C8F55A]">*</span>
+              Phone number <span style={{ color: "var(--accent)" }}>*</span>
             </label>
             <input
               type="tel"
@@ -490,12 +498,13 @@ export default function WalkInCheckinForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-full bg-[#C8F55A] px-5 py-3 text-[0.875rem] font-semibold text-[#0A0A0A] disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-full px-5 py-3 text-[0.875rem] font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ background: "var(--accent)", color: "var(--accent-contrast, #0A0A0A)" }}
         >
           {loading ? "Checking in..." : "I am here"}
         </button>
 
-        {error && <div className="text-center text-[0.82rem] text-[#FF6B6B]">{error}</div>}
+        {error && <div className="text-center text-[0.82rem]" style={{ color: "var(--error)" }}>{error}</div>}
       </form>
       {showBranding && <BrandingFooter />}
     </div>

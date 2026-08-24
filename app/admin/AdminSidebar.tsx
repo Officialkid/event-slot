@@ -25,6 +25,7 @@ const navItems = [
 export default function AdminSidebar() {
   const pathname = usePathname()
   const [flaggedCount, setFlaggedCount] = useState(0)
+  const [pendingTesterCount, setPendingTesterCount] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
@@ -59,6 +60,32 @@ export default function AdminSidebar() {
 
     loadFlaggedCount()
     const intervalId = window.setInterval(loadFlaggedCount, 30000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadTesterCount = async () => {
+      try {
+        const response = await fetch("/api/admin/app-testers", { cache: "no-store" })
+        const payload = await response.json().catch(() => ({}))
+        if (!cancelled) {
+          setPendingTesterCount(typeof payload?.summary?.pendingReview === "number" ? payload.summary.pendingReview : 0)
+        }
+      } catch {
+        if (!cancelled) {
+          setPendingTesterCount(0)
+        }
+      }
+    }
+
+    loadTesterCount()
+    const intervalId = window.setInterval(loadTesterCount, 30000)
 
     return () => {
       cancelled = true
@@ -159,7 +186,7 @@ export default function AdminSidebar() {
                 <span
                   style={{
                     marginLeft: "auto",
-                    background: "#ef4444",
+                    background: "var(--error)",
                     color: "#fff",
                     fontSize: "0.6rem",
                     fontWeight: 700,
@@ -169,6 +196,22 @@ export default function AdminSidebar() {
                   }}
                 >
                   {flaggedCount}
+                </span>
+              )}
+              {item.href === "/admin/app-testers" && pendingTesterCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    background: "var(--accent)",
+                    color: "var(--accent-contrast, #080808)",
+                    fontSize: "0.6rem",
+                    fontWeight: 700,
+                    padding: "2px 5px",
+                    borderRadius: 99,
+                    lineHeight: 1,
+                  }}
+                >
+                  {pendingTesterCount}
                 </span>
               )}
             </Link>

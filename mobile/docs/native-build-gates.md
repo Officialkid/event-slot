@@ -8,6 +8,8 @@ This file protects the full native Expo app as it replaces the temporary TWA/PWA
 - Expo Android package stays `com.alphatech.eventslot` so Play Console accepts it as the same EventSlot app.
 - Expo iOS bundle stays `com.alphatech.eventslot` for the future App Store identity.
 - Native URL scheme stays `eventslot`.
+- Native release line stays at mobile `1.0.0` for the web-version-7 parity baseline until Daniel explicitly approves a new release milestone.
+- Native iOS remains phone-first (`supportsTablet: false`) to match the current EventSlot brief.
 
 ## Upload Rules
 

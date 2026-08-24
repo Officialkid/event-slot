@@ -51,7 +51,7 @@ function StarRating({
             padding: "0 2px",
             fontSize: "1.4rem",
             lineHeight: 1,
-            color: star <= (hovered || value) ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 20%, transparent)",
+            color: star <= (hovered || value) ? "var(--accent)" : "color-mix(in srgb, var(--text-primary) 20%, transparent)",
             transition: "color 0.1s",
           }}
           aria-label={`${star} star`}
@@ -243,8 +243,8 @@ export default function NotificationsPage() {
               width: 20,
               height: 20,
               borderRadius: "50%",
-              border: "2px solid rgba(200,245,90,0.2)",
-              borderTopColor: "#C8F55A",
+              border: "2px solid color-mix(in srgb, var(--accent) 20%, transparent)",
+              borderTopColor: "var(--accent)",
               animation: "notif-spin 0.8s linear infinite",
             }}
           />
@@ -273,8 +273,8 @@ export default function NotificationsPage() {
                 style={{
                   display: "inline-block",
                   marginTop: "0.35rem",
-                  background: "#a3e635",
-                  color: "#0A0A0A",
+                  background: "var(--accent)",
+                  color: "var(--accent-contrast, #080808)",
                   borderRadius: 10,
                   padding: "0.55rem 1rem",
                   fontSize: "0.82rem",
@@ -293,9 +293,9 @@ export default function NotificationsPage() {
             const isFeedbackRequest = notif.title === "Feedback Request"
             const fb = getFeedbackState(notif.id)
             const isUnread = !notif.read
-            const borderColor = isUnread ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)"
-            const bgColor = isUnread ? "rgba(200,245,90,0.04)" : "var(--surface)"
-            const dotColor = notif.type === "PLATFORM" ? "#C8F55A" : notif.title === "Event Full" ? "#FF6B6B" : "#C8F55A"
+            const borderColor = isUnread ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)"
+            const bgColor = isUnread ? "color-mix(in srgb, var(--accent) 4%, transparent)" : "var(--surface)"
+            const dotColor = notif.type === "PLATFORM" ? "var(--accent)" : notif.title === "Event Full" ? "var(--error)" : "var(--accent)"
 
             if (isFeedbackRequest) {
               return (
@@ -306,7 +306,7 @@ export default function NotificationsPage() {
                     flexDirection: "column",
                     background: bgColor,
                     border: `0.5px solid ${borderColor}`,
-                    borderLeft: isUnread ? "2px solid #C8F55A" : undefined,
+                    borderLeft: isUnread ? "2px solid var(--accent)" : undefined,
                   }}
                 >
                   <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-start", width: "100%" }}>
@@ -317,7 +317,7 @@ export default function NotificationsPage() {
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        background: "#C8F55A",
+                        background: "var(--accent)",
                         opacity: isUnread ? 1 : 0.35,
                       }}
                     />
@@ -334,7 +334,7 @@ export default function NotificationsPage() {
                             fontSize: "0.78rem",
                             fontFamily: "var(--font-dm-sans)",
                             fontWeight: 500,
-                            color: "#C8F55A",
+                            color: "var(--accent)",
                             textDecoration: "none",
                           }}
                         >
@@ -349,7 +349,7 @@ export default function NotificationsPage() {
 
                   <div style={{ paddingLeft: "1.5rem", width: "100%", boxSizing: "border-box" }}>
                     {fb.submitted ? (
-                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>
                         Thank you for your feedback.
                       </p>
                     ) : (
@@ -368,7 +368,7 @@ export default function NotificationsPage() {
                         <button
                           onClick={() => submitFeedback(notif)}
                           disabled={fb.submitting || fb.rating === 0}
-                          style={{ background: fb.rating === 0 ? "rgba(200,245,90,0.25)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: fb.rating === 0 ? "rgba(8,8,8,0.4)" : "#080808", cursor: fb.submitting || fb.rating === 0 ? "default" : "pointer", opacity: fb.submitting ? 0.6 : 1, transition: "background 0.15s, opacity 0.15s" }}
+                          style={{ background: fb.rating === 0 ? "color-mix(in srgb, var(--accent) 25%, transparent)" : "var(--accent)", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", color: fb.rating === 0 ? "color-mix(in srgb, var(--accent-contrast, #080808) 40%, transparent)" : "var(--accent-contrast, #080808)", cursor: fb.submitting || fb.rating === 0 ? "default" : "pointer", opacity: fb.submitting ? 0.6 : 1, transition: "background 0.15s, opacity 0.15s" }}
                         >
                           {fb.submitting ? "Sending…" : "Send feedback"}
                         </button>
@@ -386,9 +386,9 @@ export default function NotificationsPage() {
                   onClick={() => !notif.read && markOneRead(notif.id)}
                   style={{
                     ...cardBase,
-                    background: isUnread ? "rgba(250,199,117,0.04)" : "transparent",
-                    border: `0.5px solid ${isUnread ? "rgba(250,199,117,0.15)" : "var(--border-subtle)"}`,
-                    borderLeft: "2px solid #FAC775",
+                    background: isUnread ? "color-mix(in srgb, var(--warning) 4%, transparent)" : "transparent",
+                    border: `0.5px solid ${isUnread ? "color-mix(in srgb, var(--warning) 15%, transparent)" : "var(--border-subtle)"}`,
+                    borderLeft: "2px solid var(--warning)",
                     cursor: isUnread ? "pointer" : "default",
                     transition: "background 0.15s",
                   }}
@@ -400,7 +400,7 @@ export default function NotificationsPage() {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      background: "#FAC775",
+                      background: "var(--warning)",
                       opacity: isUnread ? 1 : 0.35,
                     }}
                   />
@@ -425,10 +425,10 @@ export default function NotificationsPage() {
                             fontSize: "0.78rem",
                             fontFamily: "var(--font-dm-sans)",
                             fontWeight: 500,
-                            color: "#FAC775",
+                            color: "var(--warning)",
                             textDecoration: "none",
-                            background: "rgba(250,199,117,0.1)",
-                            border: "0.5px solid rgba(250,199,117,0.25)",
+                            background: "color-mix(in srgb, var(--warning) 10%, transparent)",
+                            border: "0.5px solid color-mix(in srgb, var(--warning) 25%, transparent)",
                             borderRadius: 6,
                             padding: "0.25rem 0.625rem",
                           }}
@@ -458,9 +458,9 @@ export default function NotificationsPage() {
                   onClick={() => !notif.read && markOneRead(notif.id)}
                   style={{
                     ...cardBase,
-                    background: isUnread ? "rgba(255,107,107,0.04)" : "transparent",
-                    border: `0.5px solid ${isUnread ? "rgba(255,107,107,0.15)" : "var(--border-subtle)"}`,
-                    borderLeft: "2px solid #FF6B6B",
+                    background: isUnread ? "color-mix(in srgb, var(--error) 4%, transparent)" : "transparent",
+                    border: `0.5px solid ${isUnread ? "color-mix(in srgb, var(--error) 15%, transparent)" : "var(--border-subtle)"}`,
+                    borderLeft: "2px solid var(--error)",
                     cursor: isUnread ? "pointer" : "default",
                     transition: "background 0.15s",
                   }}
@@ -472,7 +472,7 @@ export default function NotificationsPage() {
                       width: 8,
                       height: 8,
                       borderRadius: "50%",
-                      background: "#FF6B6B",
+                      background: "var(--error)",
                       opacity: isUnread ? 1 : 0.35,
                     }}
                   />
@@ -512,7 +512,7 @@ export default function NotificationsPage() {
                   ...cardBase,
                   background: bgColor,
                   border: `0.5px solid ${borderColor}`,
-                  borderLeft: isUnread ? "2px solid #C8F55A" : undefined,
+                  borderLeft: isUnread ? "2px solid var(--accent)" : undefined,
                   cursor: isUnread ? "pointer" : "default",
                   transition: "background 0.15s",
                 }}
@@ -528,8 +528,8 @@ export default function NotificationsPage() {
                         fontFamily: "var(--font-dm-sans)",
                         letterSpacing: "0.04em",
                         textTransform: "uppercase",
-                        background: "rgba(200,245,90,0.2)",
-                        color: "#C8F55A",
+                        background: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                        color: "var(--accent)",
                         borderRadius: 999,
                         padding: "0.15rem 0.5rem",
                       }}
@@ -553,7 +553,7 @@ export default function NotificationsPage() {
                         fontSize: "0.78rem",
                         fontFamily: "var(--font-dm-sans)",
                         fontWeight: 500,
-                        color: "#C8F55A",
+                        color: "var(--accent)",
                         textDecoration: "none",
                       }}
                     >

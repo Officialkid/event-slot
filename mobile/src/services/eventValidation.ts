@@ -2,7 +2,7 @@ import { EventDraft } from "../domain/events";
 import { isSupportedMapUrl } from "./maps";
 
 export type NativeDraftValidationIssue = {
-  field: keyof EventDraft | "attachmentRequirement.label" | "attachmentRequirement.caption" | "attachmentRequirement.maxFileSizeMb";
+  field: keyof EventDraft | "registrationQuestions" | "attachmentRequirement.label" | "attachmentRequirement.caption" | "attachmentRequirement.maxFileSizeMb";
   message: string;
   severity: "error" | "warning";
 };
@@ -45,8 +45,94 @@ export function validateEventDraft(draft: EventDraft): NativeDraftValidationResu
     issues.push({ field: "virtualLink", message: "Use a secure https meeting link for the virtual event.", severity: "error" });
   }
 
+  if (draft.monetization === "paid") {
+    const hasStandardPrice = parseCurrencyValue(draft.standardPrice) > 0;
+    const namedTiers = draft.ticketTiers.filter((tier) => tier.name.trim() || tier.price.trim() || tier.capacity.trim());
+
+    if (!hasStandardPrice && namedTiers.length === 0) {
+      issues.push({
+        field: "standardPrice",
+        message: "Paid events need a standard price or at least one ticket tier.",
+        severity: "error"
+      });
+    }
+
+    if (draft.standardPrice.trim() && !hasStandardPrice) {
+      issues.push({
+        field: "standardPrice",
+        message: "Standard price must be greater than zero for a paid event.",
+        severity: "error"
+      });
+    }
+
+    for (const tier of namedTiers) {
+      const price = parseCurrencyValue(tier.price);
+      const tierCapacity = tier.capacity.trim() ? Number.parseInt(tier.capacity, 10) : undefined;
+
+      if (!tier.name.trim()) {
+        issues.push({ field: "ticketTiers", message: "Each ticket tier needs a name.", severity: "error" });
+      }
+
+      if (!Number.isFinite(price) || price <= 0) {
+        issues.push({ field: "ticketTiers", message: `Ticket tier "${tier.name || "Untitled"}" needs a valid price.`, severity: "error" });
+      }
+
+      if (tier.capacity.trim() && (!tierCapacity || tierCapacity <= 0)) {
+        issues.push({ field: "ticketTiers", message: `Ticket tier "${tier.name || "Untitled"}" needs a valid capacity when one is provided.`, severity: "error" });
+      }
+    }
+  }
+
   if (draft.attendeeConsentEnabled && !draft.attendeeConsentText.trim()) {
     issues.push({ field: "attendeeConsentText", message: "Write the consent wording or disable the consent screen.", severity: "error" });
+  }
+
+  const registrationQuestions = draft.registrationQuestions.filter((question) => question.label.trim() || question.type === "checkbox");
+
+  if (registrationQuestions.length === 0) {
+    issues.push({
+      field: "registrationQuestions",
+      message: "Add at least one registration question so attendees know what information to submit.",
+      severity: "warning"
+    });
+  }
+
+  for (const question of registrationQuestions) {
+    if (!question.label.trim()) {
+      issues.push({ field: "registrationQuestions", message: "Each registration question needs a label.", severity: "error" });
+    }
+
+    if (
+      (question.type === "select" || question.type === "checkbox") &&
+      (!question.options || question.options.filter((option) => option.trim()).length === 0)
+    ) {
+      issues.push({
+        field: "registrationQuestions",
+        message: `${question.type === "checkbox" ? "Checkbox" : "Select"} question "${question.label || "Untitled"}" needs at least one option.`,
+        severity: "error"
+      });
+    }
+
+    if (question.optionLimits) {
+      for (const [option, limit] of Object.entries(question.optionLimits)) {
+        if (option.trim() && limit != null && (!Number.isInteger(limit) || limit <= 0)) {
+          issues.push({
+            field: "registrationQuestions",
+            message: `Option limits for "${question.label || "Untitled"}" must be whole numbers greater than zero.`,
+            severity: "error"
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  if (registrationQuestions.some((question) => question.type === "file") && !draft.attachmentRequirement.enabled) {
+    issues.push({
+      field: "registrationQuestions",
+      message: "Enable the upload requirement when you add a file registration question.",
+      severity: "error"
+    });
   }
 
   if (draft.attachmentRequirement.enabled) {
@@ -92,4 +178,9 @@ function isSupportedVirtualLink(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function parseCurrencyValue(value: string): number {
+  const parsed = Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }

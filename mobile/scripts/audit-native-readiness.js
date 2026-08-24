@@ -17,6 +17,10 @@ function requireValue(name, actual, expected) {
   addCheck(name, actual === expected, `expected ${JSON.stringify(expected)}, found ${JSON.stringify(actual)}`);
 }
 
+function requireAtLeast(name, actual, minimum, detail) {
+  addCheck(name, typeof actual === "number" && actual >= minimum, detail ?? `expected >= ${minimum}, found ${JSON.stringify(actual)}`);
+}
+
 function requireTruthy(name, value, detail) {
   addCheck(name, Boolean(value), detail);
 }
@@ -36,9 +40,9 @@ const appJson = readJson("app.json");
 const easJson = readJson("eas.json");
 const expo = appJson.expo;
 
-requireValue("Expo SDK stays pinned to SDK 53", packageJson.dependencies.expo, "^53.0.0");
-requireValue("React version matches Expo SDK 53", packageJson.dependencies.react, "19.0.0");
-requireValue("React Native version matches Expo SDK 53", packageJson.dependencies["react-native"], "0.79.5");
+requireValue("Expo SDK stays pinned to SDK 54", packageJson.dependencies.expo, "^54.0.0");
+requireValue("React version matches Expo SDK 54", packageJson.dependencies.react, "19.1.4");
+requireValue("React Native version matches Expo SDK 54", packageJson.dependencies["react-native"], "0.81.6");
 requireTruthy("SecureStore dependency is present", packageJson.dependencies["expo-secure-store"], "needed for native token storage");
 requireTruthy("Camera dependency is present", packageJson.dependencies["expo-camera"], "needed for QR scanning");
 requireTruthy("Document picker dependency is present", packageJson.dependencies["expo-document-picker"], "needed for file upload questions");
@@ -48,7 +52,12 @@ requireValue("Native app name is EventSlot", expo.name, "EventSlot");
 requireValue("Native URL scheme is eventslot", expo.scheme, "eventslot");
 requireValue("Native API points at production web API", expo.extra && expo.extra.apiBaseUrl, "https://www.eventsslot.com");
 requireValue("Android package matches existing Play listing", expo.android && expo.android.package, "com.alphatech.eventslot");
-requireValue("Android native versionCode can replace TWA v5", expo.android && expo.android.versionCode, 6);
+requireAtLeast(
+  "Android native versionCode can replace TWA v5",
+  expo.android && expo.android.versionCode,
+  6,
+  `expected >= 6, found ${JSON.stringify(expo.android && expo.android.versionCode)}`
+);
 requireValue("iOS bundle uses final EventSlot identity", expo.ios && expo.ios.bundleIdentifier, "com.alphatech.eventslot");
 
 requireFile("assets/icon.png");

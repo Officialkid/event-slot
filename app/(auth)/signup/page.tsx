@@ -29,7 +29,7 @@ export default function SignUpPage() {
     }
   }, [status, router])
 
-  if (status === 'loading' || status === 'authenticated') {
+  if (status === 'authenticated') {
     return null
   }
 
@@ -106,6 +106,12 @@ export default function SignUpPage() {
           setError(errorMessages[data?.code] ?? data?.error ?? 'Something went wrong.')
           return
         }
+
+        if (data.otpRequired) {
+          setOtpRequired(true)
+          setOtpHint(`We sent a 6-digit verification code to ${email.trim()}. Enter it below to complete your registration.`)
+          return
+        }
       }
 
       await continueWithCredentials(otpRequired ? otp : '')
@@ -121,7 +127,19 @@ export default function SignUpPage() {
     setError('')
     setResendingOtp(true)
     try {
-      await continueWithCredentials('')
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Failed to resend code.')
+      } else {
+        setOtpHint(`A new 6-digit code has been sent to ${email.trim()}.`)
+      }
+    } catch {
+      setError('Unable to resend verification code.')
     } finally {
       setResendingOtp(false)
     }

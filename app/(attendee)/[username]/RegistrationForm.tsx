@@ -60,7 +60,10 @@ type EventProps = {
     createdAt: Date | string
     status?: string | null
     isPaid?: boolean
+    ticketPrice?: number | null
     ticketTiers?: EventTicketTier[]
+    groupRegistrationEnabled?: boolean
+    allowGroupSelfClaim?: boolean
   }
   showBranding?: boolean
   maxAttendees?: number
@@ -238,6 +241,16 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
   const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)
   const [selectedTierId] = useState<string>(event.ticketTiers?.[0]?.id ?? "")
+  const [registrationMode, setRegistrationMode] = useState<"individual" | "group">("individual")
+  const [orgName, setOrgName] = useState("")
+  const [orgType, setOrgType] = useState("COMPANY")
+  const [orgContactName, setOrgContactName] = useState("")
+  const [orgContactEmail, setOrgContactEmail] = useState("")
+  const [orgContactPhone, setOrgContactPhone] = useState("")
+  const [groupSlots, setGroupSlots] = useState(5)
+  const [groupSubmitting, setGroupSubmitting] = useState(false)
+  const [groupResult, setGroupResult] = useState<any>(null)
+  const [groupError, setGroupError] = useState("")
   const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
   const [mpesaPhone] = useState("")
   const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
@@ -600,6 +613,38 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       setFileErrors(prev => ({ ...prev, [key]: "Upload failed. Please check your connection." }))
     } finally {
       setUploadingFiles(prev => ({ ...prev, [key]: false }))
+    }
+  }
+
+    const handleGroupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!orgName.trim() || !orgContactName.trim() || !orgContactEmail.trim() || !orgContactPhone.trim()) {
+      setGroupError("Please fill in all organization contact details.")
+      return
+    }
+    setGroupSubmitting(true)
+    setGroupError("")
+
+    try {
+      const res = await fetch(`/api/events/${event.slug}/group-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgName,
+          orgType,
+          contactName: orgContactName,
+          contactEmail: orgContactEmail,
+          contactPhone: orgContactPhone,
+          totalSlots: groupSlots,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to create group booking")
+      setGroupResult(json.booking)
+    } catch (err: any) {
+      setGroupError(err.message || "Failed to create group booking")
+    } finally {
+      setGroupSubmitting(false)
     }
   }
 
@@ -1224,6 +1269,225 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           <BillingPausedNotice context="paidEventRegistration" compact />
         )}
 
+                {event.groupRegistrationEnabled && (
+          <div className="mb-6 flex rounded-[12px] border p-1" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <button
+              type="button"
+              onClick={() => setRegistrationMode("individual")}
+              className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
+              style={{
+                background: registrationMode === "individual" ? "var(--surface)" : "transparent",
+                color: registrationMode === "individual" ? "var(--text-primary)" : "var(--text-secondary)",
+                boxShadow: registrationMode === "individual" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+              }}
+            >
+              Register as Individual
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegistrationMode("group")}
+              className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
+              style={{
+                background: registrationMode === "group" ? "var(--accent)" : "transparent",
+                color: registrationMode === "group" ? "var(--accent-contrast)" : "var(--text-secondary)",
+                boxShadow: registrationMode === "group" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+              }}
+            >
+              Register as Organization / Group
+            </button>
+          </div>
+        )}
+
+        {registrationMode === "group" ? (
+          <div className="space-y-5 rounded-[20px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            {groupResult ? (
+              <div className="space-y-4 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black" style={{ color: "var(--text-primary)" }}>Group Reservation Secured!</h3>
+                <p className="text-[0.875rem]" style={{ color: "var(--text-secondary)" }}>
+                  <strong style={{ color: "var(--text-primary)" }}>{groupResult.orgName}</strong> has successfully reserved <strong style={{ color: "var(--accent)" }}>{groupResult.totalSlots} slots</strong> for {event.title}.
+                </p>
+
+                {groupResult.isPaid && (
+                  <div className="rounded-[12px] border p-3 text-left" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Consolidated Group Total</p>
+                    <p className="text-lg font-black" style={{ color: "var(--accent)" }}>{groupResult.currency} {groupResult.totalAmountKes.toLocaleString()}</p>
+                    <p className="text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>Group status: Guaranteed Reservation Mode</p>
+                  </div>
+                )}
+
+                <div className="mt-4 rounded-[14px] border p-4 text-left space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                  <div>
+                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Organization Manager Portal</p>
+                    <a href={groupResult.managerUrl} target="_blank" rel="noreferrer" className="text-[0.8rem] font-mono underline" style={{ color: "var(--accent)" }}>
+                      {groupResult.managerUrl}
+                    </a>
+                  </div>
+                  <div>
+                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Member Self-Claim Link</p>
+                    <a href={groupResult.claimUrl} target="_blank" rel="noreferrer" className="text-[0.8rem] font-mono underline" style={{ color: "var(--accent)" }}>
+                      {groupResult.claimUrl}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-center">
+                  <a href={groupResult.managerUrl} target="_blank" rel="noreferrer" className="rounded-full px-6 py-2.5 text-[0.85rem] font-bold" style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}>
+                    Open Manager Portal
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleGroupSubmit} className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-black" style={{ color: "var(--text-primary)" }}>Reserve Organization / Group Slots</h3>
+                  <p className="text-[0.8rem]" style={{ color: "var(--text-secondary)" }}>
+                    Reserve attendee capacity for your church, company, school, NGO, or delegation now and assign attendee names later.
+                  </p>
+                </div>
+
+                {groupError && (
+                  <p className="rounded-[8px] p-3 text-[0.8rem] font-semibold" style={{ background: "color-mix(in srgb, var(--error) 15%, transparent)", color: "var(--error)" }}>
+                    {groupError}
+                  </p>
+                )}
+
+                <div>
+                  <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    Organization / Group Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. City of Refuge Assembly"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                    style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Organization Type *
+                    </label>
+                    <select
+                      value={orgType}
+                      onChange={(e) => setOrgType(e.target.value)}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    >
+                      <option value="CHURCH">Church / Ministry</option>
+                      <option value="COMPANY">Company / Business</option>
+                      <option value="SCHOOL">School</option>
+                      <option value="UNIVERSITY">University / College</option>
+                      <option value="NGO">NGO / Non-Profit</option>
+                      <option value="SPONSOR">Sponsor / Partner</option>
+                      <option value="FAMILY_TEAM">Family / Team</option>
+                      <option value="OTHER">Other Group</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Number of Reserved Slots *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      required
+                      value={groupSlots}
+                      onChange={(e) => setGroupSlots(Math.max(1, Number(e.target.value)))}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    Primary Contact Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contact person full name"
+                    value={orgContactName}
+                    onChange={(e) => setOrgContactName(e.target.value)}
+                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                    style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Contact Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="contact@organization.com"
+                      value={orgContactEmail}
+                      onChange={(e) => setOrgContactEmail(e.target.value)}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      Contact Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="0712345678"
+                      value={orgContactPhone}
+                      onChange={(e) => setOrgContactPhone(e.target.value)}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                </div>
+
+                {event.isPaid && (
+                  <div className="rounded-[14px] border p-4 space-y-2" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 5%, var(--surface))" }}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[0.8rem] font-bold" style={{ color: "var(--text-primary)" }}>Consolidated Group Total</span>
+                      <span className="text-base font-black" style={{ color: "var(--accent)" }}>
+                        {event.ticketTiers?.[0]?.currency || "KSh"} {((event.ticketPrice || 0) * groupSlots).toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Coming Soon Payment Banner */}
+                    <div className="rounded-[10px] border p-3 text-[0.78rem] leading-5" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
+                      <p className="font-bold flex items-center gap-1.5" style={{ color: "var(--warning)" }}>
+                        💳 Group Online Payment (M-Pesa & Card) — Coming Soon
+                      </p>
+                      <p className="mt-1">
+                        Group purchases are currently placed in <strong style={{ color: "var(--text-primary)" }}>Guaranteed Reservation Mode</strong>. Direct M-Pesa & Card checkout will activate automatically once live production payment keys are connected.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={groupSubmitting || !orgName.trim() || !orgContactName.trim()}
+                  className="w-full rounded-[12px] py-3 text-[0.9rem] font-bold transition disabled:opacity-50"
+                  style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+                >
+                  {groupSubmitting ? "Reserving Allocation..." : `Reserve ${groupSlots} Group Slots`}
+                </button>
+              </form>
+            )}
+          </div>
+        ) : (
         <fieldset
           disabled={registrationClosed}
           style={{
@@ -1557,6 +1821,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       </div>
       {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
         </fieldset>
+        )}
         </div>
       </form>
       {showBranding && <BrandingFooter />}

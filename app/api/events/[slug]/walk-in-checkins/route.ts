@@ -287,7 +287,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       event: {
         title: event.title,
         slug: event.slug,
-        organizerName: event.organizer?.name ?? null,
+        organizerName: event.organizerName ?? event.organizer?.name ?? null,
       },
       day: {
         key: availability.todayKey,

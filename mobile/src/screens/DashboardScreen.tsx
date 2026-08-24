@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { NativeDashboardStatsResponse } from "../api/contracts";
+import { ORGANIZER_SURFACE_COPY } from "../../../lib/organizerSurfaceContent";
 import { ActionCard } from "../components/ActionCard";
+import { EventSlotMetricGrid } from "../components/EventSlotMetricGrid";
+import { NativeDashboardStatsResponse } from "../api/contracts";
+import { EventSlotMessageCard } from "../components/EventSlotMessageCard";
+import { EventSlotPageHeader } from "../components/EventSlotPageHeader";
+import { EventSlotStatusCard } from "../components/EventSlotStatusCard";
 import { MetricCard } from "../components/MetricCard";
-import { NativeDashboardInsight } from "../domain/dashboardInsights";
 import { buildNativeDashboardInsights } from "../services/dashboardInsights";
-import { loadNativeDashboardStats } from "../services/workspace";
 import { NativeScreenProps } from "./types";
+import { loadNativeDashboardStats } from "../services/workspace";
+import { typeScale } from "../typography";
 
-export function DashboardScreen({ theme, session, navigate, events, eventsLoading, eventsError, refreshEvents }: NativeScreenProps) {
+export function DashboardScreen({ theme, session, navigate, events, eventsLoading, refreshEvents }: NativeScreenProps) {
   const [liveStats, setLiveStats] = useState<NativeDashboardStatsResponse | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -60,202 +65,433 @@ export function DashboardScreen({ theme, session, navigate, events, eventsLoadin
   const totalEvents = liveStats?.totalEvents ?? events.length;
   const totalConfirmed = liveStats?.totalRegistrations ?? confirmed;
   const totalWaitlist = liveStats?.totalWaitlisted ?? waitlist;
-  const conversionRate = liveStats?.conversionRate ?? 0;
-  const dataSource = session.authMode === "live"
-    ? statsError
-      ? "Live stats need attention"
-      : liveStats
-        ? "Live API"
-        : "Loading live API"
-    : "Demo preview";
-
-  const dashboardMetrics = [
-    { label: "Events", value: eventsLoading || statsLoading ? "..." : `${totalEvents}`, trend: dataSource },
-    { label: "Confirmed", value: eventsLoading || statsLoading ? "..." : `${totalConfirmed}`, trend: "Ready for export" },
-    { label: "Waitlist", value: eventsLoading || statsLoading ? "..." : `${totalWaitlist}`, trend: liveStats ? `${liveStats.waitlistEventCount} events` : "Auto promotion" },
-    { label: "Conversion", value: statsLoading ? "..." : `${conversionRate}%`, trend: session.authMode === "demo" ? "Demo estimate" : "Live views" }
+  const activeEvents = liveStats?.activeEvents ?? events.filter((event) => event.status === "Active").length;
+  const metrics = [
+    {
+      label: ORGANIZER_SURFACE_COPY.dashboard.metrics.totalEvents,
+      value: eventsLoading || statsLoading ? "..." : `${totalEvents}`,
+      trend: liveStats ? `${liveStats.eventsThisMonth > 0 ? `+${liveStats.eventsThisMonth}` : "0"} this month` : "Event overview"
+    },
+    {
+      label: ORGANIZER_SURFACE_COPY.dashboard.metrics.registrations,
+      value: eventsLoading || statsLoading ? "..." : `${totalConfirmed}`,
+      trend: liveStats
+        ? formatRegistrationTrend(liveStats.registrationsThisMonth, liveStats.registrationsLastMonth)
+        : "Across all events"
+    },
+    {
+      label: ORGANIZER_SURFACE_COPY.dashboard.metrics.activeNow,
+      value: eventsLoading || statsLoading ? "..." : `${activeEvents}`,
+      trend: liveStats
+        ? liveStats.eventsClosingThisWeek > 0
+          ? `${liveStats.eventsClosingThisWeek} closing this week`
+          : "No closures this week"
+        : "Live event activity"
+    },
+    {
+      label: ORGANIZER_SURFACE_COPY.dashboard.metrics.onWaitlist,
+      value: eventsLoading || statsLoading ? "..." : `${totalWaitlist}`,
+      trend: liveStats
+        ? totalWaitlist === 0
+          ? "All caught up"
+          : `Across ${liveStats.waitlistEventCount} events`
+        : "Waitlist overview"
+    }
   ];
-  const insights = buildNativeDashboardInsights({ events, liveStats });
 
-  const handleInsightPress = (insight: NativeDashboardInsight) => {
-    navigate({ name: insight.target });
-  };
+  const needsAttention = liveStats?.eventsNearCapacity ?? [];
+  const upcomingEvents = liveStats?.upcomingEvents ?? [];
+  const recentActivity = liveStats?.recentActivity ?? [];
+  const featuredEvents = events.slice(0, 3);
+  const isFreePlan = session.plan.toLowerCase() === "free";
+  const focusInsights = buildNativeDashboardInsights({ events, liveStats });
 
   return (
     <View style={styles.stack}>
-      <View style={[styles.hero, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
-        <Text style={[styles.eyebrow, { color: theme.colors.accent }]}>BUILT FOR EVENT TEAMS</Text>
-        <Text style={[styles.greeting, { color: theme.colors.secondary }]}>
-          Welcome back, {session.displayName}
-        </Text>
-        <Text style={[styles.title, { color: theme.colors.text }]}>
-          Run registration, waitlist, and check-in from one sharp app.
-        </Text>
-        <Text style={[styles.body, { color: theme.colors.secondary }]}>
-          EventSlot keeps your event team close to registrations, check-in, waitlists, exports, and mobile event-day actions.
-        </Text>
-      </View>
+      <EventSlotPageHeader
+        theme={theme}
+        eyebrow={`${getGreeting()}, ${session.displayName}`}
+        title={ORGANIZER_SURFACE_COPY.dashboard.header.mobileTitle}
+        actionLabel={ORGANIZER_SURFACE_COPY.dashboard.header.createCta}
+        onActionPress={() => navigate({ name: "createEvent" })}
+      />
 
-      <View style={styles.metricsGrid}>
-        {dashboardMetrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} theme={theme} />
+      {isFreePlan ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigate({ name: "billing" })}
+          style={[styles.planBanner, { backgroundColor: theme.colors.activeTab, borderColor: theme.colors.accent }]}
+        >
+          <Text style={[styles.planTitle, { color: theme.colors.accent }]}>Free plan · Upgrade</Text>
+          <Text style={[styles.planCopy, { color: theme.colors.secondary }]}>
+            Unlock more organizer tools, higher limits, and richer attendee flows from the billing screen.
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <EventSlotMetricGrid>
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} label={metric.label} value={metric.value} trend={metric.trend} theme={theme} />
         ))}
+      </EventSlotMetricGrid>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>TODAY'S FOCUS</Text>
+        <View style={styles.quickGrid}>
+          {focusInsights.map((insight) => (
+            <ActionCard
+              key={insight.key}
+              title={insight.title}
+              caption={insight.caption}
+              action={insight.actionLabel}
+              onPress={() => navigate({ name: insight.target })}
+              theme={theme}
+            />
+          ))}
+        </View>
       </View>
 
-      <View style={[styles.insightPanel, { backgroundColor: theme.colors.hero, borderColor: theme.colors.border }]}>
-        <Text style={[styles.statusTitle, { color: theme.colors.accent }]}>TODAY'S FOCUS</Text>
-        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
-          Native insights use loaded events and live dashboard stats to suggest what needs attention first.
-        </Text>
-        {insights.map((insight) => (
-          <Pressable
-            accessibilityRole="button"
-            key={insight.key}
-            onPress={() => handleInsightPress(insight)}
-            style={[styles.insightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-          >
-            <View style={styles.insightCopy}>
-              <Text style={[styles.insightTitle, { color: theme.colors.text }]}>{insight.title}</Text>
-              <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>{insight.caption}</Text>
-            </View>
-            <Text
+      <DashboardSection
+        title="Your events"
+        theme={theme}
+        emptyTitle="Create your first event"
+        emptyCaption="Your live or demo events will appear here once your workspace is ready."
+        loading={eventsLoading}
+        loadingTitle="Loading your events"
+        loadingCaption="We are preparing your event cards."
+        hasItems={featuredEvents.length > 0}
+      >
+        <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          {featuredEvents.map((event, index) => {
+            const paidEvent = event.monetization === "paid" || event.paymentMode !== "Registration only";
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={event.id}
+                onPress={() => navigate({ name: "eventDetail", eventId: event.id })}
+                style={[
+                  styles.listRow,
+                  index < featuredEvents.length - 1 && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+                ]}
+              >
+                <View style={styles.listCopy}>
+                  <View style={styles.dashboardEventTitleRow}>
+                    <Text style={[styles.listTitle, { color: theme.colors.text }]}>{event.title}</Text>
+                    {paidEvent ? <Text style={[styles.dashboardEventBadge, { color: theme.colors.accent }]}>PAID</Text> : null}
+                  </View>
+                  <Text style={[styles.listCaption, { color: theme.colors.secondary }]}>
+                    {[event.dateLabel, event.venue].filter(Boolean).join(" | ")}
+                  </Text>
+                  <Text style={[styles.listCaption, { color: theme.colors.muted }]}>
+                    {event.attendees} confirmed | {event.waitlist} waitlisted
+                  </Text>
+                </View>
+                <Text style={[styles.rowAction, { color: theme.colors.secondary }]}>Open</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </DashboardSection>
+
+      <DashboardSection
+        title={ORGANIZER_SURFACE_COPY.dashboard.sections.needsAttention.title}
+        theme={theme}
+        emptyTitle={ORGANIZER_SURFACE_COPY.dashboard.sections.needsAttention.emptyTitle}
+        emptyCaption={ORGANIZER_SURFACE_COPY.dashboard.sections.needsAttention.emptyCaption}
+        loading={statsLoading}
+        loadingTitle="Loading capacity signals"
+        loadingCaption="We are checking which events are approaching full capacity."
+        hasItems={needsAttention.length > 0}
+      >
+        <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          {needsAttention.map((event, index) => {
+            const fill = Math.min(100, Math.round((event.confirmedCount / event.capacity) * 100));
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={event.slug}
+                onPress={() => {
+                  const matched = events.find((item) => item.slug === event.slug);
+                  if (matched) {
+                    navigate({ name: "eventDetail", eventId: matched.id });
+                    return;
+                  }
+                  navigate({ name: "events" });
+                }}
+                style={[
+                  styles.listRow,
+                  index < needsAttention.length - 1 && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+                ]}
+              >
+                <View style={styles.listCopy}>
+                  <Text style={[styles.listTitle, { color: theme.colors.text }]}>{event.title}</Text>
+                  <Text style={[styles.listCaption, { color: theme.colors.secondary }]}>
+                    {event.confirmedCount} of {event.capacity} slots filled
+                  </Text>
+                  <View style={[styles.progressTrack, { backgroundColor: theme.colors.elevated }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${fill}%`, backgroundColor: fill >= 95 ? theme.colors.error : theme.colors.accent }
+                      ]}
+                    />
+                  </View>
+                </View>
+                <Text style={[styles.rowAction, { color: theme.colors.secondary }]}>Open</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </DashboardSection>
+
+      <DashboardSection
+        title={ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.title}
+        theme={theme}
+        emptyTitle={ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.emptyTitle}
+        emptyCaption={ORGANIZER_SURFACE_COPY.dashboard.sections.upcomingEvents.emptyCaption}
+        loading={statsLoading}
+        loadingTitle="Loading upcoming events"
+        loadingCaption="We are pulling the next events from your live workspace."
+        hasItems={upcomingEvents.length > 0}
+      >
+        <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          {upcomingEvents.map((event, index) => (
+            <View
+              key={event.slug}
               style={[
-                styles.insightPill,
-                {
-                  backgroundColor: theme.colors.activeTab,
-                  color: insight.tone === "ready" ? theme.colors.success : insight.tone === "attention" ? theme.colors.accent : theme.colors.muted
-                }
+                styles.listRow,
+                index < upcomingEvents.length - 1 && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
               ]}
             >
-              {insight.actionLabel}
-            </Text>
-          </Pressable>
-        ))}
+              <View style={styles.listCopy}>
+                <Text style={[styles.listTitle, { color: theme.colors.text }]}>{event.title}</Text>
+                <Text style={[styles.listCaption, { color: theme.colors.secondary }]}>
+                  {formatDateLine(event.eventDate, event.deadline)}
+                </Text>
+              </View>
+              <Text style={[styles.rowValue, { color: theme.colors.text }]}>
+                {event.confirmedCount}/{event.capacity ?? "-"}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </DashboardSection>
+
+      <DashboardSection
+        title={ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.title}
+        theme={theme}
+        emptyTitle={ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.emptyTitle}
+        emptyCaption={ORGANIZER_SURFACE_COPY.dashboard.sections.recentActivity.emptyCaption}
+        loading={statsLoading}
+        loadingTitle="Loading registrations"
+        loadingCaption="Recent attendee activity will appear here."
+        hasItems={recentActivity.length > 0}
+      >
+        <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          {recentActivity.map((item, index) => (
+            <View
+              key={item.id}
+              style={[
+                styles.listRow,
+                index < recentActivity.length - 1 && { borderBottomColor: theme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+              ]}
+            >
+              <View style={styles.listCopy}>
+                <Text style={[styles.listTitle, { color: theme.colors.text }]}>{item.name}</Text>
+                <Text style={[styles.listCaption, { color: theme.colors.secondary }]}>{item.eventTitle}</Text>
+              </View>
+              <Text style={[styles.rowAction, { color: theme.colors.secondary }]}>{formatRelativeTime(item.submittedAt)}</Text>
+            </View>
+          ))}
+        </View>
+      </DashboardSection>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{ORGANIZER_SURFACE_COPY.dashboard.sections.quickActions.title}</Text>
+        <View style={styles.quickGrid}>
+          <ActionCard
+            title="Create event"
+            caption="Start a new event draft from mobile."
+            action="Open"
+            onPress={() => navigate({ name: "createEvent" })}
+            theme={theme}
+          />
+          <ActionCard
+            title="Verify tickets"
+            caption="Check in attendees using scan or lookup."
+            action="Open"
+            onPress={() => navigate({ name: "verify" })}
+            theme={theme}
+          />
+        </View>
       </View>
 
-      <View style={[styles.statusCard, { backgroundColor: theme.colors.surface, borderColor: statsError ? theme.colors.error : theme.colors.border }]}>
-        <Text style={[styles.statusTitle, { color: statsError ? theme.colors.error : theme.colors.accent }]}>DASHBOARD DATA</Text>
-        <Text style={[styles.statusCopy, { color: theme.colors.secondary }]}>
-          {statsError ?? (session.authMode === "live"
-            ? liveStats
-              ? `${liveStats.activeEvents} active events, ${liveStats.eventsClosingThisWeek} closing this week.`
-              : "Loading dashboard metrics from the native API."
-            : "Demo mode uses local events for internal QA builds.")}
-        </Text>
-        {statsError ? (
-          <Pressable accessibilityRole="button" onPress={handleRefreshDashboard} style={[styles.retryButton, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.retryText, { color: theme.colors.accent }]}>Refresh workspace</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <ActionCard
+      <EventSlotStatusCard
+        label="DASHBOARD STATUS"
+        message={statsError ?? (session.authMode === "live"
+          ? liveStats
+            ? "Live dashboard data is connected."
+            : "Loading dashboard metrics."
+          : "Preparing your workspace details.")}
         theme={theme}
-        title="Create an event"
-        caption="Start an event draft, save progress locally, and publish when the details are ready."
-        action="Start"
-        onPress={() => navigate({ name: "createEvent" })}
-      />
-      <ActionCard
-        theme={theme}
-        title="Verify tickets"
-        caption="Use camera scanning or manual lookup to support event-day entry."
-        action="Scan"
-        onPress={() => navigate({ name: "verify" })}
+        emphasis={statsError ? "error" : "accent"}
+        actionLabel={eventsLoading || statsLoading ? "Refreshing..." : "Refresh"}
+        onActionPress={handleRefreshDashboard}
+        style={[styles.statusCard, statsError ? { borderColor: theme.colors.error } : undefined]}
       />
     </View>
   );
+}
+
+type DashboardSectionProps = {
+  title: string;
+  theme: NativeScreenProps["theme"];
+  loading: boolean;
+  loadingTitle: string;
+  loadingCaption: string;
+  emptyTitle: string;
+  emptyCaption: string;
+  hasItems: boolean;
+  children: React.ReactNode;
+};
+
+function DashboardSection({
+  title,
+  theme,
+  loading,
+  loadingTitle,
+  loadingCaption,
+  emptyTitle,
+  emptyCaption,
+  hasItems,
+  children
+}: DashboardSectionProps) {
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{title}</Text>
+      {loading ? (
+        <EventSlotMessageCard title={loadingTitle} caption={loadingCaption} theme={theme} />
+      ) : hasItems ? (
+        children
+      ) : (
+        <EventSlotMessageCard title={emptyTitle} caption={emptyCaption} theme={theme} />
+      )}
+    </View>
+  );
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function formatRegistrationTrend(current: number, previous: number) {
+  const diff = current - previous;
+  if (diff > 0) return `+${diff} vs last month`;
+  if (diff < 0) return `${Math.abs(diff)} fewer vs last month`;
+  return "Same as last month";
+}
+
+function formatDateLine(eventDate: string | null, deadline: string | null) {
+  if (eventDate && deadline) return `${eventDate} | closes ${deadline}`;
+  return eventDate ?? deadline ?? "Date not set";
+}
+
+function formatRelativeTime(value: string) {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return "Recently";
+  const diffMs = Date.now() - parsed;
+  const minutes = Math.max(1, Math.floor(diffMs / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 const styles = StyleSheet.create({
   stack: {
     gap: 16
   },
-  hero: {
-    borderRadius: 30,
+  section: {
+    gap: 10
+  },
+  planBanner: {
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 16,
-    padding: 22
+    gap: 4,
+    padding: 16
   },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 2.4
-  },
-  greeting: {
+  planTitle: {
     fontSize: 14,
+    fontWeight: "900"
+  },
+  planCopy: {
+    fontSize: 13,
+    lineHeight: 18
+  },
+  sectionTitle: {
+    ...typeScale.sectionTitle
+  },
+  groupCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden"
+  },
+  listRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+    justifyContent: "space-between",
+    padding: 16
+  },
+  listCopy: {
+    flex: 1,
+    gap: 6
+  },
+  listTitle: {
+    fontSize: 16,
     fontWeight: "700"
   },
-  title: {
-    fontSize: 34,
-    fontWeight: "900",
-    lineHeight: 38
+  listCaption: {
+    fontSize: 13,
+    lineHeight: 18
   },
-  body: {
-    fontSize: 16,
-    lineHeight: 25
-  },
-  metricsGrid: {
+  dashboardEventTitleRow: {
+    alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
+    gap: 8
+  },
+  dashboardEventBadge: {
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1.1
+  },
+  rowAction: {
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  rowValue: {
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  progressTrack: {
+    borderRadius: 999,
+    height: 4,
+    marginTop: 2,
+    overflow: "hidden"
+  },
+  progressFill: {
+    borderRadius: 999,
+    height: "100%"
+  },
+  quickGrid: {
     gap: 12
   },
   statusCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 8,
-    padding: 18
-  },
-  insightPanel: {
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 10,
-    padding: 18
-  },
-  insightCard: {
-    alignItems: "center",
-    borderRadius: 20,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-    padding: 14
-  },
-  insightCopy: {
-    flex: 1,
-    gap: 4
-  },
-  insightTitle: {
-    fontSize: 16,
-    fontWeight: "900"
-  },
-  insightPill: {
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: "900",
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 7
-  },
-  statusTitle: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 2.2
-  },
-  statusCopy: {
-    fontSize: 14,
-    lineHeight: 21
-  },
-  retryButton: {
-    alignItems: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    marginTop: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10
-  },
-  retryText: {
-    fontSize: 13,
-    fontWeight: "900"
+    gap: 10
   }
 });

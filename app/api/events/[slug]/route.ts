@@ -169,6 +169,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         eventPassExpiresAt: effectiveEventPlan.eventPassExpiresAt,
         eventEffectiveCommissionRate: effectiveEventPlan.commissionRate,
         imageUrl: event.imageUrl ?? null,
+        organizerName: event.organizerName ?? null,
+        groupRegistrationEnabled: event.groupRegistrationEnabled ?? false,
+        allowGroupSelfClaim: event.allowGroupSelfClaim ?? true,
         ticketTiers: event.ticketTiers,
         canEdit: adminAccess || hasTeamAccess,
         calendarSynced,
@@ -204,7 +207,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode } = body
+    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -297,31 +300,53 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       storedEventContact = validatedContact.stored
     }
 
-    const updated = await prisma.event.update({
-      where: { slug },
-      data: {
-        title,
-        organizerName: normalizedOrganizerName,
-        description: description || null,
-        visibility: visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
-        capacity: capacity ? Number(capacity) : null,
-        deadline: deadline ? new Date(deadline) : null,
-        eventDate: eventDate ? new Date(eventDate) : null,
-        eventEndAt: eventEndAt ? new Date(eventEndAt) : null,
-        joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
-        location: location || null,
-        mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
-        entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,
-        showRemainingSpots: typeof showRemainingSpots === 'boolean' ? showRemainingSpots : undefined,
-        attendeeConsentEnabled: typeof attendeeConsentEnabled === 'boolean' ? attendeeConsentEnabled : undefined,
-        attendeeConsentText: typeof attendeeConsentText === 'string' ? attendeeConsentText.trim() || null : undefined,
-        communityLink: normalizeCommunityLink(communityLink),
-        imageUrl: nextImageUrl || null,
-        questions: isWalkInEvent ? [] : questions,
-        category: category ? String(category).toUpperCase() : null,
-        whatsappNumber: storedEventContact,
-      },
-      select: { id: true, title: true, slug: true },
+    const shouldResetRegistrationsForQuestionChange =
+      !isWalkInEvent &&
+      questionChangeMode === 'RESET_EXISTING' &&
+      event.confirmedCount + event.waitlistCount > 0
+
+    if (shouldResetRegistrationsForQuestionChange && event.isPaid) {
+      return NextResponse.json(
+        { success: false, error: 'Paid events cannot reset existing registrations from this question-change flow yet.' },
+        { status: 400 }
+      )
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (shouldResetRegistrationsForQuestionChange) {
+        await tx.registrationDraft.deleteMany({ where: { eventId: event.id } })
+        await tx.registration.deleteMany({ where: { eventId: event.id } })
+      }
+
+      return tx.event.update({
+        where: { slug },
+        data: {
+          title,
+          organizerName: normalizedOrganizerName,
+          description: description || null,
+          visibility: visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
+          capacity: capacity ? Number(capacity) : null,
+          deadline: deadline ? new Date(deadline) : null,
+          eventDate: eventDate ? new Date(eventDate) : null,
+          eventEndAt: eventEndAt ? new Date(eventEndAt) : null,
+          joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
+          location: location || null,
+          mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
+          entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,
+          showRemainingSpots: typeof showRemainingSpots === 'boolean' ? showRemainingSpots : undefined,
+          attendeeConsentEnabled: typeof attendeeConsentEnabled === 'boolean' ? attendeeConsentEnabled : undefined,
+          attendeeConsentText: typeof attendeeConsentText === 'string' ? attendeeConsentText.trim() || null : undefined,
+          communityLink: normalizeCommunityLink(communityLink),
+          imageUrl: nextImageUrl || null,
+          questions: isWalkInEvent ? [] : questions,
+          category: category ? String(category).toUpperCase() : null,
+          whatsappNumber: storedEventContact,
+          groupRegistrationEnabled: typeof groupRegistrationEnabled === 'boolean' ? groupRegistrationEnabled : undefined,
+          allowGroupSelfClaim: typeof allowGroupSelfClaim === 'boolean' ? allowGroupSelfClaim : undefined,
+          ...(shouldResetRegistrationsForQuestionChange ? { confirmedCount: 0, waitlistCount: 0 } : {}),
+        },
+        select: { id: true, title: true, slug: true, confirmedCount: true, waitlistCount: true },
+      })
     })
 
     await syncEventPassStatusForEvent(event.id)
@@ -350,7 +375,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       }
     }
 
-    return NextResponse.json({ success: true, event: updated })
+    return NextResponse.json({ success: true, event: updated, registrationsReset: shouldResetRegistrationsForQuestionChange })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })

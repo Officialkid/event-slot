@@ -13,7 +13,9 @@ import { EntryDashboard } from "@/components/EntryDashboard"
 import { ScannerHome } from "@/components/scanner/ScannerHome"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { normalizeCommunityLink } from "@/lib/communityLink"
+import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 import { getPublicEventUrl } from "@/lib/eventUrls"
+import { copyTextToClipboard as copyTextInBrowser } from "@/lib/browserClipboard"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, type PieLabelRenderProps,
@@ -55,6 +57,7 @@ type EventData = {
   id: string
   title: string
   description: string | null
+  organizerName?: string | null
   accessType?: "REGISTRATION" | "WALK_IN"
   eventType?: "PHYSICAL" | "VIRTUAL"
   isPaid?: boolean
@@ -70,6 +73,7 @@ type EventData = {
   location: string | null
   mapDirectionsUrl: string | null
   entryFeeLabel: string | null
+  showRemainingSpots?: boolean
   attendeeConsentEnabled: boolean
   attendeeConsentText: string | null
   communityLink: string | null
@@ -115,6 +119,14 @@ type EventTeamMember = {
   status: "pending" | "accepted"
   member: { name: string | null; email: string | null; image: string | null } | null
   createdAt: string
+}
+
+function getTeamMemberStatusCopy(member: EventTeamMember): string {
+  if (member.status === "accepted") {
+    return "Has access already. They can open this event from their dashboard now."
+  }
+
+  return "Invite sent. This will switch to access granted as soon as they accept the invite."
 }
 
 type FeedbackData = {
@@ -795,12 +807,14 @@ const tdStyle: React.CSSProperties = {
 
 function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; hasRegistrations: boolean; onSaved: (updates: Partial<EventData>) => void }) {
   const [description, setDescription] = useState(event.description ?? "")
+  const [organizerName, setOrganizerName] = useState(event.organizerName ?? "")
   const [eventDate, setEventDate] = useState(toDatetimeLocal(event.eventDate))
   const [eventEndAt, setEventEndAt] = useState(toDatetimeLocal(event.eventEndAt))
   const [joinOpensAt, setJoinOpensAt] = useState(toDatetimeLocal(event.joinOpensAt))
   const [location, setLocation] = useState(event.location ?? "")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState(event.mapDirectionsUrl ?? "")
   const [entryFeeLabel, setEntryFeeLabel] = useState(event.entryFeeLabel ?? "")
+  const [showRemainingSpots, setShowRemainingSpots] = useState(event.showRemainingSpots !== false)
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(event.attendeeConsentEnabled !== false)
   const [attendeeConsentText, setAttendeeConsentText] = useState(event.attendeeConsentText ?? "")
   const [communityLink, setCommunityLink] = useState(event.communityLink ?? "")
@@ -808,20 +822,25 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
   const [contactMode, setContactMode] = useState<"WHATSAPP" | "CALL">(event.contactMode ?? "WHATSAPP")
   const [deadline, setDeadline] = useState(toDatetimeLocal(event.deadline))
   const [ticketTiers, setTicketTiers] = useState(event.ticketTiers ?? [])
+  const [imageUrl, setImageUrl] = useState(event.imageUrl ?? "")
+  const [imageUploading, setImageUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState("")
+  const [verifierLinkCopied, setVerifierLinkCopied] = useState(false)
   const verifierDomain = "https://www.eventsslot.com/verify-tickets"
   const verifierLink = event.verifierCode ? `${verifierDomain}/${event.slug}?token=${encodeURIComponent(event.verifierCode)}` : ""
 
   useEffect(() => {
     setDescription(event.description ?? "")
+    setOrganizerName(event.organizerName ?? "")
     setEventDate(toDatetimeLocal(event.eventDate))
     setEventEndAt(toDatetimeLocal(event.eventEndAt))
     setJoinOpensAt(toDatetimeLocal(event.joinOpensAt))
     setLocation(event.location ?? "")
     setMapDirectionsUrl(event.mapDirectionsUrl ?? "")
     setEntryFeeLabel(event.entryFeeLabel ?? "")
+    setShowRemainingSpots(event.showRemainingSpots !== false)
     setAttendeeConsentEnabled(event.attendeeConsentEnabled !== false)
     setAttendeeConsentText(event.attendeeConsentText ?? "")
     setCommunityLink(event.communityLink ?? "")
@@ -829,7 +848,30 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     setContactMode(event.contactMode ?? "WHATSAPP")
     setDeadline(toDatetimeLocal(event.deadline))
     setTicketTiers(event.ticketTiers ?? [])
-  }, [event.description, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.entryFeeLabel, event.attendeeConsentEnabled, event.attendeeConsentText, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers])
+    setImageUrl(event.imageUrl ?? "")
+  }, [event.description, event.organizerName, event.eventDate, event.eventEndAt, event.joinOpensAt, event.location, event.mapDirectionsUrl, event.entryFeeLabel, event.attendeeConsentEnabled, event.attendeeConsentText, event.communityLink, event.whatsappNumber, event.contactMode, event.deadline, event.ticketTiers, event.imageUrl])
+
+  const handleImageChange = async (file: File | null | undefined) => {
+    if (!file) return
+    setImageUploading(true)
+    setError("")
+    setSaved(false)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Poster upload failed.")
+        return
+      }
+      setImageUrl(data.url)
+    } catch {
+      setError("Poster upload failed.")
+    } finally {
+      setImageUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -838,12 +880,15 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
     const normalizedCommunityLink = normalizeCommunityLink(communityLink)
     const payload = {
       description: description || null,
+      organizerName: organizerName.trim(),
       eventDate: toIsoFromDatetimeLocal(eventDate),
       eventEndAt: toIsoFromDatetimeLocal(eventEndAt),
       joinOpensAt: toIsoFromDatetimeLocal(joinOpensAt),
       location: location || null,
       mapDirectionsUrl: mapDirectionsUrl || null,
       entryFeeLabel: entryFeeLabel || null,
+      imageUrl: imageUrl || null,
+      showRemainingSpots,
       attendeeConsentEnabled,
       attendeeConsentText: attendeeConsentText || null,
       communityLink: normalizedCommunityLink,
@@ -951,6 +996,20 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
       <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         {/* Description */}
         <div>
+          <label style={fieldLabel}>Organizer name shown on this event</label>
+          <input
+            type="text"
+            value={organizerName}
+            onChange={e => setOrganizerName(e.target.value)}
+            placeholder="The public host name for this event"
+            style={inputStyle}
+          />
+          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            This only changes the organiser label on this event. It does not rename your profile account.
+          </p>
+        </div>
+
+        <div>
           <label style={fieldLabel}>Description</label>
           <textarea
             value={description}
@@ -972,6 +1031,55 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city shown to attendees" style={inputStyle} />
             <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
               This text is shown as the venue. It does not create directions by itself.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label style={fieldLabel}>Event poster</label>
+          <div style={{ display: "grid", gap: "0.8rem" }}>
+            {imageUrl ? (
+              <div style={{ border: themeBorderSoft, borderRadius: 12, overflow: "hidden", background: themeSurfaceAlt }}>
+                <EventImageWithFallback
+                  src={imageUrl}
+                  alt={`${event.title} poster`}
+                  width={1200}
+                  height={630}
+                  objectFit="contain"
+                  objectPosition="center top"
+                  borderRadius={12}
+                  fallbackText="Event poster could not be loaded"
+                  containerStyle={{ minHeight: 220 }}
+                />
+              </div>
+            ) : (
+              <div style={{ border: themeBorderSoft, borderRadius: 12, padding: "1rem", background: themeSurfaceAlt, color: themeTextMuted, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
+                No poster uploaded yet.
+              </div>
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+              <label style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.95rem", color: themeTextSecondary, fontSize: "0.78rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)", cursor: imageUploading ? "default" : "pointer", opacity: imageUploading ? 0.7 : 1 }}>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  disabled={imageUploading}
+                  onChange={e => void handleImageChange(e.target.files?.[0])}
+                />
+                {imageUploading ? "Uploading..." : imageUrl ? "Replace poster" : "Upload poster"}
+              </label>
+              {imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  style={{ background: "transparent", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.95rem", color: "#FF6B6B", fontSize: "0.78rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}
+                >
+                  Remove poster
+                </button>
+              ) : null}
+            </div>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+              Update the poster here and the attendee page, Events discovery card, and walk-in share surfaces will use the new image.
             </p>
           </div>
         </div>
@@ -1017,6 +1125,20 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           <label style={{ display: "flex", alignItems: "center", gap: "0.65rem", color: themeTextPrimary, fontWeight: 800, fontSize: "0.86rem", fontFamily: "var(--font-dm-sans)" }}>
             <input
               type="checkbox"
+              checked={showRemainingSpots}
+              onChange={e => setShowRemainingSpots(e.target.checked)}
+            />
+            Show remaining spots on attendee page
+          </label>
+          <p style={{ marginTop: "0.55rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Keep this checked if attendees should see how many places are left. Turn it off to hide the count while leaving event details, maps, and organiser contact visible.
+          </p>
+        </div>
+
+        <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.65rem", color: themeTextPrimary, fontWeight: 800, fontSize: "0.86rem", fontFamily: "var(--font-dm-sans)" }}>
+            <input
+              type="checkbox"
               checked={attendeeConsentEnabled}
               onChange={e => setAttendeeConsentEnabled(e.target.checked)}
             />
@@ -1054,10 +1176,18 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             {verifierLink && (
               <button
                 type="button"
-                onClick={() => navigator.clipboard?.writeText(verifierLink)}
+                onClick={async () => {
+                  const copied = await copyTextInBrowser(verifierLink)
+                  if (copied) {
+                    setVerifierLinkCopied(true)
+                    window.setTimeout(() => setVerifierLinkCopied(false), 2500)
+                  } else {
+                    setError("Couldn't copy the verifier link automatically. Please copy it manually.")
+                  }
+                }}
                 style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, #C8F55A 16%, var(--surface))", color: themeTextPrimary }}
               >
-                Copy verifier link
+                {verifierLinkCopied ? "Copied!" : "Copy verifier link"}
               </button>
             )}
           </div>
@@ -1578,6 +1708,7 @@ export default function EventDashboardPage() {
   const [resendTeamFailedUrls, setResendTeamFailedUrls] = useState<Record<string, string>>({})
   const [copiedTeamInviteKey, setCopiedTeamInviteKey] = useState<string | null>(null)
   const [shareFeedback, setShareFeedback] = useState("")
+  const hasPendingTeamInvite = eventTeam.some((member) => member.status === "pending")
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -1744,36 +1875,10 @@ export default function EventDashboardPage() {
       : `${analyticsData.totalRegistrations} total registrations`
     : null
 
-  const copyTextToClipboard = async (text: string) => {
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text)
-        return true
-      }
-    } catch {
-      // Fall back to the legacy clipboard path below.
-    }
-
-    try {
-      const textarea = document.createElement("textarea")
-      textarea.value = text
-      textarea.setAttribute("readonly", "true")
-      textarea.style.position = "fixed"
-      textarea.style.opacity = "0"
-      document.body.appendChild(textarea)
-      textarea.select()
-      const copied = document.execCommand("copy")
-      document.body.removeChild(textarea)
-      return copied
-    } catch {
-      return false
-    }
-  }
-
   const handleCopy = async () => {
     if (!regLink) return
     try {
-      const copied = await copyTextToClipboard(regLink)
+      const copied = await copyTextInBrowser(regLink)
       if (!copied) throw new Error("copy failed")
       setCopied(true)
       setShareFeedback(eventData?.accessType === "WALK_IN" ? "Check-in link copied." : "Registration link copied.")
@@ -2232,6 +2337,28 @@ export default function EventDashboardPage() {
     return () => clearInterval(interval)
   }, [slug, token])
 
+  useEffect(() => {
+    if (activeTab !== "team" || !eventData?.canEdit || !hasPendingTeamInvite) return
+
+    const refreshTeamMembers = async () => {
+      try {
+        const res = await fetch(`/api/events/${slug}/team`)
+        const data = await res.json()
+        if (res.ok) {
+          setEventTeam(data.members ?? [])
+        }
+      } catch {
+        // Ignore background refresh failures and keep the last rendered state.
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshTeamMembers()
+    }, 15000)
+
+    return () => window.clearInterval(intervalId)
+  }, [activeTab, eventData?.canEdit, hasPendingTeamInvite, slug])
+
   // -- Renders ---
 
   if (accessDenied) {
@@ -2240,7 +2367,7 @@ export default function EventDashboardPage() {
         <div style={{ background: themeSurface, border: themeBorder, borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
           <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: themeTextPrimary, marginBottom: "0.75rem" }}>Access denied</h1>
           <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>Invalid or missing access credentials.</p>
-          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to My Events</Link>
+          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to {ORGANIZER_SURFACE_COPY.eventDetail.backLabel}</Link>
         </div>
       </div>
     )
@@ -2280,15 +2407,15 @@ export default function EventDashboardPage() {
     .filter(({ email }) => email.length > 0 && !isValidEmailAddress(email))
   const tabs: { key: TabKey; label: string }[] = isWalkInEvent
     ? [
-        { key: "overview", label: "Overview" },
+        { key: "overview", label: ORGANIZER_SURFACE_COPY.eventDetail.tabs.overview },
         { key: "analytics", label: "Analytics" },
         ...(eventData.canEdit ? [{ key: "settings" as TabKey, label: "Settings" }] : []),
         ...(eventData.canEdit ? [{ key: "team" as TabKey, label: "Team" }] : []),
       ]
     : [
-        { key: "overview", label: "Overview" },
-        { key: "confirmed", label: `Confirmed (${confirmed.length})` },
-        { key: "waitlist", label: `Waitlist (${waitlist.length})` },
+        { key: "overview", label: ORGANIZER_SURFACE_COPY.eventDetail.tabs.overview },
+        { key: "confirmed", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.confirmed} (${confirmed.length})` },
+        { key: "waitlist", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.waitlist} (${waitlist.length})` },
         { key: "analytics", label: "Analytics" },
         { key: "feedback", label: "Feedback" },
         { key: "checkin" as TabKey, label: "Verify Ticket" },
@@ -2310,7 +2437,10 @@ export default function EventDashboardPage() {
 
   const copyTeamInviteLink = async (text: string, key: string) => {
     try {
-      await navigator.clipboard.writeText(text)
+      const copied = await copyTextInBrowser(text)
+      if (!copied) {
+        throw new Error("copy_failed")
+      }
       setCopiedTeamInviteKey(key)
       window.setTimeout(() => setCopiedTeamInviteKey((current) => (current === key ? null : current)), 2500)
     } catch {
@@ -2657,18 +2787,22 @@ export default function EventDashboardPage() {
                 <button
                   onClick={() => {
                     setActiveTab('overview')
-                    void generateReportPreview()
+                    window.setTimeout(() => {
+                      const el = document.getElementById('export-centre')
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                    }, 60)
                   }}
-                  disabled={reportLoading}
                   title="Open export tools"
-                  style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: "0.75rem", fontWeight: 500, color: reportLoading ? themeTextMuted : themeTextSecondary, cursor: reportLoading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", whiteSpace: "nowrap", minHeight: 40, width: "100%" }}
+                  style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.9rem", fontSize: "0.75rem", fontWeight: 500, color: themeTextPrimary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", whiteSpace: "nowrap", minHeight: 40, width: "100%" }}
                 >
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8 2v8M5 7l3 3 3-3" />
                     <path d="M2 12h12" />
                   </svg>
-                {reportLoading ? "Preparing exports..." : reportData ? "Open exports" : "Prepare exports"}
-              </button>
+                  Open export tools
+                </button>
               {eventData.canEdit && (
                 <HeaderMenu
                   onEdit={() => router.push(`/edit/${slug}`)}
@@ -3004,7 +3138,7 @@ export default function EventDashboardPage() {
             />
 
             {/* Report preview + free download */}
-            <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem" }}>
+            <div id="export-centre" style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1.25rem", scrollMarginTop: "5rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: themeAccent, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-dm-sans)", marginBottom: "0.3rem" }}>
@@ -3391,7 +3525,7 @@ export default function EventDashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>
-                Confirmed registrations
+                {ORGANIZER_SURFACE_COPY.eventDetail.sections.confirmedRegistrations}
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 320px", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }} className="export-action-row">
@@ -3580,7 +3714,7 @@ export default function EventDashboardPage() {
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "0.75rem", flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: 0 }}>
-                Waitlist
+                {ORGANIZER_SURFACE_COPY.eventDetail.sections.waitlist.title}
               </h2>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 <a
@@ -3619,7 +3753,7 @@ export default function EventDashboardPage() {
               rows={waitlist}
               questions={eventData.questions}
               showPosition
-              emptyText="Waitlist is empty"
+              emptyText={ORGANIZER_SURFACE_COPY.eventDetail.sections.waitlist.empty}
               token={token || eventData.dashboardToken}
               slug={slug}
               registrationStatus="waitlist"
@@ -4410,6 +4544,9 @@ export default function EventDashboardPage() {
               <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>
                 Team members with access to this event
               </h3>
+              <p style={{ margin: "0 0 0.9rem", color: themeTextMuted, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
+                Pending means the invite is waiting for acceptance. Accepted means the teammate can already open this event from their dashboard.
+              </p>
               {teamLoading ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {[1, 2, 3].map((i) => (
@@ -4429,13 +4566,18 @@ export default function EventDashboardPage() {
                         <p style={{ margin: 0, fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
                           {m.member?.name ?? m.email}
                         </p>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                          {m.member?.name ? m.email : getTeamMemberStatusCopy(m)}
+                        </p>
                         {m.member?.name && (
-                          <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>{m.email}</p>
+                          <p style={{ margin: "4px 0 0", fontSize: "0.74rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                            {getTeamMemberStatusCopy(m)}
+                          </p>
                         )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <span style={{ fontSize: "0.7rem", padding: "2px 8px", borderRadius: 100, background: m.status === "accepted" ? "rgba(200,245,90,0.1)" : "rgba(240,180,0,0.1)", color: m.status === "accepted" ? "#C8F55A" : "#F0C040", border: `0.5px solid ${m.status === "accepted" ? "rgba(200,245,90,0.3)" : "rgba(240,180,0,0.3)"}`, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                          {m.status}
+                        <span style={{ fontSize: "0.7rem", padding: "2px 8px", borderRadius: 100, background: m.status === "accepted" ? "color-mix(in srgb, var(--accent) 12%, transparent)" : "color-mix(in srgb, var(--warning) 12%, transparent)", color: m.status === "accepted" ? "var(--accent)" : "var(--warning)", border: `0.5px solid ${m.status === "accepted" ? "color-mix(in srgb, var(--accent) 28%, transparent)" : "color-mix(in srgb, var(--warning) 28%, transparent)"}`, fontFamily: "var(--font-dm-sans)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          {m.status === "accepted" ? "Has access" : "Pending"}
                         </span>
                         {m.status === "pending" && (
                           <button

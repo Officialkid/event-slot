@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import prisma from "@/lib/prisma"
 import PublicWalkInEventPage from "@/components/events/PublicWalkInEventPage"
 import { APP_URL } from "@/lib/config"
+import { resolveEventMapPreviewImageUrl } from "@/lib/mapPreview"
 
 async function getWalkInEventMetaBySlug(slug: string) {
   return prisma.event.findUnique({
@@ -36,6 +37,7 @@ async function getWalkInEventBySlug(slug: string) {
       attendeeConsentText: true,
       communityLink: true,
       imageUrl: true,
+      organizerName: true,
       status: true,
       faqEnabled: true,
       whatsappNumber: true,
@@ -109,5 +111,7 @@ export default async function WalkInEventPage({
     // Ignore analytics write failures on public pages.
   }
 
-  return <PublicWalkInEventPage event={event} />
+  const mapPreviewImageUrl = await resolveEventMapPreviewImageUrl(event.mapDirectionsUrl, event.location)
+
+  return <PublicWalkInEventPage event={{ ...event, mapPreviewImageUrl }} />
 }

@@ -152,11 +152,11 @@ export default async function Home() {
                 Built for modern event teams
               </div>
 
-              <h1 className="marketing-display-title mt-6 max-w-3xl font-semibold text-white">
+              <h1 className="marketing-display-title mt-6 max-w-3xl font-semibold text-[var(--text-primary)]">
                 Run registration, waitlist, and walk-in check-in from one sharp system.
               </h1>
 
-              <p className="mt-6 max-w-xl text-[1rem] leading-7 text-[rgba(240,237,230,0.68)] sm:text-[1.05rem]">
+              <p className="mt-6 max-w-xl text-[1rem] leading-7 text-[var(--text-secondary)] sm:text-[1.05rem]">
                 EventSlot helps teams launch events quickly, control capacity, and keep the day
                 moving with a clean organizer dashboard that works on mobile too.
               </p>
@@ -177,10 +177,10 @@ export default async function Home() {
               <div className="mt-10 grid gap-3 sm:grid-cols-3">
                 {heroStats.map((item) => (
                   <div key={item.label} className="marketing-stat-block">
-                    <div className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[rgba(240,237,230,0.42)]">
+                    <div className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
                       {item.label}
                     </div>
-                    <div className="mt-2 text-[1.1rem] font-semibold text-white">{item.value}</div>
+                    <div className="mt-2 text-[1.1rem] font-semibold text-[var(--text-primary)]">{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -200,7 +200,7 @@ export default async function Home() {
                   <span className="marketing-window-dot bg-[#F7685B]" />
                   <span className="marketing-window-dot bg-[#F2C94C]" />
                   <span className="marketing-window-dot bg-[#33D69F]" />
-                  <span className="ml-3 text-[0.7rem] text-[rgba(240,237,230,0.45)]">
+                  <span className="ml-3 text-[0.7rem] text-[var(--text-muted)]">
                     EventSlot organizer view
                   </span>
                 </div>
@@ -236,10 +236,10 @@ export default async function Home() {
 
       <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-5 sm:px-6 lg:px-8">
         <div className="marketing-shell flex flex-wrap items-center justify-between gap-4">
-          <div className="text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[rgba(240,237,230,0.4)]">
+          <div className="text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             Registration events, waitlists, and walk-in attendance
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.92rem] text-[rgba(240,237,230,0.7)]">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.92rem] text-[var(--text-secondary)]">
             <span>Free events</span>
             <span>Ticket tiers</span>
             <span>Live dashboard</span>
@@ -252,10 +252,10 @@ export default async function Home() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
           <div className="max-w-xl">
             <div className="marketing-section-label">Core workflow</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-white">
+            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]" style={{ color: "var(--text-primary)" }}>
               Everything your team needs to build a calmer event day.
             </h2>
-            <p className="mt-5 text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+            <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]" style={{ color: "var(--text-secondary)" }}>
               The product is designed around the moments that usually get messy: filling limited
               slots, handling late demand, and counting who actually showed up.
             </p>
@@ -272,8 +272,8 @@ export default async function Home() {
                   <div className="marketing-icon-wrap">
                     <Icon className="h-5 w-5 text-[#C8F55A]" />
                   </div>
-                  <h3 className="mt-6 text-[1.2rem] font-semibold text-white">{card.title}</h3>
-                  <p className="mt-3 max-w-xl text-[0.98rem] leading-7 text-[rgba(240,237,230,0.66)]">
+                  <h3 className="mt-6 text-[1.2rem] font-semibold text-[var(--text-primary)]">{card.title}</h3>
+                  <p className="mt-3 max-w-xl text-[0.98rem] leading-7 text-[var(--text-secondary)]">
                     {card.description}
                   </p>
                 </article>
@@ -286,7 +286,7 @@ export default async function Home() {
       <section className="marketing-shell px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
           <div className="marketing-card p-3 sm:p-4">
-            <div className="overflow-hidden rounded-[22px] border border-[rgba(240,237,230,0.08)] bg-[#101010]">
+            <div className="overflow-hidden rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface)]">
               <Image
                 src="/assets/event-checkin.png"
                 alt="EventSlot walk-in check-in page"
@@ -299,10 +299,10 @@ export default async function Home() {
 
           <div className="max-w-xl">
             <div className="marketing-section-label">Walk-in ready</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-white">
+            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
               Open a QR code, collect check-ins, and watch the count rise live.
             </h2>
-            <p className="mt-5 text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+            <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]">
               Walk-in mode is built for real venues, not just tidy demos. Organizers can create the
               event early, print the code ahead of time, and let attendees check in quickly when the
               day arrives.
@@ -314,7 +314,7 @@ export default async function Home() {
                 "Duplicate-safe daily attendance counts",
                 "Organizer dashboard with per-day totals",
               ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[0.98rem] text-[rgba(240,237,230,0.75)]">
+                <li key={item} className="flex items-start gap-3 text-[0.98rem] text-[var(--text-secondary)]">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#C8F55A]" />
                   <span>{item}</span>
                 </li>
@@ -333,8 +333,8 @@ export default async function Home() {
                 <div className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[#C8F55A]">
                   Step {item.step}
                 </div>
-                <h3 className="mt-5 text-[1.2rem] font-semibold text-white">{item.title}</h3>
-                <p className="mt-3 text-[0.98rem] leading-7 text-[rgba(240,237,230,0.66)]">
+                <h3 className="mt-5 text-[1.2rem] font-semibold text-[var(--text-primary)]">{item.title}</h3>
+                <p className="mt-3 text-[0.98rem] leading-7 text-[var(--text-secondary)]">
                   {item.text}
                 </p>
               </article>
@@ -348,10 +348,10 @@ export default async function Home() {
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="max-w-2xl">
               <div className="marketing-section-label">Get started</div>
-              <h2 className="marketing-section-title mt-4 font-semibold text-white">
+              <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
                 Launch the next event with a better front door.
               </h2>
-              <p className="mt-5 text-[1rem] leading-7 text-[rgba(240,237,230,0.66)]">
+              <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]">
                 Start free, publish the event page, and give your team a cleaner way to manage
                 registrations, attendance, and follow-up after the event.
               </p>

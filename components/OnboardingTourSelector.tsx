@@ -27,7 +27,7 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
     setError('')
   }
 
-  const selectAll = () => setSelected(TOUR_SECTIONS.map(s => s.id))
+  const selectAll = () => setSelected(TOUR_SECTIONS.map(section => section.id))
   const clearAll = () => setSelected([])
 
   const start = () => {
@@ -35,6 +35,7 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
       setError('Please select at least one section to tour.')
       return
     }
+
     onStart(selected)
   }
 
@@ -53,8 +54,8 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
     >
       <div
         style={{
-          background: '#141414',
-          border: '0.5px solid rgba(240,237,230,0.1)',
+          background: 'var(--surface)',
+          border: '0.5px solid var(--border)',
           borderRadius: '16px',
           padding: '2rem',
           maxWidth: '480px',
@@ -68,16 +69,16 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
             <p style={{ fontSize: '0.7rem', color: '#C8F55A', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.3rem' }}>
               Product Tour
             </p>
-            <h2 style={{ fontFamily: 'Instrument Serif', fontSize: '1.4rem', color: '#F0EDE6', margin: 0 }}>
+            <h2 style={{ fontFamily: 'Instrument Serif', fontSize: '1.4rem', color: 'var(--text-primary)', margin: 0 }}>
               What would you like to explore?
             </h2>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(240,237,230,0.4)', fontSize: '1.2rem', cursor: 'pointer' }}>
-            ×
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>
+            x
           </button>
         </div>
 
-        <p style={{ fontSize: '0.82rem', color: 'rgba(240,237,230,0.45)', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
           Select one or more sections. You can run the tour for just the parts you need.
         </p>
 
@@ -85,8 +86,8 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
           <button onClick={selectAll} style={{ fontSize: '0.78rem', color: '#C8F55A', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             Select all
           </button>
-          <span style={{ color: 'rgba(240,237,230,0.2)', fontSize: '0.78rem' }}>·</span>
-          <button onClick={clearAll} style={{ fontSize: '0.78rem', color: 'rgba(240,237,230,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>|</span>
+          <button onClick={clearAll} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             Clear
           </button>
         </div>
@@ -94,6 +95,7 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
           {TOUR_SECTIONS.map(section => {
             const isSelected = selected.includes(section.id)
+
             return (
               <button
                 key={section.id}
@@ -102,8 +104,8 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.85rem',
-                  background: isSelected ? 'rgba(200,245,90,0.06)' : 'rgba(240,237,230,0.02)',
-                  border: isSelected ? '1px solid rgba(200,245,90,0.3)' : '0.5px solid rgba(240,237,230,0.08)',
+                  background: isSelected ? 'var(--accent-dim)' : 'var(--surface-muted)',
+                  border: isSelected ? '1px solid rgba(200,245,90,0.3)' : '0.5px solid var(--border)',
                   borderRadius: '10px',
                   padding: '0.75rem 1rem',
                   cursor: 'pointer',
@@ -118,17 +120,17 @@ export default function OnboardingTourSelector({ onClose, onStart }: Props) {
                     borderRadius: '4px',
                     flexShrink: 0,
                     background: isSelected ? '#C8F55A' : 'transparent',
-                    border: isSelected ? 'none' : '1.5px solid rgba(240,237,230,0.2)',
+                    border: isSelected ? 'none' : '1.5px solid var(--border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  {isSelected && <span style={{ color: '#0A0A0A', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
+                  {isSelected && <span style={{ color: '#0A0A0A', fontSize: '0.7rem', fontWeight: 700 }}>x</span>}
                 </div>
                 <div>
-                  <p style={{ fontSize: '0.875rem', color: '#F0EDE6', margin: 0, fontWeight: isSelected ? 500 : 400 }}>{section.label}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'rgba(240,237,230,0.4)', margin: 0 }}>{section.desc}</p>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', margin: 0, fontWeight: isSelected ? 500 : 400 }}>{section.label}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>{section.desc}</p>
                 </div>
               </button>
             )

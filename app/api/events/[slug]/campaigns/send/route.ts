@@ -14,17 +14,27 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let body: { subject?: string; body?: string; type?: string }
+  let body: { subject?: string; body?: string; type?: string; segment?: string; scheduledFor?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { subject, body: emailBody, type } = body
+  const { subject, body: emailBody, type, segment = 'ALL' } = body
 
   if (!subject?.trim() || !emailBody?.trim()) {
     return NextResponse.json({ error: 'Subject and body are required' }, { status: 400 })
+  }
+
+  // Build registration filter according to selected segment
+  let registrationWhere: Record<string, unknown> = { status: 'confirmed' }
+  if (segment === 'CHECKED_IN') {
+    registrationWhere = { status: 'confirmed', ticket: { is: { scannedAt: { not: null } } } }
+  } else if (segment === 'NOT_CHECKED_IN') {
+    registrationWhere = { status: 'confirmed', ticket: { is: { scannedAt: null } } }
+  } else if (segment === 'WAITLIST') {
+    registrationWhere = { status: 'waitlist' }
   }
 
   const event = await prisma.event.findUnique({
@@ -35,7 +45,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       organizerId: true,
       questions: true,
       registrations: {
-        where: { status: 'confirmed' },
+        where: registrationWhere,
         select: {
           attendeeEmail: true,
           answers: true,

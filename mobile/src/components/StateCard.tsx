@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { NativeUiStatePattern, NativeUiStateTone } from "../domain/uiStates";
 import { AppTheme } from "../theme";
+import { fontFamily, typeScale } from "../typography";
 
 type StateCardProps = {
   state: NativeUiStatePattern;
@@ -74,6 +75,7 @@ const styles = StyleSheet.create({
     minWidth: 190
   },
   expectation: {
+    fontFamily: fontFamily.body,
     fontSize: 12,
     lineHeight: 18
   },
@@ -89,11 +91,9 @@ const styles = StyleSheet.create({
     width: 42
   },
   message: {
-    fontSize: 13,
-    lineHeight: 19
+    ...typeScale.body
   },
   title: {
-    fontSize: 16,
-    fontWeight: "900"
+    ...typeScale.bodyStrong
   }
 });

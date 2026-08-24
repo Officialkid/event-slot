@@ -168,8 +168,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               // Fonts are self-hosted via next/font/google in /_next/static/media/
               "font-src 'self'",
-              // R2 images, Google OAuth profile photos, data/blob URIs for upload previews
-              "img-src 'self' data: blob: https://*.r2.dev https://lh3.googleusercontent.com",
+              // R2 images, Google OAuth profile photos, static map previews, data/blob URIs for upload previews
+              "img-src 'self' data: blob: https://*.r2.dev https://lh3.googleusercontent.com https://staticmap.openstreetmap.de",
                      // App APIs are same-origin, with external fetches to R2 and selected Google endpoints
                      "connect-src 'self' https://*.r2.dev https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com",
               // Public event pages embed Google Maps for directions.

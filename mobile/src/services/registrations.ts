@@ -1,6 +1,8 @@
 import { NativeEventWorkspaceResponse, NativeRegistrationSummary } from "../api/contracts";
 import { NativeEvent } from "../domain/events";
-import { NativeRegistrationPreview, NativeRegistrationWorkspace } from "../domain/registrations";
+import { NativeRegistrationAnswerPreview, NativeRegistrationPreview, NativeRegistrationWorkspace } from "../domain/registrations";
+import { mapPublicRegistrationsToWorkspace } from "./publicRegistrations";
+import { NativePublicRegistrationRecord } from "../domain/publicRegistrations";
 
 const demoConfirmed: NativeRegistrationPreview[] = [
   {
@@ -67,8 +69,40 @@ export function mapRegistrationSummary(
     status,
     submittedAtLabel: formatSubmittedAt(registration.submittedAt),
     waitlistPosition: registration.waitlistPosition ?? undefined,
-    source: registration.source ?? undefined
+    source: registration.source ?? undefined,
+    ticketCode: attendeePhone ? attendeePhone.replace(/\D/g, "").slice(-6).toUpperCase() : undefined,
+    answers: mapRegistrationAnswers(answers)
   };
+}
+
+export function mergeLocalPublicRegistrations(
+  workspace: NativeRegistrationWorkspace,
+  records: NativePublicRegistrationRecord[]
+): NativeRegistrationWorkspace {
+  const local = mapPublicRegistrationsToWorkspace(records);
+
+  return {
+    confirmed: dedupeRegistrations([...local.confirmed, ...workspace.confirmed]),
+    waitlist: dedupeRegistrations([...local.waitlist, ...workspace.waitlist])
+  };
+}
+
+export function findRegistrationPreview(
+  workspace: NativeRegistrationWorkspace,
+  registrationId: string
+): NativeRegistrationPreview | undefined {
+  return [...workspace.confirmed, ...workspace.waitlist].find((registration) => registration.id === registrationId);
+}
+
+function dedupeRegistrations(registrations: NativeRegistrationPreview[]): NativeRegistrationPreview[] {
+  const seen = new Set<string>();
+  return registrations.filter((registration) => {
+    if (seen.has(registration.id)) {
+      return false;
+    }
+    seen.add(registration.id);
+    return true;
+  });
 }
 
 function findAnswerValue(answers: unknown[], hints: string[]) {
@@ -88,6 +122,33 @@ function findAnswerValue(answers: unknown[], hints: string[]) {
   }
 
   return undefined;
+}
+
+function mapRegistrationAnswers(answers: unknown[]): NativeRegistrationAnswerPreview[] {
+  return answers
+    .map((answer) => {
+      if (!answer || typeof answer !== "object") {
+        return null;
+      }
+
+      const record = answer as Record<string, unknown>;
+      const label = String(record.label ?? record.question ?? record.questionId ?? "").trim();
+      const rawValue = record.displayValue ?? record.value;
+      const value = Array.isArray(rawValue)
+        ? rawValue.map((item) => String(item).trim()).filter(Boolean).join(", ")
+        : typeof rawValue === "string"
+          ? rawValue.trim()
+          : rawValue == null
+            ? ""
+            : String(rawValue).trim();
+
+      if (!label || !value) {
+        return null;
+      }
+
+      return { label, value };
+    })
+    .filter((answer): answer is NativeRegistrationAnswerPreview => Boolean(answer));
 }
 
 function formatSubmittedAt(value: string) {

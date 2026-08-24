@@ -1,9 +1,10 @@
 import { NativeNotificationChannel } from "../domain/notifications";
 import { NativePreferences } from "../domain/preferences";
-import { ThemeName } from "../theme";
 import { loadNativeStorageValue, saveNativeStorageValue } from "./nativeStorage";
 
 export const defaultNativePreferences: NativePreferences = {
+  onboardingCompleted: false,
+  preferredLanguage: "English - English",
   themeName: "dark",
   notificationChannels: {
     "event-reminders": false,
@@ -24,11 +25,22 @@ export async function saveNativePreferences(preferences: NativePreferences): Pro
   await saveNativeStorageValue(preferencesStorageKey, clonePreferences(preferences));
 }
 
-export async function saveThemePreference(themeName: ThemeName): Promise<NativePreferences> {
+export async function savePreferredLanguage(preferredLanguage: string): Promise<NativePreferences> {
   const preferences = await loadNativePreferences();
   const nextPreferences = {
     ...preferences,
-    themeName
+    preferredLanguage
+  };
+
+  await saveNativePreferences(nextPreferences);
+  return nextPreferences;
+}
+
+export async function saveOnboardingCompletion(onboardingCompleted: boolean): Promise<NativePreferences> {
+  const preferences = await loadNativePreferences();
+  const nextPreferences = {
+    ...preferences,
+    onboardingCompleted
   };
 
   await saveNativePreferences(nextPreferences);
@@ -54,7 +66,12 @@ export async function saveNotificationPreference(
 
 function clonePreferences(preferences: NativePreferences): NativePreferences {
   return {
-    themeName: preferences.themeName,
-    notificationChannels: { ...preferences.notificationChannels }
+    onboardingCompleted: preferences.onboardingCompleted ?? defaultNativePreferences.onboardingCompleted,
+    preferredLanguage: preferences.preferredLanguage ?? defaultNativePreferences.preferredLanguage,
+    themeName: defaultNativePreferences.themeName,
+    notificationChannels: {
+      ...defaultNativePreferences.notificationChannels,
+      ...(preferences.notificationChannels ?? {})
+    }
   };
 }
