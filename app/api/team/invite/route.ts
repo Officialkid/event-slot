@@ -71,16 +71,16 @@ export async function POST(req: NextRequest) {
       const eventMembers = await prisma.teamMemberEvent.count({
         where: { eventId },
       })
-      if (eventMembers >= 10) {
+      if (eventMembers + emails.length > 10) {
         return NextResponse.json(
           {
             success: false,
-            error: `This event already has 10 assigned team members. You can have up to 10 members per event.`,
+            error: `This event can only have up to 10 assigned members. Adding ${emails.length} would exceed the limit (${eventMembers}/10 currently assigned).`,
           },
           { status: 403 }
         )
       }
-    } else if (currentMembers >= 50) {
+    } else if (currentMembers + emails.length > 50) {
       return NextResponse.json(
         {
           success: false,
@@ -99,7 +99,20 @@ export async function POST(req: NextRequest) {
           where: { ownerId: session.user.id, email, status: { in: ['pending', 'accepted'] } },
         })
         if (existing) {
-          return { email, ok: false, alreadyInvited: true, error: 'Already invited or a member' }
+          if (eventId) {
+            // Check if already assigned to this specific event
+            const alreadyAssigned = await prisma.teamMemberEvent.findFirst({
+              where: { teamMemberId: existing.id, eventId },
+            })
+            if (alreadyAssigned) {
+              return { email, ok: false, alreadyInvited: true, error: 'Member already has access to this event' }
+            }
+            await prisma.teamMemberEvent.create({
+              data: { teamMemberId: existing.id, eventId },
+            }).catch(() => {})
+            return { email, ok: true, emailFailed: false, error: undefined }
+          }
+          return { email, ok: false, alreadyInvited: true, error: 'Already invited or a workspace member' }
         }
 
         const inviteToken = uuidv4()

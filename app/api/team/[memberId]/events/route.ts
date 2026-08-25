@@ -62,13 +62,26 @@ export async function PUT(req: NextRequest, props: Ctx) {
       return NextResponse.json({ error: 'Can only assign events to accepted members' }, { status: 400 })
     }
 
-    // Verify all events belong to this organizer
+    // Verify all events belong to this organizer and enforce 10 members per event
     if (eventIds.length > 0) {
-      const count = await prisma.event.count({
+      const events = await prisma.event.findMany({
         where: { id: { in: eventIds }, organizerId: session.user.id },
+        select: { id: true, title: true },
       })
-      if (count !== eventIds.length) {
+      if (events.length !== eventIds.length) {
         return NextResponse.json({ error: 'One or more events not found' }, { status: 400 })
+      }
+
+      for (const ev of events) {
+        const assignedCount = await prisma.teamMemberEvent.count({
+          where: { eventId: ev.id, teamMemberId: { not: params.memberId } },
+        })
+        if (assignedCount >= 10) {
+          return NextResponse.json(
+            { error: `Event "${ev.title}" already has the maximum of 10 team members assigned.` },
+            { status: 400 }
+          )
+        }
       }
     }
 

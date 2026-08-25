@@ -10,6 +10,7 @@ export const REPORT_DOWNLOAD_PRICING = {
 
 // Team member limits (generous but not unlimited to prevent abuse)
 export const TEAM_MEMBER_LIMIT = 10
+export const TEAM_MEMBER_WORKSPACE_LIMIT = 50
 
 // Backward-compatible pricing keys used by legacy unlock endpoints.
 export const PAYG_PRICING = {

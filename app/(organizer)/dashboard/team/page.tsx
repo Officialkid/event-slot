@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
-import { TEAM_MEMBER_LIMIT } from "@/lib/plans"
+import { TEAM_MEMBER_LIMIT, TEAM_MEMBER_WORKSPACE_LIMIT } from "@/lib/plans"
 import { copyTextToClipboard } from "@/lib/browserClipboard"
 
 // --- Types ---
@@ -47,7 +47,7 @@ export default function TeamPage() {
 
   const [members, setMembers] = useState<TeamMemberRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const maxMembers = TEAM_MEMBER_LIMIT
+  const maxMembers = TEAM_MEMBER_WORKSPACE_LIMIT
   const [inviteEmails, setInviteEmails] = useState(["", ""])
   const [inviteErrors, setInviteErrors] = useState<string[]>([])
   const [inviteResults, setInviteResults] = useState<Array<{email:string;ok:boolean;alreadyInvited?:boolean;emailFailed?:boolean;acceptUrl?:string;error?:string}>>([])
@@ -764,7 +764,7 @@ export default function TeamPage() {
         >
           {activeCount >= maxMembers ? (
             <p style={{ fontSize: "0.875rem", color: teamTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
-              You&apos;ve reached your team member limit ({maxMembers}). Remove a member to invite another.
+              You&apos;ve reached your workspace collaborator limit ({maxMembers}). Remove a member to invite another.
             </p>
           ) : (
             <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>

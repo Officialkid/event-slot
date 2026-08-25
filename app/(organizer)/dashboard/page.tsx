@@ -943,7 +943,7 @@ export default function DashboardOverviewPage() {
                         <span style={{ color: "var(--text-primary)", fontWeight: 500 }}>{item.name}</span>
                         <span style={{ color: "var(--text-secondary)" }}> registered for </span>
                         <Link
-                          href={`/dashboard/${item.eventSlug}`}
+                          href={`/dashboard/events/${item.eventSlug}`}
                           style={{
                             color: "var(--accent)",
                             textDecoration: "none",
