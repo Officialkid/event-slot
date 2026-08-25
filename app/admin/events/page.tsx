@@ -23,7 +23,7 @@ export default function AdminEventsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [actionError, setActionError] = useState("")
-  const [entering, setEntering] = useState<string | null>(null)
+  const [entering, setEntering] = useState<{ id: string; target: "edit" | "dashboard" } | null>(null)
   const router = useRouter()
 
   const userId = searchParamsHook.get("user") ?? ""
@@ -50,23 +50,23 @@ export default function AdminEventsPage() {
 
   useEffect(() => { fetchEvents() }, [fetchEvents])
 
-  async function enterAdminMode(eventId: string) {
-    setEntering(eventId)
+  async function enterAdminMode(eventId: string, target: "edit" | "dashboard" = "dashboard") {
+    setEntering({ id: eventId, target })
     setActionError("")
     try {
-      const res = await fetch('/api/admin/event-mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId }),
+      const res = await fetch("/api/admin/event-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, target }),
       })
       const data = await res.json()
       if (res.ok && data.redirectTo) {
         router.push(data.redirectTo)
       } else {
-        setActionError(data.error ?? 'Failed to enter Admin Mode')
+        setActionError(data.error ?? "Failed to enter Admin Mode")
       }
     } catch {
-      setActionError('Network error. Please try again.')
+      setActionError("Network error. Please try again.")
     } finally {
       setEntering(null)
     }
@@ -104,7 +104,7 @@ export default function AdminEventsPage() {
         Events
       </h1>
       <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "1.75rem" }}>
-        All events on the platform.{userId ? " (Filtered by user)" : ""}
+        All events on the platform.{userId ? " (Filtered by user)" : ""} Super admins have full privileges to edit, manage, and moderate any event.
       </p>
       {actionError && (
         <p style={{ fontSize: "0.82rem", color: "var(--error)", fontFamily: "var(--font-dm-sans)", marginBottom: "1rem" }}>
@@ -135,10 +135,10 @@ export default function AdminEventsPage() {
       </div>
 
       <div style={{ overflowX: "auto", borderRadius: 12, border: "0.5px solid var(--border)", background: "var(--surface)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
           <thead>
             <tr style={{ borderBottom: "0.5px solid var(--border)", background: "var(--surface-muted)" }}>
-              {["Title", "Organizer", "Registrations", "Status", "Created", ""].map(h => (
+              {["Title", "Organizer", "Registrations", "Status", "Created", "Actions"].map(h => (
                 <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "left", fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                   {h}
                 </th>
@@ -161,14 +161,16 @@ export default function AdminEventsPage() {
               <tr><td colSpan={6} style={{ padding: "2rem 1rem", textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.82rem" }}>No events found.</td></tr>
             ) : events.map((ev, i) => {
               const badge = getStatusBadge(ev)
+              const isEnteringEdit = entering?.id === ev.id && entering?.target === "edit"
+              const isEnteringDashboard = entering?.id === ev.id && entering?.target === "dashboard"
               return (
                 <tr key={ev.id} style={{ borderBottom: "0.5px solid var(--border-subtle)", background: i % 2 !== 0 ? "color-mix(in srgb, var(--text-primary) 2%, transparent)" : "transparent" }}>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
                     {ev.title}
                   </td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>{ev.organizerEmail}</td>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.organizerEmail}</td>
                   <td style={{ padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", textAlign: "center" }}>
-                    <span style={{ color: "var(--accent)" }}>{ev.confirmedCount}</span>
+                    <span style={{ color: "var(--accent)", fontWeight: 600 }}>{ev.confirmedCount}</span>
                     <span style={{ color: "var(--text-muted)" }}> +{ev.waitlistCount}wl</span>
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
@@ -176,31 +178,68 @@ export default function AdminEventsPage() {
                       {badge.label}
                     </span>
                   </td>
-                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}>
                     {new Date(ev.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "0.45rem", alignItems: "center", flexWrap: "nowrap" }}>
+                      {/* 1. Edit Event Button */}
+                      <button
+                        type="button"
+                        onClick={() => enterAdminMode(ev.id, "edit")}
+                        disabled={!!entering}
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "var(--accent-contrast)",
+                          background: "var(--accent)",
+                          border: "none",
+                          cursor: entering ? "not-allowed" : "pointer",
+                          fontFamily: "var(--font-dm-sans)",
+                          padding: "0.25rem 0.65rem",
+                          borderRadius: 6,
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {isEnteringEdit ? "Opening..." : "Edit Event"}
+                      </button>
+
+                      {/* 2. Manage / Console Button */}
+                      <button
+                        type="button"
+                        onClick={() => enterAdminMode(ev.id, "dashboard")}
+                        disabled={!!entering}
+                        style={{
+                          fontSize: "0.72rem",
+                          color: "var(--text-primary)",
+                          background: "var(--surface-muted)",
+                          border: "0.5px solid var(--border)",
+                          cursor: entering ? "not-allowed" : "pointer",
+                          fontFamily: "var(--font-dm-sans)",
+                          padding: "0.25rem 0.55rem",
+                          borderRadius: 6,
+                          fontWeight: 600,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {isEnteringDashboard ? "Opening..." : "Manage"}
+                      </button>
+
+                      {/* 3. View Public Page */}
                       <a
                         href={`/${ev.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: "0.75rem", color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-dm-sans)" }}
+                        style={{ fontSize: "0.75rem", color: "var(--accent)", textDecoration: "none", fontFamily: "var(--font-dm-sans)", padding: "0.2rem 0.35rem", whiteSpace: "nowrap" }}
                       >
-                        {'View ->'}
+                        View ↗
                       </a>
-                      <button
-                        type="button"
-                        onClick={() => enterAdminMode(ev.id)}
-                        disabled={entering === ev.id}
-                        style={{ fontSize: "0.72rem", color: "#0A0A0A", background: entering === ev.id ? "rgba(200,245,90,0.5)" : "#C8F55A", border: "none", cursor: entering === ev.id ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", padding: "0.2rem 0.55rem", borderRadius: 6, fontWeight: 700 }}
-                      >
-                        {entering === ev.id ? "Entering..." : "Admin Mode"}
-                      </button>
+
+                      {/* 4. Delete Event */}
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(ev.id)}
-                        style={{ fontSize: "0.75rem", color: "var(--error)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "var(--font-dm-sans)", padding: 0 }}
+                        style={{ fontSize: "0.75rem", color: "var(--error)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "var(--font-dm-sans)", padding: "0.2rem 0.35rem", whiteSpace: "nowrap" }}
                       >
                         Delete
                       </button>
@@ -222,7 +261,7 @@ export default function AdminEventsPage() {
             </p>
             <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
               <button type="button" onClick={() => setConfirmDelete(null)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "0.5px solid var(--border)", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-              <button type="button" onClick={() => deleteEvent(confirmDelete)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: "#FF6B6B", color: "#fff", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>Delete</button>
+              <button type="button" onClick={() => deleteEvent(confirmDelete)} style={{ padding: "0.55rem 1.25rem", borderRadius: 100, border: "none", background: "var(--error)", color: "#fff", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>Delete</button>
             </div>
           </div>
         </div>

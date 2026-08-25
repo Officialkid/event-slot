@@ -1,5 +1,5 @@
 // app/api/admin/event-mode/route.ts
-// POST   - enter Admin Mode for a specific event
+// POST   - enter Admin Mode for a specific event (supports target: 'edit' | 'dashboard')
 // DELETE - exit Admin Mode
 // GET    - return current Admin Mode state (used by the banner component)
 
@@ -20,7 +20,7 @@ function canUseAdminMode(session: Awaited<ReturnType<typeof getServerSession>>) 
 }
 
 // POST /api/admin/event-mode
-// Body: { eventId: string }
+// Body: { eventId: string, target?: 'edit' | 'dashboard' }
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const { eventId } = body as { eventId?: string }
+  const { eventId, target } = body as { eventId?: string; target?: 'edit' | 'dashboard' }
   if (!eventId) {
     return NextResponse.json({ error: 'eventId required' }, { status: 400 })
   }
@@ -54,10 +54,11 @@ export async function POST(req: NextRequest) {
     prisma.auditLog.create({
       data: {
         actorId: session.user.id,
-        action:  'ADMIN_MODE_ACTIVATED',
+        action:  target === 'edit' ? 'ADMIN_MODE_EDIT_ACTIVATED' : 'ADMIN_MODE_ACTIVATED',
         metadata: {
           eventId:        event.id,
           eventTitle:     event.title,
+          target:         target ?? 'dashboard',
           organiserId:    event.organizerId,
           organiserName:  event.organizer?.name  ?? null,
           organiserEmail: event.organizer?.email ?? null,
@@ -77,11 +78,13 @@ export async function POST(req: NextRequest) {
 
   const cookieValue = encodeAdminModeState(adminModeState)
 
+  const destination = target === 'edit' ? `/edit/${event.slug}` : `/dashboard/events/${event.slug}`
+
   const response = NextResponse.json({
     ok:         true,
     eventSlug:  event.slug,
     eventTitle: event.title,
-    redirectTo: `/dashboard/events/${event.slug}`,
+    redirectTo: destination,
   })
 
   response.cookies.set(ADMIN_MODE_COOKIE, cookieValue, ADMIN_MODE_COOKIE_OPTIONS)
