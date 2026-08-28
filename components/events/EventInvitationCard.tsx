@@ -28,34 +28,52 @@ export type EventInvitationCardProps = {
   mapPreviewImageUrl?: string | null
 }
 
-function formatEventDate(date: Date | string): string {
-  const d = new Date(date)
+function formatEventDateOnly(d: Date): string {
   const dayName = d.toLocaleDateString("en-GB", { weekday: "long" })
   const day = d.toLocaleDateString("en-GB", { day: "numeric" })
   const month = d.toLocaleDateString("en-GB", { month: "long" })
   const year = d.toLocaleDateString("en-GB", { year: "numeric" })
+  return `${dayName}, ${day} ${month} ${year}`
+}
+
+function formatEventDate(date: Date | string): string {
+  const d = new Date(date)
+  if (Number.isNaN(d.getTime())) return ""
+  const isMidnight = d.getHours() === 0 && d.getMinutes() === 0
+  const dateStr = formatEventDateOnly(d)
+  if (isMidnight) return dateStr
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })
-  return `${dayName}, ${day} ${month} ${year} - ${time.toUpperCase()}`
+  return `${dateStr} - ${time.toUpperCase()}`
 }
 
 function formatEventDateRange(startDate: Date | string | null | undefined, endDate: Date | string | null | undefined): string {
   if (!startDate) return ""
-  if (!endDate) return formatEventDate(startDate)
-
   const start = new Date(startDate)
+  if (Number.isNaN(start.getTime())) return ""
+
+  if (!endDate) return formatEventDate(start)
+
   const end = new Date(endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return formatEventDate(startDate)
+  if (Number.isNaN(end.getTime())) {
+    return formatEventDate(start)
   }
 
   const sameDay = start.toDateString() === end.toDateString()
+  const startIsMidnight = start.getHours() === 0 && start.getMinutes() === 0
+  const endIsMidnight = end.getHours() === 0 && end.getMinutes() === 0
+
   if (sameDay) {
+    if (startIsMidnight && endIsMidnight) {
+      return formatEventDateOnly(start)
+    }
     const startLabel = formatEventDate(start)
+    if (endIsMidnight) return startLabel
     const endTime = end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase()
     return `${startLabel} to ${endTime}`
   }
 
-  return `${formatEventDate(start)} to ${formatEventDate(end)}`
+  // Multi-day event: Show clean start date to end date without false repeated times
+  return `${formatEventDateOnly(start)} to ${formatEventDateOnly(end)}`
 }
 
 function getStatusBadge(
@@ -423,63 +441,53 @@ export default function EventInvitationCard({
           </>
         )}
 
-        {(mapDirectionsUrl || displayLocation) && (
-          <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.35rem" }}>
-            {mapPreviewImageUrl ? (
-              <div style={{ position: "relative", width: "100%", minHeight: 180, background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08))" }}>
-                <img
-                  src={mapPreviewImageUrl}
-                  alt={`${displayTitle} map preview`}
-                  loading="lazy"
-                  style={{ display: "block", width: "100%", height: 180, objectFit: "cover" }}
-                />
-                <div
-                  aria-hidden="true"
+        {(mapDirectionsUrl || displayLocation) && (() => {
+          const mapQuery = displayLocation?.trim() || displayTitle || ""
+          const embedUrl = mapQuery
+            ? `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+            : null
+          return (
+            <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.5rem" }}>
+              {embedUrl ? (
+                <div style={{ position: "relative", width: "100%", height: 230, background: "var(--surface)" }}>
+                  <iframe
+                    title={`${displayTitle} Map Location`}
+                    width="100%"
+                    height="230"
+                    style={{ border: 0, display: "block" }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={embedUrl}
+                  />
+                </div>
+              ) : null}
+              <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", gap: "0.55rem" }}>
+                <button
+                  type="button"
+                  onClick={openNativeMaps}
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "linear-gradient(180deg, rgba(10,10,10,0.02), rgba(10,10,10,0.14))",
-                    pointerEvents: "none",
-                  }}
-                />
-                <div
-                  aria-hidden="true"
-                  style={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 46,
-                    height: 46,
-                    borderRadius: "999px",
-                    background: "rgba(10,10,10,0.8)",
-                    border: "1px solid rgba(255,255,255,0.22)",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "#C8F55A",
-                    fontSize: "1.15rem",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                    width: "100%",
+                    borderRadius: 999,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text-primary)",
+                    padding: "0.72rem 1rem",
+                    fontSize: "0.84rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
                   }}
                 >
-                  📍
-                </div>
+                  <span>📍</span> Open in Google Maps ↗
+                </button>
               </div>
-            ) : (
-              <div style={{ height: 120, display: "grid", placeItems: "center", color: "var(--text-muted)", fontSize: "0.82rem", padding: "1rem", textAlign: "center" }}>
-                Map preview is available after opening the organizer-provided directions link.
-              </div>
-            )}
-            <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "grid", gap: "0.55rem" }}>
-              <button
-                type="button"
-                onClick={openNativeMaps}
-                style={{ display: "inline-flex", justifyContent: "center", width: "100%", borderRadius: 999, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", padding: "0.72rem 1rem", fontSize: "0.84rem", fontWeight: 700 }}
-              >
-                Open with maps app
-              </button>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {accessType === "REGISTRATION" && deadline && badge.label !== "Registration Closed" && (
           <div style={{ marginTop: "1rem", maxWidth: 420 }}>

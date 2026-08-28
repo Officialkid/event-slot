@@ -349,15 +349,9 @@ export default async function PublicProfilePage({
 
           {/* Form + lookup grid */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-7 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-8 items-start">
-            {/* Registration form */}
+            {/* Left Column: Registration form */}
             <section className="space-y-3">
-              {/* FAQ — shown above the form if enabled */}
-              {event.faqEnabled && eventFaqs.length > 0 && (
-                <div className="rounded-xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <EventFAQDisplay faqs={eventFaqs} />
-                </div>
-              )}
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">Registration</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Registration</p>
               <RegistrationForm
                 event={{
                   ...event,
@@ -381,18 +375,27 @@ export default async function PublicProfilePage({
               />
             </section>
 
-            {/* Already Registered? lookup panel */}
-            <section className="space-y-3 lg:sticky lg:top-6">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">Attendance Lookup</p>
-              <ConfirmAttendance eventSlug={username} />
-              {event.eventType === "VIRTUAL" && event.eventDate && (
-                <JoinEventButton
-                  eventId={event.id}
-                  eventType={event.eventType}
-                  startDate={event.eventDate}
-                  endDate={event.eventEndAt ? new Date(event.eventEndAt) : null}
-                  opensAt={event.joinOpensAt}
-                />
+            {/* Right Column: Attendance Lookup + FAQ directly below */}
+            <section className="space-y-5 lg:sticky lg:top-6">
+              <div className="space-y-2">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Attendance Lookup</p>
+                <ConfirmAttendance eventSlug={username} />
+                {event.eventType === "VIRTUAL" && event.eventDate && (
+                  <JoinEventButton
+                    eventId={event.id}
+                    eventType={event.eventType}
+                    startDate={event.eventDate}
+                    endDate={event.eventEndAt ? new Date(event.eventEndAt) : null}
+                    opensAt={event.joinOpensAt}
+                  />
+                )}
+              </div>
+
+              {/* FAQ — positioned below Attendance Lookup */}
+              {event.faqEnabled && eventFaqs.length > 0 && (
+                <div className="rounded-xl border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <EventFAQDisplay faqs={eventFaqs} />
+                </div>
               )}
             </section>
           </div>

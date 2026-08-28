@@ -960,15 +960,30 @@ export default function EditEventPage() {
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                   EventSlot only shows directions when this link is provided by the organiser.
                 </p>
-                <a
-                  href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
-                  style={{ ...accentButtonStyle, textDecoration: "none" }}
-                >
-                  Search venue on Google Maps
-                </a>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (location.trim()) {
+                        setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
+                      }
+                    }}
+                    disabled={!location.trim()}
+                    className="rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                    style={{ ...accentButtonStyle, opacity: location.trim() ? 1 : 0.4, cursor: location.trim() ? "pointer" : "not-allowed" }}
+                  >
+                    ⚡ Auto-fill Map Link from Venue
+                  </button>
+                  <a
+                    href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                    style={{ ...accentButtonStyle, textDecoration: "none" }}
+                  >
+                    Search on Google Maps ↗
+                  </a>
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>

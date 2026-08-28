@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     const {
       title,
+      category,
       description,
       visibility,
       accessType,

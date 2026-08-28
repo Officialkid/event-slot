@@ -1692,26 +1692,45 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   </>
                 )}
                 {q.type === "checkbox" && (
-                  <div className="mt-1 space-y-2 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
+                  <div className="mt-1 space-y-2.5 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
                     {q.options?.map((opt, optionIndex) => {
                       const selectedValues = parseCheckboxValue(form[q.id])
                       const isChecked = selectedValues.includes(opt)
+                      const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
+                      const otherKey = `${attendeeIndex}:${q.id}`
                       return (
-                        <label key={`${q.id}-${opt}`} className="flex cursor-pointer items-center gap-2 text-[0.85rem]" style={{ color: "var(--text-primary)" }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              const nextValues = e.target.checked
-                                ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
-                                : selectedValues.filter(value => value !== opt)
-                              handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
-                            }}
-                            className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-                            style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
-                          />
-                          <span>{getOptionLabel(q, opt, optionIndex)}</span>
-                        </label>
+                        <div key={`${q.id}-${opt}`} className="space-y-1.5">
+                          <label className="flex cursor-pointer items-center gap-2 text-[0.85rem]" style={{ color: "var(--text-primary)" }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={e => {
+                                const nextValues = e.target.checked
+                                  ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                                  : selectedValues.filter(value => value !== opt)
+                                handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
+                              }}
+                              className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
+                              style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
+                            />
+                            <span>{getOptionLabel(q, opt, optionIndex)}</span>
+                          </label>
+                          {isChecked && isOtherOption && (
+                            <div className="pl-6 pt-1">
+                              <input
+                                type="text"
+                                placeholder="Please specify your answer..."
+                                value={otherCustomAnswers[otherKey] ?? ""}
+                                onChange={e => {
+                                  const customVal = e.target.value
+                                  setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
+                                }}
+                                className="w-full rounded-[8px] border px-3 py-1.5 text-[0.82rem] focus:outline-none"
+                                style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       )
                     })}
                     {q.required && parseCheckboxValue(form[q.id]).length === 0 && (

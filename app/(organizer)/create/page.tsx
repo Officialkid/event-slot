@@ -154,6 +154,7 @@ export default function CreateEventPage() {
   const router = useRouter()
 
   const [title, setTitle] = useState("")
+  const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
   const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
@@ -1504,15 +1505,30 @@ export default function CreateEventPage() {
                     <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                       This is the only link attendees use for directions. EventSlot will not guess from the venue name.
                     </p>
-                    <a
-                      href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
-                      style={{ ...accentButtonStyle, textDecoration: "none" }}
-                    >
-                      Search venue on Google Maps
-                    </a>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (location.trim()) {
+                            setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
+                          }
+                        }}
+                        disabled={!location.trim()}
+                        className="rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                        style={{ ...accentButtonStyle, opacity: location.trim() ? 1 : 0.4, cursor: location.trim() ? "pointer" : "not-allowed" }}
+                      >
+                        ⚡ Auto-fill Map Link from Venue
+                      </button>
+                      <a
+                        href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                        style={{ ...accentButtonStyle, textDecoration: "none" }}
+                      >
+                        Search on Google Maps ↗
+                      </a>
+                    </div>
                   </div>
                 )}
                 {isRegistrationEvent && (

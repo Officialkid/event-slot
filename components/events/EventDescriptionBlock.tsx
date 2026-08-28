@@ -51,7 +51,7 @@ function buildCaption(value: string) {
 export function EventDescriptionBlock({ eventSlug, description, onTranslated, onShowOriginal }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [showLanguagePicker, setShowLanguagePicker] = useState(false)
-  const [targetLanguage, setTargetLanguage] = useState<SupportedLanguageCode>("sw")
+  const [targetLanguage, setTargetLanguage] = useState<SupportedLanguageCode>("en")
   const [translatedText, setTranslatedText] = useState("")
   const [translationState, setTranslationState] = useState<TranslationState>("idle")
   const [translationError, setTranslationError] = useState("")

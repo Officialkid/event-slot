@@ -27,6 +27,7 @@ const ticketTierSchema = z.object({
 
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
+  category: z.string().max(40).optional().nullable(),
   description: z.string().max(5000).optional().nullable(),
   visibility: z.enum(['PUBLIC', 'PRIVATE']).default('PRIVATE'),
   accessType: z.enum(['REGISTRATION', 'WALK_IN']).default('REGISTRATION'),
