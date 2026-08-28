@@ -379,6 +379,39 @@ export default function EditEventPage() {
     return entries.length > 0 ? Object.fromEntries(entries) : undefined
   }
 
+  const moveQuestionUp = (idx: number) => {
+    if (idx <= 0) return
+    setQuestions(qs => {
+      const next = [...qs]
+      const temp = next[idx]
+      next[idx] = next[idx - 1]
+      next[idx - 1] = temp
+      return next
+    })
+  }
+
+  const moveQuestionDown = (idx: number) => {
+    setQuestions(qs => {
+      if (idx >= qs.length - 1) return qs
+      const next = [...qs]
+      const temp = next[idx]
+      next[idx] = next[idx + 1]
+      next[idx + 1] = temp
+      return next
+    })
+  }
+
+  const moveQuestionTo = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return
+    setQuestions(qs => {
+      if (toIdx >= qs.length) return qs
+      const next = [...qs]
+      const [moved] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, moved)
+      return next
+    })
+  }
+
   const addQuestion = () => {
     const id = uuidv4()
     setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false, optionLimits: {} }])
@@ -1118,7 +1151,130 @@ export default function EditEventPage() {
             )}
             <div className="space-y-4">
               {questions.map((q, idx) => (
-                <div key={q.id} className="rounded-[8px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                <div key={q.id} className="rounded-[10px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                  {/* Reorder header bar */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem", paddingBottom: "0.625rem", borderBottom: "0.5px solid var(--border-subtle)", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--accent)", background: "var(--accent-dim)", padding: "0.2rem 0.55rem", borderRadius: 6, fontFamily: "var(--font-dm-sans)" }}>
+                        Question {idx + 1}
+                      </span>
+                      {questions.length > 1 && (
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
+                          of {questions.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {questions.length > 1 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                        {/* Move Up */}
+                        <button
+                          type="button"
+                          onClick={() => moveQuestionUp(idx)}
+                          disabled={idx === 0}
+                          title="Move question up"
+                          aria-label="Move question up"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 28,
+                            height: 28,
+                            borderRadius: 6,
+                            border: "0.5px solid var(--border)",
+                            background: idx === 0 ? "transparent" : "var(--surface)",
+                            color: idx === 0 ? "var(--text-muted)" : "var(--text-primary)",
+                            cursor: idx === 0 ? "not-allowed" : "pointer",
+                            opacity: idx === 0 ? 0.35 : 1,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 15l-6-6-6 6"/>
+                          </svg>
+                        </button>
+
+                        {/* Move Down */}
+                        <button
+                          type="button"
+                          onClick={() => moveQuestionDown(idx)}
+                          disabled={idx === questions.length - 1}
+                          title="Move question down"
+                          aria-label="Move question down"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 28,
+                            height: 28,
+                            borderRadius: 6,
+                            border: "0.5px solid var(--border)",
+                            background: idx === questions.length - 1 ? "transparent" : "var(--surface)",
+                            color: idx === questions.length - 1 ? "var(--text-muted)" : "var(--text-primary)",
+                            cursor: idx === questions.length - 1 ? "not-allowed" : "pointer",
+                            opacity: idx === questions.length - 1 ? 0.35 : 1,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9l6 6 6-6"/>
+                          </svg>
+                        </button>
+
+                        {/* Move to Dropdown */}
+                        <select
+                          value={idx}
+                          onChange={e => moveQuestionTo(idx, Number(e.target.value))}
+                          title="Move question to position"
+                          aria-label="Move question to position"
+                          style={{
+                            height: 28,
+                            padding: "0 0.4rem",
+                            fontSize: "0.72rem",
+                            fontFamily: "var(--font-dm-sans)",
+                            borderRadius: 6,
+                            border: "0.5px solid var(--border)",
+                            background: "var(--surface)",
+                            color: "var(--text-secondary)",
+                            cursor: "pointer",
+                            outline: "none",
+                          }}
+                        >
+                          {questions.map((_, posIdx) => (
+                            <option key={posIdx} value={posIdx}>
+                              Move to #{posIdx + 1}{posIdx === 0 ? " (Top)" : posIdx === questions.length - 1 ? " (Bottom)" : ""}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Remove */}
+                        <button
+                          type="button"
+                          onClick={() => removeQuestion(idx)}
+                          title="Remove question"
+                          aria-label="Remove question"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            height: 28,
+                            padding: "0 0.5rem",
+                            borderRadius: 6,
+                            border: "0.5px solid color-mix(in srgb, var(--error) 25%, transparent)",
+                            background: "transparent",
+                            color: "var(--error)",
+                            fontSize: "0.72rem",
+                            fontFamily: "var(--font-dm-sans)",
+                            cursor: "pointer",
+                            marginLeft: "0.25rem",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-3">
                     <div>
                       <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
