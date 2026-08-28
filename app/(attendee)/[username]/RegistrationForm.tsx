@@ -237,6 +237,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [waitlistEmailErrors, setWaitlistEmailErrors] = useState<Record<string, string>>({})
   // Base email inputs — always collected when event has no email question
   const [baseEmails, setBaseEmails] = useState<string[]>([""])
+  const [otherCustomAnswers, setOtherCustomAnswers] = useState<Record<string, string>>({})
   const [registrationSource, setRegistrationSource] = useState<string>("unknown")
   const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
   const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)

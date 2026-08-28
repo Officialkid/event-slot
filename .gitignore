@@ -71,3 +71,5 @@ scripts/screenshots/
 scripts/screenshots_verification/
 .cache/
 
+
+investor-package/node_modules/
