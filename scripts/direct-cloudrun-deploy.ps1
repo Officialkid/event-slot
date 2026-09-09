@@ -44,34 +44,27 @@ Write-Host "Deploying $service to $projectId in $region"
 gcloud config set project $projectId | Out-Host
 gcloud auth list | Out-Host
 
-$archivePath = Join-Path $localTemp "eventslot-source.zip"
+$archivePath = Join-Path $localTemp "eventslot-source.tar.gz"
 if (Test-Path $archivePath) {
   Remove-Item $archivePath -Force
 }
 
-$excludedNames = @(
-  '.git',
-  '.next',
-  '.tmp-gcloud',
-  '.tmp-gcloud-temp',
-  '.tmp-*',
-  '.docx-review',
-  'node_modules',
-  'coverage',
-  'playwright-report',
-  'test-results'
-)
-
-$sourceItems = Get-ChildItem -Force $repoRoot | Where-Object {
-  $name = $_.Name
-  -not ($excludedNames | Where-Object { $name -like $_ })
+Write-Host "Creating source archive at $archivePath using tar..."
+Push-Location $repoRoot
+try {
+  & tar.exe -czf $archivePath --exclude=.git --exclude=.next --exclude=node_modules --exclude=coverage --exclude=mobile --exclude=playwright-report --exclude=test-results --exclude=.tmp-* .
+} finally {
+  Pop-Location
 }
 
-Write-Host "Creating source archive at $archivePath"
-Compress-Archive -Path $sourceItems.FullName -DestinationPath $archivePath -Force
+if (-not (Test-Path $archivePath)) {
+  throw "Failed to create source archive."
+}
+
+Write-Host "Archive created ($( (Get-Item $archivePath).Length ) bytes). Submitting to Cloud Build..."
 
 gcloud builds submit `
   --project=$projectId `
   --config=cloudbuild.yaml `
-  --substitutions=_SERVICE=$service,_REGION=$region,_REPOSITORY=$repository,_IMAGE_TAG=$imageTag `
+  "--substitutions=_SERVICE=$service,_REGION=$region,_REPOSITORY=$repository,_IMAGE_TAG=$imageTag" `
   $archivePath
