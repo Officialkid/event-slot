@@ -437,24 +437,46 @@ export default function DashboardOverviewPage() {
               {ORGANIZER_SURFACE_COPY.dashboard.header.caption}
             </p>
           </div>
-          <Link
-            href="/create"
-            data-tutorial="create-event-btn"
-            style={{
-              background: "var(--accent)",
-              color: "var(--accent-contrast, #0A0A0A)",
-              borderRadius: 8,
-              padding: "0.6rem 1.25rem",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              fontFamily: "var(--font-dm-sans)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-              alignSelf: "flex-start",
-            }}
-          >
-            {ORGANIZER_SURFACE_COPY.dashboard.header.createCta}
-          </Link>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", alignSelf: "flex-start", flexWrap: "wrap" }}>
+            <Link
+              href="/dashboard/insights"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.45rem",
+                background: "color-mix(in srgb, var(--accent) 14%, var(--surface))",
+                border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+                borderRadius: 8,
+                padding: "0.6rem 1rem",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                textDecoration: "none",
+                fontFamily: "var(--font-dm-sans)",
+                transition: "all 0.2s ease",
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E" }} />
+              <span>Live Analytics</span>
+            </Link>
+            <Link
+              href="/create"
+              data-tutorial="create-event-btn"
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-contrast, #0A0A0A)",
+                borderRadius: 8,
+                padding: "0.6rem 1.25rem",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {ORGANIZER_SURFACE_COPY.dashboard.header.createCta}
+            </Link>
+          </div>
         </div>
 
         {/* Stat cards */}

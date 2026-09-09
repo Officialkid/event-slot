@@ -156,6 +156,12 @@ export default function EditEventPage() {
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
   const [eventEndAt, setEventEndAt] = useState("")
+  const [hasSpecificTime, setHasSpecificTime] = useState(true)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY")
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState<number>(5)
+  const [registrationOpensDays, setRegistrationOpensDays] = useState<number>(4)
+  const [registrationOpensTime, setRegistrationOpensTime] = useState<string>("08:00")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
@@ -178,6 +184,7 @@ export default function EditEventPage() {
   const [contactMode, setContactMode] = useState<EventContactMode>("WHATSAPP")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
+  const isWalkInEvent = accessType === "WALK_IN"
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const questionChangeModeRef = useRef<"KEEP_EXISTING" | "RESET_EXISTING" | null>(null)
@@ -215,6 +222,12 @@ export default function EditEventPage() {
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
         setEventEndAt(toDatetimeLocal(e.eventEndAt))
+        setHasSpecificTime(e.hasSpecificTime !== false)
+        setIsRecurring(Boolean(e.isRecurring))
+        setRecurrenceFrequency(e.recurrenceFrequency || "WEEKLY")
+        setRecurrenceDayOfWeek(typeof e.recurrenceDayOfWeek === "number" ? e.recurrenceDayOfWeek : (e.eventDate ? new Date(e.eventDate).getDay() : 5))
+        setRegistrationOpensDays(e.registrationOpensDays ?? 4)
+        setRegistrationOpensTime(e.registrationOpensTime || "08:00")
         setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
         setLocation(e.location ?? "")
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
@@ -542,7 +555,13 @@ export default function EditEventPage() {
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? new Date(deadline).toISOString() : undefined,
           eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
-          eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
+          eventEndAt: hasSpecificTime && eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
+          hasSpecificTime,
+          isRecurring,
+          recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+          recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
+          registrationOpensDays: isRecurring ? registrationOpensDays : null,
+          registrationOpensTime: isRecurring ? registrationOpensTime : null,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
@@ -893,31 +912,160 @@ export default function EditEventPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Event Start
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[0.72rem] font-semibold" style={labelStyle}>
+                    {isWalkInEvent ? "Walk-In Start Date" : "Event Start Date"}
+                  </label>
+                </div>
                 <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                  type={hasSpecificTime ? "datetime-local" : "date"}
+                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
                   style={inputStyle}
-                  value={eventDate}
-                  {...bindDateTimeField(setEventDate)}
+                  value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setEventDate(val)
+                    if (val) {
+                      const day = new Date(val).getDay()
+                      if (!isNaN(day)) setRecurrenceDayOfWeek(day)
+                    }
+                  }}
                 />
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="hasSpecificTimeCheckEdit"
+                    checked={hasSpecificTime}
+                    onChange={(e) => setHasSpecificTime(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded accent-[var(--accent)]"
+                  />
+                  <label htmlFor="hasSpecificTimeCheckEdit" className="text-[0.72rem] text-[var(--text-secondary)] cursor-pointer select-none">
+                    Specify start & end time (uncheck for all-day / flexible hours)
+                  </label>
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Event End (optional)
-                </label>
-                <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  value={eventEndAt}
-                  {...bindDateTimeField(setEventEndAt)}
-                />
-                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                  If you leave the deadline blank, registration stays open during the event and closes when the event ends.
-                </p>
+
+              {hasSpecificTime && (
+                <div>
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                    {isWalkInEvent ? "Walk-In End (optional)" : "Event End (optional)"}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                    style={inputStyle}
+                    value={eventEndAt}
+                    {...bindDateTimeField(setEventEndAt)}
+                  />
+                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
+                    {isWalkInEvent
+                      ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
+                      : "If the deadline is empty, registration stays open during the event and closes when the event ends."}
+                  </p>
+                </div>
+              )}
+
+              {/* RECURRING EVENT CARD */}
+              <div className="md:col-span-2 rounded-[12px] p-3.5 border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] mt-1">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => {
+                        setIsRecurring(e.target.checked)
+                        if (e.target.checked && eventDate) {
+                          const day = new Date(eventDate).getDay()
+                          if (!isNaN(day)) setRecurrenceDayOfWeek(day)
+                        }
+                      }}
+                      className="h-4 w-4 rounded accent-[var(--accent)]"
+                    />
+                    <span className="text-[0.82rem] font-bold text-[var(--text-primary)]">
+                      🔄 This is a recurring event (e.g. weekly convention, fellowship, or meetup)
+                    </span>
+                  </label>
+                  {isRecurring && (
+                    <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)]">
+                      Rolling Cycle Active
+                    </span>
+                  )}
+                </div>
+
+                {isRecurring && (
+                  <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[var(--border-subtle)]">
+                    <div>
+                      <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                        Repeat Frequency
+                      </label>
+                      <select
+                        value={recurrenceFrequency}
+                        onChange={(e) => setRecurrenceFrequency(e.target.value as any)}
+                        className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
+                        style={inputStyle}
+                      >
+                        <option value="WEEKLY">Every Week</option>
+                        <option value="BIWEEKLY">Every 2 Weeks</option>
+                        <option value="MONTHLY">Every Month</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                        Event Day of Week
+                      </label>
+                      <select
+                        value={recurrenceDayOfWeek}
+                        onChange={(e) => setRecurrenceDayOfWeek(Number(e.target.value))}
+                        className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
+                        style={inputStyle}
+                      >
+                        <option value={0}>Every Sunday</option>
+                        <option value={1}>Every Monday</option>
+                        <option value={2}>Every Tuesday</option>
+                        <option value={3}>Every Wednesday</option>
+                        <option value={4}>Every Thursday</option>
+                        <option value={5}>Every Friday</option>
+                        <option value={6}>Every Saturday</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                        Registration Window Opens
+                      </label>
+                      <select
+                        value={registrationOpensDays}
+                        onChange={(e) => setRegistrationOpensDays(Number(e.target.value))}
+                        className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
+                        style={inputStyle}
+                      >
+                        <option value={4}>4 days prior (e.g. Monday for Friday)</option>
+                        <option value={7}>7 days prior (Full week ahead)</option>
+                        <option value={3}>3 days prior</option>
+                        <option value={2}>2 days prior</option>
+                        <option value={1}>1 day prior (Day before)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                        Opens Time of Day
+                      </label>
+                      <input
+                        type="time"
+                        value={registrationOpensTime}
+                        onChange={(e) => setRegistrationOpensTime(e.target.value)}
+                        className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3 text-[0.74rem] text-[var(--text-secondary)] bg-[var(--surface)] p-2.5 rounded-[8px] border border-[var(--border-subtle)]">
+                      💡 <strong>How this works:</strong> You keep <strong>one permanent link & QR code</strong>. Every cycle, attendee slots open on your scheduled window, and past editions are automatically vaulted so you can track weekly attendance separately!
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>

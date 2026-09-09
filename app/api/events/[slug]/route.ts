@@ -104,6 +104,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         source: true,
         status: true,
         waitlistPosition: true,
+        occurrenceDate: true,
+        attendeeEmail: true,
+        registrationNumber: true,
       },
       orderBy: [
         { submittedAt: 'asc' },
@@ -114,15 +117,34 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     const confirmed = registrations
       .filter(r => CONFIRMED_STATUSES.has(r.status))
       .sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime())
-      .map(r => ({ id: r.id, answers: r.answers, submittedAt: r.submittedAt, source: r.source }))
+      .map(r => ({
+        id: r.id,
+        answers: r.answers,
+        submittedAt: r.submittedAt,
+        source: r.source,
+        occurrenceDate: r.occurrenceDate,
+        attendeeEmail: r.attendeeEmail,
+        registrationNumber: r.registrationNumber,
+      }))
 
     const waitlist = registrations
       .filter(r => WAITLIST_STATUSES.has(r.status))
       .sort((a, b) => (a.waitlistPosition ?? 0) - (b.waitlistPosition ?? 0))
-      .map(r => ({ id: r.id, answers: r.answers, waitlistPosition: r.waitlistPosition, submittedAt: r.submittedAt, source: r.source }))
+      .map(r => ({
+        id: r.id,
+        answers: r.answers,
+        waitlistPosition: r.waitlistPosition,
+        submittedAt: r.submittedAt,
+        source: r.source,
+        occurrenceDate: r.occurrenceDate,
+        attendeeEmail: r.attendeeEmail,
+        registrationNumber: r.registrationNumber,
+      }))
 
     return NextResponse.json({
       success: true,
+      confirmed,
+      waitlist,
       event: {
         ...(() => {
           const parsedContact = parseEventContact(event.whatsappNumber)
@@ -146,6 +168,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         questions: event.questions,
         eventDate: event.eventDate,
         eventEndAt: event.eventEndAt,
+        hasSpecificTime: event.hasSpecificTime,
+        isRecurring: event.isRecurring,
+        recurrenceFrequency: event.recurrenceFrequency,
+        recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+        registrationOpensDays: event.registrationOpensDays,
+        registrationOpensTime: event.registrationOpensTime,
         joinOpensAt: event.joinOpensAt,
         location: event.location,
         mapDirectionsUrl: event.mapDirectionsUrl,
@@ -177,8 +205,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         calendarSynced,
         googleCalendarConnected,
       },
-      confirmed,
-      waitlist,
     })
   } catch (err) {
     console.error('[EVENT API ERROR]', err)
@@ -207,7 +233,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
+    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -329,6 +355,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           deadline: deadline ? new Date(deadline) : null,
           eventDate: eventDate ? new Date(eventDate) : null,
           eventEndAt: eventEndAt ? new Date(eventEndAt) : null,
+          hasSpecificTime: typeof hasSpecificTime === 'boolean' ? hasSpecificTime : undefined,
+          isRecurring: typeof isRecurring === 'boolean' ? isRecurring : undefined,
+          recurrenceFrequency: isRecurring ? (recurrenceFrequency || 'WEEKLY') : isRecurring === false ? null : undefined,
+          recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : isRecurring === false ? null : undefined,
+          registrationOpensDays: isRecurring ? (registrationOpensDays || 4) : isRecurring === false ? null : undefined,
+          registrationOpensTime: isRecurring ? (registrationOpensTime || '08:00') : isRecurring === false ? null : undefined,
           joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
           location: location || null,
           mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,

@@ -5,6 +5,7 @@ import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
+import { computeNextOccurrenceDate, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
 export type EventInvitationCardProps = {
   eventSlug: string
@@ -26,6 +27,12 @@ export type EventInvitationCardProps = {
   accessType?: "REGISTRATION" | "WALK_IN"
   walkInOpenToday?: boolean
   mapPreviewImageUrl?: string | null
+  hasSpecificTime?: boolean
+  isRecurring?: boolean
+  recurrenceFrequency?: string | null
+  recurrenceDayOfWeek?: number | null
+  registrationOpensDays?: number | null
+  registrationOpensTime?: string | null
 }
 
 function formatEventDateOnly(d: Date): string {
@@ -180,12 +187,42 @@ export default function EventInvitationCard({
   accessType = "REGISTRATION",
   walkInOpenToday = false,
   mapPreviewImageUrl = null,
+  hasSpecificTime,
+  isRecurring,
+  recurrenceFrequency,
+  recurrenceDayOfWeek,
+  registrationOpensDays,
+  registrationOpensTime,
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
   const [translation, setTranslation] = useState<PublicEventTranslation | null>(null)
   const posterErrorHandledRef = useRef(false)
-  const badge = getStatusBadge(accessType, status, capacity, confirmedCount, deadline ?? null, walkInOpenToday)
+  const targetDate = isRecurring
+    ? computeNextOccurrenceDate({ eventDate, isRecurring, recurrenceFrequency, recurrenceDayOfWeek })
+    : eventDate
+
+  const windowStatus = isRecurring
+    ? getRegistrationWindowStatus({
+        isRecurring,
+        recurrenceFrequency,
+        recurrenceDayOfWeek,
+        registrationOpensDays,
+        registrationOpensTime,
+        eventDate,
+      })
+    : null
+
+  const rawBadge = getStatusBadge(accessType, status, capacity, confirmedCount, deadline ?? null, walkInOpenToday)
+  const badge = windowStatus && !windowStatus.isOpen
+    ? {
+        label: windowStatus.label,
+        bg: "rgba(251,191,36,0.12)",
+        border: "rgba(251,191,36,0.3)",
+        color: "#FBBF24",
+      }
+    : rawBadge
+
   const cardCopy = getCardCopy(translation?.targetLanguage ?? null)
   const displayTitle = translation?.title || title
   const displayLocation = translation?.location || location
@@ -194,7 +231,19 @@ export default function EventInvitationCard({
   const nativeMapsUrl = buildNativeMapsUrl(mapDirectionsUrl, displayLocation)
   const posterSrc = typeof imageUrl === "string" ? imageUrl : ""
   const hasPoster = Boolean(posterSrc) && !posterFailed
-  const eventDateLabel = eventDate ? formatEventDateRange(eventDate, eventEndAt) : ""
+
+  let eventDateLabel = ""
+  if (targetDate) {
+    if (hasSpecificTime === false) {
+      const d = new Date(targetDate)
+      eventDateLabel = isNaN(d.getTime())
+        ? "Date TBA"
+        : `${formatEventDateOnly(d)} · All Day / Flexible Hours`
+    } else {
+      eventDateLabel = formatEventDateRange(targetDate, eventEndAt)
+    }
+  }
+
   const spotsLeft =
     capacity !== null && capacity !== undefined
       ? Math.max(0, capacity - confirmedCount)

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { useTutorial } from "@/hooks/useTutorial"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
+import { isPricingRolloutActive } from "@/lib/pricingRollout"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ function formatDate(iso: string): string {
 
 function StatusBadge({ event }: { event: OrgEvent }) {
   const tab = classifyEvent(event)
-  if (event.dataExpired || event.status === "expired") {
+  if (isPricingRolloutActive() && (event.dataExpired || event.status === "expired")) {
     return (
       <span
         style={{
@@ -714,7 +715,7 @@ function EventCard({
             </div>
 
             {/* Meta */}
-            {event.dataExpired ? (
+            {isPricingRolloutActive() && event.dataExpired ? (
               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontStyle: "italic" }}>
                 Registration data has been deleted. Upgrade to recover future data.
               </p>

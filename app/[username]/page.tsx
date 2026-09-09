@@ -170,6 +170,12 @@ async function getEventBySlug(slug: string) {
       imageUrl: true,
       status: true,
       isPaid: true,
+      hasSpecificTime: true,
+      isRecurring: true,
+      recurrenceFrequency: true,
+      recurrenceDayOfWeek: true,
+      registrationOpensDays: true,
+      registrationOpensTime: true,
       faqEnabled: true,
       whatsappNumber: true,
       organizerName: true,
@@ -345,6 +351,12 @@ export default async function PublicProfilePage({
             deadline={event.deadline}
             accessType={event.accessType}
             walkInOpenToday={false}
+            hasSpecificTime={event.hasSpecificTime}
+            isRecurring={event.isRecurring}
+            recurrenceFrequency={event.recurrenceFrequency}
+            recurrenceDayOfWeek={event.recurrenceDayOfWeek}
+            registrationOpensDays={event.registrationOpensDays}
+            registrationOpensTime={event.registrationOpensTime}
           />
 
           {/* Form + lookup grid */}
@@ -368,6 +380,12 @@ export default async function PublicProfilePage({
                   eventDate: toIsoOrNull(event.eventDate),
                   isPaid: event.isPaid,
                   ticketTiers: event.ticketTiers as PublicTicketTier[],
+                  hasSpecificTime: event.hasSpecificTime,
+                  isRecurring: event.isRecurring,
+                  recurrenceFrequency: event.recurrenceFrequency,
+                  recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+                  registrationOpensDays: event.registrationOpensDays,
+                  registrationOpensTime: event.registrationOpensTime,
                 }}
                 showBranding={showBranding}
                 maxAttendees={maxAttendees}

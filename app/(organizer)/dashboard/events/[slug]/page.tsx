@@ -41,6 +41,8 @@ type Registration = {
   waitlistPosition?: number | null
   isDuplicate?: boolean
   source?: string
+  occurrenceDate?: string | null
+  attendeeEmail?: string | null
 }
 
 type DupReg = {
@@ -69,6 +71,12 @@ type EventData = {
   questions: Question[]
   eventDate: string | null
   eventEndAt?: string | null
+  hasSpecificTime?: boolean
+  isRecurring?: boolean
+  recurrenceFrequency?: string | null
+  recurrenceDayOfWeek?: number | null
+  registrationOpensDays?: number | null
+  registrationOpensTime?: string | null
   joinOpensAt: string | null
   location: string | null
   mapDirectionsUrl: string | null
@@ -1673,6 +1681,119 @@ export default function EventDashboardPage() {
 
   // Recent registrations ticker (30s poll)
   const [recentRegs, setRecentRegs] = useState<{ id: string; name: string; submittedAt: string; status: string }[]>([])
+
+  // Recurring editions selector & AI Loyalty Engine
+  const [selectedEdition, setSelectedEdition] = useState<string>("all")
+
+  const distinctEditions = React.useMemo(() => {
+    const set = new Set<string>()
+    for (const r of [...confirmed, ...waitlist]) {
+      if (r.occurrenceDate) {
+        const d = new Date(r.occurrenceDate)
+        if (!isNaN(d.getTime())) {
+          set.add(d.toISOString().split("T")[0])
+        }
+      }
+    }
+    return Array.from(set).sort().reverse()
+  }, [confirmed, waitlist])
+
+  const filteredConfirmed = React.useMemo(() => {
+    if (selectedEdition === "all") return confirmed
+    return confirmed.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === selectedEdition)
+  }, [confirmed, selectedEdition])
+
+  const filteredWaitlist = React.useMemo(() => {
+    if (selectedEdition === "all") return waitlist
+    return waitlist.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === selectedEdition)
+  }, [waitlist, selectedEdition])
+
+  const recurringLoyaltyMetrics = React.useMemo(() => {
+    if (!eventData?.isRecurring) return null
+
+    const attendeeEditionsMap = new Map<string, { count: number; editions: Set<string>; name: string }>()
+    const editionAttendeesMap = new Map<string, Set<string>>()
+
+    for (const r of confirmed) {
+      const emailQ = eventData.questions.find(q => q.type === "email" || q.label.toLowerCase().includes("email"))
+      const nameQ = eventData.questions.find(q => q.type === "text" && q.label.toLowerCase().includes("name"))
+      const email = (r.attendeeEmail || r.answers.find(a => a.questionId === emailQ?.id)?.value || "").trim().toLowerCase()
+      const name = (r.answers.find(a => a.questionId === nameQ?.id)?.value || "").trim() || "Attendee"
+
+      if (!email) continue
+      const editionKey = r.occurrenceDate ? new Date(r.occurrenceDate).toISOString().split("T")[0] : "general"
+
+      if (!editionAttendeesMap.has(editionKey)) {
+        editionAttendeesMap.set(editionKey, new Set())
+      }
+      editionAttendeesMap.get(editionKey)!.add(email)
+
+      const existing = attendeeEditionsMap.get(email) || { count: 0, editions: new Set(), name }
+      existing.count++
+      existing.editions.add(editionKey)
+      attendeeEditionsMap.set(email, existing)
+    }
+
+    const totalUniqueAttendees = attendeeEditionsMap.size
+    const repeatAttendees = Array.from(attendeeEditionsMap.entries()).filter(([_, data]) => data.editions.size >= 2)
+    const repeatRate = totalUniqueAttendees > 0 ? Math.round((repeatAttendees.length / totalUniqueAttendees) * 100) : 0
+
+    const sortedEditions = Array.from(editionAttendeesMap.keys()).filter(k => k !== "general").sort()
+    let firstTimersCount = 0
+    let returningCount = 0
+    let dropOffCount = 0
+
+    if (sortedEditions.length >= 2) {
+      const latestEdition = sortedEditions[sortedEditions.length - 1]
+      const prevEdition = sortedEditions[sortedEditions.length - 2]
+      const latestAttendees = editionAttendeesMap.get(latestEdition) || new Set()
+      const prevAttendees = editionAttendeesMap.get(prevEdition) || new Set()
+
+      const priorAttendees = new Set<string>()
+      for (let i = 0; i < sortedEditions.length - 1; i++) {
+        for (const em of editionAttendeesMap.get(sortedEditions[i]) || []) {
+          priorAttendees.add(em)
+        }
+      }
+
+      for (const em of latestAttendees) {
+        if (priorAttendees.has(em)) {
+          returningCount++
+        } else {
+          firstTimersCount++
+        }
+      }
+
+      for (const em of prevAttendees) {
+        if (!latestAttendees.has(em)) {
+          dropOffCount++
+        }
+      }
+    } else if (sortedEditions.length === 1) {
+      firstTimersCount = (editionAttendeesMap.get(sortedEditions[0]) || new Set()).size
+    }
+
+    const superFans = Array.from(attendeeEditionsMap.entries())
+      .filter(([_, data]) => data.editions.size >= 2)
+      .sort((a, b) => b[1].editions.size - a[1].editions.size)
+      .slice(0, 5)
+      .map(([email, data]) => ({
+        email,
+        name: data.name,
+        editionsCount: data.editions.size,
+      }))
+
+    return {
+      totalUniqueAttendees,
+      repeatRate,
+      repeatAttendeesCount: repeatAttendees.length,
+      firstTimersCount,
+      returningCount,
+      dropOffCount,
+      superFans,
+      totalEditionsTracked: sortedEditions.length,
+    }
+  }, [confirmed, eventData])
 
   // AI Insights
   const [insightsData, setInsightsData] = useState<InsightCard[] | null>(null)
@@ -3585,6 +3706,57 @@ export default function EventDashboardPage() {
                 )}
               </div>
             </div>
+
+            {(eventData.isRecurring || distinctEditions.length > 0) && (
+              <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "0.85rem 1.1rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                      Event Edition:
+                    </span>
+                    <select
+                      value={selectedEdition}
+                      onChange={(e) => setSelectedEdition(e.target.value)}
+                      style={{
+                        background: themeSurface,
+                        border: themeBorderSoft,
+                        borderRadius: 8,
+                        padding: "0.4rem 0.75rem",
+                        fontSize: "0.82rem",
+                        fontWeight: 500,
+                        color: themeTextPrimary,
+                        fontFamily: "var(--font-dm-sans)",
+                        outline: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <option value="all">All Editions Combined ({confirmed.length} total)</option>
+                      {distinctEditions.map((ed) => {
+                        const count = confirmed.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === ed).length
+                        const dateFormatted = new Date(ed).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+                        return (
+                          <option key={ed} value={ed}>
+                            {dateFormatted} ({count} confirmed)
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                  {selectedEdition !== "all" && (
+                    <button
+                      onClick={() => setSelectedEdition("all")}
+                      style={{ background: "transparent", border: "none", color: themeAccent, fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-dm-sans)" }}
+                    >
+                      Reset to All Editions
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                  Showing <strong style={{ color: themeTextPrimary }}>{filteredConfirmed.length}</strong> {selectedEdition === "all" ? "across all editions" : "in this edition"}
+                </div>
+              </div>
+            )}
+
             {confirmed.length === 0 ? (
               <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "2rem", textAlign: "center" }}>
                 <div style={{ fontSize: "2.2rem", marginBottom: "0.6rem" }}>RG</div>
@@ -3601,9 +3773,9 @@ export default function EventDashboardPage() {
               </div>
             ) : (
               <RegTable
-                rows={confirmed}
+                rows={filteredConfirmed}
                 questions={eventData.questions}
-                emptyText="No confirmed registrations yet"
+                emptyText={selectedEdition === "all" ? "No confirmed registrations yet" : "No confirmed registrations for this edition"}
                 token={token || eventData.dashboardToken}
                 slug={slug}
                 registrationStatus="confirmed"
@@ -3870,6 +4042,100 @@ export default function EventDashboardPage() {
 
             {analyticsData && (
               <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {/* Recurring Series AI Loyalty & Retention Engine */}
+                {eventData.isRecurring && recurringLoyaltyMetrics && (
+                  <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 16, padding: "1.25rem 1.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.06)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, background: themeAccentSoft, padding: "3px 8px", borderRadius: 100, fontFamily: "var(--font-dm-sans)" }}>
+                          Recurring AI Intelligence
+                        </span>
+                        <span style={{ fontSize: "0.88rem", fontWeight: 600, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                          Community Loyalty & Retention
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                        Tracking {recurringLoyaltyMetrics.totalEditionsTracked} edition{recurringLoyaltyMetrics.totalEditionsTracked === 1 ? '' : 's'} · {recurringLoyaltyMetrics.totalUniqueAttendees} unique attendees
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
+                      {/* Repeat Attendance Rate */}
+                      <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "1rem" }}>
+                        <div style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                          Repeat Attendance Rate
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                          <span style={{ fontSize: "1.75rem", fontWeight: 800, color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>
+                            {recurringLoyaltyMetrics.repeatRate}%
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                            ({recurringLoyaltyMetrics.repeatAttendeesCount} loyal attendees)
+                          </span>
+                        </div>
+                        <p style={{ margin: "0.4rem 0 0", fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.4 }}>
+                          Attendees who returned for 2 or more editions of your recurring series.
+                        </p>
+                      </div>
+
+                      {/* First-Timer vs Returning */}
+                      <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "1rem" }}>
+                        <div style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                          First-Timer vs Returning
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem" }}>
+                          <span style={{ fontSize: "1.2rem", fontWeight: 700, color: "#7CC6FF", fontFamily: "var(--font-dm-sans)" }}>
+                            {recurringLoyaltyMetrics.firstTimersCount} New
+                          </span>
+                          <span style={{ color: themeTextMuted }}>·</span>
+                          <span style={{ fontSize: "1.2rem", fontWeight: 700, color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>
+                            {recurringLoyaltyMetrics.returningCount} Returning
+                          </span>
+                        </div>
+                        <p style={{ margin: "0.4rem 0 0", fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.4 }}>
+                          Breakdown of new community faces joining vs returning regulars in the latest edition.
+                        </p>
+                      </div>
+
+                      {/* Churn / Drop-Off */}
+                      <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "1rem" }}>
+                        <div style={{ fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
+                          Drop-Off / Churn Risk
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                          <span style={{ fontSize: "1.75rem", fontWeight: 800, color: recurringLoyaltyMetrics.dropOffCount > 0 ? "#FFB3B3" : themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                            {recurringLoyaltyMetrics.dropOffCount}
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                            missed this edition
+                          </span>
+                        </div>
+                        <p style={{ margin: "0.4rem 0 0", fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.4 }}>
+                          People who registered previously but skipped this cycle. Target them with a re-engagement reminder!
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Super Fans Leaderboard */}
+                    {recurringLoyaltyMetrics.superFans.length > 0 && (
+                      <div style={{ borderTop: themeBorderSoft, paddingTop: "0.85rem" }}>
+                        <div style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.6rem" }}>
+                          Top Super-Fans & Community Champions
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                          {recurringLoyaltyMetrics.superFans.map((fan) => (
+                            <div key={fan.email} style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 100, padding: "4px 12px", display: "inline-flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                              <span style={{ fontWeight: 600, color: themeTextPrimary }}>{fan.name}</span>
+                              <span style={{ background: themeAccentSoftStrong, color: themeAccent, borderRadius: 100, padding: "1px 6px", fontSize: "0.65rem", fontWeight: 700 }}>
+                                {fan.editionsCount} editions
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* AI Insights */}
                 <div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>

@@ -44,6 +44,13 @@ model Event {
   eventType        EventType @default(PHYSICAL)
   virtualLink      String?
   virtualLinkIv    String?
+  hasSpecificTime        Boolean   @default(true)
+  isRecurring            Boolean   @default(false)
+  recurrenceFrequency    String?   // "WEEKLY" | "BIWEEKLY" | "MONTHLY"
+  recurrenceDayOfWeek    Int?      // 0 (Sun) to 6 (Sat)
+  registrationOpensDays  Int?      // e.g. 4 (days prior to event)
+  registrationOpensTime  String?   // e.g. "08:00"
+  lastArchivedAt         DateTime?
   imageUrl         String?
   archived         Boolean   @default(false)
   status           String    @default("active")
@@ -411,6 +418,7 @@ model Registration {
   refCode               String?
   utmSource             String?
   countryCode           String?   // ISO 3166-1 alpha-2  country detected when attendee registered
+  occurrenceDate        DateTime?
   ticketTierId          String?
   ticketTier            TicketTier? @relation(fields: [ticketTierId], references: [id], onDelete: SetNull)
   paidOrderId           String?
@@ -421,6 +429,7 @@ model Registration {
   @@index([eventId, status])
   @@index([eventId, submittedAt])
   @@index([eventId, waitlistPosition])
+  @@index([eventId, occurrenceDate])
 }
 
 model RegistrationDraft {

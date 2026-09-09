@@ -8,6 +8,7 @@ import type { PublicEventTranslation } from "@/components/events/EventDescriptio
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
+import { getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
 type EventQuestion = {
   id: string
@@ -64,6 +65,12 @@ type EventProps = {
     ticketTiers?: EventTicketTier[]
     groupRegistrationEnabled?: boolean
     allowGroupSelfClaim?: boolean
+    hasSpecificTime?: boolean
+    isRecurring?: boolean
+    recurrenceFrequency?: string | null
+    recurrenceDayOfWeek?: number | null
+    registrationOpensDays?: number | null
+    registrationOpensTime?: string | null
   }
   showBranding?: boolean
   maxAttendees?: number
@@ -267,7 +274,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       if (!event.deadline) return false
       return new Date(event.deadline).getTime() <= Date.now()
   })
-  const registrationClosed = deadlineExpired || event.status === "closed"
+  const recurringWindow = event.isRecurring
+    ? getRegistrationWindowStatus(event)
+    : null
+  const windowClosed = Boolean(recurringWindow && !recurringWindow.isOpen)
+  const registrationClosed = deadlineExpired || event.status === "closed" || windowClosed
   const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
@@ -1817,7 +1828,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           className={`rounded-[10px] px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${isSubmitBlocked ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
           disabled={isSubmitBlocked}
         >
-          {registrationClosed ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
+          {windowClosed && recurringWindow ? recurringWindow.label : registrationClosed ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
         </button>
         <button
           type="button"

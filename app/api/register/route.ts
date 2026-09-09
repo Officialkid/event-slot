@@ -21,6 +21,7 @@ import { sendEventCapacityMilestones } from '@/lib/capacityNotifications'
 import { getEffectiveEventPlan } from '@/lib/eventPasses'
 import { getFullOptions } from '@/lib/registrationQuestionOptions'
 import { sendRegistrationResponseCopyEmail } from '@/lib/email'
+import { computeNextOccurrenceDate, getRegistrationWindowStatus } from '@/lib/recurringEvents'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = {
   id: string
@@ -133,6 +134,13 @@ export async function POST(req: NextRequest) {
     const effectiveCloseAt = event.deadline ?? null
     if (effectiveCloseAt && new Date(effectiveCloseAt) < new Date()) {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
+    }
+
+    if (event.isRecurring) {
+      const windowStatus = getRegistrationWindowStatus(event)
+      if (!windowStatus.isOpen) {
+        return NextResponse.json({ success: false, error: windowStatus.label }, { status: 400 })
+      }
     }
 
     // 3. Duplicate detection (skip if forceDuplicate is set)
@@ -271,35 +279,42 @@ export async function POST(req: NextRequest) {
           status = 'waitlist'
         }
 
-        const emailAnswer = attendee.answers.find(a => {
-          const question = eventQuestions.find(q => q.id === a.questionId)
-          return question?.type === 'email'
-        })
-        const attendeeEmail = emailAnswer?.value ?? attendee.baseEmail ?? null
+        const occurrenceDate = freshEvent.isRecurring
+          ? computeNextOccurrenceDate(freshEvent)
+          : (freshEvent.eventDate ?? new Date())
 
-        // Sequential registration number per event
-        const existingCount = await tx.registration.count({ where: { eventId: freshEvent.id } })
-        const registrationNumber = existingCount + 1
+        let registrationId = ''
+        let registrationNumber = 0
+        let confirmationCode: string | undefined = undefined
 
-        let registrationId: string
+        const attendeeEmail = attendee.baseEmail ?? attendee.answers.find(a => {
+          const q = eventQuestions.find(eq => eq.id === a.questionId)
+          return q?.type === 'email' || q?.label.toLowerCase().includes('email')
+        })?.value?.trim()
 
         if (status === 'confirmed') {
-          const confirmationCode = generateConfirmationCode()
+          const updatedEvent = await tx.event.update({
+            where: { id: freshEvent.id },
+            data: { confirmedCount: { increment: 1 } },
+          })
+          registrationNumber = updatedEvent.confirmedCount
+          confirmationCode = generateConfirmationCode()
+
           const reg = await tx.registration.create({
             data: {
               eventId: freshEvent.id,
               answers: attendee.answers,
               status,
               registrationNumber,
+              confirmationCode,
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              occurrenceDate,
               consentDataProcessing: true,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
               isDuplicate: forceDuplicate ?? false,
-              qrCode: uuidv4(),
-              confirmationCode,
               source: normalizedSource,
               refCode: normalizedRefCode,
               utmSource: normalizedUtmSource,
@@ -308,10 +323,6 @@ export async function POST(req: NextRequest) {
           })
           registrationId = reg.id
           attendeeResults.push({ status, registrationId, registrationNumber, confirmationCode })
-          await tx.event.update({
-            where: { id: freshEvent.id },
-            data: { confirmedCount: { increment: 1 } },
-          })
         } else {
           const updatedEvent = await tx.event.update({
             where: { id: freshEvent.id },
@@ -324,10 +335,11 @@ export async function POST(req: NextRequest) {
               answers: attendee.answers,
               status,
               waitlistPosition,
-              registrationNumber,
+              registrationNumber: 0,
               submittedAt: new Date(),
               notified: false,
               attendeeEmail,
+              occurrenceDate,
               consentDataProcessing: true,
               consentTransactional: consentTransactional ?? false,
               consentMarketing: consentMarketing ?? false,
@@ -339,9 +351,8 @@ export async function POST(req: NextRequest) {
             },
           })
           registrationId = reg.id
-          attendeeResults.push({ status, waitlistPosition, registrationId, registrationNumber })
+          attendeeResults.push({ status, waitlistPosition, registrationId, registrationNumber: 0 })
         }
-
       }
 
       return attendeeResults
