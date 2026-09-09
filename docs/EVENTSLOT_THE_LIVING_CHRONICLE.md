@@ -123,16 +123,61 @@ Every feature in EventSlot is directly grounded in real-world organizer needs an
 | **2026-08-25** | `b04cf35` | **Super Admin** | Super Admin Command Center: One-click event editing, emergency overrides, and platform telemetry. |
 | **2026-08-28** | `8635bc5` | **Form Builder** | Reorderable Questions: Drag-and-drop / up-down position selectors for customizable event forms. |
 | **2026-08-28** | `99267ad` | **AI & Intelligence** | AI FAQ Import (Gemini), Google Maps Iframe integration, and Checkbox 'Other' custom fill inputs. |
+| **2026-09-08** | `263309a` | **Recurring Engine** | Recurring Events Architecture: Daily, weekly, bi-weekly, and monthly recurring event scheduling. |
+| **2026-09-08** | `b088194` | **Scheduling** | Decoupled Time & Date: Independent `startTime` and `endTime` fields preventing cross-timezone drift. |
+| **2026-09-08** | `03206fd` | **Edit Retrofit** | Edit Event Retrofitting: Convert existing single events into recurring series without breaking ticket links. |
+| **2026-09-08** | `4dfa286` | **Cloud Vault** | Cloudflare R2 Cold Storage Archive Vault: Automated attendee compression and zero-egress archival. |
+| **2026-09-09** | `1bb7928` | **Cohort Telemetry** | Multi-Event Cohort Telemetry: Multi-event filtering popover aggregating live turnout, velocity, and capacity. |
+| **2026-09-09** | `8ac4f21` | **Executive Reporting** | Gemini AI Presentation Deck Generator & 16:9 Landscape Print/PDF export for committee board meetings. |
 
 ---
 
-## 💳 Chapter 7: The Active Frontier & Future Horizon
+## 🤖 Chapter 7: The AI Telemetry & Executive Synthesis Engine (Fine-Tuning Reference)
 
-### 7.1 The Active Frontier: Payment Gateway Integration
+### 7.1 Multi-Event Cohort Telemetry Architecture
+When event organizers manage multiple concurrent conferences, conventions, or meetups (e.g. *Disruptors Convention*, *The iSpeak Client Luncheon*, *AI Meetup*), single-event views obscure macro-level patterns. The Multi-Event Cohort Telemetry Engine processes selective subsets of events:
+- **Cohort Filter:** `eventIds[]` parsed from query parameters or multi-checkbox popovers.
+- **Aggregation Formulae:**
+  $$\text{Cohort Capacity} = \sum_{e \in \text{Cohort}} \text{Capacity}(e)$$
+  $$\text{Cohort Registrations} = \sum_{e \in \text{Cohort}} \text{Registrations}(e)$$
+  $$\text{Overall Turnout Rate} = \frac{\sum_{e \in \text{Cohort}} \text{CheckIns}(e)}{\sum_{e \in \text{Cohort}} \text{Registrations}(e)} \times 100$$
+  $$\text{Hourly Inflow Velocity} = \sum_{e \in \text{Cohort}} \text{RegistrationsInHour}(e, h)$$
+
+### 7.2 Board Committee Presentation Prompt Specification (Gemini AI)
+The platform integrates Gemini 2.5/Flash to transform raw telemetry into 5 boardroom-ready executive slides formatted for committee presentations:
+```json
+{
+  "system_instruction": "You are an elite corporate event analyst preparing an executive slide deck for board committee review.",
+  "prompt_structure": {
+    "cohort_context": {
+      "selected_events": ["Event A", "Event B"],
+      "total_registered": 450,
+      "total_checked_in": 380,
+      "turnout_percentage": "84.4%",
+      "inflow_velocity_peak": "14:00 - 15:00 UTC"
+    },
+    "output_slides": [
+      { "slide": 1, "title": "Executive Overview & Cohort Composition", "bullets": 3, "kpis": 3 },
+      { "slide": 2, "title": "Turnout & Capacity Benchmark", "bullets": 3, "kpis": 3 },
+      { "slide": 3, "title": "Registration Inflow Velocity Dynamics", "bullets": 3, "kpis": 3 },
+      { "slide": 4, "title": "Ticket Tier & Demographic Engagement", "bullets": 3, "kpis": 3 },
+      { "slide": 5, "title": "Strategic Recommendations & Next Steps", "bullets": 3, "kpis": 3 }
+    ]
+  }
+}
+```
+If network boundaries or API quotas interrupt generative inference, the system falls back seamlessly to deterministic analytics templates, ensuring board presentations never fail.
+
+---
+
+## 💳 Chapter 8: The Active Frontier & Future Horizon
+
+### 8.1 The Active Frontier: Payment Gateway Integration
 EventSlot's primary engineering focus today is completing the **Universal Payment Processing Engine**. This unlocks:
 - Multi-currency checkout (M-Pesa STK push, Credit/Debit Cards, Paystack, Bank Transfers).
 - Multi-tier paid ticketing with automated financial reconciliation.
 - Instant organizer payouts, split ticketing commissions, and refund management.
 
-### 7.2 The 5-Year Horizon
+### 8.2 The 5-Year Horizon
 EventSlot is evolving from a rapid campus registration tool into the definitive operating system for live and virtual experiences across Africa and the world. By unifying smart ticketing, fraud-proof cryptographic check-ins, AI organizer assistance, and seamless payments, EventSlot removes every ounce of friction between an organizer's vision and an attendee's seat.
+

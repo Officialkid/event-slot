@@ -439,7 +439,7 @@ export default function DashboardOverviewPage() {
           </div>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", alignSelf: "flex-start", flexWrap: "wrap" }}>
             <Link
-              href="/dashboard/insights"
+              href="/dashboard/insights?tab=live"
               style={{
                 display: "inline-flex",
                 alignItems: "center",

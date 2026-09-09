@@ -26,8 +26,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const eventIdParam = req.nextUrl.searchParams.get('eventId')
-
     // Fetch organizer's events
     const organizerEvents = await prisma.event.findMany({
       where: { organizerId: session.user.id },
@@ -71,13 +69,31 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const selectedEvent = eventIdParam && eventIdParam !== 'all'
-      ? organizerEvents.find(e => e.id === eventIdParam) || organizerEvents[0]
-      : organizerEvents[0]
+    const eventIdParam = req.nextUrl.searchParams.get('eventId')
+    const eventIdsParam = req.nextUrl.searchParams.get('eventIds')
+    const rawParam = eventIdsParam || eventIdParam
 
-    const targetEventIds = eventIdParam === 'all'
-      ? organizerEvents.map(e => e.id)
-      : [selectedEvent.id]
+    let targetEventIds: string[] = []
+    let isAllSelected = false
+
+    if (!rawParam || rawParam === 'all') {
+      targetEventIds = organizerEvents.map(e => e.id)
+      isAllSelected = true
+    } else {
+      const requestedIds = rawParam.split(',').map(s => s.trim()).filter(Boolean)
+      const valid = requestedIds.filter(id => organizerEvents.some(e => e.id === id))
+      if (valid.length > 0) {
+        targetEventIds = valid
+        isAllSelected = valid.length === organizerEvents.length
+      } else {
+        targetEventIds = organizerEvents.map(e => e.id)
+        isAllSelected = true
+      }
+    }
+
+    const selectedEventsList = organizerEvents.filter(e => targetEventIds.includes(e.id))
+    const selectedEvent = selectedEventsList.length === 1 ? selectedEventsList[0] : null
+    const cohortTitles = selectedEventsList.map(e => e.title)
 
     // Fetch confirmed registrations and check-ins
     const [registrations, entryLogs, walkIns] = await Promise.all([
@@ -269,10 +285,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       events: organizerEvents,
       activeEvent: selectedEvent,
+      selectedEventIds: targetEventIds,
+      selectedCohortTitles: cohortTitles,
+      isAllSelected,
+      organizerName: session.user.name || 'Organizer',
       liveAttendees,
       totalConfirmed,
       checkInRate,
-      activeSessions: selectedEvent.ticketTiers?.length || 1,
+      activeSessions: selectedEventsList.reduce((acc, ev) => acc + (ev.ticketTiers?.length || 1), 0) || 1,
       activeGates: Math.max(1, Math.min(8, Math.ceil(liveAttendees / 25) || 2)),
       hourlyAttendance,
       sessionEngagement,

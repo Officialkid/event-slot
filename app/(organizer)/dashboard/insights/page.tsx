@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useCallback, useEffect, useState } from "react"
+import React, { Suspense, useCallback, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import {
   BarChart,
   Bar,
@@ -76,9 +77,19 @@ function MoMBadge({ change }: { change: number | null }) {
   )
 }
 
-export default function InsightsPage() {
+function InsightsContent() {
   useSession()
-  const [activeTab, setActiveTab] = useState<"tracker" | "live">("tracker")
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
+  const [activeTab, setActiveTab] = useState<"tracker" | "live">(tabParam === "live" ? "live" : "tracker")
+
+  useEffect(() => {
+    if (tabParam === "live") {
+      setActiveTab("live")
+    } else if (tabParam === "tracker") {
+      setActiveTab("tracker")
+    }
+  }, [tabParam])
   const [data, setData] = useState<InsightsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -598,5 +609,13 @@ export default function InsightsPage() {
         }
       `}</style>
     </>
+  )
+}
+
+export default function InsightsPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "60vh", background: "var(--background)" }} />}>
+      <InsightsContent />
+    </Suspense>
   )
 }
