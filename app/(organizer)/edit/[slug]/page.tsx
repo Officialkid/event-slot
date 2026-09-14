@@ -167,6 +167,7 @@ export default function EditEventPage() {
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
   const [showRemainingSpots, setShowRemainingSpots] = useState(true)
+  const [groupRegistrationEnabled, setGroupRegistrationEnabled] = useState(false)
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
   const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [communityLink, setCommunityLink] = useState("")
@@ -233,6 +234,7 @@ export default function EditEventPage() {
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
         setEntryFeeLabel(e.entryFeeLabel ?? "")
         setShowRemainingSpots(e.showRemainingSpots !== false)
+        setGroupRegistrationEnabled(e.groupRegistrationEnabled === true)
         setAttendeeConsentEnabled(e.attendeeConsentEnabled !== false)
         setAttendeeConsentText(e.attendeeConsentText ?? "")
         setCommunityLink(e.communityLink ?? "")
@@ -567,6 +569,7 @@ export default function EditEventPage() {
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
           showRemainingSpots,
+          groupRegistrationEnabled,
           attendeeConsentEnabled,
           attendeeConsentText: attendeeConsentText || undefined,
           communityLink: communityLink || undefined,
@@ -1066,6 +1069,29 @@ export default function EditEventPage() {
                     </div>
                   </div>
                 )}
+              </div>
+              <div className="md:col-span-2 rounded-[12px] p-3.5 border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] mt-1">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={groupRegistrationEnabled}
+                      onChange={(e) => setGroupRegistrationEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded"
+                    />
+                    <span className="text-[0.82rem] font-bold text-[var(--text-primary)]">
+                      🏢 Enable Group &amp; Organization Booking (Churches, Companies, Delegations)
+                    </span>
+                  </label>
+                  {groupRegistrationEnabled && (
+                    <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)]">
+                      Group Mode Active
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 ml-6 text-[0.72rem] text-[var(--text-muted)]">
+                  Enables a dedicated &ldquo;Register as Organization / Group&rdquo; tab on the attendee registration page. Organizations reserve slot allocations, assign delegates via an Organization Manager portal, or share private self-claim links.
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>

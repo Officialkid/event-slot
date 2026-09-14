@@ -12,6 +12,7 @@ import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
 import { EntryDashboard } from "@/components/EntryDashboard"
 import { ScannerHome } from "@/components/scanner/ScannerHome"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
+import { EventGroupBookingsTab } from "@/components/events/EventGroupBookingsTab"
 import { normalizeCommunityLink } from "@/lib/communityLink"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 import { getPublicEventUrl } from "@/lib/eventUrls"
@@ -103,12 +104,15 @@ type EventData = {
   eventEffectiveCommissionRate?: number
   canEdit?: boolean
   imageUrl?: string | null
+  groupRegistrationEnabled?: boolean
+  allowGroupSelfClaim?: boolean
   calendarSynced?: boolean
   googleCalendarConnected?: boolean
   ticketTiers?: Array<{
     id: string
     name: string
     priceKes: number
+    currency?: string
     capacity: number
     description?: string | null
     bundleSize?: number
@@ -119,7 +123,7 @@ type EventData = {
   }>
 }
 
-type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings" | "team"
+type TabKey = "overview" | "confirmed" | "waitlist" | "analytics" | "feedback" | "checkin" | "settings" | "team" | "delegations"
 
 type EventTeamMember = {
   teamMemberId: string
@@ -1633,6 +1637,7 @@ export default function EventDashboardPage() {
   const [waitlist, setWaitlist] = useState<Registration[]>([])
   const [origin, setOrigin] = useState("")
   const [activeTab, setActiveTab] = useState<TabKey>("overview")
+  const [groupBookingsCount, setGroupBookingsCount] = useState(0)
   const [copied, setCopied] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
@@ -1866,6 +1871,22 @@ export default function EventDashboardPage() {
   }, [slug, token, status, router])
 
   useEffect(() => { fetchDashboard() }, [fetchDashboard])
+
+  useEffect(() => {
+    if (!slug) return
+    let isMounted = true
+    fetch(`/api/events/${slug}/group-bookings`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data?.groupBookings) {
+          setGroupBookingsCount(data.groupBookings.length)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [slug])
 
   useEffect(() => {
     if (!eventData || eventData.accessType !== "WALK_IN") return
@@ -2537,6 +2558,9 @@ export default function EventDashboardPage() {
         { key: "overview", label: ORGANIZER_SURFACE_COPY.eventDetail.tabs.overview },
         { key: "confirmed", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.confirmed} (${confirmed.length})` },
         { key: "waitlist", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.waitlist} (${waitlist.length})` },
+        ...(eventData.groupRegistrationEnabled || groupBookingsCount > 0
+          ? [{ key: "delegations" as TabKey, label: `Group Bookings (${groupBookingsCount})` }]
+          : []),
         { key: "analytics", label: "Analytics" },
         { key: "feedback", label: "Feedback" },
         { key: "checkin" as TabKey, label: "Verify Ticket" },
@@ -4927,6 +4951,16 @@ export default function EventDashboardPage() {
               </p>
             </div>
           </div>
+        )}
+
+        {/* -- Tab: Delegations / Group Bookings --- */}
+        {activeTab === "delegations" && (
+          <EventGroupBookingsTab
+            slug={slug}
+            token={token || eventData.dashboardToken}
+            groupRegistrationEnabled={Boolean(eventData.groupRegistrationEnabled)}
+            publicUrl={origin ? `${origin}/${slug}` : `/${slug}`}
+          />
         )}
       </div>
 

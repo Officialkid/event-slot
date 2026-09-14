@@ -175,6 +175,7 @@ export default function CreateEventPage() {
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
   const [showRemainingSpots, setShowRemainingSpots] = useState(true)
+  const [groupRegistrationEnabled, setGroupRegistrationEnabled] = useState(false)
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
   const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [isPaid, setIsPaid] = useState(false)
@@ -666,6 +667,7 @@ export default function CreateEventPage() {
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
           showRemainingSpots,
+          groupRegistrationEnabled,
           attendeeConsentEnabled,
           attendeeConsentText: attendeeConsentText || undefined,
           isPaid: isRegistrationEvent ? isPaid : false,
@@ -1689,6 +1691,22 @@ export default function CreateEventPage() {
                     </label>
                     <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                       Keep this on if attendees should see how many places are left. Turn it off to hide the count while keeping the rest of the event details visible.
+                    </p>
+                  </div>
+                )}
+                {isRegistrationEvent && (
+                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
+                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                      <input
+                        type="checkbox"
+                        checked={groupRegistrationEnabled}
+                        onChange={e => setGroupRegistrationEnabled(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      🏢 Enable Group &amp; Organization Booking (Churches, Companies, Delegations)
+                    </label>
+                    <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                      Allows organizations to reserve multiple slots under one booking, assign delegates via an Organization Manager portal, and share private self-claim links.
                     </p>
                   </div>
                 )}
