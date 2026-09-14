@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import prisma from "@/lib/prisma"
+import { generateConfirmationCode } from "@/lib/confirmationCode"
+import { generateTicketForRegistration } from "@/lib/tickets"
+import { computeNextOccurrenceDate } from "@/lib/recurringEvents"
 
 export async function GET(
   req: NextRequest,
@@ -74,7 +77,15 @@ export async function POST(
       where: { claimToken: token },
       include: {
         event: {
-          select: { title: true, slug: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            eventDate: true,
+            isRecurring: true,
+            recurrenceFrequency: true,
+            recurrenceDayOfWeek: true,
+          },
         },
       },
     })
@@ -97,6 +108,33 @@ export async function POST(
     }
 
     const newQrToken = uuidv4()
+    const confirmationCode = generateConfirmationCode()
+    const occurrenceDate = booking.event.isRecurring
+      ? computeNextOccurrenceDate(booking.event)
+      : (booking.event.eventDate ?? new Date())
+
+    // Create a confirmed Registration for the attendee so they have a full ticket pass
+    const reg = await prisma.registration.create({
+      data: {
+        eventId: booking.eventId,
+        answers: [
+          { questionId: "name", value: attendeeName.trim() },
+          ...(attendeeEmail ? [{ questionId: "email", value: attendeeEmail.trim().toLowerCase() }] : []),
+          ...(attendeePhone ? [{ questionId: "phone", value: attendeePhone.trim() }] : []),
+        ],
+        status: "confirmed",
+        registrationNumber: unassignedSlot.slotIndex,
+        confirmationCode,
+        submittedAt: new Date(),
+        notified: false,
+        attendeeEmail: attendeeEmail?.trim()?.toLowerCase() || null,
+        occurrenceDate,
+        source: "group_claim",
+      },
+    })
+
+    const ticketRecord = await generateTicketForRegistration(reg.id)
+
     const claimedSlot = await prisma.groupTicketSlot.update({
       where: { id: unassignedSlot.id },
       data: {
@@ -105,6 +143,7 @@ export async function POST(
         attendeePhone: attendeePhone?.trim() || null,
         status: "ASSIGNED",
         qrToken: newQrToken,
+        ticketId: ticketRecord.id,
         assignedAt: new Date(),
       },
     })
@@ -116,6 +155,8 @@ export async function POST(
         slotIndex: claimedSlot.slotIndex,
         attendeeName: claimedSlot.attendeeName,
         qrToken: claimedSlot.qrToken,
+        confirmationCode,
+        ticketUrl: `/register/success/${confirmationCode}`,
       },
     })
   } catch (error) {

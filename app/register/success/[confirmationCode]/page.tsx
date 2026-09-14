@@ -124,7 +124,13 @@ export default async function TicketSuccessPage({
   const attendeePhone = extractField(answers, questions, ["tel"], ["phone", "mobile"])
   const attendanceDays = extractAttendanceDays(answers, questions)
 
-  const eventDate = event.eventDate ? formatEventDateRange(new Date(event.eventDate), event.eventEndAt ? new Date(event.eventEndAt) : null) : null
+  const targetStart = registration.occurrenceDate ?? event.eventDate
+  let targetEnd = event.eventEndAt
+  if (targetStart && event.eventDate && event.eventEndAt) {
+    const duration = Math.max(30 * 60 * 1000, new Date(event.eventEndAt).getTime() - new Date(event.eventDate).getTime())
+    targetEnd = new Date(new Date(targetStart).getTime() + duration)
+  }
+  const eventDate = targetStart ? formatEventDateRange(new Date(targetStart), targetEnd ? new Date(targetEnd) : null) : null
 
   const ticket: TicketData = {
     confirmationCode,

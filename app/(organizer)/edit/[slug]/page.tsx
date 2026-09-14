@@ -671,8 +671,8 @@ export default function EditEventPage() {
         </div>
 
         {success && (
-          <div className="rounded-[8px] border px-4 py-3 text-[0.82rem]" style={{ ...accentPanelStyle, color: "var(--accent)" }}>
-            Changes saved! Redirecting…
+          <div className="rounded-[10px] border px-4 py-3 text-[0.88rem] font-semibold flex items-center gap-2.5 shadow-sm" style={{ ...accentPanelStyle, color: "var(--accent)" }}>
+            <span className="text-[1.1rem]">✓</span> Saved! Kindly wait as it reloads...
           </div>
         )}
 
@@ -1621,13 +1621,37 @@ export default function EditEventPage() {
           </div>
 
           <div className="space-y-4">
+            {success && (
+              <div
+                className="rounded-[12px] border px-4 py-3 text-center text-[0.88rem] font-semibold flex items-center justify-center gap-2 shadow-lg"
+                style={{
+                  background: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                  borderColor: "var(--accent)",
+                  color: "var(--accent)",
+                }}
+              >
+                <span className="text-[1.1rem]">✓</span> Saved! Kindly wait as it reloads...
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold"
-              style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
-              disabled={saving}
+              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold transition flex items-center justify-center gap-2"
+              style={{ background: "var(--accent)", color: "var(--accent-contrast)", opacity: saving ? 0.75 : 1 }}
+              disabled={saving || success}
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Saving…
+                </>
+              ) : success ? (
+                "✓ Saved!"
+              ) : (
+                "Save Changes"
+              )}
             </button>
             {error && <div className="text-[0.82rem] text-center" style={errorTextStyle}>{error}</div>}
           </div>
@@ -1641,6 +1665,10 @@ export default function EditEventPage() {
           eventDate={eventDate ? new Date(eventDate).toISOString() : null}
           initialNumber={whatsappNumber}
           initialMode={contactMode}
+          onChange={({ number, mode }) => {
+            setWhatsappNumber(number)
+            setContactMode(mode)
+          }}
           onSaved={({ number, mode }) => {
             setWhatsappNumber(number)
             setContactMode(mode)

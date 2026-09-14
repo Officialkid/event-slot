@@ -145,8 +145,15 @@ export async function POST(req: NextRequest) {
 
     // 3. Duplicate detection (skip if forceDuplicate is set)
     if (!forceDuplicate) {
+      const currentOccurrenceDate = event.isRecurring
+        ? computeNextOccurrenceDate(event)
+        : null
+
       const existingRegs = await prisma.registration.findMany({
-        where: { eventId: event.id },
+        where: {
+          eventId: event.id,
+          ...(currentOccurrenceDate ? { occurrenceDate: currentOccurrenceDate } : {}),
+        },
         select: { registrationNumber: true, answers: true },
       })
 

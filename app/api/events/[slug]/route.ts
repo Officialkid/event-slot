@@ -11,6 +11,7 @@ import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
 import { parseEventContact, validateAndEncodeEventContact } from '@/lib/eventContact'
 import { getEffectiveEventPlan, syncEventPassStatusForEvent } from '@/lib/eventPasses'
+import { computeNextOccurrenceDate, computeOccurrenceEnd } from '@/lib/recurringEvents'
 
 const CONFIRMED_STATUSES = new Set(['confirmed', 'CONFIRMED'])
 const WAITLIST_STATUSES = new Set(['waitlist', 'WAITLISTED', 'waitlisted'])
@@ -344,6 +345,20 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         await tx.registration.deleteMany({ where: { eventId: event.id } })
       }
 
+      let finalEventDate = eventDate ? new Date(eventDate) : event.eventDate
+      let finalEventEndAt = eventEndAt ? new Date(eventEndAt) : event.eventEndAt
+
+      if (isRecurring) {
+        const calculatedNextDate = computeNextOccurrenceDate({
+          eventDate: finalEventDate,
+          isRecurring: true,
+          recurrenceFrequency: recurrenceFrequency || event.recurrenceFrequency,
+          recurrenceDayOfWeek: typeof recurrenceDayOfWeek === 'number' ? recurrenceDayOfWeek : event.recurrenceDayOfWeek,
+        })
+        finalEventEndAt = computeOccurrenceEnd(calculatedNextDate, finalEventDate, finalEventEndAt)
+        finalEventDate = calculatedNextDate
+      }
+
       return tx.event.update({
         where: { slug },
         data: {
@@ -353,8 +368,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           visibility: visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE',
           capacity: capacity ? Number(capacity) : null,
           deadline: deadline ? new Date(deadline) : null,
-          eventDate: eventDate ? new Date(eventDate) : null,
-          eventEndAt: eventEndAt ? new Date(eventEndAt) : null,
+          eventDate: finalEventDate,
+          eventEndAt: finalEventEndAt,
           hasSpecificTime: typeof hasSpecificTime === 'boolean' ? hasSpecificTime : undefined,
           isRecurring: typeof isRecurring === 'boolean' ? isRecurring : undefined,
           recurrenceFrequency: isRecurring ? (recurrenceFrequency || 'WEEKLY') : isRecurring === false ? null : undefined,
@@ -372,7 +387,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           imageUrl: nextImageUrl || null,
           questions: isWalkInEvent ? [] : questions,
           category: category ? String(category).toUpperCase() : null,
-          whatsappNumber: storedEventContact,
+          whatsappNumber: whatsappNumber !== undefined ? storedEventContact : undefined,
           groupRegistrationEnabled: typeof groupRegistrationEnabled === 'boolean' ? groupRegistrationEnabled : undefined,
           allowGroupSelfClaim: typeof allowGroupSelfClaim === 'boolean' ? allowGroupSelfClaim : undefined,
           ...(shouldResetRegistrationsForQuestionChange ? { confirmedCount: 0, waitlistCount: 0 } : {}),

@@ -140,10 +140,15 @@ export default async function VerifyPage({ params }: { params: Promise<{ confirm
             >
               {registration.event.title}
             </p>
-            {registration.event.eventDate && (
+            {(registration.occurrenceDate || registration.event.eventDate) && (
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0 0 0.25rem", fontFamily: "var(--font-dm-sans, system-ui)" }}>
                 📅{" "}
-                {formatEventDateRange(registration.event.eventDate, registration.event.eventEndAt)}
+                {formatEventDateRange(
+                  registration.occurrenceDate ?? registration.event.eventDate,
+                  registration.occurrenceDate && registration.event.eventDate && registration.event.eventEndAt
+                    ? new Date(new Date(registration.occurrenceDate).getTime() + Math.max(30 * 60 * 1000, new Date(registration.event.eventEndAt).getTime() - new Date(registration.event.eventDate).getTime()))
+                    : registration.event.eventEndAt
+                )}
               </p>
             )}
             {registration.event.location && (

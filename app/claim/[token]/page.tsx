@@ -26,7 +26,7 @@ export default function MemberSelfClaimPage(props: { params: Promise<{ token: st
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [submitting, setSubmitting] = useState(false)
-  const [claimed, setClaimed] = useState<{ id: string; slotIndex: number; attendeeName: string; qrToken: string } | null>(null)
+  const [claimed, setClaimed] = useState<{ id: string; slotIndex: number; attendeeName: string; qrToken: string; confirmationCode?: string; ticketUrl?: string } | null>(null)
 
   useEffect(() => {
     const fetchClaimDetails = async () => {
@@ -102,20 +102,55 @@ export default function MemberSelfClaimPage(props: { params: Promise<{ token: st
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h1 className="mt-4 text-2xl font-black">Ticket Slot Claimed!</h1>
+          <h1 className="mt-4 text-2xl font-black">Ticket Pass Confirmed!</h1>
           <p className="mt-1 text-[0.875rem]" style={{ color: "var(--text-secondary)" }}>
             You have successfully claimed a reserved ticket under <strong style={{ color: "var(--text-primary)" }}>{data.orgName}</strong>.
           </p>
 
-          <div className="mt-6 rounded-[16px] border p-4 text-left space-y-2" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-            <p className="text-[0.78rem]" style={{ color: "var(--text-muted)" }}>Attendee Name</p>
-            <p className="text-[0.95rem] font-bold">{claimed.attendeeName}</p>
-            <p className="text-[0.78rem]" style={{ color: "var(--text-muted)" }}>Event</p>
-            <p className="text-[0.9rem] font-medium">{data.eventTitle}</p>
+          <div className="mt-6 rounded-[16px] border p-4 text-left space-y-2.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-wider font-semibold" style={{ color: "var(--text-muted)" }}>Attendee Name</p>
+                <p className="text-[0.98rem] font-bold" style={{ color: "var(--text-primary)" }}>{claimed.attendeeName}</p>
+              </div>
+              <span className="rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+                Seat #{claimed.slotIndex}
+              </span>
+            </div>
+
+            <div className="pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+              <p className="text-[0.72rem] uppercase tracking-wider font-semibold" style={{ color: "var(--text-muted)" }}>Event</p>
+              <p className="text-[0.9rem] font-semibold" style={{ color: "var(--text-primary)" }}>{data.eventTitle}</p>
+            </div>
+
+            {claimed.confirmationCode && (
+              <div className="pt-2 border-t flex justify-between items-center" style={{ borderColor: "var(--border)" }}>
+                <span className="text-[0.72rem] font-medium" style={{ color: "var(--text-muted)" }}>Ticket Code</span>
+                <span className="font-mono text-[0.85rem] font-bold" style={{ color: "var(--accent)" }}>{claimed.confirmationCode}</span>
+              </div>
+            )}
           </div>
 
-          <p className="mt-6 text-[0.8rem]" style={{ color: "var(--text-muted)" }}>
-            Your organization manager has received confirmation of your ticket assignment.
+          <div className="mt-6 flex flex-col gap-2.5">
+            <Link
+              href={claimed.ticketUrl || `/register/success/${claimed.confirmationCode}`}
+              className="w-full rounded-full py-3 text-[0.875rem] font-bold transition flex items-center justify-center gap-2"
+              style={{ background: "var(--accent)", color: "var(--accent-contrast)", textDecoration: "none" }}
+            >
+              🎫 View &amp; Download Ticket Pass
+            </Link>
+
+            <Link
+              href={`/${data.eventSlug}`}
+              className="w-full rounded-full border py-2.5 text-[0.82rem] font-semibold transition"
+              style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)", textDecoration: "none" }}
+            >
+              Back to Event Page
+            </Link>
+          </div>
+
+          <p className="mt-5 text-[0.78rem]" style={{ color: "var(--text-muted)" }}>
+            A ticket pass with your door verification QR code is ready.
           </p>
         </div>
       </div>

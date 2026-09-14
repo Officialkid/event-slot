@@ -5,7 +5,7 @@ import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
-import { computeNextOccurrenceDate, getRegistrationWindowStatus } from "@/lib/recurringEvents"
+import { computeNextOccurrenceDate, computeOccurrenceEnd, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
 export type EventInvitationCardProps = {
   eventSlug: string
@@ -202,6 +202,10 @@ export default function EventInvitationCard({
     ? computeNextOccurrenceDate({ eventDate, isRecurring, recurrenceFrequency, recurrenceDayOfWeek })
     : eventDate
 
+  const targetEnd = isRecurring && targetDate
+    ? computeOccurrenceEnd(new Date(targetDate), eventDate, eventEndAt)
+    : eventEndAt
+
   const windowStatus = isRecurring
     ? getRegistrationWindowStatus({
         isRecurring,
@@ -240,7 +244,11 @@ export default function EventInvitationCard({
         ? "Date TBA"
         : `${formatEventDateOnly(d)} · All Day / Flexible Hours`
     } else {
-      eventDateLabel = formatEventDateRange(targetDate, eventEndAt)
+      eventDateLabel = formatEventDateRange(targetDate, targetEnd)
+    }
+    if (isRecurring) {
+      const freqLabel = recurrenceFrequency === "BIWEEKLY" ? "Every 2 weeks" : recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"
+      eventDateLabel = `${eventDateLabel} (${freqLabel})`
     }
   }
 

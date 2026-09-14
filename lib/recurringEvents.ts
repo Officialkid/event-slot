@@ -33,9 +33,48 @@ export function computeNextOccurrenceDate(event: {
     }
   }
 
+  // Handle BIWEEKLY or MONTHLY if specified
+  const freq = (event.recurrenceFrequency || 'WEEKLY').toUpperCase()
+  if (freq === 'BIWEEKLY') {
+    // If baseDate is in the past, align to 14-day intervals from baseDate
+    const diffDays = Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays > 0) {
+      const cycles = Math.ceil(diffDays / 14)
+      const nextBiweekly = new Date(baseDate.getTime() + cycles * 14 * 24 * 60 * 60 * 1000)
+      if (nextBiweekly > now) {
+        nextBiweekly.setHours(baseDate.getHours(), baseDate.getMinutes(), 0, 0)
+        return nextBiweekly
+      }
+    }
+  } else if (freq === 'MONTHLY') {
+    // Month step
+    const nextMonthly = new Date(now.getFullYear(), now.getMonth(), baseDate.getDate(), baseDate.getHours(), baseDate.getMinutes(), 0, 0)
+    if (nextMonthly <= now) {
+      nextMonthly.setMonth(nextMonthly.getMonth() + 1)
+    }
+    return nextMonthly
+  }
+
   candidate.setDate(candidate.getDate() + daysUntil)
   candidate.setHours(baseDate.getHours(), baseDate.getMinutes(), 0, 0)
   return candidate
+}
+
+export function computeOccurrenceEnd(
+  occurrenceStart: Date,
+  baseStart?: Date | string | null,
+  baseEnd?: Date | string | null
+): Date {
+  if (!baseStart || !baseEnd) {
+    return new Date(occurrenceStart.getTime() + 2 * 60 * 60 * 1000)
+  }
+  const s = new Date(baseStart)
+  const e = new Date(baseEnd)
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) {
+    return new Date(occurrenceStart.getTime() + 2 * 60 * 60 * 1000)
+  }
+  const duration = Math.max(30 * 60 * 1000, e.getTime() - s.getTime())
+  return new Date(occurrenceStart.getTime() + duration)
 }
 
 export function getRegistrationWindowStatus(event: {

@@ -8,7 +8,7 @@ import type { PublicEventTranslation } from "@/components/events/EventDescriptio
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
-import { getRegistrationWindowStatus } from "@/lib/recurringEvents"
+import { getRegistrationWindowStatus, computeNextOccurrenceDate, computeOccurrenceEnd } from "@/lib/recurringEvents"
 
 type EventQuestion = {
   id: string
@@ -278,6 +278,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     ? getRegistrationWindowStatus(event)
     : null
   const windowClosed = Boolean(recurringWindow && !recurringWindow.isOpen)
+  const effectiveEventDate = event.isRecurring
+    ? computeNextOccurrenceDate({ eventDate: event.eventDate, isRecurring: event.isRecurring, recurrenceFrequency: event.recurrenceFrequency, recurrenceDayOfWeek: event.recurrenceDayOfWeek })
+    : event.eventDate
+  const effectiveEventEndAt = event.isRecurring && effectiveEventDate
+    ? computeOccurrenceEnd(new Date(effectiveEventDate), event.eventDate, event.eventEndAt)
+    : event.eventEndAt
   const registrationClosed = deadlineExpired || event.status === "closed" || windowClosed
   const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
@@ -1163,10 +1169,13 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              {event.eventDate && (
+              {effectiveEventDate && (
                 <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
                   <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Date</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{formatEventDateRange(event.eventDate, event.eventEndAt)}</p>
+                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>
+                    {formatEventDateRange(effectiveEventDate, effectiveEventEndAt)}
+                    {event.isRecurring ? ` (${event.recurrenceFrequency === "BIWEEKLY" ? "Every 2 weeks" : event.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"})` : ""}
+                  </p>
                 </div>
               )}
               {event.location && (
