@@ -21,6 +21,8 @@ html[data-theme="dark"] {
   --accent: #C8F55A;
   --accent-hover: #B8E040;
   --accent-dim: rgba(200, 245, 90, 0.1);
+  --accent-contrast: #0A0A0A;
+  --accent-foreground: #0A0A0A;
 
   --text-primary: #FFFFFF;
   --text-secondary: #A3A3A3;
@@ -71,6 +73,8 @@ html[data-theme="light"] {
   --accent: #4f6710;
   --accent-hover: #43580d;
   --accent-dim: rgba(79, 103, 16, 0.16);
+  --accent-contrast: #FFFFFF;
+  --accent-foreground: #FFFFFF;
 
   --text-primary: #171717;
   --text-secondary: #384152;

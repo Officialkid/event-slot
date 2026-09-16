@@ -85,8 +85,9 @@ export async function POST(req: Request) {
         password: hashed,
         consentSystemEmails: true,
         marketingConsent: true,
-        twoFactorEnabled: true,
-        otpRequired: true,
+        twoFactorEnabled: false,
+        otpRequired: false,
+        emailVerified: new Date(),
         preferredLanguage: normalizedLanguage,
       },
       select: { id: true },
@@ -115,17 +116,10 @@ export async function POST(req: Request) {
 
     await checkAndAwardPioneerBadge(newUser.id)
 
-    // Issue 6-digit email OTP verification code
-    try {
-      await issueOtpForEmail(normalizedEmail)
-    } catch (otpErr) {
-      console.error('[signup] Failed to issue signup OTP:', otpErr)
-    }
-
     // Fire-and-forget welcome email — don't block the response
     sendWelcomeEmail({ to: normalizedEmail, name: String(name).trim() }).catch(() => {})
 
-    return NextResponse.json({ success: true, otpRequired: true }, { status: 201 })
+    return NextResponse.json({ success: true, otpRequired: false }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }

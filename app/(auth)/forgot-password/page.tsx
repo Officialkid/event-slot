@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
       <div
         style={{
           background: 'var(--surface)',
-          border: '0.5px solid var(--border)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           padding: '2rem',
         }}
@@ -131,7 +131,7 @@ export default function ForgotPasswordPage() {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   background: 'var(--bg-input)',
-  border: '0.5px solid var(--border)',
+  border: '1px solid var(--border)',
   borderRadius: 8,
   padding: '0.75rem 0.875rem',
   fontSize: '0.875rem',

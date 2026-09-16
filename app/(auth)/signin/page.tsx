@@ -5,13 +5,14 @@ import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Eye, EyeOff, Check } from 'lucide-react'
+import { Eye, EyeOff, Check, Mail, ArrowLeft } from 'lucide-react'
 
 function SignInForm() {
   const { status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const didReset = searchParams.get('reset') === 'success'
+  const didRegister = searchParams.get('registered') === 'true'
   const authError = searchParams.get('error')
 
   const [email, setEmail] = useState('')
@@ -25,7 +26,7 @@ function SignInForm() {
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
   const [isLocalhost, setIsLocalhost] = useState(false)
-  const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false)
+  const [showEmailForm, setShowEmailForm] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -60,10 +61,6 @@ function SignInForm() {
 
   async function handleGoogleSignIn() {
     setError('')
-    if (!googleTermsAccepted) {
-      setError('Please agree to the Terms and Privacy Policy before continuing with Google.')
-      return
-    }
     setLoading(true)
     try {
       await signIn('google', { callbackUrl: '/my-events' })
@@ -157,7 +154,7 @@ function SignInForm() {
       <div
         style={{
           background: 'var(--surface)',
-          border: '0.5px solid var(--border)',
+          border: '1px solid var(--border)',
           borderRadius: 16,
           padding: '2rem',
         }}
@@ -165,8 +162,8 @@ function SignInForm() {
         {didReset && (
           <div
             style={{
-              background: 'rgba(200,245,90,0.08)',
-              border: '0.5px solid rgba(200,245,90,0.3)',
+              background: 'var(--accent-dim)',
+              border: '1px solid var(--border)',
               borderRadius: 10,
               padding: '0.75rem 1rem',
               marginBottom: '1.5rem',
@@ -176,6 +173,23 @@ function SignInForm() {
             }}
           >
             Password updated. Sign in below.
+          </div>
+        )}
+
+        {didRegister && (
+          <div
+            style={{
+              background: 'var(--accent-dim)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '0.75rem 1rem',
+              marginBottom: '1.5rem',
+              fontSize: '0.85rem',
+              color: 'var(--accent)',
+              fontFamily: 'var(--font-dm-sans)',
+            }}
+          >
+            Account created! Please sign in with your email and password below.
           </div>
         )}
 
@@ -201,221 +215,250 @@ function SignInForm() {
         >
           Sign in to manage your events.
         </p>
-        <p
-          style={{
-            fontFamily: 'var(--font-dm-sans)',
-            fontWeight: 300,
-            fontSize: '0.78rem',
-            color: 'var(--text-muted)',
-            margin: '-0.85rem 0 1.5rem',
-            lineHeight: 1.55,
-          }}
-        >
-          To protect accounts, repeated failed sign-ins trigger slowdowns and a temporary lock.
-        </p>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={loading || !googleTermsAccepted}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.625rem',
-            background: 'var(--surface-muted)',
-            color: '#0A0A0A',
-            border: '0.5px solid var(--border)',
-            borderRadius: 100,
-            padding: '0.75rem 1rem',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            fontFamily: 'var(--font-dm-sans)',
-            cursor: loading || !googleTermsAccepted ? 'not-allowed' : 'pointer',
-            opacity: loading || !googleTermsAccepted ? 0.55 : 1,
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.64 9.20456C17.64 8.56637 17.5827 7.95274 17.4764 7.36365H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8196H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20456Z" fill="#4285F4"/>
-            <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5613C11.2418 14.1013 10.2109 14.4204 9 14.4204C6.65591 14.4204 4.67182 12.8372 3.96409 10.71H0.957275V13.0418C2.43818 15.9831 5.48182 18 9 18Z" fill="#34A853"/>
-            <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59319 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95819H0.957275C0.347727 6.17319 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
-            <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
-          </svg>
-          {loading ? 'Preparing Google sign-in…' : 'Continue with Google'}
-        </button>
-
-        <label
-          style={{
-            display: 'flex',
-            gap: '0.7rem',
-            alignItems: 'flex-start',
-            marginTop: '0.85rem',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-dm-sans)',
-            fontSize: '0.78rem',
-            lineHeight: 1.55,
-            cursor: 'pointer',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={googleTermsAccepted}
-            onChange={(event) => setGoogleTermsAccepted(event.target.checked)}
-            style={{ marginTop: 2, width: 16, height: 16, accentColor: '#C8F55A', flexShrink: 0 }}
-          />
-          <span>
-            I agree to EventSlot&apos;s{' '}
-            <Link href="/terms" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link href="/privacy" target="_blank" style={{ color: '#C8F55A', textDecoration: 'underline' }}>
-              Privacy Policy
-            </Link>{' '}
-            before continuing with Google.
-          </span>
-        </label>
-
-        {authError && (
-          <p style={{ fontSize: '0.8rem', color: '#FF6B6B', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
-            Sign-in session expired. Please tap Google again to continue.
-          </p>
-        )}
-
-        {isLocalhost && (
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
-            Google sign-in on this local preview may be unavailable unless the localhost callback URL is added in the Google OAuth app. The live Cloud Run site uses the production callback.
-          </p>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0' }}>
-          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-dm-sans)' }}>or</span>
-          <div style={{ flex: 1, borderTop: '0.5px solid var(--border)' }} />
-        </div>
-
-        <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--text-muted)', fontFamily: 'var(--font-dm-sans)', margin: '-0.25rem 0 1rem' }}>
-          If this email was created with Google sign-in, use the Google button above. If you later set a password, you can sign in below.
-        </p>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          <label style={fieldLabelStyle} htmlFor="signin-email">
-            Email address
-          </label>
-          <input
-            id="signin-email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
-          />
-
-          <label style={fieldLabelStyle} htmlFor="signin-password">
-            Password
-          </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              id="signin-password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ ...inputStyle, paddingRight: '3rem' }}
-            />
+        {!showEmailForm ? (
+          /* CHOICE VIEW: Google first or open Email form */
+          <div>
             <button
               type="button"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              onClick={() => setShowPassword((value) => !value)}
-              style={passwordToggleStyle}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {otpRequired && (
-            <>
-              <label style={fieldLabelStyle} htmlFor="signin-otp">
-                Verification code
-              </label>
-              <input
-                id="signin-otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                style={inputStyle}
-              />
-              {otpHint && (
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
-                  {otpHint}
-                </p>
-              )}
-            </>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              <span style={{ position: 'relative', display: 'inline-flex', width: 18, height: 18 }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={checkboxStyle}
-                />
-                <span style={rememberBoxStyle}>
-                  {rememberMe && <Check size={12} strokeWidth={3} />}
-                </span>
-              </span>
-              Remember me
-            </label>
-
-            <Link
-              href="/forgot-password"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
               style={{
-                fontSize: '0.78rem',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.625rem',
+                background: 'var(--surface-muted)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 100,
+                padding: '0.75rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                fontFamily: 'var(--font-dm-sans)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                transition: 'background 0.15s ease, border-color 0.15s ease',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.64 9.20456C17.64 8.56637 17.5827 7.95274 17.4764 7.36365H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8196H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20456Z" fill="#4285F4"/>
+                <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5613C11.2418 14.1013 10.2109 14.4204 9 14.4204C6.65591 14.4204 4.67182 12.8372 3.96409 10.71H0.957275V13.0418C2.43818 15.9831 5.48182 18 9 18Z" fill="#34A853"/>
+                <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59319 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95819H0.957275C0.347727 6.17319 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
+                <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
+              </svg>
+              {loading ? 'Preparing Google sign-in…' : 'Continue with Google'}
+            </button>
+
+            <p
+              style={{
+                margin: '0.65rem 0 0',
+                fontSize: '0.76rem',
                 color: 'var(--text-muted)',
-                textDecoration: 'none',
+                textAlign: 'center',
+                lineHeight: 1.45,
                 fontFamily: 'var(--font-dm-sans)',
               }}
             >
-              Forgot password?
-            </Link>
-          </div>
-
-          {error && (
-            <p style={{ fontSize: '0.82rem', color: '#FF6B6B', margin: '0', fontFamily: 'var(--font-dm-sans)' }}>
-              {error}
+              By continuing with Google, you agree to EventSlot&apos;s{' '}
+              <Link href="/terms" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}>
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}>
+                Privacy Policy
+              </Link>.
             </p>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              background: '#C8F55A',
-              color: '#0A0A0A',
-              border: 'none',
-              borderRadius: 100,
-              padding: '0.75rem 1rem',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              fontFamily: 'var(--font-dm-sans)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-              marginTop: '0.25rem',
-            }}
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+            {authError && (
+              <p style={{ fontSize: '0.8rem', color: '#FF6B6B', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                Sign-in session expired. Please tap Google again to continue.
+              </p>
+            )}
+
+            {isLocalhost && (
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.75rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                Google sign-in on this local preview may be unavailable unless the localhost callback URL is added in the Google OAuth app.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0' }}>
+              <div style={{ flex: 1, borderTop: '1px solid var(--border)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-dm-sans)' }}>or</span>
+              <div style={{ flex: 1, borderTop: '1px solid var(--border)' }} />
+            </div>
+
+            {/* Option to expand Email & Password form */}
+            <button
+              type="button"
+              onClick={() => setShowEmailForm(true)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.625rem',
+                background: 'var(--bg-elevated, var(--surface-muted))',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 100,
+                padding: '0.75rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                fontFamily: 'var(--font-dm-sans)',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <Mail size={16} style={{ color: 'var(--accent)' }} />
+              Sign in with Email & Password
+            </button>
+          </div>
+        ) : (
+          /* EMAIL & PASSWORD FORM VIEW */
+          <div>
+            <button
+              type="button"
+              onClick={() => { setShowEmailForm(false); setError(''); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.78rem',
+                color: 'var(--accent)',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                marginBottom: '1.25rem',
+                fontFamily: 'var(--font-dm-sans)',
+                fontWeight: 500,
+              }}
+            >
+              <ArrowLeft size={14} />
+              Back to Google option
+            </button>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <label style={fieldLabelStyle} htmlFor="signin-email">
+                Email address
+              </label>
+              <input
+                id="signin-email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+
+              <label style={fieldLabelStyle} htmlFor="signin-password">
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="signin-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ ...inputStyle, paddingRight: '3rem' }}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((value) => !value)}
+                  style={passwordToggleStyle}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {otpRequired && (
+                <>
+                  <label style={fieldLabelStyle} htmlFor="signin-otp">
+                    Verification code
+                  </label>
+                  <input
+                    id="signin-otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={inputStyle}
+                  />
+                  {otpHint && (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '-0.25rem 0 0', fontFamily: 'var(--font-dm-sans)', lineHeight: 1.5 }}>
+                      {otpHint}
+                    </p>
+                  )}
+                </>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ position: 'relative', display: 'inline-flex', width: 18, height: 18 }}>
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      style={checkboxStyle}
+                    />
+                    <span style={rememberBoxStyle}>
+                      {rememberMe && <Check size={12} strokeWidth={3} />}
+                    </span>
+                  </span>
+                  Remember me
+                </label>
+
+                <Link
+                  href="/forgot-password"
+                  style={{
+                    fontSize: '0.78rem',
+                    color: 'var(--accent)',
+                    textDecoration: 'underline',
+                    fontFamily: 'var(--font-dm-sans)',
+                  }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              {error && (
+                <p style={{ fontSize: '0.82rem', color: '#FF6B6B', margin: '0', fontFamily: 'var(--font-dm-sans)' }}>
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  background: loading ? 'var(--surface-muted)' : 'var(--accent)',
+                  color: loading ? 'var(--text-muted)' : 'var(--accent-contrast)',
+                  border: loading ? '1px solid var(--border)' : 'none',
+                  borderRadius: 100,
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-dm-sans)',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  marginTop: '0.25rem',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
+              </button>
+            </form>
+          </div>
+        )}
 
         <p
           style={{
@@ -427,7 +470,7 @@ function SignInForm() {
           }}
         >
           Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>
+          <Link href="/signup" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}>
             Sign up
           </Link>
         </p>
@@ -439,7 +482,7 @@ function SignInForm() {
 const inputStyle: React.CSSProperties = {
   width: '100%',
   background: 'var(--surface-muted)',
-  border: '0.5px solid var(--border)',
+  border: '1px solid var(--border)',
   borderRadius: 8,
   padding: '0.75rem 0.875rem',
   fontSize: '0.875rem',
@@ -485,12 +528,12 @@ const rememberBoxStyle: React.CSSProperties = {
   width: 18,
   height: 18,
   borderRadius: 5,
-  border: '0.5px solid var(--border)',
+  border: '1px solid var(--border)',
   background: 'var(--surface-muted)',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#C8F55A',
+  color: 'var(--accent)',
 }
 
 export default function SignInPage() {
