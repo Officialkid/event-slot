@@ -527,6 +527,7 @@ export async function sendConfirmationEmail({
     </div>`
   }
 
+
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
     to,
@@ -545,14 +546,19 @@ export async function sendConfirmationEmail({
         </p>
 
         <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;
-                    padding:16px;margin-bottom:24px;">
-          <p style="color:#525252;font-size:12px;margin:0 0 4px;">
-            Confirmation number
+                    padding:20px;margin-bottom:24px;text-align:center;">
+          <p style="color:#737373;font-size:12px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.06em;">
+            Confirmation Number
           </p>
-          <p style="color:#C8F55A;font-size:18px;font-weight:bold;
-                    font-family:monospace;margin:0;">
+          <p style="color:#C8F55A;font-size:24px;font-weight:bold;
+                    font-family:monospace;letter-spacing:0.08em;margin:0 0 16px;">
             ${confirmationNumber}
           </p>
+          <a href="${BASE_URL}/register/success/${confirmationNumber}"
+             style="background:#C8F55A;color:#0A0A0A;padding:12px 24px;text-decoration:none;
+                    border-radius:8px;font-weight:bold;font-size:14px;display:inline-block;">
+            🎫 View &amp; Download Ticket Pass
+          </a>
         </div>
 
         ${referralUrl ? `

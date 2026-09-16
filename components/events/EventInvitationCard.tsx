@@ -500,8 +500,11 @@ export default function EventInvitationCard({
 
         {(mapDirectionsUrl || displayLocation) && (() => {
           const mapQuery = displayLocation?.trim() || displayTitle || ""
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
           const embedUrl = mapQuery
-            ? `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+            ? (apiKey
+                ? `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(mapQuery)}`
+                : `https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1s${encodeURIComponent(mapQuery)}!6i15`)
             : null
           return (
             <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.5rem" }}>
@@ -514,7 +517,7 @@ export default function EventInvitationCard({
                     style={{ border: 0, display: "block" }}
                     loading="lazy"
                     allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     src={embedUrl}
                   />
                 </div>

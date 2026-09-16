@@ -230,64 +230,41 @@ export default async function TicketSuccessPage({
       </div>
 
       {/* Ticket */}
-      {event.ticketsEnabled ? (
-        <div style={{ width: "100%", maxWidth: 660 }}>
-          <ConfirmationTicket ticket={ticket} />
-          {registration.ticket?.scannedAt && (
-            <div
+      <div style={{ width: "100%", maxWidth: 660 }}>
+        <ConfirmationTicket ticket={ticket} />
+        {registration.ticket?.scannedAt && (
+          <div
+            style={{
+              marginTop: "0.75rem",
+              padding: "0.5rem 0.85rem",
+              background: "color-mix(in srgb, var(--error) 12%, transparent)",
+              border: "0.5px solid color-mix(in srgb, var(--error) 35%, transparent)",
+              borderRadius: 8,
+              textAlign: "center",
+            }}
+          >
+            <p
               style={{
-                marginTop: "0.75rem",
-                padding: "0.5rem 0.85rem",
-                background: "color-mix(in srgb, var(--error) 12%, transparent)",
-                border: "0.5px solid color-mix(in srgb, var(--error) 35%, transparent)",
-                borderRadius: 8,
-                textAlign: "center",
+                margin: 0,
+                color: "var(--error)",
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "0.78rem",
+                fontWeight: 600,
               }}
             >
-              <p
-                style={{
-                  margin: 0,
-                  color: "var(--error)",
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "0.78rem",
-                  fontWeight: 600,
-                }}
-              >
-                Ticket already scanned —{" "}
-                {new Date(registration.ticket.scannedAt).toLocaleString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 660,
-            border: "0.5px solid var(--border-subtle)",
-            borderRadius: 12,
-            padding: "1rem 1.1rem",
-            background: "var(--surface)",
-          }}
-        >
-          <p style={{ margin: 0, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.9rem", fontWeight: 600 }}>
-            Registration confirmed
-          </p>
-          <p style={{ margin: "0.45rem 0 0", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", fontSize: "0.8rem" }}>
-            Confirmation #{confirmationCode}
-          </p>
-          <p style={{ margin: "0.6rem 0 0", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", fontSize: "0.76rem" }}>
-            Tickets are currently disabled for this event. Keep your confirmation code for check-in.
-          </p>
-        </div>
-      )}
+              Ticket already scanned —{" "}
+              {new Date(registration.ticket.scannedAt).toLocaleString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* ── Add to Calendar ── */}
       {event.eventDate && staticGoogleUrl && (

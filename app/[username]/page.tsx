@@ -179,6 +179,8 @@ async function getEventBySlug(slug: string) {
       faqEnabled: true,
       whatsappNumber: true,
       organizerName: true,
+      groupRegistrationEnabled: true,
+      allowGroupSelfClaim: true,
       ticketTiers: {
         where: { status: "ACTIVE" },
         orderBy: { sortOrder: "asc" },

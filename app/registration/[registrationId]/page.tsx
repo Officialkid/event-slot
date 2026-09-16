@@ -121,11 +121,46 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
             <p style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '0.95rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6, maxWidth: 360, margin: '0 auto 1rem' }}>
               You are registered for {event.title}. We look forward to seeing you.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: event.communityLink ? '1.25rem' : 0 }}>
-              <span style={{ borderRadius: 999, border: '1px solid var(--border-emphasis)', background: 'var(--accent-dim)', padding: '4px 12px', fontSize: '0.7rem', color: 'var(--accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+              <span style={{ borderRadius: 999, border: '1px solid var(--border-emphasis)', background: 'var(--accent-dim)', padding: '4px 12px', fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 600 }}>
                 Confirmed
               </span>
             </div>
+
+            {registration.confirmationCode && (
+              <div style={{ marginTop: '0.5rem', marginBottom: '1.25rem', textAlign: 'center', background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 12, padding: '1.25rem 1rem' }}>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.35rem' }}>
+                  Confirmation Code
+                </p>
+                <p style={{ fontFamily: 'monospace', fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', margin: '0 0 1rem' }}>
+                  {registration.confirmationCode}
+                </p>
+                <a
+                  href={`/register/success/${registration.confirmationCode}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    background: 'var(--accent)',
+                    color: '#0A0A0A',
+                    fontFamily: 'var(--font-dm-sans)',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: 999,
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 14px rgba(200,245,90,0.3)',
+                    width: '100%',
+                    maxWidth: 320,
+                    margin: '0 auto',
+                  }}
+                >
+                  <span>🎫</span> View &amp; Download Ticket Pass
+                </a>
+              </div>
+            )}
+
             {event.communityLink && (
               <div style={{ background: 'var(--accent-dim)', border: '0.5px solid var(--accent-dim)', borderRadius: 8, padding: '1rem 1.25rem' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.6rem' }}>
@@ -189,14 +224,34 @@ export default async function RegistrationStatusPage(props: { params: Promise<{ 
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginTop: '1.25rem' }}>
+        {isConfirmed && registration.confirmationCode && (
+          <a
+            href={`/register/success/${registration.confirmationCode}`}
+            style={{
+              display: 'inline-block',
+              background: 'var(--accent)',
+              color: '#0A0A0A',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              padding: '0.7rem 1.75rem',
+              borderRadius: 999,
+              textDecoration: 'none',
+              boxShadow: '0 4px 14px rgba(200,245,90,0.3)',
+            }}
+          >
+            🎫 View &amp; Download Ticket Pass
+          </a>
+        )}
         {/* Register another person — only for open events */}
         {event.status === 'active' && (!event.deadline || new Date(event.deadline) > new Date()) && (
           <a
             href={`/${event.slug}`}
             style={{
               display: 'inline-block',
-              background: 'var(--accent)',
-              color: '#0A0A0A',
+              background: isConfirmed && registration.confirmationCode ? 'var(--surface-muted)' : 'var(--accent)',
+              color: isConfirmed && registration.confirmationCode ? 'var(--text-primary)' : '#0A0A0A',
+              border: isConfirmed && registration.confirmationCode ? '1px solid var(--border-subtle)' : 'none',
               fontFamily: 'var(--font-dm-sans)',
               fontSize: '0.875rem',
               fontWeight: 600,
