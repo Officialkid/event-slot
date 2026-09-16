@@ -6,6 +6,7 @@ import { hasAdminAccess } from '@/lib/isAdmin'
 import { sendEmail } from '@/lib/email'
 import { env } from '@/lib/env'
 import { getConfiguredEmailFrom } from '@/lib/emailProvider'
+import { APP_URL } from '@/lib/config'
 
 const EMAIL_FROM = getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
 const BATCH_SIZE = 50
@@ -27,7 +28,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 function buildEmailHtml(content: string, userId: string): string {
-  const unsubscribeUrl = `https://www.eventsslot.com/api/email/unsubscribe?id=${userId}`
+  const unsubscribeUrl = `${APP_URL}/api/email/unsubscribe?id=${userId}`
 
   return `
 <!DOCTYPE html>

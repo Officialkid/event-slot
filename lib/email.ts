@@ -653,7 +653,6 @@ export async function sendRegistrationResponseCopyEmail({
   })
 }
 
-
 export async function sendWelcomeEmail({
   to,
   name,
@@ -661,36 +660,69 @@ export async function sendWelcomeEmail({
   to: string
   name: string
 }) {
+  const firstName = (name || '').trim().split(' ')[0] || 'there'
+
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot <hello@eventsslot.com>',
     to,
-    subject: `Welcome to EventSlot, ${name}`,
+    subject: `You're officially in! Welcome to EventSlot`,
     html: `
-      <div style="font-family:sans-serif;max-width:480px;
-                  margin:0 auto;padding:2rem;background:#0A0A0A;color:#F0EDE6">
-        <div style="color:#C8F55A;font-size:1.2rem;margin-bottom:1rem">EventSlot</div>
-        <h2 style="color:#F0EDE6">Welcome, ${name}</h2>
-        <p style="color:rgba(240,237,230,0.6)">
-          You are all set. Create your first event and share the link -
-          registrations and waitlists are handled automatically from here.
-        </p>
-        <a href="${BASE_URL}/create"
-           style="display:inline-block;background:#C8F55A;color:#0A0A0A;
-                  padding:12px 28px;border-radius:100px;text-decoration:none;
-                  font-weight:500;margin-top:1.5rem">
-          Create your first event
-        </a>
-        <p style="margin-top:2rem;color:rgba(240,237,230,0.25);font-size:0.75rem">
-          Questions? Reply to this email - we read everything.
-        </p>
+      <div style="background:#0A0A0A;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#FAFAF7;line-height:1.6;">
+        <div style="max-width:520px;margin:0 auto;background:#141414;border:1px solid #262626;border-radius:16px;padding:36px 32px;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+          
+          <!-- Logo -->
+          <div style="margin-bottom:28px;">
+            <span style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Event</span><span style="font-size:22px;font-weight:800;color:#C8F55A;letter-spacing:-0.03em;">Slot</span>
+          </div>
+
+          <!-- Greeting -->
+          <h1 style="color:#FFFFFF;font-size:22px;font-weight:700;margin:0 0 14px;line-height:1.3;">
+            Hey ${firstName},
+          </h1>
+
+          <p style="color:#C8F55A;font-size:18px;font-weight:700;margin:0 0 16px;">
+            You’re officially in! 🎉
+          </p>
+
+          <p style="color:#D4D4D4;font-size:15px;margin:0 0 16px;line-height:1.6;">
+            Welcome to <strong style="color:#FFFFFF;">EventSlot</strong> — where events are easier to find, register for, and experience.
+          </p>
+
+          <p style="color:#D4D4D4;font-size:15px;margin:0 0 16px;line-height:1.6;">
+            No stress. No endless forms. Just <strong style="color:#FFFFFF;">better events, better experiences.</strong>
+          </p>
+
+          <p style="color:#D4D4D4;font-size:15px;margin:0 0 24px;line-height:1.6;">
+            Glad to have you on board. 💚
+          </p>
+
+          <div style="margin:28px 0;">
+            <a href="${BASE_URL}/my-events"
+               style="display:inline-block;background:#C8F55A;color:#0A0A0A;font-weight:700;font-size:15px;padding:12px 28px;border-radius:10px;text-decoration:none;box-shadow:0 4px 16px rgba(200,245,90,0.35);">
+              Explore Events &amp; Dashboard →
+            </a>
+          </div>
+
+          <div style="border-top:1px solid #262626;padding-top:20px;margin-top:24px;">
+            <p style="color:#FFFFFF;font-size:15px;font-weight:700;margin:0 0 4px;">
+              See you at the next event!
+            </p>
+            <p style="color:#8C8C8C;font-size:13px;margin:0;">
+              — Team EventSlot
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align:center;max-width:520px;margin:20px auto 0;">
+          <p style="color:#525252;font-size:11px;margin:0;">
+            Smarter Events. Better Experiences. · <a href="${BASE_URL}" style="color:#737373;text-decoration:none;">eventsslot.com</a>
+          </p>
+        </div>
       </div>
     `,
   })
 }
-
-// ---
-// Organizer system emails - only sent if consentSystemEmails = true
-// ---
 
 export async function sendOrganizerCapacity90Email({
   to,
