@@ -52,7 +52,9 @@ export async function GET(
       }
     })
 
-    return NextResponse.json({ success: true, groupBookings: data })
+    const totalGroupSlots = data.reduce((sum, b) => sum + b.totalSlots, 0)
+
+    return NextResponse.json({ success: true, groupBookings: data, totalGroupSlots })
   } catch (error) {
     console.error("[EVENT GROUP BOOKINGS LIST]", error)
     return NextResponse.json({ error: "Failed to fetch group bookings" }, { status: 500 })

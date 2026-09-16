@@ -9,8 +9,6 @@ import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 import { APP_URL } from '@/lib/config'
 
 const EMAIL_FROM = getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
-const BATCH_SIZE = 50
-const BATCH_DELAY_MS = 500
 
 type BroadcastMode = 'ALL' | 'SUBSCRIBED' | 'INDIVIDUAL'
 
@@ -21,39 +19,50 @@ function parseMode(value: string | null): BroadcastMode {
   return 'SUBSCRIBED'
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
+function formatBroadcastBody(content: string): string {
+  if (/<[a-z][\s\S]*>/i.test(content)) {
+    return content
+  }
+  let formatted = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#FFFFFF;">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em style="color:#E5E5E5;">$1</em>')
+
+  const paragraphs = formatted.split(/\n\s*\n/)
+  return paragraphs
+    .map((p) => {
+      const lineWithLinks = p.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#C8F55A;text-decoration:underline;">$1</a>')
+      return `<p style="margin:0 0 16px;line-height:1.6;color:#D4D4D4;">${lineWithLinks.replace(/\n/g, '<br/>')}</p>`
+    })
+    .join('')
 }
 
 function buildEmailHtml(content: string, userId: string): string {
   const unsubscribeUrl = `${APP_URL}/api/email/unsubscribe?id=${userId}`
+  const bodyHtml = formatBroadcastBody(content)
 
   return `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0A0A0A;font-family:sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:540px;margin:0 auto;padding:40px 20px;">
 
     <div style="margin-bottom:32px;">
-      <span style="font-size:22px;font-weight:bold;color:#fff;">Event</span>
-      <span style="font-size:22px;font-weight:bold;color:#C8F55A;">Slot</span>
+      <span style="font-size:24px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Event</span><span style="font-size:24px;font-weight:800;color:#C8F55A;letter-spacing:-0.03em;">Slot</span>
     </div>
 
-    <div style="color:#A3A3A3;font-size:15px;line-height:1.6;">
-      ${content}
+    <div style="font-size:15px;line-height:1.6;">
+      ${bodyHtml}
     </div>
 
     <div style="margin-top:40px;padding-top:24px;border-top:1px solid #2A2A2A;">
-      <p style="color:#525252;font-size:12px;margin:0 0 8px;">
+      <p style="color:#737373;font-size:12px;margin:0 0 8px;">
         Smarter Events. Better Experiences.
       </p>
       <p style="color:#525252;font-size:11px;margin:0;">
         You received this email because you have an EventSlot account.
         <a href="${unsubscribeUrl}"
-           style="color:#525252;text-decoration:underline;">
+           style="color:#737373;text-decoration:underline;">
           Unsubscribe
         </a>
       </p>
@@ -62,6 +71,19 @@ function buildEmailHtml(content: string, userId: string): string {
 </body>
 </html>
 `
+}
+
+function sanitizeName(rawName: string | null | undefined): string {
+  if (!rawName) return 'there'
+  const trimmed = rawName.trim()
+  if (!trimmed) return 'there'
+  if (trimmed.includes('@') || (/^[a-z0-9._%+-]+$/i.test(trimmed) && trimmed.length > 15)) {
+    return 'there'
+  }
+  const first = trimmed.split(/\s+/)[0]
+  if (!first || first.length < 2) return 'there'
+  if (/^kid$/i.test(first) || /^officialkid$/i.test(first)) return 'there'
+  return first.charAt(0).toUpperCase() + first.slice(1)
 }
 
 export async function GET(req: NextRequest) {
@@ -149,64 +171,68 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    if (recipients.length === 0) {
+    const validRecipients = recipients.filter(
+      (r): r is { id: string; name: string | null; email: string } => Boolean(r.email && r.email.includes('@'))
+    )
+
+    if (validRecipients.length === 0) {
       return NextResponse.json({
         success: true,
         sent: 0,
+        failed: 0,
         mode,
-        message: 'No recipients found',
+        message: 'No recipients with valid email addresses found.',
       })
     }
 
-    const validRecipients = recipients.filter((u): u is typeof u & { email: string } => Boolean(u.email))
-    const batches = chunk(validRecipients, BATCH_SIZE)
     let sent = 0
     let failed = 0
-    const failedRecipients: string[] = []
+    const failedRecipients: { email: string; error: string }[] = []
 
-    for (let i = 0; i < batches.length; i += 1) {
-      const batch = batches[i]
-      const results = await Promise.allSettled(
-        batch.map((user) =>
-          sendEmail({
+    // Paced delivery loop: Resend enforces strict 2 req/s rate limits.
+    // 550ms delay keeps throughput safely under limits (~1.8 req/sec).
+    for (const recipient of validRecipients) {
+      const recipientName = sanitizeName(recipient.name)
+      const personalizedContent = htmlContent
+        .replace(/\{\{\s*name\s*\}\}/gi, recipientName)
+        .replace(/\{\{\s*first[_\s-]?name\s*\}\}/gi, recipientName)
+
+      const emailHtml = buildEmailHtml(personalizedContent, recipient.id)
+
+      let attempts = 0
+      let success = false
+      let lastErrorMsg = ''
+
+      while (attempts < 3 && !success) {
+        attempts++
+        try {
+          await sendEmail({
             from: EMAIL_FROM,
-            to: user.email,
-            replyTo: 'eventslot.co@gmail.com',
+            to: recipient.email,
             subject: subject.trim(),
-            html: buildEmailHtml(
-              htmlContent.replace(/\{\{name\}\}/g, user.name ?? 'there'),
-              user.id
-            ),
+            html: emailHtml,
           })
-        )
-      )
-
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          sent += 1
-          return
+          success = true
+          sent++
+        } catch (err) {
+          lastErrorMsg = err instanceof Error ? err.message : String(err)
+          if (/429|too many|rate/i.test(lastErrorMsg) && attempts < 3) {
+            await new Promise((r) => setTimeout(r, 1200 * attempts))
+          } else {
+            break
+          }
         }
-
-        failed += 1
-        const failedEmail = batch[index]?.email
-        if (failedEmail) failedRecipients.push(failedEmail)
-        console.error(`Failed to send broadcast to ${failedEmail ?? 'unknown recipient'}:`, result.reason)
-      })
-
-      if (i < batches.length - 1) {
-        await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
       }
-    }
 
-    await prisma.message.create({
-      data: {
-        type: 'ADMIN_BROADCAST',
-        authorId: session?.user?.id ?? null,
-        subject: subject.trim(),
-        content: htmlContent.trim(),
-        isPublic: true,
-      },
-    })
+      if (!success) {
+        failed++
+        failedRecipients.push({ email: recipient.email, error: lastErrorMsg })
+        console.error(`[admin/broadcast] Delivery failed for ${recipient.email}:`, lastErrorMsg)
+      }
+
+      // Throttle delay between sends
+      await new Promise((r) => setTimeout(r, 550))
+    }
 
     if (session?.user?.id) {
       await prisma.auditLog.create({

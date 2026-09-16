@@ -259,6 +259,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [groupSubmitting, setGroupSubmitting] = useState(false)
   const [groupResult, setGroupResult] = useState<any>(null)
   const [groupError, setGroupError] = useState("")
+  const [groupFieldErrors, setGroupFieldErrors] = useState<Record<string, string>>({})
+  const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({})
   const [groupCopied, setGroupCopied] = useState(false)
   const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
   const [mpesaPhone] = useState("")
@@ -635,12 +637,45 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     }
   }
 
-    const handleGroupSubmit = async (e: React.FormEvent) => {
+  const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!orgName.trim() || !orgContactName.trim() || !orgContactEmail.trim() || !orgContactPhone.trim()) {
-      setGroupError("Please fill in all organization contact details.")
+    const errors: Record<string, string> = {}
+
+    if (!orgName.trim()) {
+      errors.orgName = "Organization or group name is required."
+    }
+    if (!groupSlots || Number(groupSlots) < 1) {
+      errors.groupSlots = "Please reserve at least 1 slot."
+    } else if (Number(groupSlots) > 500) {
+      errors.groupSlots = "Maximum group allocation is 500 seats."
+    }
+    if (!orgContactName.trim()) {
+      errors.orgContactName = "Primary contact person's name is required."
+    }
+    if (!orgContactEmail.trim()) {
+      errors.orgContactEmail = "Contact email address is required."
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(orgContactEmail.trim())) {
+      errors.orgContactEmail = "Please enter a valid email address (e.g. name@company.com)."
+    }
+    if (!orgContactPhone.trim()) {
+      errors.orgContactPhone = "Contact phone number is required."
+    } else if (orgContactPhone.trim().length < 9) {
+      errors.orgContactPhone = "Please enter a valid phone number (at least 9 digits)."
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setGroupFieldErrors(errors)
+      setGroupError("Please fill in the required fields highlighted in red below.")
+      const firstKey = Object.keys(errors)[0]
+      const el = document.getElementById(`gb-${firstKey}`)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        el.focus()
+      }
       return
     }
+
+    setGroupFieldErrors({})
     setGroupSubmitting(true)
     setGroupError("")
 
@@ -649,16 +684,26 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orgName,
+          orgName: orgName.trim(),
           orgType,
-          contactName: orgContactName,
-          contactEmail: orgContactEmail,
-          contactPhone: orgContactPhone,
-          totalSlots: groupSlots,
+          contactName: orgContactName.trim(),
+          contactEmail: orgContactEmail.trim(),
+          contactPhone: orgContactPhone.trim(),
+          totalSlots: Number(groupSlots),
         }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Failed to create group booking")
+      if (!res.ok) {
+        if (json.field) {
+          setGroupFieldErrors({ [json.field]: json.error })
+          const el = document.getElementById(`gb-${json.field}`)
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" })
+            el.focus()
+          }
+        }
+        throw new Error(json.error || "Failed to create group booking")
+      }
       setGroupResult(json.booking)
     } catch (err: any) {
       setGroupError(err.message || "Failed to create group booking")
@@ -680,7 +725,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       return
     }
 
-    // Client-side required field validation
+    // Client-side required field validation with field-level errors
+    const qErrors: Record<string, string> = {}
+    let firstErrorElementId: string | null = null
+
     for (let i = 0; i < attendees.length; i++) {
       for (const q of event.questions) {
         if (!q.required) continue
@@ -689,11 +737,38 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           ? parseCheckboxValue(answer).length > 0
           : answer.trim().length > 0
         if (!hasValue) {
-          setError(`Please fill in "${q.label}"${attendees.length > 1 ? ` for attendee ${i + 1}` : ""}.`)
-          return
+          const key = `${i}:${q.id}`
+          qErrors[key] = `Please fill in "${q.label}".`
+          if (!firstErrorElementId) {
+            firstErrorElementId = `q-input-${i}-${q.id}`
+          }
+        }
+      }
+      if (!hasEmailQuestion && baseEmails[i] !== undefined) {
+        const emailVal = baseEmails[i]?.trim() || ""
+        if (!emailVal) {
+          qErrors[`${i}:baseEmail`] = "Email address is required."
+          if (!firstErrorElementId) firstErrorElementId = `base-email-${i}`
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+          qErrors[`${i}:baseEmail`] = "Please enter a valid email address."
+          if (!firstErrorElementId) firstErrorElementId = `base-email-${i}`
         }
       }
     }
+
+    if (Object.keys(qErrors).length > 0) {
+      setQuestionErrors(qErrors)
+      setError("Please fill in the required fields highlighted in red.")
+      if (firstErrorElementId) {
+        const el = document.getElementById(firstErrorElementId)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
+          el.focus()
+        }
+      }
+      return
+    }
+    setQuestionErrors({})
 
     if (event.isPaid) {
       setError(getBillingNoticeCopy("paidEventRegistration").error)
@@ -1462,18 +1537,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 )}
 
                 <div>
-                  <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                  <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.orgName ? "#EF4444" : "var(--text-secondary)" }}>
                     Organization / Group Name *
                   </label>
                   <input
+                    id="gb-orgName"
                     type="text"
                     required
                     placeholder="e.g. City of Refuge Assembly"
                     value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
-                    style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    onChange={(e) => {
+                      setOrgName(e.target.value)
+                      if (groupFieldErrors.orgName) setGroupFieldErrors(prev => ({ ...prev, orgName: "" }))
+                    }}
+                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] transition-colors"
+                    style={{
+                      borderColor: groupFieldErrors.orgName ? "#EF4444" : "var(--border)",
+                      background: "var(--bg-page)",
+                      color: "var(--text-primary)",
+                      boxShadow: groupFieldErrors.orgName ? "0 0 0 1px #EF4444" : "none",
+                    }}
                   />
+                  {groupFieldErrors.orgName && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{groupFieldErrors.orgName}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1498,65 +1588,133 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.groupSlots || groupFieldErrors.totalSlots ? "#EF4444" : "var(--text-secondary)" }}>
                       Number of Reserved Slots *
                     </label>
                     <input
+                      id="gb-groupSlots"
                       type="number"
                       min="1"
                       max="500"
                       required
                       value={groupSlots}
-                      onChange={(e) => setGroupSlots(Math.max(1, Number(e.target.value)))}
-                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
-                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                      onChange={(e) => {
+                        setGroupSlots(Math.max(1, Number(e.target.value)))
+                        if (groupFieldErrors.groupSlots || groupFieldErrors.totalSlots) {
+                          setGroupFieldErrors(prev => ({ ...prev, groupSlots: "", totalSlots: "" }))
+                        }
+                      }}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] transition-colors"
+                      style={{
+                        borderColor: groupFieldErrors.groupSlots || groupFieldErrors.totalSlots ? "#EF4444" : "var(--border)",
+                        background: "var(--bg-page)",
+                        color: "var(--text-primary)",
+                        boxShadow: groupFieldErrors.groupSlots || groupFieldErrors.totalSlots ? "0 0 0 1px #EF4444" : "none",
+                      }}
                     />
+                    {(groupFieldErrors.groupSlots || groupFieldErrors.totalSlots) && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                        <span>⚠️</span>
+                        <span>{groupFieldErrors.groupSlots || groupFieldErrors.totalSlots}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                  <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.orgContactName || groupFieldErrors.contactName ? "#EF4444" : "var(--text-secondary)" }}>
                     Primary Contact Name *
                   </label>
                   <input
+                    id="gb-contactName"
                     type="text"
                     required
                     placeholder="Contact person full name"
                     value={orgContactName}
-                    onChange={(e) => setOrgContactName(e.target.value)}
-                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
-                    style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    onChange={(e) => {
+                      setOrgContactName(e.target.value)
+                      if (groupFieldErrors.orgContactName || groupFieldErrors.contactName) {
+                        setGroupFieldErrors(prev => ({ ...prev, orgContactName: "", contactName: "" }))
+                      }
+                    }}
+                    className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] transition-colors"
+                    style={{
+                      borderColor: groupFieldErrors.orgContactName || groupFieldErrors.contactName ? "#EF4444" : "var(--border)",
+                      background: "var(--bg-page)",
+                      color: "var(--text-primary)",
+                      boxShadow: groupFieldErrors.orgContactName || groupFieldErrors.contactName ? "0 0 0 1px #EF4444" : "none",
+                    }}
                   />
+                  {(groupFieldErrors.orgContactName || groupFieldErrors.contactName) && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{groupFieldErrors.orgContactName || groupFieldErrors.contactName}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail ? "#EF4444" : "var(--text-secondary)" }}>
                       Contact Email Address *
                     </label>
                     <input
+                      id="gb-contactEmail"
                       type="email"
                       required
                       placeholder="contact@organization.com"
                       value={orgContactEmail}
-                      onChange={(e) => setOrgContactEmail(e.target.value)}
-                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
-                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                      onChange={(e) => {
+                        setOrgContactEmail(e.target.value)
+                        if (groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail) {
+                          setGroupFieldErrors(prev => ({ ...prev, orgContactEmail: "", contactEmail: "" }))
+                        }
+                      }}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] transition-colors"
+                      style={{
+                        borderColor: groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail ? "#EF4444" : "var(--border)",
+                        background: "var(--bg-page)",
+                        color: "var(--text-primary)",
+                        boxShadow: groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail ? "0 0 0 1px #EF4444" : "none",
+                      }}
                     />
+                    {(groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail) && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                        <span>⚠️</span>
+                        <span>{groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail}</span>
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-[0.78rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "#EF4444" : "var(--text-secondary)" }}>
                       Contact Phone Number *
                     </label>
                     <input
+                      id="gb-contactPhone"
                       type="tel"
                       required
                       placeholder="0712345678"
                       value={orgContactPhone}
-                      onChange={(e) => setOrgContactPhone(e.target.value)}
-                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem]"
-                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                      onChange={(e) => {
+                        setOrgContactPhone(e.target.value)
+                        if (groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone) {
+                          setGroupFieldErrors(prev => ({ ...prev, orgContactPhone: "", contactPhone: "" }))
+                        }
+                      }}
+                      className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] transition-colors"
+                      style={{
+                        borderColor: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "#EF4444" : "var(--border)",
+                        background: "var(--bg-page)",
+                        color: "var(--text-primary)",
+                        boxShadow: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "0 0 0 1px #EF4444" : "none",
+                      }}
                     />
+                    {(groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone) && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                        <span>⚠️</span>
+                        <span>{groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1673,7 +1831,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 <label
                   htmlFor={`base-email-${attendeeIndex}`}
                   className={subtleLabelClassName}
-                  style={subtleLabelStyle}
+                  style={{
+                    ...subtleLabelStyle,
+                    color: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : subtleLabelStyle?.color,
+                  }}
                 >
                   {formCopy.emailAddress} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>({formCopy.forTicket})</span>
                 </label>
@@ -1682,171 +1843,219 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   type="email"
                   placeholder="your@email.com"
                   className={fieldClassName}
-                  style={fieldStyle}
+                  style={{
+                    ...fieldStyle,
+                    borderColor: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : fieldStyle?.borderColor,
+                    boxShadow: questionErrors[`${attendeeIndex}:baseEmail`] ? "0 0 0 1px #EF4444" : "none",
+                  }}
                   value={baseEmails[attendeeIndex] ?? ""}
-                  onChange={e => setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = e.target.value; return next })}
+                  onChange={e => {
+                    const val = e.target.value
+                    setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = val; return next })
+                    if (questionErrors[`${attendeeIndex}:baseEmail`]) {
+                      setQuestionErrors(prev => ({ ...prev, [`${attendeeIndex}:baseEmail`]: "" }))
+                    }
+                  }}
                 />
+                {questionErrors[`${attendeeIndex}:baseEmail`] && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                    <span>⚠️</span>
+                    <span>{questionErrors[`${attendeeIndex}:baseEmail`]}</span>
+                  </p>
+                )}
               </div>
             )}
-            {displayQuestions.map(q => (
-              <div key={q.id}>
-                <label
-                  htmlFor={`attendee-${attendeeIndex}-${q.id}`}
-                  className={subtleLabelClassName}
-                  style={subtleLabelStyle}
-                >
-                  {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
-                </label>
-                {q.type === "text" && (
-                  <input
-                    id={`attendee-${attendeeIndex}-${q.id}`}
-                    type="text"
-                    className={fieldClassName}
-                    style={fieldStyle}
-                    required={q.required}
-                    value={form[q.id]}
-                    onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
-                  />
-                )}
-                {q.type === "email" && (
-                  <input
-                    id={`attendee-${attendeeIndex}-${q.id}`}
-                    type="email"
-                    className={fieldClassName}
-                    style={fieldStyle}
-                    required={q.required}
-                    value={form[q.id]}
-                    onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
-                  />
-                )}
-                {q.type === "phone" && (
-                  <input
-                    id={`attendee-${attendeeIndex}-${q.id}`}
-                    type="tel"
-                    className={fieldClassName}
-                    style={fieldStyle}
-                    required={q.required}
-                    value={form[q.id]}
-                    onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
-                  />
-                )}
-                {q.type === "file" && (() => {
-                  const uploadKey = `${attendeeIndex}:${q.id}`
-                  const uploadedFile = parseFileAnswer(form[q.id])
-                  return (
-                    <div className="mt-1 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
-                      <input
-                        id={`attendee-${attendeeIndex}-${q.id}`}
-                        type="file"
-                        required={q.required && !uploadedFile}
-                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                        className={fieldClassName}
-                        style={fieldStyle}
-                        disabled={uploadingFiles[uploadKey]}
-                        onChange={e => void handleFileUpload(attendeeIndex, q.id, e.target.files?.[0] ?? null)}
-                      />
-                      <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                        Upload an image, PDF, Word, Excel, or text file. Maximum size is 10 MB.
-                      </p>
-                      {uploadingFiles[uploadKey] && (
-                        <p className="mt-2 text-[0.78rem]" style={{ color: "#C8F55A" }}>
-                          Uploading file...
-                        </p>
-                      )}
-                      {fileErrors[uploadKey] && (
-                        <p className="mt-2 text-[0.78rem]" style={{ color: "var(--error)" }}>
-                          {fileErrors[uploadKey]}
-                        </p>
-                      )}
-                      {uploadedFile && (
-                        <div className="mt-3 rounded-[12px] border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "var(--surface)" }}>
-                          <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer" className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-                            {uploadedFile.name}
-                          </a>
-                          <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                            {uploadedFile.type || "Uploaded file"} - {formatFileSize(uploadedFile.size)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })()}
-                {q.type === "select" && (
-                  <>
-                    <select
-                      id={`attendee-${attendeeIndex}-${q.id}`}
+            {displayQuestions.map(q => {
+              const qKey = `${attendeeIndex}:${q.id}`
+              const qError = questionErrors[qKey]
+              const elementId = `q-input-${attendeeIndex}-${q.id}`
+              const activeFieldStyle = qError
+                ? { ...fieldStyle, borderColor: "#EF4444", boxShadow: "0 0 0 1px #EF4444" }
+                : fieldStyle
+
+              return (
+                <div key={q.id}>
+                  <label
+                    htmlFor={elementId}
+                    className={subtleLabelClassName}
+                    style={{ ...subtleLabelStyle, color: qError ? "#EF4444" : subtleLabelStyle?.color }}
+                  >
+                    {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
+                  </label>
+                  {q.type === "text" && (
+                    <input
+                      id={elementId}
+                      type="text"
                       className={fieldClassName}
-                      style={fieldStyle}
+                      style={activeFieldStyle}
                       required={q.required}
                       value={form[q.id]}
-                      onChange={e => handleChange(attendeeIndex, q.id, e.target.value)}
-                    >
-                      <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
-                      {q.options?.map((opt, optionIndex) => (
-                        <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
-                          {getOptionLabel(q, opt, optionIndex)}
-                        </option>
-                      ))}
-                    </select>
-                    {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-                      <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                        Some positions have limited slots and may close once full.
-                      </p>
-                    )}
-                  </>
-                )}
-                {q.type === "checkbox" && (
-                  <div className="mt-1 space-y-2.5 rounded-[14px] px-3 py-3" style={mutedCardStyle}>
-                    {q.options?.map((opt, optionIndex) => {
-                      const selectedValues = parseCheckboxValue(form[q.id])
-                      const isChecked = selectedValues.includes(opt)
-                      const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
-                      const otherKey = `${attendeeIndex}:${q.id}`
-                      return (
-                        <div key={`${q.id}-${opt}`} className="space-y-1.5">
-                          <label className="flex cursor-pointer items-center gap-2 text-[0.85rem]" style={{ color: "var(--text-primary)" }}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={e => {
-                                const nextValues = e.target.checked
-                                  ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
-                                  : selectedValues.filter(value => value !== opt)
-                                handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
-                              }}
-                              className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-                              style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
-                            />
-                            <span>{getOptionLabel(q, opt, optionIndex)}</span>
-                          </label>
-                          {isChecked && isOtherOption && (
-                            <div className="pl-6 pt-1">
+                      onChange={e => {
+                        handleChange(attendeeIndex, q.id, e.target.value)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                    />
+                  )}
+                  {q.type === "email" && (
+                    <input
+                      id={elementId}
+                      type="email"
+                      className={fieldClassName}
+                      style={activeFieldStyle}
+                      required={q.required}
+                      value={form[q.id]}
+                      onChange={e => {
+                        handleChange(attendeeIndex, q.id, e.target.value)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                    />
+                  )}
+                  {q.type === "phone" && (
+                    <input
+                      id={elementId}
+                      type="tel"
+                      className={fieldClassName}
+                      style={activeFieldStyle}
+                      required={q.required}
+                      value={form[q.id]}
+                      onChange={e => {
+                        handleChange(attendeeIndex, q.id, e.target.value)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                    />
+                  )}
+                  {q.type === "file" && (() => {
+                    const uploadKey = `${attendeeIndex}:${q.id}`
+                    const uploadedFile = parseFileAnswer(form[q.id])
+                    return (
+                      <div className="mt-1 rounded-[14px] px-3 py-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+                        <input
+                          id={elementId}
+                          type="file"
+                          required={q.required && !uploadedFile}
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          className={fieldClassName}
+                          style={activeFieldStyle}
+                          disabled={uploadingFiles[uploadKey]}
+                          onChange={e => {
+                            void handleFileUpload(attendeeIndex, q.id, e.target.files?.[0] ?? null)
+                            if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                          }}
+                        />
+                        <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                          Upload an image, PDF, Word, Excel, or text file. Maximum size is 10 MB.
+                        </p>
+                        {uploadingFiles[uploadKey] && (
+                          <p className="mt-2 text-[0.78rem]" style={{ color: "#C8F55A" }}>
+                            Uploading file...
+                          </p>
+                        )}
+                        {fileErrors[uploadKey] && (
+                          <p className="mt-2 text-[0.78rem]" style={{ color: "var(--error)" }}>
+                            {fileErrors[uploadKey]}
+                          </p>
+                        )}
+                        {uploadedFile && (
+                          <div className="mt-3 rounded-[12px] border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "var(--surface)" }}>
+                            <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer" className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                              {uploadedFile.name}
+                            </a>
+                            <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                              {uploadedFile.type || "Uploaded file"} - {formatFileSize(uploadedFile.size)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                  {q.type === "select" && (
+                    <>
+                      <select
+                        id={elementId}
+                        className={fieldClassName}
+                        style={activeFieldStyle}
+                        required={q.required}
+                        value={form[q.id]}
+                        onChange={e => {
+                          handleChange(attendeeIndex, q.id, e.target.value)
+                          if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                        }}
+                      >
+                        <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
+                        {q.options?.map((opt, optionIndex) => (
+                          <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
+                            {getOptionLabel(q, opt, optionIndex)}
+                          </option>
+                        ))}
+                      </select>
+                      {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+                        <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                          Some positions have limited slots and may close once full.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {q.type === "checkbox" && (
+                    <div className="mt-1 space-y-2.5 rounded-[14px] px-3 py-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+                      {q.options?.map((opt, optionIndex) => {
+                        const selectedValues = parseCheckboxValue(form[q.id])
+                        const isChecked = selectedValues.includes(opt)
+                        const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
+                        const otherKey = `${attendeeIndex}:${q.id}`
+                        return (
+                          <div key={`${q.id}-${opt}`} className="space-y-1.5">
+                            <label className="flex cursor-pointer items-center gap-2 text-[0.85rem]" style={{ color: "var(--text-primary)" }}>
                               <input
-                                type="text"
-                                placeholder="Please specify your answer..."
-                                value={otherCustomAnswers[otherKey] ?? ""}
+                                id={elementId}
+                                type="checkbox"
+                                checked={isChecked}
                                 onChange={e => {
-                                  const customVal = e.target.value
-                                  setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
+                                  const nextValues = e.target.checked
+                                    ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                                    : selectedValues.filter(value => value !== opt)
+                                  handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
+                                  if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
                                 }}
-                                className="w-full rounded-[8px] border px-3 py-1.5 text-[0.82rem] focus:outline-none"
-                                style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
+                                className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
+                                style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
                               />
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                    {q.required && parseCheckboxValue(form[q.id]).length === 0 && (
-                      <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Select at least one option.</p>
-                    )}
-                    {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-                      <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Some options have limited slots and may stop accepting selections once full.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+                              <span>{getOptionLabel(q, opt, optionIndex)}</span>
+                            </label>
+                            {isChecked && isOtherOption && (
+                              <div className="pl-6 pt-1">
+                                <input
+                                  type="text"
+                                  placeholder="Please specify your answer..."
+                                  value={otherCustomAnswers[otherKey] ?? ""}
+                                  onChange={e => {
+                                    const customVal = e.target.value
+                                    setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
+                                  }}
+                                  className="w-full rounded-[8px] border px-3 py-1.5 text-[0.82rem] focus:outline-none"
+                                  style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                      {q.required && parseCheckboxValue(form[q.id]).length === 0 && (
+                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Select at least one option.</p>
+                      )}
+                      {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Some options have limited slots and may stop accepting selections once full.</p>
+                      )}
+                    </div>
+                  )}
+                  {qError && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{qError}</span>
+                    </p>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       ))}

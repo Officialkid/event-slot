@@ -14,15 +14,21 @@ export async function POST(
     const { orgName, orgType, contactName, contactEmail, contactPhone, totalSlots } = body
 
     if (!orgName || typeof orgName !== "string" || !orgName.trim()) {
-      return NextResponse.json({ error: "Organization name is required" }, { status: 400 })
+      return NextResponse.json({ error: "Organization name is required", field: "orgName" }, { status: 400 })
     }
-    if (!contactName || !contactEmail || !contactPhone) {
-      return NextResponse.json({ error: "Contact name, email, and phone are required" }, { status: 400 })
+    if (!contactName || typeof contactName !== "string" || !contactName.trim()) {
+      return NextResponse.json({ error: "Contact name is required", field: "contactName" }, { status: 400 })
+    }
+    if (!contactEmail || typeof contactEmail !== "string" || !contactEmail.includes("@")) {
+      return NextResponse.json({ error: "A valid contact email is required", field: "contactEmail" }, { status: 400 })
+    }
+    if (!contactPhone || typeof contactPhone !== "string" || contactPhone.trim().length < 9) {
+      return NextResponse.json({ error: "A valid phone number is required (at least 9 digits)", field: "contactPhone" }, { status: 400 })
     }
 
     const slotsCount = Number(totalSlots)
     if (!Number.isInteger(slotsCount) || slotsCount < 1 || slotsCount > 500) {
-      return NextResponse.json({ error: "Reserved slots must be between 1 and 500" }, { status: 400 })
+      return NextResponse.json({ error: "Reserved slots must be between 1 and 500", field: "totalSlots" }, { status: 400 })
     }
 
     const event = await prisma.event.findUnique({

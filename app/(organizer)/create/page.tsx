@@ -193,6 +193,7 @@ export default function CreateEventPage() {
   const [success, setSuccess] = useState(false)
   const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string; accessType: "REGISTRATION" | "WALK_IN" } | null>(null)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
@@ -581,43 +582,35 @@ export default function CreateEventPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
+    const errors: Record<string, string> = {}
 
-    if (eventType === "VIRTUAL" && !virtualLink.trim()) {
-      setLoading(false)
-      setError("Google Meet link is required for virtual events.")
-      return
+    if (!title.trim()) {
+      errors.title = "Event title is required."
     }
 
-    if (isPaid && !ticketPrice) {
-      setLoading(false)
-      setError("Please enter a ticket price for paid events.")
-      return
+    if (eventType === "VIRTUAL" && !virtualLink.trim()) {
+      errors.virtualLink = "Google Meet or Zoom link is required for virtual events."
+    }
+
+    if (isPaid && (!ticketPrice || Number(ticketPrice) < 50)) {
+      errors.ticketPrice = "Please enter a valid ticket price (minimum KSh 50)."
     }
 
     if (isWalkInEvent && !imageUrl.trim()) {
-      setLoading(false)
-      setError("Walk-in events need a poster image so the share card always includes one.")
-      return
+      errors.imageUrl = "Walk-in events need a poster image so the share card always includes one."
     }
 
     if (visibility === "PUBLIC" && !imageUrl.trim()) {
-      setLoading(false)
-      setError("Public events require a poster image so they can appear on the Events page.")
-      return
+      errors.imageUrl = "Public events require a poster image so they can appear on the Events page."
     }
 
     if (visibility === "PUBLIC" && !eventDate) {
-      setLoading(false)
-      setError("Public events require a start date so attendees can see when the event is happening.")
-      return
+      errors.eventDate = "Public events require a start date so attendees can see when the event is happening."
     }
 
     if (visibility === "PUBLIC" && eventType === "PHYSICAL" && !location.trim()) {
-      setLoading(false)
-      setError("Public physical events require a location so attendees can discover where to go.")
-      return
+      errors.location = "Public physical events require a venue location so attendees can discover where to go."
     }
 
     if (isPaid) {
@@ -627,9 +620,7 @@ export default function CreateEventPage() {
         return !tier.name.trim() || !price || price < 50 || !tierCapacity || tierCapacity < 1
       })
       if (invalidTier) {
-        setLoading(false)
-        setError("Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity.")
-        return
+        errors.ticketTiers = "Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity."
       }
     }
 
@@ -637,10 +628,23 @@ export default function CreateEventPage() {
       ? questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
       : null
     if (invalidQuestion) {
-      setLoading(false)
-      setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+      errors.questions = `Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setError("Please fix the highlighted fields in red below.")
+      const firstField = Object.keys(errors)[0]
+      const el = document.getElementById(`create-field-${firstField}`)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        el.focus()
+      }
       return
     }
+
+    setFieldErrors({})
+    setLoading(true)
     try {
       const res = await fetch("/api/events", {
         method: "POST",
@@ -969,19 +973,33 @@ export default function CreateEventPage() {
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.title ? "#EF4444" : undefined }}>
                     {CREATE_EVENT_COPY.fields.eventTitle.label} <span style={accentTextStyle}>*</span>
                   </label>
                   <input
+                    id="create-field-title"
                     type="text"
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      borderColor: fieldErrors.title ? "#EF4444" : inputStyle.borderColor,
+                      boxShadow: fieldErrors.title ? "0 0 0 1px #EF4444" : "none",
+                    }}
                     required
                     placeholder={CREATE_EVENT_COPY.fields.eventTitle.placeholder}
                     value={title}
-                    onChange={e => setTitle(e.target.value)}
+                    onChange={e => {
+                      setTitle(e.target.value)
+                      if (fieldErrors.title) setFieldErrors(prev => ({ ...prev, title: "" }))
+                    }}
                     onBlur={e => fetchAiPrediction(e.target.value, description)}
                   />
+                  {fieldErrors.title && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.title}</span>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
@@ -1041,18 +1059,32 @@ export default function CreateEventPage() {
 
                 {eventType === "VIRTUAL" && (
                   <div className="space-y-2">
-                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                    <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.virtualLink ? "#EF4444" : undefined }}>
                       {CREATE_EVENT_COPY.fields.googleMeetLink.label} <span style={accentTextStyle}>*</span>
                     </label>
                     <input
+                      id="create-field-virtualLink"
                       type="text"
                       required
                       className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                      style={inputStyle}
+                      style={{
+                        ...inputStyle,
+                        borderColor: fieldErrors.virtualLink ? "#EF4444" : inputStyle.borderColor,
+                        boxShadow: fieldErrors.virtualLink ? "0 0 0 1px #EF4444" : "none",
+                      }}
                       placeholder={CREATE_EVENT_COPY.fields.googleMeetLink.placeholder}
                       value={virtualLink}
-                      onChange={e => setVirtualLink(e.target.value)}
+                      onChange={e => {
+                        setVirtualLink(e.target.value)
+                        if (fieldErrors.virtualLink) setFieldErrors(prev => ({ ...prev, virtualLink: "" }))
+                      }}
                     />
+                    {fieldErrors.virtualLink && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.virtualLink}</span>
+                      </p>
+                    )}
                     <div className="rounded-xl border p-4" style={cardMutedStyle}>
                       <p className="mb-2 text-xs font-semibold" style={accentTextStyle}>✦ How to get your Google Meet link</p>
                       <ol className="list-inside list-decimal space-y-1 text-xs" style={{ color: "var(--text-secondary)" }}>
@@ -1445,14 +1477,19 @@ export default function CreateEventPage() {
                 )}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[0.72rem] font-semibold" style={labelStyle}>
+                    <label className="block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.eventDate ? "#EF4444" : undefined }}>
                       {isWalkInEvent ? "Walk-In Start Date" : "Event Start Date"}
                     </label>
                   </div>
                   <input
+                    id="create-field-eventDate"
                     type={hasSpecificTime ? "datetime-local" : "date"}
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      borderColor: fieldErrors.eventDate ? "#EF4444" : inputStyle.borderColor,
+                      boxShadow: fieldErrors.eventDate ? "0 0 0 1px #EF4444" : "none",
+                    }}
                     value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
                     onChange={(e) => {
                       const val = e.target.value
@@ -1461,8 +1498,15 @@ export default function CreateEventPage() {
                         const day = new Date(val).getDay()
                         if (!isNaN(day)) setRecurrenceDayOfWeek(day)
                       }
+                      if (fieldErrors.eventDate) setFieldErrors(prev => ({ ...prev, eventDate: "" }))
                     }}
                   />
+                  {fieldErrors.eventDate && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.eventDate}</span>
+                    </p>
+                  )}
                   <div className="mt-2 flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -1604,17 +1648,31 @@ export default function CreateEventPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                  <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.location ? "#EF4444" : undefined }}>
                     {eventType === "VIRTUAL" ? "Host / Base Location (optional)" : "Location / Venue"}
                   </label>
                   <input
+                    id="create-field-location"
                     type="text"
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      borderColor: fieldErrors.location ? "#EF4444" : inputStyle.borderColor,
+                      boxShadow: fieldErrors.location ? "0 0 0 1px #EF4444" : "none",
+                    }}
                     placeholder="e.g. iHub, Nairobi"
                     value={location}
-                    onChange={e => setLocation(e.target.value)}
+                    onChange={e => {
+                      setLocation(e.target.value)
+                      if (fieldErrors.location) setFieldErrors(prev => ({ ...prev, location: "" }))
+                    }}
                   />
+                  {fieldErrors.location && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.location}</span>
+                    </p>
+                  )}
                 </div>
                 {eventType === "PHYSICAL" && (
                   <div>
@@ -1897,15 +1955,29 @@ export default function CreateEventPage() {
                 onChange={handleImageChange}
               />
               <button
+                id="create-field-imageUrl"
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  fileInputRef.current?.click()
+                  if (fieldErrors.imageUrl) setFieldErrors(prev => ({ ...prev, imageUrl: "" }))
+                }}
                 disabled={imageUploading}
-                className="rounded-full border bg-transparent px-5 py-2 text-[0.82rem] font-medium"
-                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                className="rounded-full border bg-transparent px-5 py-2 text-[0.82rem] font-medium transition-colors"
+                style={{
+                  borderColor: fieldErrors.imageUrl ? "#EF4444" : "var(--border)",
+                  color: fieldErrors.imageUrl ? "#EF4444" : "var(--text-secondary)",
+                  boxShadow: fieldErrors.imageUrl ? "0 0 0 1px #EF4444" : "none",
+                }}
               >
                 {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
               </button>
-                {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
+              {fieldErrors.imageUrl && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                  <span>⚠️</span>
+                  <span>{fieldErrors.imageUrl}</span>
+                </p>
+              )}
+              {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
             </div>
 
             {isRegistrationEvent ? (
@@ -2239,7 +2311,12 @@ export default function CreateEventPage() {
               >
                 {loading ? "Creating..." : "Create Event"}
               </button>
-              {error && <div className="text-[0.82rem] text-center" style={errorTextStyle}>{error}</div>}
+              {error && (
+                <div className="rounded-[10px] border border-red-500/30 bg-red-950/20 p-3.5 text-center text-[0.82rem] font-semibold text-red-400 flex items-center justify-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
             </div>
           </form>
           </div>

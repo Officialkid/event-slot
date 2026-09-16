@@ -660,7 +660,10 @@ export async function sendWelcomeEmail({
   to: string
   name: string
 }) {
-  const firstName = (name || '').trim().split(' ')[0] || 'there'
+  let firstName = (name || '').trim().split(/\s+/)[0] || 'there'
+  if (/^kid$/i.test(firstName) || /^officialkid$/i.test(firstName) || firstName.length < 2 || firstName.includes('@')) {
+    firstName = 'there'
+  }
 
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
@@ -1252,5 +1255,3 @@ export async function sendGroupBookingConfirmationEmail({
     `,
   })
 }
-
-

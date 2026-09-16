@@ -1638,6 +1638,7 @@ export default function EventDashboardPage() {
   const [origin, setOrigin] = useState("")
   const [activeTab, setActiveTab] = useState<TabKey>("overview")
   const [groupBookingsCount, setGroupBookingsCount] = useState(0)
+  const [groupBookingsTotalSlots, setGroupBookingsTotalSlots] = useState(0)
   const [copied, setCopied] = useState(false)
   const [showQrModal, setShowQrModal] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
@@ -1880,6 +1881,7 @@ export default function EventDashboardPage() {
       .then((data) => {
         if (isMounted && data?.groupBookings) {
           setGroupBookingsCount(data.groupBookings.length)
+          setGroupBookingsTotalSlots(data.totalGroupSlots ?? 0)
         }
       })
       .catch(() => {})
@@ -2559,7 +2561,7 @@ export default function EventDashboardPage() {
         { key: "confirmed", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.confirmed} (${confirmed.length})` },
         { key: "waitlist", label: `${ORGANIZER_SURFACE_COPY.eventDetail.tabs.waitlist} (${waitlist.length})` },
         ...(eventData.groupRegistrationEnabled || groupBookingsCount > 0
-          ? [{ key: "delegations" as TabKey, label: `Group Bookings (${groupBookingsCount})` }]
+          ? [{ key: "delegations" as TabKey, label: `Group Bookings (${groupBookingsCount}${groupBookingsTotalSlots > 0 ? ` · ${groupBookingsTotalSlots} slots` : ""})` }]
           : []),
         { key: "analytics", label: "Analytics" },
         { key: "feedback", label: "Feedback" },
@@ -3221,7 +3223,13 @@ export default function EventDashboardPage() {
             {/* Stat cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem" }} className="stat-grid">
               {[
-                { label: "Confirmed", value: eventData.confirmedCount },
+                {
+                  label: "Confirmed",
+                  value: eventData.confirmedCount,
+                  subtitle: groupBookingsTotalSlots > 0
+                    ? `${confirmed.length} individual · ${groupBookingsTotalSlots} in group delegations`
+                    : null,
+                },
                 { label: "Waitlist", value: eventData.waitlistCount },
                 { label: "Capacity", value: capacityDisplay },
                 { label: "Slots remaining", value: slotsRemaining },
@@ -3229,6 +3237,11 @@ export default function EventDashboardPage() {
                 <div key={stat.label} style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
                   <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>{stat.label}</div>
                   <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{stat.value}</div>
+                  {"subtitle" in stat && stat.subtitle && (
+                    <div style={{ fontSize: "0.72rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
+                      {stat.subtitle}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
