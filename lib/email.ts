@@ -1112,3 +1112,145 @@ export async function sendPostEventSummaryEmail({
   })
 }
 
+export async function sendGroupBookingConfirmationEmail({
+  to,
+  contactName,
+  orgName,
+  orgType,
+  totalSlots,
+  eventTitle,
+  eventDate,
+  eventLocation,
+  managerUrl,
+  claimUrl,
+}: {
+  to: string
+  contactName: string
+  orgName: string
+  orgType?: string
+  totalSlots: number
+  eventTitle: string
+  eventDate?: string | null
+  eventLocation?: string | null
+  managerUrl: string
+  claimUrl: string
+}) {
+  const firstName = (contactName || '').trim().split(' ')[0] || 'there'
+
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    to,
+    subject: `Group Reservation Confirmed: ${orgName} — ${eventTitle}`,
+    html: `
+      <div style="background:#0A0A0A;padding:40px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#FAFAF7;line-height:1.6;">
+        <div style="max-width:560px;margin:0 auto;background:#141414;border:1px solid #262626;border-radius:16px;padding:36px 32px;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+          
+          <!-- Brand Badge -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+            <div>
+              <span style="font-size:22px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Event</span><span style="font-size:22px;font-weight:800;color:#C8F55A;letter-spacing:-0.03em;">Slot</span>
+            </div>
+            <span style="background:rgba(200,245,90,0.12);border:1px solid rgba(200,245,90,0.3);color:#C8F55A;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border-radius:999px;padding:4px 12px;">
+              Group Reservation
+            </span>
+          </div>
+
+          <!-- Headline -->
+          <h1 style="color:#FFFFFF;font-size:22px;font-weight:700;margin:0 0 12px;line-height:1.3;">
+            Reservation Confirmed! 🎉
+          </h1>
+          <p style="color:#D4D4D4;font-size:15px;margin:0 0 20px;line-height:1.6;">
+            Hi ${firstName}, your group allocation for <strong style="color:#FFFFFF;">${orgName}</strong> has been successfully reserved for <strong style="color:#C8F55A;">${eventTitle}</strong>.
+          </p>
+
+          <!-- Reservation Details Box -->
+          <div style="background:#1A1A1A;border:1px solid #2E2E2E;border-radius:12px;padding:20px;margin-bottom:24px;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;width:40%;">Event:</td>
+                <td style="padding:6px 0;color:#FFFFFF;font-weight:600;">${eventTitle}</td>
+              </tr>
+              ${eventDate ? `
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;">Date &amp; Time:</td>
+                <td style="padding:6px 0;color:#FFFFFF;font-weight:500;">${eventDate}</td>
+              </tr>
+              ` : ''}
+              ${eventLocation ? `
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;">Location:</td>
+                <td style="padding:6px 0;color:#FFFFFF;font-weight:500;">${eventLocation}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;">Organization:</td>
+                <td style="padding:6px 0;color:#FFFFFF;font-weight:600;">${orgName}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;">Total Reserved Slots:</td>
+                <td style="padding:6px 0;color:#C8F55A;font-weight:800;font-size:16px;">${totalSlots} Seats</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#8C8C8C;">Contact Person:</td>
+                <td style="padding:6px 0;color:#FFFFFF;">${contactName}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Primary CTA: Manager Portal -->
+          <div style="margin:28px 0;text-align:center;">
+            <a href="${managerUrl}"
+               style="display:inline-block;background:#C8F55A;color:#0A0A0A;font-weight:800;font-size:15px;padding:14px 32px;border-radius:12px;text-decoration:none;box-shadow:0 4px 16px rgba(200,245,90,0.35);">
+              Open Delegation Manager Portal →
+            </a>
+            <p style="color:#8C8C8C;font-size:12px;margin:8px 0 0;">
+              Assign delegate names, edit contact info, or bulk-import rosters via CSV.
+            </p>
+          </div>
+
+          <!-- Self-Claim Link Box -->
+          <div style="background:#171717;border:1px dashed #333333;border-radius:12px;padding:16px 18px;margin-bottom:24px;">
+            <p style="color:#C8F55A;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin:0 0 6px;">
+              Member Self-Claim Link
+            </p>
+            <p style="color:#A3A3A3;font-size:13px;margin:0 0 10px;line-height:1.5;">
+              Share this link with your members so they can claim their individual ticket passes directly:
+            </p>
+            <div style="background:#0D0D0D;border:1px solid #262626;border-radius:8px;padding:10px 12px;word-break:break-all;">
+              <a href="${claimUrl}" style="color:#C8F55A;font-size:13px;font-family:monospace;text-decoration:none;">
+                ${claimUrl}
+              </a>
+            </div>
+          </div>
+
+          <!-- How It Works Section -->
+          <div style="border-top:1px solid #262626;padding-top:20px;margin-top:24px;">
+            <p style="color:#FFFFFF;font-size:14px;font-weight:700;margin:0 0 12px;">
+              How to manage your delegation:
+            </p>
+            <ul style="color:#A3A3A3;font-size:13px;padding-left:18px;margin:0 0 16px;line-height:1.7;">
+              <li><strong style="color:#E5E5E5;">Option 1 (Self-Claim):</strong> Send the link above to your group chat or email list. Members fill in their own name and receive their QR ticket instantly.</li>
+              <li><strong style="color:#E5E5E5;">Option 2 (Direct Assignment):</strong> Open the Manager Portal to type in names or upload a spreadsheet (CSV). Tickets are immediately issued to your delegates.</li>
+              <li><strong style="color:#E5E5E5;">Live Check-in:</strong> Use your portal on event day to view real-time check-in counts as your members arrive.</li>
+            </ul>
+          </div>
+
+          <div style="border-top:1px solid #262626;padding-top:16px;margin-top:20px;">
+            <p style="color:#8C8C8C;font-size:12px;margin:0;">
+              💡 <em>Keep this email safe. You can access and update your group registration at any time using your Manager Portal link.</em>
+            </p>
+          </div>
+
+        </div>
+
+        <div style="text-align:center;max-width:560px;margin:20px auto 0;">
+          <p style="color:#525252;font-size:11px;margin:0;">
+            Smarter Events. Better Experiences. · <a href="${BASE_URL}" style="color:#737373;text-decoration:none;">eventsslot.com</a>
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
+

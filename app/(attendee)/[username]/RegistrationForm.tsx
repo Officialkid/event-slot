@@ -259,6 +259,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [groupSubmitting, setGroupSubmitting] = useState(false)
   const [groupResult, setGroupResult] = useState<any>(null)
   const [groupError, setGroupError] = useState("")
+  const [groupCopied, setGroupCopied] = useState(false)
   const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
   const [mpesaPhone] = useState("")
   const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
@@ -902,6 +903,131 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     )
   }
 
+  // Group Reservation Success Screen
+  if (groupResult) {
+    return (
+      <div className="mx-auto w-full max-w-[560px]">
+        <div className="rounded-[20px] border p-6 sm:p-8 space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          
+          {/* Header icon and title */}
+          <div className="text-center space-y-3">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <span className="inline-block rounded-full px-3 py-1 text-[0.72rem] font-bold tracking-wider uppercase" style={{ background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent)" }}>
+              Organization Reservation Confirmed
+            </span>
+            <h2 className="text-2xl font-black" style={{ color: "var(--text-primary)" }}>
+              {groupResult.orgName}
+            </h2>
+            <p className="text-[0.92rem]" style={{ color: "var(--text-secondary)" }}>
+              You have successfully reserved <strong style={{ color: "var(--accent)" }}>{groupResult.totalSlots} slots</strong> for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>.
+            </p>
+          </div>
+
+          {/* Email Confirmation Notice */}
+          <div className="rounded-[12px] border p-4 text-[0.82rem] flex items-start gap-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <span className="text-lg">📧</span>
+            <div>
+              <p className="font-bold" style={{ color: "var(--text-primary)" }}>
+                Confirmation &amp; Access Link Emailed
+              </p>
+              <p className="mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                We sent your reservation confirmation, management links, and instructions to <strong style={{ color: "var(--text-primary)" }}>{orgContactEmail}</strong>.
+              </p>
+            </div>
+          </div>
+
+          {/* Primary Action: Delegation Manager Portal */}
+          <div className="rounded-[16px] border p-5 text-center space-y-3" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 6%, var(--surface))" }}>
+            <p className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+              Step 1: Open your Delegation Manager Portal
+            </p>
+            <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              Assign attendee names, update contacts, or bulk import your roster via CSV anytime.
+            </p>
+            <a
+              href={groupResult.managerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block w-full rounded-[12px] py-3 text-[0.9rem] font-bold transition text-center shadow-lg"
+              style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+            >
+              Open Delegation Manager Portal →
+            </a>
+          </div>
+
+          {/* Self-Claim Link Box */}
+          <div className="rounded-[16px] border p-5 space-y-2.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <p className="text-[0.75rem] font-bold uppercase tracking-wide" style={{ color: "var(--accent)" }}>
+              Step 2: Share Self-Claim Link with Members
+            </p>
+            <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              Forward this link to your WhatsApp group or email list. Members can claim their individual ticket pass under your organization quota:
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={groupResult.claimUrl}
+                className="w-full rounded-[8px] border px-3 py-2 text-[0.78rem] font-mono"
+                style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-secondary)" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(groupResult.claimUrl)
+                  setGroupCopied(true)
+                  setTimeout(() => setGroupCopied(false), 2000)
+                }}
+                className="shrink-0 rounded-[8px] border px-4 py-2 text-[0.8rem] font-bold transition"
+                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+              >
+                {groupCopied ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
+          </div>
+
+          {/* Step 3: Tickets delivery explanation */}
+          <div className="rounded-[12px] border p-4 space-y-2" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <p className="text-[0.78rem] font-bold" style={{ color: "var(--text-primary)" }}>
+              🎫 How Tickets are Issued
+            </p>
+            <p className="text-[0.78rem] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              Whether you assign attendee names in the portal or your members self-claim via the link, each attendee will immediately receive their own official digital ticket with a unique QR code for seamless check-in at the venue.
+            </p>
+          </div>
+
+          {/* Actions footer */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-[0.8rem]">
+            <button
+              type="button"
+              onClick={() => {
+                setGroupResult(null)
+                setRegistrationMode("group")
+              }}
+              className="text-center underline cursor-pointer"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Make another reservation
+            </button>
+            <a
+              href={`/events/${event.slug}`}
+              className="text-center font-semibold"
+              style={{ color: "var(--accent)" }}
+            >
+              Return to Event Overview →
+            </a>
+          </div>
+
+        </div>
+        {showBranding && <BrandingFooter />}
+      </div>
+    )
+  }
+
   // Success screen
   if (bulkResult) {
     const isSingle = bulkResult.results.length === 1
@@ -1321,49 +1447,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
         {registrationMode === "group" ? (
           <div className="space-y-5 rounded-[20px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            {groupResult ? (
-              <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black" style={{ color: "var(--text-primary)" }}>Group Reservation Secured!</h3>
-                <p className="text-[0.875rem]" style={{ color: "var(--text-secondary)" }}>
-                  <strong style={{ color: "var(--text-primary)" }}>{groupResult.orgName}</strong> has successfully reserved <strong style={{ color: "var(--accent)" }}>{groupResult.totalSlots} slots</strong> for {event.title}.
-                </p>
-
-                {groupResult.isPaid && (
-                  <div className="rounded-[12px] border p-3 text-left" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Consolidated Group Total</p>
-                    <p className="text-lg font-black" style={{ color: "var(--accent)" }}>{groupResult.currency} {groupResult.totalAmountKes.toLocaleString()}</p>
-                    <p className="text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>Group status: Guaranteed Reservation Mode</p>
-                  </div>
-                )}
-
-                <div className="mt-4 rounded-[14px] border p-4 text-left space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <div>
-                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Organization Manager Portal</p>
-                    <a href={groupResult.managerUrl} target="_blank" rel="noreferrer" className="text-[0.8rem] font-mono underline" style={{ color: "var(--accent)" }}>
-                      {groupResult.managerUrl}
-                    </a>
-                  </div>
-                  <div>
-                    <p className="text-[0.75rem] font-semibold uppercase" style={{ color: "var(--text-muted)" }}>Member Self-Claim Link</p>
-                    <a href={groupResult.claimUrl} target="_blank" rel="noreferrer" className="text-[0.8rem] font-mono underline" style={{ color: "var(--accent)" }}>
-                      {groupResult.claimUrl}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-center">
-                  <a href={groupResult.managerUrl} target="_blank" rel="noreferrer" className="rounded-full px-6 py-2.5 text-[0.85rem] font-bold" style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}>
-                    Open Manager Portal
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleGroupSubmit} className="space-y-4">
+            <form onSubmit={handleGroupSubmit} className="space-y-4">
                 <div>
                   <h3 className="text-lg font-black" style={{ color: "var(--text-primary)" }}>Reserve Organization / Group Slots</h3>
                   <p className="text-[0.8rem]" style={{ color: "var(--text-secondary)" }}>
@@ -1506,7 +1590,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   {groupSubmitting ? "Reserving Allocation..." : `Reserve ${groupSlots} Group Slots`}
                 </button>
               </form>
-            )}
           </div>
         ) : (
         <fieldset

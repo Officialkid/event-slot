@@ -60,7 +60,7 @@ export async function GET(req: Request) {
       return NextResponse.json(cached)
     }
 
-    const [events, total] = await Promise.all([
+    const [events, total, groupBookings] = await Promise.all([
       prisma.event.findMany({
         where,
         select: {
@@ -91,6 +91,23 @@ export async function GET(req: Request) {
         skip,
       }),
       prisma.event.count({ where }),
+      email
+        ? prisma.groupBooking.findMany({
+            where: { contactEmail: email.toLowerCase() },
+            include: {
+              event: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                  eventDate: true,
+                  location: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          })
+        : Promise.resolve([]),
     ])
 
     await Promise.all(events.map((event) => syncEventPassStatusForEvent(event.id).catch(() => null)))
@@ -102,6 +119,16 @@ export async function GET(req: Request) {
         eventPassTier: event.eventPass?.tier?.toLowerCase() ?? null,
         eventPassStatus: event.eventPass?.status ?? null,
         eventPassExpiresAt: event.eventPass?.expiresAt ?? null,
+      })),
+      groupBookings: (groupBookings || []).map((b) => ({
+        id: b.id,
+        orgName: b.orgName,
+        orgType: b.orgType,
+        totalSlots: b.totalSlots,
+        bookingToken: b.bookingToken,
+        claimToken: b.claimToken,
+        createdAt: b.createdAt,
+        event: b.event,
       })),
       pagination: {
         page,

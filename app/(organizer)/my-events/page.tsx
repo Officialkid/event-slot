@@ -5,6 +5,9 @@ import { isAdminEmail } from "@/lib/isAdmin"
 
 export default async function MyEventsRedirect() {
   const session = await getServerSession(authOptions)
+  if (!session) {
+    redirect("/signin?callbackUrl=/dashboard/events")
+  }
   if (isAdminEmail(session?.user?.email)) {
     redirect("/admin")
   }

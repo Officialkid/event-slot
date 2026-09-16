@@ -30,6 +30,23 @@ type OrgEvent = {
   eventPassExpiresAt?: string | null
 }
 
+type OrgGroupBooking = {
+  id: string
+  orgName: string
+  orgType: string
+  totalSlots: number
+  bookingToken: string
+  claimToken: string
+  createdAt: string
+  event: {
+    id: string
+    title: string
+    slug: string
+    eventDate: string | null
+    location: string | null
+  }
+}
+
 type TabKey = "active" | "past" | "archived"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -875,6 +892,7 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
 
 export default function DashboardEventsPage() {
   const [events, setEvents] = useState<OrgEvent[]>([])
+  const [groupBookings, setGroupBookings] = useState<OrgGroupBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("active")
   const [origin, setOrigin] = useState("")
@@ -885,7 +903,14 @@ export default function DashboardEventsPage() {
     setOrigin(window.location.origin)
     fetch("/api/my-events")
       .then(r => r.json())
-      .then(data => { if (data.success) setEvents(data.events) })
+      .then(data => {
+        if (data.success) {
+          setEvents(data.events)
+          if (Array.isArray(data.groupBookings)) {
+            setGroupBookings(data.groupBookings)
+          }
+        }
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -976,6 +1001,100 @@ export default function DashboardEventsPage() {
             {ORGANIZER_SURFACE_COPY.eventsList.createCta}
           </Link>
         </div>
+
+        {/* Organization / Group Reservations */}
+        {groupBookings.length > 0 && (
+          <div style={{ marginBottom: "2.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <div>
+                <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)" }}>
+                  Delegation Portals
+                </span>
+                <h2 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)", margin: "0.2rem 0 0" }}>
+                  Your Organization &amp; Group Bookings
+                </h2>
+              </div>
+              <span style={{ fontSize: "0.78rem", background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent)", borderRadius: 999, padding: "3px 12px", fontWeight: 700 }}>
+                {groupBookings.length} {groupBookings.length === 1 ? "Reservation" : "Reservations"}
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gap: "1rem" }}>
+              {groupBookings.map((b) => (
+                <div
+                  key={b.id}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 16,
+                    padding: "1.25rem 1.5rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1rem",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.06em" }}>
+                        {b.orgType || "Group"}
+                      </span>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)", margin: "0.15rem 0 0.3rem" }}>
+                        {b.orgName}
+                      </h3>
+                      <p style={{ fontSize: "0.84rem", color: "var(--text-secondary)", margin: 0 }}>
+                        Event: <strong style={{ color: "var(--text-primary)" }}>{b.event.title}</strong>
+                      </p>
+                      {b.event.location && (
+                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.25rem 0 0" }}>
+                          📍 {b.event.location}
+                        </p>
+                      )}
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>Reserved Capacity</span>
+                      <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--accent)" }}>
+                        {b.totalSlots} Slots
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.9rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+                    <Link
+                      href={`/booking/${b.bookingToken}`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        background: "var(--accent)",
+                        color: "var(--accent-contrast)",
+                        fontWeight: 700,
+                        fontSize: "0.82rem",
+                        padding: "0.55rem 1.2rem",
+                        borderRadius: 8,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Manage Delegation &amp; Tickets →
+                    </Link>
+
+                    <Link
+                      href={`/claim/${b.claimToken}`}
+                      target="_blank"
+                      style={{
+                        fontSize: "0.78rem",
+                        color: "var(--text-secondary)",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Open Member Self-Claim Link ↗
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div

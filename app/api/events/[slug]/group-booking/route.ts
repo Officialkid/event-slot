@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import prisma from "@/lib/prisma"
+import { sendGroupBookingConfirmationEmail } from "@/lib/email"
 
 export async function POST(
   req: NextRequest,
@@ -38,6 +39,8 @@ export async function POST(
         ticketPrice: true,
         currency: true,
         status: true,
+        eventDate: true,
+        location: true,
       },
     })
 
@@ -120,6 +123,31 @@ export async function POST(
     const origin = req.headers.get("origin") || "https://www.eventsslot.com"
     const managerUrl = `${origin}/booking/${result.bookingToken}`
     const claimUrl = `${origin}/claim/${result.claimToken}`
+
+    // Send confirmation email to organization contact person asynchronously
+    try {
+      await sendGroupBookingConfirmationEmail({
+        to: result.contactEmail,
+        contactName: result.contactName,
+        orgName: result.orgName,
+        orgType: result.orgType,
+        totalSlots: result.totalSlots,
+        eventTitle: event.title,
+        eventDate: event.eventDate
+          ? new Date(event.eventDate).toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : null,
+        eventLocation: event.location,
+        managerUrl,
+        claimUrl,
+      })
+    } catch (emailErr) {
+      console.error("[GROUP BOOKING EMAIL FAILED]", emailErr)
+    }
 
     return NextResponse.json({
       success: true,
