@@ -1338,3 +1338,32 @@ model GroupTicketSlot {
   @@index([bookingId])
   @@index([qrToken])
 }
+
+model ScheduledBroadcast {
+  id             String    @id @default(cuid())
+  title          String?
+  subject        String
+  layoutType     String    @default("PROMOTIONAL_HERO")
+  preheader      String?
+  bannerUrl      String?
+  content        String    @db.Text
+  ctaText        String?
+  ctaUrl         String?
+  eventDateLabel String?
+  eventLocation  String?
+  eventBadge     String?
+  mode           String    @default("SUBSCRIBED")
+  specificUserIds Json?
+  scheduledFor   DateTime
+  status         String    @default("SCHEDULED")
+  sentAt         DateTime?
+  sentCount      Int       @default(0)
+  failedCount    Int       @default(0)
+  errorMessage   String?
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, scheduledFor])
+}
+

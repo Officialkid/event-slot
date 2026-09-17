@@ -5,6 +5,7 @@ import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
+import { CookieConsentBanner } from "../components/CookieConsentBanner";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
 const dmSans = localFont({
@@ -208,6 +209,7 @@ export default async function RootLayout({
         {/* Microsoft tile meta */}
         <meta name="msapplication-config" content="/browserconfig.xml" />
         {/* PWA theme color for Android Chrome address bar */}
+        {/* PWA theme color for Android Chrome address bar */}
         <meta name="theme-color" content="#a3e635" />
         {/* Prevent iOS phone-number auto-detection */}
         <meta name="format-detection" content="telephone=no" />
@@ -218,6 +220,7 @@ export default async function RootLayout({
           {children}
           <Toast />
           <DevToolsDetector />
+          <CookieConsentBanner />
         </Providers>
       </body>
     </html>

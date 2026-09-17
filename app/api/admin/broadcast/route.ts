@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email'
 import { env } from '@/lib/env'
 import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 import { APP_URL } from '@/lib/config'
+import { renderBroadcastEmail, type BroadcastLayoutType } from '@/lib/emailTemplates'
 
 const EMAIL_FROM = getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
 
@@ -138,11 +139,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const { subject, htmlContent, mode: rawMode, specificUserIds } = await req.json() as {
+    const {
+      subject,
+      htmlContent,
+      mode: rawMode,
+      specificUserIds,
+      layoutType = 'PROMOTIONAL_HERO',
+      preheader,
+      bannerUrl,
+      ctaText,
+      ctaUrl,
+      eventDateLabel,
+      eventLocation,
+      eventBadge,
+    } = (await req.json()) as {
       subject: string
       htmlContent: string
       mode?: BroadcastMode
       specificUserIds?: string[]
+      layoutType?: BroadcastLayoutType
+      preheader?: string
+      bannerUrl?: string
+      ctaText?: string
+      ctaUrl?: string
+      eventDateLabel?: string
+      eventLocation?: string
+      eventBadge?: string
     }
 
     const mode = parseMode(rawMode ?? null)
@@ -189,15 +211,22 @@ export async function POST(req: NextRequest) {
     let failed = 0
     const failedRecipients: { email: string; error: string }[] = []
 
-    // Paced delivery loop: Resend enforces strict 2 req/s rate limits.
-    // 550ms delay keeps throughput safely under limits (~1.8 req/sec).
+    // Paced delivery loop using Nodemailer Primary with Resend Backup
     for (const recipient of validRecipients) {
-      const recipientName = sanitizeName(recipient.name)
-      const personalizedContent = htmlContent
-        .replace(/\{\{\s*name\s*\}\}/gi, recipientName)
-        .replace(/\{\{\s*first[_\s-]?name\s*\}\}/gi, recipientName)
-
-      const emailHtml = buildEmailHtml(personalizedContent, recipient.id)
+      const emailHtml = renderBroadcastEmail({
+        layoutType,
+        subject: subject.trim(),
+        preheader,
+        bannerUrl,
+        content: htmlContent,
+        ctaText,
+        ctaUrl,
+        eventDateLabel,
+        eventLocation,
+        eventBadge,
+        recipientName: recipient.name,
+        userId: recipient.id,
+      })
 
       let attempts = 0
       let success = false
@@ -230,8 +259,8 @@ export async function POST(req: NextRequest) {
         console.error(`[admin/broadcast] Delivery failed for ${recipient.email}:`, lastErrorMsg)
       }
 
-      // Throttle delay between sends
-      await new Promise((r) => setTimeout(r, 550))
+      // 250ms pacing between recipients (safe for SMTP & Resend backup)
+      await new Promise((r) => setTimeout(r, 250))
     }
 
     if (session?.user?.id) {
