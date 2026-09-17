@@ -1,23 +1,72 @@
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require(path.join(process.cwd(), 'node_modules', 'nodemailer'));
 
-const envContent = fs.readFileSync(path.join(process.cwd(), '.env'), 'utf8');
-const resendMatch = envContent.match(/RESEND_API_KEY=["']?([^"'\r\n]+)/);
-const apiKey = resendMatch ? resendMatch[1].trim() : null;
+let envContent = '';
+try {
+  envContent = fs.readFileSync(path.join(process.cwd(), '.env'), 'utf8');
+} catch (_) {}
 
-if (!apiKey) {
-  console.error('RESEND_API_KEY not found in .env');
+function getEnvVal(key) {
+  if (process.env[key]) return process.env[key].trim();
+  const match = envContent.match(new RegExp(`${key}=["']?([^"'\\r\\n]+)`));
+  return match ? match[1].trim() : '';
+}
+
+const apiKey = getEnvVal('RESEND_API_KEY');
+const smtpHost = getEnvVal('SMTP_HOST');
+const smtpPort = getEnvVal('SMTP_PORT') || '465';
+const smtpSecure = getEnvVal('SMTP_SECURE') || 'true';
+const smtpUser = getEnvVal('SMTP_USER');
+const smtpPass = getEnvVal('SMTP_PASSWORD');
+const smtpFrom = getEnvVal('SMTP_FROM') || 'EventSlot <hello@eventsslot.com>';
+
+let resend = null;
+if (apiKey) {
+  const { Resend } = require(path.join(process.cwd(), 'node_modules', 'resend'));
+  resend = new Resend(apiKey);
+}
+
+let smtpTransporter = null;
+if (smtpHost && smtpUser && smtpPass) {
+  smtpTransporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    host: smtpHost,
+    port: Number(smtpPort),
+    secure: smtpSecure === 'true' || Number(smtpPort) === 465,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
+}
+
+if (!smtpTransporter && !resend) {
+  console.error('Neither SMTP credentials nor RESEND_API_KEY found.');
   process.exit(1);
 }
 
 const { PrismaClient } = require(path.join(process.cwd(), 'node_modules', '@prisma', 'client'));
 const prisma = new PrismaClient();
 
-const { Resend } = require(path.join(process.cwd(), 'node_modules', 'resend'));
-const resend = new Resend(apiKey);
+function sanitizeName(rawName) {
+  if (!rawName) return '';
+  const trimmed = rawName.trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('@') || (/^[a-z0-9._%+-]+$/i.test(trimmed) && trimmed.length > 15)) {
+    return '';
+  }
+  const first = trimmed.split(/\s+/)[0];
+  if (!first || first.length < 2) return '';
+  if (/^kid$/i.test(first) || /^officialkid$/i.test(first)) return '';
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
 
 function buildFeedbackEmailHtml(name = '') {
-  const greeting = name && name.trim() ? `Hey ${name.trim()}! 👋` : 'Hey everyone! 👋';
+  const cleanFirst = sanitizeName(name);
+  const greeting = cleanFirst ? `Hey ${cleanFirst}! 👋` : 'Hey everyone! 👋';
   const formUrl = 'https://forms.gle/3gqvGTP7kH4G4GZ86';
 
   return `
@@ -138,22 +187,48 @@ async function main() {
   let errorCount = 0;
 
   for (const [email, name] of audience.entries()) {
-    try {
-      await resend.emails.send({
-        from: 'EventSlot <hello@eventsslot.com>',
-        to: email,
-        subject: 'Quick 2-minute feedback — Help shape the next EventSlot',
-        html: buildFeedbackEmailHtml(name),
-      });
-      sentCount++;
+    let sent = false;
+    const emailHtml = buildFeedbackEmailHtml(name);
+    const subject = 'Quick 2-minute feedback — Help shape the next EventSlot';
+
+    if (smtpTransporter) {
+      try {
+        await smtpTransporter.sendMail({
+          from: smtpFrom,
+          to: email,
+          subject,
+          html: emailHtml,
+        });
+        sent = true;
+        sentCount++;
+      } catch (smtpErr) {
+        console.warn(`[broadcast] SMTP send error for ${email}: ${smtpErr.message}. Attempting Resend fallback...`);
+      }
+    }
+
+    if (!sent && resend) {
+      try {
+        await resend.emails.send({
+          from: 'EventSlot <hello@eventsslot.com>',
+          to: email,
+          subject,
+          html: emailHtml,
+        });
+        sent = true;
+        sentCount++;
+      } catch (resendErr) {
+        console.error(`[broadcast] Resend fallback failed for ${email}:`, resendErr.message || resendErr);
+      }
+    }
+
+    if (sent) {
       if (sentCount % 10 === 0 || sentCount === audience.size) {
         console.log(`[${sentCount}/${audience.size}] Sent feedback survey email to ${email}`);
       }
-      // Wait 350ms between sends (approx 3 emails/sec) to safely respect rate limits
+      // Paced delay (350ms) to avoid network congestion
       await sleep(350);
-    } catch (err) {
+    } else {
       errorCount++;
-      console.error(`Failed to send to ${email}:`, err.message || err);
       await sleep(1000);
     }
   }
