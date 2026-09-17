@@ -26,7 +26,9 @@ describe("emailProvider", () => {
 
   it("uses SMTP when explicitly requested or when SMTP secrets are complete", () => {
     expect(shouldUseSmtpFromEnv({ ...smtpEnv, EMAIL_PROVIDER: "smtp" })).toBe(true)
+    expect(shouldUseSmtpFromEnv({ ...smtpEnv, EMAIL_PROVIDER: "nodemailer" })).toBe(true)
     expect(shouldUseSmtpFromEnv({ ...smtpEnv, EMAIL_PROVIDER: " SMTP " })).toBe(true)
+    expect(shouldUseSmtpFromEnv({ ...smtpEnv, EMAIL_PROVIDER: " Nodemailer " })).toBe(true)
     expect(shouldUseSmtpFromEnv(smtpEnv)).toBe(true)
   })
 

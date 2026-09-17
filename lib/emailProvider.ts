@@ -25,7 +25,8 @@ export function smtpIsConfiguredFromEnv(runtimeEnv: EmailProviderRuntimeEnv) {
 
 export function shouldUseSmtpFromEnv(runtimeEnv: EmailProviderRuntimeEnv) {
   const provider = readEnvValue(runtimeEnv.EMAIL_PROVIDER).toLowerCase()
-  return provider === "smtp" || (!provider && smtpIsConfiguredFromEnv(runtimeEnv))
+  if (provider === "resend") return false
+  return provider === "smtp" || provider === "nodemailer" || smtpIsConfiguredFromEnv(runtimeEnv)
 }
 
 export function getConfiguredEmailFrom(runtimeEnv: EmailProviderRuntimeEnv, fallback = DEFAULT_RESEND_SENDER) {

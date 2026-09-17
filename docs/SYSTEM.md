@@ -136,15 +136,15 @@ to confirmed status and notified by email.
 | NEXTAUTH_SECRET                 | JWT signing secret                    |
 | GOOGLE_CLIENT_ID                | Google OAuth                          |
 | GOOGLE_CLIENT_SECRET            | Google OAuth                          |
-| EMAIL_PROVIDER                  | Email provider selector (`smtp` or `resend`) |
-| SMTP_HOST                       | SMTP server host                      |
-| SMTP_PORT                       | SMTP server port (`465`, `587`, etc.) |
+| EMAIL_PROVIDER                  | Email provider selector (`nodemailer`, `smtp`, or `resend`). Defaults to `nodemailer`/`smtp` with automatic `resend` failover |
+| SMTP_HOST                       | Primary SMTP server host (Nodemailer) |
+| SMTP_PORT                       | Primary SMTP server port (`465`, `587`, etc.) |
 | SMTP_SECURE                     | Use implicit TLS (`true` for port 465) |
-| SMTP_USER                       | SMTP login username                   |
-| SMTP_PASSWORD                   | SMTP login password                   |
-| SMTP_FROM                       | SMTP sender email address             |
-| RESEND_API_KEY                  | Legacy fallback email sending         |
-| RESEND_FROM                     | Legacy fallback sender email address  |
+| SMTP_USER                       | Primary SMTP login username           |
+| SMTP_PASSWORD                   | Primary SMTP login password           |
+| SMTP_FROM                       | Primary SMTP sender email address     |
+| RESEND_API_KEY                  | Backup failover email sending API key |
+| RESEND_FROM                     | Backup failover sender email address  |
 | PAYSTACK_SECRET_KEY             | Payment processing                    |
 | PAYSTACK_PRO_MONTHLY_PLAN_CODE  | Paystack plan code                    |
 | PAYSTACK_PRO_ANNUAL_PLAN_CODE   | Paystack plan code                    |

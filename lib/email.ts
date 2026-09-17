@@ -40,12 +40,21 @@ function shouldUseSmtp() {
   return shouldUseSmtpFromEnv(env)
 }
 
+let cachedSmtpTransporter: nodemailer.Transporter | null = null
+
 function getSmtpTransporter() {
   if (!smtpIsConfigured()) {
     throw new Error('SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD must be configured')
   }
 
-  return nodemailer.createTransport({
+  if (cachedSmtpTransporter) {
+    return cachedSmtpTransporter
+  }
+
+  cachedSmtpTransporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
     host: env.SMTP_HOST,
     port: Number(env.SMTP_PORT),
     secure: env.SMTP_SECURE === 'true' || Number(env.SMTP_PORT) === 465,
@@ -54,6 +63,8 @@ function getSmtpTransporter() {
       pass: env.SMTP_PASSWORD,
     },
   })
+
+  return cachedSmtpTransporter
 }
 
 function extractEmailErrorMessage(error: unknown): string {
@@ -71,27 +82,21 @@ function shouldRetryWithFallbackSender(message: string | null, from: string) {
   return Boolean(message) && /verify|domain|sender/i.test(message ?? "") && from !== DEFAULT_RESEND_SENDER
 }
 
-export async function sendEmail(options: InternalEmailOptions) {
-  if (shouldUseSmtp()) {
-    const transporter = getSmtpTransporter()
-    const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
+async function sendViaSmtp(options: InternalEmailOptions): Promise<void> {
+  const transporter = getSmtpTransporter()
+  const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
 
-    try {
-      await transporter.sendMail({
-        from: verifiedFrom,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        replyTo: options.replyTo,
-      })
-      return
-    } catch (error) {
-      console.error('[email] SMTP send error:', error)
-      throw new Error(extractEmailErrorMessage(error))
-    }
-  }
+  await transporter.sendMail({
+    from: verifiedFrom,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text,
+    replyTo: options.replyTo,
+  })
+}
 
+async function sendViaResend(options: InternalEmailOptions): Promise<void> {
   const resend = getResendClient()
   const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
   const payload = {
@@ -121,8 +126,70 @@ export async function sendEmail(options: InternalEmailOptions) {
   }
 
   if (error) {
-    console.error('[email] Resend send error:', error)
-    throw new Error(error.message ?? 'Failed to send email')
+    throw new Error(error.message ?? 'Resend delivery failed')
+  }
+}
+
+export async function sendEmail(options: InternalEmailOptions): Promise<void> {
+  const preferSmtp = shouldUseSmtp()
+
+  if (preferSmtp) {
+    // 1. Primary delivery: Nodemailer / SMTP
+    try {
+      await sendViaSmtp(options)
+      return
+    } catch (smtpError) {
+      const smtpMsg = extractEmailErrorMessage(smtpError)
+      console.warn(`[email] Primary provider (Nodemailer/SMTP) failed: ${smtpMsg}. Attempting automatic failover to backup provider (Resend)...`)
+
+      // 2. Failover to Resend
+      if (env.RESEND_API_KEY) {
+        try {
+          await sendViaResend(options)
+          console.info('[email] Failover to Resend succeeded.')
+          return
+        } catch (resendError) {
+          const resendMsg = extractEmailErrorMessage(resendError)
+          console.error('[email] Both primary (SMTP) and backup (Resend) failed to deliver email:', {
+            to: options.to,
+            smtpError: smtpMsg,
+            resendError: resendMsg,
+          })
+          throw new Error(`Email delivery failed via both primary (SMTP: ${smtpMsg}) and backup (Resend: ${resendMsg})`)
+        }
+      }
+
+      throw new Error(smtpMsg)
+    }
+  }
+
+  // Resend configured as primary, or SMTP is not configured
+  try {
+    await sendViaResend(options)
+    return
+  } catch (resendError) {
+    const resendMsg = extractEmailErrorMessage(resendError)
+
+    // Failover to SMTP if SMTP is configured
+    if (smtpIsConfigured()) {
+      console.warn(`[email] Primary provider (Resend) failed: ${resendMsg}. Attempting automatic failover to SMTP...`)
+      try {
+        await sendViaSmtp(options)
+        console.info('[email] Failover to SMTP succeeded.')
+        return
+      } catch (smtpError) {
+        const smtpMsg = extractEmailErrorMessage(smtpError)
+        console.error('[email] Both Resend and fallback SMTP failed:', {
+          to: options.to,
+          resendError: resendMsg,
+          smtpError: smtpMsg,
+        })
+        throw new Error(`Email delivery failed via both Resend (${resendMsg}) and SMTP (${smtpMsg})`)
+      }
+    }
+
+    console.error('[email] Resend send error:', resendError)
+    throw new Error(resendMsg)
   }
 }
 
