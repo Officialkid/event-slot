@@ -16,6 +16,7 @@ const protectedPagePrefixes = [
   '/template',
   '/email',
   '/search',
+  '/marketing',
 ]
 
 function isProtectedPage(pathname: string) {
@@ -109,5 +110,6 @@ export const config = {
     '/template/:path*',
     '/email/:path*',
     '/search',
+    '/marketing/:path*',
   ],
 }

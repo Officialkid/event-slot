@@ -14,6 +14,7 @@ const navItems = [
   { label: "Broadcast", href: "/admin/broadcast" },
   { label: "Platform Health", href: "/admin/health" },
   { label: "Launch Checklist", href: "/admin/launch" },
+  { label: "Marketing Team", href: "/admin/teams" },
   { label: "App Testers", href: "/admin/app-testers" },
   { label: "Billing Interest", href: "/admin/billing-launch-interest" },
   { label: "Conversations", href: "/admin/conversations" },
@@ -203,7 +204,7 @@ export default function AdminSidebar() {
                   style={{
                     marginLeft: "auto",
                     background: "var(--accent)",
-                    color: "var(--accent-contrast, #080808)",
+                    color: "var(--accent-contrast, black)",
                     fontSize: "0.6rem",
                     fontWeight: 700,
                     padding: "2px 5px",

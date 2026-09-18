@@ -377,7 +377,7 @@ export default function AdminBroadcastPage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="inline-flex rounded-xl p-1 bg-[#141414] border border-[#262626]">
+        <div className="inline-flex rounded-xl p-1 bg-[var(--surface)] border border-[var(--border)]">
           <button
             type="button"
             onClick={() => setActiveTab("compose")}
@@ -478,7 +478,7 @@ export default function AdminBroadcastPage() {
                       className={`p-4 rounded-xl text-left border transition-all ${
                         layoutType === "PROMOTIONAL_HERO"
                           ? "border-[#C8F55A] bg-[#C8F55A]/5 shadow-md shadow-[#C8F55A]/10"
-                          : "border-[#262626] bg-[#141414] hover:border-[#404040]"
+                          : "border-[var(--border)] bg-[var(--surface)] hover:border-neutral-700"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -496,7 +496,7 @@ export default function AdminBroadcastPage() {
                       className={`p-4 rounded-xl text-left border transition-all ${
                         layoutType === "TEXT_MINIMAL"
                           ? "border-[#C8F55A] bg-[#C8F55A]/5 shadow-md shadow-[#C8F55A]/10"
-                          : "border-[#262626] bg-[#141414] hover:border-[#404040]"
+                          : "border-[var(--border)] bg-[var(--surface)] hover:border-neutral-700"
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -531,7 +531,7 @@ export default function AdminBroadcastPage() {
                   </div>
 
                   {mode !== "INDIVIDUAL" && (
-                    <div className="mt-3 flex items-center justify-between text-xs text-[#888] bg-[#141414] px-3.5 py-2 rounded-xl border border-[#262626]">
+                    <div className="mt-3 flex items-center justify-between text-xs text-[#888] bg-[var(--surface)] px-3.5 py-2 rounded-xl border border-[var(--border)]">
                       <span>Estimated Recipients:</span>
                       <strong className="text-white text-sm font-bold">{loadingPreview ? "..." : prettyCount}</strong>
                     </div>
@@ -546,7 +546,7 @@ export default function AdminBroadcastPage() {
                         className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
                       />
                       {foundUsers.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto rounded-xl border border-[#262626] bg-[#141414]">
+                        <div className="max-h-36 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                           {foundUsers.map((u) => (
                             <button
                               key={u.id}
@@ -588,7 +588,7 @@ export default function AdminBroadcastPage() {
 
                 {/* 3. Promotional Fields (when Promotional Mode is active) */}
                 {layoutType === "PROMOTIONAL_HERO" && (
-                  <div className="space-y-4 rounded-xl bg-[#141414] border border-[#262626] p-5">
+                  <div className="space-y-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <span>🖼️</span> Hero Graphic & Promotional Meta
                     </h3>
@@ -712,7 +712,7 @@ export default function AdminBroadcastPage() {
                 </div>
 
                 {/* 6. Call-to-Action Button (Optional) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[#141414] border border-[#262626] p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
                   <div>
                     <label className="block text-xs text-[#A3A3A3] mb-1">CTA Button Text (Optional)</label>
                     <input
@@ -734,7 +734,7 @@ export default function AdminBroadcastPage() {
                 </div>
 
                 {/* 7. Dispatch Timing: Send Now vs. Schedule */}
-                <div className="rounded-xl bg-[#141414] border border-[#262626] p-5 space-y-3">
+                <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
                   <label className="block text-sm font-semibold text-white">Delivery Schedule</label>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-white">
@@ -878,7 +878,7 @@ export default function AdminBroadcastPage() {
                         </span>
                       </td>
                       <td className="py-3 pr-4">
-                        <span className="px-2 py-0.5 rounded text-xs bg-[#1A1A1A] border border-[#333] text-white">
+                        <span className="px-2 py-0.5 rounded text-xs bg-[var(--surface)] border border-[var(--border)] text-white">
                           {item.mode}
                         </span>
                       </td>

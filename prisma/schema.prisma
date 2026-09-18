@@ -209,6 +209,7 @@ model User {
   paygSettings               PaygSettings?
   organiserBalance           OrganiserBalance?
   withdrawals                Withdrawal[]
+  marketingMember            MarketingTeamMember?
 }
 
 model LoginSecurityState {
@@ -1366,4 +1367,270 @@ model ScheduledBroadcast {
 
   @@index([status, scheduledFor])
 }
+
+// ==========================================
+// MARKETING HUB ENUMS & MODELS
+// ==========================================
+
+enum MarketingRole {
+  MARKETING_ADMIN
+  MARKETING_MEMBER
+  CONTENT_MANAGER
+  ANALYST
+}
+
+enum MarketingMemberStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+  REVOKED
+}
+
+enum CampaignStatus {
+  DRAFT
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum MarketingChannel {
+  INSTAGRAM
+  LINKEDIN
+  EMAIL
+  WHATSAPP
+  TWITTER_X
+  TIKTOK
+  WEBSITE
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum AttributionTouchType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  SESSION_TOUCH
+  CONVERSION_TOUCH
+}
+
+enum IntegrationPlatform {
+  INSTAGRAM
+  LINKEDIN
+  WHATSAPP_BUSINESS
+  TWITTER_X
+}
+
+enum IntegrationStatus {
+  NOT_CONNECTED
+  CONNECTED
+  CONNECTION_EXPIRED
+  PERMISSION_REQUIRED
+  ERROR
+}
+
+enum MarketingReportType {
+  WEEKLY
+  MONTHLY
+  CAMPAIGN
+  CHANNEL
+}
+
+model MarketingTeamMember {
+  id             String                @id @default(cuid())
+  userId         String?               @unique
+  user           User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email          String                @unique
+  name           String?
+  role           MarketingRole         @default(MARKETING_MEMBER)
+  status         MarketingMemberStatus @default(INVITED)
+  inviteToken    String?               @unique
+  invitedBy      String
+  joinedAt       DateTime?
+  lastActiveAt   DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+model MarketingCampaign {
+  id             String                  @id @default(cuid())
+  campaignId     String                  @unique // e.g. "CAP-2026-09"
+  name           String
+  objective      String
+  description    String?                 @db.Text
+  startDate      DateTime
+  endDate        DateTime?
+  status         CampaignStatus          @default(PLANNED)
+  ownerId        String
+  targetAudience String?
+  channels       MarketingChannel[]
+  notes          String?                 @db.Text
+  contentAssets  MarketingContentItem[]
+  trackingLinks  MarketingTrackingLink[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([status])
+  @@index([campaignId])
+}
+
+model MarketingContentItem {
+  id             String                      @id @default(cuid())
+  campaignId     String
+  campaign       MarketingCampaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  channel        MarketingChannel
+  contentType    String                      // "Reel", "Carousel", "Post", "Story", "Email Broadcast", "Community Blast"
+  title          String
+  caption        String                      @db.Text
+  mediaUrls      String[]                    @default([])
+  ctaText        String?
+  destinationUrl String?
+  trackingLinkId String?
+  trackingLink   MarketingTrackingLink?      @relation(fields: [trackingLinkId], references: [id], onDelete: SetNull)
+  status         ContentStatus               @default(DRAFT)
+  scheduledFor   DateTime?
+  publishedAt    DateTime?
+  createdById    String
+  approvedById   String?
+  approvedAt     DateTime?
+  failureReason  String?
+  metrics        Json?
+  metadata       Json?
+  auditTrail     MarketingContentAuditTrail[]
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  @@index([campaignId])
+  @@index([channel, status])
+  @@index([status, scheduledFor])
+}
+
+model MarketingContentAuditTrail {
+  id             String               @id @default(cuid())
+  contentId      String
+  content        MarketingContentItem @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  actorId        String
+  action         String
+  previousStatus ContentStatus?
+  newStatus      ContentStatus?
+  notes          String?
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  @@index([contentId])
+}
+
+model MarketingTrackingLink {
+  id             String                      @id @default(cuid())
+  campaignId     String?
+  campaign       MarketingCampaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  code           String                      @unique // for /l/[code]
+  destinationUrl String
+  utmSource      String
+  utmMedium      String
+  utmCampaign    String
+  utmContent     String?
+  utmTerm        String?
+  utmId          String?
+  fullUrl        String                      @db.Text
+  shortUrl       String
+  clickCount     Int                         @default(0)
+  createdById    String
+  contentAssets  MarketingContentItem[]
+  touches        MarketingAttributionTouch[]
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  @@index([code])
+  @@index([utmCampaign])
+  @@index([utmSource])
+}
+
+model MarketingAttributionTouch {
+  id               String                 @id @default(cuid())
+  visitorId        String
+  sessionId        String?
+  userId           String?
+  touchType        AttributionTouchType   @default(SESSION_TOUCH)
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  utmContent       String?
+  utmTerm          String?
+  utmId            String?
+  referrer         String?
+  landingPath      String
+  trackingLinkId   String?
+  trackingLink     MarketingTrackingLink? @relation(fields: [trackingLinkId], references: [id], onDelete: SetNull)
+  conversionAction String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+
+  @@index([visitorId])
+  @@index([userId])
+  @@index([utmCampaign])
+  @@index([touchType])
+  @@index([createdAt])
+}
+
+model MarketingIntegration {
+  id                   String              @id @default(cuid())
+  platform             IntegrationPlatform @unique
+  accountName          String?
+  accountIdentifier    String?
+  status               IntegrationStatus   @default(NOT_CONNECTED)
+  encryptedCredentials String?             @db.Text
+  credentialsIv        String?
+  lastSyncAt           DateTime?
+  errorMessage         String?
+  connectedById        String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+}
+
+model MarketingReport {
+  id                     String              @id @default(cuid())
+  title                  String
+  reportType             MarketingReportType
+  periodStart            DateTime
+  periodEnd              DateTime
+  campaignId             String?
+  channel                MarketingChannel?
+  dataSnapshot           Json
+  aiSummary              String?             @db.Text
+  keyObservations        Json?
+  recommendedExperiments Json?
+  generatedById          String
+  createdAt              DateTime            @default(now())
+
+  @@index([reportType, createdAt])
+}
+
+model MarketingAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, createdAt])
+  @@index([actorId])
+}
+
 
