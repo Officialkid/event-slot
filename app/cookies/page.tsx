@@ -118,8 +118,8 @@ export default function CookiePolicyPage() {
             <h2 className="text-xl font-semibold text-white mb-3">Questions & Contact</h2>
             <p className="text-sm text-[#A3A3A3]">
               If you have any questions regarding our use of cookies or privacy practices, please contact our team at{" "}
-              <a href="mailto:privacy@eventsslot.com" className="text-[#C8F55A] underline">
-                privacy@eventsslot.com
+              <a href="mailto:info@eventsslot.com" className="text-[#C8F55A] underline">
+                info@eventsslot.com
               </a>{" "}
               or review our{" "}
               <Link href="/privacy" className="text-[#C8F55A] underline">
