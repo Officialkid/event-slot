@@ -38,6 +38,9 @@ export function MarketingFooter() {
             <Link href="/terms" className="transition-colors hover:text-[var(--text-primary)]">
               Terms of Service
             </Link>
+            <a href="mailto:info@eventsslot.com" className="transition-colors hover:text-[var(--text-primary)]">
+              Contact
+            </a>
           </div>
 
           <div className="text-[0.8rem]" style={{ color: "var(--text-muted)" }}>

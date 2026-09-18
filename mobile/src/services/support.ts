@@ -9,7 +9,7 @@ export const supportLinks = {
   terms: "https://www.eventsslot.com/terms",
   accountDeletion: "https://www.eventsslot.com/account-deletion",
   website: "https://www.eventsslot.com",
-  testerSupport: "mailto:eventslot.co@gmail.com?subject=EventSlot%20native%20app%20support"
+  testerSupport: "mailto:info@eventsslot.com?subject=EventSlot%20native%20app%20support"
 } as const;
 
 export async function openSupportLink(url: string): Promise<boolean> {
@@ -142,7 +142,7 @@ export function buildNativeTesterFeedbackEmailUrl(params: {
     "Thank you."
   ].join("\n");
 
-  return `mailto:eventslot.co@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return `mailto:info@eventsslot.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 export async function openAccountDeletionPolicy(): Promise<boolean> {

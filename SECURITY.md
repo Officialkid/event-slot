@@ -5,7 +5,7 @@ and organiser account access. Please report security issues privately.
 
 ## Reporting A Vulnerability
 
-Email: eventslot.co@gmail.com
+Email: info@eventsslot.com (or security@eventsslot.com)
 
 Include:
 
