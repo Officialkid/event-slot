@@ -14,8 +14,13 @@ const config: Config = {
     '<rootDir>/node_modules/',
     '<rootDir>/.next/',
     '<rootDir>/e2e/',
+    '<rootDir>/\\.tmp',
+    '<rootDir>/mobile/',
   ],
-  modulePathIgnorePatterns: ['<rootDir>/.next/standalone/'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/.next/standalone/',
+    '<rootDir>/\\.tmp',
+  ],
   collectCoverageFrom: [
     'app/api/attendance/confirm/route.ts',
     'app/api/tickets/[confirmationCode]/route.ts',

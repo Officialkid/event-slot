@@ -237,6 +237,8 @@ export async function POST(req: NextRequest) {
         try {
           await sendEmail({
             from: EMAIL_FROM,
+            category: 'marketing',
+            unsubscribeUrl: `${APP_URL}/unsubscribe?email=${encodeURIComponent(recipient.email)}`,
             to: recipient.email,
             subject: subject.trim(),
             html: emailHtml,

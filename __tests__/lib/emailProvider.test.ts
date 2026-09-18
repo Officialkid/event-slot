@@ -55,4 +55,36 @@ describe("emailProvider", () => {
 
     expect(getVerifiedSender({ runtimeEnv: smtpEnv })).toBe("EventSlot <hello@eventsslot.com>")
   })
+
+  it("distinguishes transactional from marketing senders by default", () => {
+    expect(
+      getVerifiedSender({
+        runtimeEnv: {},
+        category: "transactional",
+      }),
+    ).toBe("EventSlot Notifications <notifications@eventsslot.com>")
+
+    expect(
+      getVerifiedSender({
+        runtimeEnv: {},
+        category: "marketing",
+      }),
+    ).toBe("EventSlot <hello@eventsslot.com>")
+
+    expect(
+      getVerifiedSender({
+        runtimeEnv: {},
+        preferredFrom: "Security Alert <alert@example.com>",
+        category: "transactional",
+      }),
+    ).toBe("Security Alert <notifications@eventsslot.com>")
+
+    expect(
+      getVerifiedSender({
+        runtimeEnv: {},
+        preferredFrom: "EventSlot <notifications@eventsslot.com>",
+        category: "transactional",
+      }),
+    ).toBe("EventSlot <notifications@eventsslot.com>")
+  })
 })

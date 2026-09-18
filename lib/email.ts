@@ -6,7 +6,11 @@ import { env } from '@/lib/env'
 import { buildGoogleCalendarTemplateUrl } from '@/lib/calendarLinks'
 import {
   DEFAULT_RESEND_SENDER,
+  DEFAULT_TRANSACTIONAL_SENDER,
+  DEFAULT_MARKETING_SENDER,
   getConfiguredEmailFrom,
+  getConfiguredTransactionalFrom,
+  getConfiguredMarketingFrom,
   getVerifiedSender,
   shouldUseSmtpFromEnv,
   smtpIsConfiguredFromEnv,
@@ -21,15 +25,20 @@ function getResendClient() {
 }
 
 const BASE_URL = APP_URL
-const EMAIL_FROM = getConfiguredEmailFrom(env)
+export const EMAIL_FROM = getConfiguredEmailFrom(env)
+export const EMAIL_FROM_TRANSACTIONAL = getConfiguredTransactionalFrom(env)
+export const EMAIL_FROM_MARKETING = getConfiguredMarketingFrom(env)
 
-type InternalEmailOptions = {
+export type InternalEmailOptions = {
   to: string | string[]
   subject: string
   html?: string
   text?: string
   from?: string
   replyTo?: string
+  category?: 'transactional' | 'marketing'
+  unsubscribeUrl?: string
+  headers?: Record<string, string>
 }
 
 function smtpIsConfigured() {
@@ -84,7 +93,17 @@ function shouldRetryWithFallbackSender(message: string | null, from: string) {
 
 async function sendViaSmtp(options: InternalEmailOptions): Promise<void> {
   const transporter = getSmtpTransporter()
-  const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
+  const verifiedFrom = getVerifiedSender({
+    runtimeEnv: env,
+    preferredFrom: options.from,
+    category: options.category,
+  })
+
+  const headers: Record<string, string> = { ...(options.headers || {}) }
+  if (options.category === 'marketing' && options.unsubscribeUrl) {
+    headers['List-Unsubscribe'] = `<${options.unsubscribeUrl}>`
+    headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+  }
 
   await transporter.sendMail({
     from: verifiedFrom,
@@ -93,16 +112,28 @@ async function sendViaSmtp(options: InternalEmailOptions): Promise<void> {
     html: options.html,
     text: options.text,
     replyTo: options.replyTo,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
   })
 }
 
 async function sendViaResend(options: InternalEmailOptions): Promise<void> {
   const resend = getResendClient()
-  const verifiedFrom = getVerifiedSender({ runtimeEnv: env, preferredFrom: options.from })
+  const verifiedFrom = getVerifiedSender({
+    runtimeEnv: env,
+    preferredFrom: options.from,
+    category: options.category,
+  })
+
+  const headers: Record<string, string> = { ...(options.headers || {}) }
+  if (options.category === 'marketing' && options.unsubscribeUrl) {
+    headers['List-Unsubscribe'] = `<${options.unsubscribeUrl}>`
+    headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+  }
+
   const payload = {
     ...options,
-    // Always use the verified sender address, even if callers pass a branded alias.
     from: verifiedFrom,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
   } as Parameters<Resend['emails']['send']>[0]
 
   let error: { message?: string } | null = null
@@ -202,7 +233,13 @@ export async function sendCampaignEmail({
   subject: string
   html: string
 }) {
-  await sendEmail({ from: 'EventSlot <noreply@eventsslot.com>', to, subject, html })
+  await sendEmail({
+    from: 'EventSlot <hello@eventsslot.com>',
+    category: 'marketing',
+    to,
+    subject,
+    html,
+  })
 }
 
 export async function sendFeedbackRequestEmail({
@@ -217,7 +254,8 @@ export async function sendFeedbackRequestEmail({
   const feedbackUrl = `${BASE_URL}/feedback/${registrationId}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `How was ${eventTitle}? Share your feedback`,
     html: `
@@ -248,7 +286,8 @@ export async function sendTeamInviteEmail({
   const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
 
   await sendEmail({
-    from: EMAIL_FROM,
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `${inviterName} invited you to join their EventSlot team`,
     html: `
@@ -294,7 +333,8 @@ export async function sendSlotConfirmedEmail({
     : ''
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Your slot for ${eventTitle} is confirmed`,
     html: `
@@ -386,7 +426,8 @@ export async function sendWaitlistPromotedEmail({
   }
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Congratulations! You've been promoted from the waitlist for ${eventTitle}`,
     html: `
@@ -449,13 +490,13 @@ export async function sendWaitlistJoinedEmail({
           Add it to your calendar now &mdash; it will update automatically if you&apos;re confirmed.
         </p>
         <a href="${googleCalUrl}"
-           style="display: inline-block; background: #4285F4; color: white;
+            style="display: inline-block; background: #4285F4; color: white;
                   font-weight: bold; padding: 10px 20px; border-radius: 8px;
                   text-decoration: none; margin-right: 8px;">
           &#128197; Add to Google Calendar
         </a>
         <a href="${icsUrl}"
-           style="display: inline-block; border: 1px solid #2A2A2A; color: #A3A3A3;
+            style="display: inline-block; border: 1px solid #2A2A2A; color: #A3A3A3;
                   padding: 10px 20px; border-radius: 8px; text-decoration: none;">
           &#11015; Download .ics
         </a>
@@ -463,7 +504,8 @@ export async function sendWaitlistJoinedEmail({
   }
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `You're on the waitlist for ${eventTitle}`,
     html: `
@@ -511,7 +553,8 @@ export async function sendPaidWaitlistPromotionEmail({
   })
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `A paid ticket is now available for ${eventTitle}`,
     html: `
@@ -596,7 +639,8 @@ export async function sendConfirmationEmail({
 
 
   await sendEmail({
-    from: 'EventSlot <hello@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `You're registered - ${eventTitle}`,
     html: `
@@ -690,7 +734,8 @@ export async function sendRegistrationResponseCopyEmail({
     : `${APP_URL}/registration/${registrationId}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Your responses for ${eventTitle}`,
     html: `
@@ -734,6 +779,7 @@ export async function sendWelcomeEmail({
 
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `You're officially in! Welcome to EventSlot`,
     html: `
@@ -807,7 +853,8 @@ export async function sendOrganizerCapacity90Email({
 }) {
   const dashUrl = `${BASE_URL}/dashboard`
   await sendEmail({
-    from: EMAIL_FROM,
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `"${eventTitle}" is 80% full`,
     html: `
@@ -846,7 +893,8 @@ export async function sendOrganizerCapacityFullEmail({
     : `<p style="color:rgba(240,237,230,0.65);font-size:0.9rem;line-height:1.6;margin:0 0 1.5rem">You can still increase capacity from the dashboard if needed.</p>`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `"${eventTitle}" is now full`,
     html: `
@@ -875,7 +923,8 @@ export async function sendOrganizerFirstWaitlistEmail({
 }) {
   const dashUrl = `${BASE_URL}/dashboard`
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `People are joining the waitlist for "${eventTitle}"`,
     html: `
@@ -906,7 +955,8 @@ export async function sendOrganizerEventReminderEmail({
   const dashUrl = `${BASE_URL}/dashboard`
   const dateStr = eventDate.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Reminder: "${eventTitle}" is in 2 days`,
     html: `
@@ -938,7 +988,8 @@ export async function sendPasswordResetEmail({
   const resetUrl = `${BASE_URL}/reset-password?token=${token}`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Security <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: 'Reset your EventSlot password',
     html: `
@@ -972,7 +1023,8 @@ export async function sendEmailOtp({
   otp: string
 }) {
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Auth <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `${otp} - Your EventSlot verification code`,
     html: `
@@ -1021,7 +1073,8 @@ export async function sendExpiryWarningEmail({
   const upgradeUrl = `${BASE_URL}/upgrade`
 
   await sendEmail({
-    from: 'EventSlot <noreply@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Your event data deletes in ${daysLeft} days - upgrade to keep it`,
     html: `
@@ -1056,6 +1109,7 @@ export async function sendPioneerBadgeAnnouncementEmail({
 }) {
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
+    category: 'marketing',
     to,
     subject: "You're an EventSlot Pioneer",
     html: `
@@ -1094,6 +1148,7 @@ export async function sendAppTesterSignupEmail({
 
   await sendEmail({
     from: 'EventSlot <hello@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: hasOptInUrl ? 'Your EventSlot app testing invite is ready' : 'You are on the EventSlot early tester list',
     html: `
@@ -1142,7 +1197,8 @@ export async function sendPostEventSummaryEmail({
   avgFeedbackScore: string | null
 }) {
   await sendEmail({
-    from: 'EventSlot <hello@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Post-event summary: ${eventTitle}`,
     html: `
@@ -1208,7 +1264,8 @@ export async function sendGroupBookingConfirmationEmail({
   const firstName = (contactName || '').trim().split(' ')[0] || 'there'
 
   await sendEmail({
-    from: 'EventSlot <hello@eventsslot.com>',
+    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    category: 'transactional',
     to,
     subject: `Group Reservation Confirmed: ${orgName} — ${eventTitle}`,
     html: `

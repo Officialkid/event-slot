@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { sendEmail } from "@/lib/email"
-import { getConfiguredEmailFrom } from "@/lib/emailProvider"
+import { getConfiguredMarketingFrom } from "@/lib/emailProvider"
 import { env } from "@/lib/env"
+import { APP_URL } from "@/lib/config"
 import { renderBroadcastEmail, type BroadcastLayoutType } from "@/lib/emailTemplates"
 
-const EMAIL_FROM = getConfiguredEmailFrom(env, "EventSlot <hello@eventsslot.com>")
+const EMAIL_FROM = getConfiguredMarketingFrom(env, "EventSlot <hello@eventsslot.com>")
 
 export async function GET(req: NextRequest) {
   try {
@@ -84,6 +85,8 @@ export async function GET(req: NextRequest) {
         try {
           await sendEmail({
             from: EMAIL_FROM,
+            category: "marketing",
+            unsubscribeUrl: `${APP_URL}/unsubscribe?email=${encodeURIComponent(recipient.email)}`,
             to: recipient.email,
             subject: broadcast.subject,
             html: emailHtml,

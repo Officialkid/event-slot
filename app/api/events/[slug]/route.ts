@@ -435,18 +435,136 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ slug:
     const session = await getServerSession(authOptions)
     const { slug } = params
 
-    const event = await prisma.event.findUnique({ where: { slug } })
+    const event = await prisma.event.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        organizerId: true,
+      },
+    })
     if (!event) {
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
+    const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
 
-    if (!isOwner) {
+    if (!isOwner && !adminAccess) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    await prisma.event.delete({ where: { slug } })
+    // Cancel Google Calendar events if connected
+    if (event.organizerId) {
+      cancelCalendarEvent({
+        userId:      event.organizerId,
+        eventSlotId: event.id,
+        role:        'organiser',
+        eventTitle:  event.title,
+      }).catch(console.error)
+
+      const attendeesSynced = await prisma.calendarEventSync.findMany({
+        where:  { eventId: event.id, role: 'attendee' },
+        select: { userId: true },
+      })
+      for (const { userId } of attendeesSynced) {
+        cancelCalendarEvent({
+          userId,
+          eventSlotId: event.id,
+          role:        'attendee',
+          eventTitle:  event.title,
+        }).catch(console.error)
+      }
+    }
+
+    // Atomic cascade transaction: purge all child tables in strict dependency order before deleting Event
+    await prisma.$transaction(async (tx) => {
+      // 1. Group bookings & ticket slots
+      const groupBookings = await tx.groupBooking.findMany({
+        where: { eventId: event.id },
+        select: { id: true },
+      })
+      if (groupBookings.length > 0) {
+        const bookingIds = groupBookings.map((b) => b.id)
+        await tx.groupTicketSlot.deleteMany({
+          where: { bookingId: { in: bookingIds } },
+        })
+        await tx.groupBooking.deleteMany({
+          where: { id: { in: bookingIds } },
+        })
+      }
+
+      // 2. Attendee feedbacks & entry logs
+      await tx.attendeeFeedback.deleteMany({ where: { eventId: event.id } })
+      await tx.entryLog.deleteMany({ where: { eventId: event.id } })
+
+      // 3. Tickets linked to registrations for this event
+      const registrations = await tx.registration.findMany({
+        where: { eventId: event.id },
+        select: { id: true },
+      })
+      if (registrations.length > 0) {
+        const registrationIds = registrations.map((r) => r.id)
+        await tx.ticket.deleteMany({
+          where: { registrationId: { in: registrationIds } },
+        })
+      }
+
+      // 4. Payments
+      await tx.payment.deleteMany({ where: { eventId: event.id } })
+
+      // 5. PaidEventOrders (restricts TicketTier deletion, must be deleted before TicketTier)
+      await tx.paidEventOrder.deleteMany({ where: { eventId: event.id } })
+
+      // 6. Registrations & Drafts
+      await tx.registrationDraft.deleteMany({ where: { eventId: event.id } })
+      await tx.registration.deleteMany({ where: { eventId: event.id } })
+
+      // 7. Ticket tiers
+      await tx.ticketTier.deleteMany({ where: { eventId: event.id } })
+
+      // 8. Event passes & pass payments
+      const eventPass = await tx.eventPass.findUnique({
+        where: { eventId: event.id },
+        select: { id: true },
+      })
+      if (eventPass) {
+        await tx.eventPassPayment.deleteMany({
+          where: { eventPassId: eventPass.id },
+        })
+        await tx.eventPass.delete({
+          where: { id: eventPass.id },
+        })
+      }
+
+      // 9. Walk-in checkins
+      await tx.walkInCheckin.deleteMany({ where: { eventId: event.id } })
+
+      // 10. Analytics & Insights
+      await tx.eventView.deleteMany({ where: { eventId: event.id } })
+      await tx.eventUnlock.deleteMany({ where: { eventId: event.id } })
+      await tx.eventInsight.deleteMany({ where: { eventId: event.id } })
+
+      // 11. Collaboration, campaigns, FAQs & calendar syncs
+      await tx.teamMemberEvent.deleteMany({ where: { eventId: event.id } })
+      await tx.emailCampaign.deleteMany({ where: { eventId: event.id } })
+      await tx.eventFAQ.deleteMany({ where: { eventId: event.id } })
+      await tx.calendarEventSync.deleteMany({ where: { eventId: event.id } })
+
+      // 12. Nullify optional loose foreign key references
+      await tx.creditTransaction.updateMany({
+        where: { eventId: event.id },
+        data: { eventId: null },
+      })
+      await tx.featureAccess.updateMany({
+        where: { eventId: event.id },
+        data: { eventId: null },
+      })
+
+      // 13. Finally delete the Event record itself
+      await tx.event.delete({ where: { id: event.id } })
+    })
 
     // Purge cached event lists and dashboard stats so the deletion is reflected immediately
     if (session?.user?.id) {
@@ -455,6 +573,7 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ slug:
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    console.error('[DELETE EVENT ERROR]', err)
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
