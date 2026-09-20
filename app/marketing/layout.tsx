@@ -112,7 +112,11 @@ export default function MarketingLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-[#0A0A0A] text-white">
+    <div
+      className="marketing-hub-root min-h-screen flex bg-[#0A0A0A] text-white"
+      data-theme="dark"
+      style={{ colorScheme: "dark", color: "#FFFFFF", background: "#0A0A0A" }}
+    >
       {/* Sidebar */}
       <MarketingSidebar
         userRole={user.role}
@@ -124,11 +128,11 @@ export default function MarketingLayout({
       {/* Main Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="h-16 border-b border-[#262626] bg-[#0A0A0A]/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-16 border-b border-[#262626] bg-[#0A0A0A]/95 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#C8F55A] animate-pulse"></span>
-              <span className="text-xs font-mono uppercase tracking-wider text-[#737373]">
+              <span className="text-xs font-mono uppercase tracking-wider text-[#A3A3A3]">
                 Marketing OS v1.0
               </span>
             </div>
@@ -140,6 +144,7 @@ export default function MarketingLayout({
               <Link
                 href="/marketing/campaigns"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1F1F1F] hover:bg-[#262626] text-white border border-[#333] transition"
+                style={{ color: "#FFFFFF" }}
               >
                 <Megaphone className="w-3.5 h-3.5 text-[#C8F55A]" />
                 New Campaign
@@ -150,6 +155,7 @@ export default function MarketingLayout({
               <Link
                 href="/marketing/content"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#C8F55A] hover:bg-[#b8e84a] text-[#0A0A0A] transition shadow-sm"
+                style={{ color: "#0A0A0A" }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Create Content
@@ -160,6 +166,7 @@ export default function MarketingLayout({
               <Link
                 href="/marketing/tracking"
                 className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1F1F1F] hover:bg-[#262626] text-white border border-[#333] transition"
+                style={{ color: "#FFFFFF" }}
               >
                 <Link2 className="w-3.5 h-3.5 text-[#C8F55A]" />
                 Tracking Link

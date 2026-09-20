@@ -120,10 +120,10 @@ export default function MarketingDashboardPage() {
       {/* Top Welcome & Range Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5" style={{ color: "#FFFFFF" }}>
             Marketing Overview
           </h1>
-          <p className="text-sm text-[#A3A3A3] mt-1">
+          <p className="text-sm text-[#D4D4D4] mt-1" style={{ color: "#D4D4D4" }}>
             Real-time operating metrics, multi-channel performance, and campaign conversion telemetry.
           </p>
         </div>
@@ -137,8 +137,9 @@ export default function MarketingDashboardPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                 range === r.key
                   ? "bg-[#C8F55A] text-[#0A0A0A] font-semibold"
-                  : "text-[#737373] hover:text-white"
+                  : "text-[#A3A3A3] hover:text-white"
               }`}
+              style={{ color: range === r.key ? "#0A0A0A" : "#D4D4D4" }}
             >
               {r.label}
             </button>

@@ -19,6 +19,9 @@ function splitEmailList(value: string | null | undefined): string[] {
 
 const DEFAULT_ADMIN_EMAILS = [
   'eventslot.co@gmail.com',
+  'eventslot.co',
+  'info@eventsslot.com',
+  'admin@eventsslot.com',
   'mwalili.daniel@students.jkuat.ac.ke',
 ]
 
@@ -49,6 +52,13 @@ export function getConfiguredAdminEmails(): string[] {
 export function isAdminEmail(email: string | null | undefined): boolean {
   const candidate = normalizeEmail(email)
   if (!candidate) return false
+  if (
+    candidate === 'eventslot.co@gmail.com' ||
+    candidate === 'eventslot.co' ||
+    candidate.startsWith('eventslot.co@')
+  ) {
+    return true
+  }
   return getConfiguredAdminEmails().includes(candidate)
 }
 

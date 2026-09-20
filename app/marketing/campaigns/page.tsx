@@ -153,11 +153,11 @@ export default function MarketingCampaignsPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#262626] pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <Megaphone className="w-6 h-6 text-[#C8F55A]" />
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5" style={{ color: "#FFFFFF" }}>
+            <Megaphone className="w-6 h-6 text-[#C8F55A]" style={{ color: "#C8F55A" }} />
             Marketing Campaigns
           </h1>
-          <p className="text-sm text-[#A3A3A3] mt-1">
+          <p className="text-sm text-[#D4D4D4] mt-1" style={{ color: "#D4D4D4" }}>
             Central orchestration object for multi-channel content assets, schedules, and attribution telemetry.
           </p>
         </div>
@@ -165,6 +165,7 @@ export default function MarketingCampaignsPage() {
         <button
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#C8F55A] hover:bg-[#b8e84a] text-[#0A0A0A] transition shadow-sm"
+          style={{ color: "#0A0A0A" }}
         >
           <Plus className="w-4 h-4" />
           Create Campaign
@@ -182,8 +183,9 @@ export default function MarketingCampaignsPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                 statusFilter === s
                   ? "bg-[#C8F55A] text-[#0A0A0A] font-semibold"
-                  : "text-[#737373] hover:text-white"
+                  : "text-[#A3A3A3] hover:text-white"
               }`}
+              style={{ color: statusFilter === s ? "#0A0A0A" : "#D4D4D4" }}
             >
               {s.charAt(0) + s.slice(1).toLowerCase()}
             </button>
@@ -192,23 +194,24 @@ export default function MarketingCampaignsPage() {
 
         {/* Search */}
         <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-[#737373] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#A3A3A3] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search campaigns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 bg-[#141414] border border-[#262626] rounded-xl text-xs text-white placeholder-[#737373] focus:outline-none focus:border-[#C8F55A]"
+            style={{ color: "#FFFFFF" }}
           />
         </div>
       </div>
 
       {/* Campaigns Grid */}
       {loading ? (
-        <div className="p-16 text-center text-xs text-[#737373]">Loading campaigns...</div>
+        <div className="p-16 text-center text-xs text-[#A3A3A3]" style={{ color: "#A3A3A3" }}>Loading campaigns...</div>
       ) : filteredCampaigns.length === 0 ? (
         <div className="rounded-2xl bg-[#141414] border border-[#262626] p-16 text-center space-y-3">
-          <p className="text-sm text-neutral-400">No campaigns found matching the current filters.</p>
+          <p className="text-sm text-[#D4D4D4]" style={{ color: "#D4D4D4" }}>No campaigns found matching the current filters.</p>
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#1F1F1F] text-[#C8F55A] hover:bg-[#262626]"

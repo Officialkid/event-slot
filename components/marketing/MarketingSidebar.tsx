@@ -75,17 +75,20 @@ export function MarketingSidebar({
         {!collapsed ? (
           <div>
             <Link href="/marketing" className="flex items-center gap-1.5 font-bold tracking-tight">
-              <span className="text-xl text-white">Event</span>
-              <span className="text-xl text-[#C8F55A]">Slot</span>
-              <span className="ml-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold tracking-widest bg-[#1F1F1F] text-[#C8F55A] border border-[#2A2A2A]">
+              <span className="text-xl font-bold text-white" style={{ color: "#FFFFFF" }}>Event</span>
+              <span className="text-xl font-bold text-[#C8F55A]" style={{ color: "#C8F55A" }}>Slot</span>
+              <span
+                className="ml-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-mono font-bold tracking-widest bg-[#1F1F1F] text-[#C8F55A] border border-[#2A2A2A]"
+                style={{ color: "#C8F55A" }}
+              >
                 Marketing
               </span>
             </Link>
           </div>
         ) : (
           <Link href="/marketing" className="mx-auto font-black text-lg">
-            <span className="text-white">E</span>
-            <span className="text-[#C8F55A]">S</span>
+            <span className="text-white" style={{ color: "#FFFFFF" }}>E</span>
+            <span className="text-[#C8F55A]" style={{ color: "#C8F55A" }}>S</span>
           </Link>
         )}
 
@@ -120,10 +123,11 @@ export function MarketingSidebar({
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
                 isActive
                   ? "bg-[#C8F55A] text-[#0A0A0A] font-semibold shadow-sm"
-                  : "text-[#A3A3A3] hover:text-white hover:bg-[#141414]"
+                  : "text-[#D4D4D4] hover:text-white hover:bg-[#141414]"
               } ${collapsed ? "justify-center px-2" : ""}`}
+              style={{ color: isActive ? "#0A0A0A" : "#D4D4D4" }}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#0A0A0A]" : "text-[#737373]"}`} />
+              <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#0A0A0A]" : "text-[#A3A3A3]"}`} />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           )
@@ -134,7 +138,8 @@ export function MarketingSidebar({
           <div className="pt-4 mt-4 border-t border-[#1F1F1F]">
             <Link
               href="/admin"
-              className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#737373] hover:text-white hover:bg-[#141414] rounded-xl transition"
+              className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#A3A3A3] hover:text-white hover:bg-[#141414] rounded-xl transition"
+              style={{ color: "#A3A3A3" }}
             >
               <span className="flex items-center gap-2">
                 <ExternalLink className="w-3.5 h-3.5 text-[#C8F55A]" />

@@ -430,8 +430,34 @@ html[data-theme="light"] .marketing-card p {
   color: var(--text-secondary) !important;
 }
 
-html[data-theme="light"] .text-white {
-  color: var(--text-primary) !important;
+/* Marketing Hub dedicated dark operating system scoping */
+.marketing-hub-root,
+.marketing-hub-root[data-theme="dark"] {
+  --text-primary: #FFFFFF !important;
+  --text-secondary: #D4D4D4 !important;
+  --text-muted: #888888 !important;
+  --bg-page: #0A0A0A !important;
+  --bg-surface: #141414 !important;
+  --border: #262626 !important;
+  color: #FFFFFF !important;
+  background-color: #0A0A0A !important;
+}
+
+.marketing-hub-root h1,
+.marketing-hub-root h2,
+.marketing-hub-root h3,
+.marketing-hub-root h4,
+.marketing-hub-root h5,
+.marketing-hub-root h6 {
+  color: #FFFFFF !important;
+}
+
+.marketing-hub-root .text-white {
+  color: #FFFFFF !important;
+}
+
+.marketing-hub-root a {
+  color: inherit;
 }
 
 .marketing-card:hover {
