@@ -136,8 +136,14 @@ export function MarketingSidebar({
         {/* Super Admin Switcher Link */}
         {isSuperAdmin && !collapsed && (
           <div className="pt-4 mt-4 border-t border-[#1F1F1F]">
-            <Link
-              href="/admin"
+            <a
+              href={
+                typeof window !== "undefined" && window.location.hostname.includes("marketing.eventsslot.com")
+                  ? "https://admin.eventsslot.com"
+                  : typeof window !== "undefined" && window.location.hostname.includes("marketing.localhost")
+                  ? "http://admin.localhost:3000"
+                  : "/admin"
+              }
               className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#A3A3A3] hover:text-white hover:bg-[#141414] rounded-xl transition"
               style={{ color: "#A3A3A3" }}
             >
@@ -146,7 +152,7 @@ export function MarketingSidebar({
                 Super Admin Panel
               </span>
               <span className="text-[10px] text-[#C8F55A] font-mono">ROOT</span>
-            </Link>
+            </a>
           </div>
         )}
       </nav>

@@ -1,8 +1,11 @@
 import { withAuth } from 'next-auth/middleware'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminEmail } from '@/lib/isAdmin'
 
-const verifierHosts = new Set(['verify.eventsslot.com', 'verify.www.eventsslot.com'])
+const verifierHosts = new Set(['verify.eventsslot.com', 'verify.www.eventsslot.com', 'verify.localhost'])
+const marketingHosts = new Set(['marketing.eventsslot.com', 'marketing.www.eventsslot.com', 'marketing.localhost'])
+const adminHosts = new Set(['admin.eventsslot.com', 'admin.www.eventsslot.com', 'admin.localhost'])
+const appHosts = new Set(['app.eventsslot.com', 'app.www.eventsslot.com', 'app.localhost'])
 
 const protectedPagePrefixes = [
   '/dashboard',
@@ -42,13 +45,91 @@ function applySecurityHeaders(res: NextResponse) {
   return res
 }
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token
-    const pathname = req.nextUrl.pathname
-    const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(':')[0].toLowerCase()
+export function middlewareHandler(req: NextRequest & { nextauth?: { token?: any } }) {
+  const token = req.nextauth?.token
+  const pathname = req.nextUrl.pathname
+  const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(':')[0].toLowerCase()
 
-    if (verifierHosts.has(host)) {
+    const isSuperAdmin = Boolean(
+      token?.role === 'SUPER_ADMIN' ||
+      token?.isAdmin === true ||
+      isAdminEmail(token?.email)
+    )
+
+    // 1. Marketing Hub Subdomain (marketing.eventsslot.com)
+    if (marketingHosts.has(host)) {
+      if (!pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.startsWith('/l/')) {
+        let targetPath = pathname
+        if (pathname === '/' || pathname === '') {
+          targetPath = '/marketing'
+        } else if (!pathname.startsWith('/marketing')) {
+          targetPath = `/marketing${pathname}`
+        }
+
+        // Auth guard for marketing
+        if (!token) {
+          const signInUrl = new URL('/signin', req.url)
+          signInUrl.searchParams.set('callbackUrl', req.url)
+          return NextResponse.redirect(signInUrl)
+        }
+
+        if (targetPath !== pathname) {
+          const rewriteUrl = req.nextUrl.clone()
+          rewriteUrl.pathname = targetPath
+          return applySecurityHeaders(NextResponse.rewrite(rewriteUrl))
+        }
+      }
+    }
+
+    // 2. Super Admin Subdomain (admin.eventsslot.com)
+    else if (adminHosts.has(host)) {
+      if (!pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
+        let targetPath = pathname
+        if (pathname === '/' || pathname === '') {
+          targetPath = '/admin'
+        } else if (!pathname.startsWith('/admin')) {
+          targetPath = `/admin${pathname}`
+        }
+
+        // Auth guard for admin
+        if (!token) {
+          const signInUrl = new URL('/signin', req.url)
+          signInUrl.searchParams.set('callbackUrl', req.url)
+          return NextResponse.redirect(signInUrl)
+        }
+
+        if (!isSuperAdmin) {
+          return NextResponse.redirect(new URL('/unauthorized', req.url))
+        }
+
+        if (targetPath !== pathname) {
+          const rewriteUrl = req.nextUrl.clone()
+          rewriteUrl.pathname = targetPath
+          return applySecurityHeaders(NextResponse.rewrite(rewriteUrl))
+        }
+      }
+    }
+
+    // 3. Organizer App Subdomain (app.eventsslot.com)
+    else if (appHosts.has(host)) {
+      if (!pathname.startsWith('/api') && !pathname.startsWith('/_next')) {
+        let targetPath = pathname
+        if (pathname === '/' || pathname === '') {
+          targetPath = '/dashboard'
+        } else if (pathname === '/events') {
+          targetPath = '/my-events'
+        }
+
+        if (targetPath !== pathname) {
+          const rewriteUrl = req.nextUrl.clone()
+          rewriteUrl.pathname = targetPath
+          return applySecurityHeaders(NextResponse.rewrite(rewriteUrl))
+        }
+      }
+    }
+
+    // 4. Ticket Verifier Subdomain (verify.eventsslot.com)
+    else if (verifierHosts.has(host)) {
       const rewriteUrl = req.nextUrl.clone()
 
       if (pathname === '/' || pathname === '/verify-tickets') {
@@ -64,10 +145,11 @@ export default withAuth(
       return applySecurityHeaders(NextResponse.rewrite(rewriteUrl))
     }
 
-    const isSuperAdmin = token?.role === 'SUPER_ADMIN' || token?.isAdmin === true || isAdminEmail(token?.email)
-
+    // 5. Standard Route Protection (Main Domain & Direct URLs)
     if (isProtectedPage(pathname) && !token) {
-      return NextResponse.redirect(new URL('/signin', req.url))
+      const signInUrl = new URL('/signin', req.url)
+      signInUrl.searchParams.set('callbackUrl', req.url)
+      return NextResponse.redirect(signInUrl)
     }
 
     if (pathname.startsWith('/admin') && !isSuperAdmin) {
@@ -79,37 +161,19 @@ export default withAuth(
     }
 
     return applySecurityHeaders(NextResponse.next())
+}
+
+export default withAuth(middlewareHandler, {
+  callbacks: {
+    authorized: () => true,
   },
-  {
-    callbacks: {
-      authorized: () => true,
-    },
-    pages: {
-      signIn: '/signin',
-    },
-  }
-)
+  pages: {
+    signIn: '/signin',
+  },
+})
 
 export const config = {
   matcher: [
-    '/',
-    '/:slug',
-    '/verify-tickets/:path*',
-    '/dashboard/:path*',
-    '/my-events',
-    '/create',
-    '/edit/:path*',
-    '/admin/:path*',
-    '/tokens/:path*',
-    '/api/organizer/:path*',
-    '/api/admin/:path*',
-    '/api/user/:path*',
-    '/api/assistant/:path*',
-    '/preview/:path*',
-    '/render/:path*',
-    '/template/:path*',
-    '/email/:path*',
-    '/search',
-    '/marketing/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2)$).*)',
   ],
 }

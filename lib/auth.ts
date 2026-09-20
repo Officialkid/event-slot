@@ -273,10 +273,44 @@ export const authOptions = {
           : APP_URL
 
       if (url.startsWith('/')) return `${safeBaseUrl}${url}`
-      if (url.startsWith(safeBaseUrl)) return url
+
+      try {
+        const parsed = new URL(url)
+        if (
+          parsed.origin === safeBaseUrl ||
+          parsed.hostname.endsWith('eventsslot.com') ||
+          parsed.hostname.endsWith('localhost')
+        ) {
+          return url
+        }
+      } catch {
+        // non-critical, fallback below
+      }
+
       return `${safeBaseUrl}/dashboard`
     },
   },
+  cookies: (() => {
+    const isProd = process.env.NODE_ENV === 'production' || APP_URL.includes('eventsslot.com')
+    const cookieDomain = process.env.COOKIE_DOMAIN || (isProd ? '.eventsslot.com' : undefined)
+    if (!cookieDomain) return undefined
+
+    const useSecure = APP_URL.startsWith('https://') || process.env.NODE_ENV === 'production'
+    const prefix = useSecure ? '__Secure-' : ''
+
+    return {
+      sessionToken: {
+        name: `${prefix}next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: useSecure,
+          domain: cookieDomain,
+        },
+      },
+    }
+  })(),
   events: {
     async createUser({ user }: { user: { id?: string } }) {
       if (!user.id) return
