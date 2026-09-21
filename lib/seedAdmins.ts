@@ -10,7 +10,11 @@ function getPrivilegedAccounts() {
   }))
 }
 
+let hasSeeded = false
+
 export async function seedPrivilegedAccounts() {
+  if (hasSeeded) return
+
   for (const account of getPrivilegedAccounts()) {
     try {
       await prisma.user.upsert({
@@ -26,9 +30,11 @@ export async function seedPrivilegedAccounts() {
           suspended: false,
         },
       })
-    } catch (error) {
-      // Log but NEVER throw — a seed failure must not crash the app
-      console.error(`[seed] Failed to seed ${account.email}:`, error)
+    } catch {
+      // Gracefully ignore transient DB wake-up latency — do not crash layout
+      return
     }
   }
+
+  hasSeeded = true
 }

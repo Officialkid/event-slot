@@ -185,11 +185,7 @@ export default async function RootLayout({
     process.env.SKIP_PRIVILEGED_SEED !== "true";
 
   if (shouldSeedPrivilegedAccounts) {
-    try {
-      await seedPrivilegedAccounts();
-    } catch {
-      /* non-critical */
-    }
+    seedPrivilegedAccounts().catch(() => {});
   }
 
   return (
