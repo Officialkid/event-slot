@@ -52,9 +52,9 @@ describe("Social Account Integration Foundation (Step 1)", () => {
       expect(url).toContain("https://www.linkedin.com/oauth/v2/authorization")
       expect(url).toContain("client_id=test-linkedin-client-789")
       expect(url).toContain("state=test-csrf-state")
-      expect(url).toContain("w_organization_social")
-      expect(url).toContain("r_organization_social")
-      expect(url).toContain("rw_organization_admin")
+      expect(url).toContain("w_member_social")
+      expect(url).toContain("openid")
+      expect(url).toContain("profile")
     })
   })
 

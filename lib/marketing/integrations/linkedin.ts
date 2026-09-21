@@ -28,14 +28,12 @@ export class LinkedInIntegrationProvider {
   }
 
   static getScopes(): string[] {
-    return [
-      "openid",
-      "profile",
-      "email",
-      "w_organization_social",
-      "r_organization_social",
-      "rw_organization_admin",
-    ]
+    if (process.env.LINKEDIN_SCOPES) {
+      return process.env.LINKEDIN_SCOPES.split(",").map((s) => s.trim()).filter(Boolean)
+    }
+
+    // Default scopes for provisioned products ("Share on LinkedIn" + "Sign In with LinkedIn")
+    return ["w_member_social", "openid", "profile", "email"]
   }
 
   /**
@@ -127,10 +125,32 @@ export class LinkedInIntegrationProvider {
       const expiresIn = tokenData.expires_in || 5184000 // default 60 days
       const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000)
 
-      // 2. Discover Administered Organizations
+      // 2. Discover Profile & Administered Organizations
       let organizationId = "urn:li:organization:eventslot"
       let organizationName = "EventSlot"
+      let accountUsername = "EventSlot LinkedIn"
+      let profilePictureUrl: string | undefined = undefined
 
+      // Attempt userinfo (works with openid / profile)
+      try {
+        const userInfoRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        if (userInfoRes.ok) {
+          const uData = await userInfoRes.json()
+          if (uData.name) {
+            organizationName = `${uData.name} (EventSlot Admin)`
+            accountUsername = uData.name
+          }
+          if (uData.picture) {
+            profilePictureUrl = uData.picture
+          }
+        }
+      } catch {
+        // non-critical
+      }
+
+      // Attempt organizationalEntityAcls (works if organization scope is active)
       try {
         const aclsRes = await fetch(
           "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&state=APPROVED",
@@ -165,6 +185,7 @@ export class LinkedInIntegrationProvider {
                 orgData.localizedName ||
                 orgData.vanityName ||
                 organizationName
+              accountUsername = organizationName
             }
           }
         }
@@ -176,8 +197,9 @@ export class LinkedInIntegrationProvider {
         success: true,
         accountName: organizationName,
         accountIdentifier: organizationId,
-        accountUsername: "EventSlot Company Page",
+        accountUsername,
         accountType: "COMPANY_PAGE",
+        profilePictureUrl,
         scopes: this.getScopes(),
         accessToken,
         refreshToken,
