@@ -11,6 +11,7 @@ env:
   SERVICE: eventslot-web-staging
   REPOSITORY: eventslot
   STAGING_URL: https://staging.eventsslot.com
+  NODE_OPTIONS: '--max-old-space-size=4096'
 
 jobs:
   test:
@@ -63,10 +64,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
-    environment:
-      name: staging
-      url: https://staging.eventsslot.com
 
     steps:
       - name: Checkout code

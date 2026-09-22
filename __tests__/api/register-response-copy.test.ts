@@ -139,7 +139,7 @@ describe('POST /api/register response copy', () => {
             capacity: null,
             confirmedCount: 0,
           }),
-          update: jest.fn().mockResolvedValue(null),
+          update: jest.fn().mockResolvedValue({ id: 'event-1', confirmedCount: 1 }),
         },
         registration: {
           count: jest.fn().mockResolvedValue(0),
