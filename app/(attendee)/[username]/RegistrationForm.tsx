@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
@@ -9,6 +9,8 @@ import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLi
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 import { getRegistrationWindowStatus, computeNextOccurrenceDate, computeOccurrenceEnd } from "@/lib/recurringEvents"
+import { InternationalPhoneInput } from "@/components/registration/InternationalPhoneInput"
+import { RegistrationStepIndicator, type RegistrationStep } from "@/components/registration/RegistrationStepIndicator"
 
 type EventQuestion = {
   id: string
@@ -18,6 +20,7 @@ type EventQuestion = {
   required: boolean
   allowMultiple?: boolean
   optionLimits?: Record<string, number | null | undefined>
+  condition?: { questionId: string; value: string }
 }
 
 type EventTicketTier = {
@@ -95,6 +98,21 @@ function BrandingFooter() {
   )
 }
 
+function EventSlotWelcomeAvatar() {
+  return (
+    <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg" style={{
+      background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent) 0%, color-mix(in srgb, var(--accent) 8%, var(--surface)) 100%)",
+      border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+      boxShadow: "0 8px 24px -4px color-mix(in srgb, var(--accent) 20%, transparent)"
+    }}>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="var(--accent)" fillOpacity="0.2" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="12" r="3" fill="var(--accent)" />
+      </svg>
+    </div>
+  )
+}
+
 type AttendeeResult = {
   status: 'confirmed' | 'waitlist'
   waitlistPosition?: number
@@ -141,7 +159,6 @@ function parseCheckboxValue(raw: string | undefined): string[] {
     const parsed = JSON.parse(raw)
     if (Array.isArray(parsed)) return parsed.filter((v): v is string => typeof v === "string")
   } catch {
-    // Backward compatibility with older delimiter values.
     return raw.split("|").map(v => v.trim()).filter(Boolean)
   }
   return []
@@ -225,6 +242,18 @@ function getFormCopy(language: SupportedLanguageCode | null) {
   return copy[language ?? "en"] ?? copy.en
 }
 
+function isPersonalQuestion(q: EventQuestion): boolean {
+  const type = (q.type || "").toLowerCase()
+  if (type === "phone" || type === "email") return true
+  const l = (q.label || "").toLowerCase()
+  const id = (q.id || "").toLowerCase()
+  if (l.includes("name") || id.includes("name")) return true
+  if (l.includes("phone") || id.includes("phone")) return true
+  if (l.includes("email") || id.includes("email")) return true
+  if (l.includes("location") || l.includes("country") || l.includes("city")) return true
+  return false
+}
+
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
@@ -234,14 +263,20 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [consentTransactional, setConsentTransactional] = useState(false)
   const [consentMarketing, setConsentMarketing] = useState(false)
   const [sendResponseCopy, setSendResponseCopy] = useState(false)
+
+  // Guided Step State: 0 = welcome, 1 = personal, 2 = event questions (if any), 3 = review
+  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+
   // Duplicate detection
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateInfo | null>(null)
   const [pendingPayload, setPendingPayload] = useState<PendingPayload | null>(null)
+
   // Waitlist email capture (shown when event has no email question)
   const [waitlistEmails, setWaitlistEmails] = useState<Record<string, string>>({})
   const [waitlistEmailSaving, setWaitlistEmailSaving] = useState<Record<string, boolean>>({})
   const [waitlistEmailSaved, setWaitlistEmailSaved] = useState<Record<string, boolean>>({})
   const [waitlistEmailErrors, setWaitlistEmailErrors] = useState<Record<string, string>>({})
+
   // Base email inputs — always collected when event has no email question
   const [baseEmails, setBaseEmails] = useState<string[]>([""])
   const [otherCustomAnswers, setOtherCustomAnswers] = useState<Record<string, string>>({})
@@ -274,9 +309,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [draftMessage, setDraftMessage] = useState("")
   const [restoredDraftEmail, setRestoredDraftEmail] = useState("")
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
-      if (!event.deadline) return false
-      return new Date(event.deadline).getTime() <= Date.now()
+    if (!event.deadline) return false
+    return new Date(event.deadline).getTime() <= Date.now()
   })
+
   const recurringWindow = event.isRecurring
     ? getRegistrationWindowStatus(event)
     : null
@@ -304,6 +340,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const displayEntryLabel = publicTranslation?.entryFeeLabel || entryLabel
   const consentRequired = event.attendeeConsentEnabled !== false
   const consentBody = event.attendeeConsentText?.trim() || formCopy.consentBody.replace("{organizer}", displayOrganizerName ?? "the organiser")
+
   const translatedQuestionById = new Map((publicTranslation?.questions ?? []).map((question) => [question.id, question]))
   const displayQuestions = event.questions.map((question) => {
     const translatedQuestion = translatedQuestionById.get(question.id)
@@ -314,11 +351,46 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       options: question.options,
     }
   })
+
   const getOptionLabel = (question: EventQuestion, option: string, optionIndex: number) => {
     const translatedQuestion = translatedQuestionById.get(question.id)
     if (!translatedQuestion?.options || translatedQuestion.options.length !== question.options?.length) return option
     return translatedQuestion.options[optionIndex] || option
   }
+
+  // Dynamic step determination
+  const { personalQuestions, eventQuestions } = useMemo(() => {
+    const personal: EventQuestion[] = []
+    const custom: EventQuestion[] = []
+
+    displayQuestions.forEach(q => {
+      if (isPersonalQuestion(q)) {
+        personal.push(q)
+      } else {
+        custom.push(q)
+      }
+    })
+
+    if (personal.length === 0 && custom.length > 0) {
+      personal.push(custom.shift()!)
+    }
+
+    return { personalQuestions: personal, eventQuestions: custom }
+  }, [displayQuestions])
+
+  const steps = useMemo<RegistrationStep[]>(() => {
+    const list: RegistrationStep[] = [
+      { id: "welcome", title: "Welcome", shortLabel: "Welcome" },
+      { id: "personal", title: "Personal Details", shortLabel: "Details" },
+    ]
+    if (eventQuestions.length > 0) {
+      list.push({ id: "questions", title: "Event Questions", shortLabel: "Questions" })
+    }
+    list.push({ id: "review", title: "Review & Confirm", shortLabel: "Review" })
+    return list
+  }, [eventQuestions.length])
+
+  const isLastStep = currentStepIndex === steps.length - 1
 
   useEffect(() => {
     const eventName = `eventslot:public-translation:${event.slug}`
@@ -416,8 +488,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
   const hasEmailQuestion = event.questions.some(q => q.type === 'email')
   const emailQuestion = event.questions.find((question) => question.type === "email")
-  const fieldClassName = "mt-1 w-full rounded-[12px] border px-3.5 py-3 text-[0.9rem] transition placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2"
-  const subtleLabelClassName = "mb-1.5 block text-[0.72rem] font-semibold tracking-[0.08em] uppercase"
+  const fieldClassName = "mt-1.5 w-full rounded-[12px] border px-3.5 py-3 text-[0.9rem] transition placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#C8F55A]"
+  const subtleLabelClassName = "mb-1.5 block text-[0.74rem] font-semibold tracking-[0.06em] uppercase"
   const fieldStyle = {
     background: "var(--bg-input)",
     borderColor: "color-mix(in srgb, var(--text-primary) 14%, transparent)",
@@ -584,6 +656,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
   const canAddMore = !event.isPaid && !registrationClosed && attendees.length < maxAttendees
   const isSubmitBlocked = loading || registrationClosed || event.isPaid
+
   function addAttendee() {
     if (!canAddMore) return
     setAttendees(a => [...a, emptyAnswers(event.questions)])
@@ -637,6 +710,93 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     }
   }
 
+  function validateCurrentStep(targetStepIndex: number): boolean {
+    const targetStep = steps[targetStepIndex]
+    const qErrors: Record<string, string> = {}
+    let firstErrorElementId: string | null = null
+
+    if (targetStep.id === "personal") {
+      for (let i = 0; i < attendees.length; i++) {
+        for (const q of personalQuestions) {
+          if (!q.required) continue
+          const answer = attendees[i][q.id] || ""
+          const hasValue = q.type === "checkbox"
+            ? parseCheckboxValue(answer).length > 0
+            : answer.trim().length > 0
+          if (!hasValue) {
+            const key = `${i}:${q.id}`
+            qErrors[key] = `Please fill in "${q.label}".`
+            if (!firstErrorElementId) firstErrorElementId = `q-input-${i}-${q.id}`
+          }
+        }
+        if (!hasEmailQuestion && baseEmails[i] !== undefined) {
+          const emailVal = baseEmails[i]?.trim() || ""
+          if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+            qErrors[`${i}:baseEmail`] = "Please enter a valid email address."
+            if (!firstErrorElementId) firstErrorElementId = `base-email-${i}`
+          }
+        }
+      }
+    } else if (targetStep.id === "questions") {
+      for (let i = 0; i < attendees.length; i++) {
+        for (const q of eventQuestions) {
+          if (!q.required) continue
+          if (q.condition && attendees[i][q.condition.questionId] !== q.condition.value) continue
+
+          const answer = attendees[i][q.id] || ""
+          const hasValue = q.type === "checkbox"
+            ? parseCheckboxValue(answer).length > 0
+            : answer.trim().length > 0
+          if (!hasValue) {
+            const key = `${i}:${q.id}`
+            qErrors[key] = `Please fill in "${q.label}".`
+            if (!firstErrorElementId) firstErrorElementId = `q-input-${i}-${q.id}`
+          }
+        }
+      }
+    }
+
+    if (Object.keys(qErrors).length > 0) {
+      setQuestionErrors(prev => ({ ...prev, ...qErrors }))
+      setError("Please complete the required fields highlighted below.")
+      if (firstErrorElementId) {
+        const el = document.getElementById(firstErrorElementId)
+        if (el) {
+          el.scrollIntoView?.({ behavior: "smooth", block: "center" })
+          el.focus?.()
+        }
+      }
+      return false
+    }
+
+    setQuestionErrors({})
+    setError("")
+    return true
+  }
+
+  function handleNextStep() {
+    if (currentStepIndex === 0) {
+      setCurrentStepIndex(1)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
+
+    const isValid = validateCurrentStep(currentStepIndex)
+    if (!isValid) return
+
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
+  function handlePrevStep() {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
   const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const errors: Record<string, string> = {}
@@ -669,8 +829,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       const firstKey = Object.keys(errors)[0]
       const el = document.getElementById(`gb-${firstKey}`)
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-        el.focus()
+        el.scrollIntoView?.({ behavior: "smooth", block: "center" })
+        el.focus?.()
       }
       return
     }
@@ -698,8 +858,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           setGroupFieldErrors({ [json.field]: json.error })
           const el = document.getElementById(`gb-${json.field}`)
           if (el) {
-            el.scrollIntoView({ behavior: "smooth", block: "center" })
-            el.focus()
+            el.scrollIntoView?.({ behavior: "smooth", block: "center" })
+            el.focus?.()
           }
         }
         throw new Error(json.error || "Failed to create group booking")
@@ -725,7 +885,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       return
     }
 
-    // Client-side required field validation with field-level errors
+    // Client-side required field validation across all questions
     const qErrors: Record<string, string> = {}
     let firstErrorElementId: string | null = null
 
@@ -746,10 +906,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       }
       if (!hasEmailQuestion && baseEmails[i] !== undefined) {
         const emailVal = baseEmails[i]?.trim() || ""
-        if (!emailVal) {
-          qErrors[`${i}:baseEmail`] = "Email address is required."
-          if (!firstErrorElementId) firstErrorElementId = `base-email-${i}`
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
           qErrors[`${i}:baseEmail`] = "Please enter a valid email address."
           if (!firstErrorElementId) firstErrorElementId = `base-email-${i}`
         }
@@ -762,8 +919,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       if (firstErrorElementId) {
         const el = document.getElementById(firstErrorElementId)
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" })
-          el.focus()
+          el.scrollIntoView?.({ behavior: "smooth", block: "center" })
+          el.focus?.()
         }
       }
       return
@@ -928,6 +1085,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     setError("")
     setDuplicateInfo(null)
     setPendingPayload(null)
+    setCurrentStepIndex(0)
     try {
       window.localStorage.removeItem(`eventslot-draft-email:${event.slug}`)
     } catch {
@@ -946,6 +1104,266 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       setDraftState("error")
       setDraftMessage("We cleared the form, but the saved draft could not be removed.")
     }
+  }
+
+  const renderQuestionInput = (q: EventQuestion, attendeeIndex: number) => {
+    const qKey = `${attendeeIndex}:${q.id}`
+    const qError = questionErrors[qKey]
+    const elementId = `q-input-${attendeeIndex}-${q.id}`
+    const activeFieldStyle = qError
+      ? { ...fieldStyle, borderColor: "#EF4444", boxShadow: "0 0 0 1px #EF4444" }
+      : fieldStyle
+
+    const isNameField = /name/i.test(q.label) || /name/i.test(q.id)
+
+    return (
+      <div key={q.id} className="space-y-1.5">
+        <label
+          htmlFor={elementId}
+          className={subtleLabelClassName}
+          style={{ ...subtleLabelStyle, color: qError ? "#EF4444" : subtleLabelStyle?.color }}
+        >
+          {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
+        </label>
+
+        {q.type === "text" && (
+          <input
+            id={elementId}
+            type="text"
+            className={fieldClassName}
+            style={activeFieldStyle}
+            required={q.required}
+            placeholder={isNameField ? "John Doe" : undefined}
+            autoComplete={isNameField ? "name" : undefined}
+            value={attendees[attendeeIndex]?.[q.id] || ""}
+            onChange={e => {
+              handleChange(attendeeIndex, q.id, e.target.value)
+              if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+            }}
+          />
+        )}
+
+        {q.type === "email" && (
+          <input
+            id={elementId}
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoComplete="email"
+            placeholder="john.doe@example.com"
+            className={fieldClassName}
+            style={activeFieldStyle}
+            required={q.required}
+            value={attendees[attendeeIndex]?.[q.id] || ""}
+            onChange={e => {
+              handleChange(attendeeIndex, q.id, e.target.value)
+              if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+            }}
+          />
+        )}
+
+        {q.type === "phone" && (
+          <InternationalPhoneInput
+            id={elementId}
+            value={attendees[attendeeIndex]?.[q.id] || ""}
+            required={q.required}
+            hasError={Boolean(qError)}
+            placeholder="712 345 678"
+            onChange={val => {
+              handleChange(attendeeIndex, q.id, val)
+              if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+            }}
+          />
+        )}
+
+        {q.type === "textarea" && (
+          <textarea
+            id={elementId}
+            rows={3}
+            className={`${fieldClassName} resize-y min-h-[96px]`}
+            style={activeFieldStyle}
+            required={q.required}
+            placeholder="Share your thoughts or answer here..."
+            value={attendees[attendeeIndex]?.[q.id] || ""}
+            onChange={e => {
+              handleChange(attendeeIndex, q.id, e.target.value)
+              if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+            }}
+          />
+        )}
+
+        {q.type === "number" && (
+          <input
+            id={elementId}
+            type="number"
+            inputMode="numeric"
+            className={fieldClassName}
+            style={activeFieldStyle}
+            required={q.required}
+            value={attendees[attendeeIndex]?.[q.id] || ""}
+            onChange={e => {
+              handleChange(attendeeIndex, q.id, e.target.value)
+              if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+            }}
+          />
+        )}
+
+        {q.type === "file" && (() => {
+          const uploadKey = `${attendeeIndex}:${q.id}`
+          const uploadedFile = parseFileAnswer(attendees[attendeeIndex]?.[q.id])
+          return (
+            <div className="mt-1 rounded-[14px] p-4 transition-all" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+              <div className="flex flex-col items-center justify-center text-center p-3 border border-dashed rounded-[12px] border-[color-mix(in_srgb,var(--text-primary)_18%,transparent)] bg-[color-mix(in_srgb,var(--surface)_70%,transparent)]">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-[var(--accent)]" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <label htmlFor={elementId} className="cursor-pointer text-[0.85rem] font-semibold text-[var(--accent)] hover:underline">
+                  Choose a file or drag here
+                </label>
+                <input
+                  id={elementId}
+                  type="file"
+                  required={q.required && !uploadedFile}
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  className="sr-only"
+                  disabled={uploadingFiles[uploadKey]}
+                  onChange={e => {
+                    void handleFileUpload(attendeeIndex, q.id, e.target.files?.[0] ?? null)
+                    if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                  }}
+                />
+                <p className="mt-1.5 text-[0.74rem] text-[var(--text-muted)]">
+                  Image, PDF, Word, Excel, or text (Max 10 MB)
+                </p>
+              </div>
+
+              {uploadingFiles[uploadKey] && (
+                <div className="mt-3 flex items-center gap-2 text-[0.78rem] text-[var(--accent)]">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <span>Uploading file...</span>
+                </div>
+              )}
+              {fileErrors[uploadKey] && (
+                <p className="mt-2 text-[0.78rem] text-[var(--error)]">
+                  {fileErrors[uploadKey]}
+                </p>
+              )}
+              {uploadedFile && (
+                <div className="mt-3 flex items-center justify-between rounded-[12px] border px-3.5 py-2.5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 14%, transparent)", background: "var(--surface)" }}>
+                  <div className="truncate">
+                    <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer" className="text-[0.84rem] font-semibold text-[var(--accent)] hover:underline truncate block">
+                      {uploadedFile.name}
+                    </a>
+                    <p className="text-[0.72rem] text-[var(--text-muted)]">
+                      {uploadedFile.type || "Document"} • {formatFileSize(uploadedFile.size)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleChange(attendeeIndex, q.id, "")}
+                    className="ml-2 text-xs text-[var(--text-muted)] hover:text-red-400 p-1"
+                    title="Remove file"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {q.type === "select" && (
+          <div className="space-y-2">
+            <select
+              id={elementId}
+              className={fieldClassName}
+              style={activeFieldStyle}
+              required={q.required}
+              value={attendees[attendeeIndex]?.[q.id] || ""}
+              onChange={e => {
+                handleChange(attendeeIndex, q.id, e.target.value)
+                if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+              }}
+            >
+              <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
+              {q.options?.map((opt, optionIndex) => (
+                <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
+                  {getOptionLabel(q, opt, optionIndex)}
+                </option>
+              ))}
+            </select>
+
+            {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+              <p className="text-[0.72rem] text-[var(--text-muted)]">
+                Some positions have limited slots and may close once full.
+              </p>
+            )}
+          </div>
+        )}
+
+        {q.type === "checkbox" && (
+          <div className="mt-1 space-y-2 rounded-[14px] p-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+            {q.options?.map((opt, optionIndex) => {
+              const selectedValues = parseCheckboxValue(attendees[attendeeIndex]?.[q.id])
+              const isChecked = selectedValues.includes(opt)
+              const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
+              const otherKey = `${attendeeIndex}:${q.id}`
+              return (
+                <div key={`${q.id}-${opt}`} className="space-y-1.5">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition" style={{ color: "var(--text-primary)" }}>
+                    <input
+                      id={elementId}
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={e => {
+                        const nextValues = e.target.checked
+                          ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                          : selectedValues.filter(value => value !== opt)
+                        handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                      className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
+                      style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
+                    />
+                    <span>{getOptionLabel(q, opt, optionIndex)}</span>
+                  </label>
+                  {isChecked && isOtherOption && (
+                    <div className="pl-6 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Please specify your answer..."
+                        value={otherCustomAnswers[otherKey] ?? ""}
+                        onChange={e => {
+                          const customVal = e.target.value
+                          setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
+                        }}
+                        className="w-full rounded-[8px] border px-3 py-2 text-[0.82rem] focus:outline-none focus:ring-1 focus:ring-[#C8F55A]"
+                        style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {q.required && parseCheckboxValue(attendees[attendeeIndex]?.[q.id]).length === 0 && (
+              <p className="text-[0.72rem] text-[var(--text-muted)]">Select at least one option.</p>
+            )}
+            {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+              <p className="text-[0.72rem] text-[var(--text-muted)]">Some options have limited slots and may stop accepting selections once full.</p>
+            )}
+          </div>
+        )}
+
+        {qError && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+            <span>⚠️</span>
+            <span>{qError}</span>
+          </p>
+        )}
+      </div>
+    )
   }
 
   if (paidCheckout) {
@@ -978,13 +1396,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     )
   }
 
-  // Group Reservation Success Screen
   if (groupResult) {
     return (
       <div className="mx-auto w-full max-w-[560px]">
         <div className="rounded-[20px] border p-6 sm:p-8 space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-          
-          {/* Header icon and title */}
           <div className="text-center space-y-3">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1002,7 +1417,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </p>
           </div>
 
-          {/* Email Confirmation Notice */}
           <div className="rounded-[12px] border p-4 text-[0.82rem] flex items-start gap-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
             <span className="text-lg">📧</span>
             <div>
@@ -1015,7 +1429,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
           </div>
 
-          {/* Primary Action: Delegation Manager Portal */}
           <div className="rounded-[16px] border p-5 text-center space-y-3" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 6%, var(--surface))" }}>
             <p className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
               Step 1: Open your Delegation Manager Portal
@@ -1034,7 +1447,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </a>
           </div>
 
-          {/* Self-Claim Link Box */}
           <div className="rounded-[16px] border p-5 space-y-2.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
             <p className="text-[0.75rem] font-bold uppercase tracking-wide" style={{ color: "var(--accent)" }}>
               Step 2: Share Self-Claim Link with Members
@@ -1065,7 +1477,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
           </div>
 
-          {/* Step 3: Tickets delivery explanation */}
           <div className="rounded-[12px] border p-4 space-y-2" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
             <p className="text-[0.78rem] font-bold" style={{ color: "var(--text-primary)" }}>
               🎫 How Tickets are Issued
@@ -1075,7 +1486,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </p>
           </div>
 
-          {/* Actions footer */}
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-[0.8rem]">
             <button
               type="button"
@@ -1096,14 +1506,12 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               Return to Event Overview →
             </a>
           </div>
-
         </div>
         {showBranding && <BrandingFooter />}
       </div>
     )
   }
 
-  // Success screen
   if (bulkResult) {
     const isSingle = bulkResult.results.length === 1
     const communityLink = normalizeCommunityLink(event.communityLink)
@@ -1111,139 +1519,138 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     return (
       <div className="mx-auto w-full max-w-[480px]">
         <div className="space-y-4">
-        {bulkResult.results.map((r, i) => (
-          <div key={i} className="rounded-[16px] p-8" style={resultCardStyle}>
-            {r.status === "confirmed" ? (
-              <>
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
-                  <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
-                </div>
-                <h2 className="text-center text-[1.6rem]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400, color: "var(--text-primary)" }}>
-                  {isSingle ? "You're in!" : `Attendee ${i + 1} - You're in!`}
-                </h2>
-                <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
-                  Your spot for {event.title} is confirmed. We look forward to seeing you.
-                </p>
-                <div className="mt-4 flex justify-center">
-                  <span className="rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] px-3 py-1 text-[0.7rem] text-[#C8F55A]">
-                    Confirmed
-                  </span>
-                </div>
-                {r.registrationNumber && (
-                  <p className="mt-3 text-center text-[0.72rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>
-                    Registration #{String(r.registrationNumber).padStart(4, "0")}
+          {bulkResult.results.map((r, i) => (
+            <div key={i} className="rounded-[16px] p-8" style={resultCardStyle}>
+              {r.status === "confirmed" ? (
+                <>
+                  <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
+                    <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
+                  </div>
+                  <h2 className="text-center text-[1.6rem]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400, color: "var(--text-primary)" }}>
+                    {isSingle ? "You're in!" : `Attendee ${i + 1} - You're in!`}
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                    Your spot for {event.title} is confirmed. We look forward to seeing you.
                   </p>
-                )}
-                {r.confirmationCode && (
                   <div className="mt-4 flex justify-center">
-                    <a
-                      href={`/register/success/${r.confirmationCode}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(200,245,90,0.4)] bg-[rgba(200,245,90,0.08)] px-4 py-2 text-[0.8rem] text-[#C8F55A]"
-                      style={{ fontFamily: "var(--font-dm-sans)", textDecoration: "none", fontWeight: 500 }}
-                    >
-                      View &amp; Download Ticket
-                    </a>
+                    <span className="rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] px-3 py-1 text-[0.7rem] text-[#C8F55A]">
+                      Confirmed
+                    </span>
                   </div>
-                )}
-                {communityLink && (
-                  <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>
-                    <p style={{ fontSize: "0.7rem", color: "#C8F55A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>
-                      Join the community
+                  {r.registrationNumber && (
+                    <p className="mt-3 text-center text-[0.72rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>
+                      Registration #{String(r.registrationNumber).padStart(4, "0")}
                     </p>
-                    <a
-                      href={communityLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block w-full rounded-full border border-[rgba(200,245,90,0.4)] px-4 py-2 text-center text-[0.875rem] text-[#C8F55A]"
-                      style={{ fontFamily: "var(--font-dm-sans)" }}
-                    >
-                      {getCommunityLinkLabel(communityLink)}
-                    </a>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)]">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.55)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                </div>
-                <h2 className="text-center text-[1.6rem]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400, color: "var(--text-primary)" }}>
-                  {isSingle ? "You're on the waitlist" : `Attendee ${i + 1} - Waitlist`}
-                </h2>
-                <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
-                  You are currently position #{r.waitlistPosition} for {event.title}. We will notify you if a slot opens.
-                </p>
-                <div className="mt-4 flex justify-center">
-                  <span className="rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)] px-3 py-1 text-[0.7rem] text-[rgba(240,237,230,0.55)]">
-                    Waitlist #{r.waitlistPosition}
-                  </span>
-                </div>
-                {r.registrationNumber && (
-                  <p className="mt-3 text-center text-[0.72rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>
-                    Registration #{String(r.registrationNumber).padStart(4, "0")}
-                  </p>
-                )}
-                {/* Waitlist email capture (if event has no email question) */}
-                {!hasEmailQuestion && !waitlistEmailSaved[r.registrationId] && (
-                  <div style={{ marginTop: "1.25rem", borderRadius: 10, padding: "1rem", ...softPanelStyle }}>
-                    <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem", lineHeight: 1.5 }}>
-                      Enter your email so we can notify you if a slot opens:
-                    </p>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      <input
-                        type="email"
-                        placeholder="your@email.com"
-                        value={waitlistEmails[r.registrationId] ?? ""}
-                        onChange={e => {
-                          setWaitlistEmails(prev => ({ ...prev, [r.registrationId]: e.target.value }))
-                          if (waitlistEmailErrors[r.registrationId]) {
-                            setWaitlistEmailErrors(prev => ({ ...prev, [r.registrationId]: "" }))
-                          }
-                        }}
-                        style={{ flex: 1, minWidth: 0, background: "var(--bg-input)", border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", outline: "none" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => saveWaitlistEmail(r.registrationId, waitlistEmails[r.registrationId] ?? "")}
-                        disabled={waitlistEmailSaving[r.registrationId] || !(waitlistEmails[r.registrationId] ?? "").trim()}
-                        style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
+                  )}
+                  {r.confirmationCode && (
+                    <div className="mt-4 flex justify-center">
+                      <a
+                        href={`/register/success/${r.confirmationCode}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(200,245,90,0.4)] bg-[rgba(200,245,90,0.08)] px-4 py-2 text-[0.8rem] text-[#C8F55A]"
+                        style={{ fontFamily: "var(--font-dm-sans)", textDecoration: "none", fontWeight: 500 }}
                       >
-                        {waitlistEmailSaving[r.registrationId] ? "Saving..." : "Notify me"}
-                      </button>
+                        View &amp; Download Ticket
+                      </a>
                     </div>
-                    {waitlistEmailErrors[r.registrationId] && (
-                      <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
-                        {waitlistEmailErrors[r.registrationId]}
+                  )}
+                  {communityLink && (
+                    <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>
+                      <p style={{ fontSize: "0.7rem", color: "#C8F55A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>
+                        Join the community
                       </p>
-                    )}
+                      <a
+                        href={communityLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full rounded-full border border-[rgba(200,245,90,0.4)] px-4 py-2 text-center text-[0.875rem] text-[#C8F55A]"
+                        style={{ fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        {getCommunityLinkLabel(communityLink)}
+                      </a>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)]">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,230,0.55)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
                   </div>
-                )}
-                {!hasEmailQuestion && waitlistEmailSaved[r.registrationId] && (
-                  <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
-                    We will notify you if a slot opens.
+                  <h2 className="text-center text-[1.6rem]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400, color: "var(--text-primary)" }}>
+                    {isSingle ? "You're on the waitlist" : `Attendee ${i + 1} - Waitlist`}
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                    You are currently position #{r.waitlistPosition} for {event.title}. We will notify you if a slot opens.
                   </p>
-                )}
-              </>
-            )}
-            <div style={{ textAlign: "center", marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-              <a
-                href={`/registration/${r.registrationId}`}
-                style={{ fontSize: "0.78rem", color: "var(--text-muted)", textDecoration: "none" }}
-              >
-                View status
-              </a>
-              <a
-                href={`/registration/${r.registrationId}/edit`}
-                style={{ fontSize: "0.78rem", color: "#C8F55A", textDecoration: "none" }}
-              >
-                Edit your details
-              </a>
+                  <div className="mt-4 flex justify-center">
+                    <span className="rounded-full border border-[rgba(240,237,230,0.15)] bg-[rgba(240,237,230,0.06)] px-3 py-1 text-[0.7rem] text-[rgba(240,237,230,0.55)]">
+                      Waitlist #{r.waitlistPosition}
+                    </span>
+                  </div>
+                  {r.registrationNumber && (
+                    <p className="mt-3 text-center text-[0.72rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>
+                      Registration #{String(r.registrationNumber).padStart(4, "0")}
+                    </p>
+                  )}
+                  {!hasEmailQuestion && !waitlistEmailSaved[r.registrationId] && (
+                    <div style={{ marginTop: "1.25rem", borderRadius: 10, padding: "1rem", ...softPanelStyle }}>
+                      <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.625rem", lineHeight: 1.5 }}>
+                        Enter your email so we can notify you if a slot opens:
+                      </p>
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <input
+                          type="email"
+                          placeholder="your@email.com"
+                          value={waitlistEmails[r.registrationId] ?? ""}
+                          onChange={e => {
+                            setWaitlistEmails(prev => ({ ...prev, [r.registrationId]: e.target.value }))
+                            if (waitlistEmailErrors[r.registrationId]) {
+                              setWaitlistEmailErrors(prev => ({ ...prev, [r.registrationId]: "" }))
+                            }
+                          }}
+                          style={{ flex: 1, minWidth: 0, background: "var(--bg-input)", border: "0.5px solid color-mix(in srgb, var(--text-primary) 15%, transparent)", borderRadius: 8, padding: "0.5rem 0.75rem", fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", outline: "none" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveWaitlistEmail(r.registrationId, waitlistEmails[r.registrationId] ?? "")}
+                          disabled={waitlistEmailSaving[r.registrationId] || !(waitlistEmails[r.registrationId] ?? "").trim()}
+                          style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
+                        >
+                          {waitlistEmailSaving[r.registrationId] ? "Saving..." : "Notify me"}
+                        </button>
+                      </div>
+                      {waitlistEmailErrors[r.registrationId] && (
+                        <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>
+                          {waitlistEmailErrors[r.registrationId]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!hasEmailQuestion && waitlistEmailSaved[r.registrationId] && (
+                    <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                      We will notify you if a slot opens.
+                    </p>
+                  )}
+                </>
+              )}
+              <div style={{ textAlign: "center", marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+                <a
+                  href={`/registration/${r.registrationId}`}
+                  style={{ fontSize: "0.78rem", color: "var(--text-muted)", textDecoration: "none" }}
+                >
+                  View status
+                </a>
+                <a
+                  href={`/registration/${r.registrationId}/edit`}
+                  style={{ fontSize: "0.78rem", color: "#C8F55A", textDecoration: "none" }}
+                >
+                  Edit your details
+                </a>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
         {showBranding && <BrandingFooter />}
       </div>
@@ -1252,7 +1659,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
   return (
     <div className="mx-auto w-full max-w-[840px]">
-      {/* Duplicate warning dialog */}
       {duplicateInfo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.62)", backdropFilter: "blur(6px)", zIndex: 99, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "color-mix(in srgb, var(--surface) 96%, white 4%)", border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", borderRadius: 18, padding: "1.75rem", width: "min(92vw,460px)", boxShadow: "0 18px 40px rgba(0,0,0,0.24)" }}>
@@ -1308,9 +1714,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           </div>
         </div>
       )}
-      {/* Event details are rendered by EventInvitationCard on the parent page. */}
 
-      {/* Countdown shown only when not in compact mode (EventInvitationCard already shows it above) */}
       {!compactHeader && event.deadline && (
         <CountdownTimer
           deadline={event.deadline}
@@ -1318,7 +1722,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           onExpiredChange={setDeadlineExpired}
         />
       )}
-      {/* Hidden timer keeps expired-state in sync even in compact mode */}
       {compactHeader && event.deadline && (
         <div style={{ display: 'none' }}>
           <CountdownTimer
@@ -1331,10 +1734,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
       <form
         onSubmit={handleSubmit}
-        className="w-full overflow-hidden rounded-[22px] shadow-[0_18px_42px_rgba(0,0,0,0.18)]"
+        className="w-full overflow-hidden rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.22)] transition-all"
         style={{
-          border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)",
-          background: "linear-gradient(180deg, color-mix(in srgb, var(--surface) 97%, white 3%) 0%, color-mix(in srgb, var(--surface) 100%, transparent) 100%)",
+          border: "1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
+          background: "linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white 2%) 0%, color-mix(in srgb, var(--surface) 100%, transparent) 100%)",
         }}
       >
         {event.imageUrl && (
@@ -1354,175 +1757,41 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           </div>
         )}
 
-        <div className="h-3 w-full bg-[linear-gradient(90deg,rgba(200,245,90,0.92)_0%,rgba(200,245,90,0.28)_50%,rgba(200,245,90,0.08)_100%)]" />
+        <div className="h-2.5 w-full bg-[linear-gradient(90deg,var(--accent)_0%,color-mix(in_srgb,var(--accent)_45%,transparent)_50%,transparent_100%)]" />
 
-        <div className="space-y-6 p-5 sm:p-7">
-          <div className="space-y-5">
-            {!compactHeader && (
-              <>
-            <p style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              {formCopy.registrationForm}
-            </p>
-            <div className="space-y-3">
-              <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.65rem,4vw,2.3rem)", color: "var(--text-primary)", lineHeight: 1.12, margin: 0 }}>
-                {displayTitle}
-              </h2>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              {effectiveEventDate && (
-                <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Date</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>
-                    {formatEventDateRange(effectiveEventDate, effectiveEventEndAt)}
-                    {event.isRecurring ? ` (${event.recurrenceFrequency === "BIWEEKLY" ? "Every 2 weeks" : event.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"})` : ""}
-                  </p>
-                </div>
-              )}
-              {event.location && (
-                <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{event.location}</p>
-                  <a
-                    href={event.mapDirectionsUrl ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-flex items-center gap-2 text-[0.8rem] font-medium"
-                    style={{ color: "var(--accent)", display: event.mapDirectionsUrl ? "inline-flex" : "none", textDecoration: "none" }}
-                  >
-                    <span>Get directions</span>
-                    <span aria-hidden="true">↗</span>
-                  </a>
-                </div>
-              )}
-              {entryLabel && (
-                <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{entryLabel}</p>
-                </div>
-              )}
-              {event.organizerName && (
-                <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-                  <p className="mb-1 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Hosted by</p>
-                  <p className="m-0 text-[0.96rem]" style={{ color: "var(--text-primary)" }}>{event.organizerName}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-              <p className="m-0 text-[0.92rem] leading-7" style={{ color: "var(--text-secondary)" }}>
-                Fill in the details below to secure your spot. You can save progress with your email and continue later.
-              </p>
-            </div>
-
-            {event.mapDirectionsUrl && (
-              <div className="overflow-hidden rounded-[18px]" style={{ border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "color-mix(in srgb, var(--surface) 97%, white 3%)" }}>
-                <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
-                  <div>
-                    <p className="m-0 text-[0.72rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Venue directions</p>
-                    <p className="m-0 mt-1 text-[0.86rem]" style={{ color: "var(--text-secondary)" }}>Preview the route and open full directions if needed.</p>
-                  </div>
-                  <a
-                    href={event.mapDirectionsUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[0.78rem] font-semibold"
-                    style={{ color: "#0A0A0A", background: "var(--accent)", textDecoration: "none" }}
-                  >
-                    Open map
-                  </a>
-                </div>
-              </div>
-            )}
-
-              </>
-            )}
-
-            <div className="rounded-[18px] px-4 py-4" style={{ border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)", background: "color-mix(in srgb, var(--accent) 8%, var(--surface) 92%)" }}>
-              <div className="flex flex-col gap-3 md:flex-row md:items-end">
-                <div className="flex-1">
-                  <label className={subtleLabelClassName} style={{ ...subtleLabelStyle, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-secondary)" }}>
-                      <rect x="1.5" y="3" width="13" height="10" rx="2" />
-                      <path d="M2 4l6 4 6-4" />
-                    </svg>
-                    {formCopy.saveProgress}
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="your@email.com"
-                    className={fieldClassName}
-                    style={fieldStyle}
-                    value={draftEmail}
-                    onChange={e => setDraftEmail(e.target.value)}
-                  />
-                </div>
-                <div className="min-w-[180px] text-[0.76rem]" style={{ color: "var(--text-secondary)" }}>
-                  {draftState === "saving" || draftState === "loading" ? draftMessage : draftMessage || formCopy.restoreProgress}
-                </div>
-              </div>
-            </div>
-
-            {registrationClosed && (
-              <div
-                className="rounded-[18px] px-4 py-4"
+        <div className="space-y-6 p-5 sm:p-8">
+          {event.groupRegistrationEnabled && (
+            <div className="flex rounded-[12px] border p-1" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+              <button
+                type="button"
+                onClick={() => setRegistrationMode("individual")}
+                className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
                 style={{
-                  border: "1px solid rgba(255,107,107,0.22)",
-                  background: "color-mix(in srgb, rgba(255,107,107,0.08) 55%, var(--surface) 45%)",
+                  background: registrationMode === "individual" ? "var(--surface)" : "transparent",
+                  color: registrationMode === "individual" ? "var(--text-primary)" : "var(--text-secondary)",
+                  boxShadow: registrationMode === "individual" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
                 }}
               >
-                <p
-                  className="m-0 text-[0.72rem] uppercase tracking-[0.08em]"
-                  style={{ color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}
-                >
-                  Event closed
-                </p>
-                <p
-                  className="m-0 mt-2 text-[0.92rem] leading-7"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Registration is closed, but attendees can still review the event details, open directions, and contact the organiser from this page.
-                </p>
-              </div>
-            )}
-          </div>
+                Register as Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegistrationMode("group")}
+                className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
+                style={{
+                  background: registrationMode === "group" ? "var(--accent)" : "transparent",
+                  color: registrationMode === "group" ? "var(--accent-contrast)" : "var(--text-secondary)",
+                  boxShadow: registrationMode === "group" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                }}
+              >
+                Register as Organization / Group
+              </button>
+            </div>
+          )}
 
-        {event.isPaid && (
-          <BillingPausedNotice context="paidEventRegistration" compact />
-        )}
-
-                {event.groupRegistrationEnabled && (
-          <div className="mb-6 flex rounded-[12px] border p-1" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-            <button
-              type="button"
-              onClick={() => setRegistrationMode("individual")}
-              className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
-              style={{
-                background: registrationMode === "individual" ? "var(--surface)" : "transparent",
-                color: registrationMode === "individual" ? "var(--text-primary)" : "var(--text-secondary)",
-                boxShadow: registrationMode === "individual" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
-              }}
-            >
-              Register as Individual
-            </button>
-            <button
-              type="button"
-              onClick={() => setRegistrationMode("group")}
-              className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
-              style={{
-                background: registrationMode === "group" ? "var(--accent)" : "transparent",
-                color: registrationMode === "group" ? "var(--accent-contrast)" : "var(--text-secondary)",
-                boxShadow: registrationMode === "group" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
-              }}
-            >
-              Register as Organization / Group
-            </button>
-          </div>
-        )}
-
-        {registrationMode === "group" ? (
-          <div className="space-y-5 rounded-[20px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-            <form onSubmit={handleGroupSubmit} className="space-y-4">
+          {registrationMode === "group" ? (
+            <div className="space-y-5 rounded-[20px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+              <form onSubmit={handleGroupSubmit} className="space-y-4">
                 <div>
                   <h3 className="text-lg font-black" style={{ color: "var(--text-primary)" }}>Reserve Organization / Group Slots</h3>
                   <p className="text-[0.8rem]" style={{ color: "var(--text-secondary)" }}>
@@ -1558,12 +1827,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       boxShadow: groupFieldErrors.orgName ? "0 0 0 1px #EF4444" : "none",
                     }}
                   />
-                  {groupFieldErrors.orgName && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{groupFieldErrors.orgName}</span>
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1609,15 +1872,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         borderColor: groupFieldErrors.groupSlots || groupFieldErrors.totalSlots ? "#EF4444" : "var(--border)",
                         background: "var(--bg-page)",
                         color: "var(--text-primary)",
-                        boxShadow: groupFieldErrors.groupSlots || groupFieldErrors.totalSlots ? "0 0 0 1px #EF4444" : "none",
                       }}
                     />
-                    {(groupFieldErrors.groupSlots || groupFieldErrors.totalSlots) && (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                        <span>⚠️</span>
-                        <span>{groupFieldErrors.groupSlots || groupFieldErrors.totalSlots}</span>
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -1642,15 +1898,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       borderColor: groupFieldErrors.orgContactName || groupFieldErrors.contactName ? "#EF4444" : "var(--border)",
                       background: "var(--bg-page)",
                       color: "var(--text-primary)",
-                      boxShadow: groupFieldErrors.orgContactName || groupFieldErrors.contactName ? "0 0 0 1px #EF4444" : "none",
                     }}
                   />
-                  {(groupFieldErrors.orgContactName || groupFieldErrors.contactName) && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{groupFieldErrors.orgContactName || groupFieldErrors.contactName}</span>
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1675,15 +1924,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         borderColor: groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail ? "#EF4444" : "var(--border)",
                         background: "var(--bg-page)",
                         color: "var(--text-primary)",
-                        boxShadow: groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail ? "0 0 0 1px #EF4444" : "none",
                       }}
                     />
-                    {(groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail) && (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                        <span>⚠️</span>
-                        <span>{groupFieldErrors.orgContactEmail || groupFieldErrors.contactEmail}</span>
-                      </p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-[0.78rem] font-semibold" style={{ color: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "#EF4444" : "var(--text-secondary)" }}>
@@ -1706,38 +1948,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         borderColor: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "#EF4444" : "var(--border)",
                         background: "var(--bg-page)",
                         color: "var(--text-primary)",
-                        boxShadow: groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone ? "0 0 0 1px #EF4444" : "none",
                       }}
                     />
-                    {(groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone) && (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                        <span>⚠️</span>
-                        <span>{groupFieldErrors.orgContactPhone || groupFieldErrors.contactPhone}</span>
-                      </p>
-                    )}
                   </div>
                 </div>
-
-                {event.isPaid && (
-                  <div className="rounded-[14px] border p-4 space-y-2" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 5%, var(--surface))" }}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[0.8rem] font-bold" style={{ color: "var(--text-primary)" }}>Consolidated Group Total</span>
-                      <span className="text-base font-black" style={{ color: "var(--accent)" }}>
-                        {event.ticketTiers?.[0]?.currency || "KSh"} {((event.ticketPrice || 0) * groupSlots).toLocaleString()}
-                      </span>
-                    </div>
-
-                    {/* Coming Soon Payment Banner */}
-                    <div className="rounded-[10px] border p-3 text-[0.78rem] leading-5" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
-                      <p className="font-bold flex items-center gap-1.5" style={{ color: "var(--warning)" }}>
-                        💳 Group Online Payment (M-Pesa & Card) — Coming Soon
-                      </p>
-                      <p className="mt-1">
-                        Group purchases are currently placed in <strong style={{ color: "var(--text-primary)" }}>Guaranteed Reservation Mode</strong>. Direct M-Pesa & Card checkout will activate automatically once live production payment keys are connected.
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 <button
                   type="submit"
@@ -1748,414 +1962,533 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   {groupSubmitting ? "Reserving Allocation..." : `Reserve ${groupSlots} Group Slots`}
                 </button>
               </form>
-          </div>
-        ) : (
-        <fieldset
-          disabled={registrationClosed}
-          style={{
-            border: "none",
-            margin: 0,
-            padding: 0,
-            display: "contents",
-          }}
-        >
-        {/* Bulk prompt row */}
-      <div className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3" style={mutedCardStyle}>
-        <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
-          {attendees.length > 1 ? formCopy.registeringMany.replace("{count}", String(attendees.length)) : formCopy.registeringOne}
-        </span>
-        {canAddMore && (
-          <button
-            type="button"
-            onClick={addAttendee}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: "rgba(200,245,90,0.12)",
-              border: "0.5px solid rgba(200,245,90,0.3)",
-              color: "#C8F55A",
-              fontSize: "1.1rem",
-              lineHeight: 1,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-            aria-label="Add attendee"
-          >
-            +
-          </button>
-        )}
-      </div>
-
-      {/* Attendee blocks */}
-      {attendees.map((form, attendeeIndex) => (
-        <div key={attendeeIndex} className="rounded-[20px] px-4 py-4 sm:px-5" style={questionCardStyle}>
-          {/* Divider between attendees */}
-          {attendeeIndex > 0 && (
-            <div style={{ borderTop: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", margin: "1.25rem 0" }} />
-          )}
-
-          {/* Attendee header */}
-          <div className="flex items-center justify-between mb-3">
-            <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)" }}>
-              {formCopy.attendee} {attendeeIndex + 1}
-            </span>
-            {attendeeIndex > 0 && (
-              <button
-                type="button"
-                onClick={() => removeAttendee(attendeeIndex)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  lineHeight: 1,
-                  padding: "0 2px",
+            </div>
+          ) : (
+            <fieldset
+              disabled={registrationClosed}
+              style={{ border: "none", margin: 0, padding: 0, display: "contents" }}
+            >
+              {/* Subtle Step Progress Indicator */}
+              <RegistrationStepIndicator
+                steps={steps}
+                currentStepIndex={currentStepIndex}
+                onStepClick={(targetIdx) => {
+                  if (targetIdx < currentStepIndex) {
+                    setCurrentStepIndex(targetIdx)
+                  }
                 }}
-                aria-label="Remove attendee"
-              >
-                x
-              </button>
-            )}
-          </div>
+              />
 
-          {/* Questions for this attendee */}
-          <div className="space-y-4">
-            {/* System email field — always collected when organiser hasn't added an email question */}
-            {!hasEmailQuestion && (
-              <div>
-                <label
-                  htmlFor={`base-email-${attendeeIndex}`}
-                  className={subtleLabelClassName}
-                  style={{
-                    ...subtleLabelStyle,
-                    color: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : subtleLabelStyle?.color,
-                  }}
-                >
-                  {formCopy.emailAddress} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>({formCopy.forTicket})</span>
-                </label>
-                <input
-                  id={`base-email-${attendeeIndex}`}
-                  type="email"
-                  placeholder="your@email.com"
-                  className={fieldClassName}
-                  style={{
-                    ...fieldStyle,
-                    borderColor: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : fieldStyle?.borderColor,
-                    boxShadow: questionErrors[`${attendeeIndex}:baseEmail`] ? "0 0 0 1px #EF4444" : "none",
-                  }}
-                  value={baseEmails[attendeeIndex] ?? ""}
-                  onChange={e => {
-                    const val = e.target.value
-                    setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = val; return next })
-                    if (questionErrors[`${attendeeIndex}:baseEmail`]) {
-                      setQuestionErrors(prev => ({ ...prev, [`${attendeeIndex}:baseEmail`]: "" }))
-                    }
-                  }}
-                />
-                {questionErrors[`${attendeeIndex}:baseEmail`] && (
-                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                    <span>⚠️</span>
-                    <span>{questionErrors[`${attendeeIndex}:baseEmail`]}</span>
-                  </p>
-                )}
-              </div>
-            )}
-            {displayQuestions.map(q => {
-              const qKey = `${attendeeIndex}:${q.id}`
-              const qError = questionErrors[qKey]
-              const elementId = `q-input-${attendeeIndex}-${q.id}`
-              const activeFieldStyle = qError
-                ? { ...fieldStyle, borderColor: "#EF4444", boxShadow: "0 0 0 1px #EF4444" }
-                : fieldStyle
+              {/* STEP 0: WELCOME SCREEN */}
+              {currentStepIndex === 0 && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="text-center space-y-3 py-2">
+                    <EventSlotWelcomeAvatar />
+                    <p style={{ fontSize: "0.74rem", color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700 }}>
+                      {formCopy.registrationForm}
+                    </p>
+                    <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", color: "var(--text-primary)", lineHeight: 1.15, margin: 0 }}>
+                      {displayTitle}
+                    </h2>
+                  </div>
 
-              return (
-                <div key={q.id}>
-                  <label
-                    htmlFor={elementId}
-                    className={subtleLabelClassName}
-                    style={{ ...subtleLabelStyle, color: qError ? "#EF4444" : subtleLabelStyle?.color }}
-                  >
-                    {q.label}{q.required && <span className="text-[#C8F55A]"> *</span>}
-                  </label>
-                  {q.type === "text" && (
-                    <input
-                      id={elementId}
-                      type="text"
-                      className={fieldClassName}
-                      style={activeFieldStyle}
-                      required={q.required}
-                      value={form[q.id]}
-                      onChange={e => {
-                        handleChange(attendeeIndex, q.id, e.target.value)
-                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                      }}
-                    />
-                  )}
-                  {q.type === "email" && (
-                    <input
-                      id={elementId}
-                      type="email"
-                      className={fieldClassName}
-                      style={activeFieldStyle}
-                      required={q.required}
-                      value={form[q.id]}
-                      onChange={e => {
-                        handleChange(attendeeIndex, q.id, e.target.value)
-                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                      }}
-                    />
-                  )}
-                  {q.type === "phone" && (
-                    <input
-                      id={elementId}
-                      type="tel"
-                      className={fieldClassName}
-                      style={activeFieldStyle}
-                      required={q.required}
-                      value={form[q.id]}
-                      onChange={e => {
-                        handleChange(attendeeIndex, q.id, e.target.value)
-                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                      }}
-                    />
-                  )}
-                  {q.type === "file" && (() => {
-                    const uploadKey = `${attendeeIndex}:${q.id}`
-                    const uploadedFile = parseFileAnswer(form[q.id])
-                    return (
-                      <div className="mt-1 rounded-[14px] px-3 py-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
-                        <input
-                          id={elementId}
-                          type="file"
-                          required={q.required && !uploadedFile}
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                          className={fieldClassName}
-                          style={activeFieldStyle}
-                          disabled={uploadingFiles[uploadKey]}
-                          onChange={e => {
-                            void handleFileUpload(attendeeIndex, q.id, e.target.files?.[0] ?? null)
-                            if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                          }}
-                        />
-                        <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                          Upload an image, PDF, Word, Excel, or text file. Maximum size is 10 MB.
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {effectiveEventDate && (
+                      <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                        <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Date</p>
+                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>
+                          {formatEventDateRange(effectiveEventDate, effectiveEventEndAt)}
+                          {event.isRecurring ? ` (${event.recurrenceFrequency === "BIWEEKLY" ? "Every 2 weeks" : event.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"})` : ""}
                         </p>
-                        {uploadingFiles[uploadKey] && (
-                          <p className="mt-2 text-[0.78rem]" style={{ color: "#C8F55A" }}>
-                            Uploading file...
-                          </p>
-                        )}
-                        {fileErrors[uploadKey] && (
-                          <p className="mt-2 text-[0.78rem]" style={{ color: "var(--error)" }}>
-                            {fileErrors[uploadKey]}
-                          </p>
-                        )}
-                        {uploadedFile && (
-                          <div className="mt-3 rounded-[12px] border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "var(--surface)" }}>
-                            <a href={uploadedFile.url} target="_blank" rel="noopener noreferrer" className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-                              {uploadedFile.name}
-                            </a>
-                            <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                              {uploadedFile.type || "Uploaded file"} - {formatFileSize(uploadedFile.size)}
-                            </p>
-                          </div>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                        <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
+                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{event.location}</p>
+                        {event.mapDirectionsUrl && (
+                          <a
+                            href={event.mapDirectionsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-1 text-[0.78rem] font-semibold"
+                            style={{ color: "var(--accent)", textDecoration: "none" }}
+                          >
+                            <span>Get directions</span>
+                            <span aria-hidden="true">↗</span>
+                          </a>
                         )}
                       </div>
-                    )
-                  })()}
-                  {q.type === "select" && (
-                    <>
-                      <select
-                        id={elementId}
-                        className={fieldClassName}
-                        style={activeFieldStyle}
-                        required={q.required}
-                        value={form[q.id]}
-                        onChange={e => {
-                          handleChange(attendeeIndex, q.id, e.target.value)
-                          if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                        }}
-                      >
-                        <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
-                        {q.options?.map((opt, optionIndex) => (
-                          <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
-                            {getOptionLabel(q, opt, optionIndex)}
-                          </option>
-                        ))}
-                      </select>
-                      {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-                        <p className="mt-2 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                          Some positions have limited slots and may close once full.
-                        </p>
-                      )}
-                    </>
-                  )}
-                  {q.type === "checkbox" && (
-                    <div className="mt-1 space-y-2.5 rounded-[14px] px-3 py-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
-                      {q.options?.map((opt, optionIndex) => {
-                        const selectedValues = parseCheckboxValue(form[q.id])
-                        const isChecked = selectedValues.includes(opt)
-                        const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
-                        const otherKey = `${attendeeIndex}:${q.id}`
-                        return (
-                          <div key={`${q.id}-${opt}`} className="space-y-1.5">
-                            <label className="flex cursor-pointer items-center gap-2 text-[0.85rem]" style={{ color: "var(--text-primary)" }}>
-                              <input
-                                id={elementId}
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={e => {
-                                  const nextValues = e.target.checked
-                                    ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
-                                    : selectedValues.filter(value => value !== opt)
-                                  handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
-                                  if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-                                }}
-                                className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-                                style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
-                              />
-                              <span>{getOptionLabel(q, opt, optionIndex)}</span>
-                            </label>
-                            {isChecked && isOtherOption && (
-                              <div className="pl-6 pt-1">
-                                <input
-                                  type="text"
-                                  placeholder="Please specify your answer..."
-                                  value={otherCustomAnswers[otherKey] ?? ""}
-                                  onChange={e => {
-                                    const customVal = e.target.value
-                                    setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
-                                  }}
-                                  className="w-full rounded-[8px] border px-3 py-1.5 text-[0.82rem] focus:outline-none"
-                                  style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                      {q.required && parseCheckboxValue(form[q.id]).length === 0 && (
-                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Select at least one option.</p>
-                      )}
-                      {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Some options have limited slots and may stop accepting selections once full.</p>
-                      )}
+                    )}
+                    {entryLabel && (
+                      <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                        <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>
+                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>{entryLabel}</p>
+                      </div>
+                    )}
+                    {event.organizerName && (
+                      <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                        <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Hosted by</p>
+                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{event.organizerName}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Intro card styled with theme tokens */}
+                  <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
+                    <p className="m-0 text-[0.92rem] leading-7" style={{ color: "var(--text-secondary)" }}>
+                      {formCopy.intro}
+                    </p>
+                  </div>
+
+                  {registrationClosed && (
+                    <div className="rounded-[18px] px-4 py-4" style={{ border: "1px solid rgba(255,107,107,0.22)", background: "color-mix(in srgb, rgba(255,107,107,0.08) 55%, var(--surface) 45%)" }}>
+                      <p className="m-0 text-[0.72rem] uppercase tracking-[0.08em] text-[#FF6B6B]">Event closed</p>
+                      <p className="m-0 mt-2 text-[0.92rem] leading-7" style={{ color: "var(--text-secondary)" }}>
+                        Registration is closed, but attendees can still review the event details, open directions, and contact the organiser.
+                      </p>
                     </div>
                   )}
-                  {qError && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{qError}</span>
-                    </p>
+
+                  {event.isPaid && <BillingPausedNotice context="paidEventRegistration" compact />}
+
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      disabled={registrationClosed || (event.isPaid ?? false)}
+                      className="w-full flex items-center justify-center gap-2 rounded-[14px] py-4 text-[0.96rem] font-bold transition-all transform shadow-[0_8px_24px_rgba(200,245,90,0.25)] hover:translate-y-[-1px] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+                    >
+                      <span>Start Registration</span>
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* DRAFT PROGRESS CARD — Always mounted in DOM so draft restores & autosaves reliably */}
+              <div className="rounded-[18px] px-4 py-4" style={{ border: "1px solid color-mix(in srgb, var(--accent) 18%, transparent)", background: "color-mix(in srgb, var(--accent) 8%, var(--surface) 92%)" }}>
+                <div className="flex flex-col gap-3 md:flex-row md:items-end">
+                  <div className="flex-1">
+                    <label className={subtleLabelClassName} style={{ ...subtleLabelStyle, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-secondary)" }}>
+                        <rect x="1.5" y="3" width="13" height="10" rx="2" />
+                        <path d="M2 4l6 4 6-4" />
+                      </svg>
+                      {formCopy.saveProgress}
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      className={fieldClassName}
+                      style={fieldStyle}
+                      value={draftEmail}
+                      onChange={e => setDraftEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="min-w-[180px] text-[0.76rem]" style={{ color: "var(--text-secondary)" }}>
+                    {draftState === "saving" || draftState === "loading" ? draftMessage : draftMessage || formCopy.restoreProgress}
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 1: PERSONAL DETAILS */}
+              <div className={currentStepIndex === 1 ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                <div className="space-y-1">
+                  <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                    Personal Details
+                  </h3>
+                  <p className="text-[0.84rem]" style={{ color: "var(--text-secondary)" }}>
+                    Please provide the attendee contact information for ticket delivery and event coordination.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3" style={mutedCardStyle}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
+                    {attendees.length > 1 ? formCopy.registeringMany.replace("{count}", String(attendees.length)) : formCopy.registeringOne}
+                  </span>
+                  {canAddMore && (
+                    <button
+                      type="button"
+                      onClick={addAttendee}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: "rgba(200,245,90,0.12)",
+                        border: "0.5px solid rgba(200,245,90,0.3)",
+                        color: "#C8F55A",
+                        fontSize: "1.1rem",
+                        lineHeight: 1,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                      aria-label="Add attendee"
+                    >
+                      +
+                    </button>
                   )}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
 
-      {consentRequired && (
-      <div className="rounded-[18px] p-4 sm:p-5" style={questionCardStyle}>
-        <div className="mb-4">
-          <p className="m-0 text-[1rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formCopy.consentTitle}</p>
-          <p className="mt-2 text-[0.92rem] leading-8" style={{ color: "var(--text-secondary)" }}>
-            {consentBody}
-          </p>
-        </div>
+                {attendees.map((form, attendeeIndex) => (
+                  <div key={attendeeIndex} className="rounded-[20px] p-5 space-y-4" style={questionCardStyle}>
+                    <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                      <span className="text-[0.72rem] font-bold tracking-wider uppercase" style={{ color: "var(--accent)" }}>
+                        {formCopy.attendee} {attendeeIndex + 1}
+                      </span>
+                      {attendeeIndex > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeAttendee(attendeeIndex)}
+                          className="text-xs text-[var(--text-muted)] hover:text-red-400 p-1"
+                          aria-label="Remove attendee"
+                        >
+                          ✕ Remove
+                        </button>
+                      )}
+                    </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-          <label style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", cursor: "pointer" }}>
-            <span style={{ position: "relative", flexShrink: 0, marginTop: "2px" }}>
-              <input
-                id="consent-data-processing"
-                type="checkbox"
-                checked={consentDataProcessing}
-                onChange={e => setConsentDataProcessing(e.target.checked)}
-                style={{ position: "absolute", opacity: 0, width: 18, height: 18, margin: 0, cursor: "pointer" }}
-              />
-              <span style={{
-                display: "block",
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                border: consentDataProcessing ? "1.5px solid #C8F55A" : "1.5px solid color-mix(in srgb, var(--text-primary) 22%, transparent)",
-                background: consentDataProcessing ? "#C8F55A" : "transparent",
-                transition: "background 0.15s, border 0.15s",
-              }}>
-                {consentDataProcessing && (
-                  <svg width="10" height="7" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "5px auto 0" }}>
-                    <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    {!hasEmailQuestion && (
+                      <div>
+                        <label
+                          htmlFor={`base-email-${attendeeIndex}`}
+                          className={subtleLabelClassName}
+                          style={{
+                            ...subtleLabelStyle,
+                            color: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : subtleLabelStyle?.color,
+                          }}
+                        >
+                          {formCopy.emailAddress} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>({formCopy.forTicket})</span>
+                        </label>
+                        <input
+                          id={`base-email-${attendeeIndex}`}
+                          type="email"
+                          placeholder="your@email.com"
+                          className={fieldClassName}
+                          style={{
+                            ...fieldStyle,
+                            borderColor: questionErrors[`${attendeeIndex}:baseEmail`] ? "#EF4444" : fieldStyle?.borderColor,
+                            boxShadow: questionErrors[`${attendeeIndex}:baseEmail`] ? "0 0 0 1px #EF4444" : "none",
+                          }}
+                          value={baseEmails[attendeeIndex] ?? ""}
+                          onChange={e => {
+                            const val = e.target.value
+                            setBaseEmails(prev => { const next = [...prev]; next[attendeeIndex] = val; return next })
+                            if (questionErrors[`${attendeeIndex}:baseEmail`]) {
+                              setQuestionErrors(prev => ({ ...prev, [`${attendeeIndex}:baseEmail`]: "" }))
+                            }
+                          }}
+                        />
+                        {questionErrors[`${attendeeIndex}:baseEmail`] && (
+                          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
+                            <span>⚠️</span>
+                            <span>{questionErrors[`${attendeeIndex}:baseEmail`]}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {personalQuestions.map(q => renderQuestionInput(q, attendeeIndex))}
+                  </div>
+                ))}
+
+                <div className="flex items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className="px-4 py-3 text-[0.88rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                  >
+                    ← Overview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="px-6 py-3 rounded-[12px] text-[0.9rem] font-bold shadow-[0_6px_20px_rgba(200,245,90,0.2)] transition-transform hover:translate-y-[-1px] active:scale-[0.99]"
+                    style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </div>
+
+              {/* STEP 2: DYNAMIC EVENT QUESTIONS (if any exist) */}
+              {eventQuestions.length > 0 && (
+                <div className={currentStepIndex === 2 ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                  <div className="space-y-1">
+                    <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                      Event Questions
+                    </h3>
+                    <p className="text-[0.84rem]" style={{ color: "var(--text-secondary)" }}>
+                      Additional questions from the organizer to prepare for your attendance.
+                    </p>
+                  </div>
+
+                  {attendees.map((form, attendeeIndex) => (
+                    <div key={attendeeIndex} className="rounded-[20px] p-5 space-y-4" style={questionCardStyle}>
+                      {attendees.length > 1 && (
+                        <div className="pb-2 border-b text-[0.72rem] font-bold uppercase tracking-wider text-[var(--accent)]" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                          {formCopy.attendee} {attendeeIndex + 1}
+                        </div>
+                      )}
+                      {eventQuestions.map(q => {
+                        if (q.condition && form[q.condition.questionId] !== q.condition.value) {
+                          return null
+                        }
+                        return renderQuestionInput(q, attendeeIndex)
+                      })}
+                    </div>
+                  ))}
+
+                  <div className="flex items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                    <button
+                      type="button"
+                      onClick={handlePrevStep}
+                      className="px-4 py-3 text-[0.88rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="px-6 py-3 rounded-[12px] text-[0.9rem] font-bold shadow-[0_6px_20px_rgba(200,245,90,0.2)] transition-transform hover:translate-y-[-1px] active:scale-[0.99]"
+                      style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+                    >
+                      Review Registration →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: REVIEW & CONSENT STEP */}
+              <div className={isLastStep ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                <div className="space-y-1">
+                  <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                    Review &amp; Confirm
+                  </h3>
+                  <p className="text-[0.84rem]" style={{ color: "var(--text-secondary)" }}>
+                    Please take a moment to review your registration before confirming.
+                  </p>
+                </div>
+
+                {attendees.map((form, attendeeIndex) => (
+                  <div key={attendeeIndex} className="space-y-4">
+                    <div className="rounded-[18px] p-5 space-y-3" style={questionCardStyle}>
+                      <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                        <span className="text-[0.76rem] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+                          Personal Information {attendees.length > 1 ? `(#${attendeeIndex + 1})` : ""}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentStepIndex(1)}
+                          className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
+                        >
+                          Edit details
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 text-[0.86rem]">
+                        {!hasEmailQuestion && baseEmails[attendeeIndex] && (
+                          <div>
+                            <span className="block text-[0.7rem] text-[var(--text-muted)] uppercase">Email Address</span>
+                            <span className="font-medium text-[var(--text-primary)]">{baseEmails[attendeeIndex]}</span>
+                          </div>
+                        )}
+                        {personalQuestions.map(q => {
+                          const val = form[q.id]
+                          if (!val) return null
+                          return (
+                            <div key={q.id}>
+                              <span className="block text-[0.7rem] text-[var(--text-muted)] uppercase">{q.label}</span>
+                              <span className="font-medium text-[var(--text-primary)] truncate block">
+                                {q.type === "checkbox" ? parseCheckboxValue(val).join(", ") : val}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {eventQuestions.length > 0 && (
+                      <div className="rounded-[18px] p-5 space-y-3" style={questionCardStyle}>
+                        <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                          <span className="text-[0.76rem] font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+                            Event Details {attendees.length > 1 ? `(#${attendeeIndex + 1})` : ""}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentStepIndex(2)}
+                            className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
+                          >
+                            Edit answers
+                          </button>
+                        </div>
+
+                        <div className="space-y-2.5 text-[0.86rem]">
+                          {eventQuestions.map(q => {
+                            const val = form[q.id]
+                            if (!val) return null
+                            const displayVal = q.type === "file"
+                              ? parseFileAnswer(val)?.name || "Uploaded file"
+                              : q.type === "checkbox"
+                              ? parseCheckboxValue(val).join(", ")
+                              : val
+
+                            return (
+                              <div key={q.id}>
+                                <span className="block text-[0.7rem] text-[var(--text-muted)] uppercase">{q.label}</span>
+                                <span className="font-medium text-[var(--text-primary)]">{displayVal}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Consent Card — Always accessible in DOM */}
+              {consentRequired && (
+                <div className={`rounded-[18px] p-4 sm:p-5 ${isLastStep ? "block" : "hidden"}`} style={questionCardStyle}>
+                  <div className="mb-3">
+                    <p className="m-0 text-[0.94rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formCopy.consentTitle}</p>
+                    <p className="mt-1.5 text-[0.86rem] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      {consentBody}
+                    </p>
+                  </div>
+
+                  <label className="flex items-start gap-3 cursor-pointer pt-1">
+                    <span className="relative flex-shrink-0 mt-0.5">
+                      <input
+                        id="consent-data-processing"
+                        type="checkbox"
+                        checked={consentDataProcessing}
+                        onChange={e => setConsentDataProcessing(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <span style={{
+                        display: "block",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        border: consentDataProcessing ? "1.5px solid #C8F55A" : "1.5px solid color-mix(in srgb, var(--text-primary) 22%, transparent)",
+                        background: consentDataProcessing ? "#C8F55A" : "transparent",
+                        transition: "background 0.15s, border 0.15s",
+                      }}>
+                        {consentDataProcessing && (
+                          <svg width="12" height="9" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "5px auto 0" }}>
+                            <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                    </span>
+                    <span className="text-[0.86rem] leading-snug" style={{ color: "var(--text-primary)" }}>
+                      I consent to my data being collected and used for event registration, communication, and event planning purposes.
+                      <span className="ml-1 text-[#C8F55A]">*</span>
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* Send Response Copy Checkbox */}
+              <label className={`flex items-center gap-3 rounded-[18px] px-4 py-3.5 cursor-pointer ${isLastStep ? "flex" : "hidden"}`} style={questionCardStyle}>
+                <input
+                  id="send-response-copy"
+                  type="checkbox"
+                  checked={sendResponseCopy}
+                  onChange={e => setSendResponseCopy(e.target.checked)}
+                  className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
+                  style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
+                />
+                <span className="flex items-center gap-2 text-[0.86rem]" style={{ color: "var(--text-primary)" }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-secondary)" }}>
+                    <rect x="1.5" y="3" width="13" height="10" rx="2" />
+                    <path d="M2 4l6 4 6-4" />
                   </svg>
-                )}
-              </span>
-            </span>
-            <span style={{ fontSize: "0.9rem", color: "var(--text-primary)", lineHeight: 1.7, fontFamily: "var(--font-dm-sans)" }}>
-              I consent to my data being collected and used for event registration, communication, and event planning purposes.
-              <span className="ml-1 text-[#C8F55A]">*</span>
-            </span>
-          </label>
+                  <span>{formCopy.sendCopy}</span>
+                </span>
+              </label>
 
-        </div>
-      </div>
-      )}
+              {/* Action Controls & Single Submit Button */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handlePrevStep}
+                    className={`px-4 py-3 text-[0.88rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition ${currentStepIndex === 0 ? "invisible" : ""}`}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void clearForm()}
+                    className="text-[0.85rem] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition"
+                  >
+                    {formCopy.clear}
+                  </button>
+                </div>
 
-      <label className="flex items-center gap-3 rounded-[18px] px-4 py-4" style={questionCardStyle}>
-        <input
-          id="send-response-copy"
-          type="checkbox"
-          checked={sendResponseCopy}
-          onChange={e => setSendResponseCopy(e.target.checked)}
-          className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-          style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
-        />
-        <span className="flex items-center gap-2 text-[0.9rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-primary)" }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-secondary)", flexShrink: 0 }}>
-            <rect x="1.5" y="3" width="13" height="10" rx="2" />
-            <path d="M2 4l6 4 6-4" />
-          </svg>
-          <span>{formCopy.sendCopy}</span>
-        </span>
-      </label>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  {!isLastStep && (
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      disabled={registrationClosed || (event.isPaid ?? false)}
+                      className="w-full sm:w-auto rounded-[12px] px-8 py-3.5 text-[0.92rem] font-bold shadow-[0_8px_24px_rgba(200,245,90,0.25)] transition-all bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {currentStepIndex === 0 ? "Start Registration →" : "Continue →"}
+                    </button>
+                  )}
 
-      <div className="flex items-center justify-between gap-4 border-t pt-4" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
-        <button
-          type="submit"
-          className={`rounded-[10px] px-5 py-3 text-[0.875rem] font-semibold shadow-[0_8px_20px_rgba(200,245,90,0.2)] transition-transform ${isSubmitBlocked ? 'bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed' : 'bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px]'}`}
-          disabled={isSubmitBlocked}
-        >
-          {windowClosed && recurringWindow ? recurringWindow.label : registrationClosed ? formCopy.closed : loading ? formCopy.submitting : event.isPaid ? formCopy.paidPaused : attendees.length > 1 ? formCopy.submitMany.replace("{count}", String(attendees.length)) : formCopy.submit}
-        </button>
-        <button
-          type="button"
-          onClick={() => void clearForm()}
-          className="text-[0.9rem]"
-          style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-secondary)" }}
-        >
-          {formCopy.clear}
-        </button>
-      </div>
-      <div className="flex flex-col gap-2 text-center">
-        <p className="m-0 text-[0.76rem]" style={{ color: "var(--text-muted)" }}>
-          {formCopy.passwordNotice}
-        </p>
-        <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
-          By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Terms of Service</a>.
-        </p>
-        <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
-          {formCopy.hostNotice}
-        </p>
-      </div>
-      {error && <div className="mt-2 text-[0.82rem] text-[#FF6B6B] text-center">{error}</div>}
-        </fieldset>
-        )}
+                  <button
+                    type="submit"
+                    className={
+                      isLastStep
+                        ? `w-full sm:w-auto rounded-[12px] px-8 py-3.5 text-[0.92rem] font-bold shadow-[0_8px_24px_rgba(200,245,90,0.25)] transition-all ${
+                            isSubmitBlocked
+                              ? "bg-[#C8F55A] text-[#0A0A0A] opacity-60 cursor-not-allowed"
+                              : "bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px] active:scale-[0.99]"
+                          }`
+                        : "sr-only"
+                    }
+                    disabled={isSubmitBlocked}
+                  >
+                    {windowClosed && recurringWindow
+                      ? recurringWindow.label
+                      : registrationClosed
+                      ? formCopy.closed
+                      : loading
+                      ? formCopy.submitting
+                      : event.isPaid
+                      ? formCopy.paidPaused
+                      : attendees.length > 1
+                      ? formCopy.submitMany.replace("{count}", String(attendees.length))
+                      : formCopy.submit}
+                  </button>
+                </div>
+              </div>
+
+              {/* Security & Host Notice */}
+              <div className="flex flex-col gap-2 text-center pt-2">
+                <p className="m-0 text-[0.76rem]" style={{ color: "var(--text-muted)" }}>
+                  {formCopy.passwordNotice}
+                </p>
+                <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
+                  By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Terms of Service</a>.
+                </p>
+                <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
+                  {formCopy.hostNotice}
+                </p>
+              </div>
+            </fieldset>
+          )}
         </div>
       </form>
+
       {showBranding && <BrandingFooter />}
     </div>
   )

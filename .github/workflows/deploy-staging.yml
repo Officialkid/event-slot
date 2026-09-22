@@ -1,0 +1,250 @@
+name: EventSlot Staging CI/CD Pipeline
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE: eventslot-web-staging
+  REPOSITORY: eventslot
+  STAGING_URL: https://staging.eventsslot.com
+
+jobs:
+  test:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    name: Tests & Code Checks (Staging)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --ci --coverage
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          NEXTAUTH_SECRET: test-secret-for-ci
+          NEXTAUTH_URL: http://localhost:3000
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: test-secret-for-ci
+          NEXTAUTH_URL: https://staging.eventsslot.com
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+
+  deploy:
+    name: Deploy to Cloud Run (Staging)
+    runs-on: ubuntu-latest
+    needs: test
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    environment:
+      name: staging
+      url: https://staging.eventsslot.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check deploy credentials
+        id: deploy-ready
+        shell: bash
+        env:
+          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${GCP_SA_KEY_B64:-}" ] || [ -n "${RAW_GCP_SA_KEY:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Deployment credentials detected."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No deploy credentials found. Deploy steps will be skipped; tests already ran in test job."
+          fi
+
+      - name: Normalize GCP service account secret
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        id: gcp-key
+        shell: bash
+        env:
+          GCP_SA_KEY_B64: ${{ secrets.GCP_SA_KEY_B64 }}
+          RAW_GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+
+          validate_key_json() {
+            echo "$1" | jq -e 'type == "object" and has("client_email") and has("private_key") and .type == "service_account"' >/dev/null 2>&1
+          }
+
+          if [ -n "${GCP_SA_KEY_B64:-}" ]; then
+            B64_CLEAN="$(printf '%s' "$GCP_SA_KEY_B64" | tr -d '\r\n\t ')"
+            CREDENTIALS_JSON="$(printf '%s' "$B64_CLEAN" | base64 -d 2>/dev/null || true)"
+            if [ -n "$CREDENTIALS_JSON" ] && validate_key_json "$CREDENTIALS_JSON"; then
+              echo "::add-mask::$CREDENTIALS_JSON"
+              {
+                echo "credentials_json<<EOF"
+                echo "$CREDENTIALS_JSON"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "GCP_SA_KEY_B64 is set but invalid."
+            if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
+              echo "Save base64 output of raw service-account JSON in GCP_SA_KEY_B64."
+              exit 1
+            fi
+          fi
+
+          if [ -z "${RAW_GCP_SA_KEY:-}" ]; then
+            echo "No auth secret found. Set GCP_SA_KEY_B64 (preferred) or GCP_SA_KEY in repository secrets."
+            exit 1
+          fi
+
+          RAW_TRIMMED="$(printf '%s' "$RAW_GCP_SA_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+          if validate_key_json "$RAW_TRIMMED"; then
+            CREDENTIALS_JSON="$RAW_TRIMMED"
+          else
+            CREDENTIALS_JSON="$(printf '%s' "$RAW_TRIMMED" | jq -r 'fromjson? // empty' 2>/dev/null || true)"
+          fi
+
+          if [ -z "${CREDENTIALS_JSON:-}" ] || ! validate_key_json "$CREDENTIALS_JSON"; then
+            echo "GCP_SA_KEY could not be parsed."
+            exit 1
+          fi
+
+          echo "::add-mask::$CREDENTIALS_JSON"
+          {
+            echo "credentials_json<<EOF"
+            echo "$CREDENTIALS_JSON"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate normalized GCP credentials
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        shell: bash
+        env:
+          CREDENTIALS_JSON: ${{ steps.gcp-key.outputs.credentials_json }}
+        run: |
+          set -euo pipefail
+          [ -n "${CREDENTIALS_JSON:-}" ] || { echo "Missing normalized credentials_json output"; exit 1; }
+          printf '%s' "$CREDENTIALS_JSON" | jq -e 'type == "object" and .type == "service_account" and has("client_email") and has("private_key")' >/dev/null
+          echo "Normalized GCP credentials validated."
+
+      - name: Verify credentials project matches deploy project
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        shell: bash
+        env:
+          CREDENTIALS_JSON: ${{ steps.gcp-key.outputs.credentials_json }}
+          EXPECTED_PROJECT_ID: ${{ env.PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          KEY_PROJECT_ID="$(printf '%s' "$CREDENTIALS_JSON" | jq -r '.project_id // empty')"
+          if [ -z "$KEY_PROJECT_ID" ]; then
+            echo "GCP key JSON does not include project_id."
+            exit 1
+          fi
+          if [ "$KEY_PROJECT_ID" != "$EXPECTED_PROJECT_ID" ]; then
+            echo "Refusing deploy: key project_id '$KEY_PROJECT_ID' does not match PROJECT_ID '$EXPECTED_PROJECT_ID'."
+            exit 1
+          fi
+          echo "Credentials project matches deploy project: $KEY_PROJECT_ID"
+
+      - name: Authenticate to Google Cloud
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ steps.gcp-key.outputs.credentials_json }}
+
+      - name: Set up Cloud SDK
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Artifact Registry auth
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+
+      - name: Build and push image
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+        run: |
+          docker build -f Dockerfile -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+
+      - name: Deploy to Cloud Run Staging
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        id: cloud-run-deploy
+        env:
+          IMAGE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --image="$IMAGE_URI" \
+            --region="$REGION" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=3000 \
+            --min-instances=0 \
+            --max-instances=5 \
+            --set-env-vars='NEXTAUTH_URL=https://staging.eventsslot.com,NEXTAUTH_URL_INTERNAL=http://localhost:3000,NEXT_PUBLIC_APP_URL=https://staging.eventsslot.com,RESEND_FROM=EventSlot Staging <hello@eventsslot.com>' \
+            --update-secrets=DATABASE_URL=EVENTSLOT_DATABASE_URL:latest,DIRECT_URL=EVENTSLOT_DIRECT_URL:latest,NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest,GOOGLE_CLIENT_ID=EVENTSLOT_GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=EVENTSLOT_GOOGLE_CLIENT_SECRET:latest,RESEND_API_KEY=RESEND_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,CRON_SECRET=CRON_SECRET:latest,R2_ACCOUNT_ID=CLOUDFLARE_R2_ACCOUNT_ID:latest,R2_ACCESS_KEY_ID=CLOUDFLARE_R2_ACCESS_KEY_ID:latest,R2_SECRET_ACCESS_KEY=CLOUDFLARE_R2_SECRET_ACCESS_KEY:latest,R2_BUCKET_NAME=CLOUDFLARE_R2_BUCKET_NAME:latest,SUPER_ADMIN_EMAIL=SUPER_ADMIN_EMAIL:latest,SUPER_ADMIN_EMAIL_2=SUPER_ADMIN_EMAIL_2:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,GROQ_API_KEY=GROQ_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,R2_PUBLIC_URL=CLOUDFLARE_R2_PUBLIC_URL:latest,ENCRYPTION_KEY=ENCRYPTION_KEY:latest,QR_SECRET=QR_SECRET:latest
+
+          SERVICE_URL=$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format="value(status.url)")
+          echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
+          echo "Staging deployed at: $SERVICE_URL"
+
+      - name: Health-check staging deployment
+        if: steps.deploy-ready.outputs.enabled == 'true'
+        env:
+          SERVICE_URL: ${{ steps.cloud-run-deploy.outputs.service_url }}
+        run: |
+          set -euo pipefail
+          echo "Health-checking staging at: $SERVICE_URL/api/health"
+          MAX_ATTEMPTS=12
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL/api/health" || echo "000")
+            echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Staging health check passed on attempt $ATTEMPT."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health check failed after $MAX_ATTEMPTS attempts."
+          exit 1
