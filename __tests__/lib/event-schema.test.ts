@@ -298,6 +298,8 @@ describe('createEventSchema Ã¢â‚¬â€ event visibility', () => {
       ...physicalBase,
       visibility: 'PUBLIC',
       imageUrl: 'https://cdn.eventslot.test/poster.png',
+      eventDate: '2026-10-01T09:00:00Z',
+      location: 'Sarit Expo Centre, Nairobi',
     })
     expect(result.success).toBe(true)
   })

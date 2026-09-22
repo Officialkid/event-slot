@@ -84,13 +84,13 @@ const defaultTicketTier = (): TicketTierDraft => {
 const cardStyle: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border-subtle)",
-  borderRadius: 12,
+  borderRadius: 16,
 }
 
 const cardMutedStyle: React.CSSProperties = {
   background: "var(--surface-muted)",
   border: "1px solid var(--border-subtle)",
-  borderRadius: 12,
+  borderRadius: 14,
 }
 
 const inputStyle: React.CSSProperties = {
@@ -114,54 +114,29 @@ const helperStyle: React.CSSProperties = {
   color: "var(--text-muted)",
 }
 
-const accentPanelStyle: React.CSSProperties = {
-  background: "var(--accent-dim)",
-  border: "1px solid var(--border-emphasis)",
-  borderRadius: 10,
-}
-
-const accentButtonStyle: React.CSSProperties = {
-  borderColor: "var(--border-emphasis)",
-  color: "var(--accent)",
-}
-
 const accentTextStyle: React.CSSProperties = {
   color: "var(--accent)",
-}
-
-const warningTextStyle: React.CSSProperties = {
-  color: "var(--warning)",
-}
-
-const errorTextStyle: React.CSSProperties = {
-  color: "var(--error)",
-}
-
-const warningCardStyle: React.CSSProperties = {
-  background: "color-mix(in srgb, var(--warning) 5%, transparent)",
-  border: "1px solid color-mix(in srgb, var(--warning) 22%, transparent)",
-  borderRadius: 10,
-}
-
-const warningInsetStyle: React.CSSProperties = {
-  background: "color-mix(in srgb, var(--warning) 4%, transparent)",
-  border: "1px solid color-mix(in srgb, var(--warning) 18%, transparent)",
-  borderRadius: 10,
 }
 
 export default function CreateEventPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1)
+  const [stepError, setStepError] = useState<string>("")
+  const [showAdvancedTickets, setShowAdvancedTickets] = useState(false)
+  const [showDesignerGuidelines, setShowDesignerGuidelines] = useState(false)
+
+  // Step 1: Identity & Basics
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
   const [description, setDescription] = useState("")
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
-  const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
   const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
   const [virtualLink, setVirtualLink] = useState("")
-  const [capacity, setCapacity] = useState("")
-  const [deadline, setDeadline] = useState("")
+  const [location, setLocation] = useState("")
+  const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [eventDate, setEventDate] = useState("")
   const [eventEndAt, setEventEndAt] = useState("")
   const [hasSpecificTime, setHasSpecificTime] = useState(true)
@@ -171,24 +146,33 @@ export default function CreateEventPage() {
   const [registrationOpensDays, setRegistrationOpensDays] = useState<number>(4)
   const [registrationOpensTime, setRegistrationOpensTime] = useState<string>("08:00")
   const [joinOpensAt, setJoinOpensAt] = useState("")
-  const [location, setLocation] = useState("")
-  const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
-  const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+
+  // Step 2: Tickets & Capacity
+  const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
+  const [capacity, setCapacity] = useState("")
   const [showRemainingSpots, setShowRemainingSpots] = useState(true)
-  const [groupRegistrationEnabled, setGroupRegistrationEnabled] = useState(false)
-  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
-  const [attendeeConsentText, setAttendeeConsentText] = useState("")
   const [isPaid, setIsPaid] = useState(false)
   const [ticketPrice, setTicketPrice] = useState("")
   const [ticketTiers, setTicketTiers] = useState<TicketTierDraft[]>([defaultTicketTier()])
+  const [deadline, setDeadline] = useState("")
+  const [entryFeeLabel, setEntryFeeLabel] = useState("")
+  const [groupRegistrationEnabled, setGroupRegistrationEnabled] = useState(false)
+
+  // Step 3: Registration Questions
+  const [questions, setQuestions] = useState([defaultQuestion()])
+  const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
+  const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
+  const [attendeeConsentText, setAttendeeConsentText] = useState("")
+
+  // Step 4: Host Details
+  const [organizerName, setOrganizerName] = useState("")
+  const [organizerEmail, setOrganizerEmail] = useState("")
   const [communityLink, setCommunityLink] = useState("")
   const [whatsappNumber, setWhatsappNumber] = useState("")
   const [contactMode, setContactMode] = useState<EventContactMode>("WHATSAPP")
-  const [imageUrl, setImageUrl] = useState("")
-  const [organizerName, setOrganizerName] = useState("")
-  const [organizerEmail, setOrganizerEmail] = useState("")
-  const [questions, setQuestions] = useState([defaultQuestion()])
-  const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
+
+  // Submission & Feedback
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [eventInfo, setEventInfo] = useState<{ id: string; title: string; slug: string; dashboardToken: string; accessType: "REGISTRATION" | "WALK_IN" } | null>(null)
@@ -197,6 +181,8 @@ export default function CreateEventPage() {
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState("")
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+
+  // Capacity predictions & QR
   const [capacitySuggestion, setCapacitySuggestion] = useState<{
     suggestedCapacity: number
     averageFillRate: number
@@ -212,12 +198,14 @@ export default function CreateEventPage() {
   const [showCapacityUpgradeHint, setShowCapacityUpgradeHint] = useState(false)
   const [aiPrediction, setAiPrediction] = useState<{
     suggestedCapacity: number
-    confidence: 'low' | 'medium' | 'high'
+    confidence: "low" | "medium" | "high"
     reasoning: string
   } | null>(null)
   const [aiPredictionLoading, setAiPredictionLoading] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
+
   const isWalkInEvent = accessType === "WALK_IN"
   const isRegistrationEvent = !isWalkInEvent
   const organizerPlan = normalizePlanKey(session?.user?.plan)
@@ -225,31 +213,24 @@ export default function CreateEventPage() {
   const effectivePlan = getEffectivePlanPolicy(organizerPlan)
   const attendeeLimit = effectivePlan.maxAttendeesPerEvent
   const lockedCapacity = pricingActive && isRegistrationEvent && !isPaid && attendeeLimit !== -1
-  const nextPlan = getNextPlanKey(organizerPlan)
 
-  const bindDateTimeField = (setter: React.Dispatch<React.SetStateAction<string>>) => ({
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setter(e.target.value),
-    onInput: (e: React.FormEvent<HTMLInputElement>) => setter(e.currentTarget.value),
-  })
-
-  // Auto-fill organizer details from signed-in account
   useEffect(() => {
     markFeatureUsed("create_event")
   }, [])
 
+  // Auto-fill organizer details from signed-in session
   useEffect(() => {
-    if (session?.user?.name) {
+    if (session?.user?.name && !organizerName) {
       setOrganizerName(session.user.name)
     }
-    if (session?.user?.email) {
+    if (session?.user?.email && !organizerEmail) {
       setOrganizerEmail(session.user.email)
     }
-  }, [session])
+  }, [session, organizerName, organizerEmail])
 
-  // Redirect to sign in if not authenticated
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/signin?callbackUrl=/create')
+    if (status === "unauthenticated") {
+      router.replace("/signin?callbackUrl=/create")
     }
   }, [status, router])
 
@@ -290,12 +271,12 @@ export default function CreateEventPage() {
     setAiPredictionLoading(true)
     setAiPrediction(null)
     try {
-      const res = await fetch('/api/events/predict-capacity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/events/predict-capacity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: eventTitle, description: eventDescription }),
       })
-      if (!res.ok) return // Free plan or error — silent skip
+      if (!res.ok) return
       const data = await res.json()
       if (data.prediction) setAiPrediction(data.prediction)
     } catch { /* ignore */ } finally {
@@ -320,9 +301,6 @@ export default function CreateEventPage() {
       }))
     )
     setSelectedTemplateId(templateId)
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 50)
   }
 
   const successRegistrationLink = eventInfo && origin
@@ -335,9 +313,7 @@ export default function CreateEventPage() {
       await navigator.clipboard.writeText(successRegistrationLink)
       setCopiedSuccessLink(true)
       setTimeout(() => setCopiedSuccessLink(false), 2000)
-    } catch {
-      // Ignore clipboard errors to match existing page behavior.
-    }
+    } catch { /* ignore */ }
   }
 
   const handleGenerateSuccessQR = async () => {
@@ -377,10 +353,6 @@ export default function CreateEventPage() {
     }
   }
 
-  if (status === 'loading' || status === 'unauthenticated') {
-    return null
-  }
-
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -393,6 +365,7 @@ export default function CreateEventPage() {
       const data = await res.json()
       if (!res.ok) { setImageError(data.error || "Upload failed"); return }
       setImageUrl(data.url)
+      setStepError("")
     } catch {
       setImageError("Upload failed. Please try again.")
     } finally {
@@ -400,6 +373,7 @@ export default function CreateEventPage() {
     }
   }
 
+  // Question management
   const handleQuestionChange = (idx: number, field: keyof Question, value: string | boolean) => {
     setQuestions(qs =>
       qs.map((q, i) =>
@@ -490,23 +464,12 @@ export default function CreateEventPage() {
   }
 
   const moveQuestionDown = (idx: number) => {
+    if (idx >= questions.length - 1) return
     setQuestions(qs => {
-      if (idx >= qs.length - 1) return qs
       const next = [...qs]
       const temp = next[idx]
       next[idx] = next[idx + 1]
       next[idx + 1] = temp
-      return next
-    })
-  }
-
-  const moveQuestionTo = (fromIdx: number, toIdx: number) => {
-    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return
-    setQuestions(qs => {
-      if (toIdx >= qs.length) return qs
-      const next = [...qs]
-      const [moved] = next.splice(fromIdx, 1)
-      next.splice(toIdx, 0, moved)
       return next
     })
   }
@@ -516,12 +479,14 @@ export default function CreateEventPage() {
     setQuestions(qs => [...qs, { id, label: "", type: "text", required: false, options: [], allowMultiple: false, optionLimits: {} }])
     setOptionDrafts(prev => ({ ...prev, [id]: "" }))
   }
+
   const removeQuestion = (idx: number) =>
     setQuestions(qs => {
       if (qs.length <= 1) return qs
       return qs.filter((_, i) => i !== idx)
     })
 
+  // Ticket tier management
   const updateTicketTier = (id: string, field: keyof TicketTierDraft, value: string | boolean | number) => {
     setTicketTiers((tiers) =>
       tiers.map((tier) => {
@@ -580,66 +545,104 @@ export default function CreateEventPage() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  // Step Validations
+  const validateStep1 = (): boolean => {
+    setStepError("")
     setError("")
-    const errors: Record<string, string> = {}
-
     if (!title.trim()) {
-      errors.title = "Event title is required."
+      setStepError("Please provide an event title.")
+      document.getElementById("create-field-title")?.focus()
+      return false
     }
-
-    if (eventType === "VIRTUAL" && !virtualLink.trim()) {
-      errors.virtualLink = "Google Meet or Zoom link is required for virtual events."
-    }
-
-    if (isPaid && (!ticketPrice || Number(ticketPrice) < 50)) {
-      errors.ticketPrice = "Please enter a valid ticket price (minimum KSh 50)."
-    }
-
-    if (isWalkInEvent && !imageUrl.trim()) {
-      errors.imageUrl = "Walk-in events need a poster image so the share card always includes one."
-    }
-
     if (visibility === "PUBLIC" && !imageUrl.trim()) {
-      errors.imageUrl = "Public events require a poster image so they can appear on the Events page."
+      setStepError("Public events require a poster image so they can appear on the Events discovery page.")
+      fileInputRef.current?.focus()
+      return false
     }
-
     if (visibility === "PUBLIC" && !eventDate) {
-      errors.eventDate = "Public events require a start date so attendees can see when the event is happening."
+      setStepError("Public events require a start date so attendees know when it is happening.")
+      return false
     }
-
     if (visibility === "PUBLIC" && eventType === "PHYSICAL" && !location.trim()) {
-      errors.location = "Public physical events require a venue location so attendees can discover where to go."
+      setStepError("Public physical events require a venue location.")
+      return false
     }
+    if (eventType === "VIRTUAL") {
+      if (!virtualLink.trim()) {
+        setStepError("A Google Meet link is required for virtual events.")
+        return false
+      }
+      if (!virtualLink.toLowerCase().includes("meet.google.com/")) {
+        setStepError("Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij).")
+        return false
+      }
+    }
+    return true
+  }
 
+  const validateStep2 = (): boolean => {
+    setStepError("")
+    setError("")
     if (isPaid) {
+      if (!ticketPrice || Number(ticketPrice) < 50) {
+        setStepError("Please enter a valid ticket price (minimum KSh 50).")
+        return false
+      }
       const invalidTier = ticketTiers.find((tier) => {
         const price = Number(tier.priceKes)
         const tierCapacity = Number(tier.capacity || capacity)
         return !tier.name.trim() || !price || price < 50 || !tierCapacity || tierCapacity < 1
       })
       if (invalidTier) {
-        errors.ticketTiers = "Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity."
+        setStepError("Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity.")
+        return false
       }
     }
+    return true
+  }
 
-    const invalidQuestion = isRegistrationEvent
-      ? questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
-      : null
-    if (invalidQuestion) {
-      errors.questions = `Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors)
-      setError("Please fix the highlighted fields in red below.")
-      const firstField = Object.keys(errors)[0]
-      const el = document.getElementById(`create-field-${firstField}`)
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-        el.focus()
+  const validateStep3 = (): boolean => {
+    setStepError("")
+    setError("")
+    if (isRegistrationEvent) {
+      const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
+      if (invalidQuestion) {
+        setStepError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+        return false
       }
+    }
+    return true
+  }
+
+  const handleNextStep = (targetStep: 1 | 2 | 3 | 4) => {
+    if (targetStep > currentStep) {
+      if (currentStep === 1 && !validateStep1()) return
+      if (currentStep === 2 && !validateStep2()) return
+      if (currentStep === 3 && !validateStep3()) return
+    }
+    setStepError("")
+    setError("")
+    setCurrentStep(targetStep)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  // Master Form Submission
+  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    e?.preventDefault()
+    setError("")
+    setStepError("")
+
+    // Comprehensive validation across all steps
+    if (!validateStep1()) {
+      setCurrentStep(1)
+      return
+    }
+    if (!validateStep2()) {
+      setCurrentStep(2)
+      return
+    }
+    if (!validateStep3()) {
+      setCurrentStep(3)
       return
     }
 
@@ -706,8 +709,8 @@ export default function CreateEventPage() {
                 required: q.required,
               }))
             : [],
-          organizerName,
-          organizerEmail: organizerEmail || undefined,
+          organizerName: organizerName.trim() || session?.user?.name || "Organizer",
+          organizerEmail: organizerEmail || session?.user?.email || undefined,
         }),
       })
       const data = await res.json()
@@ -727,11 +730,21 @@ export default function CreateEventPage() {
     }
   }
 
-  const activeTpl = selectedTemplateId ? EVENT_TEMPLATES.find(t => t.id === selectedTemplateId) : null
+  if (status === "loading" || status === "unauthenticated") {
+    return null
+  }
+
+  const STEPS: { num: 1 | 2 | 3 | 4; label: string; icon: string }[] = [
+    { num: 1, label: "Identity", icon: "✨" },
+    { num: 2, label: "Tickets & Access", icon: "🎟️" },
+    { num: 3, label: "Questions", icon: "📝" },
+    { num: 4, label: "Review & Launch", icon: "🚀" },
+  ]
 
   return (
-    <div className="px-4 py-12">
-      <div className="mx-auto max-w-[640px] space-y-6">
+    <div className="px-4 py-8 sm:py-12 min-h-screen" style={{ background: "var(--page-bg, #0A0A0A)" }}>
+      <div className="mx-auto max-w-[660px] space-y-6" ref={formRef}>
+        {/* QR Code Modal for Success */}
         {showQrModal && qrDataUrl && eventInfo && (
           <div
             onClick={() => setShowQrModal(false)}
@@ -779,22 +792,16 @@ export default function CreateEventPage() {
                 {isWalkInEvent ? "Scan to check in for " : "Scan to register for "}<strong style={{ color: "var(--text-primary)" }}>{eventInfo.title}</strong>
               </p>
 
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "1.25rem", lineHeight: "1.55", fontFamily: "var(--font-dm-sans)" }}>
-                {isWalkInEvent
-                  ? "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the walk-in check-in page directly."
-                  : "Add this QR code to your poster, flyer, or WhatsApp image. Attendees scan it to open the registration form directly."}
-              </p>
-
               <button
                 onClick={handleDownloadSuccessQR}
                 style={{
                   background: "var(--accent)",
-                  color: "var(--accent-contrast)",
+                  color: "#0A0A0A",
                   border: "none",
                   borderRadius: "100px",
                   padding: "0.7rem 1.8rem",
                   fontSize: "0.875rem",
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: "pointer",
                   width: "100%",
                   fontFamily: "var(--font-dm-sans)",
@@ -802,1561 +809,41 @@ export default function CreateEventPage() {
               >
                 ↓ Download High-Res PNG
               </button>
-
-              <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
-                1024x1024px · Print-ready resolution
-              </p>
             </div>
           </div>
         )}
 
-        <div>
-          <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-            {CREATE_EVENT_COPY.header.title}
-          </h1>
-          <p className="mt-2 text-[0.9rem] font-[300]" style={{ color: "var(--text-secondary)" }}>
-            {CREATE_EVENT_COPY.header.caption}
-          </p>
-          <div className="mt-4 rounded-[12px] border px-4 py-3 text-[0.82rem] leading-6" style={{ borderColor: "rgba(124,199,255,0.22)", background: "rgba(124,199,255,0.08)", color: "color-mix(in srgb, var(--text-primary) 82%, #9FD8FF 18%)" }}>
-            {pricingActive
-              ? CREATE_EVENT_COPY.banner.pricingActive
-              : CREATE_EVENT_COPY.banner.pricingPaused}
-          </div>
-        </div>
-
-        {/* ── Template picker ── */}
-        <div>
-          <h2
-            style={{
-              fontFamily: "var(--font-instrument-serif)",
-              fontSize: "1.5rem",
-              fontWeight: 400,
-              color: "var(--text-primary)",
-              margin: "0 0 0.375rem",
-            }}
-          >
-            {CREATE_EVENT_COPY.sections.template.title}
-          </h2>
-          <p
-            style={{
-              margin: "0 0 1.125rem",
-              fontSize: "0.875rem",
-              fontWeight: 300,
-              color: "var(--text-secondary)",
-              fontFamily: "var(--font-dm-sans)",
-            }}
-          >
-            {CREATE_EVENT_COPY.sections.template.caption}
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(172px, 1fr))",
-              gap: "0.75rem",
-            }}
-          >
-            {EVENT_TEMPLATES.map(tpl => {
-              const isSelected = selectedTemplateId === tpl.id
-              return (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => handlePickTemplate(tpl.id)}
-                  style={{
-                    background: isSelected
-                      ? "color-mix(in srgb, var(--accent) 6%, transparent)"
-                      : "var(--surface)",
-                    border: isSelected
-                      ? "1.5px solid var(--border-emphasis)"
-                      : "1px solid var(--border-subtle)",
-                    borderRadius: 12,
-                    padding: "1.125rem 1rem",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "border-color 0.15s, background 0.15s",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.375rem",
-                  }}
-                  onMouseEnter={e => {
-                    if (!isSelected) {
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "color-mix(in srgb, var(--accent) 40%, transparent)"
-                      ;(e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--surface) 92%, color-mix(in srgb, var(--accent) 8%, transparent) 8%)"
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isSelected) {
-                      ;(e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-subtle)"
-                      ;(e.currentTarget as HTMLButtonElement).style.background = "var(--surface)"
-                    }
-                  }}
-                >
-                  <span style={{ fontSize: "2rem", lineHeight: 1 }}>{tpl.icon}</span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-instrument-serif)",
-                      fontSize: "1rem",
-                      fontWeight: 400,
-                      color: "var(--text-primary)",
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {tpl.name}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-dm-sans)",
-                      fontWeight: 300,
-                      fontSize: "0.8rem",
-                      color: "var(--text-secondary)",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {tpl.description}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {selectedTemplateId && !success ? (
-          <div ref={formRef}>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="rounded-[12px] p-6" style={cardStyle}>
-              <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                {CREATE_EVENT_COPY.sections.eventKind.title}
-              </h2>
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setAccessType("REGISTRATION")}
-                  className="min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition"
-                  style={
-                    accessType === "REGISTRATION"
-                      ? { borderColor: "var(--border-emphasis)", background: "var(--accent-muted)", color: "var(--text-primary)" }
-                      : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
-                  }
-                >
-                  <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
-                    <span aria-hidden="true">{accessType === "REGISTRATION" ? "◉" : "○"}</span>
-                    <span>Registration Event</span>
-                  </div>
-                  <p className="mt-4 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    People sign up in advance. You set a capacity. Waitlist manages overflow.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccessType("WALK_IN")}
-                  className="min-h-[160px] rounded-[8px] border px-4 py-4 text-left transition"
-                  style={
-                    accessType === "WALK_IN"
-                      ? { borderColor: "rgba(79,172,254,0.5)", background: "rgba(79,172,254,0.1)", color: "var(--text-primary)" }
-                      : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
-                  }
-                >
-                  <div className="flex items-center gap-2 text-[0.95rem] font-semibold">
-                    <span aria-hidden="true">{accessType === "WALK_IN" ? "◉" : "○"}</span>
-                    <span>Walk-In Event</span>
-                  </div>
-                  <p className="mt-4 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    Free and open. People check in when they arrive. Live attendance counts.
-                  </p>
-                </button>
-              </div>
+        {/* ── Success Celebration Screen ── */}
+        {success && eventInfo ? (
+          <div className="rounded-[16px] p-8 text-center space-y-5" style={cardStyle}>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border" style={{ borderColor: "rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.12)" }}>
+              <span className="block h-3.5 w-6 rotate-[-45deg] border-b-4 border-l-4" style={{ borderColor: "#22c55e" }} />
             </div>
-
-            <div className="rounded-[12px] p-6" style={cardStyle}>
-              <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                {CREATE_EVENT_COPY.sections.eventDetails.title}
+            <div>
+              <h2 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                Your event is live!
               </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.title ? "#EF4444" : undefined }}>
-                    {CREATE_EVENT_COPY.fields.eventTitle.label} <span style={accentTextStyle}>*</span>
-                  </label>
-                  <input
-                    id="create-field-title"
-                    type="text"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={{
-                      ...inputStyle,
-                      borderColor: fieldErrors.title ? "#EF4444" : inputStyle.borderColor,
-                      boxShadow: fieldErrors.title ? "0 0 0 1px #EF4444" : "none",
-                    }}
-                    required
-                    placeholder={CREATE_EVENT_COPY.fields.eventTitle.placeholder}
-                    value={title}
-                    onChange={e => {
-                      setTitle(e.target.value)
-                      if (fieldErrors.title) setFieldErrors(prev => ({ ...prev, title: "" }))
-                    }}
-                    onBlur={e => fetchAiPrediction(e.target.value, description)}
-                  />
-                  {fieldErrors.title && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{fieldErrors.title}</span>
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    {CREATE_EVENT_COPY.fields.description.label}
-                  </label>
-                  <textarea
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={{ ...inputStyle, whiteSpace: "pre-wrap", lineHeight: 1.6 }}
-                    placeholder={CREATE_EVENT_COPY.fields.description.placeholder}
-                    rows={5}
-                    maxLength={5000}
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                  />
-                  <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.35rem" }}>
-                    {CREATE_EVENT_COPY.fields.description.helper}
-                  </p>
-                  <p style={{ ...helperStyle, fontSize: "0.7rem", marginTop: "0.25rem" }}>
-                    {description.length} / 5000 characters
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    {CREATE_EVENT_COPY.fields.eventType.label}
-                  </label>
-                  <div className="mt-1 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEventType("PHYSICAL")}
-                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
-                        eventType === "PHYSICAL"
-                          ? ""
-                          : ""
-                      }`}
-                      style={eventType === "PHYSICAL" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
-                    >
-                      📍 Physical
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isWalkInEvent) return
-                        setEventType("VIRTUAL")
-                      }}
-                      disabled={isWalkInEvent}
-                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
-                        eventType === "VIRTUAL"
-                          ? ""
-                          : ""
-                      } ${isWalkInEvent ? "cursor-not-allowed opacity-40" : ""}`}
-                      style={eventType === "VIRTUAL" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
-                    >
-                      💻 Virtual
-                    </button>
-                  </div>
-                </div>
-
-                {eventType === "VIRTUAL" && (
-                  <div className="space-y-2">
-                    <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.virtualLink ? "#EF4444" : undefined }}>
-                      {CREATE_EVENT_COPY.fields.googleMeetLink.label} <span style={accentTextStyle}>*</span>
-                    </label>
-                    <input
-                      id="create-field-virtualLink"
-                      type="text"
-                      required
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                      style={{
-                        ...inputStyle,
-                        borderColor: fieldErrors.virtualLink ? "#EF4444" : inputStyle.borderColor,
-                        boxShadow: fieldErrors.virtualLink ? "0 0 0 1px #EF4444" : "none",
-                      }}
-                      placeholder={CREATE_EVENT_COPY.fields.googleMeetLink.placeholder}
-                      value={virtualLink}
-                      onChange={e => {
-                        setVirtualLink(e.target.value)
-                        if (fieldErrors.virtualLink) setFieldErrors(prev => ({ ...prev, virtualLink: "" }))
-                      }}
-                    />
-                    {fieldErrors.virtualLink && (
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                        <span>⚠️</span>
-                        <span>{fieldErrors.virtualLink}</span>
-                      </p>
-                    )}
-                    <div className="rounded-xl border p-4" style={cardMutedStyle}>
-                      <p className="mb-2 text-xs font-semibold" style={accentTextStyle}>✦ How to get your Google Meet link</p>
-                      <ol className="list-inside list-decimal space-y-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                        <li>Go to <span style={{ color: "var(--text-primary)" }}>meet.new</span> or open Google Meet</li>
-                        <li>Click <span style={{ color: "var(--text-primary)" }}>New meeting</span></li>
-                        <li>Select <span style={{ color: "var(--text-primary)" }}>Create a meeting for later</span></li>
-                        <li>Copy the link and paste it above</li>
-                        <li>Keep the meeting open - attendees will join on event day after verification</li>
-                      </ol>
-                      <p className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>🔒 Your meeting link is encrypted and only revealed to verified attendees on event day.</p>
-                    </div>
-                  </div>
-                )}
-
-                {isRegistrationEvent && (
-                <div className="space-y-3">
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Pricing
-                  </label>
-                  <div className="mt-1 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPaid(false)
-                        setTicketPrice("")
-                        setTicketTiers([defaultTicketTier()])
-                      }}
-                      className={`rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium transition ${
-                        !isPaid
-                          ? ""
-                          : ""
-                      }`}
-                      style={!isPaid ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" } : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
-                    >
-                      🎟️ Free
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      className="rounded-[8px] border px-3 py-2 text-[0.82rem] font-medium opacity-70"
-                      style={{ borderColor: "color-mix(in srgb, var(--warning) 35%, transparent)", background: "var(--surface-2)", color: "var(--warning)", cursor: "not-allowed" }}
-                    >
-                      💳 Paid
-                    </button>
-                  </div>
-                  <PaymentMaintenanceBanner
-                    compact
-                    title="Paid events are coming soon"
-                    message="We are working on this. Paid-event setup and ticket-tier creation are hidden for now, so please continue creating free events until the payment rollout is ready."
-                  />
-                  {false && isPaid && (
-                    <div className="mt-3 space-y-3 p-4" style={warningCardStyle}>
-                      <div className="px-3 py-3" style={warningInsetStyle}>
-                        <p className="text-[0.75rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                          EventSlot&apos;s platform commission is non-refundable. If you refund an attendee later, the commission is still deducted from your net balance.
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[0.78rem] font-semibold" style={{ color: "var(--warning)" }}>Ticket tiers</p>
-                          <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-secondary)" }}>
-                            Add up to 10 paid tiers. Event capacity will be the sum of all tier capacities.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={addTicketTier}
-                          disabled={ticketTiers.length >= 10}
-                          className="rounded-full border border-[color-mix(in_srgb,var(--warning)_25%,transparent)] px-3 py-1 text-[0.75rem] text-[var(--warning)] disabled:opacity-40"
-                        >
-                          + Add tier
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {ticketTiers.map((tier, index) => (
-                          <div key={tier.id} className="rounded-[10px] border p-3" style={cardMutedStyle}>
-                            <div className="mb-3 flex items-center justify-between gap-3">
-                              <p className="text-[0.78rem] font-semibold" style={{ color: "var(--text-primary)" }}>Tier {index + 1}</p>
-                              {ticketTiers.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => removeTicketTier(tier.id)}
-                                className="text-[0.72rem]"
-                                style={errorTextStyle}
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="mb-3 grid gap-3 md:grid-cols-[1.2fr,0.8fr]">
-                              <div>
-                                <label className="mb-1 block text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
-                                  Preset tier
-                                </label>
-                                <select
-                                  value={tier.presetKey}
-                                  onChange={(e) => updateTicketTier(tier.id, "presetKey", e.target.value)}
-                                  className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] font-medium focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                                  style={inputStyle}
-                                >
-                                  <option value="">Custom tier</option>
-                                  {TIER_PRESETS.map((preset) => (
-                                    <option key={preset.key} value={preset.key}>
-                                      {preset.defaultName}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="rounded-[10px] border px-3 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                                <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
-                                  Preview
-                                </p>
-                                <TierBadge
-                                  name={tier.name || "Tier"}
-                                  badgeColor={tier.badgeColor}
-                                  textColor={tier.textColor}
-                                  metallic={tier.metallic}
-                                  size="md"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <input
-                                type="text"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                                style={inputStyle}
-                                placeholder="Tier name"
-                                value={tier.name}
-                                onChange={e => updateTicketTier(tier.id, "name", e.target.value)}
-                              />
-                              <input
-                                type="number"
-                                min="50"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                                style={inputStyle}
-                                placeholder="Price (KES)"
-                                value={tier.priceKes}
-                                onChange={e => {
-                                  updateTicketTier(tier.id, "priceKes", e.target.value)
-                                  if (index === 0) setTicketPrice(e.target.value)
-                                }}
-                              />
-                              <div className="rounded-[8px] border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                                <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>
-                                  Badge colour
-                                </label>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <input
-                                    type="color"
-                                    value={tier.badgeColor}
-                                    onChange={(e) => updateTicketTier(tier.id, "badgeColor", e.target.value)}
-                                    className="h-9 w-11 rounded border bg-transparent"
-                                    style={{ borderColor: "var(--border)" }}
-                                  />
-                                  {TIER_PRESET_COLOR_PALETTE.map((color) => (
-                                    <button
-                                      key={color}
-                                      type="button"
-                                      onClick={() => updateTicketTier(tier.id, "badgeColor", color)}
-                                      className="h-6 w-6 rounded-full border"
-                                      style={{ background: color, borderColor: "var(--border-subtle)" }}
-                                      aria-label={`Use ${color} badge colour`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <input
-                                type="number"
-                                min="1"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                                style={inputStyle}
-                                placeholder="Tier capacity"
-                                value={tier.capacity}
-                                onChange={e => updateTicketTier(tier.id, "capacity", e.target.value)}
-                              />
-                              <input
-                                type="number"
-                                min="1"
-                                className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                                style={inputStyle}
-                                placeholder="Bundle size"
-                                value={tier.bundleSize}
-                                onChange={e => updateTicketTier(tier.id, "bundleSize", e.target.value)}
-                              />
-                            </div>
-
-                            <textarea
-                              className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--warning)_50%,transparent)] focus:outline-none"
-                              style={inputStyle}
-                              rows={2}
-                              placeholder="Optional description of what this tier includes"
-                              value={tier.description}
-                              onChange={e => updateTicketTier(tier.id, "description", e.target.value)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                )}
-
-                {isRegistrationEvent && (
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Maximum Capacity
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={lockedCapacity ? attendeeLimit : undefined}
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    placeholder={lockedCapacity ? `Choose any number up to ${attendeeLimit.toLocaleString()}` : "Leave empty for unlimited"}
-                    value={capacity}
-                    onChange={e => {
-                      const nextValue = e.target.value
-                      if (lockedCapacity && nextValue) {
-                        const parsed = Number(nextValue)
-                        if (Number.isFinite(parsed) && parsed > attendeeLimit) {
-                          setCapacity(String(attendeeLimit))
-                          return
-                        }
-                      }
-                      setCapacity(nextValue)
-                    }}
-                    onFocus={fetchCapacitySuggestion}
-                    onClick={() => {
-                      if (lockedCapacity) setShowCapacityUpgradeHint(true)
-                    }}
-                  />
-                  {lockedCapacity ? (
-                    <div className="mt-3 rounded-[10px] border px-4 py-3" style={accentPanelStyle}>
-                      <p className="text-[0.8rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                        Your <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{effectivePlan.displayName}</span> plan includes up to{" "}
-                        <span className="font-semibold" style={accentTextStyle}>{attendeeLimit.toLocaleString()}</span> attendees per event. You can set this specific event lower if you want.
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowCapacityUpgradeHint((current) => !current)}
-                          className="rounded-full border px-3 py-2 text-[0.78rem] font-semibold"
-                          style={accentButtonStyle}
-                        >
-                          Need more capacity?
-                        </button>
-                      </div>
-                      {showCapacityUpgradeHint ? (
-                        <div className="mt-3 rounded-[10px] border px-3 py-3 text-[0.78rem] leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}>
-                          Upgrade to <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{nextPlan ? nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) : "a higher plan"}</span> for a larger included capacity.
-                          Extra paid capacity controls will only appear after the billing rollout is ready.
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {aiPredictionLoading && (
-                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ animation: 'spin 1s linear infinite' }}>
-                        <circle cx="12" cy="12" r="10" stroke="var(--border-emphasis)" strokeWidth="2.5" />
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" />
-                      </svg>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>Analysing your past events…</span>
-                    </div>
-                  )}
-                  {aiPrediction && !capacity && (
-                    <div
-                      style={{
-                        marginTop: '0.625rem',
-                        ...accentPanelStyle,
-                        padding: '0.6rem 0.85rem',
-                        display: 'flex',
-                        gap: '0.625rem',
-                        alignItems: 'flex-start',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, marginTop: 2 }}>
-                        <path d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z" fill="var(--accent-dim)" stroke="var(--accent)" strokeWidth="1.25" />
-                        <path d="M8 17h4" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
-                        <path d="M9 19h2" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
-                      </svg>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: '0 0 0.25rem', fontSize: '0.78rem', color: 'var(--accent)', fontFamily: 'var(--font-dm-sans)', fontWeight: 500, lineHeight: 1.4 }}>
-                          AI suggestion: <strong>{aiPrediction.suggestedCapacity}</strong> attendees&nbsp;
-                          <span style={{ fontWeight: 400, opacity: 0.7 }}>({aiPrediction.confidence} confidence)</span>
-                        </p>
-                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)', fontWeight: 300, lineHeight: 1.4 }}>
-                          {aiPrediction.reasoning}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setCapacity(String(aiPrediction.suggestedCapacity))}
-                          style={{
-                            background: 'transparent',
-                            border: '0.5px solid var(--border-emphasis)',
-                            borderRadius: 6,
-                            padding: '0.3rem 0.75rem',
-                            fontSize: '0.72rem',
-                            fontWeight: 500,
-                            color: 'var(--accent)',
-                            cursor: 'pointer',
-                            fontFamily: 'var(--font-dm-sans)',
-                          }}
-                        >
-                          Use this suggestion
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {capacitySuggestion && !aiPrediction && !capacity && (
-                    <div
-                      style={{
-                        marginTop: "0.625rem",
-                        ...accentPanelStyle,
-                        padding: "0.75rem 1rem",
-                        display: "flex",
-                        gap: "0.625rem",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <svg
-                        width="15" height="15" viewBox="0 0 20 20" fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        style={{ flexShrink: 0, marginTop: 2 }}
-                      >
-                        <path
-                          d="M10 2a6 6 0 0 1 4 10.47V14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-1.53A6 6 0 0 1 10 2Z"
-                          fill="var(--accent-dim)" stroke="var(--accent)" strokeWidth="1.25"
-                        />
-                        <path d="M8 17h4" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
-                        <path d="M9 19h2" stroke="var(--accent)" strokeWidth="1.25" strokeLinecap="round" />
-                      </svg>
-                      <div style={{ flex: 1 }}>
-                        <p
-                          style={{
-                            margin: "0 0 0.5rem",
-                            fontSize: "0.8rem",
-                            color: "var(--accent)",
-                            fontFamily: "var(--font-dm-sans)",
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          {capacitySuggestion.message}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setCapacity(String(capacitySuggestion.suggestedCapacity))}
-                          style={{
-                            background: "transparent",
-                            border: "0.5px solid var(--border-emphasis)",
-                            borderRadius: 6,
-                            padding: "0.3rem 0.75rem",
-                            fontSize: "0.75rem",
-                            fontWeight: 500,
-                            color: "var(--accent)",
-                            cursor: "pointer",
-                            fontFamily: "var(--font-dm-sans)",
-                          }}
-                        >
-                          Use this suggestion
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                )}
-                {isRegistrationEvent && organizerPlan === "free" ? (
-                <div className="md:col-span-2">
-                  <EventPassSelector
-                    eventTitle={title.trim() || "this event"}
-                    compact
-                  />
-                </div>
-                ) : null}
-                {isRegistrationEvent && (
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Registration Deadline (optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    value={deadline}
-                    {...bindDateTimeField(setDeadline)}
-                  />
-                </div>
-                )}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.eventDate ? "#EF4444" : undefined }}>
-                      {isWalkInEvent ? "Walk-In Start Date" : "Event Start Date"}
-                    </label>
-                  </div>
-                  <input
-                    id="create-field-eventDate"
-                    type={hasSpecificTime ? "datetime-local" : "date"}
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={{
-                      ...inputStyle,
-                      borderColor: fieldErrors.eventDate ? "#EF4444" : inputStyle.borderColor,
-                      boxShadow: fieldErrors.eventDate ? "0 0 0 1px #EF4444" : "none",
-                    }}
-                    value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setEventDate(val)
-                      if (val) {
-                        const day = new Date(val).getDay()
-                        if (!isNaN(day)) setRecurrenceDayOfWeek(day)
-                      }
-                      if (fieldErrors.eventDate) setFieldErrors(prev => ({ ...prev, eventDate: "" }))
-                    }}
-                  />
-                  {fieldErrors.eventDate && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{fieldErrors.eventDate}</span>
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="hasSpecificTimeCheck"
-                      checked={hasSpecificTime}
-                      onChange={(e) => setHasSpecificTime(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded accent-[var(--accent)]"
-                    />
-                    <label htmlFor="hasSpecificTimeCheck" className="text-[0.72rem] text-[var(--text-secondary)] cursor-pointer select-none">
-                      Specify start & end time (uncheck for all-day / flexible hours)
-                    </label>
-                  </div>
-                </div>
-
-                {hasSpecificTime && (
-                  <div>
-                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      {isWalkInEvent ? "Walk-In End (optional)" : "Event End (optional)"}
-                    </label>
-                    <input
-                      type="datetime-local"
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                      style={inputStyle}
-                      value={eventEndAt}
-                      {...bindDateTimeField(setEventEndAt)}
-                    />
-                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                      {isWalkInEvent
-                        ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
-                        : "If the deadline is empty, registration stays open during the event and closes when the event ends."}
-                    </p>
-                  </div>
-                )}
-
-                {/* RECURRING EVENT CARD */}
-                <div className="md:col-span-2 rounded-[12px] p-3.5 border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] mt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isRecurring}
-                        onChange={(e) => {
-                          setIsRecurring(e.target.checked)
-                          if (e.target.checked && eventDate) {
-                            const day = new Date(eventDate).getDay()
-                            if (!isNaN(day)) setRecurrenceDayOfWeek(day)
-                          }
-                        }}
-                        className="h-4 w-4 rounded accent-[var(--accent)]"
-                      />
-                      <span className="text-[0.82rem] font-bold text-[var(--text-primary)]">
-                        🔄 This is a recurring event (e.g. weekly convention, fellowship, or meetup)
-                      </span>
-                    </label>
-                    {isRecurring && (
-                      <span className="text-[0.7rem] font-semibold px-2 py-0.5 rounded bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent)]">
-                        Rolling Cycle Active
-                      </span>
-                    )}
-                  </div>
-
-                  {isRecurring && (
-                    <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[var(--border-subtle)]">
-                      <div>
-                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
-                          Repeat Frequency
-                        </label>
-                        <select
-                          value={recurrenceFrequency}
-                          onChange={(e) => setRecurrenceFrequency(e.target.value as any)}
-                          className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
-                          style={inputStyle}
-                        >
-                          <option value="WEEKLY">Every Week</option>
-                          <option value="BIWEEKLY">Every 2 Weeks</option>
-                          <option value="MONTHLY">Every Month</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
-                          Event Day of Week
-                        </label>
-                        <select
-                          value={recurrenceDayOfWeek}
-                          onChange={(e) => setRecurrenceDayOfWeek(Number(e.target.value))}
-                          className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
-                          style={inputStyle}
-                        >
-                          <option value={0}>Every Sunday</option>
-                          <option value={1}>Every Monday</option>
-                          <option value={2}>Every Tuesday</option>
-                          <option value={3}>Every Wednesday</option>
-                          <option value={4}>Every Thursday</option>
-                          <option value={5}>Every Friday</option>
-                          <option value={6}>Every Saturday</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
-                          Registration Window Opens
-                        </label>
-                        <select
-                          value={registrationOpensDays}
-                          onChange={(e) => setRegistrationOpensDays(Number(e.target.value))}
-                          className="w-full rounded-[8px] px-3 py-2 text-[0.82rem] font-medium"
-                          style={inputStyle}
-                        >
-                          <option value={4}>4 days prior (e.g. Monday for Friday)</option>
-                          <option value={7}>7 days prior (Full week ahead)</option>
-                          <option value={3}>3 days prior</option>
-                          <option value={2}>2 days prior</option>
-                          <option value={1}>1 day prior (Day before)</option>
-                        </select>
-                      </div>
-
-                      <div className="sm:col-span-3 text-[0.74rem] text-[var(--text-secondary)] bg-[var(--surface)] p-2.5 rounded-[8px] border border-[var(--border-subtle)]">
-                        💡 <strong>How this works:</strong> You keep <strong>one permanent link & QR code</strong>. Every cycle, attendee slots open on your scheduled window, and past editions are automatically vaulted so you can track weekly attendance separately!
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Link Opens At (optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    value={joinOpensAt}
-                    {...bindDateTimeField(setJoinOpensAt)}
-                  />
-                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                    {isWalkInEvent
-                      ? "You can create and share this link ahead of time. Before the event starts, attendees will simply see that check-in is not open yet."
-                      : "Leave empty to auto-open 30 minutes before the event start."}
-                  </p>
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={{ ...labelStyle, color: fieldErrors.location ? "#EF4444" : undefined }}>
-                    {eventType === "VIRTUAL" ? "Host / Base Location (optional)" : "Location / Venue"}
-                  </label>
-                  <input
-                    id="create-field-location"
-                    type="text"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={{
-                      ...inputStyle,
-                      borderColor: fieldErrors.location ? "#EF4444" : inputStyle.borderColor,
-                      boxShadow: fieldErrors.location ? "0 0 0 1px #EF4444" : "none",
-                    }}
-                    placeholder="e.g. iHub, Nairobi"
-                    value={location}
-                    onChange={e => {
-                      setLocation(e.target.value)
-                      if (fieldErrors.location) setFieldErrors(prev => ({ ...prev, location: "" }))
-                    }}
-                  />
-                  {fieldErrors.location && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                      <span>⚠️</span>
-                      <span>{fieldErrors.location}</span>
-                    </p>
-                  )}
-                </div>
-                {eventType === "PHYSICAL" && (
-                  <div>
-                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Google Maps directions link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
-                    </label>
-                    <input
-                      type="url"
-                      inputMode="url"
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                      style={inputStyle}
-                      placeholder="Paste the exact Google Maps share link"
-                      value={mapDirectionsUrl}
-                      onChange={e => setMapDirectionsUrl(e.target.value)}
-                    />
-                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                      This is the only link attendees use for directions. EventSlot will not guess from the venue name.
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (location.trim()) {
-                            setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
-                          }
-                        }}
-                        disabled={!location.trim()}
-                        className="rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
-                        style={{ ...accentButtonStyle, opacity: location.trim() ? 1 : 0.4, cursor: location.trim() ? "pointer" : "not-allowed" }}
-                      >
-                        ⚡ Auto-fill Map Link from Venue
-                      </button>
-                      <a
-                        href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
-                        style={{ ...accentButtonStyle, textDecoration: "none" }}
-                      >
-                        Search on Google Maps ↗
-                      </a>
-                    </div>
-                  </div>
-                )}
-                {isRegistrationEvent && (
-                  <div>
-                    <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                      Entry / contribution note <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={200}
-                      className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                      style={inputStyle}
-                      placeholder="e.g. KSh 1,000 per person or Early bird: KSh 1,500"
-                      value={entryFeeLabel}
-                      onChange={e => setEntryFeeLabel(e.target.value)}
-                    />
-                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                      This only displays the organizer's fee note. It does not collect payment.
-                    </p>
-                  </div>
-                )}
-                {isRegistrationEvent && (
-                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
-                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-                      <input
-                        type="checkbox"
-                        checked={showRemainingSpots}
-                        onChange={e => setShowRemainingSpots(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      Show remaining spots on the attendee page
-                    </label>
-                    <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                      Keep this on if attendees should see how many places are left. Turn it off to hide the count while keeping the rest of the event details visible.
-                    </p>
-                  </div>
-                )}
-                {isRegistrationEvent && (
-                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
-                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-                      <input
-                        type="checkbox"
-                        checked={groupRegistrationEnabled}
-                        onChange={e => setGroupRegistrationEnabled(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      🏢 Enable Group &amp; Organization Booking (Churches, Companies, Delegations)
-                    </label>
-                    <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                      Allows organizations to reserve multiple slots under one booking, assign delegates via an Organization Manager portal, and share private self-claim links.
-                    </p>
-                  </div>
-                )}
-                {isRegistrationEvent && (
-                  <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>
-                    <label className="flex items-center gap-3 text-[0.82rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-                      <input
-                        type="checkbox"
-                        checked={attendeeConsentEnabled}
-                        onChange={e => setAttendeeConsentEnabled(e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      Show consent checkbox on attendee form
-                    </label>
-                    {attendeeConsentEnabled && (
-                      <textarea
-                        className="mt-3 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                        style={inputStyle}
-                        rows={3}
-                        maxLength={1000}
-                        placeholder="Optional custom consent wording. Leave blank to use the EventSlot default."
-                        value={attendeeConsentText}
-                        onChange={e => setAttendeeConsentText(e.target.value)}
-                      />
-                    )}
-                    <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                      Use this only when your department or event requires a specific consent statement.
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Organizer Name <span style={accentTextStyle}>*</span>
-                  </label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  required
-                  value={organizerName}
-                  onChange={e => setOrganizerName(e.target.value)}
-                />
-                <p className="mt-1 text-[0.72rem]" style={helperStyle}>
-                  This sets the host name for this event only. Your account profile name stays unchanged.
-                </p>
-              </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Organizer Email <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    value={organizerEmail}
-                    onChange={e => setOrganizerEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Community link (optional)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="url"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    placeholder="e.g. WhatsApp group, Telegram, website"
-                    value={communityLink}
-                    onChange={e => setCommunityLink(e.target.value)}
-                  />
-                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                    {isWalkInEvent
-                      ? "After check-in, attendees can use this link to join your community."
-                      : "After registering, confirmed attendees will see this link."}
-                  </p>
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Contact action (optional)
-                  </label>
-                  <select
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
-                    value={contactMode}
-                    onChange={e => setContactMode(e.target.value === "CALL" ? "CALL" : "WHATSAPP")}
-                  >
-                    <option value="WHATSAPP">Text on WhatsApp</option>
-                    <option value="CALL">Call organiser</option>
-                  </select>
-                  <label className="mb-1 mt-3 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Organizer number (optional)
-                  </label>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[rgba(37,211,102,0.5)] focus:outline-none"
-                    style={inputStyle}
-                    placeholder="e.g. +254712345678"
-                    value={whatsappNumber}
-                    onChange={e => setWhatsappNumber(e.target.value)}
-                  />
-                  <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                    Attendees will see either a WhatsApp button or a Call organiser button on the event page.
-                  </p>
-                  {whatsappNumber.trim() && (
-                    <p style={{ ...warningTextStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
-                      This number is public on your event page. Use the full country code, for example +254..., and use a dedicated events or business line where possible.
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-3 md:col-span-2">
-                  <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                    Event Visibility
-                  </label>
-                  <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
-                    Who should be able to discover this event?
-                  </p>
-                  <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isWalkInEvent) return
-                        setVisibility("PUBLIC")
-                      }}
-                      className="rounded-[10px] border p-4 text-left"
-                      disabled={isWalkInEvent}
-                      style={visibility === "PUBLIC" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
-                    >
-                      <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PUBLIC" ? "var(--accent)" : "var(--text-primary)" }}>Public</div>
-                      <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
-                        Your event will appear on the EventSlot Events page for anyone to discover and register.
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("PRIVATE")}
-                      className="rounded-[10px] border p-4 text-left"
-                      style={visibility === "PRIVATE" ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" } : { borderColor: "var(--border)", background: "var(--surface-2)" }}
-                    >
-                      <div className="text-[0.88rem] font-semibold" style={{ color: visibility === "PRIVATE" ? "var(--accent)" : "var(--text-primary)" }}>Private</div>
-                      <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-secondary)" }}>
-                        Your event will only be accessible through the registration link you share.
-                      </p>
-                    </button>
-                  </div>
-                  {isWalkInEvent && (
-                    <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                      Walk-in events stay private for now because the discovery page is built around the existing registration flow.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Event Poster */}
-            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                Event Poster
-              </h2>
-              <p className="mb-3 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-[0.875rem] mt-1" style={{ color: "var(--text-secondary)" }}>
                 {isWalkInEvent
-                  ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF, up to 15 MB."
-                  : visibility === "PUBLIC"
-                    ? "Required for public events so your event can be listed on the Events page. JPEG, PNG, WebP or GIF, up to 15 MB."
-                  : "Upload your event flyer or promotional banner. JPEG, PNG, WebP or GIF, up to 15 MB."}
-              </p>
-
-              <div className="mb-4 rounded-[10px] p-3 text-[0.76rem]" style={{ background: "var(--surface-muted)", border: "1px solid var(--border)" }}>
-                <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Recommended Dimensions for Designers:</p>
-                <ul className="space-y-1" style={{ color: "var(--text-secondary)", listStyle: "none", padding: 0, margin: 0 }}>
-                  <li>• <strong>Vertical Flyer / A4 (In-Person Dinners, Galas, Church, Summits):</strong> 1240 × 1754 px (A4 ratio) or 1080 × 1350 px (4:5 portrait)</li>
-                  <li>• <strong>Landscape Banner (Webinars, Virtual Summits):</strong> 1920 × 1080 px or 1200 × 675 px (16:9 widescreen)</li>
-                  <li>• Both vertical and horizontal formats are automatically framed with high-fidelity ambient backdrops on EventSlot.</li>
-                </ul>
-              </div>
-              {imageUrl && (
-                <div className="mb-4 overflow-hidden rounded-[8px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)", lineHeight: 0 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Event poster preview" style={{ width: "100%", height: "auto", objectFit: "contain", objectPosition: "center top", display: "block", borderRadius: "8px" }} />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl("")}
-                    className="mt-2 rounded-full border px-2 py-1 text-[0.7rem]"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-              <button
-                id="create-field-imageUrl"
-                type="button"
-                onClick={() => {
-                  fileInputRef.current?.click()
-                  if (fieldErrors.imageUrl) setFieldErrors(prev => ({ ...prev, imageUrl: "" }))
-                }}
-                disabled={imageUploading}
-                className="rounded-full border bg-transparent px-5 py-2 text-[0.82rem] font-medium transition-colors"
-                style={{
-                  borderColor: fieldErrors.imageUrl ? "#EF4444" : "var(--border)",
-                  color: fieldErrors.imageUrl ? "#EF4444" : "var(--text-secondary)",
-                  boxShadow: fieldErrors.imageUrl ? "0 0 0 1px #EF4444" : "none",
-                }}
-              >
-                {imageUploading ? "Uploading..." : imageUrl ? "Replace image" : "Upload image"}
-              </button>
-              {fieldErrors.imageUrl && (
-                <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-500">
-                  <span>⚠️</span>
-                  <span>{fieldErrors.imageUrl}</span>
-                </p>
-              )}
-              {imageError && <p className="mt-2 text-[0.78rem]" style={errorTextStyle}>{imageError}</p>}
-            </div>
-
-            {isRegistrationEvent ? (
-            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                Registration Questions
-              </h2>
-
-              {activeTpl && activeTpl.id !== "blank" && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    background: "var(--accent-dim)",
-                    border: "0.5px solid var(--border-emphasis)",
-                    borderRadius: 8,
-                    padding: "0.6rem 0.875rem",
-                    marginBottom: "1.25rem",
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "0.8rem",
-                    color: "var(--accent)",
-                  }}
-                >
-                  <span style={{ fontSize: "1rem" }}>{activeTpl.icon}</span>
-                  <span>
-                    Using <strong style={{ fontWeight: 600 }}>{activeTpl.name}</strong> template. You can edit the questions below.
-                  </span>
-                </div>
-              )}
-              <div className="space-y-4">
-                {questions.map((q, idx) => (
-                  <div key={q.id} className="rounded-[10px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
-                    {/* Reorder header bar */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem", paddingBottom: "0.625rem", borderBottom: "0.5px solid var(--border-subtle)", flexWrap: "wrap", gap: "0.5rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--accent)", background: "var(--accent-dim)", padding: "0.2rem 0.55rem", borderRadius: 6, fontFamily: "var(--font-dm-sans)" }}>
-                          Question {idx + 1}
-                        </span>
-                        {questions.length > 1 && (
-                          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
-                            of {questions.length}
-                          </span>
-                        )}
-                      </div>
-
-                      {questions.length > 1 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                          {/* Move Up */}
-                          <button
-                            type="button"
-                            onClick={() => moveQuestionUp(idx)}
-                            disabled={idx === 0}
-                            title="Move question up"
-                            aria-label="Move question up"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
-                              border: "0.5px solid var(--border)",
-                              background: idx === 0 ? "transparent" : "var(--surface)",
-                              color: idx === 0 ? "var(--text-muted)" : "var(--text-primary)",
-                              cursor: idx === 0 ? "not-allowed" : "pointer",
-                              opacity: idx === 0 ? 0.35 : 1,
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 15l-6-6-6 6"/>
-                            </svg>
-                          </button>
-
-                          {/* Move Down */}
-                          <button
-                            type="button"
-                            onClick={() => moveQuestionDown(idx)}
-                            disabled={idx === questions.length - 1}
-                            title="Move question down"
-                            aria-label="Move question down"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: 28,
-                              height: 28,
-                              borderRadius: 6,
-                              border: "0.5px solid var(--border)",
-                              background: idx === questions.length - 1 ? "transparent" : "var(--surface)",
-                              color: idx === questions.length - 1 ? "var(--text-muted)" : "var(--text-primary)",
-                              cursor: idx === questions.length - 1 ? "not-allowed" : "pointer",
-                              opacity: idx === questions.length - 1 ? 0.35 : 1,
-                              transition: "all 0.15s ease",
-                            }}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 9l6 6 6-6"/>
-                            </svg>
-                          </button>
-
-                          {/* Move to Dropdown */}
-                          <select
-                            value={idx}
-                            onChange={e => moveQuestionTo(idx, Number(e.target.value))}
-                            title="Move question to position"
-                            aria-label="Move question to position"
-                            style={{
-                              height: 28,
-                              padding: "0 0.4rem",
-                              fontSize: "0.72rem",
-                              fontFamily: "var(--font-dm-sans)",
-                              borderRadius: 6,
-                              border: "0.5px solid var(--border)",
-                              background: "var(--surface)",
-                              color: "var(--text-secondary)",
-                              cursor: "pointer",
-                              outline: "none",
-                            }}
-                          >
-                            {questions.map((_, posIdx) => (
-                              <option key={posIdx} value={posIdx}>
-                                Move to #{posIdx + 1}{posIdx === 0 ? " (Top)" : posIdx === questions.length - 1 ? " (Bottom)" : ""}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* Remove */}
-                          <button
-                            type="button"
-                            onClick={() => removeQuestion(idx)}
-                            title="Remove question"
-                            aria-label="Remove question"
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              height: 28,
-                              padding: "0 0.5rem",
-                              borderRadius: 6,
-                              border: "0.5px solid color-mix(in srgb, var(--error) 25%, transparent)",
-                              background: "transparent",
-                              color: "var(--error)",
-                              fontSize: "0.72rem",
-                              fontFamily: "var(--font-dm-sans)",
-                              cursor: "pointer",
-                              marginLeft: "0.25rem",
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
-                          Question Label
-                        </label>
-                        <input
-                          type="text"
-                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                          style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-                          value={q.label}
-                          onChange={e => handleQuestionChange(idx, "label", e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
-                          Type
-                        </label>
-                        <select
-                          className="mt-1 w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                          style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-                          value={q.type}
-                          onChange={e => handleQuestionChange(idx, "type", e.target.value)}
-                        >
-                          {QUESTION_TYPES.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {typeUsesOptions(q.type) && (
-                        <div>
-                          <label className="mb-1 block text-[0.72rem] font-semibold tracking-[0.04em]" style={{ color: "var(--text-muted)" }}>
-                            Options
-                          </label>
-                          <div className="mt-1 flex gap-2">
-                            <input
-                              type="text"
-                              className="w-full rounded-[8px] border px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                              style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-                              placeholder="Add option"
-                              value={optionDrafts[q.id] ?? ""}
-                              onChange={e => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
-                              onKeyDown={e => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
-                                  addOption(idx)
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="rounded-[8px] border px-3 py-2 text-[0.8rem]"
-                              style={accentButtonStyle}
-                              onClick={() => addOption(idx)}
-                            >
-                              Add
-                            </button>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {q.options.map((opt, optionIdx) => (
-                              <span
-                                key={`${q.id}-${opt}-${optionIdx}`}
-                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.78rem]"
-                                style={{ borderColor: "var(--border)", color: "var(--text-primary)", background: "var(--surface)" }}
-                              >
-                                {opt}
-                                <button
-                                  type="button"
-                                  className="text-[0.8rem]"
-                                  style={{ color: "var(--text-muted)" }}
-                                  onClick={() => removeOption(idx, optionIdx)}
-                                  aria-label={`Remove ${opt}`}
-                                >
-                                  x
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                          {q.options.length > 0 && (
-                            <div className="mt-3 space-y-2 rounded-[10px] border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                              <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                                Optional per-option slots. Leave blank if an option should stay unlimited.
-                              </p>
-                              {q.options.map((opt) => (
-                                <div key={`${q.id}-${opt}-limit`} className="flex items-center gap-3">
-                                  <span className="min-w-0 flex-1 truncate text-[0.78rem]" style={{ color: "var(--text-primary)" }}>{opt}</span>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    className="w-[120px] rounded-[8px] border px-2 py-1.5 text-[0.75rem] placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                                    style={{ background: "var(--surface-muted)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-                                    placeholder="Slots"
-                                    value={q.optionLimits?.[opt] ?? ""}
-                                    onChange={e => updateOptionLimit(idx, opt, e.target.value)}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {q.options.length === 0 && (
-                            <p className="mt-2 text-[0.75rem]" style={{ color: "var(--text-muted)" }}>Add at least one option.</p>
-                          )}
-                        </div>
-                      )}
-                      {q.type === "checkbox" && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={`allow-multiple-${q.id}`}
-                            className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
-                            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
-                            checked={!!q.allowMultiple}
-                            onChange={e => handleQuestionChange(idx, "allowMultiple", e.target.checked)}
-                          />
-                          <label htmlFor={`allow-multiple-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>
-                            Allow selecting multiple options
-                          </label>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`required-${q.id}`}
-                          className="h-4 w-4 rounded border focus:ring-[var(--accent)]"
-                          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--accent)" }}
-                          checked={q.required}
-                          onChange={e => handleQuestionChange(idx, "required", e.target.checked)}
-                        />
-                        <label htmlFor={`required-${q.id}`} className="text-[0.9rem]" style={{ color: "var(--text-primary)" }}>
-                          Required
-                        </label>
-                      </div>
-                      {questions.length > 1 && (
-                        <button
-                          type="button"
-                          className="mt-2 rounded-full border px-3 py-1 text-[0.75rem]"
-                          style={{ borderColor: "color-mix(in srgb, var(--error) 35%, transparent)", color: "var(--error)" }}
-                          onClick={() => removeQuestion(idx)}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="w-full rounded-full border bg-transparent px-6 py-3 text-[0.875rem] font-medium"
-                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-                  onClick={addQuestion}
-                >
-                  Add Question
-                </button>
-              </div>
-            </div>
-            ) : (
-            <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <h2 className="mb-2 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                Walk-In Check-In Fields
-              </h2>
-              <p className="text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
-                Walk-in events keep attendee check-in intentionally fast. The public page will only ask for name and phone number on the event day.
+                  ? "Share your walk-in check-in link now or download a print-ready door QR code."
+                  : "Share your registration link now or download your attendee QR code."}
               </p>
             </div>
-            )}
-
-            <div className="space-y-4">
-              <button
-                type="submit"
-                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[var(--accent-contrast)]"
-                style={{ background: "var(--accent)" }}
-                disabled={loading}
-              >
-                {loading ? "Creating..." : "Create Event"}
-              </button>
-              {error && (
-                <div className="rounded-[10px] border border-red-500/30 bg-red-950/20 p-3.5 text-center text-[0.82rem] font-semibold text-red-400 flex items-center justify-center gap-2">
-                  <span className="text-base">⚠️</span>
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-          </form>
-          </div>
-        ) : selectedTemplateId && success ? (
-          <div className="rounded-[12px] p-8 text-center space-y-4" style={cardStyle}>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border" style={{ borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }}>
-              <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4" style={{ borderColor: "var(--accent)" }} />
-            </div>
-            <h2 className="text-[1.5rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-              Your event is live!
-            </h2>
-            <p className="text-[0.875rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-secondary)" }}>
-              {isWalkInEvent
-                ? "Share your walk-in check-in link now or download a print-ready QR code."
-                : "Share your registration link now or download a print-ready QR code."}
-            </p>
 
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-              <div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border-subtle)", borderRadius: 8, overflow: "hidden", minWidth: 0 }}>
+              <div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border-subtle)", borderRadius: 10, overflow: "hidden", minWidth: 0 }}>
                 <input
                   readOnly
                   value={successRegistrationLink}
-                  style={{ flex: 1, background: "transparent", border: "none", padding: "0.5rem 0.75rem", fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  style={{ flex: 1, background: "transparent", border: "none", padding: "0.6rem 0.85rem", fontSize: "0.82rem", color: "var(--text-secondary)", outline: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => void handleCopySuccessLink()}
-                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copiedSuccessLink ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0 }}
+                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 600, color: copiedSuccessLink ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
               >
-                {copiedSuccessLink ? "Copied!" : "Copy"}
+                {copiedSuccessLink ? "✓ Copied!" : "Copy Link"}
               </button>
               <button
                 type="button"
@@ -2365,35 +852,1137 @@ export default function CreateEventPage() {
                 style={{
                   background: "transparent",
                   border: "1px solid var(--border)",
-                  borderRadius: "100px",
-                  padding: "0.5rem 1rem",
+                  borderRadius: 10,
+                  padding: "0.55rem 1rem",
                   color: "var(--text-secondary)",
                   fontSize: "0.82rem",
+                  fontWeight: 600,
                   cursor: qrGenerating ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   gap: "0.4rem",
-                  fontFamily: "var(--font-dm-sans)",
                   whiteSpace: "nowrap",
-                  opacity: qrGenerating ? 0.6 : 1,
                 }}
               >
                 ▦ {qrGenerating ? "Generating..." : "Get QR Code"}
               </button>
             </div>
 
-            {eventInfo && (
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/events/${eventInfo.slug}`)}
-                className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold text-[var(--accent-contrast)]"
+                className="w-full rounded-full py-3 text-[0.875rem] font-bold text-[#0A0A0A] transition hover:opacity-90"
                 style={{ background: "var(--accent)" }}
               >
-                Continue to Dashboard
+                Go to Event Dashboard
               </button>
-            )}
+              <a
+                href={successRegistrationLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full rounded-full py-3 text-[0.875rem] font-semibold text-center border transition hover:bg-white/5 no-underline"
+                style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+              >
+                View Live Page ↗
+              </a>
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <>
+            {/* Header */}
+            <div>
+              <h1 className="text-[1.85rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                Create an Event
+              </h1>
+              <p className="mt-1 text-[0.88rem]" style={{ color: "var(--text-secondary)" }}>
+                Set up registration or walk-in check-in in under 60 seconds.
+              </p>
+            </div>
+
+            {/* ── Progressive Step Indicator ── */}
+            <div className="rounded-[16px] border p-3 sm:p-4" style={cardStyle}>
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                {STEPS.map((s) => {
+                  const isActive = currentStep === s.num
+                  const isCompleted = currentStep > s.num
+                  return (
+                    <button
+                      key={s.num}
+                      type="button"
+                      onClick={() => {
+                        if (s.num < currentStep) {
+                          handleNextStep(s.num)
+                        }
+                      }}
+                      className={`flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center transition ${s.num < currentStep ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
+                      style={{
+                        background: isActive
+                          ? "color-mix(in srgb, var(--accent) 14%, transparent)"
+                          : isCompleted
+                          ? "color-mix(in srgb, var(--text-primary) 6%, transparent)"
+                          : "transparent",
+                        border: isActive ? "1px solid var(--border-emphasis)" : "1px solid transparent",
+                      }}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs">
+                          {isCompleted ? "✓" : s.icon}
+                        </span>
+                        <span
+                          className="text-[0.68rem] sm:text-[0.75rem] font-bold uppercase tracking-wider"
+                          style={{
+                            color: isActive ? "var(--accent)" : isCompleted ? "var(--text-primary)" : "var(--text-muted)",
+                          }}
+                        >
+                          Step {s.num}
+                        </span>
+                      </div>
+                      <span
+                        className="text-[0.72rem] sm:text-[0.8rem] font-medium truncate max-w-full mt-0.5"
+                        style={{
+                          color: isActive ? "var(--text-primary)" : isCompleted ? "var(--text-secondary)" : "var(--text-muted)",
+                        }}
+                      >
+                        {s.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Error Banners */}
+            {stepError && (
+              <div className="rounded-xl border p-4 text-xs font-semibold flex items-center gap-2" style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}>
+                <span>⚠️</span>
+                <span>{stepError}</span>
+              </div>
+            )}
+            {error && (
+              <div className="rounded-xl border p-4 text-xs font-semibold flex items-center gap-2" style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}>
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* ── STEP 1: EVENT IDENTITY ── */}
+            {currentStep === 1 && (
+              <div className="space-y-5">
+                {/* Quick Presets Bar */}
+                <div className="rounded-[14px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-[0.72rem] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                      ⚡ Quick-Start Templates (Optional)
+                    </span>
+                    {selectedTemplateId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTemplateId(null)
+                          setQuestions([defaultQuestion()])
+                        }}
+                        className="text-[0.7rem] underline"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        Clear preset
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {EVENT_TEMPLATES.map(tpl => {
+                      const isSelected = selectedTemplateId === tpl.id
+                      return (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => handlePickTemplate(tpl.id)}
+                          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.78rem] font-medium transition whitespace-nowrap"
+                          style={{
+                            background: isSelected ? "var(--accent)" : "var(--surface-muted)",
+                            color: isSelected ? "#0A0A0A" : "var(--text-secondary)",
+                            border: isSelected ? "1px solid var(--accent)" : "1px solid var(--border-subtle)",
+                            fontWeight: isSelected ? 700 : 500,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span>{tpl.icon}</span>
+                          <span>{tpl.name}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Event Poster Upload */}
+                <div className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h2 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Event Poster
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowDesignerGuidelines(!showDesignerGuidelines)}
+                      className="text-[0.72rem] font-medium underline"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      {showDesignerGuidelines ? "Hide dimensions" : "📐 Designer Guidelines"}
+                    </button>
+                  </div>
+
+                  <p className="mb-3 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+                    {visibility === "PUBLIC"
+                      ? "Required for public events on Discover. Upload a vertical flyer (A4) or horizontal banner."
+                      : "Optional for private events. Upload your flyer or promotional banner (JPEG, PNG, WebP up to 15 MB)."}
+                  </p>
+
+                  {showDesignerGuidelines && (
+                    <div className="mb-4 rounded-[10px] p-3 text-[0.76rem] space-y-1.5" style={{ background: "var(--surface-muted)", border: "1px solid var(--border)" }}>
+                      <p className="font-semibold" style={{ color: "var(--text-primary)" }}>Recommended Dimensions:</p>
+                      <p style={{ color: "var(--text-secondary)" }}>• <strong>Vertical Flyer / A4:</strong> 1240 × 1754 px (or 1080 × 1350 px portrait)</p>
+                      <p style={{ color: "var(--text-secondary)" }}>• <strong>Landscape Banner:</strong> 1920 × 1080 px (or 1200 × 675 px 16:9)</p>
+                      <p style={{ color: "var(--text-muted)" }}>Both portrait and landscape formats are automatically framed with high-fidelity ambient backdrops on EventSlot.</p>
+                    </div>
+                  )}
+
+                  {imageUrl ? (
+                    <div className="relative overflow-hidden rounded-[10px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imageUrl} alt="Poster preview" style={{ width: "100%", maxHeight: "280px", objectFit: "contain", display: "block" }} />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl("")}
+                        className="absolute top-2.5 right-2.5 rounded-full px-3 py-1 text-xs font-semibold shadow-md"
+                        style={{ background: "#EF4444", color: "#FFFFFF", border: "none", cursor: "pointer" }}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-[12px] border-2 border-dashed p-6 text-center cursor-pointer transition hover:border-[var(--accent)]"
+                      style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={handleImageChange}
+                        disabled={imageUploading}
+                      />
+                      <span className="text-2xl block mb-1">🖼️</span>
+                      <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {imageUploading ? "Uploading flyer..." : "Click or drag to upload event poster"}
+                      </p>
+                      <p className="text-[0.72rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        JPEG, PNG, WebP or GIF up to 15 MB
+                      </p>
+                    </div>
+                  )}
+                  {imageError && <p className="text-xs text-red-500 mt-2">{imageError}</p>}
+                </div>
+
+                {/* Title & Description Card */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div>
+                    <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                      Event Title <span style={accentTextStyle}>*</span>
+                    </label>
+                    <input
+                      id="create-field-title"
+                      type="text"
+                      required
+                      placeholder="e.g. Kenya Tech Summit 2026"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onBlur={(e) => fetchAiPrediction(e.target.value, description)}
+                      className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.95rem] font-medium outline-none focus:border-[var(--accent)]"
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                        Category (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Technology, Workshop, Business"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                        Event Visibility
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PRIVATE")}
+                          className="rounded-[8px] border px-2.5 py-1.5 text-xs font-semibold transition"
+                          style={
+                            visibility === "PRIVATE"
+                              ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" }
+                              : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
+                          }
+                        >
+                          🔒 Private
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisibility("PUBLIC")}
+                          disabled={isWalkInEvent}
+                          className="rounded-[8px] border px-2.5 py-1.5 text-xs font-semibold transition"
+                          style={
+                            visibility === "PUBLIC"
+                              ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" }
+                              : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
+                          }
+                        >
+                          🌐 Public
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                      Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      maxLength={5000}
+                      placeholder="Tell guests what to expect, who should attend, and any agenda items..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.85rem] outline-none"
+                      style={{ ...inputStyle, lineHeight: 1.5 }}
+                    />
+                    <p className="text-[0.7rem] text-right mt-1" style={{ color: "var(--text-muted)" }}>
+                      {description.length} / 5000
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date & Time Card */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                    Date & Time
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                        Starts At
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                        Ends At (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={eventEndAt}
+                        onChange={(e) => setEventEndAt(e.target.value)}
+                        className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--border-subtle)" }}>
+                    <div>
+                      <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Recurring Event</span>
+                      <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>Happens on a repeating schedule (weekly/monthly)</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="h-4 w-4 rounded"
+                    />
+                  </div>
+
+                  {isRecurring && (
+                    <div className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>Frequency</label>
+                          <select
+                            value={recurrenceFrequency}
+                            onChange={(e) => setRecurrenceFrequency(e.target.value as "WEEKLY" | "BIWEEKLY" | "MONTHLY")}
+                            className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                            style={inputStyle}
+                          >
+                            <option value="WEEKLY">Weekly</option>
+                            <option value="BIWEEKLY">Every 2 Weeks</option>
+                            <option value="MONTHLY">Monthly</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>Day of Week</label>
+                          <select
+                            value={recurrenceDayOfWeek}
+                            onChange={(e) => setRecurrenceDayOfWeek(Number(e.target.value))}
+                            className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                            style={inputStyle}
+                          >
+                            <option value={1}>Monday</option>
+                            <option value={2}>Tuesday</option>
+                            <option value={3}>Wednesday</option>
+                            <option value={4}>Thursday</option>
+                            <option value={5}>Friday</option>
+                            <option value={6}>Saturday</option>
+                            <option value={0}>Sunday</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Location Card */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Location
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEventType("PHYSICAL")}
+                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        style={
+                          eventType === "PHYSICAL"
+                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            : { background: "var(--surface-2)", color: "var(--text-secondary)" }
+                        }
+                      >
+                        📍 In-Person
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEventType("VIRTUAL")}
+                        disabled={isWalkInEvent}
+                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        style={
+                          eventType === "VIRTUAL"
+                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            : { background: "var(--surface-2)", color: "var(--text-secondary)" }
+                        }
+                      >
+                        💻 Google Meet
+                      </button>
+                    </div>
+                  </div>
+
+                  {eventType === "PHYSICAL" ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                          Venue Address or Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Nairobi National Museum Hall, Museum Hill"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                          Google Maps Link (Optional)
+                        </label>
+                        <input
+                          type="url"
+                          placeholder="https://maps.app.goo.gl/... or https://maps.google.com/..."
+                          value={mapDirectionsUrl}
+                          onChange={(e) => setMapDirectionsUrl(e.target.value)}
+                          className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                          Google Meet Meeting Link <span style={accentTextStyle}>*</span>
+                        </label>
+                        <input
+                          type="url"
+                          required
+                          placeholder="https://meet.google.com/abc-defg-hij"
+                          value={virtualLink}
+                          onChange={(e) => setVirtualLink(e.target.value)}
+                          className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                          style={inputStyle}
+                        />
+                        <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                          🔒 Secured: Meeting links are only revealed to verified ticket holders.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Next Step CTA */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleNextStep(2)}
+                    className="w-full sm:w-auto rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    Continue to Tickets & Access →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: TICKETS & ACCESS ── */}
+            {currentStep === 2 && (
+              <div className="space-y-5">
+                {/* Access Type (RSVP vs Walk-in) */}
+                <div className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <h3 className="text-[1.1rem] font-semibold mb-3" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                    Event Access Type
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAccessType("REGISTRATION")}
+                      className="rounded-[12px] border p-4 text-left transition"
+                      style={
+                        accessType === "REGISTRATION"
+                          ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }
+                          : { borderColor: "var(--border)", background: "var(--surface-2)" }
+                      }
+                    >
+                      <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                        <span>{accessType === "REGISTRATION" ? "◉" : "○"}</span>
+                        <span>Registration & Tickets</span>
+                      </div>
+                      <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                        Attendees register in advance and receive a digital ticket pass with QR code.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAccessType("WALK_IN")}
+                      className="rounded-[12px] border p-4 text-left transition"
+                      style={
+                        accessType === "WALK_IN"
+                          ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }
+                          : { borderColor: "var(--border)", background: "var(--surface-2)" }
+                      }
+                    >
+                      <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                        <span>{accessType === "WALK_IN" ? "◉" : "○"}</span>
+                        <span>Walk-In Check-In</span>
+                      </div>
+                      <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                        Free and open admission. Attendees scan a door QR code to check in instantly.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Capacity & Pricing Card */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Pricing & Spots
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsPaid(false)}
+                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        style={
+                          !isPaid
+                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            : { background: "var(--surface-2)", color: "var(--text-secondary)" }
+                        }
+                      >
+                        Free Admission
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isWalkInEvent) return
+                          setIsPaid(true)
+                        }}
+                        disabled={isWalkInEvent}
+                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        style={
+                          isPaid
+                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            : { background: "var(--surface-2)", color: "var(--text-secondary)" }
+                        }
+                      >
+                        Paid Tickets (KES)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Capacity */}
+                  {isRegistrationEvent && (
+                    <div className="space-y-3 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                        <div>
+                          <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                            Total Available Capacity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="e.g. 150 (Leave blank for unlimited)"
+                            value={capacity}
+                            onChange={(e) => setCapacity(e.target.value)}
+                            className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                            style={inputStyle}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between pb-2 sm:pb-3">
+                          <label className="text-xs font-medium cursor-pointer" style={{ color: "var(--text-secondary)" }}>
+                            Show spots remaining
+                          </label>
+                          <input
+                            type="checkbox"
+                            checked={showRemainingSpots}
+                            onChange={(e) => setShowRemainingSpots(e.target.checked)}
+                            className="h-4 w-4 rounded"
+                          />
+                        </div>
+                      </div>
+
+                      {aiPrediction && (
+                        <div className="rounded-xl border p-3 text-xs" style={cardMutedStyle}>
+                          <span style={accentTextStyle}>✦ AI Suggested Capacity:</span> <strong>{aiPrediction.suggestedCapacity} attendees</strong> ({aiPrediction.reasoning})
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Paid Tiers Builder */}
+                  {isPaid && (
+                    <div className="border-t pt-4 space-y-4" style={{ borderColor: "var(--border-subtle)" }}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+                          Ticket Tiers (KES)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={addTicketTier}
+                          className="rounded-full px-3 py-1 text-xs font-semibold"
+                          style={{ background: "var(--surface-muted)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                        >
+                          + Add Another Tier
+                        </button>
+                      </div>
+
+                      {ticketTiers.map((tier, idx) => (
+                        <div key={tier.id} className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+                              Tier {idx + 1}: {tier.name}
+                            </span>
+                            {ticketTiers.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeTicketTier(tier.id)}
+                                className="text-xs text-red-400 hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Tier Name</label>
+                              <input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) => updateTicketTier(tier.id, "name", e.target.value)}
+                                placeholder="Standard, VIP..."
+                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Price (KES)</label>
+                              <input
+                                type="number"
+                                min="50"
+                                value={tier.priceKes}
+                                onChange={(e) => {
+                                  updateTicketTier(tier.id, "priceKes", e.target.value)
+                                  if (idx === 0) setTicketPrice(e.target.value)
+                                }}
+                                placeholder="500"
+                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Tier Capacity</label>
+                              <input
+                                type="number"
+                                value={tier.capacity}
+                                onChange={(e) => updateTicketTier(tier.id, "capacity", e.target.value)}
+                                placeholder={capacity || "100"}
+                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                                style={inputStyle}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Collapsible Advanced Settings */}
+                <div className="rounded-[14px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedTickets(!showAdvancedTickets)}
+                    className="w-full flex items-center justify-between text-xs font-semibold text-left"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <span>⚙️ Advanced Settings (Deadline, Group Bookings)</span>
+                    <span>{showAdvancedTickets ? "▲" : "▼"}</span>
+                  </button>
+
+                  {showAdvancedTickets && (
+                    <div className="pt-4 mt-3 border-t space-y-4" style={{ borderColor: "var(--border-subtle)" }}>
+                      <div>
+                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                          Registration Deadline (Optional)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={deadline}
+                          onChange={(e) => setDeadline(e.target.value)}
+                          className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                          style={inputStyle}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Group & Organization Bookings</span>
+                          <p className="text-[0.7rem]" style={{ color: "var(--text-muted)" }}>Allow one person to register multiple attendees</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={groupRegistrationEnabled}
+                          onChange={(e) => setGroupRegistrationEnabled(e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                  >
+                    ← Back to Identity
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleNextStep(3)}
+                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    Continue to Questions →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: ATTENDEE QUESTIONS ── */}
+            {currentStep === 3 && (
+              <div className="space-y-5">
+                {isWalkInEvent ? (
+                  <div className="rounded-[14px] border p-6 text-center space-y-3" style={cardStyle}>
+                    <span className="text-3xl block">🚶</span>
+                    <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-instrument-serif)" }}>
+                      Walk-In Events Don&apos;t Require Custom Questions
+                    </h3>
+                    <p className="text-xs max-w-md mx-auto" style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                      Walk-in attendees check in instantly at your door by scanning a QR code. No registration forms are required!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-[14px] border p-4 flex items-center gap-3" style={{ borderColor: "rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)" }}>
+                      <span className="text-lg">✓</span>
+                      <p className="text-xs" style={{ color: "var(--text-primary)" }}>
+                        <strong>Full Name</strong> and <strong>Email Address</strong> are already included by default for all registrations.
+                      </p>
+                    </div>
+
+                    {/* Questions Builder */}
+                    <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                          Custom Event Questions
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={addQuestion}
+                          className="rounded-full px-3.5 py-1.5 text-xs font-bold"
+                          style={{ background: "var(--accent)", color: "#0A0A0A", border: "none", cursor: "pointer" }}
+                        >
+                          + Add Question
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {questions.map((q, idx) => (
+                          <div key={q.id} className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+                                Question {idx + 1}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => moveQuestionUp(idx)}
+                                  className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
+                                  style={{ borderColor: "var(--border)" }}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === questions.length - 1}
+                                  onClick={() => moveQuestionDown(idx)}
+                                  className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
+                                  style={{ borderColor: "var(--border)" }}
+                                >
+                                  ▼
+                                </button>
+                                {questions.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeQuestion(idx)}
+                                    className="text-xs text-red-400 hover:text-red-300 ml-1"
+                                  >
+                                    ✕ Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="sm:col-span-2">
+                                <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Question Prompt</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Dietary preferences, T-shirt size, Job title..."
+                                  value={q.label}
+                                  onChange={(e) => handleQuestionChange(idx, "label", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-1.5 text-xs outline-none"
+                                  style={inputStyle}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Field Type</label>
+                                <select
+                                  value={q.type}
+                                  onChange={(e) => handleQuestionChange(idx, "type", e.target.value as QuestionType)}
+                                  className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
+                                  style={inputStyle}
+                                >
+                                  {QUESTION_TYPES.map(t => (
+                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Options for Select/Checkbox */}
+                            {typeUsesOptions(q.type) && (
+                              <div className="border-t pt-3 space-y-2" style={{ borderColor: "var(--border-subtle)" }}>
+                                <label className="block text-[0.7rem] font-semibold" style={labelStyle}>Options</label>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {q.options.map((opt, optIdx) => (
+                                    <span key={optIdx} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+                                      <span>{opt}</span>
+                                      <button type="button" onClick={() => removeOption(idx, optIdx)} className="text-red-400 text-xs">×</button>
+                                    </span>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Add option..."
+                                    value={optionDrafts[q.id] || ""}
+                                    onChange={(e) => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        addOption(idx)
+                                      }
+                                    }}
+                                    className="rounded-[8px] px-2.5 py-1 text-xs outline-none flex-1"
+                                    style={inputStyle}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => addOption(idx)}
+                                    className="rounded-[8px] px-3 py-1 text-xs font-semibold"
+                                    style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                                  >
+                                    Add
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <input
+                                type="checkbox"
+                                id={`req-${q.id}`}
+                                checked={q.required}
+                                onChange={(e) => handleQuestionChange(idx, "required", e.target.checked)}
+                                className="h-3.5 w-3.5 rounded"
+                              />
+                              <label htmlFor={`req-${q.id}`} className="text-[0.72rem] font-medium cursor-pointer" style={{ color: "var(--text-secondary)" }}>
+                                Required question
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Attendee Consent */}
+                    <div className="rounded-[14px] border p-4 flex items-center justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      <div>
+                        <span className="text-xs font-semibold block" style={{ color: "var(--text-primary)" }}>
+                          Data Processing Consent
+                        </span>
+                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                          Adds a standard privacy consent checkbox to the registration form.
+                        </p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={attendeeConsentEnabled}
+                        onChange={(e) => setAttendeeConsentEnabled(e.target.checked)}
+                        className="h-4 w-4 rounded"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                  >
+                    ← Back to Tickets
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleNextStep(4)}
+                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    Review & Launch →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 4: REVIEW & LAUNCH ── */}
+            {currentStep === 4 && (
+              <div className="space-y-5">
+                {/* Host & Communication */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="border-b pb-3" style={{ borderColor: "var(--border-subtle)" }}>
+                    <h3 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Host & Communication
+                    </h3>
+                    <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+                      Your event will be published under your verified account.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[0.75rem] font-medium mb-1" style={labelStyle}>
+                        Organizer Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={organizerName}
+                        onChange={(e) => setOrganizerName(e.target.value)}
+                        placeholder={session?.user?.name || "Your name or organization"}
+                        className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                      <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        Shown to attendees as &quot;Hosted by {organizerName || session?.user?.name || "You"}&quot;.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.75rem] font-medium mb-1" style={labelStyle}>
+                        Account Email
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={organizerEmail || session?.user?.email || ""}
+                        className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none opacity-80 cursor-not-allowed"
+                        style={mutedInputStyle}
+                      />
+                      <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        Verified organizer email linked to your dashboard.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-[0.75rem] font-medium mb-1" style={labelStyle}>
+                        WhatsApp Attendee Helpline (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        placeholder="+254712345678"
+                        className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                      <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        Enables a floating WhatsApp contact button on your event page.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[0.75rem] font-medium mb-1" style={labelStyle}>
+                        Community Group Link (Optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={communityLink}
+                        onChange={(e) => setCommunityLink(e.target.value)}
+                        placeholder="https://chat.whatsapp.com/... or telegram"
+                        className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                      <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        Link shown to registered guests to join your group.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Preview Card */}
+                <div className="rounded-[14px] border p-5 sm:p-6 space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Event Preview
+                    </h3>
+                    <span className="text-[0.7rem] font-semibold uppercase px-2.5 py-0.5 rounded-full" style={{ background: "var(--surface-muted)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                      {visibility === "PUBLIC" ? "🌐 Public on Discover" : "🔒 Private Event"}
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    {imageUrl && (
+                      <div className="w-full max-h-48 overflow-hidden bg-black/40 flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imageUrl} alt="Poster preview" className="w-full h-auto max-h-48 object-cover" />
+                      </div>
+                    )}
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: isPaid ? "rgba(200,245,90,0.15)" : "rgba(34,197,94,0.15)", color: isPaid ? "#C8F55A" : "#22c55e" }}>
+                          {isPaid ? `Paid Tickets · KES ${ticketPrice || '500'}` : "Free RSVP"}
+                        </span>
+                        {category && (
+                          <span className="text-xs text-[var(--text-muted)]">• {category}</span>
+                        )}
+                      </div>
+                      <h4 className="text-lg font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-instrument-serif)" }}>
+                        {title || "Untitled Event"}
+                      </h4>
+                      {eventDate && (
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          📅 {new Date(eventDate).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      )}
+                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                        📍 {eventType === "VIRTUAL" ? "Google Meet (Virtual)" : location || "Venue to be announced"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Launch Actions */}
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                  >
+                    ← Back to Questions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSubmit()}
+                    disabled={loading}
+                    className="rounded-full px-10 py-3.5 text-[0.95rem] font-bold text-[#0A0A0A] shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: "var(--accent)" }}
+                  >
+                    {loading ? "Publishing Event..." : "🚀 Publish Event Now"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
