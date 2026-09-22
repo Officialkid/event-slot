@@ -5,6 +5,7 @@ import { getConfiguredMarketingFrom } from "@/lib/emailProvider"
 import { env } from "@/lib/env"
 import { APP_URL } from "@/lib/config"
 import { renderBroadcastEmail, type BroadcastLayoutType } from "@/lib/emailTemplates"
+import { isDeliverableEmail } from "@/lib/email/disposableDomains"
 
 const EMAIL_FROM = getConfiguredMarketingFrom(env, "EventSlot <hello@eventsslot.com>")
 
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
       }
 
       const validRecipients = recipients.filter(
-        (r): r is { id: string; name: string | null; email: string } => Boolean(r.email && r.email.includes("@"))
+        (r): r is { id: string; name: string | null; email: string } => Boolean(r.email && isDeliverableEmail(r.email))
       )
 
       let sent = 0
@@ -92,9 +93,45 @@ export async function GET(req: NextRequest) {
             html: emailHtml,
           })
           sent++
+
+          // Reset bounce count on successful delivery
+          await prisma.user.updateMany({
+            where: { id: recipient.id, emailBounceCount: { gt: 0 } },
+            data: { emailBounceCount: 0, bounceReason: null },
+          })
         } catch (err) {
           failed++
-          console.error(`[cron/broadcast] Error delivering to ${recipient.email}:`, err)
+          const lastErrorMsg = err instanceof Error ? err.message : String(err)
+          console.error(`[cron/broadcast] Error delivering to ${recipient.email}:`, lastErrorMsg)
+
+          // Bounce Shield: Auto-unsubscribe after 3 bounces or on permanent relay rejection
+          try {
+            const user = await prisma.user.findUnique({
+              where: { id: recipient.id },
+              select: { id: true, emailBounceCount: true },
+            })
+            if (user) {
+              const nextBounceCount = (user.emailBounceCount ?? 0) + 1
+              const isHardFailure = /relay access denied|mailbox unavailable|550|554|user unknown|recipient rejected/i.test(lastErrorMsg)
+              const shouldUnsubscribe = nextBounceCount >= 3 || isHardFailure
+
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  emailBounceCount: nextBounceCount,
+                  lastBouncedAt: new Date(),
+                  bounceReason: lastErrorMsg.slice(0, 255),
+                  ...(shouldUnsubscribe ? { marketingConsent: false } : {}),
+                },
+              })
+
+              if (shouldUnsubscribe) {
+                console.warn(`[Bounce Shield] Auto-unsubscribed ${recipient.email} after ${nextBounceCount} failure(s): ${lastErrorMsg}`)
+              }
+            }
+          } catch (updateErr) {
+            console.error('[Bounce Shield] Failed to record bounce for user in cron:', updateErr)
+          }
         }
 
         // 200ms pacing delay between recipients

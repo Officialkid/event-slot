@@ -619,24 +619,23 @@ export async function sendConfirmationEmail({
     })
     const icsUrl = `${APP_URL}/api/events/${eventSlug}/calendar.ics`
     calendarSection = `
-    <div style="border-top:1px solid #2A2A2A;padding-top:16px;margin-top:16px;">
-      <p style="color:#525252;font-size:12px;margin:0 0 8px;">Add to your calendar</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="border-top:1px solid #E5E7EB;padding-top:20px;margin-top:20px;">
+      <p style="color:#6B7280;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 10px;">Add to your calendar</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <a href="${googleCalUrl}"
-           style="background:#C8F55A;color:#000;padding:8px 16px;text-decoration:none;
-                  border-radius:8px;font-weight:bold;font-size:13px;display:inline-block;">
-          Google Calendar
+           style="background:#15803d;color:#FFFFFF;padding:9px 18px;text-decoration:none;
+                  border-radius:8px;font-weight:600;font-size:13px;display:inline-block;">
+          📅 Google Calendar
         </a>
         <a href="${icsUrl}"
-           style="background:transparent;color:#C8F55A;padding:8px 16px;text-decoration:none;
-                  border-radius:8px;font-weight:bold;font-size:13px;display:inline-block;
-                  border:1px solid #C8F55A;">
+           style="background:#FFFFFF;color:#374151;padding:9px 18px;text-decoration:none;
+                  border-radius:8px;font-weight:600;font-size:13px;display:inline-block;
+                  border:1px solid #D1D5DB;">
           Download .ics
         </a>
       </div>
     </div>`
   }
-
 
   await sendEmail({
     from: 'EventSlot Notifications <notifications@eventsslot.com>',
@@ -644,59 +643,75 @@ export async function sendConfirmationEmail({
     to,
     subject: `You're registered - ${eventTitle}`,
     html: `
-      <div style="background:#0A0A0A;padding:40px;font-family:sans-serif;max-width:520px;">
-        <div style="margin-bottom:24px;">
-          <span style="font-size:20px;font-weight:bold;color:#fff;">Event</span>
-          <span style="font-size:20px;font-weight:bold;color:#C8F55A;">Slot</span>
-        </div>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <div style="max-width:560px;margin:0 auto;padding:36px 16px;">
 
-        <h2 style="color:#fff;margin-bottom:8px;">You're registered! &#127881;</h2>
-        <p style="color:#A3A3A3;font-size:14px;margin-bottom:16px;">
-          Hi ${name || 'there'}, your spot at <strong style="color:#fff;">${eventTitle}</strong>
-          is confirmed.
+    <!-- Brand Header -->
+    <div style="margin-bottom:24px;">
+      <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">
+        <span style="font-size:24px;font-weight:800;color:#111827;letter-spacing:-0.03em;">Event<span style="color:#15803d;">Slot</span></span>
+      </a>
+    </div>
+
+    <!-- White Card -->
+    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:16px;padding:32px 28px;box-shadow:0 4px 20px rgba(0,0,0,0.03);">
+      <h2 style="color:#111827;font-size:22px;font-weight:700;margin:0 0 10px;letter-spacing:-0.02em;">You're registered! &#127881;</h2>
+      <p style="color:#4B5563;font-size:15px;line-height:1.6;margin:0 0 20px;">
+        Hi ${name || 'there'}, your spot for <strong style="color:#111827;">${eventTitle}</strong> is locked in and confirmed.
+      </p>
+
+      <!-- Confirmation Pass Box -->
+      <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:14px;padding:24px;margin-bottom:24px;text-align:center;">
+        <p style="color:#6B7280;font-size:11px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">
+          Digital Entry Code
         </p>
-
-        <div style="background:#141414;border:1px solid #2A2A2A;border-radius:12px;
-                    padding:20px;margin-bottom:24px;text-align:center;">
-          <p style="color:#737373;font-size:12px;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.06em;">
-            Confirmation Number
-          </p>
-          <p style="color:#C8F55A;font-size:24px;font-weight:bold;
-                    font-family:monospace;letter-spacing:0.08em;margin:0 0 16px;">
-            ${confirmationNumber}
-          </p>
-          <a href="${BASE_URL}/register/success/${confirmationNumber}"
-             style="background:#C8F55A;color:#0A0A0A;padding:12px 24px;text-decoration:none;
-                    border-radius:8px;font-weight:bold;font-size:14px;display:inline-block;">
-            🎫 View &amp; Download Ticket Pass
-          </a>
-        </div>
-
-        ${referralUrl ? `
-        <div style="border-top:1px solid #2A2A2A;padding-top:20px;margin-top:4px;">
-          <p style="color:#525252;font-size:12px;margin:0 0 8px;">
-            Know someone who organises events?
-          </p>
-          <p style="color:#A3A3A3;font-size:13px;margin:0 0 12px;">
-            Share EventSlot with them and earn tokens toward your next free report.
-          </p>
-          <a href="${referralUrl}"
-             style="background:#C8F55A;color:#000;padding:10px 20px;
-                    text-decoration:none;border-radius:8px;font-weight:bold;
-                    font-size:13px;display:inline-block;">
-            Share EventSlot ->
-          </a>
-        </div>
-        ` : ''}
-
-        ${calendarSection}
-
-        <p style="color:#525252;font-size:11px;margin-top:32px;">
-          Smarter Events. Better Experiences. -
-          <a href="https://www.eventsslot.com" style="color:#525252;">eventsslot.com</a>
+        <p style="color:#111827;font-size:24px;font-weight:700;font-family:monospace;letter-spacing:0.08em;margin:0 0 18px;">
+          ${confirmationNumber}
         </p>
+        <a href="${BASE_URL}/register/success/${confirmationNumber}"
+           style="background:#15803d;color:#FFFFFF;padding:14px 28px;text-decoration:none;border-radius:999px;font-weight:700;font-size:14px;display:inline-block;box-shadow:0 4px 12px rgba(21,128,61,0.25);">
+          🎟️ View &amp; Download Ticket Pass &rarr;
+        </a>
       </div>
-    `,
+
+      ${referralUrl ? `
+      <div style="border-top:1px solid #F3F4F6;padding-top:20px;margin-top:20px;">
+        <p style="color:#111827;font-size:13px;font-weight:600;margin:0 0 4px;">
+          Organising your own event?
+        </p>
+        <p style="color:#6B7280;font-size:13px;margin:0 0 12px;line-height:1.5;">
+          Create registration pages, digital passes, and QR gate check-in in under 2 minutes.
+        </p>
+        <a href="${referralUrl}"
+           style="color:#15803d;font-weight:600;font-size:13px;text-decoration:underline;">
+          Create an event on EventSlot &rarr;
+        </a>
+      </div>
+      ` : ''}
+
+      ${calendarSection}
+    </div>
+
+    <!-- Paystack-Inspired Compliance & Branding Footer -->
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid #E5E7EB;text-align:left;font-size:12px;line-height:1.6;color:#6B7280;">
+      <p style="margin:0 0 8px;">
+        You received this email because you registered for ${eventTitle} via EventSlot.
+      </p>
+      <p style="margin:0 0 6px;color:#9CA3AF;font-size:11px;">
+        The Pavilion, Westlands, Nairobi, Kenya
+      </p>
+      <p style="margin:0;color:#6B7280;font-size:11px;font-weight:600;">
+        Powered by <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="color:#15803d;font-weight:700;text-decoration:none;">EventSlot</a> &bull; <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="color:#15803d;text-decoration:underline;">www.eventsslot.com</a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
+`
   })
 }
 

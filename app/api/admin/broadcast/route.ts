@@ -8,6 +8,7 @@ import { env } from '@/lib/env'
 import { getConfiguredEmailFrom } from '@/lib/emailProvider'
 import { APP_URL } from '@/lib/config'
 import { renderBroadcastEmail, type BroadcastLayoutType } from '@/lib/emailTemplates'
+import { isDeliverableEmail } from '@/lib/email/disposableDomains'
 
 const EMAIL_FROM = getConfiguredEmailFrom(env, 'EventSlot <hello@eventsslot.com>')
 
@@ -25,14 +26,14 @@ function formatBroadcastBody(content: string): string {
     return content
   }
   let formatted = content
-    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#FFFFFF;">$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em style="color:#E5E5E5;">$1</em>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#111827;font-weight:700;">$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em style="color:#4B5563;">$1</em>')
 
   const paragraphs = formatted.split(/\n\s*\n/)
   return paragraphs
     .map((p) => {
-      const lineWithLinks = p.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#C8F55A;text-decoration:underline;">$1</a>')
-      return `<p style="margin:0 0 16px;line-height:1.6;color:#D4D4D4;">${lineWithLinks.replace(/\n/g, '<br/>')}</p>`
+      const lineWithLinks = p.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#15803d;text-decoration:underline;font-weight:600;">$1</a>')
+      return `<p style="margin:0 0 16px;line-height:1.68;color:#374151;font-size:15px;">${lineWithLinks.replace(/\n/g, '<br/>')}</p>`
     })
     .join('')
 }
@@ -45,29 +46,40 @@ function buildEmailHtml(content: string, userId: string): string {
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:540px;margin:0 auto;padding:40px 20px;">
+<body style="margin:0;padding:0;background:#F8F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <div style="max-width:580px;margin:0 auto;padding:36px 16px;">
 
-    <div style="margin-bottom:32px;">
-      <span style="font-size:24px;font-weight:800;color:#FFFFFF;letter-spacing:-0.03em;">Event</span><span style="font-size:24px;font-weight:800;color:#C8F55A;letter-spacing:-0.03em;">Slot</span>
+    <!-- Brand Header -->
+    <div style="margin-bottom:28px;">
+      <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-block;">
+        <span style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.03em;">Event<span style="color:#15803d;">Slot</span></span>
+      </a>
     </div>
 
-    <div style="font-size:15px;line-height:1.6;">
+    <!-- Main White Card -->
+    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:16px;padding:32px 28px;box-shadow:0 4px 20px rgba(0,0,0,0.03);font-size:15px;line-height:1.68;color:#374151;">
       ${bodyHtml}
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid #F3F4F6;color:#111827;font-size:15px;line-height:1.6;">
+        <p style="margin:0;">Warm regards,<br/><strong>Daniel and the EventSlot Team</strong> 💙</p>
+      </div>
     </div>
 
-    <div style="margin-top:40px;padding-top:24px;border-top:1px solid #2A2A2A;">
-      <p style="color:#737373;font-size:12px;margin:0 0 8px;">
-        Smarter Events. Better Experiences.
+    <!-- Paystack-Inspired Compliance & Branding Footer -->
+    <div style="margin-top:36px;padding-top:24px;border-top:1px solid #E5E7EB;text-align:left;font-size:12px;line-height:1.6;color:#6B7280;">
+      <p style="margin:0 0 10px;">
+        To make sure you keep getting these emails, please add <a href="mailto:hello@eventsslot.com" style="color:#15803d;text-decoration:none;font-weight:600;">hello@eventsslot.com</a> to your address book or allow list.
       </p>
-      <p style="color:#525252;font-size:11px;margin:0;">
-        You received this email because you have an EventSlot account.
-        <a href="${unsubscribeUrl}"
-           style="color:#737373;text-decoration:underline;">
-          Unsubscribe
-        </a>
+      <p style="margin:0 0 14px;">
+        Want to control the kind of emails you receive from EventSlot? <a href="${APP_URL}/settings/notifications" style="color:#15803d;text-decoration:underline;">Update your email preferences</a>. Want out of the loop? <a href="${unsubscribeUrl}" style="color:#6B7280;text-decoration:underline;">Unsubscribe</a>.
+      </p>
+      <p style="margin:0 0 8px;color:#9CA3AF;font-size:11px;">
+        The Pavilion, Westlands, Nairobi, Kenya
+      </p>
+      <p style="margin:0;color:#6B7280;font-size:11px;font-weight:600;">
+        Powered by <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="color:#15803d;font-weight:700;text-decoration:none;">EventSlot</a> &bull; <a href="https://www.eventsslot.com" target="_blank" rel="noopener noreferrer" style="color:#15803d;text-decoration:underline;">www.eventsslot.com</a>
       </p>
     </div>
+
   </div>
 </body>
 </html>
@@ -194,7 +206,7 @@ export async function POST(req: NextRequest) {
     }
 
     const validRecipients = recipients.filter(
-      (r): r is { id: string; name: string | null; email: string } => Boolean(r.email && r.email.includes('@'))
+      (r): r is { id: string; name: string | null; email: string } => Boolean(r.email && isDeliverableEmail(r.email))
     )
 
     if (validRecipients.length === 0) {
@@ -203,7 +215,7 @@ export async function POST(req: NextRequest) {
         sent: 0,
         failed: 0,
         mode,
-        message: 'No recipients with valid email addresses found.',
+        message: 'No deliverable recipients found (disposable/invalid domains filtered).',
       })
     }
 
@@ -245,6 +257,12 @@ export async function POST(req: NextRequest) {
           })
           success = true
           sent++
+
+          // Reset bounce count on successful delivery
+          await prisma.user.updateMany({
+            where: { id: recipient.id, emailBounceCount: { gt: 0 } },
+            data: { emailBounceCount: 0, bounceReason: null },
+          })
         } catch (err) {
           lastErrorMsg = err instanceof Error ? err.message : String(err)
           if (/429|too many|rate/i.test(lastErrorMsg) && attempts < 3) {
@@ -259,6 +277,35 @@ export async function POST(req: NextRequest) {
         failed++
         failedRecipients.push({ email: recipient.email, error: lastErrorMsg })
         console.error(`[admin/broadcast] Delivery failed for ${recipient.email}:`, lastErrorMsg)
+
+        // Bounce Shield: Auto-unsubscribe after 3 bounces or on permanent relay rejection
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: recipient.id },
+            select: { id: true, emailBounceCount: true },
+          })
+          if (user) {
+            const nextBounceCount = (user.emailBounceCount ?? 0) + 1
+            const isHardFailure = /relay access denied|mailbox unavailable|550|554|user unknown|recipient rejected/i.test(lastErrorMsg)
+            const shouldUnsubscribe = nextBounceCount >= 3 || isHardFailure
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                emailBounceCount: nextBounceCount,
+                lastBouncedAt: new Date(),
+                bounceReason: lastErrorMsg.slice(0, 255),
+                ...(shouldUnsubscribe ? { marketingConsent: false } : {}),
+              },
+            })
+
+            if (shouldUnsubscribe) {
+              console.warn(`[Bounce Shield] Auto-unsubscribed ${recipient.email} after ${nextBounceCount} failure(s): ${lastErrorMsg}`)
+            }
+          }
+        } catch (updateErr) {
+          console.error('[Bounce Shield] Failed to record bounce for user:', updateErr)
+        }
       }
 
       // 250ms pacing between recipients (safe for SMTP & Resend backup)

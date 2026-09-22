@@ -167,6 +167,9 @@ model User {
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
   marketingConsent         Boolean   @default(false)
+  emailBounceCount         Int       @default(0)
+  lastBouncedAt            DateTime?
+  bounceReason             String?
   twoFactorEnabled         Boolean   @default(true)
   otpRequired              Boolean   @default(false)
   paymentPinHash           String?
