@@ -19,11 +19,11 @@ export class LinkedInIntegrationProvider {
       return process.env.LINKEDIN_REDIRECT_URI
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace("https://www.", "https://") ||
-      requestOrigin ||
-      "https://marketing.eventsslot.com"
+    if (requestOrigin && !requestOrigin.includes("0.0.0.0")) {
+      return `${requestOrigin}/api/marketing/integrations/linkedin/callback`
+    }
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://marketing.eventsslot.com"
     return `${baseUrl}/api/marketing/integrations/linkedin/callback`
   }
 

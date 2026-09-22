@@ -24,7 +24,13 @@ export async function GET(req: NextRequest, props: RouteParams) {
     )
   }
 
-  const origin = req.headers.get("origin") || req.nextUrl.origin
+  const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host")
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "https"
+  const origin =
+    (forwardedHost && !forwardedHost.includes("0.0.0.0"))
+      ? `${forwardedProto}://${forwardedHost}`
+      : (req.headers.get("origin") || req.nextUrl.origin)
+
   const { state } = MarketingIntegrationsManager.generateOAuthState(
     normalizedPlatform,
     auth.context.userId,

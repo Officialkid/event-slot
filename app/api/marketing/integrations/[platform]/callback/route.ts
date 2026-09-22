@@ -15,10 +15,12 @@ export async function GET(req: NextRequest, props: RouteParams) {
   const { platform } = await props.params
   const normalizedPlatform = platform.toLowerCase()
 
+  const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host")
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "https"
   const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace("https://www.", "https://") ||
-    req.nextUrl.origin ||
-    "https://marketing.eventsslot.com"
+    (forwardedHost && !forwardedHost.includes("0.0.0.0"))
+      ? `${forwardedProto}://${forwardedHost}`
+      : (process.env.NEXT_PUBLIC_APP_URL || "https://marketing.eventsslot.com")
 
   const redirectTarget = new URL("/marketing/integrations", baseUrl)
 
@@ -140,11 +142,15 @@ export async function GET(req: NextRequest, props: RouteParams) {
       },
     })
 
-    redirectTarget.searchParams.set("connected", "true")
-    redirectTarget.searchParams.set("platform", platform)
-    redirectTarget.searchParams.set("account", result.accountUsername || result.accountName)
+    const targetUrl = verifiedState.returnUrl
+      ? new URL(verifiedState.returnUrl)
+      : redirectTarget
 
-    const response = NextResponse.redirect(redirectTarget)
+    targetUrl.searchParams.set("connected", "true")
+    targetUrl.searchParams.set("platform", platform)
+    targetUrl.searchParams.set("account", result.accountUsername || result.accountName)
+
+    const response = NextResponse.redirect(targetUrl)
     response.cookies.delete("es_mkt_oauth_state")
     return response
   } catch (dbError: any) {
