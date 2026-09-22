@@ -396,9 +396,9 @@ export default async function PublicProfilePage({
             </section>
 
             {/* Right Column: Attendance Lookup + FAQ directly below */}
-            <section className="space-y-5 lg:sticky lg:top-6">
+            <section className="space-y-5 lg:sticky lg:top-6 w-full max-w-[480px] mx-auto lg:max-w-none lg:mx-0">
               <div className="space-y-2">
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Attendance Lookup</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-left" style={{ color: "var(--text-secondary)" }}>Attendance Lookup</p>
                 <ConfirmAttendance eventSlug={username} />
                 {event.eventType === "VIRTUAL" && event.eventDate && (
                   <JoinEventButton

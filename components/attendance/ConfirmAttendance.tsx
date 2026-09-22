@@ -47,12 +47,14 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
   return (
     <div
       style={{
+        width: "100%",
+        maxWidth: 480,
+        margin: "0 auto",
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: 16,
-        padding: "1.75rem 1.5rem",
-        maxWidth: 480,
-        margin: "0 auto",
+        padding: "1.5rem 1.25rem",
+        boxSizing: "border-box",
         fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
         boxShadow: "0 16px 36px rgba(0,0,0,0.12)",
       }}
@@ -72,7 +74,7 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
         Search by your name or email address.
       </p>
 
-      <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.5rem" }}>
+      <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.5rem", width: "100%" }}>
         <input
           type="text"
           value={query}
@@ -81,6 +83,8 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
           disabled={loading}
           style={{
             flex: 1,
+            minWidth: 0,
+            boxSizing: "border-box",
             background: "var(--surface-muted)",
             border: "1px solid var(--border)",
             borderRadius: 10,
@@ -94,6 +98,7 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
           type="submit"
           disabled={loading || !query.trim()}
           style={{
+            flexShrink: 0,
             background: loading || !query.trim() ? "rgba(200,245,90,0.35)" : "#C8F55A",
             color: "#0A0A0A",
             border: "none",

@@ -2095,24 +2095,18 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     <button
                       type="button"
                       onClick={addAttendee}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.78rem] font-semibold transition hover:scale-[1.02] active:scale-[0.98]"
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "rgba(200,245,90,0.12)",
-                        border: "0.5px solid rgba(200,245,90,0.3)",
-                        color: "#C8F55A",
-                        fontSize: "1.1rem",
-                        lineHeight: 1,
+                        background: "var(--accent, #C8F55A)",
+                        color: "#0A0A0A",
+                        border: "none",
                         cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
                       }}
                       aria-label="Add attendee"
                     >
-                      +
+                      <span style={{ fontSize: "0.95rem", lineHeight: 1, fontWeight: 700 }}>+</span>
+                      <span>Add person</span>
                     </button>
                   )}
                 </div>

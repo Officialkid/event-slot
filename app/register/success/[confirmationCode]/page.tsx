@@ -183,36 +183,37 @@ export default async function TicketSuccessPage({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "3rem 1.25rem",
+        padding: "3rem 1.25rem 4rem",
       }}
     >
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+      <div style={{ textAlign: "center", marginBottom: "1.75rem", maxWidth: 460 }}>
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             borderRadius: "50%",
-            background: "var(--accent-dim)",
-            border: "1px solid var(--border-emphasis)",
-            marginBottom: "1rem",
+            background: "rgba(34, 197, 94, 0.12)",
+            border: "1px solid rgba(34, 197, 94, 0.28)",
+            marginBottom: "0.85rem",
           }}
         >
           {/* Checkmark */}
-          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <path d="M2 8L8.5 14L20 2" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="20" height="15" viewBox="0 0 22 16" fill="none">
+            <path d="M2 8L8.5 14L20 2" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <h1
           style={{
             fontFamily: "var(--font-instrument-serif, Georgia, serif)",
-            fontSize: "1.9rem",
+            fontSize: "2rem",
             fontWeight: 400,
             color: "var(--text-primary)",
-            margin: "0 0 0.5rem",
+            margin: "0 0 0.4rem",
+            lineHeight: 1.15,
           }}
         >
           You&apos;re confirmed!
@@ -220,26 +221,27 @@ export default async function TicketSuccessPage({
         <p
           style={{
             fontFamily: "var(--font-dm-sans, system-ui, sans-serif)",
-            fontSize: "0.9rem",
+            fontSize: "0.88rem",
             color: "var(--text-secondary)",
             margin: 0,
+            lineHeight: 1.45,
           }}
         >
-          Here is your ticket for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>
+          Here is your digital entry credential for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>.
         </p>
       </div>
 
-      {/* Ticket */}
-      <div style={{ width: "100%", maxWidth: 660 }}>
+      {/* Ticket Container */}
+      <div style={{ width: "100%", maxWidth: 460 }}>
         <ConfirmationTicket ticket={ticket} />
         {registration.ticket?.scannedAt && (
           <div
             style={{
               marginTop: "0.75rem",
-              padding: "0.5rem 0.85rem",
+              padding: "0.6rem 0.85rem",
               background: "color-mix(in srgb, var(--error) 12%, transparent)",
-              border: "0.5px solid color-mix(in srgb, var(--error) 35%, transparent)",
-              borderRadius: 8,
+              border: "1px solid color-mix(in srgb, var(--error) 35%, transparent)",
+              borderRadius: 12,
               textAlign: "center",
             }}
           >
@@ -268,7 +270,7 @@ export default async function TicketSuccessPage({
 
       {/* ── Add to Calendar ── */}
       {event.eventDate && staticGoogleUrl && (
-        <div style={{ width: "100%", maxWidth: 660, marginTop: "1.5rem" }}>
+        <div style={{ width: "100%", maxWidth: 460, marginTop: "1.25rem" }}>
           <AddToCalendarButton
             eventSlug={eventSlug}
             _eventTitle={event.title}
