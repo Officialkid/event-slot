@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
@@ -255,6 +255,7 @@ function isPersonalQuestion(q: EventQuestion): boolean {
 }
 
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
+  const formContainerRef = useRef<HTMLDivElement>(null)
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null)
@@ -774,10 +775,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     return true
   }
 
+  const scrollToForm = () => {
+    formContainerRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" })
+  }
+
   function handleNextStep() {
     if (currentStepIndex === 0) {
       setCurrentStepIndex(1)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      scrollToForm()
       return
     }
 
@@ -786,14 +791,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      scrollToForm()
     }
   }
 
   function handlePrevStep() {
     if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1)
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      scrollToForm()
     }
   }
 
@@ -1658,7 +1663,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }
 
   return (
-    <div className="mx-auto w-full max-w-[840px]">
+    <div ref={formContainerRef} className="mx-auto w-full max-w-[840px] scroll-mt-6">
       {duplicateInfo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.62)", backdropFilter: "blur(6px)", zIndex: 99, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "color-mix(in srgb, var(--surface) 96%, white 4%)", border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", borderRadius: 18, padding: "1.75rem", width: "min(92vw,460px)", boxShadow: "0 18px 40px rgba(0,0,0,0.24)" }}>
@@ -1740,36 +1745,19 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           background: "linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white 2%) 0%, color-mix(in srgb, var(--surface) 100%, transparent) 100%)",
         }}
       >
-        {event.imageUrl && (
-          <div className="px-4 pt-4 sm:px-6 sm:pt-6" style={{ borderBottom: "1px solid color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
-            <div className="mx-auto max-w-[360px] overflow-hidden rounded-[14px] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.14)]" style={{ border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", background: "color-mix(in srgb, var(--surface) 98%, white 2%)" }}>
-              <div className="relative h-[180px] w-full overflow-hidden rounded-[10px]">
-                <Image
-                  src={event.imageUrl}
-                  alt={`${event.title} event visual`}
-                  fill
-                  sizes="320px"
-                  unoptimized
-                  className="object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="h-2.5 w-full bg-[linear-gradient(90deg,var(--accent)_0%,color-mix(in_srgb,var(--accent)_45%,transparent)_50%,transparent_100%)]" />
 
         <div className="space-y-6 p-5 sm:p-8">
           {event.groupRegistrationEnabled && (
-            <div className="flex rounded-[12px] border p-1" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <div className="flex rounded-[14px] border p-1.5 shadow-sm mb-4" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 12%, transparent)", background: "color-mix(in srgb, var(--surface) 90%, transparent)" }}>
               <button
                 type="button"
                 onClick={() => setRegistrationMode("individual")}
-                className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
+                className="flex-1 rounded-[10px] py-2.5 px-3 text-[0.84rem] font-bold transition-all"
                 style={{
                   background: registrationMode === "individual" ? "var(--surface)" : "transparent",
                   color: registrationMode === "individual" ? "var(--text-primary)" : "var(--text-secondary)",
-                  boxShadow: registrationMode === "individual" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                  boxShadow: registrationMode === "individual" ? "0 3px 10px rgba(0,0,0,0.12)" : "none",
                 }}
               >
                 Register as Individual
@@ -1777,11 +1765,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               <button
                 type="button"
                 onClick={() => setRegistrationMode("group")}
-                className="flex-1 rounded-[8px] py-2.5 text-[0.8rem] font-bold transition"
+                className="flex-1 rounded-[10px] py-2.5 px-3 text-[0.84rem] font-bold transition-all"
                 style={{
                   background: registrationMode === "group" ? "var(--accent)" : "transparent",
                   color: registrationMode === "group" ? "var(--accent-contrast)" : "var(--text-secondary)",
-                  boxShadow: registrationMode === "group" ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                  boxShadow: registrationMode === "group" ? "0 3px 10px rgba(0,0,0,0.12)" : "none",
                 }}
               >
                 Register as Organization / Group
@@ -2195,24 +2183,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     {personalQuestions.map(q => renderQuestionInput(q, attendeeIndex))}
                   </div>
                 ))}
-
-                <div className="flex items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
-                  <button
-                    type="button"
-                    onClick={handlePrevStep}
-                    className="px-4 py-3 text-[0.88rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-                  >
-                    ← Overview
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="px-6 py-3 rounded-[12px] text-[0.9rem] font-bold shadow-[0_6px_20px_rgba(200,245,90,0.2)] transition-transform hover:translate-y-[-1px] active:scale-[0.99]"
-                    style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
-                  >
-                    Continue →
-                  </button>
-                </div>
               </div>
 
               {/* STEP 2: DYNAMIC EVENT QUESTIONS (if any exist) */}
@@ -2242,24 +2212,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       })}
                     </div>
                   ))}
-
-                  <div className="flex items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
-                    <button
-                      type="button"
-                      onClick={handlePrevStep}
-                      className="px-4 py-3 text-[0.88rem] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-                    >
-                      ← Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="px-6 py-3 rounded-[12px] text-[0.9rem] font-bold shadow-[0_6px_20px_rgba(200,245,90,0.2)] transition-transform hover:translate-y-[-1px] active:scale-[0.99]"
-                      style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
-                    >
-                      Review Registration →
-                    </button>
-                  </div>
                 </div>
               )}
 
@@ -2283,7 +2235,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         </span>
                         <button
                           type="button"
-                          onClick={() => setCurrentStepIndex(1)}
+                          onClick={() => { setCurrentStepIndex(1); scrollToForm() }}
                           className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
                         >
                           Edit details
@@ -2320,7 +2272,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                           </span>
                           <button
                             type="button"
-                            onClick={() => setCurrentStepIndex(2)}
+                            onClick={() => { setCurrentStepIndex(2); scrollToForm() }}
                             className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
                           >
                             Edit answers
@@ -2410,6 +2362,26 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     <path d="M2 4l6 4 6-4" />
                   </svg>
                   <span>{formCopy.sendCopy}</span>
+                </span>
+              </label>
+
+              {/* Marketing Updates Opt-In Checkbox */}
+              <label className={`flex items-start gap-3 rounded-[18px] px-4 py-3.5 cursor-pointer ${isLastStep ? "flex" : "hidden"}`} style={questionCardStyle}>
+                <input
+                  id="consent-marketing"
+                  type="checkbox"
+                  checked={consentMarketing}
+                  onChange={e => setConsentMarketing(e.target.checked)}
+                  className="h-4 w-4 rounded mt-0.5 text-[#C8F55A] focus:ring-[#C8F55A]"
+                  style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
+                />
+                <span className="flex flex-col text-[0.86rem]" style={{ color: "var(--text-primary)" }}>
+                  <span className="font-medium">
+                    Keep me updated with exciting upcoming events and news from EventSlot
+                  </span>
+                  <span className="text-[0.74rem] text-[var(--text-muted)]">
+                    Get occasional event discoveries, community updates, and announcements. Unsubscribe anytime.
+                  </span>
                 </span>
               </label>
 

@@ -504,7 +504,7 @@ export default function EventInvitationCard({
           const embedUrl = mapQuery
             ? (apiKey
                 ? `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(mapQuery)}`
-                : `https://www.google.com/maps/embed?origin=mfe&pb=!1m3!2m1!1s${encodeURIComponent(mapQuery)}!6i15`)
+                : `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`)
             : null
           return (
             <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.5rem" }}>
