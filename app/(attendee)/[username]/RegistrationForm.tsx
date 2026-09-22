@@ -82,15 +82,13 @@ type EventProps = {
 
 function BrandingFooter() {
   return (
-    <div style={{ textAlign: "center", marginTop: "2rem", fontSize: "0.72rem", color: "rgba(240,237,230,0.2)", fontFamily: "var(--font-dm-sans)" }}>
+    <div style={{ textAlign: "center", marginTop: "2rem", fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
       Powered by{" "}
       <a
         href="/"
         target="_blank"
         rel="noopener noreferrer"
-        style={{ color: "rgba(200,245,90,0.4)", textDecoration: "none", transition: "color 0.2s" }}
-        onMouseEnter={e => (e.currentTarget.style.color = "#C8F55A")}
-        onMouseLeave={e => (e.currentTarget.style.color = "rgba(200,245,90,0.4)")}
+        style={{ color: "var(--text-primary)", fontWeight: 600, textDecoration: "none" }}
       >
         EventSlot
       </a>
@@ -1527,50 +1525,65 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       <div className="mx-auto w-full max-w-[480px]">
         <div className="space-y-4">
           {bulkResult.results.map((r, i) => (
-            <div key={i} className="rounded-[16px] p-8" style={resultCardStyle}>
+            <div key={i} className="rounded-[20px] p-8 shadow-sm" style={resultCardStyle}>
               {r.status === "confirmed" ? (
                 <>
-                  <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)]">
-                    <span className="block h-3 w-5 rotate-[-45deg] border-b-4 border-l-4 border-[#C8F55A]" />
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 shadow-sm dark:bg-emerald-950/60 dark:border-emerald-800">
+                    <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-                  <h2 className="text-center text-[1.6rem]" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 400, color: "var(--text-primary)" }}>
-                    {isSingle ? "You're in!" : `Attendee ${i + 1} - You're in!`}
-                  </h2>
+                  <div className="flex flex-col items-center gap-1.5 text-center">
+                    <span className="text-2xl" aria-hidden="true">🎉</span>
+                    <h2 className="text-center text-[1.85rem] tracking-tight" style={{ fontFamily: "var(--font-instrument-serif)", fontWeight: 600, color: "var(--text-primary)" }}>
+                      {isSingle ? "You're in!" : `Attendee ${i + 1} - You're in!`}
+                    </h2>
+                    <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[0.72rem] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
+                      ✨ Yay! Your spot is secured
+                    </span>
+                  </div>
                   <p className="mx-auto mt-3 max-w-[360px] text-center text-[0.95rem]" style={{ fontFamily: "var(--font-dm-sans)", lineHeight: 1.6, color: "var(--text-secondary)" }}>
-                    Your spot for {event.title} is confirmed. We look forward to seeing you.
+                    Your spot for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong> is locked in. We look forward to seeing you!
                   </p>
                   <div className="mt-4 flex justify-center">
-                    <span className="rounded-full border border-[rgba(200,245,90,0.3)] bg-[rgba(200,245,90,0.12)] px-3 py-1 text-[0.7rem] text-[#C8F55A]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[0.72rem] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 inline-block animate-pulse" />
                       Confirmed
                     </span>
                   </div>
                   {r.registrationNumber && (
-                    <p className="mt-3 text-center text-[0.72rem]" style={{ fontFamily: "var(--font-dm-sans)", color: "var(--text-muted)" }}>
+                    <p className="mt-2 text-center text-[0.75rem] font-mono" style={{ color: "var(--text-muted)" }}>
                       Registration #{String(r.registrationNumber).padStart(4, "0")}
                     </p>
                   )}
                   {r.confirmationCode && (
-                    <div className="mt-4 flex justify-center">
+                    <div className="mt-5 flex justify-center w-full">
                       <a
                         href={`/register/success/${r.confirmationCode}`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(200,245,90,0.4)] bg-[rgba(200,245,90,0.08)] px-4 py-2 text-[0.8rem] text-[#C8F55A]"
-                        style={{ fontFamily: "var(--font-dm-sans)", textDecoration: "none", fontWeight: 500 }}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[0.92rem] font-bold text-white shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+                        style={{
+                          background: "#15803d",
+                          color: "#FFFFFF",
+                          textDecoration: "none",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
                       >
-                        View &amp; Download Ticket
+                        <span>🎟️ View &amp; Download Ticket</span>
+                        <span aria-hidden="true">→</span>
                       </a>
                     </div>
                   )}
                   {communityLink && (
-                    <div className="mt-5 rounded-[8px] px-5 py-4" style={{ background: "rgba(200,245,90,0.06)", border: "0.5px solid rgba(200,245,90,0.15)" }}>
-                      <p style={{ fontSize: "0.7rem", color: "#C8F55A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>
+                    <div className="mt-5 rounded-[12px] px-5 py-4" style={{ background: "color-mix(in srgb, var(--surface) 96%, var(--text-primary) 4%)", border: "1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)" }}>
+                      <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem", fontWeight: 700 }}>
                         Join the community
                       </p>
                       <a
                         href={communityLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full rounded-full border border-[rgba(200,245,90,0.4)] px-4 py-2 text-center text-[0.875rem] text-[#C8F55A]"
-                        style={{ fontFamily: "var(--font-dm-sans)" }}
+                        className="block w-full rounded-full border px-4 py-2.5 text-center text-[0.875rem] font-semibold transition-all hover:opacity-85"
+                        style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}
                       >
                         {getCommunityLinkLabel(communityLink)}
                       </a>
@@ -1623,7 +1636,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                           type="button"
                           onClick={() => saveWaitlistEmail(r.registrationId, waitlistEmails[r.registrationId] ?? "")}
                           disabled={waitlistEmailSaving[r.registrationId] || !(waitlistEmails[r.registrationId] ?? "").trim()}
-                          style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
+                          style={{ background: "#15803d", border: "none", borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.78rem", fontWeight: 700, color: "#FFFFFF", cursor: waitlistEmailSaving[r.registrationId] ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", opacity: waitlistEmailSaving[r.registrationId] ? 0.7 : 1 }}
                         >
                           {waitlistEmailSaving[r.registrationId] ? "Saving..." : "Notify me"}
                         </button>
@@ -1636,22 +1649,23 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     </div>
                   )}
                   {!hasEmailQuestion && waitlistEmailSaved[r.registrationId] && (
-                    <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                    <p style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.78rem", color: "#15803d", fontWeight: 600, fontFamily: "var(--font-dm-sans)" }}>
                       We will notify you if a slot opens.
                     </p>
                   )}
                 </>
               )}
-              <div style={{ textAlign: "center", marginTop: "1rem", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+              <div style={{ textAlign: "center", marginTop: "1.25rem", display: "flex", gap: "1rem", justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
                 <a
                   href={`/registration/${r.registrationId}`}
-                  style={{ fontSize: "0.78rem", color: "var(--text-muted)", textDecoration: "none" }}
+                  style={{ fontSize: "0.82rem", color: "var(--text-secondary)", textDecoration: "underline", textUnderlineOffset: "3px" }}
                 >
                   View status
                 </a>
+                <span style={{ color: "var(--text-muted)" }}>·</span>
                 <a
                   href={`/registration/${r.registrationId}/edit`}
-                  style={{ fontSize: "0.78rem", color: "#C8F55A", textDecoration: "none" }}
+                  style={{ fontSize: "0.82rem", color: "#15803d", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: "3px" }}
                 >
                   Edit your details
                 </a>
@@ -2447,7 +2461,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   {formCopy.passwordNotice}
                 </p>
                 <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
-                  By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="text-[#C8F55A] underline-offset-2 hover:underline">Terms of Service</a>.
+                  By submitting, you acknowledge the organiser&apos;s event notice and EventSlot&apos;s <a href="/privacy" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline font-semibold" style={{ color: "var(--text-primary)" }}>Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline font-semibold" style={{ color: "var(--text-primary)" }}>Terms of Service</a>.
                 </p>
                 <p className="m-0 text-[0.76rem] leading-6" style={{ color: "var(--text-muted)" }}>
                   {formCopy.hostNotice}

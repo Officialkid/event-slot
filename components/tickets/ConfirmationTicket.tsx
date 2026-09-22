@@ -197,35 +197,38 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
         {/* Attendee & Tier Row */}
         <div
           style={{
-            padding: "0.9rem 1.4rem",
+            padding: "1.1rem 1.4rem",
             background: "color-mix(in srgb, var(--surface) 95%, var(--text-primary) 5%)",
             borderTop: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            justifyContent: "space-between",
-            gap: "0.75rem",
-            flexWrap: "wrap",
+            justifyContent: "center",
+            textAlign: "center",
+            gap: "0.25rem",
           }}
         >
-          <div>
+          <div style={{ textAlign: "center" }}>
             <p
               style={{
-                fontSize: "0.62rem",
-                letterSpacing: "0.12em",
+                fontSize: "0.65rem",
+                letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: "var(--text-muted)",
-                margin: "0 0 0.15rem",
-                fontWeight: 600,
+                margin: "0 0 0.25rem",
+                fontWeight: 700,
               }}
             >
               Attendee
             </p>
             <p
               style={{
-                fontSize: "0.95rem",
-                fontWeight: 600,
+                fontSize: "1.15rem",
+                fontWeight: 700,
                 color: "var(--text-primary)",
                 margin: 0,
+                textAlign: "center",
+                lineHeight: 1.3,
               }}
             >
               {ticket.attendeeName || "Event Guest"}
@@ -233,7 +236,7 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
           </div>
 
           {(ticket.ticketTierName || ticket.amountPaidKes) && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", marginTop: "0.35rem", flexWrap: "wrap" }}>
               {ticket.ticketTierName && (
                 <TierBadge
                   name={ticket.ticketTierName}
@@ -244,7 +247,7 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
                 />
               )}
               {ticket.amountPaidKes ? (
-                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>
                   KES {ticket.amountPaidKes.toLocaleString()} Paid
                 </span>
               ) : null}

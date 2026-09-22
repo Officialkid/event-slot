@@ -52,19 +52,22 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
   const [expanded, setExpanded] = useState(false)
   const [showLanguagePicker, setShowLanguagePicker] = useState(false)
   const [targetLanguage, setTargetLanguage] = useState<SupportedLanguageCode>("sw")
+  const [activeLanguage, setActiveLanguage] = useState<SupportedLanguageCode>("en")
   const [translatedText, setTranslatedText] = useState("")
   const [translationState, setTranslationState] = useState<TranslationState>("idle")
   const [translationError, setTranslationError] = useState("")
 
   const isLong = useMemo(() => hasLongContent(description), [description])
   const visibleText = translatedText || (expanded || !isLong ? description : buildCaption(description))
-  const copy = getDescriptionCopy(targetLanguage)
+  // Always default to English copy until the attendee actually translates to another language
+  const copy = getDescriptionCopy(translatedText ? activeLanguage : "en")
 
   async function translateDescription(language: SupportedLanguageCode) {
     setTargetLanguage(language)
 
     if (language === "en") {
       setTranslatedText("")
+      setActiveLanguage("en")
       setTranslationState("idle")
       setTranslationError("")
       onShowOriginal?.()
@@ -91,6 +94,7 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
         ? data.publicTranslation as PublicEventTranslation
         : null
       setTranslatedText(publicTranslation?.description || data.translation)
+      setActiveLanguage(language)
       if (publicTranslation) {
         onTranslated?.(publicTranslation)
         window.dispatchEvent(new CustomEvent(`eventslot:public-translation:${eventSlug}`, {
@@ -99,6 +103,7 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
       }
       setExpanded(true)
       setTranslationState("ready")
+      setShowLanguagePicker(false)
     } catch (error) {
       setTranslationState("error")
       setTranslationError(error instanceof Error ? error.message : "Translation is not available right now.")
@@ -116,8 +121,8 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
           <button
             type="button"
             onClick={() => setExpanded((current) => !current)}
-            className="font-semibold"
-            style={{ color: "var(--accent)", background: "transparent", border: 0, padding: 0, cursor: "pointer" }}
+            className="font-bold hover:underline"
+            style={{ color: "#15803d", background: "transparent", border: 0, padding: 0, cursor: "pointer" }}
           >
             {expanded ? copy.showLess : copy.readMore}
           </button>
@@ -126,10 +131,11 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
         <button
           type="button"
           onClick={() => setShowLanguagePicker((current) => !current)}
-          className="font-semibold"
-          style={{ color: "var(--accent)", background: "transparent", border: 0, padding: 0, cursor: "pointer" }}
+          className="font-semibold inline-flex items-center gap-1.5 hover:opacity-80"
+          style={{ color: "var(--text-secondary)", background: "transparent", border: 0, padding: 0, cursor: "pointer" }}
         >
-          {copy.translate}
+          <span aria-hidden="true">🌐</span>
+          <span>{copy.translate}</span>
         </button>
 
         {translatedText && (
@@ -137,13 +143,14 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
             type="button"
             onClick={() => {
               setTranslatedText("")
+              setActiveLanguage("en")
               setTranslationState("idle")
               onShowOriginal?.()
               window.dispatchEvent(new CustomEvent(`eventslot:public-translation:${eventSlug}`, {
                 detail: null,
               }))
             }}
-            style={{ color: "var(--text-muted)", background: "transparent", border: 0, padding: 0, cursor: "pointer" }}
+            style={{ color: "var(--text-muted)", background: "transparent", border: 0, padding: 0, cursor: "pointer", textDecoration: "underline" }}
           >
             {copy.showOriginal}
           </button>
@@ -172,8 +179,8 @@ export function EventDescriptionBlock({ eventSlug, description, onTranslated, on
             type="button"
             onClick={() => void translateDescription(targetLanguage)}
             disabled={translationState === "loading"}
-            className="rounded-full px-3 py-2 text-[0.85rem] font-bold"
-            style={{ color: "#0A0A0A", background: "#C8F55A", border: 0, opacity: translationState === "loading" ? 0.65 : 1 }}
+            className="rounded-full px-4 py-2 text-[0.85rem] font-bold text-white shadow-sm"
+            style={{ color: "#FFFFFF", background: "#15803d", border: 0, opacity: translationState === "loading" ? 0.65 : 1, cursor: "pointer" }}
           >
             {translationState === "loading" ? copy.translating : copy.apply}
           </button>

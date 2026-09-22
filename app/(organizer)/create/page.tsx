@@ -16,7 +16,7 @@ import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 
-type QuestionType = "text" | "email" | "phone" | "select" | "checkbox" | "file"
+type QuestionType = "text" | "textarea" | "number" | "email" | "phone" | "select" | "checkbox" | "file"
 
 type Question = {
   id: string
@@ -44,12 +44,27 @@ type TicketTierDraft = {
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
-  { value: "text", label: "Text" },
+  { value: "text", label: "Short Text" },
+  { value: "textarea", label: "Long Text / Paragraph" },
+  { value: "number", label: "Number" },
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone Number" },
-  { value: "select", label: "Multiple Choice" },
+  { value: "select", label: "Multiple Choice (Dropdown)" },
   { value: "checkbox", label: "Checkboxes" },
   { value: "file", label: "File upload" },
+]
+
+const EVENT_CATEGORIES = [
+  "Technology & Coding",
+  "Business & Networking",
+  "Workshops & Masterclasses",
+  "Conferences & Summits",
+  "Faith & Religion",
+  "Social & Entertainment",
+  "Community & Charity",
+  "Health & Sports",
+  "Education & Careers",
+  "Other",
 ]
 
 const defaultQuestion = (): Question => ({
@@ -110,10 +125,6 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.04em",
 }
 
-const helperStyle: React.CSSProperties = {
-  color: "var(--text-muted)",
-}
-
 const accentTextStyle: React.CSSProperties = {
   color: "var(--accent)",
 }
@@ -158,6 +169,7 @@ export default function CreateEventPage() {
   const [deadline, setDeadline] = useState("")
   const [entryFeeLabel, setEntryFeeLabel] = useState("")
   const [groupRegistrationEnabled, setGroupRegistrationEnabled] = useState(false)
+  const [showPaidNotice, setShowPaidNotice] = useState(false)
 
   // Step 3: Registration Questions
   const [questions, setQuestions] = useState([defaultQuestion()])
@@ -255,16 +267,6 @@ export default function CreateEventPage() {
       setCapacity(String(attendeeLimit))
     }
   }, [attendeeLimit, capacity, lockedCapacity])
-
-  async function fetchCapacitySuggestion() {
-    if (capacitySuggestionFetched) return
-    setCapacitySuggestionFetched(true)
-    try {
-      const res = await fetch("/api/events/suggest-capacity")
-      const data = await res.json()
-      if (data.suggestion) setCapacitySuggestion(data.suggestion)
-    } catch { /* ignore */ }
-  }
 
   async function fetchAiPrediction(eventTitle: string, eventDescription?: string) {
     if (!eventTitle.trim()) return
@@ -426,22 +428,6 @@ export default function CreateEventPage() {
     )
   }
 
-  const updateOptionLimit = (idx: number, option: string, value: string) => {
-    setQuestions(qs =>
-      qs.map((q, i) =>
-        i === idx
-          ? {
-              ...q,
-              optionLimits: {
-                ...(q.optionLimits ?? {}),
-                [option]: value.replace(/[^\d]/g, ""),
-              },
-            }
-          : q
-      )
-    )
-  }
-
   const buildOptionLimitsPayload = (question: Question) => {
     const entries = Object.entries(question.optionLimits ?? {})
       .map(([label, raw]) => [label, raw.trim()] as const)
@@ -554,6 +540,10 @@ export default function CreateEventPage() {
       document.getElementById("create-field-title")?.focus()
       return false
     }
+    if (!category.trim()) {
+      setStepError("Please select an event category to help attendees discover your event.")
+      return false
+    }
     if (visibility === "PUBLIC" && !imageUrl.trim()) {
       setStepError("Public events require a poster image so they can appear on the Events discovery page.")
       fileInputRef.current?.focus()
@@ -583,21 +573,6 @@ export default function CreateEventPage() {
   const validateStep2 = (): boolean => {
     setStepError("")
     setError("")
-    if (isPaid) {
-      if (!ticketPrice || Number(ticketPrice) < 50) {
-        setStepError("Please enter a valid ticket price (minimum KSh 50).")
-        return false
-      }
-      const invalidTier = ticketTiers.find((tier) => {
-        const price = Number(tier.priceKes)
-        const tierCapacity = Number(tier.capacity || capacity)
-        return !tier.name.trim() || !price || price < 50 || !tierCapacity || tierCapacity < 1
-      })
-      if (invalidTier) {
-        setStepError("Each paid ticket tier needs a name, a price of at least KSh 50, and a capacity.")
-        return false
-      }
-    }
     return true
   }
 
@@ -626,13 +601,22 @@ export default function CreateEventPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+  // Format ISO date helper for submittal
+  const serializeDate = (d: string, hasTime: boolean) => {
+    if (!d) return undefined
+    if (hasTime) {
+      return new Date(d).toISOString()
+    }
+    // Date only: YYYY-MM-DD -> add midday UTC
+    return new Date(`${d}T12:00:00.000Z`).toISOString()
+  }
+
   // Master Form Submission
   const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault()
     setError("")
     setStepError("")
 
-    // Comprehensive validation across all steps
     if (!validateStep1()) {
       setCurrentStep(1)
       return
@@ -654,6 +638,7 @@ export default function CreateEventPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
+          category: category || undefined,
           description: description || undefined,
           visibility,
           accessType,
@@ -661,8 +646,8 @@ export default function CreateEventPage() {
           virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
           capacity: isRegistrationEvent && capacity ? Number(capacity) : undefined,
           deadline: isRegistrationEvent && deadline ? new Date(deadline).toISOString() : undefined,
-          eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
-          eventEndAt: eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
+          eventDate: serializeDate(eventDate, hasSpecificTime),
+          eventEndAt: serializeDate(eventEndAt, hasSpecificTime),
           hasSpecificTime,
           isRecurring,
           recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
@@ -676,24 +661,8 @@ export default function CreateEventPage() {
           showRemainingSpots,
           groupRegistrationEnabled,
           attendeeConsentEnabled,
-          attendeeConsentText: attendeeConsentText || undefined,
-          isPaid: isRegistrationEvent ? isPaid : false,
-          ticketPrice: isRegistrationEvent && isPaid && ticketPrice ? Number(ticketPrice) : undefined,
-          ticketTiers: isRegistrationEvent && isPaid
-            ? ticketTiers.map((tier) => ({
-                name: tier.name.trim(),
-                presetKey: tier.presetKey || null,
-                badgeColor: tier.badgeColor,
-                textColor: tier.textColor,
-                metallic: tier.metallic,
-                prestige: tier.prestige,
-                priceKes: Number(tier.priceKes),
-                currency: tier.currency,
-                capacity: Number(tier.capacity || capacity),
-                description: tier.description || undefined,
-                bundleSize: Number(tier.bundleSize || "1"),
-              }))
-            : undefined,
+          attendeeConsentText: attendeeConsentText.trim() || undefined,
+          isPaid: false,
           communityLink: communityLink || undefined,
           whatsappNumber: whatsappNumber || undefined,
           contactMode,
@@ -795,8 +764,8 @@ export default function CreateEventPage() {
               <button
                 onClick={handleDownloadSuccessQR}
                 style={{
-                  background: "var(--accent)",
-                  color: "#0A0A0A",
+                  background: "#15803d",
+                  color: "#FFFFFF",
                   border: "none",
                   borderRadius: "100px",
                   padding: "0.7rem 1.8rem",
@@ -841,7 +810,7 @@ export default function CreateEventPage() {
               <button
                 type="button"
                 onClick={() => void handleCopySuccessLink()}
-                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 600, color: copiedSuccessLink ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 10, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 600, color: copiedSuccessLink ? "#15803d" : "var(--text-secondary)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
               >
                 {copiedSuccessLink ? "✓ Copied!" : "Copy Link"}
               </button>
@@ -872,8 +841,8 @@ export default function CreateEventPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/dashboard/events/${eventInfo.slug}`)}
-                className="w-full rounded-full py-3 text-[0.875rem] font-bold text-[#0A0A0A] transition hover:opacity-90"
-                style={{ background: "var(--accent)" }}
+                className="w-full rounded-full py-3 text-[0.875rem] font-bold text-white transition hover:opacity-90"
+                style={{ background: "#15803d" }}
               >
                 Go to Event Dashboard
               </button>
@@ -918,21 +887,21 @@ export default function CreateEventPage() {
                       className={`flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center transition ${s.num < currentStep ? "cursor-pointer hover:opacity-85" : "cursor-default"}`}
                       style={{
                         background: isActive
-                          ? "color-mix(in srgb, var(--accent) 14%, transparent)"
+                          ? "#15803d"
                           : isCompleted
                           ? "color-mix(in srgb, var(--text-primary) 6%, transparent)"
                           : "transparent",
-                        border: isActive ? "1px solid var(--border-emphasis)" : "1px solid transparent",
+                        border: isActive ? "1px solid #15803d" : "1px solid transparent",
                       }}
                     >
                       <div className="flex items-center gap-1">
-                        <span className="text-xs">
+                        <span className="text-xs" style={{ color: isActive ? "#FFFFFF" : undefined }}>
                           {isCompleted ? "✓" : s.icon}
                         </span>
                         <span
                           className="text-[0.68rem] sm:text-[0.75rem] font-bold uppercase tracking-wider"
                           style={{
-                            color: isActive ? "var(--accent)" : isCompleted ? "var(--text-primary)" : "var(--text-muted)",
+                            color: isActive ? "#FFFFFF" : isCompleted ? "var(--text-primary)" : "var(--text-muted)",
                           }}
                         >
                           Step {s.num}
@@ -941,7 +910,7 @@ export default function CreateEventPage() {
                       <span
                         className="text-[0.72rem] sm:text-[0.8rem] font-medium truncate max-w-full mt-0.5"
                         style={{
-                          color: isActive ? "var(--text-primary)" : isCompleted ? "var(--text-secondary)" : "var(--text-muted)",
+                          color: isActive ? "#FFFFFF" : isCompleted ? "var(--text-secondary)" : "var(--text-muted)",
                         }}
                       >
                         {s.label}
@@ -999,9 +968,9 @@ export default function CreateEventPage() {
                           onClick={() => handlePickTemplate(tpl.id)}
                           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.78rem] font-medium transition whitespace-nowrap"
                           style={{
-                            background: isSelected ? "var(--accent)" : "var(--surface-muted)",
-                            color: isSelected ? "#0A0A0A" : "var(--text-secondary)",
-                            border: isSelected ? "1px solid var(--accent)" : "1px solid var(--border-subtle)",
+                            background: isSelected ? "#15803d" : "var(--surface-muted)",
+                            color: isSelected ? "#FFFFFF" : "var(--text-secondary)",
+                            border: isSelected ? "1px solid #15803d" : "1px solid var(--border-subtle)",
                             fontWeight: isSelected ? 700 : 500,
                             cursor: "pointer",
                           }}
@@ -1023,8 +992,8 @@ export default function CreateEventPage() {
                     <button
                       type="button"
                       onClick={() => setShowDesignerGuidelines(!showDesignerGuidelines)}
-                      className="text-[0.72rem] font-medium underline"
-                      style={{ color: "var(--accent)" }}
+                      className="text-[0.72rem] font-semibold underline"
+                      style={{ color: "#15803d" }}
                     >
                       {showDesignerGuidelines ? "Hide dimensions" : "📐 Designer Guidelines"}
                     </button>
@@ -1046,14 +1015,18 @@ export default function CreateEventPage() {
                   )}
 
                   {imageUrl ? (
-                    <div className="relative overflow-hidden rounded-[10px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}>
+                    <div className="relative overflow-hidden rounded-[12px] border" style={{ borderColor: "var(--border)", background: "#0A0A0A" }}>
+                      {/* Ambient blur backdrop */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imageUrl} alt="Poster preview" style={{ width: "100%", maxHeight: "280px", objectFit: "contain", display: "block" }} />
+                      <img src={imageUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(20px)", opacity: 0.45 }} />
+                      {/* Uncropped sharp poster */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={imageUrl} alt="Poster preview" style={{ position: "relative", width: "100%", maxHeight: "320px", objectFit: "contain", display: "block", margin: "0 auto" }} />
                       <button
                         type="button"
                         onClick={() => setImageUrl("")}
                         className="absolute top-2.5 right-2.5 rounded-full px-3 py-1 text-xs font-semibold shadow-md"
-                        style={{ background: "#EF4444", color: "#FFFFFF", border: "none", cursor: "pointer" }}
+                        style={{ background: "#EF4444", color: "#FFFFFF", border: "none", cursor: "pointer", zIndex: 10 }}
                       >
                         ✕ Remove
                       </button>
@@ -1061,7 +1034,7 @@ export default function CreateEventPage() {
                   ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-[12px] border-2 border-dashed p-6 text-center cursor-pointer transition hover:border-[var(--accent)]"
+                      className="rounded-[12px] border-2 border-dashed p-6 text-center cursor-pointer transition hover:border-[#15803d]"
                       style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}
                     >
                       <input
@@ -1084,11 +1057,11 @@ export default function CreateEventPage() {
                   {imageError && <p className="text-xs text-red-500 mt-2">{imageError}</p>}
                 </div>
 
-                {/* Title & Description Card */}
+                {/* Title & Category Card */}
                 <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div>
                     <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                      Event Title <span style={accentTextStyle}>*</span>
+                      Event Title <span style={{ color: "#EF4444" }}>*</span>
                     </label>
                     <input
                       id="create-field-title"
@@ -1098,57 +1071,88 @@ export default function CreateEventPage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       onBlur={(e) => fetchAiPrediction(e.target.value, description)}
-                      className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.95rem] font-medium outline-none focus:border-[var(--accent)]"
+                      className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.95rem] font-medium outline-none focus:border-[#15803d]"
                       style={inputStyle}
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        Category (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Technology, Workshop, Business"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                      Event Category <span style={{ color: "#EF4444" }}>*</span>
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.88rem] outline-none"
+                      style={inputStyle}
+                    >
+                      <option value="">Select event category...</option>
+                      {EVENT_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                      Required for proper indexing on EventSlot Discover.
+                    </p>
+                  </div>
 
-                    <div>
-                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        Event Visibility
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setVisibility("PRIVATE")}
-                          className="rounded-[8px] border px-2.5 py-1.5 text-xs font-semibold transition"
-                          style={
-                            visibility === "PRIVATE"
-                              ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" }
-                              : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
-                          }
-                        >
-                          🔒 Private
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setVisibility("PUBLIC")}
-                          disabled={isWalkInEvent}
-                          className="rounded-[8px] border px-2.5 py-1.5 text-xs font-semibold transition"
-                          style={
-                            visibility === "PUBLIC"
-                              ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)", color: "var(--accent)" }
-                              : { borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }
-                          }
-                        >
-                          🌐 Public
-                        </button>
-                      </div>
+                  <div>
+                    <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                      Event Visibility <span style={{ color: "#EF4444" }}>*</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setVisibility("PRIVATE")}
+                        className="rounded-xl border p-3.5 text-left transition relative"
+                        style={{
+                          borderColor: visibility === "PRIVATE" ? "#15803d" : "var(--border)",
+                          background: visibility === "PRIVATE" ? "color-mix(in srgb, #15803d 12%, var(--surface))" : "var(--surface-2)",
+                          boxShadow: visibility === "PRIVATE" ? "0 0 0 1.5px #15803d" : "none",
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                            <span>🔒</span>
+                            <span>Private Event</span>
+                          </span>
+                          {visibility === "PRIVATE" && (
+                            <span className="text-[0.68rem] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "#15803d", color: "#FFFFFF" }}>
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[0.72rem] mt-1.5" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          Unlisted. Only people with your invite link can see and register.
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setVisibility("PUBLIC")}
+                        disabled={isWalkInEvent}
+                        className="rounded-xl border p-3.5 text-left transition relative disabled:opacity-40"
+                        style={{
+                          borderColor: visibility === "PUBLIC" ? "#15803d" : "var(--border)",
+                          background: visibility === "PUBLIC" ? "color-mix(in srgb, #15803d 12%, var(--surface))" : "var(--surface-2)",
+                          boxShadow: visibility === "PUBLIC" ? "0 0 0 1.5px #15803d" : "none",
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold flex items-center gap-1.5" style={{ color: "var(--text-primary)" }}>
+                            <span>🌐</span>
+                            <span>Public Event</span>
+                          </span>
+                          {visibility === "PUBLIC" && (
+                            <span className="text-[0.68rem] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "#15803d", color: "#FFFFFF" }}>
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[0.72rem] mt-1.5" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          Featured on Discover Events. Anyone can find and attend (requires poster).
+                        </p>
+                      </button>
                     </div>
                   </div>
 
@@ -1173,18 +1177,32 @@ export default function CreateEventPage() {
 
                 {/* Date & Time Card */}
                 <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                    Date & Time
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Date & Time
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="hasSpecificTimeCheck"
+                        checked={hasSpecificTime}
+                        onChange={(e) => setHasSpecificTime(e.target.checked)}
+                        className="h-4 w-4 rounded"
+                      />
+                      <label htmlFor="hasSpecificTimeCheck" className="text-xs font-semibold cursor-pointer select-none" style={{ color: "var(--text-secondary)" }}>
+                        Specific start time
+                      </label>
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        Starts At
+                        {hasSpecificTime ? "Starts At (Date & Time)" : "Event Date (Time Not Specified)"}
                       </label>
                       <input
-                        type="datetime-local"
-                        value={eventDate}
+                        type={hasSpecificTime ? "datetime-local" : "date"}
+                        value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
                         onChange={(e) => setEventDate(e.target.value)}
                         className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
                         style={inputStyle}
@@ -1192,11 +1210,11 @@ export default function CreateEventPage() {
                     </div>
                     <div>
                       <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        Ends At (Optional)
+                        {hasSpecificTime ? "Ends At (Optional)" : "End Date (Optional)"}
                       </label>
                       <input
-                        type="datetime-local"
-                        value={eventEndAt}
+                        type={hasSpecificTime ? "datetime-local" : "date"}
+                        value={hasSpecificTime ? eventEndAt : (eventEndAt ? eventEndAt.slice(0, 10) : "")}
                         onChange={(e) => setEventEndAt(e.target.value)}
                         className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
                         style={inputStyle}
@@ -1265,10 +1283,10 @@ export default function CreateEventPage() {
                       <button
                         type="button"
                         onClick={() => setEventType("PHYSICAL")}
-                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
                           eventType === "PHYSICAL"
-                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            ? { background: "#15803d", color: "#FFFFFF" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -1278,10 +1296,10 @@ export default function CreateEventPage() {
                         type="button"
                         onClick={() => setEventType("VIRTUAL")}
                         disabled={isWalkInEvent}
-                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
                           eventType === "VIRTUAL"
-                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                            ? { background: "#15803d", color: "#FFFFFF" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -1306,12 +1324,26 @@ export default function CreateEventPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                          Google Maps Link (Optional)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[0.75rem] font-semibold" style={labelStyle}>
+                            Google Maps Link (Optional)
+                          </label>
+                          <button
+                            type="button"
+                            disabled={!location.trim()}
+                            onClick={() => {
+                              if (location.trim()) {
+                                setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
+                              }
+                            }}
+                            className="text-[0.7rem] font-bold text-[#15803d] hover:underline disabled:opacity-40"
+                          >
+                            ⚡ Auto-fill from venue name
+                          </button>
+                        </div>
                         <input
                           type="url"
-                          placeholder="https://maps.app.goo.gl/... or https://maps.google.com/..."
+                          placeholder="https://maps.app.goo.gl/... or click auto-fill"
                           value={mapDirectionsUrl}
                           onChange={(e) => setMapDirectionsUrl(e.target.value)}
                           className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
@@ -1323,7 +1355,7 @@ export default function CreateEventPage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                          Google Meet Meeting Link <span style={accentTextStyle}>*</span>
+                          Google Meet Meeting Link <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
                           type="url"
@@ -1347,8 +1379,8 @@ export default function CreateEventPage() {
                   <button
                     type="button"
                     onClick={() => handleNextStep(2)}
-                    className="w-full sm:w-auto rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
-                    style={{ background: "var(--accent)" }}
+                    className="w-full sm:w-auto rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                    style={{ background: "#15803d" }}
                   >
                     Continue to Tickets & Access →
                   </button>
@@ -1371,7 +1403,7 @@ export default function CreateEventPage() {
                       className="rounded-[12px] border p-4 text-left transition"
                       style={
                         accessType === "REGISTRATION"
-                          ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }
+                          ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
                           : { borderColor: "var(--border)", background: "var(--surface-2)" }
                       }
                     >
@@ -1390,7 +1422,7 @@ export default function CreateEventPage() {
                       className="rounded-[12px] border p-4 text-left transition"
                       style={
                         accessType === "WALK_IN"
-                          ? { borderColor: "var(--border-emphasis)", background: "var(--accent-dim)" }
+                          ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
                           : { borderColor: "var(--border)", background: "var(--surface-2)" }
                       }
                     >
@@ -1414,11 +1446,14 @@ export default function CreateEventPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setIsPaid(false)}
-                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        onClick={() => {
+                          setIsPaid(false)
+                          setShowPaidNotice(false)
+                        }}
+                        className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
-                          !isPaid
-                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                          !showPaidNotice
+                            ? { background: "#15803d", color: "#FFFFFF" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -1427,14 +1462,13 @@ export default function CreateEventPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (isWalkInEvent) return
-                          setIsPaid(true)
+                          setShowPaidNotice(true)
+                          setIsPaid(false)
                         }}
-                        disabled={isWalkInEvent}
-                        className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                        className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
-                          isPaid
-                            ? { background: "var(--accent)", color: "#0A0A0A" }
+                          showPaidNotice
+                            ? { background: "#15803d", color: "#FFFFFF" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -1443,9 +1477,16 @@ export default function CreateEventPage() {
                     </div>
                   </div>
 
+                  {showPaidNotice && (
+                    <PaymentMaintenanceBanner
+                      title="Paid Ticketing is Coming Soon"
+                      message="We are currently finalizing paid-event ticketing with M-Pesa. All events on EventSlot are currently 100% free to organize and attend."
+                    />
+                  )}
+
                   {/* Capacity */}
                   {isRegistrationEvent && (
-                    <div className="space-y-3 pt-2">
+                    <div className="space-y-4 pt-1">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                         <div>
                           <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
@@ -1475,6 +1516,24 @@ export default function CreateEventPage() {
                         </div>
                       </div>
 
+                      {/* Group and Organizational Bookings — Unhidden and prominent */}
+                      <div className="rounded-xl border p-4 flex items-center justify-between" style={cardMutedStyle}>
+                        <div>
+                          <span className="text-xs font-bold block" style={{ color: "var(--text-primary)" }}>
+                            👥 Group & Organization Bookings
+                          </span>
+                          <p className="text-[0.72rem] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                            Allow one person to register multiple attendees / colleagues in a single booking.
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={groupRegistrationEnabled}
+                          onChange={(e) => setGroupRegistrationEnabled(e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
+                      </div>
+
                       {aiPrediction && (
                         <div className="rounded-xl border p-3 text-xs" style={cardMutedStyle}>
                           <span style={accentTextStyle}>✦ AI Suggested Capacity:</span> <strong>{aiPrediction.suggestedCapacity} attendees</strong> ({aiPrediction.reasoning})
@@ -1482,89 +1541,9 @@ export default function CreateEventPage() {
                       )}
                     </div>
                   )}
-
-                  {/* Paid Tiers Builder */}
-                  {isPaid && (
-                    <div className="border-t pt-4 space-y-4" style={{ borderColor: "var(--border-subtle)" }}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
-                          Ticket Tiers (KES)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={addTicketTier}
-                          className="rounded-full px-3 py-1 text-xs font-semibold"
-                          style={{ background: "var(--surface-muted)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-                        >
-                          + Add Another Tier
-                        </button>
-                      </div>
-
-                      {ticketTiers.map((tier, idx) => (
-                        <div key={tier.id} className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
-                              Tier {idx + 1}: {tier.name}
-                            </span>
-                            {ticketTiers.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeTicketTier(tier.id)}
-                                className="text-xs text-red-400 hover:text-red-300"
-                              >
-                                Delete
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Tier Name</label>
-                              <input
-                                type="text"
-                                value={tier.name}
-                                onChange={(e) => updateTicketTier(tier.id, "name", e.target.value)}
-                                placeholder="Standard, VIP..."
-                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
-                                style={inputStyle}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Price (KES)</label>
-                              <input
-                                type="number"
-                                min="50"
-                                value={tier.priceKes}
-                                onChange={(e) => {
-                                  updateTicketTier(tier.id, "priceKes", e.target.value)
-                                  if (idx === 0) setTicketPrice(e.target.value)
-                                }}
-                                placeholder="500"
-                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
-                                style={inputStyle}
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Tier Capacity</label>
-                              <input
-                                type="number"
-                                value={tier.capacity}
-                                onChange={(e) => updateTicketTier(tier.id, "capacity", e.target.value)}
-                                placeholder={capacity || "100"}
-                                className="w-full rounded-[8px] px-2.5 py-1.5 text-xs outline-none"
-                                style={inputStyle}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
-                {/* Collapsible Advanced Settings */}
+                {/* Collapsible Advanced Settings (Only Registration Deadline) */}
                 <div className="rounded-[14px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <button
                     type="button"
@@ -1572,12 +1551,12 @@ export default function CreateEventPage() {
                     className="w-full flex items-center justify-between text-xs font-semibold text-left"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    <span>⚙️ Advanced Settings (Deadline, Group Bookings)</span>
+                    <span>⚙️ Advanced Settings (Registration Deadline)</span>
                     <span>{showAdvancedTickets ? "▲" : "▼"}</span>
                   </button>
 
                   {showAdvancedTickets && (
-                    <div className="pt-4 mt-3 border-t space-y-4" style={{ borderColor: "var(--border-subtle)" }}>
+                    <div className="pt-4 mt-3 border-t space-y-3" style={{ borderColor: "var(--border-subtle)" }}>
                       <div>
                         <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
                           Registration Deadline (Optional)
@@ -1589,19 +1568,9 @@ export default function CreateEventPage() {
                           className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
                           style={inputStyle}
                         />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>Group & Organization Bookings</span>
-                          <p className="text-[0.7rem]" style={{ color: "var(--text-muted)" }}>Allow one person to register multiple attendees</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={groupRegistrationEnabled}
-                          onChange={(e) => setGroupRegistrationEnabled(e.target.checked)}
-                          className="h-4 w-4 rounded"
-                        />
+                        <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                          Registration automatically closes once this deadline passes.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1620,8 +1589,8 @@ export default function CreateEventPage() {
                   <button
                     type="button"
                     onClick={() => handleNextStep(3)}
-                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
-                    style={{ background: "var(--accent)" }}
+                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                    style={{ background: "#15803d" }}
                   >
                     Continue to Questions →
                   </button>
@@ -1660,8 +1629,8 @@ export default function CreateEventPage() {
                         <button
                           type="button"
                           onClick={addQuestion}
-                          className="rounded-full px-3.5 py-1.5 text-xs font-bold"
-                          style={{ background: "var(--accent)", color: "#0A0A0A", border: "none", cursor: "pointer" }}
+                          className="rounded-full px-4 py-1.5 text-xs font-bold shadow-sm"
+                          style={{ background: "#15803d", color: "#FFFFFF", border: "none", cursor: "pointer" }}
                         >
                           + Add Question
                         </button>
@@ -1671,7 +1640,7 @@ export default function CreateEventPage() {
                         {questions.map((q, idx) => (
                           <div key={q.id} className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--accent)" }}>
+                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#15803d" }}>
                                 Question {idx + 1}
                               </span>
                               <div className="flex items-center gap-2">
@@ -1789,22 +1758,43 @@ export default function CreateEventPage() {
                       </div>
                     </div>
 
-                    {/* Attendee Consent */}
-                    <div className="rounded-[14px] border p-4 flex items-center justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                      <div>
-                        <span className="text-xs font-semibold block" style={{ color: "var(--text-primary)" }}>
-                          Data Processing Consent
-                        </span>
-                        <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                          Adds a standard privacy consent checkbox to the registration form.
-                        </p>
+                    {/* Attendee Consent with Customizable Text */}
+                    <div className="rounded-[14px] border p-4 space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-semibold block" style={{ color: "var(--text-primary)" }}>
+                            Data Processing Consent & Policy Notice
+                          </span>
+                          <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                            Adds a required consent checkbox to the registration form.
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={attendeeConsentEnabled}
+                          onChange={(e) => setAttendeeConsentEnabled(e.target.checked)}
+                          className="h-4 w-4 rounded"
+                        />
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={attendeeConsentEnabled}
-                        onChange={(e) => setAttendeeConsentEnabled(e.target.checked)}
-                        className="h-4 w-4 rounded"
-                      />
+
+                      {attendeeConsentEnabled && (
+                        <div className="border-t pt-3">
+                          <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                            Custom Consent Notice / Photography Release (Optional)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={attendeeConsentText}
+                            onChange={(e) => setAttendeeConsentText(e.target.value)}
+                            placeholder="e.g. Photography & Media Notice: Photos and video recordings will be taken during this event for promotional highlights and social media. By registering, you grant permission to be included in event footage."
+                            className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                            style={inputStyle}
+                          />
+                          <p className="text-[0.68rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                            If left blank, standard EventSlot attendee data privacy policy text will be used.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1822,8 +1812,8 @@ export default function CreateEventPage() {
                   <button
                     type="button"
                     onClick={() => handleNextStep(4)}
-                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-[#0A0A0A] shadow-md transition hover:opacity-90"
-                    style={{ background: "var(--accent)" }}
+                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                    style={{ background: "#15803d" }}
                   >
                     Review & Launch →
                   </button>
@@ -1917,7 +1907,7 @@ export default function CreateEventPage() {
                   </div>
                 </div>
 
-                {/* Live Preview Card */}
+                {/* Live Preview Card — With Ambient Blurred Backdrop so posters are never cropped */}
                 <div className="rounded-[14px] border p-5 sm:p-6 space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
@@ -1930,15 +1920,19 @@ export default function CreateEventPage() {
 
                   <div className="rounded-xl border overflow-hidden" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                     {imageUrl && (
-                      <div className="w-full max-h-48 overflow-hidden bg-black/40 flex items-center justify-center">
+                      <div style={{ position: "relative", width: "100%", overflow: "hidden", background: "#0A0A0A" }}>
+                        {/* Ambient blurred backdrop */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imageUrl} alt="Poster preview" className="w-full h-auto max-h-48 object-cover" />
+                        <img src={imageUrl} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "blur(20px)", opacity: 0.4 }} />
+                        {/* Uncropped sharp poster */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imageUrl} alt="Poster preview" style={{ position: "relative", width: "100%", maxHeight: "320px", objectFit: "contain", display: "block", margin: "0 auto" }} />
                       </div>
                     )}
                     <div className="p-4 space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: isPaid ? "rgba(200,245,90,0.15)" : "rgba(34,197,94,0.15)", color: isPaid ? "#C8F55A" : "#22c55e" }}>
-                          {isPaid ? `Paid Tickets · KES ${ticketPrice || '500'}` : "Free RSVP"}
+                        <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: "rgba(34,197,94,0.15)", color: "#15803d" }}>
+                          Free RSVP
                         </span>
                         {category && (
                           <span className="text-xs text-[var(--text-muted)]">• {category}</span>
@@ -1949,7 +1943,7 @@ export default function CreateEventPage() {
                       </h4>
                       {eventDate && (
                         <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                          📅 {new Date(eventDate).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          📅 {hasSpecificTime ? new Date(eventDate).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : new Date(eventDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
                         </p>
                       )}
                       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
@@ -1973,8 +1967,8 @@ export default function CreateEventPage() {
                     type="button"
                     onClick={() => handleSubmit()}
                     disabled={loading}
-                    className="rounded-full px-10 py-3.5 text-[0.95rem] font-bold text-[#0A0A0A] shadow-lg transition hover:opacity-90 disabled:opacity-50"
-                    style={{ background: "var(--accent)" }}
+                    className="rounded-full px-10 py-3.5 text-[0.95rem] font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: "#15803d" }}
                   >
                     {loading ? "Publishing Event..." : "🚀 Publish Event Now"}
                   </button>
