@@ -95,24 +95,24 @@ function getStatusBadge(
     if (status === "closed") {
       return {
         label: "Check-In Closed",
-        bg: "rgba(255,107,107,0.1)",
-        border: "rgba(255,107,107,0.3)",
-        color: "#FF6B6B",
+        bg: "color-mix(in srgb, var(--error) 12%, transparent)",
+        border: "color-mix(in srgb, var(--error) 30%, transparent)",
+        color: "var(--error)",
       }
     }
     if (walkInOpenToday) {
       return {
         label: "Check-In Open Today",
-        bg: "rgba(200,245,90,0.1)",
-        border: "rgba(200,245,90,0.3)",
-        color: "#C8F55A",
+        bg: "color-mix(in srgb, var(--success) 12%, transparent)",
+        border: "color-mix(in srgb, var(--success) 30%, transparent)",
+        color: "var(--success)",
       }
     }
     return {
       label: "Walk-In Event",
-      bg: "rgba(79,172,254,0.12)",
-      border: "rgba(79,172,254,0.3)",
-      color: "#7CC6FF",
+      bg: "color-mix(in srgb, var(--info) 12%, transparent)",
+      border: "color-mix(in srgb, var(--info) 30%, transparent)",
+      color: "var(--info)",
     }
   }
 
@@ -122,22 +122,22 @@ function getStatusBadge(
   if (isClosed)
     return {
       label: "Registration Closed",
-      bg: "rgba(255,107,107,0.1)",
-      border: "rgba(255,107,107,0.3)",
-      color: "#FF6B6B",
+      bg: "color-mix(in srgb, var(--error) 12%, transparent)",
+      border: "color-mix(in srgb, var(--error) 30%, transparent)",
+      color: "var(--error)",
     }
   if (capacity !== null && capacity !== undefined && confirmedCount >= capacity)
     return {
       label: "Waitlist Only",
-      bg: "rgba(255,200,50,0.1)",
-      border: "rgba(255,200,50,0.3)",
-      color: "#FFC832",
+      bg: "color-mix(in srgb, var(--warning) 12%, transparent)",
+      border: "color-mix(in srgb, var(--warning) 30%, transparent)",
+      color: "var(--warning)",
     }
   return {
     label: "Slots Available",
-    bg: "rgba(200,245,90,0.1)",
-    border: "rgba(200,245,90,0.3)",
-    color: "#C8F55A",
+    bg: "color-mix(in srgb, var(--success) 12%, transparent)",
+    border: "color-mix(in srgb, var(--success) 30%, transparent)",
+    color: "var(--success)",
   }
 }
 

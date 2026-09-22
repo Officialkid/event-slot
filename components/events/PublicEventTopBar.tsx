@@ -16,12 +16,21 @@ export default function PublicEventTopBar() {
         Event<span className="text-[#C8F55A]">Slot</span>
       </Link>
 
-      <Link
-        href="/signup"
-        className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgba(200,245,90,0.28)] bg-[#C8F55A] px-4 py-2 text-[0.82rem] font-semibold text-[#0A0A0A] no-underline transition-transform duration-200 hover:scale-[1.02]"
-      >
-        Try it out
-      </Link>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Link
+          href="/events"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border px-3.5 py-2 text-[0.82rem] font-semibold transition hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] no-underline"
+          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+        >
+          Discover Events
+        </Link>
+        <Link
+          href="/signup"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[rgba(200,245,90,0.28)] bg-[#C8F55A] px-4 py-2 text-[0.82rem] font-semibold text-[#0A0A0A] no-underline transition-transform duration-200 hover:scale-[1.02]"
+        >
+          Try it out
+        </Link>
+      </div>
     </div>
   )
 }
