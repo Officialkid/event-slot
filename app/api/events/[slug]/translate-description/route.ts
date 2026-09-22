@@ -14,7 +14,11 @@ const languageLabelByCode = Object.fromEntries(
 function safeParseTranslationPayload(content: string) {
   try {
     const cleaned = content.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "")
-    const parsed = JSON.parse(cleaned) as {
+    // Robustly extract JSON object between first { and last }
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return null
+
+    const parsed = JSON.parse(jsonMatch[0]) as {
       title?: unknown
       description?: unknown
       location?: unknown
@@ -105,13 +109,14 @@ export async function POST(req: NextRequest, props: Props) {
         "You translate public event content for EventSlot attendees.",
         "Preserve the meaning, line breaks, spacing, emojis, dates, names, phone numbers, prices, and URLs.",
         "Do not invent facts, change prices, change dates, change phone numbers, or add extra information.",
-        "Return only valid minified JSON using this exact shape:",
+        "CRITICAL: Output ONLY valid minified JSON without any greeting, explanation, or conversational commentary.",
+        "Exact JSON shape:",
         '{"title":"","description":"","location":"","entryFeeLabel":"","organizerName":"","questions":[{"id":"","label":"","options":[""]}]}',
       ].join(" "),
       prompt: [
         `Event title: ${event.title}`,
         `Target language: ${languageLabel}`,
-        "Translate this public event payload. Preserve question ids exactly and preserve option order.",
+        "Translate this public event payload into the target language. Preserve question ids exactly and preserve option order. Output ONLY raw JSON.",
         JSON.stringify({
           title: event.title,
           description,
@@ -135,16 +140,19 @@ export async function POST(req: NextRequest, props: Props) {
     }
 
     const parsedTranslation = safeParseTranslationPayload(result.content)
-    const translation = parsedTranslation?.description || result.content.trim()
+    if (!parsedTranslation || !parsedTranslation.description) {
+      return NextResponse.json(
+        { error: "Translation format could not be verified. Please try again." },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
-      translation,
-      publicTranslation: parsedTranslation
-        ? {
-            ...parsedTranslation,
-            targetLanguage,
-          }
-        : null,
+      translation: parsedTranslation.description,
+      publicTranslation: {
+        ...parsedTranslation,
+        targetLanguage,
+      },
       targetLanguage,
       provider: result.provider,
     })

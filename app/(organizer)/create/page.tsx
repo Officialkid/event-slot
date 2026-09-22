@@ -1926,13 +1926,22 @@ export default function CreateEventPage() {
               <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Event Poster
               </h2>
-              <p className="mb-4 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+              <p className="mb-3 text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
                 {isWalkInEvent
                   ? "Required for walk-in events so the status poster always includes your image. JPEG, PNG, WebP or GIF, up to 15 MB."
                   : visibility === "PUBLIC"
                     ? "Required for public events so your event can be listed on the Events page. JPEG, PNG, WebP or GIF, up to 15 MB."
-                  : "Optional flyer or banner. JPEG, PNG, WebP or GIF, up to 15 MB."}
+                  : "Upload your event flyer or promotional banner. JPEG, PNG, WebP or GIF, up to 15 MB."}
               </p>
+
+              <div className="mb-4 rounded-[10px] p-3 text-[0.76rem]" style={{ background: "var(--surface-muted)", border: "1px solid var(--border)" }}>
+                <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Recommended Dimensions for Designers:</p>
+                <ul className="space-y-1" style={{ color: "var(--text-secondary)", listStyle: "none", padding: 0, margin: 0 }}>
+                  <li>• <strong>Vertical Flyer / A4 (In-Person Dinners, Galas, Church, Summits):</strong> 1240 × 1754 px (A4 ratio) or 1080 × 1350 px (4:5 portrait)</li>
+                  <li>• <strong>Landscape Banner (Webinars, Virtual Summits):</strong> 1920 × 1080 px or 1200 × 675 px (16:9 widescreen)</li>
+                  <li>• Both vertical and horizontal formats are automatically framed with high-fidelity ambient backdrops on EventSlot.</li>
+                </ul>
+              </div>
               {imageUrl && (
                 <div className="mb-4 overflow-hidden rounded-[8px] border" style={{ borderColor: "var(--border)", background: "var(--surface-muted)", lineHeight: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}

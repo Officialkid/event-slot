@@ -310,23 +310,52 @@ export default function EventInvitationCard({
       }}
     >
       {hasPoster && (
-        <div style={{ position: "relative", width: "100%", height: 260, backgroundColor: "var(--surface-muted)" }} className="sm:h-[300px] lg:h-[420px]">
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            overflow: "hidden",
+            backgroundColor: "var(--surface-muted)",
+          }}
+          className="h-[340px] sm:h-[420px] lg:h-[520px]"
+        >
+          {/* Ambient blurred backdrop to eliminate flat gray letterboxes on portrait/A4 posters */}
+          <div
+            style={{
+              position: "absolute",
+              inset: -20,
+              backgroundImage: `url(${posterSrc})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(28px) brightness(0.65)",
+              transform: "scale(1.15)",
+              opacity: 0.65,
+              pointerEvents: "none",
+            }}
+          />
+          {/* Crisp centered poster preserving full aspect ratio (A4, 4:5, 1:1, or 16:9 banner) */}
           <Image
             src={posterSrc}
             alt={displayTitle}
             fill
-            sizes="100vw"
+            sizes="(max-width: 768px) 100vw, 860px"
             quality={100}
             unoptimized
-            style={{ objectFit: "contain", objectPosition: "center" }}
+            style={{
+              objectFit: "contain",
+              objectPosition: "center",
+              position: "relative",
+              zIndex: 1,
+            }}
             onError={handlePosterError}
           />
           <div
             style={{
               position: "absolute",
               inset: 0,
+              zIndex: 2,
               pointerEvents: "none",
-              background: "linear-gradient(180deg, rgba(10,10,10,0.02) 0%, rgba(10,10,10,0.28) 100%)",
+              background: "linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.3) 100%)",
             }}
           />
         </div>
