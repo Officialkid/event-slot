@@ -501,14 +501,13 @@ export default function EventInvitationCard({
         {(mapDirectionsUrl || displayLocation) && (() => {
           const mapQuery = displayLocation?.trim() || displayTitle || ""
           const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-          const embedUrl = mapQuery
-            ? (apiKey
-                ? `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(mapQuery)}`
-                : `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`)
+          const embedUrl = apiKey && mapQuery
+            ? `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(mapQuery)}`
             : null
+
           return (
             <div style={{ overflow: "hidden", border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-muted)", marginTop: "0.5rem" }}>
-              {embedUrl ? (
+              {embedUrl && (
                 <div style={{ position: "relative", width: "100%", height: 230, background: "var(--surface)" }}>
                   <iframe
                     title={`${displayTitle} Map Location`}
@@ -521,8 +520,8 @@ export default function EventInvitationCard({
                     src={embedUrl}
                   />
                 </div>
-              ) : null}
-              <div style={{ padding: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", gap: "0.55rem" }}>
+              )}
+              <div style={{ padding: "0.75rem", borderTop: embedUrl ? "1px solid var(--border)" : "none", display: "flex", gap: "0.55rem" }}>
                 <button
                   type="button"
                   onClick={openNativeMaps}

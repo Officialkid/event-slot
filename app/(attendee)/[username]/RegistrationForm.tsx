@@ -380,17 +380,19 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }, [displayQuestions])
 
   const steps = useMemo<RegistrationStep[]>(() => {
-    const list: RegistrationStep[] = [
-      { id: "welcome", title: "Welcome", shortLabel: "Welcome" },
-      { id: "personal", title: "Personal Details", shortLabel: "Details" },
-    ]
+    const list: RegistrationStep[] = []
+    if (!compactHeader) {
+      list.push({ id: "welcome", title: "Welcome", shortLabel: "Welcome" })
+    }
+    list.push({ id: "personal", title: "Personal Details", shortLabel: "Details" })
     if (eventQuestions.length > 0) {
       list.push({ id: "questions", title: "Event Questions", shortLabel: "Questions" })
     }
     list.push({ id: "review", title: "Review & Confirm", shortLabel: "Review" })
     return list
-  }, [eventQuestions.length])
+  }, [compactHeader, eventQuestions.length])
 
+  const currentStep = steps[currentStepIndex] || steps[0]
   const isLastStep = currentStepIndex === steps.length - 1
 
   useEffect(() => {
@@ -780,8 +782,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }
 
   function handleNextStep() {
-    if (currentStepIndex === 0) {
-      setCurrentStepIndex(1)
+    if (currentStep?.id === "welcome") {
+      setCurrentStepIndex(prev => prev + 1)
       scrollToForm()
       return
     }
@@ -1703,17 +1705,23 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
               <button
-                onClick={() => { setDuplicateInfo(null); setPendingPayload(null) }}
-                style={{ background: "transparent", border: "1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)", borderRadius: 10, padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", textAlign: "left" }}
+                type="button"
+                onClick={() => {
+                  setDuplicateInfo(null)
+                  setPendingPayload(null)
+                  setError(`You are already registered for this event${duplicateInfo.registrationNumber !== null ? ` (Registration #${String(duplicateInfo.registrationNumber).padStart(4, "0")})` : ""}. Use the Attendance Lookup on this page or check your email to access your ticket.`)
+                }}
+                style={{ background: "transparent", border: "1px solid color-mix(in srgb, var(--text-primary) 15%, transparent)", borderRadius: 10, padding: "0.75rem 1rem", fontSize: "0.82rem", color: "var(--text-primary)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", textAlign: "left" }}
               >
-                Same person - I&apos;m already registered
+                <strong>Myself</strong> — I&apos;m already registered (do not submit again)
               </button>
               <button
+                type="button"
                 onClick={handleForceRegister}
                 disabled={loading}
                 style={{ background: "#C8F55A", border: "none", borderRadius: 10, padding: "0.75rem 1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: loading ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", textAlign: "left", opacity: loading ? 0.7 : 1 }}
               >
-                Different person - continue anyway
+                <strong>Someone else</strong> — Proceed with registration →
               </button>
             </div>
           </div>
@@ -1968,7 +1976,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               />
 
               {/* STEP 0: WELCOME SCREEN */}
-              {currentStepIndex === 0 && (
+              {currentStep?.id === "welcome" && (
                 <div className="space-y-6 animate-fadeIn">
                   <div className="text-center space-y-3 py-2">
                     <EventSlotWelcomeAvatar />
@@ -2039,19 +2047,6 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   )}
 
                   {event.isPaid && <BillingPausedNotice context="paidEventRegistration" compact />}
-
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      disabled={registrationClosed || (event.isPaid ?? false)}
-                      className="w-full flex items-center justify-center gap-2 rounded-[14px] py-4 text-[0.96rem] font-bold transition-all transform shadow-[0_8px_24px_rgba(200,245,90,0.25)] hover:translate-y-[-1px] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
-                    >
-                      <span>Start Registration</span>
-                      <span aria-hidden="true">→</span>
-                    </button>
-                  </div>
                 </div>
               )}
 
@@ -2082,7 +2077,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               </div>
 
               {/* STEP 1: PERSONAL DETAILS */}
-              <div className={currentStepIndex === 1 ? "space-y-6 block animate-fadeIn" : "hidden"}>
+              <div className={currentStep?.id === "personal" ? "space-y-6 block animate-fadeIn" : "hidden"}>
                 <div className="space-y-1">
                   <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
                     Personal Details
@@ -2187,7 +2182,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
               {/* STEP 2: DYNAMIC EVENT QUESTIONS (if any exist) */}
               {eventQuestions.length > 0 && (
-                <div className={currentStepIndex === 2 ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                <div className={currentStep?.id === "questions" ? "space-y-6 block animate-fadeIn" : "hidden"}>
                   <div className="space-y-1">
                     <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
                       Event Questions
@@ -2235,7 +2230,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         </span>
                         <button
                           type="button"
-                          onClick={() => { setCurrentStepIndex(1); scrollToForm() }}
+                          onClick={() => {
+                            const pIdx = steps.findIndex(s => s.id === "personal")
+                            setCurrentStepIndex(pIdx !== -1 ? pIdx : 0)
+                            scrollToForm()
+                          }}
                           className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
                         >
                           Edit details
@@ -2272,7 +2271,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                           </span>
                           <button
                             type="button"
-                            onClick={() => { setCurrentStepIndex(2); scrollToForm() }}
+                            onClick={() => {
+                              const qIdx = steps.findIndex(s => s.id === "questions")
+                              setCurrentStepIndex(qIdx !== -1 ? qIdx : 0)
+                              scrollToForm()
+                            }}
                             className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline"
                           >
                             Edit answers
@@ -2412,7 +2415,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       disabled={registrationClosed || (event.isPaid ?? false)}
                       className="w-full sm:w-auto rounded-[12px] px-8 py-3.5 text-[0.92rem] font-bold shadow-[0_8px_24px_rgba(200,245,90,0.25)] transition-all bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {currentStepIndex === 0 ? "Start Registration →" : "Continue →"}
+                      {currentStep?.id === "welcome" ? "Start Registration →" : "Continue →"}
                     </button>
                   )}
 
