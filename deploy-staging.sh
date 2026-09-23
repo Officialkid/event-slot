@@ -8,17 +8,18 @@ if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "(unset)" ]; then
 fi
 
 REGION="us-central1"
-SERVICE="eventslot-web"
+SERVICE="eventslot-web-staging"
 REPOSITORY="eventslot"
 IMAGE_TAG=$(date +%Y%m%d-%H%M%S)
 
 echo "============================================================"
-echo "  Deploying EventSlot Staging to Google Cloud Run"
+echo "  Deploying EventSlot to STAGING (eventslot-web-staging)"
 echo "  Project:     ${PROJECT_ID}"
 echo "  Region:      ${REGION}"
 echo "  Service:     ${SERVICE}"
 echo "  Repository:  ${REPOSITORY}"
 echo "  Image Tag:   ${IMAGE_TAG}"
+echo "  Target URL:  https://staging.eventsslot.com"
 echo "============================================================"
 
 # Ensure project is set
@@ -34,11 +35,11 @@ if ! gcloud artifacts repositories describe "${REPOSITORY}" --location="${REGION
     --description="EventSlot images"
 fi
 
-# Submit Cloud Build
-echo "==> Submitting build to Cloud Build..."
+# Submit Cloud Build for Staging
+echo "==> Submitting build to Cloud Build (Staging)..."
 gcloud builds submit \
   --project="${PROJECT_ID}" \
-  --config=cloudbuild.yaml \
+  --config=cloudbuild.staging.yaml \
   --substitutions="_SERVICE=${SERVICE},_REGION=${REGION},_REPOSITORY=${REPOSITORY},_IMAGE_TAG=${IMAGE_TAG}" \
   .
 
