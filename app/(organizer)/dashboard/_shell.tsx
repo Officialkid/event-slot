@@ -155,10 +155,12 @@ function IconDotsHorizontal() {
   )
 }
 
-function IconSparkles() {
+function IconLightbulb({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 1.5l1.5 4.5 4.5 1.5-4.5 1.5L8 13.5l-1.5-4.5-4.5-1.5 4.5-1.5L8 1.5z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
     </svg>
   )
 }
@@ -168,7 +170,7 @@ function IconSparkles() {
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
-  { labelKey: "createEvent", customLabel: "ASA Assistant", href: "/dashboard/assistant", icon: <IconSparkles />, exact: false },
+  { labelKey: "createEvent", customLabel: "ASA", href: "/dashboard/assistant", icon: <IconLightbulb />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { labelKey: "community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { labelKey: "notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
@@ -185,7 +187,7 @@ const MOBILE_TAB_ITEMS = [
 ] as const
 
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
-  if (pathname.startsWith("/dashboard/assistant")) return "ASA Assistant"
+  if (pathname.startsWith("/dashboard/assistant")) return "ASA"
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
@@ -1427,30 +1429,64 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      <Link
-        href="/create"
-        aria-label={t("createEvent")}
-        data-tutorial="create-event-btn"
+      <div
         className="md:hidden"
         style={{
           position: "fixed",
           right: 16,
           bottom: "calc(5.25rem + env(safe-area-inset-bottom))",
-          width: 58,
-          height: 58,
-          borderRadius: 18,
-          background: "var(--accent)",
-          color: "var(--accent-contrast, #FFFFFF)",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          textDecoration: "none",
-          boxShadow: "0 18px 40px rgba(0,0,0,0.28)",
+          gap: 8,
           zIndex: 55,
         }}
       >
-        <IconPlus />
-      </Link>
+        <Link
+          href="/dashboard/assistant"
+          aria-label="ASA"
+          style={{
+            height: 48,
+            padding: "0 14px",
+            borderRadius: 24,
+            background: "linear-gradient(135deg, #09090b 0%, #18181b 100%)",
+            color: "#f8fafc",
+            border: "1px solid rgba(251, 191, 36, 0.4)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.35), 0 0 16px rgba(251, 191, 36, 0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            textDecoration: "none",
+            fontWeight: 700,
+            fontSize: "0.85rem",
+            letterSpacing: "0.03em",
+          }}
+        >
+          <span style={{ color: "#fbbf24", display: "flex", alignItems: "center" }}>
+            <IconLightbulb size={18} />
+          </span>
+          <span>ASA</span>
+        </Link>
+
+        <Link
+          href="/create"
+          aria-label={t("createEvent")}
+          data-tutorial="create-event-btn"
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 16,
+            background: "var(--accent)",
+            color: "var(--accent-contrast, #FFFFFF)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textDecoration: "none",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.25)",
+          }}
+        >
+          <IconPlus />
+        </Link>
+      </div>
 
       {/* Mobile bottom tab bar */}
       <nav

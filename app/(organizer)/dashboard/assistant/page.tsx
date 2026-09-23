@@ -26,21 +26,17 @@ type CreatedEvent = {
 
 const INITIAL_GREETING: AsaMessage = {
   role: "assistant",
-  content: "Hi there! I'm ASA, your EventSlot assistant. How can I help you today?",
+  content: "Hi there! I'm ASA. How can I help you today?",
 }
 
 const QUICK_STARTERS = [
+  { label: "📋 How many events do I currently have?", prompt: "How many events do I currently have?" },
+  { label: "🖼️ Upload flyer photo", prompt: "I'd like to upload an event flyer." },
   { label: "📊 How is my event doing?", prompt: "How is my event doing?" },
   { label: "👥 Registered today", prompt: "How many people registered today?" },
   { label: "🎟️ Remaining slots", prompt: "How many slots are remaining?" },
-  { label: "📍 Check-in status", prompt: "How many people have checked in?" },
   { label: "⚡ Increase capacity to 800", prompt: "Increase capacity to 800" },
   { label: "✨ Help me create an event", prompt: "Help me create an event." },
-  {
-    label: "Partners Dinner 2026",
-    prompt:
-      "I want to create an event called Partners Dinner 2026. It will be on 3 October 2026 at Swiss Lenana, from 3 PM to 6 PM, with a capacity of 500 people.",
-  },
 ]
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
@@ -52,6 +48,24 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   select: "Dropdown",
   checkbox: "Checkboxes",
   file: "File Upload",
+}
+
+function AsaBulbIcon({ size = 18, glowing = true }: { size?: number; glowing?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        filter: glowing ? "drop-shadow(0 0 6px rgba(251, 191, 36, 0.6))" : "none",
+        color: "#fbbf24",
+      }}
+    >
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zm-2 18a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1h-4v1z" />
+      </svg>
+    </span>
+  )
 }
 
 export default function AsaAssistantPage() {
@@ -72,6 +86,11 @@ export default function AsaAssistantPage() {
   const [createdEvent, setCreatedEvent] = useState<CreatedEvent | null>(null)
   const [copiedLink, setCopiedLink] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Image Upload & Vision State
+  const [selectedImage, setSelectedImage] = useState<{ base64: string; mimeType: string; name: string } | null>(null)
+  const [isListening, setIsListening] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Phase 3 States: Event Intelligence, Management & Disambiguation
   const [organizerEvents, setOrganizerEvents] = useState<AsaEventListItem[]>([])
@@ -115,30 +134,104 @@ export default function AsaAssistantPage() {
     loadOrganizerEvents()
   }, [])
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 8 * 1024 * 1024) {
+      setError("Please choose an image under 8MB.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSelectedImage({
+        base64: reader.result as string,
+        mimeType: file.type || "image/jpeg",
+        name: file.name,
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const toggleListening = () => {
+    if (typeof window === "undefined") return
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setError("Voice speech recognition is not supported in this browser.")
+      return
+    }
+    if (isListening) {
+      setIsListening(false)
+      return
+    }
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = "en-US"
+      recognition.onstart = () => setIsListening(true)
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript || ""
+        if (transcript) {
+          setInput((prev) => (prev ? `${prev} ${transcript}` : transcript))
+        }
+        setIsListening(false)
+      }
+      recognition.onerror = () => setIsListening(false)
+      recognition.onend = () => setIsListening(false)
+      recognition.start()
+    } catch {
+      setIsListening(false)
+    }
+  }
+
   const handleSend = async (messageText?: string) => {
     const textToSend = (messageText ?? input).trim()
-    if (!textToSend || loading) return
+    const activeImage = selectedImage
+    if ((!textToSend && !activeImage) || loading) return
 
     setInput("")
+    setSelectedImage(null)
     setError(null)
 
-    const nextMessages: AsaMessage[] = [...messages, { role: "user", content: textToSend }]
+    const userMessageContent = activeImage
+      ? textToSend
+        ? `[Uploaded Flyer: ${activeImage.name}] ${textToSend}`
+        : `[Uploaded Flyer: ${activeImage.name}] Please analyze this event flyer.`
+      : textToSend
+
+    const nextMessages: AsaMessage[] = [...messages, { role: "user", content: userMessageContent }]
     setMessages(nextMessages)
     setLoading(true)
 
     try {
-      const response = await fetch("/api/assistant/asa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: nextMessages,
-          draft,
-          proposal: formProposal,
-          pendingAction,
-          eventId: selectedEvent?.id || formProposal?.eventId || createdEvent?.id,
-          eventSlug: selectedEvent?.slug || formProposal?.eventSlug || createdEvent?.slug,
-        }),
-      })
+      let response: Response
+      if (activeImage) {
+        response = await fetch("/api/assistant/asa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "analyze_flyer",
+            imageBase64: activeImage.base64,
+            mimeType: activeImage.mimeType,
+            customPrompt: textToSend,
+            messages: nextMessages,
+          }),
+        })
+      } else {
+        response = await fetch("/api/assistant/asa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: nextMessages,
+            draft,
+            proposal: formProposal,
+            pendingAction,
+            eventId: selectedEvent?.id || formProposal?.eventId || createdEvent?.id,
+            eventSlug: selectedEvent?.slug || formProposal?.eventSlug || createdEvent?.slug,
+          }),
+        })
+      }
 
       const data = await response.json()
 
@@ -158,7 +251,7 @@ export default function AsaAssistantPage() {
       if (data.actionCancelled) {
         setPendingAction(null)
       }
-      if (data.needsDisambiguation && Array.isArray(data.eventsList)) {
+      if ((data.needsDisambiguation || data.isOverview) && Array.isArray(data.eventsList) && data.eventsList.length > 0) {
         setDisambiguationOptions(data.eventsList)
       } else {
         setDisambiguationOptions(null)
@@ -540,47 +633,46 @@ export default function AsaAssistantPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: "12px",
-              background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
-              border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              width: 40,
+              height: 40,
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #09090b 0%, #18181b 100%)",
+              border: "1px solid rgba(251, 191, 36, 0.35)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--accent)",
-              fontSize: "1.1rem",
-              fontWeight: 700,
+              boxShadow: "0 0 16px rgba(251, 191, 36, 0.2)",
             }}
           >
-            ✨
+            <AsaBulbIcon size={22} glowing />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <h1
                 style={{
                   margin: 0,
-                  fontSize: "1.05rem",
+                  fontSize: "1.1rem",
                   fontWeight: 700,
                   color: "var(--text-primary)",
                   fontFamily: "var(--font-dm-sans)",
+                  letterSpacing: "-0.01em",
                 }}
               >
                 ASA
               </h1>
               <span
                 style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  padding: "0.15rem 0.5rem",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  padding: "0.15rem 0.55rem",
                   borderRadius: "999px",
-                  background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
-                  color: "var(--accent)",
-                  border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
-                  letterSpacing: "0.02em",
+                  background: "linear-gradient(135deg, #18181b 0%, #27272a 100%)",
+                  color: "#fbbf24",
+                  border: "1px solid rgba(251, 191, 36, 0.3)",
+                  letterSpacing: "0.04em",
                 }}
               >
-                Event Assistant
+                AI
               </span>
             </div>
             <p
@@ -590,7 +682,7 @@ export default function AsaAssistantPage() {
                 color: "var(--text-muted)",
               }}
             >
-              Event creation, live intelligence & natural management
+              Event creation, live intelligence, flyer scanning & management
             </p>
           </div>
         </div>
@@ -698,7 +790,7 @@ export default function AsaAssistantPage() {
                     marginTop: 2,
                   }}
                 >
-                  ✨
+                  <AsaBulbIcon size={16} glowing={false} />
                 </div>
               )}
 
@@ -768,14 +860,15 @@ export default function AsaAssistantPage() {
                 width: 32,
                 height: 32,
                 borderRadius: "10px",
-                background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
+                background: "linear-gradient(135deg, #18181b 0%, #27272a 100%)",
+                border: "1px solid rgba(251, 191, 36, 0.3)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: "0.95rem",
               }}
             >
-              ✨
+              <AsaBulbIcon size={16} glowing={true} />
             </div>
             <div
               style={{
@@ -1353,7 +1446,7 @@ export default function AsaAssistantPage() {
                     gap: "0.35rem",
                   }}
                 >
-                  <span>✨</span>
+                  <AsaBulbIcon size={14} glowing={false} />
                   <span>Set up Registration Questions</span>
                 </button>
               )}
@@ -1811,7 +1904,7 @@ export default function AsaAssistantPage() {
                       boxShadow: "0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent)",
                     }}
                   >
-                    <span>✨</span>
+                    <AsaBulbIcon size={14} glowing={false} />
                     <span>{applyingQuestions ? "Applying..." : "Apply to Registration Form"}</span>
                   </button>
                   <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
@@ -1863,18 +1956,100 @@ export default function AsaAssistantPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Composer (Mobile-First Sticky Bottom) */}
-      <div
-        style={{
-          marginTop: "0.5rem",
-          background: "var(--surface)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "18px",
-          padding: "0.5rem 0.75rem",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem" }}>
+      {/* Input Composer (Modern Capsule Matching Mockup) */}
+      <div style={{ marginTop: "0.5rem" }}>
+        {/* Hidden File Input for Flyers/Photos */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+        />
+
+        {/* Selected Flyer Preview Chip */}
+        {selectedImage && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "4px 10px",
+              borderRadius: 12,
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              marginBottom: 8,
+              fontSize: "0.8rem",
+              color: "var(--text-primary)",
+            }}
+          >
+            <img
+              src={selectedImage.base64}
+              alt="Uploaded flyer"
+              style={{ width: 28, height: 28, objectFit: "cover", borderRadius: 6 }}
+            />
+            <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {selectedImage.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedImage(null)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "0 2px",
+                fontSize: "1rem",
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Capsule Input Bar */}
+        <div
+          style={{
+            background: "#18181b",
+            border: "1px solid #27272a",
+            borderRadius: "9999px",
+            padding: "0.4rem 0.5rem 0.4rem 0.65rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+          }}
+        >
+          {/* Plus Button (Upload Flyer / Photo) */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload event flyer or poster"
+            aria-label="Upload event flyer"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              color: "#f4f4f5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+
+          {/* Text Area */}
           <textarea
             ref={inputRef}
             value={input}
@@ -1885,7 +2060,13 @@ export default function AsaAssistantPage() {
                 handleSend()
               }
             }}
-            placeholder={isReview ? 'Type "Yes" to create, or type changes...' : "Describe your event or ask ASA..."}
+            placeholder={
+              selectedImage
+                ? "Ask ASA about this flyer, or press send to analyze..."
+                : isReview
+                ? 'Type "Yes" to create, or describe changes...'
+                : "Ask anything..."
+            }
             rows={1}
             disabled={loading}
             style={{
@@ -1893,39 +2074,112 @@ export default function AsaAssistantPage() {
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "var(--text-primary)",
-              fontSize: "0.925rem",
+              color: "#f4f4f5",
+              fontSize: "0.93rem",
               fontFamily: "var(--font-dm-sans)",
               resize: "none",
-              padding: "0.5rem 0.25rem",
-              maxHeight: 120,
-              minHeight: 24,
+              padding: "0.35rem 0.2rem",
+              maxHeight: 100,
+              minHeight: 22,
+              lineHeight: 1.4,
             }}
           />
 
+          {/* Think Badge */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              padding: "0.3rem 0.6rem",
+              borderRadius: "9999px",
+              background: loading ? "rgba(251, 191, 36, 0.15)" : "rgba(255, 255, 255, 0.06)",
+              border: loading ? "1px solid rgba(251, 191, 36, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+              color: loading ? "#fbbf24" : "#a1a1aa",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              userSelect: "none",
+              flexShrink: 0,
+              transition: "all 0.2s ease",
+            }}
+          >
+            <span style={{ fontSize: "0.85rem" }}>🧠</span>
+            <span className="hidden sm:inline">{loading ? "Thinking..." : "Think"}</span>
+          </div>
+
+          {/* Microphone Dictation */}
           <button
+            type="button"
+            onClick={toggleListening}
+            aria-label={isListening ? "Stop listening" : "Start voice dictation"}
+            title={isListening ? "Listening... click to stop" : "Click to speak"}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: isListening ? "rgba(239, 68, 68, 0.2)" : "transparent",
+              border: isListening ? "1px solid #ef4444" : "none",
+              color: isListening ? "#ef4444" : "#a1a1aa",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="22" />
+            </svg>
+          </button>
+
+          {/* Send Action Button */}
+          <button
+            type="button"
             onClick={() => handleSend()}
-            disabled={!input.trim() || loading}
+            disabled={(!input.trim() && !selectedImage) || loading}
+            aria-label="Send to ASA"
             style={{
               width: 36,
               height: 36,
-              borderRadius: "12px",
-              background: input.trim() && !loading ? "var(--accent)" : "color-mix(in srgb, var(--text-muted) 20%, transparent)",
-              color: input.trim() && !loading ? "var(--accent-contrast, #FFFFFF)" : "var(--text-muted)",
+              borderRadius: "50%",
+              background: "#2563eb",
+              opacity: (input.trim() || selectedImage) && !loading ? 1 : 0.7,
+              color: "#ffffff",
               border: "none",
-              cursor: input.trim() && !loading ? "pointer" : "not-allowed",
+              cursor: (input.trim() || selectedImage) && !loading ? "pointer" : "default",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
+              boxShadow: "0 2px 10px rgba(37, 99, 235, 0.4)",
               transition: "all 0.15s ease",
             }}
-            aria-label="Send message to ASA"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 12V4M4 8l4-4 4 4" />
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
             </svg>
           </button>
+        </div>
+
+        {/* Anonymized Interaction Logging Note */}
+        <div
+          style={{
+            marginTop: "0.45rem",
+            textAlign: "center",
+            fontSize: "0.72rem",
+            color: "var(--text-muted)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.3rem",
+          }}
+        >
+          <span>🔒</span>
+          <span>Interactions are securely logged to continuously improve ASA. No attendee PII is used.</span>
         </div>
       </div>
     </div>

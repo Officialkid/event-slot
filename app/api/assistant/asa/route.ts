@@ -17,6 +17,9 @@ import {
   detectManagementActionIntent,
   isActionConfirmation,
   isActionCancellation,
+  isOrganizerEventsOverviewQuery,
+  formatOrganizerEventsOverview,
+  analyzeFlyerWithVision,
   type AsaEventDraft,
   type AsaMessage,
   type AsaFormProposal,
@@ -35,6 +38,22 @@ function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, "")
   const suffix = Math.random().toString(36).substring(2, 6)
   return `${base || "event"}-${suffix}`
+}
+
+function safeLogAsaInteraction(actorId: string, metadata: Record<string, unknown>) {
+  try {
+    if (prisma && "auditLog" in prisma && typeof (prisma as any).auditLog?.create === "function") {
+      (prisma as any).auditLog
+        .create({
+          data: {
+            actorId,
+            action: "ASA_INTERACTION",
+            metadata,
+          },
+        })
+        .catch(() => {})
+    }
+  } catch {}
 }
 
 function parseDraftDateAndTimes(draft: AsaEventDraft): {
@@ -121,7 +140,10 @@ export async function POST(req: NextRequest) {
         | "get_event_insights"
         | "execute_management_action"
         | "cancel_management_action"
+        | "analyze_flyer"
         | "reset"
+      imageBase64?: string
+      mimeType?: string
     }
 
     try {
@@ -140,9 +162,38 @@ export async function POST(req: NextRequest) {
       customPrompt,
       questions,
       action,
+      imageBase64,
+      mimeType,
     } = body
 
     const latestMessage = messages[messages.length - 1]?.content?.trim() || ""
+
+    // =========================================================================
+    // 0. FLYER PHOTO MULTIMODAL EXTRACTION
+    // =========================================================================
+    if (action === "analyze_flyer" && imageBase64) {
+      const visionResult = await analyzeFlyerWithVision({
+        imageBase64,
+        mimeType: mimeType || "image/jpeg",
+        userNote: latestMessage || customPrompt,
+      })
+
+      // Asynchronously log interaction for fine-tuning dataset collection
+      safeLogAsaInteraction(userId, {
+        intent: "flyer_vision_analysis",
+        success: visionResult.success,
+        extractedDraft: visionResult.draft,
+        userNote: latestMessage || customPrompt || null,
+      })
+
+      return NextResponse.json({
+        success: visionResult.success,
+        reply: visionResult.reply,
+        draft: visionResult.draft,
+        isReviewState: visionResult.draft.status === "ready_for_review",
+        isConfirmedState: false,
+      })
+    }
 
     // =========================================================================
     // 1. DIRECT ACTION HANDLERS (EVENT MANAGEMENT & INTELLIGENCE)
@@ -418,6 +469,65 @@ export async function POST(req: NextRequest) {
           reply: formatQuestionsForReview(generated, targetEvent.event.title),
         })
       }
+    }
+
+    // =========================================================================
+    // 3.5. ORGANIZER EVENT OVERVIEW & GENERAL ASA INQUIRIES
+    // =========================================================================
+
+    // Check if organizer is asking "How many events do I currently have?", "How many events have we done?", "List my events", etc.
+    if (isOrganizerEventsOverviewQuery(latestMessage) && draft.status !== "ready_for_review") {
+      const userEvents = await prisma.event.findMany({
+        where: { organizerId: userId, archived: false },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          confirmedCount: true,
+          capacity: true,
+          eventDate: true,
+          status: true,
+          location: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      })
+
+      const events: AsaEventListItem[] = userEvents.map((e) => ({
+        id: e.id,
+        slug: e.slug,
+        title: e.title,
+        confirmedCount: e.confirmedCount,
+        capacity: e.capacity,
+        eventDate: e.eventDate,
+        status: e.status,
+      }))
+
+      const reply = formatOrganizerEventsOverview(events)
+
+      safeLogAsaInteraction(userId, {
+        intent: "organizer_events_overview",
+        userQuery: latestMessage,
+        eventCount: events.length,
+      })
+
+      return NextResponse.json({
+        success: true,
+        reply,
+        eventsList: events,
+        isOverview: true,
+      })
+    }
+
+    // Check if organizer is asking general inquiries about ASA
+    const isGeneralAsaInquiry =
+      /^(?:who are you|what is asa|what can you do|how can you help|help|what do you do)\??$/i.test(latestMessage.trim()) ||
+      latestMessage.toLowerCase() === "asa"
+    if (isGeneralAsaInquiry && draft.status !== "ready_for_review") {
+      return NextResponse.json({
+        success: true,
+        reply: "Hi! I'm ASA, your intelligent event partner on EventSlot. Here is what I can do for you:\n\n1. **Event Creation**: Type details naturally or upload a photo of your event flyer with the `+` button.\n2. **Custom Registration Forms**: I can suggest and configure questions for conferences, dinners, webinars, and more.\n3. **Live Intelligence & Metrics**: Ask me *\"How is my event doing?\"*, *\"How many registered today?\"*, or *\"How many events do I currently have?\"*.\n4. **Event Management**: Simply say *\"Increase capacity to 800\"* or *\"Update venue to Sarit Expo\"*.\n\nHow can I help you today?",
+      })
     }
 
     // =========================================================================
@@ -995,6 +1105,14 @@ async function executeEventCreation(
     status: "proposed",
     questions: proposedQuestions,
   }
+
+  safeLogAsaInteraction(userId, {
+    intent: "event_creation",
+    createdEventId: newEvent.id,
+    title: newEvent.title,
+    capacity: newEvent.capacity,
+    location: newEvent.location,
+  })
 
   return NextResponse.json({
     success: true,

@@ -5,6 +5,8 @@ import {
   detectManagementActionIntent,
   isActionConfirmation,
   isActionCancellation,
+  isOrganizerEventsOverviewQuery,
+  formatOrganizerEventsOverview,
   type AsaEventMetrics,
 } from "@/lib/asa/asa-engine"
 import { NextRequest } from "next/server"
@@ -473,6 +475,88 @@ describe("ASA Phase 3: Event Intelligence and Management Engine", () => {
       const res = await POST(req)
       expect(res.status).toBe(403)
       expect(mockEventUpdate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("Organizer Events Overview & Count Queries", () => {
+    it("correctly identifies event count and overview intents", () => {
+      expect(isOrganizerEventsOverviewQuery("How many events do I currently have?")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("how many events do i have")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("I asked how many events have we done?")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("what events do i have")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("list my events")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("show my events")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("my events")).toBe(true)
+      expect(isOrganizerEventsOverviewQuery("events overview")).toBe(true)
+
+      // Negative checks
+      expect(isOrganizerEventsOverviewQuery("how many people registered today?")).toBe(false)
+      expect(isOrganizerEventsOverviewQuery("increase capacity to 800")).toBe(false)
+    })
+
+    it("formats empty event overview gracefully", () => {
+      const summary = formatOrganizerEventsOverview([])
+      expect(summary).toContain("You currently don't have any events")
+      expect(summary).toContain("help you create your first event")
+    })
+
+    it("formats multiple events overview with attendee totals", () => {
+      const summary = formatOrganizerEventsOverview([
+        {
+          id: "evt_1",
+          slug: "tech-summit",
+          title: "Tech Summit 2026",
+          confirmedCount: 350,
+          capacity: 500,
+          eventDate: "2026-10-15T10:00:00Z",
+          status: "active",
+        },
+        {
+          id: "evt_2",
+          slug: "partners-dinner",
+          title: "Partners Dinner",
+          confirmedCount: 80,
+          capacity: 100,
+          eventDate: "2026-11-20T18:00:00Z",
+          status: "active",
+        },
+      ])
+
+      expect(summary).toContain("You currently have **2 events** on EventSlot")
+      expect(summary).toContain("Tech Summit 2026")
+      expect(summary).toContain("Partners Dinner")
+      expect(summary).toContain("total of **430 registered attendees**")
+    })
+
+    it("handles conversational overview query in route.ts successfully", async () => {
+      mockEventFindMany.mockResolvedValue([
+        {
+          id: "evt_1",
+          slug: "tech-summit",
+          title: "Tech Summit 2026",
+          confirmedCount: 350,
+          capacity: 500,
+          eventDate: new Date("2026-10-15T10:00:00Z"),
+          status: "active",
+          location: "Nairobi",
+        },
+      ])
+
+      const req = new NextRequest("http://localhost:3000/api/assistant/asa", {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "How many events do I currently have?" }],
+        }),
+      })
+
+      const res = await POST(req)
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.success).toBe(true)
+      expect(data.isOverview).toBe(true)
+      expect(data.reply).toContain("You currently have **1 event** on EventSlot")
+      expect(data.reply).toContain("Tech Summit 2026")
+      expect(data.eventsList).toHaveLength(1)
     })
   })
 })
