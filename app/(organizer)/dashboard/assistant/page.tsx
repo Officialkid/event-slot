@@ -2,7 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import type { AsaEventDraft, AsaMessage } from "@/lib/asa/asa-engine"
+import type {
+  AsaEventDraft,
+  AsaMessage,
+  AsaFormProposal,
+  AsaFormQuestion,
+  QuestionType,
+} from "@/lib/asa/asa-engine"
 
 type CreatedEvent = {
   id: string
@@ -31,11 +37,35 @@ const QUICK_STARTERS = [
     label: "Tech Summit Nairobi",
     prompt: "Create an event called Tech Summit. It will be in Nairobi in December and have 500 attendees.",
   },
+  {
+    label: "Setup conference questions",
+    prompt: "Create registration questions for my technology conference.",
+  },
 ]
+
+const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+  text: "Short Text",
+  textarea: "Paragraph",
+  number: "Number",
+  email: "Email",
+  phone: "Phone",
+  select: "Dropdown",
+  checkbox: "Checkboxes",
+  file: "File Upload",
+}
 
 export default function AsaAssistantPage() {
   const [messages, setMessages] = useState<AsaMessage[]>([INITIAL_GREETING])
   const [draft, setDraft] = useState<AsaEventDraft>({ status: "collecting" })
+  const [formProposal, setFormProposal] = useState<AsaFormProposal | null>(null)
+  const [isFormApplied, setIsFormApplied] = useState(false)
+  const [applyingQuestions, setApplyingQuestions] = useState(false)
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
+  const [editLabelText, setEditLabelText] = useState("")
+  const [newQuestionLabel, setNewQuestionLabel] = useState("")
+  const [newQuestionType, setNewQuestionType] = useState<QuestionType>("text")
+  const [newQuestionRequired, setNewQuestionRequired] = useState(false)
+  const [showAddQuestionRow, setShowAddQuestionRow] = useState(false)
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [isReview, setIsReview] = useState(false)
@@ -72,6 +102,9 @@ export default function AsaAssistantPage() {
         body: JSON.stringify({
           messages: nextMessages,
           draft,
+          proposal: formProposal,
+          eventId: formProposal?.eventId || createdEvent?.id,
+          eventSlug: formProposal?.eventSlug || createdEvent?.slug,
         }),
       })
 
@@ -84,6 +117,10 @@ export default function AsaAssistantPage() {
       if (data.created && data.event) {
         setCreatedEvent(data.event)
         setIsReview(false)
+        if (data.formProposal) {
+          setFormProposal(data.formProposal)
+          setIsFormApplied(false)
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -93,6 +130,10 @@ export default function AsaAssistantPage() {
         ])
       } else {
         if (data.draft) setDraft(data.draft)
+        if (data.proposal) {
+          setFormProposal(data.proposal)
+          if (data.applied) setIsFormApplied(true)
+        }
         setIsReview(Boolean(data.isReviewState))
         setMessages((prev) => [
           ...prev,
@@ -142,6 +183,10 @@ export default function AsaAssistantPage() {
       if (data.created && data.event) {
         setCreatedEvent(data.event)
         setIsReview(false)
+        if (data.formProposal) {
+          setFormProposal(data.formProposal)
+          setIsFormApplied(false)
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -158,11 +203,172 @@ export default function AsaAssistantPage() {
     }
   }
 
+  const handleToggleRequired = (id: string) => {
+    if (!formProposal) return
+    setFormProposal({
+      ...formProposal,
+      questions: formProposal.questions.map((q) =>
+        q.id === id ? { ...q, required: !q.required } : q
+      ),
+    })
+  }
+
+  const handleDeleteQuestion = (id: string) => {
+    if (!formProposal) return
+    setFormProposal({
+      ...formProposal,
+      questions: formProposal.questions
+        .filter((q) => q.id !== id)
+        .map((q) => (q.condition?.questionId === id ? { ...q, condition: undefined } : q)),
+    })
+  }
+
+  const handleMoveQuestion = (index: number, direction: "up" | "down") => {
+    if (!formProposal) return
+    const targetIndex = direction === "up" ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= formProposal.questions.length) return
+    const updated = [...formProposal.questions]
+    const temp = updated[index]
+    updated[index] = updated[targetIndex]
+    updated[targetIndex] = temp
+    setFormProposal({
+      ...formProposal,
+      questions: updated,
+    })
+  }
+
+  const handleStartEditLabel = (id: string, currentLabel: string) => {
+    setEditingQuestionId(id)
+    setEditLabelText(currentLabel)
+  }
+
+  const handleSaveLabel = (id: string) => {
+    if (!formProposal || !editLabelText.trim()) {
+      setEditingQuestionId(null)
+      return
+    }
+    setFormProposal({
+      ...formProposal,
+      questions: formProposal.questions.map((q) =>
+        q.id === id ? { ...q, label: editLabelText.trim() } : q
+      ),
+    })
+    setEditingQuestionId(null)
+    setEditLabelText("")
+  }
+
+  const handleAddQuestion = () => {
+    if (!formProposal || !newQuestionLabel.trim()) return
+    const newQ: AsaFormQuestion = {
+      id: `q_custom_${Date.now()}`,
+      label: newQuestionLabel.trim(),
+      type: newQuestionType,
+      required: newQuestionRequired,
+      ...(newQuestionType === "select" || newQuestionType === "checkbox" ? { options: ["Option 1", "Option 2"] } : {}),
+    }
+    setFormProposal({
+      ...formProposal,
+      questions: [...formProposal.questions, newQ],
+    })
+    setNewQuestionLabel("")
+    setShowAddQuestionRow(false)
+  }
+
+  const handleApplyQuestions = async () => {
+    const targetEventId = formProposal?.eventId || createdEvent?.id
+    const targetEventSlug = formProposal?.eventSlug || createdEvent?.slug
+    if (!formProposal || applyingQuestions || !targetEventId) return
+    setApplyingQuestions(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/assistant/asa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "apply_questions",
+          eventId: targetEventId,
+          eventSlug: targetEventSlug,
+          questions: formProposal.questions,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to apply questions.")
+      }
+
+      setIsFormApplied(true)
+      setFormProposal(data.proposal || { ...formProposal, status: "applied" })
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            data.reply ||
+            `🎉 Your registration form has been configured with ${formProposal.questions.length} questions!`,
+        },
+      ])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to apply questions."
+      setError(msg)
+    } finally {
+      setApplyingQuestions(false)
+    }
+  }
+
+  const handleProposeQuestionsForEvent = async () => {
+    const targetEventId = createdEvent?.id || formProposal?.eventId
+    const targetEventSlug = createdEvent?.slug || formProposal?.eventSlug
+    if (!targetEventId && !targetEventSlug) return
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/assistant/asa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "propose_questions",
+          eventId: targetEventId,
+          eventSlug: targetEventSlug,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to suggest questions.")
+      }
+
+      if (data.proposal) {
+        setFormProposal(data.proposal)
+        setIsFormApplied(false)
+      }
+      if (data.reply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.reply,
+          },
+        ])
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to suggest questions."
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleReset = () => {
     setMessages([INITIAL_GREETING])
     setDraft({ status: "collecting" })
+    setFormProposal(null)
+    setIsFormApplied(false)
     setIsReview(false)
     setCreatedEvent(null)
+    setEditingQuestionId(null)
+    setEditLabelText("")
+    setShowAddQuestionRow(false)
     setInput("")
     setError(null)
   }
@@ -636,6 +842,528 @@ export default function AsaAssistantPage() {
               >
                 Create Another Event
               </button>
+
+              {!formProposal && (
+                <button
+                  onClick={handleProposeQuestionsForEvent}
+                  disabled={loading}
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
+                    color: "var(--accent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                    borderRadius: "10px",
+                    padding: "0.6rem 1.1rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.35rem",
+                  }}
+                >
+                  <span>✨</span>
+                  <span>Set up Registration Questions</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Interactive Registration Form Card */}
+        {formProposal && formProposal.questions.length > 0 && (
+          <div
+            style={{
+              margin: "0.5rem 0 0.5rem 2.75rem",
+              background: "var(--surface)",
+              border: isFormApplied
+                ? "1.5px solid #38A169"
+                : "1.5px solid color-mix(in srgb, var(--accent) 45%, transparent)",
+              borderRadius: "18px",
+              padding: "1.25rem",
+              boxShadow: "0 6px 22px rgba(0,0,0,0.04)",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontSize: "1.1rem" }}>📋</span>
+                <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  Registration Form {formProposal.eventTitle ? `— ${formProposal.eventTitle}` : ""}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  padding: "0.2rem 0.55rem",
+                  borderRadius: "999px",
+                  background: isFormApplied
+                    ? "color-mix(in srgb, #38A169 15%, var(--surface))"
+                    : "color-mix(in srgb, var(--accent) 15%, var(--surface))",
+                  color: isFormApplied ? "#2F855A" : "var(--accent)",
+                  border: isFormApplied
+                    ? "1px solid color-mix(in srgb, #38A169 30%, transparent)"
+                    : "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                }}
+              >
+                {isFormApplied ? "✓ Saved & Live" : "Recommendations (Preview)"}
+              </span>
+            </div>
+
+            <p style={{ margin: "0 0 1rem", fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
+              {isFormApplied
+                ? "Attendees will answer these questions when registering for your event."
+                : "These are recommended questions based on your event. You can edit, remove, reorder, or add questions before publishing."}
+            </p>
+
+            {/* Questions list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              {formProposal.questions.map((q, idx) => (
+                <div
+                  key={q.id || idx}
+                  style={{
+                    padding: "0.65rem 0.85rem",
+                    borderRadius: "12px",
+                    background: "var(--surface-muted, rgba(0,0,0,0.02))",
+                    border: "1px solid var(--border-subtle)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.35rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--accent)" }}>
+                        #{idx + 1}
+                      </span>
+
+                      {editingQuestionId === q.id ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flex: 1 }}>
+                          <input
+                            value={editLabelText}
+                            onChange={(e) => setEditLabelText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveLabel(q.id)
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: "0.25rem 0.5rem",
+                              borderRadius: "6px",
+                              border: "1px solid var(--accent)",
+                              background: "var(--surface)",
+                              color: "var(--text-primary)",
+                              fontSize: "0.85rem",
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleSaveLabel(q.id)}
+                            style={{
+                              background: "var(--accent)",
+                              color: "var(--accent-contrast, #FFFFFF)",
+                              border: "none",
+                              borderRadius: "6px",
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {q.label}
+                        </span>
+                      )}
+
+                      <span
+                        style={{
+                          fontSize: "0.68rem",
+                          padding: "0.15rem 0.45rem",
+                          borderRadius: "4px",
+                          background: "var(--surface)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {QUESTION_TYPE_LABELS[q.type] || q.type}
+                      </span>
+
+                      <button
+                        onClick={() => handleToggleRequired(q.id)}
+                        disabled={isFormApplied}
+                        style={{
+                          fontSize: "0.68rem",
+                          padding: "0.15rem 0.45rem",
+                          borderRadius: "4px",
+                          border: "none",
+                          cursor: isFormApplied ? "default" : "pointer",
+                          background: q.required
+                            ? "color-mix(in srgb, var(--accent) 15%, var(--surface))"
+                            : "var(--surface)",
+                          color: q.required ? "var(--accent)" : "var(--text-muted)",
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                        title="Click to toggle required / optional"
+                      >
+                        {q.required ? "Required" : "Optional"}
+                      </button>
+                    </div>
+
+                    {!isFormApplied && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.2rem", flexShrink: 0 }}>
+                        {editingQuestionId !== q.id && (
+                          <button
+                            onClick={() => handleStartEditLabel(q.id, q.label)}
+                            title="Edit question text"
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--text-secondary)",
+                              cursor: "pointer",
+                              padding: "0.2rem 0.35rem",
+                              fontSize: "0.8rem",
+                            }}
+                          >
+                            ✏️
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleMoveQuestion(idx, "up")}
+                          disabled={idx === 0}
+                          title="Move up"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: idx === 0 ? "var(--text-muted)" : "var(--text-secondary)",
+                            cursor: idx === 0 ? "default" : "pointer",
+                            padding: "0.2rem 0.35rem",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => handleMoveQuestion(idx, "down")}
+                          disabled={idx === formProposal.questions.length - 1}
+                          title="Move down"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: idx === formProposal.questions.length - 1 ? "var(--text-muted)" : "var(--text-secondary)",
+                            cursor: idx === formProposal.questions.length - 1 ? "default" : "pointer",
+                            padding: "0.2rem 0.35rem",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          ▼
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuestion(q.id)}
+                          title="Delete question"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#E53E3E",
+                            cursor: "pointer",
+                            padding: "0.2rem 0.35rem",
+                            fontSize: "0.85rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Options chips */}
+                  {Array.isArray(q.options) && q.options.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", paddingLeft: "1.25rem" }}>
+                      {q.options.map((opt, optIdx) => (
+                        <span
+                          key={optIdx}
+                          style={{
+                            fontSize: "0.72rem",
+                            background: "var(--surface)",
+                            border: "1px solid var(--border-subtle)",
+                            padding: "0.1rem 0.4rem",
+                            borderRadius: "4px",
+                            color: "var(--text-muted)",
+                          }}
+                        >
+                          {opt}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Condition indicator */}
+                  {q.condition && (
+                    <div style={{ fontSize: "0.72rem", color: "var(--accent)", paddingLeft: "1.25rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                      <span>⚡ Shown only if response is &quot;{q.condition.value}&quot;</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add question inline row */}
+            {!isFormApplied && (
+              <div style={{ marginTop: "0.75rem" }}>
+                {showAddQuestionRow ? (
+                  <div
+                    style={{
+                      padding: "0.75rem",
+                      borderRadius: "12px",
+                      background: "color-mix(in srgb, var(--accent) 6%, var(--surface))",
+                      border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <input
+                      placeholder="Question text (e.g. Dietary Requirements)"
+                      value={newQuestionLabel}
+                      onChange={(e) => setNewQuestionLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddQuestion()
+                      }}
+                      style={{
+                        padding: "0.4rem 0.65rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border-subtle)",
+                        background: "var(--surface)",
+                        color: "var(--text-primary)",
+                        fontSize: "0.85rem",
+                        outline: "none",
+                      }}
+                      autoFocus
+                    />
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+                      <select
+                        value={newQuestionType}
+                        onChange={(e) => setNewQuestionType(e.target.value as QuestionType)}
+                        style={{
+                          padding: "0.35rem 0.6rem",
+                          borderRadius: "8px",
+                          border: "1px solid var(--border-subtle)",
+                          background: "var(--surface)",
+                          color: "var(--text-primary)",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        {Object.entries(QUESTION_TYPE_LABELS).map(([val, lbl]) => (
+                          <option key={val} value={val}>
+                            {lbl}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label style={{ fontSize: "0.78rem", display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-secondary)", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={newQuestionRequired}
+                          onChange={(e) => setNewQuestionRequired(e.target.checked)}
+                        />
+                        Required
+                      </label>
+
+                      <button
+                        onClick={handleAddQuestion}
+                        disabled={!newQuestionLabel.trim()}
+                        style={{
+                          background: "var(--accent)",
+                          color: "var(--accent-contrast, #FFFFFF)",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "0.35rem 0.85rem",
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          cursor: newQuestionLabel.trim() ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        Add Question
+                      </button>
+
+                      <button
+                        onClick={() => setShowAddQuestionRow(false)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "var(--text-muted)",
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAddQuestionRow(true)}
+                    style={{
+                      background: "transparent",
+                      border: "1px dashed var(--border-subtle)",
+                      borderRadius: "10px",
+                      padding: "0.5rem 0.85rem",
+                      fontSize: "0.8rem",
+                      color: "var(--accent)",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                    }}
+                  >
+                    <span>+</span>
+                    <span>Add custom question</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Quick refinement suggestion chips */}
+            {!isFormApplied && (
+              <div style={{ marginTop: "0.85rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "0.35rem" }}>
+                  Quick adjustments:
+                </span>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+                  <button
+                    onClick={() => handleSend("Add a question asking whether they need accommodation")}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "999px",
+                      padding: "0.25rem 0.65rem",
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Accommodation
+                  </button>
+                  <button
+                    onClick={() => handleSend("Add dietary requirements")}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "999px",
+                      padding: "0.25rem 0.65rem",
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Dietary
+                  </button>
+                  <button
+                    onClick={() => handleSend("Make phone number optional")}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "999px",
+                      padding: "0.25rem 0.65rem",
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Make phone optional
+                  </button>
+                  <button
+                    onClick={() => handleSend("Keep it minimal, only name and email")}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "999px",
+                      padding: "0.25rem 0.65rem",
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Minimal form
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Primary Action Button */}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem", marginTop: "1.15rem" }}>
+              {!isFormApplied ? (
+                <>
+                  <button
+                    onClick={handleApplyQuestions}
+                    disabled={applyingQuestions || formProposal.questions.length === 0}
+                    style={{
+                      background: "var(--accent)",
+                      color: "var(--accent-contrast, #FFFFFF)",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "0.65rem 1.4rem",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      cursor: applyingQuestions ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      boxShadow: "0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent)",
+                    }}
+                  >
+                    <span>✨</span>
+                    <span>{applyingQuestions ? "Applying..." : "Apply to Registration Form"}</span>
+                  </button>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Organizer confirmation required before saving.
+                  </span>
+                </>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.6rem" }}>
+                  <a
+                    href={createdEvent?.publicUrl || `/events/${formProposal.eventSlug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      background: "var(--accent)",
+                      color: "var(--accent-contrast, #FFFFFF)",
+                      textDecoration: "none",
+                      borderRadius: "10px",
+                      padding: "0.6rem 1.2rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                    }}
+                  >
+                    <span>Preview Registration Form</span>
+                    <span>↗</span>
+                  </a>
+                  <button
+                    onClick={() => setIsFormApplied(false)}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "10px",
+                      padding: "0.6rem 1rem",
+                      fontSize: "0.82rem",
+                      color: "var(--text-secondary)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Edit Again
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
