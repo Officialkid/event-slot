@@ -539,7 +539,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function computeEventMetrics(event: any): Promise<AsaEventMetrics> {
+async function computeEventMetrics(event: any): Promise<AsaEventMetrics> {
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000)

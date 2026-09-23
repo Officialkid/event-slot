@@ -57,7 +57,7 @@ jest.mock("@/lib/prisma", () => ({
   },
 }))
 
-import { POST, computeEventMetrics } from "@/app/api/assistant/asa/route"
+import { POST } from "@/app/api/assistant/asa/route"
 
 describe("ASA Phase 3: Event Intelligence and Management Engine", () => {
   const sampleEvent = {
