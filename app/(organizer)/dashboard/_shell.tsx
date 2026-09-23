@@ -155,11 +155,20 @@ function IconDotsHorizontal() {
   )
 }
 
+function IconSparkles() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.5l1.5 4.5 4.5 1.5-4.5 1.5L8 13.5l-1.5-4.5-4.5-1.5 4.5-1.5L8 1.5z" />
+    </svg>
+  )
+}
+
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { labelKey: "createEvent", customLabel: "ASA Assistant", href: "/dashboard/assistant", icon: <IconSparkles />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { labelKey: "community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { labelKey: "notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
@@ -176,6 +185,7 @@ const MOBILE_TAB_ITEMS = [
 ] as const
 
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
+  if (pathname.startsWith("/dashboard/assistant")) return "ASA Assistant"
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
@@ -431,7 +441,9 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
       >
         {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
-          const label = t(item.labelKey)
+          const label = ("customLabel" in item && typeof (item as { customLabel?: string }).customLabel === "string")
+            ? (item as { customLabel: string }).customLabel
+            : t(item.labelKey)
           const tutorialTarget =
             item.href === "/dashboard/events"
               ? "my-events-nav"

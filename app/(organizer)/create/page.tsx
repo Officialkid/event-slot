@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import { v4 as uuidv4 } from "uuid"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -934,6 +935,48 @@ export default function CreateEventPage() {
                 <span>{error}</span>
               </div>
             )}
+
+            {/* ── ASA Event Creation Assistant Banner ── */}
+            <div
+              className="rounded-2xl p-4 flex items-center justify-between gap-4"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 8%, var(--surface))",
+                border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 15%, var(--surface))",
+                    border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                    fontSize: "1.2rem",
+                  }}
+                >
+                  ✨
+                </div>
+                <div>
+                  <p className="m-0 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Want to create your event faster?
+                  </p>
+                  <p className="m-0 text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Describe your event naturally to ASA and have it configured conversationally.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/assistant"
+                className="inline-flex items-center gap-1 text-xs font-semibold px-3.5 py-2 rounded-xl flex-shrink-0"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-contrast, #FFFFFF)",
+                  textDecoration: "none",
+                }}
+              >
+                <span>Create with ASA</span>
+                <span>→</span>
+              </Link>
+            </div>
 
             {/* ── STEP 1: EVENT IDENTITY ── */}
             {currentStep === 1 && (
