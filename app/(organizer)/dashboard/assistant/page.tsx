@@ -8,6 +8,9 @@ import type {
   AsaFormProposal,
   AsaFormQuestion,
   QuestionType,
+  AsaEventMetrics,
+  AsaManagementAction,
+  AsaEventListItem,
 } from "@/lib/asa/asa-engine"
 
 type CreatedEvent = {
@@ -27,19 +30,16 @@ const INITIAL_GREETING: AsaMessage = {
 }
 
 const QUICK_STARTERS = [
-  { label: "Help me create an event", prompt: "Help me create an event." },
+  { label: "📊 How is my event doing?", prompt: "How is my event doing?" },
+  { label: "👥 Registered today", prompt: "How many people registered today?" },
+  { label: "🎟️ Remaining slots", prompt: "How many slots are remaining?" },
+  { label: "📍 Check-in status", prompt: "How many people have checked in?" },
+  { label: "⚡ Increase capacity to 800", prompt: "Increase capacity to 800" },
+  { label: "✨ Help me create an event", prompt: "Help me create an event." },
   {
     label: "Partners Dinner 2026",
     prompt:
       "I want to create an event called Partners Dinner 2026. It will be on 3 October 2026 at Swiss Lenana, from 3 PM to 6 PM, with a capacity of 500 people.",
-  },
-  {
-    label: "Tech Summit Nairobi",
-    prompt: "Create an event called Tech Summit. It will be in Nairobi in December and have 500 attendees.",
-  },
-  {
-    label: "Setup conference questions",
-    prompt: "Create registration questions for my technology conference.",
   },
 ]
 
@@ -73,6 +73,14 @@ export default function AsaAssistantPage() {
   const [copiedLink, setCopiedLink] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Phase 3 States: Event Intelligence, Management & Disambiguation
+  const [organizerEvents, setOrganizerEvents] = useState<AsaEventListItem[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<AsaEventListItem | null>(null)
+  const [eventMetrics, setEventMetrics] = useState<AsaEventMetrics | null>(null)
+  const [pendingAction, setPendingAction] = useState<AsaManagementAction | null>(null)
+  const [disambiguationOptions, setDisambiguationOptions] = useState<AsaEventListItem[] | null>(null)
+  const [actionExecuting, setActionExecuting] = useState(false)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -82,7 +90,30 @@ export default function AsaAssistantPage() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, loading, isReview, createdEvent])
+  }, [messages, loading, isReview, createdEvent, eventMetrics, pendingAction, disambiguationOptions])
+
+  // Load organizer's active events on mount
+  useEffect(() => {
+    async function loadOrganizerEvents() {
+      try {
+        const res = await fetch("/api/assistant/asa", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "list_organizer_events" }),
+        })
+        const data = await res.json()
+        if (data.success && Array.isArray(data.events)) {
+          setOrganizerEvents(data.events)
+          if (data.events.length === 1 && !selectedEvent) {
+            setSelectedEvent(data.events[0])
+          }
+        }
+      } catch (e) {
+        console.warn("[ASA] Could not pre-fetch organizer events:", e)
+      }
+    }
+    loadOrganizerEvents()
+  }, [])
 
   const handleSend = async (messageText?: string) => {
     const textToSend = (messageText ?? input).trim()
@@ -103,8 +134,9 @@ export default function AsaAssistantPage() {
           messages: nextMessages,
           draft,
           proposal: formProposal,
-          eventId: formProposal?.eventId || createdEvent?.id,
-          eventSlug: formProposal?.eventSlug || createdEvent?.slug,
+          pendingAction,
+          eventId: selectedEvent?.id || formProposal?.eventId || createdEvent?.id,
+          eventSlug: selectedEvent?.slug || formProposal?.eventSlug || createdEvent?.slug,
         }),
       })
 
@@ -114,6 +146,24 @@ export default function AsaAssistantPage() {
         throw new Error(data.error || "Failed to process message with ASA.")
       }
 
+      if (data.metrics) {
+        setEventMetrics(data.metrics)
+      }
+      if (data.pendingAction) {
+        setPendingAction(data.pendingAction)
+      }
+      if (data.actionExecuted) {
+        setPendingAction(null)
+      }
+      if (data.actionCancelled) {
+        setPendingAction(null)
+      }
+      if (data.needsDisambiguation && Array.isArray(data.eventsList)) {
+        setDisambiguationOptions(data.eventsList)
+      } else {
+        setDisambiguationOptions(null)
+      }
+
       if (data.created && data.event) {
         setCreatedEvent(data.event)
         setIsReview(false)
@@ -121,6 +171,17 @@ export default function AsaAssistantPage() {
           setFormProposal(data.formProposal)
           setIsFormApplied(false)
         }
+        const newEventItem: AsaEventListItem = {
+          id: data.event.id,
+          slug: data.event.slug,
+          title: data.event.title,
+          confirmedCount: 0,
+          capacity: data.event.capacity ?? null,
+          eventDate: data.event.eventDate ?? null,
+          status: "active",
+        }
+        setOrganizerEvents((prev) => [newEventItem, ...prev])
+        setSelectedEvent(newEventItem)
         setMessages((prev) => [
           ...prev,
           {
@@ -200,6 +261,72 @@ export default function AsaAssistantPage() {
       setError(msg)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleConfirmManagementAction = async () => {
+    if (!pendingAction || actionExecuting) return
+    setActionExecuting(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/assistant/asa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "execute_management_action",
+          pendingAction,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to execute management action.")
+      }
+      setPendingAction(null)
+      if (data.metrics) {
+        setEventMetrics(data.metrics)
+      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.reply || "✅ Action executed successfully.",
+        },
+      ])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to execute action."
+      setError(msg)
+    } finally {
+      setActionExecuting(false)
+    }
+  }
+
+  const handleCancelManagementAction = async () => {
+    if (!pendingAction || actionExecuting) return
+    setActionExecuting(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/assistant/asa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "cancel_management_action",
+          pendingAction,
+        }),
+      })
+      const data = await response.json()
+      setPendingAction(null)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.reply || "Action cancelled.",
+        },
+      ])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to cancel action."
+      setError(msg)
+    } finally {
+      setActionExecuting(false)
     }
   }
 
@@ -366,6 +493,10 @@ export default function AsaAssistantPage() {
     setIsFormApplied(false)
     setIsReview(false)
     setCreatedEvent(null)
+    setEventMetrics(null)
+    setPendingAction(null)
+    setDisambiguationOptions(null)
+    setSelectedEvent(null)
     setEditingQuestionId(null)
     setEditLabelText("")
     setShowAddQuestionRow(false)
@@ -449,7 +580,7 @@ export default function AsaAssistantPage() {
                   letterSpacing: "0.02em",
                 }}
               >
-                Event Creation Assistant
+                Event Assistant
               </span>
             </div>
             <p
@@ -459,31 +590,73 @@ export default function AsaAssistantPage() {
                 color: "var(--text-muted)",
               }}
             >
-              Conversational event configuration for EventSlot
+              Event creation, live intelligence & natural management
             </p>
           </div>
         </div>
 
-        <button
-          onClick={handleReset}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: "8px",
-            padding: "0.4rem 0.75rem",
-            fontSize: "0.78rem",
-            fontWeight: 500,
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.35rem",
-          }}
-          title="Start fresh with a new event"
-        >
-          <span>↺</span>
-          <span className="hidden sm:inline">New Event</span>
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          {organizerEvents.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <select
+                value={selectedEvent?.id || ""}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (!val) {
+                    setSelectedEvent(null)
+                    setEventMetrics(null)
+                  } else {
+                    const ev = organizerEvents.find((x) => x.id === val) || null
+                    setSelectedEvent(ev)
+                    if (ev) {
+                      handleSend(`How is ${ev.title} doing?`)
+                    }
+                  }
+                }}
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  padding: "0.4rem 0.65rem",
+                  fontSize: "0.78rem",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  maxWidth: 160,
+                  outline: "none",
+                }}
+                title="Choose an event to inspect or manage"
+              >
+                <option value="">+ New Event Mode</option>
+                {organizerEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.title} ({ev.confirmedCount})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={handleReset}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "8px",
+              padding: "0.4rem 0.75rem",
+              fontSize: "0.78rem",
+              fontWeight: 500,
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+            }}
+            title="Start fresh with a new event"
+          >
+            <span>↺</span>
+            <span className="hidden sm:inline">New Event</span>
+          </button>
+        </div>
       </div>
 
       {/* Messages Scroll Area */}
@@ -618,6 +791,325 @@ export default function AsaAssistantPage() {
               }}
             >
               <span>ASA is thinking...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Disambiguation Event Selector */}
+        {disambiguationOptions && disambiguationOptions.length > 0 && (
+          <div
+            style={{
+              margin: "0.5rem 0 0.5rem 2.75rem",
+              background: "var(--surface)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "16px",
+              padding: "1rem",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
+            }}
+          >
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)" }}>
+              Select an event to check or manage:
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {disambiguationOptions.map((ev) => (
+                <button
+                  key={ev.id}
+                  onClick={() => {
+                    setSelectedEvent(ev)
+                    setDisambiguationOptions(null)
+                    handleSend(`How is ${ev.title} doing?`)
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.6rem 0.85rem",
+                    background: "color-mix(in srgb, var(--accent) 4%, var(--surface))",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div>
+                    <strong style={{ display: "block", fontSize: "0.88rem", color: "var(--text-primary)" }}>
+                      {ev.title}
+                    </strong>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      {ev.confirmedCount} registered • {ev.capacity ? `${ev.capacity} capacity` : "unlimited"}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--accent)" }}>Select →</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Management Action Confirmation Card */}
+        {pendingAction && (
+          <div
+            style={{
+              margin: "0.5rem 0 0.5rem 2.75rem",
+              background: "var(--surface)",
+              border: "1.5px solid #F59E0B",
+              borderRadius: "18px",
+              padding: "1.25rem",
+              boxShadow: "0 6px 20px rgba(245, 158, 11, 0.08)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", marginBottom: "0.6rem" }}>
+              <span style={{ fontSize: "1rem" }}>⚡</span>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#F59E0B" }}>
+                Action Confirmation Required
+              </span>
+            </div>
+
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--text-primary)", fontWeight: 500, lineHeight: 1.5 }}>
+              {pendingAction.confirmationMessage}
+            </p>
+
+            <div
+              style={{
+                background: "color-mix(in srgb, #F59E0B 8%, var(--surface))",
+                border: "1px solid color-mix(in srgb, #F59E0B 25%, transparent)",
+                borderRadius: "10px",
+                padding: "0.55rem 0.85rem",
+                fontSize: "0.8rem",
+                color: "var(--text-secondary)",
+                marginBottom: "1rem",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.25rem" }}>
+                <span>Target: <strong>{pendingAction.eventTitle}</strong></span>
+                <span>Field: <strong>{pendingAction.fieldName}</strong></span>
+                <span>Current: <strong>{String(pendingAction.currentValue ?? "unspecified")}</strong></span>
+                <span>Proposed: <strong style={{ color: "var(--accent)" }}>{String(pendingAction.proposedValue)}</strong></span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.65rem" }}>
+              <button
+                onClick={handleConfirmManagementAction}
+                disabled={actionExecuting}
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-contrast, #FFFFFF)",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "0.6rem 1.25rem",
+                  fontSize: "0.88rem",
+                  fontWeight: 600,
+                  cursor: actionExecuting ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  boxShadow: "0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent)",
+                }}
+              >
+                <span>✓</span>
+                <span>{actionExecuting ? "Applying..." : "Confirm & Apply"}</span>
+              </button>
+
+              <button
+                onClick={handleCancelManagementAction}
+                disabled={actionExecuting}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "10px",
+                  padding: "0.6rem 1rem",
+                  fontSize: "0.85rem",
+                  color: "var(--text-secondary)",
+                  cursor: actionExecuting ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Live Event Metrics Card */}
+        {eventMetrics && (
+          <div
+            style={{
+              margin: "0.5rem 0 0.5rem 2.75rem",
+              background: "var(--surface)",
+              border: "1.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              borderRadius: "18px",
+              padding: "1.15rem",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.04)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.85rem" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "999px",
+                      background: eventMetrics.status === "active" ? "#10B981" : "#F59E0B",
+                    }}
+                  />
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, color: "var(--accent)" }}>
+                    Live Event Intelligence
+                  </span>
+                </div>
+                <h3 style={{ margin: "0.2rem 0 0", fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {eventMetrics.eventTitle}
+                </h3>
+                {eventMetrics.eventDate && (
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    📅 {eventMetrics.eventDate} {eventMetrics.timeUntilEvent ? `(${eventMetrics.timeUntilEvent})` : ""}
+                  </span>
+                )}
+              </div>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  padding: "0.2rem 0.55rem",
+                  borderRadius: "999px",
+                  background: eventMetrics.status === "active" ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)",
+                  color: eventMetrics.status === "active" ? "#10B981" : "#F59E0B",
+                  border: eventMetrics.status === "active" ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(245, 158, 11, 0.3)",
+                }}
+              >
+                {eventMetrics.status.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Capacity bar */}
+            {eventMetrics.capacity && eventMetrics.capacity > 0 && (
+              <div style={{ marginBottom: "1rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", marginBottom: "0.35rem" }}>
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    Capacity: <strong>{eventMetrics.totalConfirmed}</strong> / {eventMetrics.capacity}
+                  </span>
+                  <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+                    {eventMetrics.utilizationPct ?? 0}%
+                  </span>
+                </div>
+                <div style={{ width: "100%", height: 7, borderRadius: 999, background: "var(--border-subtle)", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, eventMetrics.utilizationPct ?? 0)}%`,
+                      height: "100%",
+                      background: "var(--accent)",
+                      borderRadius: 999,
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 4 Metric Tiles Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", marginBottom: "1rem" }}>
+              <div style={{ background: "color-mix(in srgb, var(--accent) 4%, var(--surface))", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "0.75rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>Registered Today</span>
+                <strong style={{ fontSize: "1.15rem", color: "var(--text-primary)" }}>{eventMetrics.registeredToday}</strong>
+                {eventMetrics.registeredYesterday > 0 && (
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
+                    ({eventMetrics.registeredYesterday} yesterday)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ background: "color-mix(in srgb, var(--accent) 4%, var(--surface))", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "0.75rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>Remaining Slots</span>
+                <strong style={{ fontSize: "1.15rem", color: eventMetrics.isFull ? "#EF4444" : "var(--text-primary)" }}>
+                  {eventMetrics.remainingSlots !== null ? eventMetrics.remainingSlots : "∞"}
+                </strong>
+                <span style={{ fontSize: "0.7rem", color: eventMetrics.isFull ? "#EF4444" : "var(--text-muted)", display: "block" }}>
+                  {eventMetrics.isFull ? "At capacity" : "Available"}
+                </span>
+              </div>
+
+              <div style={{ background: "color-mix(in srgb, var(--accent) 4%, var(--surface))", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "0.75rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>Check-Ins</span>
+                <strong style={{ fontSize: "1.15rem", color: "var(--text-primary)" }}>{eventMetrics.checkedInCount}</strong>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
+                  {eventMetrics.remainingExpectedAttendees} pending check-in
+                </span>
+              </div>
+
+              <div style={{ background: "color-mix(in srgb, var(--accent) 4%, var(--surface))", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "0.75rem" }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>Waitlist</span>
+                <strong style={{ fontSize: "1.15rem", color: "var(--text-primary)" }}>{eventMetrics.totalWaitlist}</strong>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "block" }}>
+                  {eventMetrics.totalWaitlist > 0 ? "In queue" : "No waitlist"}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Actions inside Metrics */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
+              <button
+                onClick={() => {
+                  setInput(`Increase capacity to `)
+                  inputRef.current?.focus()
+                }}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  padding: "0.35rem 0.65rem",
+                  fontSize: "0.76rem",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Adjust Capacity
+              </button>
+              <button
+                onClick={() => {
+                  setInput(`Update venue to `)
+                  inputRef.current?.focus()
+                }}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  padding: "0.35rem 0.65rem",
+                  fontSize: "0.76rem",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Update Venue
+              </button>
+              <button
+                onClick={() => handleSend("How many people have checked in?")}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  padding: "0.35rem 0.65rem",
+                  fontSize: "0.76rem",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Check-In Details
+              </button>
+              <button
+                onClick={() => handleSend(eventMetrics.status === "active" ? "Close registration" : "Reopen registration")}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  padding: "0.35rem 0.65rem",
+                  fontSize: "0.76rem",
+                  color: eventMetrics.status === "active" ? "#EF4444" : "var(--accent)",
+                  cursor: "pointer",
+                }}
+              >
+                {eventMetrics.status === "active" ? "Close Registration" : "Reopen Registration"}
+              </button>
             </div>
           </div>
         )}

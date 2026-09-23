@@ -13,10 +13,17 @@ import {
   processAsaFormConversation,
   generateRegistrationQuestionsForEvent,
   formatQuestionsForReview,
+  formatEventMetricsSummary,
+  detectManagementActionIntent,
+  isActionConfirmation,
+  isActionCancellation,
   type AsaEventDraft,
   type AsaMessage,
   type AsaFormProposal,
   type AsaFormQuestion,
+  type AsaEventMetrics,
+  type AsaManagementAction,
+  type AsaEventListItem,
 } from "@/lib/asa/asa-engine"
 
 function generateSlug(title: string): string {
@@ -100,11 +107,21 @@ export async function POST(req: NextRequest) {
       messages?: AsaMessage[]
       draft?: AsaEventDraft
       proposal?: AsaFormProposal
+      pendingAction?: AsaManagementAction | null
       eventId?: string
       eventSlug?: string
       customPrompt?: string
       questions?: AsaFormQuestion[]
-      action?: "confirm_create" | "propose_questions" | "modify_questions" | "apply_questions" | "reset"
+      action?:
+        | "confirm_create"
+        | "propose_questions"
+        | "modify_questions"
+        | "apply_questions"
+        | "list_organizer_events"
+        | "get_event_insights"
+        | "execute_management_action"
+        | "cancel_management_action"
+        | "reset"
     }
 
     try {
@@ -117,12 +134,117 @@ export async function POST(req: NextRequest) {
       messages = [],
       draft = { status: "collecting" },
       proposal,
+      pendingAction,
       eventId,
       eventSlug,
       customPrompt,
       questions,
       action,
     } = body
+
+    const latestMessage = messages[messages.length - 1]?.content?.trim() || ""
+
+    // =========================================================================
+    // 1. DIRECT ACTION HANDLERS (EVENT MANAGEMENT & INTELLIGENCE)
+    // =========================================================================
+
+    // ACTION: List organizer's active events for selector/disambiguation
+    if (action === "list_organizer_events") {
+      const userEvents = await prisma.event.findMany({
+        where: { organizerId: userId, archived: false },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          confirmedCount: true,
+          capacity: true,
+          eventDate: true,
+          status: true,
+          location: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      })
+
+      const events: AsaEventListItem[] = userEvents.map((e) => ({
+        id: e.id,
+        slug: e.slug,
+        title: e.title,
+        confirmedCount: e.confirmedCount,
+        capacity: e.capacity,
+        eventDate: e.eventDate,
+        status: e.status,
+      }))
+
+      return NextResponse.json({ success: true, events })
+    }
+
+    // ACTION: Get live event insights / metrics
+    if (action === "get_event_insights") {
+      const resolved = await resolveTargetEvent(userId, session, eventId, eventSlug, customPrompt)
+      if (resolved.error) {
+        return NextResponse.json({ success: false, error: resolved.error }, { status: resolved.status || 400 })
+      }
+      if (resolved.needsDisambiguation) {
+        return NextResponse.json({
+          success: true,
+          reply: "Which event would you like me to check? You have multiple events. Please choose one below:",
+          needsDisambiguation: true,
+          eventsList: resolved.eventsList,
+        })
+      }
+      if (!resolved.targetEvent) {
+        return NextResponse.json({
+          success: true,
+          reply: "You don't have any active events on EventSlot yet. Would you like me to help you create one?",
+        })
+      }
+
+      const metrics = await computeEventMetrics(resolved.targetEvent)
+      return NextResponse.json({
+        success: true,
+        metrics,
+        reply: formatEventMetricsSummary(metrics, customPrompt || ""),
+        event: {
+          id: resolved.targetEvent.id,
+          slug: resolved.targetEvent.slug,
+          title: resolved.targetEvent.title,
+        },
+      })
+    }
+
+    // ACTION: Explicit Execute Management Action (from 1-tap Confirm button)
+    if (action === "execute_management_action" && pendingAction) {
+      return await executeManagementAction(pendingAction, userId, session)
+    }
+
+    // ACTION: Explicit Cancel Management Action (from 1-tap Cancel button)
+    if (action === "cancel_management_action" && pendingAction) {
+      return NextResponse.json({
+        success: true,
+        actionCancelled: true,
+        reply: `Understood, I've cancelled that update. Your ${pendingAction.fieldName} remains **${pendingAction.currentValue ?? "unchanged"}**.`,
+        pendingAction: null,
+      })
+    }
+
+    // =========================================================================
+    // 2. CONVERSATIONAL CONFIRMATION / CANCELLATION FOR PENDING ACTIONS
+    // =========================================================================
+
+    if (pendingAction && pendingAction.status === "proposed" && latestMessage) {
+      if (isActionConfirmation(latestMessage)) {
+        return await executeManagementAction(pendingAction, userId, session)
+      }
+      if (isActionCancellation(latestMessage)) {
+        return NextResponse.json({
+          success: true,
+          actionCancelled: true,
+          reply: `Understood, I've cancelled that update. Your ${pendingAction.fieldName} remains **${pendingAction.currentValue ?? "unchanged"}**.`,
+          pendingAction: null,
+        })
+      }
+    }
 
     // =========================================================================
     // 1. REGISTRATION FORM ACTIONS
@@ -265,7 +387,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Conversational check: if organizer asks "Set up registration for [event]" or "Create registration questions..."
-    const latestMessage = messages[messages.length - 1]?.content?.trim() || ""
     const isRegistrationIntent =
       /^(?:set up|create|generate|recommend|suggest)\s+registration(?:\s+questions|\s+form)?/i.test(latestMessage) ||
       /registration questions/i.test(latestMessage)
@@ -300,7 +421,70 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================================================================
-    // 2. EVENT CREATION ACTIONS
+    // 4. CONVERSATIONAL EVENT INTELLIGENCE & EVENT MANAGEMENT
+    // =========================================================================
+
+    const isIntelligence = isEventIntelligenceQuery(latestMessage)
+    const isManagement = isManagementActionQuery(latestMessage)
+
+    // Route to intelligence / management if query matches and not actively reviewing an event creation draft
+    if ((isIntelligence || isManagement) && draft.status !== "ready_for_review") {
+      const resolved = await resolveTargetEvent(userId, session, eventId, eventSlug, latestMessage)
+      if (resolved.error) {
+        return NextResponse.json({ success: false, error: resolved.error }, { status: resolved.status || 400 })
+      }
+
+      if (resolved.needsDisambiguation) {
+        return NextResponse.json({
+          success: true,
+          reply: "Which event would you like me to check? You have multiple events. Please choose one below:",
+          needsDisambiguation: true,
+          eventsList: resolved.eventsList,
+        })
+      }
+
+      if (!resolved.targetEvent) {
+        return NextResponse.json({
+          success: true,
+          reply: "You don't have any active events on EventSlot yet. Would you like me to help you create one?",
+        })
+      }
+
+      const metrics = await computeEventMetrics(resolved.targetEvent)
+
+      // Check if organizer wants to perform a management action on this event
+      if (isManagement) {
+        const actionDetected = detectManagementActionIntent(latestMessage, metrics)
+        if (actionDetected) {
+          return NextResponse.json({
+            success: true,
+            reply: actionDetected.confirmationMessage,
+            pendingAction: actionDetected,
+            metrics,
+            event: {
+              id: resolved.targetEvent.id,
+              slug: resolved.targetEvent.slug,
+              title: resolved.targetEvent.title,
+            },
+          })
+        }
+      }
+
+      // If intelligence question, answer with metrics summary
+      return NextResponse.json({
+        success: true,
+        reply: formatEventMetricsSummary(metrics, latestMessage),
+        metrics,
+        event: {
+          id: resolved.targetEvent.id,
+          slug: resolved.targetEvent.slug,
+          title: resolved.targetEvent.title,
+        },
+      })
+    }
+
+    // =========================================================================
+    // 5. EVENT CREATION ACTIONS
     // =========================================================================
 
     // Plan check for event creation
@@ -355,6 +539,90 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function computeEventMetrics(event: any): Promise<AsaEventMetrics> {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000)
+
+  const [registeredToday, registeredYesterday, checkedInCount] = await Promise.all([
+    prisma.registration.count({
+      where: {
+        eventId: event.id,
+        submittedAt: { gte: startOfToday },
+        status: { in: ["CONFIRMED", "confirmed"] },
+        isDuplicate: false,
+      },
+    }),
+    prisma.registration.count({
+      where: {
+        eventId: event.id,
+        submittedAt: { gte: startOfYesterday, lt: startOfToday },
+        status: { in: ["CONFIRMED", "confirmed"] },
+        isDuplicate: false,
+      },
+    }),
+    prisma.registration.count({
+      where: {
+        eventId: event.id,
+        checkedIn: true,
+      },
+    }),
+  ])
+
+  const totalConfirmed = event.confirmedCount ?? 0
+  const totalWaitlist = event.waitlistCount ?? 0
+  const capacity = event.capacity ?? null
+  const remainingSlots = capacity !== null ? Math.max(0, capacity - totalConfirmed) : null
+  const utilizationPct =
+    capacity && capacity > 0 ? Math.min(100, Math.round((totalConfirmed / capacity) * 100)) : null
+  const isFull = capacity !== null && totalConfirmed >= capacity
+  const remainingExpectedAttendees = Math.max(0, totalConfirmed - checkedInCount)
+
+  let eventDateFormatted: string | null = null
+  let timeUntilEvent: string | null = null
+  if (event.eventDate) {
+    const d = new Date(event.eventDate)
+    eventDateFormatted = d.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+    const diffMs = d.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays > 0) {
+      timeUntilEvent = `in ${diffDays} day${diffDays === 1 ? "" : "s"}`
+    } else if (diffDays === 0) {
+      timeUntilEvent = "today"
+    } else {
+      timeUntilEvent = `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} ago`
+    }
+  }
+
+  return {
+    eventId: event.id,
+    eventSlug: event.slug,
+    eventTitle: event.title,
+    totalConfirmed,
+    totalWaitlist,
+    registeredToday,
+    registeredYesterday,
+    capacity,
+    remainingSlots,
+    utilizationPct,
+    checkedInCount,
+    remainingExpectedAttendees,
+    isFull,
+    eventDate: eventDateFormatted,
+    eventEndAt: event.eventEndAt ? new Date(event.eventEndAt).toISOString() : null,
+    timeUntilEvent,
+    status: event.status || "active",
+    location: event.location || null,
+    accessType: event.accessType || "REGISTRATION",
+    visibility: event.visibility || "PUBLIC",
+  }
+}
+
 async function findAndAuthorizeEvent(
   userId: string,
   session: any,
@@ -385,6 +653,13 @@ async function findAndAuthorizeEvent(
       category: true,
       location: true,
       capacity: true,
+      confirmedCount: true,
+      waitlistCount: true,
+      status: true,
+      accessType: true,
+      visibility: true,
+      eventDate: true,
+      eventEndAt: true,
       eventType: true,
       organizerId: true,
       questions: true,
@@ -402,11 +677,236 @@ async function findAndAuthorizeEvent(
     return {
       authorized: false,
       status: 403,
-      error: "Forbidden: You are not authorized to configure this event's registration form.",
+      error: "Forbidden: You are not authorized to view or manage this event.",
     }
   }
 
   return { authorized: true, event, status: 200 }
+}
+
+async function resolveTargetEvent(
+  userId: string,
+  session: any,
+  passedEventId?: string,
+  passedEventSlug?: string,
+  userMessage?: string
+): Promise<{
+  targetEvent: any | null
+  needsDisambiguation: boolean
+  eventsList: AsaEventListItem[]
+  error?: string
+  status?: number
+}> {
+  if (passedEventId || passedEventSlug) {
+    const authResult = await findAndAuthorizeEvent(userId, session, passedEventId, passedEventSlug)
+    if (!authResult.authorized || !authResult.event) {
+      return {
+        targetEvent: null,
+        needsDisambiguation: false,
+        eventsList: [],
+        error: authResult.error,
+        status: authResult.status,
+      }
+    }
+    return {
+      targetEvent: authResult.event,
+      needsDisambiguation: false,
+      eventsList: [],
+    }
+  }
+
+  const userEvents = await prisma.event.findMany({
+    where: { organizerId: userId, archived: false },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      description: true,
+      category: true,
+      location: true,
+      capacity: true,
+      confirmedCount: true,
+      waitlistCount: true,
+      status: true,
+      accessType: true,
+      visibility: true,
+      eventDate: true,
+      eventEndAt: true,
+      eventType: true,
+      organizerId: true,
+      questions: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  })
+
+  if (userEvents.length === 0) {
+    return {
+      targetEvent: null,
+      needsDisambiguation: false,
+      eventsList: [],
+    }
+  }
+
+  if (userEvents.length === 1) {
+    return {
+      targetEvent: userEvents[0],
+      needsDisambiguation: false,
+      eventsList: [],
+    }
+  }
+
+  if (userMessage) {
+    const msgLower = userMessage.toLowerCase()
+    const matched = userEvents.find((e) => msgLower.includes(e.title.toLowerCase()))
+    if (matched) {
+      return {
+        targetEvent: matched,
+        needsDisambiguation: false,
+        eventsList: [],
+      }
+    }
+  }
+
+  const eventsList: AsaEventListItem[] = userEvents.map((e) => ({
+    id: e.id,
+    slug: e.slug,
+    title: e.title,
+    confirmedCount: e.confirmedCount,
+    capacity: e.capacity,
+    eventDate: e.eventDate,
+    status: e.status,
+  }))
+
+  return {
+    targetEvent: null,
+    needsDisambiguation: true,
+    eventsList,
+  }
+}
+
+async function executeManagementAction(
+  action: AsaManagementAction,
+  userId: string,
+  session: any
+) {
+  const targetEvent = await findAndAuthorizeEvent(userId, session, action.eventId, action.eventSlug)
+  if (!targetEvent.authorized || !targetEvent.event) {
+    return NextResponse.json({ success: false, error: targetEvent.error }, { status: targetEvent.status })
+  }
+
+  let updateData: any = {}
+  let fieldDescription = action.fieldName
+
+  switch (action.type) {
+    case "UPDATE_CAPACITY": {
+      const cap = Number(action.proposedValue)
+      updateData = { capacity: Number.isFinite(cap) && cap > 0 ? cap : null }
+      fieldDescription = "capacity"
+      break
+    }
+    case "UPDATE_VENUE": {
+      updateData = { location: String(action.proposedValue).trim() }
+      fieldDescription = "venue"
+      break
+    }
+    case "CLOSE_REGISTRATION": {
+      updateData = { status: "closed" }
+      fieldDescription = "registration status"
+      break
+    }
+    case "REOPEN_REGISTRATION": {
+      updateData = { status: "active" }
+      fieldDescription = "registration status"
+      break
+    }
+    default:
+      return NextResponse.json({ success: false, error: "Unsupported management action" }, { status: 400 })
+  }
+
+  const updatedEvent = await prisma.event.update({
+    where: { id: action.eventId },
+    data: updateData,
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      description: true,
+      category: true,
+      location: true,
+      capacity: true,
+      confirmedCount: true,
+      waitlistCount: true,
+      status: true,
+      accessType: true,
+      visibility: true,
+      eventDate: true,
+      eventEndAt: true,
+      eventType: true,
+      organizerId: true,
+      questions: true,
+    },
+  })
+
+  const updatedMetrics = await computeEventMetrics(updatedEvent)
+
+  return NextResponse.json({
+    success: true,
+    actionExecuted: true,
+    reply: `✅ Done! I've updated the ${fieldDescription} for **${updatedEvent.title}** to **${action.proposedValue}**.`,
+    metrics: updatedMetrics,
+    pendingAction: null,
+    event: {
+      id: updatedEvent.id,
+      slug: updatedEvent.slug,
+      title: updatedEvent.title,
+    },
+  })
+}
+
+function isEventIntelligenceQuery(text: string): boolean {
+  const t = text.toLowerCase()
+  return (
+    (t.includes("how is") && (t.includes("doing") || t.includes("performing") || t.includes("event") || t.includes("going"))) ||
+    (t.includes("how's") && (t.includes("doing") || t.includes("performing") || t.includes("event") || t.includes("going"))) ||
+    t.includes("how is my event") ||
+    t.includes("how's my event") ||
+    t.includes("how is the event") ||
+    t.includes("how is my") ||
+    t.includes("registered today") ||
+    t.includes("register today") ||
+    t.includes("slots are remaining") ||
+    t.includes("slots remaining") ||
+    t.includes("slots left") ||
+    t.includes("remaining slots") ||
+    t.includes("how many slots") ||
+    t.includes("is my event full") ||
+    t.includes("is the event full") ||
+    t.includes("event full") ||
+    t.includes("on the waitlist") ||
+    t.includes("waitlist count") ||
+    t.includes("waitlist") ||
+    t.includes("checked in") ||
+    t.includes("check-in") ||
+    t.includes("checkin") ||
+    t.includes("attendance") ||
+    t.includes("event stats") ||
+    t.includes("event metrics") ||
+    t.includes("how many registered") ||
+    t.includes("registration count") ||
+    t.includes("how many people")
+  )
+}
+
+function isManagementActionQuery(text: string): boolean {
+  const t = text.toLowerCase()
+  return (
+    /(?:increase|change|update|set|make)\s+(?:the\s+)?(?:capacity|slots)/i.test(t) ||
+    /(?:change|update|move)\s+(?:the\s+)?(?:venue|location)/i.test(t) ||
+    /(?:close|stop|pause|shut\s+down)\s+registration/i.test(t) ||
+    /(?:reopen|open|resume)\s+registration/i.test(t) ||
+    /(?:increase|change|make)\s+(?:them|it|slots)\s+to\s+\d+/i.test(t)
+  )
 }
 
 async function executeEventCreation(
