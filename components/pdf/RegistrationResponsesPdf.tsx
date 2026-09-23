@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 44,
     fontFamily: 'Helvetica',
     fontSize: 10,
-    color: '#202124',
+    color: '#0F172A',
   },
 
   // Top bar, matched to a Google Forms-style header.
@@ -56,15 +56,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 8,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#DADCE0',
+    borderBottomColor: '#CBD5E1',
   },
   topBarLeft: {
     fontSize: 8,
-    color: '#5F6368',
+    color: '#475569',
   },
   topBarRight: {
     fontSize: 8,
-    color: '#5F6368',
+    color: '#475569',
   },
 
   // Respondent counter, for example "1 / 57".
@@ -76,11 +76,11 @@ const styles = StyleSheet.create({
   },
   counterLabel: {
     fontSize: 9,
-    color: '#5F6368',
+    color: '#475569',
   },
   counterValue: {
     fontSize: 9,
-    color: '#5F6368',
+    color: '#475569',
     fontFamily: 'Helvetica-Bold',
   },
 
@@ -89,17 +89,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#DADCE0',
+    borderBottomColor: '#CBD5E1',
   },
   respondentName: {
     fontSize: 18,
     fontFamily: 'Helvetica-Bold',
-    color: '#202124',
+    color: '#0F172A',
     marginBottom: 4,
   },
   respondentMeta: {
     fontSize: 9,
-    color: '#5F6368',
+    color: '#475569',
     marginBottom: 2,
   },
   statusBadge: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 3,
-    backgroundColor: '#E6F4EA',
+    backgroundColor: '#DCFCE7',
   },
   statusBadgeWaitlist: {
     backgroundColor: '#FEF7E0',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#137333',
+    color: '#15803D',
   },
   statusTextWaitlist: {
     color: '#B06000',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   answerCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingTop: 12,
     paddingBottom: 12,
@@ -135,32 +135,32 @@ const styles = StyleSheet.create({
   },
   questionLabel: {
     fontSize: 9,
-    color: '#5F6368',
+    color: '#475569',
     marginBottom: 6,
     fontFamily: 'Helvetica',
     letterSpacing: 0.1,
   },
   answerText: {
     fontSize: 10.9,
-    color: '#202124',
+    color: '#0F172A',
     lineHeight: 1.72,
     fontFamily: 'Helvetica',
   },
   answerTextCompact: {
     fontSize: 10.7,
-    color: '#202124',
+    color: '#0F172A',
     lineHeight: 1.68,
     fontFamily: 'Helvetica',
   },
   answerTextSmall: {
     fontSize: 10.4,
-    color: '#202124',
+    color: '#0F172A',
     lineHeight: 1.62,
     fontFamily: 'Helvetica',
   },
   answerTextDense: {
     fontSize: 10,
-    color: '#202124',
+    color: '#0F172A',
     lineHeight: 1.58,
     fontFamily: 'Helvetica',
   },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     borderBottomWidth: 0.5,
-    borderBottomColor: '#DADCE0',
+    borderBottomColor: '#CBD5E1',
     marginBottom: 20,
   },
 
@@ -222,7 +222,7 @@ const ResponsePage: React.FC<{ reg: RegistrationEntry; eventTitle: string; expor
 
     {/* Top bar */}
     <View style={styles.topBar}>
-      <Text style={styles.topBarLeft}>{eventTitle}</Text>
+      <Text style={{ ...styles.topBarLeft, fontFamily: 'Helvetica-Bold', color: '#15803D' }}>EVENTSLOT  ·  {eventTitle}</Text>
       <Text style={styles.topBarRight}>{exportedAt}</Text>
     </View>
 

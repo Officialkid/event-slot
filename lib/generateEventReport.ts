@@ -28,7 +28,7 @@ import { askAI } from './ai'
 export type ReportTheme = 'eventslot' | 'navy' | 'forest' | 'wine' | 'graphite'
 
 const THEMES: Record<ReportTheme, { banner: string; accent: string; sub: string }> = {
-  eventslot:{ banner: '0A0A0A', accent: 'C8F55A', sub: '7AB648' },
+  eventslot:{ banner: '0F172A', accent: '15803D', sub: '15803D' },
   navy:     { banner: '1F3864', accent: 'FFFFFF', sub: 'B8CDE8' },
   forest:   { banner: '1B4332', accent: 'FFFFFF', sub: 'A8D5B8' },
   wine:     { banner: '4A0E2E', accent: 'FFFFFF', sub: 'E8B4CD' },
@@ -131,7 +131,7 @@ function noBorder() {
 }
 
 function thinBorder() {
-  const b = { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' }
+  const b = { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' }
   return { top: b, bottom: b, left: b, right: b, insideHorizontal: b, insideVertical: b }
 }
 
@@ -273,7 +273,7 @@ function makeFooter(eventTitle: string): Footer {
   return new Footer({
     children: [
       new Paragraph({
-        border: { top: { style: BorderStyle.SINGLE, size: 4, color: 'C8F55A' } },
+        border: { top: { style: BorderStyle.SINGLE, size: 4, color: '15803D' } },
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
@@ -336,11 +336,11 @@ function buildMetadataTable(event: IEvent): Table {
         children: [
           new TableCell({
             width: { size: 2500, type: WidthType.DXA },
-            shading: { type: ShadingType.CLEAR, fill: 'F5F5F5', color: 'auto' },
+            shading: { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' },
             margins: CELL_MARGINS,
             children: [
               new Paragraph({
-                children: [new TextRun({ text: label, bold: true, size: 20, color: '333333', font: 'Arial' })],
+                children: [new TextRun({ text: label, bold: true, size: 20, color: '0F172A', font: 'Arial' })],
               }),
             ],
           }),
@@ -349,7 +349,7 @@ function buildMetadataTable(event: IEvent): Table {
             margins: CELL_MARGINS,
             children: [
               new Paragraph({
-                children: [new TextRun({ text: value, size: 20, color: '555555', font: 'Arial' })],
+                children: [new TextRun({ text: value, size: 20, color: '334155', font: 'Arial' })],
               }),
             ],
           }),
@@ -488,7 +488,7 @@ function buildTableOfContentsPage(): ReportChild[] {
 
 function fillRateColor(fillRate: number): string {
   if (fillRate >= 90) return '22C55E'
-  if (fillRate >= 60) return 'C8F55A'
+  if (fillRate >= 60) return '15803D'
   if (fillRate >= 30) return 'F59E0B'
   return 'EF4444'
 }
@@ -526,7 +526,7 @@ function buildEventSnapshotRow(event: IEvent): Table {
         children: stats.map(
           (stat) =>
             new TableCell({
-              shading: { fill: stat.color ?? 'C8F55A', type: ShadingType.CLEAR, color: 'auto' },
+              shading: { fill: stat.color ?? 'F0FDF4', type: ShadingType.CLEAR, color: 'auto' },
               margins: { top: 180, bottom: 180, left: 120, right: 120 },
               children: [
                 new Paragraph({
@@ -629,9 +629,9 @@ function buildRegistrationTimelineConfig(
           label: 'Registrations',
           data: dailyCounts.map((d) => d.count),
           backgroundColor: dailyCounts.map((d) =>
-            d.date === peakDay.date ? '#C8F55A' : 'rgba(200,245,90,0.4)',
+            d.date === peakDay.date ? '#15803D' : 'rgba(21,128,61,0.3)',
           ),
-          borderColor: '#C8F55A',
+          borderColor: '#15803D',
           borderWidth: 1,
         },
       ],
@@ -810,7 +810,7 @@ function buildCapacityChartConfig(confirmed: number, capacity: number): object {
         {
           label: 'Confirmed',
           data: [safeConfirmed],
-          backgroundColor: '#C8F55A',
+          backgroundColor: '#15803D',
         },
         {
           label: 'Available',
@@ -922,7 +922,7 @@ function buildDemandMixConfig(confirmed: number, waitlist: number): object {
       datasets: [
         {
           data: [confirmed, waitlist],
-          backgroundColor: ['#C8F55A', '#1F3864'],
+          backgroundColor: ['#15803D', '#0F172A'],
           borderColor: ['#FFFFFF', '#FFFFFF'],
           borderWidth: 2,
         },
@@ -1160,7 +1160,7 @@ function buildCommercialPerformanceSection(paymentSummary: NonNullable<EventRepo
             margins: CELL_MARGINS,
             children: [
               new Paragraph({
-                children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' })],
+                children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: '0F172A' })],
               }),
             ],
           })
@@ -1176,12 +1176,12 @@ function buildCommercialPerformanceSection(paymentSummary: NonNullable<EventRepo
             new TableCell({
               width: { size: [3600, 1800, TABLE_WIDTH - 5400][columnIndex], type: WidthType.DXA },
               shading: index % 2 === 1
-                ? { type: ShadingType.CLEAR, fill: 'F8F8F8', color: 'auto' }
+                ? { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' }
                 : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
               margins: CELL_MARGINS,
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: String(value), font: 'Arial', size: 19, color: '1F1F1F' })],
+                  children: [new TextRun({ text: String(value), font: 'Arial', size: 19, color: '334155' })],
                 }),
               ],
             })
@@ -1234,7 +1234,7 @@ function confirmedAttendeesTable(event: IEvent, registrations: IRegistration[]):
   const regNoColW = showPhone ? 2100 : 2500
   const phoneColW = showPhone ? 1800 : 0
   const dateColW = TABLE_WIDTH - (numberColW + nameColW + regNoColW + phoneColW)
-  const headerShading = { type: ShadingType.CLEAR, fill: '1F3864', color: 'auto' }
+  const headerShading = { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' }
 
   const headerTitles = showPhone
     ? ['#', 'Name', 'Registration Number', 'Phone Number', 'Registration Day']
@@ -1279,7 +1279,7 @@ function confirmedAttendeesTable(event: IEvent, registrations: IRegistration[]):
           shading: rowShading,
           children: [
             new Paragraph({
-              children: [new TextRun({ text: value || 'N/A', font: 'Arial', size: 20 })],
+              children: [new TextRun({ text: value || 'N/A', font: 'Arial', size: 20, color: '334155' })],
             }),
           ],
         })
@@ -1307,7 +1307,7 @@ function buildKdpaNotice(): Paragraph {
         font: 'Arial',
       }),
     ],
-    border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'C8F55A', space: 200 } },
+    border: { left: { style: BorderStyle.SINGLE, size: 12, color: '15803D', space: 200 } },
     indent: { left: 400 },
   })
 }
@@ -1501,7 +1501,7 @@ function buildPostEventActionsSection(data: EventReportData): (Paragraph | Table
           new TableCell({
             width: { size: widths[index], type: WidthType.DXA },
             margins: CELL_MARGINS,
-            shading: { type: ShadingType.CLEAR, fill: '0F0F0F', color: 'auto' },
+            shading: { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' },
             children: [
               new Paragraph({
                 children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' })],
@@ -1518,11 +1518,11 @@ function buildPostEventActionsSection(data: EventReportData): (Paragraph | Table
               margins: CELL_MARGINS,
               shading:
                 index % 2 === 1
-                  ? { type: ShadingType.CLEAR, fill: 'F8F8F8', color: 'auto' }
+                  ? { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' }
                   : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: value, font: 'Arial', size: 19, color: '1F1F1F' })],
+                  children: [new TextRun({ text: value, font: 'Arial', size: 19, color: '334155' })],
                 }),
               ],
             }),
@@ -1604,7 +1604,7 @@ function buildEventScoreBreakdown(data: EventReportData): { table: Table; totalS
         children: ['Category', 'Score', 'Benchmark', 'Actual'].map((title, index) =>
           new TableCell({
             width: { size: widths[index], type: WidthType.DXA },
-            shading: { type: ShadingType.CLEAR, fill: '0F0F0F', color: 'auto' },
+            shading: { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' },
             margins: CELL_MARGINS,
             children: [
               new Paragraph({
@@ -1626,12 +1626,12 @@ function buildEventScoreBreakdown(data: EventReportData): { table: Table; totalS
               width: { size: widths[index], type: WidthType.DXA },
               shading:
                 rowIndex % 2 === 1
-                  ? { type: ShadingType.CLEAR, fill: 'F8F8F8', color: 'auto' }
+                  ? { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' }
                   : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
               margins: CELL_MARGINS,
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: value, font: 'Arial', size: 19, color: '1F1F1F' })],
+                  children: [new TextRun({ text: value, font: 'Arial', size: 19, color: '334155' })],
                 }),
               ],
             }),
@@ -1689,7 +1689,7 @@ function aiInsightsPage(
       .map(
         (line) =>
           new Paragraph({
-            children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '1F1F1F' })],
+            children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '334155' })],
             spacing: { after: 80 },
           })
       )

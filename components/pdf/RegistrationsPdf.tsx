@@ -38,8 +38,8 @@ interface RegistrationsPdfProps {
 }
 
 // ── Accent colour (used once — status badge fill) ─────────────────────────────
-const CONFIRMED_COLOR = '#1A73E8'   // Google blue — clear on white BW print
-const WAITLIST_COLOR  = '#F29900'   // Google amber
+const CONFIRMED_COLOR = '#15803D'   // EventSlot Emerald
+const WAITLIST_COLOR  = '#D97706'   // Amber
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 // Google Forms-inspired: white pages, questions stacked vertically, full answers
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   coverTitle: {
     fontSize:     28,
     fontFamily:   'Helvetica-Bold',
-    color:        '#202124',
+    color:        '#0F172A',
     marginBottom: 8,
     lineHeight:   1.3,
   },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   coverDivider: {
     borderBottomWidth: 3,
-    borderBottomColor: '#4285F4',
+    borderBottomColor: '#15803D',
     marginTop:         20,
     marginBottom:      28,
   },
@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   coverSummaryCard: {
     flex:              1,
     borderWidth:       1,
-    borderColor:       '#DADCE0',
+    borderColor:       '#CBD5E1',
+    backgroundColor:   '#F8FAFC',
     borderRadius:      4,
     padding:           14,
   },
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   },
   responseHeaderDivider: {
     borderBottomWidth: 3,
-    borderBottomColor: '#4285F4',
+    borderBottomColor: '#15803D',
     marginTop:         12,
     marginBottom:      16,
   },
@@ -123,7 +124,8 @@ const styles = StyleSheet.create({
   // Respondent identity strip (name, email, status, meta)
   identityBlock: {
     borderWidth:   1,
-    borderColor:   '#DADCE0',
+    borderColor:   '#CBD5E1',
+    backgroundColor: '#F8FAFC',
     borderRadius:  4,
     padding:       14,
     marginBottom:  20,
@@ -257,6 +259,7 @@ export const RegistrationsPdf: React.FC<RegistrationsPdfProps> = ({
 
       {/* ── Cover Page ───────────────────────────────────────────────────── */}
       <Page size="A4" style={styles.page}>
+        <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#15803D', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>EVENTSLOT ATTENDEE ROSTER</Text>
         <Text style={styles.coverTitle}>{eventTitle}</Text>
         <Text style={styles.coverMeta}>{eventDate}</Text>
         {eventLocation ? <Text style={styles.coverMeta}>{eventLocation}</Text> : null}

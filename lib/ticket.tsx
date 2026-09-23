@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   brandSlot: {
     fontSize: 11,
     fontWeight: 700,
-    color: '#C8F55A',
+    color: '#15803D',
   },
   eventTitle: {
     fontSize: 16,
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   strip: {
     width: 4,
-    backgroundColor: '#C8F55A',
+    backgroundColor: '#15803D',
   },
 })
 

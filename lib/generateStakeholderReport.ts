@@ -23,12 +23,12 @@ import {
 import { format } from "date-fns"
 import { askAI } from "./ai"
 
-const LIME = "C8F55A"
-const NAVY = "0D1B2A"
+const LIME = "15803D"
+const NAVY = "0F172A"
 const WHITE = "FFFFFF"
 const GREY = "777777"
 const DARK = "1A1A1A"
-const BORDER = { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" }
+const BORDER = { style: BorderStyle.SINGLE, size: 1, color: "CBD5E1" }
 const NO_BD = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }
 const FIRST_ACTIVITY_FALLBACK = new Date("2026-04-15T00:00:00.000Z")
 type ReportChild = Paragraph | Table
@@ -410,13 +410,13 @@ function dataRow(values: string[], widths: number[], shade = false) {
     children: values.map((value, i) =>
       new TableCell({
         width: { size: widths[i], type: WidthType.DXA },
-        shading: { fill: shade ? "F9FAFB" : WHITE, type: ShadingType.CLEAR },
+        shading: { fill: shade ? "F8FAFC" : WHITE, type: ShadingType.CLEAR },
         borders: { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER },
         margins: { top: 80, bottom: 80, left: 120, right: 120 },
         children: [
           new Paragraph({
             alignment: i > 0 ? AlignmentType.CENTER : AlignmentType.LEFT,
-            children: [new TextRun({ text: value, font: "Arial", size: 19, color: "333333" })],
+            children: [new TextRun({ text: value, font: "Arial", size: 19, color: "334155" })],
           }),
         ],
       }),
@@ -432,7 +432,7 @@ function kpiDataRow(values: KpiCellValue[], widths: number[], shade = false) {
       const cell = typeof value === "string" ? { text: value } : value
       return new TableCell({
         width: { size: widths[i], type: WidthType.DXA },
-        shading: { fill: shade ? "F9FAFB" : WHITE, type: ShadingType.CLEAR },
+        shading: { fill: shade ? "F8FAFC" : WHITE, type: ShadingType.CLEAR },
         borders: { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER },
         margins: { top: 80, bottom: 80, left: 120, right: 120 },
         children: [
@@ -616,7 +616,7 @@ function renderExecutiveSummaryParagraphs(paragraphs: string[]): Paragraph[] {
   return paragraphs.map((text, index) =>
     new Paragraph({
       spacing: { before: index === 0 ? 70 : 40, after: 110 },
-      children: [new TextRun({ text, font: "Arial", size: 22, color: "333333" })],
+      children: [new TextRun({ text, font: "Arial", size: 22, color: "334155" })],
     }),
   )
 }
@@ -698,10 +698,10 @@ async function buildUserGrowthChart(data: StakeholderReportData): Promise<Buffer
         {
           label: "Total Registered Users",
           data: userPoints,
-          borderColor: "#C8F55A",
-          backgroundColor: isShortSeries ? "#C8F55A" : "rgba(200, 245, 90, 0.20)",
+          borderColor: "#15803D",
+          backgroundColor: isShortSeries ? "#15803D" : "rgba(21, 128, 61, 0.20)",
           borderWidth: 2,
-          pointBackgroundColor: "#C8F55A",
+          pointBackgroundColor: "#15803D",
           pointRadius: 4,
           tension: 0.3,
           fill: !isShortSeries,
@@ -728,13 +728,13 @@ async function buildUserGrowthChart(data: StakeholderReportData): Promise<Buffer
               type: "line",
               xMin: labels[0],
               xMax: labels[0],
-              borderColor: "#0D1B2A",
+              borderColor: "#0F172A",
               borderWidth: 1,
               label: {
                 display: true,
                 content: "Platform Launch",
                 color: "#111",
-                backgroundColor: "rgba(200,245,90,0.35)",
+                backgroundColor: "rgba(21,128,61,0.25)",
               },
             },
           },
@@ -768,7 +768,7 @@ async function buildMonthlyRegistrationsChart(data: StakeholderReportData): Prom
           label: "Monthly Registrations",
           data: snapshots.map(s => s.registrations),
           backgroundColor: "#C8F55A",
-          borderColor: "#C8F55A",
+          borderColor: "#15803D",
           borderWidth: 1,
         },
       ],
@@ -952,7 +952,7 @@ function buildEventActivityTable(data: StakeholderReportData): Table {
               children: [
                 new Paragraph({
                   alignment: cell.align,
-                  children: [new TextRun({ text: cell.text, font: "Arial", size: 19, color: "333333" })],
+                  children: [new TextRun({ text: cell.text, font: "Arial", size: 19, color: "334155" })],
                 }),
               ],
             }),
@@ -1094,9 +1094,9 @@ function renderStrategicRecommendations(items: RecommendationItem[]): Paragraph[
     new Paragraph({
       spacing: { before: 25, after: 45 },
       children: [
-        new TextRun({ text: `${index + 1}. `, font: "Arial", size: 21, color: "333333" }),
-        new TextRun({ text: `${item.title} `, bold: true, font: "Arial", size: 21, color: "333333" }),
-        new TextRun({ text: item.body, font: "Arial", size: 21, color: "333333" }),
+        new TextRun({ text: `${index + 1}. `, font: "Arial", size: 21, color: "334155" }),
+        new TextRun({ text: `${item.title} `, bold: true, font: "Arial", size: 21, color: "334155" }),
+        new TextRun({ text: item.body, font: "Arial", size: 21, color: "334155" }),
       ],
     }),
   )
@@ -1177,7 +1177,7 @@ function monthlySections(
           text: monetisationNarrative,
           font: "Arial",
           size: 21,
-          color: "333333",
+          color: "334155",
         }),
       ],
     }),
@@ -1226,13 +1226,13 @@ function monthlySections(
       ? [
           new Paragraph({
             spacing: { before: 0, after: 40 },
-            children: [new TextRun({ text: buildUptimeLine(data) as string, font: "Arial", size: 21, color: "333333" })],
+            children: [new TextRun({ text: buildUptimeLine(data) as string, font: "Arial", size: 21, color: "334155" })],
           }),
         ]
       : []),
     new Paragraph({
       spacing: { before: 0, after: 40 },
-      children: [new TextRun({ text: buildEmailDeliveryLine(data), font: "Arial", size: 21, color: "333333" })],
+      children: [new TextRun({ text: buildEmailDeliveryLine(data), font: "Arial", size: 21, color: "334155" })],
     }),
     new Paragraph({
       spacing: { before: 0, after: 100 },
@@ -1241,7 +1241,7 @@ function monthlySections(
           text: buildSystemHealthSummaryParagraph(data, assessSystemHealth(data)),
           font: "Arial",
           size: 21,
-          color: "333333",
+          color: "334155",
         }),
       ],
     }),
@@ -1280,7 +1280,7 @@ function yearlySections(
     heading("Year in Review"),
     new Paragraph({
       spacing: { before: 80, after: 180 },
-      children: [new TextRun({ text: buildYearInReviewNarrative(data), font: "Arial", size: 22, color: "333333" })],
+      children: [new TextRun({ text: buildYearInReviewNarrative(data), font: "Arial", size: 22, color: "334155" })],
     }),
 
     heading("Executive Summary"),
@@ -1342,7 +1342,7 @@ function yearlySections(
           text: monetisationNarrative,
           font: "Arial",
           size: 21,
-          color: "333333",
+          color: "334155",
         }),
       ],
     }),
@@ -1367,13 +1367,13 @@ function yearlySections(
       ? [
           new Paragraph({
             spacing: { before: 0, after: 40 },
-            children: [new TextRun({ text: buildUptimeLine(data) as string, font: "Arial", size: 21, color: "333333" })],
+            children: [new TextRun({ text: buildUptimeLine(data) as string, font: "Arial", size: 21, color: "334155" })],
           }),
         ]
       : []),
     new Paragraph({
       spacing: { before: 0, after: 40 },
-      children: [new TextRun({ text: buildEmailDeliveryLine(data), font: "Arial", size: 21, color: "333333" })],
+      children: [new TextRun({ text: buildEmailDeliveryLine(data), font: "Arial", size: 21, color: "334155" })],
     }),
     new Paragraph({
       spacing: { before: 0, after: 100 },
@@ -1382,7 +1382,7 @@ function yearlySections(
           text: buildSystemHealthSummaryParagraph(data, assessSystemHealth(data)),
           font: "Arial",
           size: 21,
-          color: "333333",
+          color: "334155",
         }),
       ],
     }),
@@ -1397,7 +1397,7 @@ function yearlySections(
     ...yearAheadOutlookParagraphs.map((paragraph, index) =>
       new Paragraph({
         spacing: { before: index === 0 ? 20 : 30, after: 40 },
-        children: [new TextRun({ text: paragraph, font: "Arial", size: 21, color: "333333" })],
+        children: [new TextRun({ text: paragraph, font: "Arial", size: 21, color: "334155" })],
       }),
     ),
   ]
@@ -1423,7 +1423,7 @@ function buildCoverPage(data: StakeholderReportData): Paragraph[] {
     ),
     new Paragraph({
       children: [
-        new TextRun({ text: "Event", bold: true, size: 52, color: "000000" }),
+        new TextRun({ text: "Event", bold: true, size: 52, color: "0F172A" }),
         new TextRun({ text: "Slot", bold: true, size: 52, color: LIME }),
       ],
       spacing: { before: 0, after: 120 },
@@ -1433,7 +1433,7 @@ function buildCoverPage(data: StakeholderReportData): Paragraph[] {
       spacing: { after: 80 },
     }),
     new Paragraph({
-      children: [new TextRun({ text: period.toUpperCase(), bold: true, size: 48, color: "000000" })],
+      children: [new TextRun({ text: period.toUpperCase(), bold: true, size: 48, color: "0F172A" })],
       spacing: { after: 80 },
     }),
     new Paragraph({
