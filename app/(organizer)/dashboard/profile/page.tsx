@@ -304,9 +304,10 @@ export default function ProfilePage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState("")
-  const [theme, setTheme] = useState<ThemeMode>("dark")
+  const [theme, setTheme] = useState<ThemeMode>("light")
 
   function syncProfileIdentity(next: { name?: string | null; image?: string | null; preferredLanguage?: SupportedLanguageCode }) {
+    window.dispatchEvent(new Event("eventslot:profile-updated"))
     window.dispatchEvent(new CustomEvent("eventslot:profile-updated", { detail: next }))
   }
 
@@ -752,6 +753,7 @@ export default function ProfilePage() {
                     letterSpacing: "0.02em",
                     textTransform: "uppercase",
                   }}
+                  aria-label="Preferred language"
                 >
                   {t("preferredLanguage")}
                 </label>

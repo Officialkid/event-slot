@@ -57,7 +57,7 @@ export default async function TeamAcceptPage({ searchParams }: Props) {
           <p style={{ fontSize: '0.925rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
             You have already accepted this invitation.
           </p>
-          <Link href="/dashboard" style={{ display: 'inline-block', marginTop: '1.25rem', background: 'var(--accent)', color: '#0A0A0A', borderRadius: 8, padding: '0.6rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}>
+          <Link href="/dashboard" style={{ display: 'inline-block', marginTop: '1.25rem', background: 'var(--accent)', color: 'var(--accent-contrast, #FFFFFF)', borderRadius: 8, padding: '0.6rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, fontFamily: 'var(--font-dm-sans)', textDecoration: 'none' }}>
             Go to dashboard
           </Link>
         </div>

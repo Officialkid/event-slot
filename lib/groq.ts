@@ -19,11 +19,11 @@ const _groq = process.env.GROQ_API_KEY ? groq : null
 type AITaskType = 'insights' | 'qa' | 'capacity' | 'tracker' | 'report'
 
 const TASK_MODELS: Record<AITaskType, string[]> = {
-  insights: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  qa: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  capacity: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  tracker: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
-  report: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
+  insights: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+  qa: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+  capacity: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+  tracker: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
+  report: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'],
 }
 
 export function getGroqModelByTask(taskType: AITaskType): string {

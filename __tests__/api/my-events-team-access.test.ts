@@ -37,6 +37,9 @@ jest.mock('@/lib/prisma', () => ({
     teamMember: {
       findMany: (...args: unknown[]) => mockTeamMemberFindMany(...args),
     },
+    groupBooking: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
   },
 }))
 

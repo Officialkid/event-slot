@@ -148,7 +148,7 @@ export default async function Home() {
           <div className="relative z-10 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center">
             <div className="marketing-fade-up max-w-2xl">
               <div className="marketing-eyebrow">
-                <span className="inline-flex h-2 w-2 rounded-full bg-[#C8F55A]" />
+                <span className="inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
                 Built for modern event teams
               </div>
 
@@ -270,7 +270,7 @@ export default async function Home() {
                   className={`marketing-card marketing-fade-up ${index === 2 ? "md:col-span-2" : ""}`}
                 >
                   <div className="marketing-icon-wrap">
-                    <Icon className="h-5 w-5 text-[#C8F55A]" />
+                    <Icon className="h-5 w-5 text-[var(--accent)]" />
                   </div>
                   <h3 className="mt-6 text-[1.2rem] font-semibold text-[var(--text-primary)]">{card.title}</h3>
                   <p className="mt-3 max-w-xl text-[0.98rem] leading-7 text-[var(--text-secondary)]">
@@ -315,7 +315,7 @@ export default async function Home() {
                 "Organizer dashboard with per-day totals",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3 text-[0.98rem] text-[var(--text-secondary)]">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#C8F55A]" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -330,7 +330,7 @@ export default async function Home() {
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {workflowSteps.map((item) => (
             <article key={item.step} className="marketing-card marketing-fade-up">
-                <div className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[#C8F55A]">
+                <div className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                   Step {item.step}
                 </div>
                 <h3 className="mt-5 text-[1.2rem] font-semibold text-[var(--text-primary)]">{item.title}</h3>

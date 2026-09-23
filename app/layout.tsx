@@ -161,15 +161,12 @@ const themeInitScript = `
   (() => {
     try {
       const storedTheme = window.localStorage.getItem("eventslot-theme");
-      const systemPrefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
       const nextTheme = storedTheme === "light" || storedTheme === "dark"
         ? storedTheme
-        : systemPrefersLight
-          ? "light"
-          : "dark";
+        : "light";
       document.documentElement.setAttribute("data-theme", nextTheme);
-      document.documentElement.style.background = nextTheme === "light" ? "#F7F7F2" : "#0A0A0A";
-      document.documentElement.style.color = nextTheme === "light" ? "#171717" : "#F0EDE6";
+      document.documentElement.style.background = nextTheme === "dark" ? "#0A0A0A" : "#F8FAFC";
+      document.documentElement.style.color = nextTheme === "dark" ? "#FFFFFF" : "#0F172A";
     } catch {}
   })();
 `;
@@ -191,11 +188,11 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
       style={{
-        background: "#0A0A0A",
-        color: "#F0EDE6",
+        background: "#F8FAFC",
+        color: "#0F172A",
         fontFamily: "var(--font-dm-sans)",
       }}
       className={dmSans.variable}
@@ -205,8 +202,7 @@ export default async function RootLayout({
         {/* Microsoft tile meta */}
         <meta name="msapplication-config" content="/browserconfig.xml" />
         {/* PWA theme color for Android Chrome address bar */}
-        {/* PWA theme color for Android Chrome address bar */}
-        <meta name="theme-color" content="#a3e635" />
+        <meta name="theme-color" content="#15803D" />
         {/* Prevent iOS phone-number auto-detection */}
         <meta name="format-detection" content="telephone=no" />
       </head>

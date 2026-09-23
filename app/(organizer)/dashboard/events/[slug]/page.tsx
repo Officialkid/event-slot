@@ -2272,12 +2272,17 @@ export default function EventDashboardPage() {
     }
 
     setDownloadingReport(true)
+    const controller = new AbortController()
+    const abortTimeout = window.setTimeout(() => controller.abort(), 30000)
     try {
       const params = new URLSearchParams({
         mode: 'download',
         token: token || eventData.dashboardToken,
       })
-      const res = await fetch(`/api/events/${slug}/report?${params.toString()}`)
+      const res = await fetch(`/api/events/${slug}/report?${params.toString()}`, {
+        signal: controller.signal,
+      })
+      window.clearTimeout(abortTimeout)
 
       if (res.status === 401) {
         const data = await res.json().catch(() => null)
@@ -2305,6 +2310,7 @@ export default function EventDashboardPage() {
     } catch {
       setReportError("The report could not be downloaded right now.")
     } finally {
+      window.clearTimeout(abortTimeout)
       setDownloadingReport(false)
     }
   }
@@ -3267,7 +3273,7 @@ export default function EventDashboardPage() {
             <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
               <button
                 onClick={() => setShowManualReg(true)}
-                style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 500, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: "0.55rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--accent)", cursor: "pointer", fontFamily: "var(--font-dm-sans)", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
               >
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="8" cy="5" r="3"/><path d="M1 14c0-3.866 3.134-7 7-7s7 3.134 7 7"/>
@@ -3339,7 +3345,7 @@ export default function EventDashboardPage() {
                       disabled={reportLoading}
                       style={{
                         background: reportLoading ? themeAccentSoftStrong : themeAccent,
-                        color: "#0A0A0A",
+                        color: "var(--accent-contrast, #FFFFFF)",
                         border: "none",
                         borderRadius: "100px",
                         padding: "0.65rem 1.6rem",
@@ -3493,7 +3499,7 @@ export default function EventDashboardPage() {
                         disabled={downloadingReport}
                         style={{
                           background: themeAccent,
-                          color: "#0A0A0A",
+                          color: "var(--accent-contrast, #FFFFFF)",
                           border: "none",
                           borderRadius: "100px",
                           padding: "0.6rem 1.4rem",
@@ -3555,14 +3561,14 @@ export default function EventDashboardPage() {
                 <button
                   onClick={runDuplicateScan}
                   disabled={scanning}
-                  style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
+                  style={{ background: scanning ? themeAccentSoft : themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? themeAccent : "var(--accent-contrast, #FFFFFF)", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
                 >
                   {scanning ? "Scanning..." : "Run scan"}
                 </button>
               </div>
               {scanError && <p style={{ marginTop: "0.75rem", fontSize: "0.78rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{scanError}</p>}
               {dupGroups !== null && dupGroups.length === 0 && (
-                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", fontWeight: 600, color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
               )}
               {dupGroups !== null && dupGroups.length > 0 && (
                 <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.875rem" }}>
@@ -3634,12 +3640,12 @@ export default function EventDashboardPage() {
             {/* M3 - Recent Registrations Ticker */}
             {recentRegs.length > 0 && (
               <div style={{ border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem", background: themeSurface }}>
-                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>Featured RECENT REGISTRATIONS</div>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.75rem" }}>Featured RECENT REGISTRATIONS</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
                   {recentRegs.map((r) => (
                     <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(200,245,90,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#C8F55A", flexShrink: 0, fontFamily: "var(--font-dm-sans)" }}>
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: themeAccentSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: themeAccent, flexShrink: 0, fontFamily: "var(--font-dm-sans)" }}>
                           {r.name[0]?.toUpperCase() ?? '?'}
                         </div>
                         <span style={{ fontSize: "0.82rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>{r.name}</span>

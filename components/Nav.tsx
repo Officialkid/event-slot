@@ -55,7 +55,7 @@ export default function Nav() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
-  const [theme, setTheme] = useState<ThemeMode>("dark")
+  const [theme, setTheme] = useState<ThemeMode>("light")
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -127,32 +127,32 @@ export default function Nav() {
 
   const isLight = theme === "light"
   const navShellStyle: React.CSSProperties = {
-    borderBottom: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)"}`,
-    background: isLight ? "rgba(247,247,242,0.82)" : "rgba(10,10,10,0.82)",
+    borderBottom: `1px solid ${isLight ? "#E2E8F0" : "rgba(240,237,230,0.08)"}`,
+    background: isLight ? "rgba(248,250,252,0.88)" : "rgba(10,10,10,0.82)",
   }
   const panelStyle: React.CSSProperties = {
-    border: `1px solid ${isLight ? "rgba(162,205,46,0.18)" : "rgba(200,245,90,0.14)"}`,
-    background: isLight ? "rgba(255,255,255,0.92)" : "rgba(8,12,8,0.92)",
-    boxShadow: "0 10px 40px rgba(0,0,0,0.22)",
+    border: `1px solid ${isLight ? "#E2E8F0" : "rgba(34,197,94,0.14)"}`,
+    background: isLight ? "rgba(255,255,255,0.96)" : "rgba(8,12,8,0.92)",
+    boxShadow: isLight ? "0 4px 20px rgba(15,23,42,0.05)" : "0 10px 40px rgba(0,0,0,0.22)",
   }
   const iconButtonStyle: React.CSSProperties = {
-    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.1)"}`,
-    background: isLight ? "rgba(23,23,23,0.03)" : "rgba(255,255,255,0.03)",
-    color: isLight ? "#171717" : "#F0EDE6",
+    border: `1px solid ${isLight ? "#E2E8F0" : "rgba(240,237,230,0.1)"}`,
+    background: isLight ? "#F1F5F9" : "rgba(255,255,255,0.03)",
+    color: isLight ? "#0F172A" : "#F0EDE6",
   }
   const dropdownStyle: React.CSSProperties = {
-    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.1)"}`,
+    border: `1px solid ${isLight ? "#E2E8F0" : "rgba(240,237,230,0.1)"}`,
     background: isLight ? "#FFFFFF" : "#111311",
     boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
   }
   const mobilePanelStyle: React.CSSProperties = {
-    border: `1px solid ${isLight ? "rgba(23,23,23,0.08)" : "rgba(240,237,230,0.08)"}`,
+    border: `1px solid ${isLight ? "#E2E8F0" : "rgba(240,237,230,0.08)"}`,
     background: isLight ? "#FFFFFF" : "#101110",
     boxShadow: "0 18px 50px rgba(0,0,0,0.32)",
   }
-  const neutralText = isLight ? "rgba(23,23,23,0.72)" : "rgba(240,237,230,0.72)"
-  const softerText = isLight ? "rgba(23,23,23,0.66)" : "rgba(240,237,230,0.66)"
-  const logoEventColor = isLight ? "#171717" : "#F0EDE6"
+  const neutralText = isLight ? "#475569" : "rgba(240,237,230,0.72)"
+  const softerText = isLight ? "#64748B" : "rgba(240,237,230,0.66)"
+  const logoEventColor = isLight ? "#0F172A" : "#FFFFFF"
 
   return (
     <nav className="sticky top-0 z-40 backdrop-blur-xl" style={navShellStyle}>
@@ -168,7 +168,7 @@ export default function Nav() {
             />
             <span className="text-[1.08rem] font-semibold tracking-tight sm:text-[1.22rem]">
               <span style={{ color: logoEventColor }}>Event</span>
-              <span className="text-[#C8F55A]">Slot</span>
+              <span style={{ color: isLight ? "#15803D" : "#22C55E" }}>Slot</span>
             </span>
           </Link>
 
@@ -276,8 +276,8 @@ export default function Nav() {
                     onClick={(e) => handleNavClick(e, item.sectionId)}
                     className="rounded-[12px] px-3 py-3 text-[0.94rem] font-medium transition-colors"
                     style={{
-                      background: active ? "rgba(200,245,90,0.1)" : "transparent",
-                      color: active ? "#C8F55A" : neutralText,
+                      background: active ? (isLight ? "rgba(21,128,61,0.08)" : "rgba(34,197,94,0.12)") : "transparent",
+                      color: active ? (isLight ? "#15803D" : "#22C55E") : neutralText,
                     }}
                   >
                     {item.title}

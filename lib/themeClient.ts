@@ -3,9 +3,9 @@ import { getEventSlotTheme, type EventSlotThemeMode } from "@/lib/eventslot-them
 export type ThemeMode = EventSlotThemeMode
 
 export function resolveCurrentTheme(): ThemeMode {
-  if (typeof document === "undefined") return "dark"
+  if (typeof document === "undefined") return "light"
   const current = document.documentElement.getAttribute("data-theme")
-  return current === "light" ? "light" : "dark"
+  return current === "dark" ? "dark" : "light"
 }
 
 export function applyTheme(nextTheme: ThemeMode) {

@@ -87,11 +87,11 @@ export function AssistantWidget() {
             onClick={() => {
               void toggleMemory()
             }}
-            className={`relative w-10 h-5 rounded-full transition-colors ${memoryEnabled ? "bg-[#C8F55A]" : "bg-[#2A2A2A]"}`}
+            className={`relative w-10 h-5 rounded-full transition-colors ${memoryEnabled ? "bg-[var(--accent)]" : "bg-neutral-600"}`}
             aria-label="Toggle conversation memory"
           >
             <span
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-black transition-transform ${memoryEnabled ? "translate-x-5" : "translate-x-0.5"}`}
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${memoryEnabled ? "translate-x-5" : "translate-x-0.5"}`}
             />
           </button>
         </div>
@@ -132,7 +132,7 @@ export function AssistantWidget() {
       <button
         onClick={() => setIsOpen((o) => !o)}
         className="fixed bottom-28 right-6 z-50 h-14 w-14 rounded-full md:bottom-6
-                   bg-[#C8F55A] text-black shadow-xl hover:bg-[#b8e040]
+                   bg-[var(--accent)] text-[var(--accent-contrast,#FFFFFF)] shadow-xl hover:opacity-90
                    hover:scale-110 transition-all duration-200
                    flex items-center justify-center"
         aria-label="Toggle EventSlot Assistant"

@@ -359,12 +359,15 @@ Organiser priorities:
 Write with consultant tone. Keep statements data-anchored and direct.`
 
   try {
-    const raw = await askAI({
-      system: sys,
-      prompt,
-      taskType: 'report',
-      maxTokens: 2800,
-    })
+    const raw = await Promise.race([
+      askAI({
+        system: sys,
+        prompt,
+        taskType: 'report',
+        maxTokens: 2800,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
+    ])
 
     if (!raw) {
       return buildFallbackReport({ event, confirmed, waitlist })

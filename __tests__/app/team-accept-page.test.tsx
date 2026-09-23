@@ -59,7 +59,7 @@ describe('TeamAcceptPage', () => {
     mockFindUnique.mockResolvedValue({
       email: 'invitee@example.com',
       status: 'pending',
-      createdAt: new Date('2026-07-16T10:00:00.000Z'),
+      createdAt: new Date(),
       owner: { name: 'Owner Name', email: 'owner@example.com' },
       eventAccess: [],
     })

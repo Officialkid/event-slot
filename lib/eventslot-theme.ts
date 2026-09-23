@@ -16,7 +16,7 @@ export const eventslotTheme = {
     elevated: "#1A1A1A",
     hero: "#111111",
     nav: "rgba(10, 10, 10, 0.94)",
-    activeTab: "rgba(200, 245, 90, 0.14)",
+    activeTab: "rgba(34, 197, 94, 0.14)",
     input: "#0A0A0A",
     border: "#27272A",
     text: "#FFFFFF",
@@ -24,24 +24,28 @@ export const eventslotTheme = {
     muted: "#52525B",
     greenPanel: "#17301F",
     avatar: "rgba(255, 255, 255, 0.12)",
-    accentSoft: "rgba(200,245,90,0.1)"
+    accentSoft: "rgba(34, 197, 94, 0.12)"
   },
   light: {
-    ...shared,
-    page: "#F7F7F2",
+    accent: "#15803D",
+    accentHover: "#166534",
+    success: "#15803D",
+    warning: "#D97706",
+    error: "#DC2626",
+    page: "#F8FAFC",
     surface: "#FFFFFF",
-    elevated: "#F0F4E8",
+    elevated: "#F1F5F9",
     hero: "#FFFFFF",
     nav: "rgba(255, 255, 255, 0.94)",
-    activeTab: "rgba(97, 124, 24, 0.10)",
+    activeTab: "rgba(21, 128, 61, 0.08)",
     input: "#FFFFFF",
-    border: "rgba(10, 10, 10, 0.10)",
-    text: "#171717",
-    secondary: "#505851",
-    muted: "#6A7169",
-    greenPanel: "#2F774F",
-    avatar: "rgba(255, 255, 255, 0.24)",
-    accentSoft: "rgba(200,245,90,0.18)"
+    border: "#E2E8F0",
+    text: "#0F172A",
+    secondary: "#475569",
+    muted: "#64748B",
+    greenPanel: "#15803D",
+    avatar: "rgba(21, 128, 61, 0.12)",
+    accentSoft: "#DCFCE7"
   }
 } as const;
 

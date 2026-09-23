@@ -785,12 +785,15 @@ async function buildTimelineAnalysis(
 
   const prompt = `Analyse the registration timeline for ${event.title}.\n\nData:\n- Registration window: ${fmtLongDate(openDateIso)} to ${fmtLongDate(closeDateIso)}\n- Daily counts: ${JSON.stringify(dailyCounts)}\n- Peak day: ${peakDay.date} with ${peakDay.count} registrations (${peakPercent}% of total)\n- Days with zero registrations: ${zeroDaysLabel}\n\nWrite a 3-sentence analysis that:\n1. States when the peak occurred and what it suggests (e.g. a specific promotion, email send, or social post that day)\n2. Notes the registration velocity trend (did it accelerate or decelerate?)\n3. Gives one specific, actionable suggestion for the organiser's next event\n\nDo NOT use generic phrases like \"indicating a potential risk\" or \"suggesting effective marketing efforts\". Be specific and direct.`
 
-  const aiText = await askAI({
+  const aiText = await Promise.race([
+    askAI({
     system: 'You are an event growth analyst writing concise operational performance analysis.',
     prompt,
     taskType: 'qa',
     maxTokens: 220,
-  })
+    }),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+  ])
 
   if (aiText && aiText.trim()) {
     return aiText.replace(/\s+/g, ' ').trim()
@@ -1872,7 +1875,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     waitlistPosition: item.position,
   }))
 
-  const aiContent = await generateAIReportContent({ event, confirmed, waitlist })
+  const aiContentPromise = generateAIReportContent({ event, confirmed, waitlist })
   const theme = data.theme ?? 'eventslot'
   const palette = THEMES[theme] ?? THEMES.eventslot
   const timelineAttendees = [...confirmed, ...waitlist]
@@ -1883,6 +1886,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     data.registrationOpenDate.toISOString(),
     data.registrationDeadline.toISOString(),
   )
+  const aiContent = await aiContentPromise
   const commercialSections = data.paymentSummary ? buildCommercialPerformanceSection(data.paymentSummary) : []
   const postEventActionsSections = buildPostEventActionsSection(data)
   const doc = new Document({

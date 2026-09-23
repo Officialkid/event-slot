@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
 import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
-import type { PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
+import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
 import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
@@ -2015,7 +2015,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     {event.location && (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
-                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{event.location}</p>
+                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{displayLocation}</p>
                         {event.mapDirectionsUrl && (
                           <a
                             href={event.mapDirectionsUrl}
@@ -2033,16 +2033,27 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     {entryLabel && (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>
-                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>{entryLabel}</p>
+                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>{displayEntryLabel}</p>
                       </div>
                     )}
                     {event.organizerName && (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Hosted by</p>
-                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{event.organizerName}</p>
+                        <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{displayOrganizerName}</p>
                       </div>
                     )}
                   </div>
+
+                  {event.description && (
+                    <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                      <EventDescriptionBlock
+                        eventSlug={event.slug}
+                        description={event.description}
+                        onTranslated={setPublicTranslation}
+                        onShowOriginal={() => setPublicTranslation(null)}
+                      />
+                    </div>
+                  )}
 
                   {/* Intro card styled with theme tokens */}
                   <div className="rounded-[16px] px-4 py-3" style={mutedCardStyle}>
