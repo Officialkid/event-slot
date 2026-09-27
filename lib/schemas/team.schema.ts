@@ -6,10 +6,15 @@ const emailField = z
   .email('A valid email address is required')
   .max(254)
   .transform((v) => v.toLowerCase().trim())
-  .refine(
-    (email) => !detectEmailTypo(email).hasTypo,
-    (email) => ({ message: detectEmailTypo(email).reason || 'Invalid email address domain' })
-  )
+  .superRefine((email, ctx) => {
+    const typo = detectEmailTypo(email)
+    if (typo.hasTypo) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: typo.reason || 'Invalid email address domain',
+      })
+    }
+  })
 
 export const teamInviteSchema = z.object({
   emails: z
