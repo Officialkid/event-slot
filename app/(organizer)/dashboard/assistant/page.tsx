@@ -26,17 +26,14 @@ type CreatedEvent = {
 
 const INITIAL_GREETING: AsaMessage = {
   role: "assistant",
-  content: "Hi there! I'm ASA. How can I help you today?",
+  content: "Hi there! I'm your EventSlot assistant. How can I help you today?",
 }
 
 const QUICK_STARTERS = [
   { label: "📋 How many events do I currently have?", prompt: "How many events do I currently have?" },
-  { label: "🖼️ Upload flyer photo", prompt: "I'd like to upload an event flyer." },
-  { label: "📊 How is my event doing?", prompt: "How is my event doing?" },
-  { label: "👥 Registered today", prompt: "How many people registered today?" },
-  { label: "🎟️ Remaining slots", prompt: "How many slots are remaining?" },
-  { label: "⚡ Increase capacity to 800", prompt: "Increase capacity to 800" },
+  { label: "🖼️ Upload flyer photo", prompt: "I'd like to upload an event flyer to create an event." },
   { label: "✨ Help me create an event", prompt: "Help me create an event." },
+  { label: "💡 What can you help me with?", prompt: "What can you help me with?" },
 ]
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
@@ -110,6 +107,32 @@ export default function AsaAssistantPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, loading, isReview, createdEvent, eventMetrics, pendingAction, disambiguationOptions])
+
+  // Load persisted chat history on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("eventslot_assistant_chat_history")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed)
+        }
+      }
+    } catch (e) {
+      console.warn("[Assistant] Could not load persisted chat:", e)
+    }
+  }, [])
+
+  // Persist chat history to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem("eventslot_assistant_chat_history", JSON.stringify(messages))
+      } catch (e) {
+        console.warn("[Assistant] Could not persist chat:", e)
+      }
+    }
+  }, [messages])
 
   // Load organizer's active events on mount
   useEffect(() => {
@@ -236,7 +259,7 @@ export default function AsaAssistantPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to process message with ASA.")
+        throw new Error(data.error || "Failed to process message with EventSlot Assistant.")
       }
 
       if (data.metrics) {
@@ -580,6 +603,9 @@ export default function AsaAssistantPage() {
   }
 
   const handleReset = () => {
+    try {
+      localStorage.removeItem("eventslot_assistant_chat_history")
+    } catch {}
     setMessages([INITIAL_GREETING])
     setDraft({ status: "collecting" })
     setFormProposal(null)
@@ -636,15 +662,15 @@ export default function AsaAssistantPage() {
               width: 40,
               height: 40,
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #09090b 0%, #18181b 100%)",
-              border: "1px solid rgba(251, 191, 36, 0.35)",
+              background: "var(--surface-elevated)",
+              border: "1px solid var(--border-subtle)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 16px rgba(251, 191, 36, 0.2)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
             }}
           >
-            <AsaBulbIcon size={22} glowing />
+            <AsaBulbIcon size={22} glowing={false} />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -658,22 +684,8 @@ export default function AsaAssistantPage() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                ASA
+                Event Slot Assistant
               </h1>
-              <span
-                style={{
-                  fontSize: "0.68rem",
-                  fontWeight: 700,
-                  padding: "0.15rem 0.55rem",
-                  borderRadius: "999px",
-                  background: "linear-gradient(135deg, #18181b 0%, #27272a 100%)",
-                  color: "#fbbf24",
-                  border: "1px solid rgba(251, 191, 36, 0.3)",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                AI
-              </span>
             </div>
             <p
               style={{
@@ -743,10 +755,10 @@ export default function AsaAssistantPage() {
               alignItems: "center",
               gap: "0.35rem",
             }}
-            title="Start fresh with a new event"
+            title="Start a new conversation"
           >
             <span>↺</span>
-            <span className="hidden sm:inline">New Event</span>
+            <span className="hidden sm:inline">New Conversation</span>
           </button>
         </div>
       </div>
@@ -883,7 +895,7 @@ export default function AsaAssistantPage() {
                 gap: "0.4rem",
               }}
             >
-              <span>ASA is thinking...</span>
+              <span>Assistant is thinking...</span>
             </div>
           </div>
         )}
@@ -1976,8 +1988,8 @@ export default function AsaAssistantPage() {
               gap: 8,
               padding: "4px 10px",
               borderRadius: 12,
-              background: "rgba(255, 255, 255, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
+              background: "var(--surface)",
+              border: "1px solid var(--border-subtle)",
               marginBottom: 8,
               fontSize: "0.8rem",
               color: "var(--text-primary)",
@@ -2012,14 +2024,14 @@ export default function AsaAssistantPage() {
         {/* Capsule Input Bar */}
         <div
           style={{
-            background: "#18181b",
-            border: "1px solid #27272a",
+            background: "var(--surface)",
+            border: "1.5px solid var(--border-subtle)",
             borderRadius: "9999px",
             padding: "0.4rem 0.5rem 0.4rem 0.65rem",
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
           }}
         >
           {/* Plus Button (Upload Flyer / Photo) */}
@@ -2032,9 +2044,9 @@ export default function AsaAssistantPage() {
               width: 34,
               height: 34,
               borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.08)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              color: "#f4f4f5",
+              background: "var(--surface-elevated)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-secondary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2062,7 +2074,7 @@ export default function AsaAssistantPage() {
             }}
             placeholder={
               selectedImage
-                ? "Ask ASA about this flyer, or press send to analyze..."
+                ? "Ask about this flyer, or press send to analyze..."
                 : isReview
                 ? 'Type "Yes" to create, or describe changes...'
                 : "Ask anything..."
@@ -2074,7 +2086,7 @@ export default function AsaAssistantPage() {
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "#f4f4f5",
+              color: "var(--text-primary)",
               fontSize: "0.93rem",
               fontFamily: "var(--font-dm-sans)",
               resize: "none",
@@ -2093,9 +2105,9 @@ export default function AsaAssistantPage() {
               gap: "0.3rem",
               padding: "0.3rem 0.6rem",
               borderRadius: "9999px",
-              background: loading ? "rgba(251, 191, 36, 0.15)" : "rgba(255, 255, 255, 0.06)",
-              border: loading ? "1px solid rgba(251, 191, 36, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
-              color: loading ? "#fbbf24" : "#a1a1aa",
+              background: loading ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "color-mix(in srgb, var(--text-muted) 10%, transparent)",
+              border: loading ? "1px solid var(--accent)" : "1px solid var(--border-subtle)",
+              color: loading ? "var(--accent)" : "var(--text-muted)",
               fontSize: "0.78rem",
               fontWeight: 600,
               userSelect: "none",
@@ -2119,7 +2131,7 @@ export default function AsaAssistantPage() {
               borderRadius: "50%",
               background: isListening ? "rgba(239, 68, 68, 0.2)" : "transparent",
               border: isListening ? "1px solid #ef4444" : "none",
-              color: isListening ? "#ef4444" : "#a1a1aa",
+              color: isListening ? "#ef4444" : "var(--text-muted)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -2140,21 +2152,21 @@ export default function AsaAssistantPage() {
             type="button"
             onClick={() => handleSend()}
             disabled={(!input.trim() && !selectedImage) || loading}
-            aria-label="Send to ASA"
+            aria-label="Send message"
             style={{
               width: 36,
               height: 36,
               borderRadius: "50%",
-              background: "#2563eb",
-              opacity: (input.trim() || selectedImage) && !loading ? 1 : 0.7,
-              color: "#ffffff",
+              background: "var(--accent)",
+              opacity: (input.trim() || selectedImage) && !loading ? 1 : 0.6,
+              color: "var(--accent-contrast, #ffffff)",
               border: "none",
               cursor: (input.trim() || selectedImage) && !loading ? "pointer" : "default",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
-              boxShadow: "0 2px 10px rgba(37, 99, 235, 0.4)",
+              boxShadow: "0 2px 10px color-mix(in srgb, var(--accent) 30%, transparent)",
               transition: "all 0.15s ease",
             }}
           >
@@ -2179,7 +2191,7 @@ export default function AsaAssistantPage() {
           }}
         >
           <span>🔒</span>
-          <span>Interactions are securely logged to continuously improve ASA. No attendee PII is used.</span>
+          <span>Interactions are securely logged to continuously improve EventSlot Assistant. No attendee PII is used.</span>
         </div>
       </div>
     </div>

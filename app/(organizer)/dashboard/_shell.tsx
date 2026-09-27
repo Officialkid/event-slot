@@ -170,7 +170,7 @@ function IconLightbulb({ size = 16 }: { size?: number }) {
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
-  { labelKey: "createEvent", customLabel: "ASA", href: "/dashboard/assistant", icon: <IconLightbulb />, exact: false },
+  { labelKey: "createEvent", customLabel: "Event Slot Assistant", href: "/dashboard/assistant", icon: <IconLightbulb />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { labelKey: "community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { labelKey: "notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
@@ -187,7 +187,7 @@ const MOBILE_TAB_ITEMS = [
 ] as const
 
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
-  if (pathname.startsWith("/dashboard/assistant")) return "ASA"
+  if (pathname.startsWith("/dashboard/assistant")) return "Event Slot Assistant"
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
@@ -1441,31 +1441,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           zIndex: 55,
         }}
       >
-        <Link
-          href="/dashboard/assistant"
-          aria-label="ASA"
-          style={{
-            height: 48,
-            padding: "0 14px",
-            borderRadius: 24,
-            background: "linear-gradient(135deg, #09090b 0%, #18181b 100%)",
-            color: "#f8fafc",
-            border: "1px solid rgba(251, 191, 36, 0.4)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.35), 0 0 16px rgba(251, 191, 36, 0.2)",
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            textDecoration: "none",
-            fontWeight: 700,
-            fontSize: "0.85rem",
-            letterSpacing: "0.03em",
-          }}
-        >
-          <span style={{ color: "#fbbf24", display: "flex", alignItems: "center" }}>
-            <IconLightbulb size={18} />
-          </span>
-          <span>ASA</span>
-        </Link>
+        {!pathname.startsWith("/dashboard/assistant") && (
+          <Link
+            href="/dashboard/assistant"
+            aria-label="Event Slot Assistant"
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 16,
+              background: "var(--surface)",
+              color: "#fbbf24",
+              border: "1.5px solid var(--border-subtle)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+            }}
+          >
+            <IconLightbulb size={22} />
+          </Link>
+        )}
 
         <Link
           href="/create"
