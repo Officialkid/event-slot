@@ -277,35 +277,136 @@ export async function sendFeedbackRequestEmail({
 export async function sendTeamInviteEmail({
   to,
   inviterName,
+  inviterEmail,
   inviteToken,
+  eventTitle,
+  eventDate,
+  eventLocation,
 }: {
   to: string
   inviterName: string
+  inviterEmail?: string | null
   inviteToken: string
+  eventTitle?: string | null
+  eventDate?: string | Date | null
+  eventLocation?: string | null
 }) {
   const acceptUrl = `${BASE_URL}/team/accept?token=${inviteToken}`
+  const formattedDate = eventDate
+    ? new Date(eventDate).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null
+
+  const subject = eventTitle
+    ? `${inviterName} invited you to manage ${eventTitle} on EventSlot`
+    : `${inviterName} invited you to join their EventSlot team`
+
+  const eventBox = eventTitle
+    ? `
+      <div style="background:#F4F4F5;border:1px solid #E4E4E7;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#71717A;margin-bottom:6px;">Event Details</div>
+        <div style="font-size:16px;font-weight:700;color:#09090B;margin-bottom:8px;">${eventTitle}</div>
+        ${formattedDate ? `<div style="font-size:13px;color:#52525B;margin-bottom:4px;">&#128197; <strong>Date:</strong> ${formattedDate}</div>` : ''}
+        ${eventLocation ? `<div style="font-size:13px;color:#52525B;margin-bottom:4px;">&#128205; <strong>Location:</strong> ${eventLocation}</div>` : ''}
+        <div style="font-size:13px;color:#52525B;">&#128273; <strong>Access Scope:</strong> Specific Event Collaborator</div>
+      </div>
+    `
+    : ''
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#FAFAFA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181B;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#FAFAFA;padding:32px 16px;">
+        <tr>
+          <td align="center">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:540px;background:#FFFFFF;border:1px solid #E4E4E7;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.04);">
+              <!-- Header -->
+              <tr>
+                <td style="padding:24px 32px 20px;border-bottom:1px solid #F4F4F5;background:#0A0A0A;color:#FFFFFF;">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td>
+                        <span style="font-size:20px;font-weight:700;letter-spacing:-0.02em;color:#FFFFFF;">Event<span style="color:#C8F55A;">Slot</span></span>
+                      </td>
+                      <td align="right">
+                        <span style="display:inline-block;padding:4px 10px;background:rgba(200,245,90,0.15);border:1px solid rgba(200,245,90,0.4);border-radius:20px;color:#C8F55A;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">Team Invitation</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Body Content -->
+              <tr>
+                <td style="padding:32px;">
+                  <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#09090B;line-height:1.3;">
+                    ${inviterName} has invited you to join the team
+                  </h1>
+                  <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#52525B;">
+                    You have been invited by <strong>${inviterName}</strong>${inviterEmail ? ` (${inviterEmail})` : ''} to collaborate as an admin for ${eventTitle ? `<strong>${eventTitle}</strong>` : 'their event'}.
+                  </p>
+
+                  ${eventBox}
+
+                  <!-- Privileges List -->
+                  <div style="margin:20px 0;padding:16px;background:#F8FAFC;border-radius:10px;border-left:4px solid #10B981;">
+                    <div style="font-size:12px;font-weight:700;color:#18181B;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Your Collaborator Privileges:</div>
+                    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:#3F3F46;">
+                      <li><strong>Ticket Verification:</strong> Scan gate QR codes and look up tickets in real time.</li>
+                      <li><strong>Attendee Management:</strong> Monitor confirmed attendees, group bookings, and waitlist.</li>
+                      <li><strong>Attendee Broadcasts:</strong> Send email updates to registered guests.</li>
+                      <li><em>Note: Access is strictly scoped to this specific event. Collaborators cannot delete the event or transfer ownership.</em></li>
+                    </ul>
+                  </div>
+
+                  <!-- CTA Button -->
+                  <div style="text-align:center;margin:32px 0 24px;">
+                    <a href="${acceptUrl}" style="display:inline-block;background:#0A0A0A;color:#C8F55A;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:100px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                      Accept Invitation &rarr;
+                    </a>
+                  </div>
+
+                  <!-- Direct link fallback -->
+                  <p style="margin:0 0 12px;font-size:12px;color:#71717A;text-align:center;">
+                    Or paste this URL into your browser:<br>
+                    <a href="${acceptUrl}" style="color:#2563EB;word-break:break-all;font-size:12px;">${acceptUrl}</a>
+                  </p>
+
+                  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #F4F4F5;font-size:12px;color:#71717A;line-height:1.6;">
+                    <p style="margin:0 0 6px;"><strong>Getting started:</strong> If you don't have an EventSlot account yet, clicking the button will prompt you to create an account or sign in with Google. You will automatically receive collaborator access upon accepting.</p>
+                    <p style="margin:0;">This invitation expires in <strong>7 days</strong>. If you believe you received this by mistake, you can safely ignore this email.</p>
+                  </div>
+                </td>
+              </tr>
+              <!-- Footer -->
+              <tr>
+                <td style="padding:20px 32px;background:#FAFAFA;border-top:1px solid #F4F4F5;text-align:center;font-size:12px;color:#A1A1AA;">
+                  &copy; ${new Date().getFullYear()} EventSlot. The seamless platform for modern event experiences.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
 
   await sendEmail({
-    from: 'EventSlot Notifications <notifications@eventsslot.com>',
+    from: EMAIL_FROM_TRANSACTIONAL,
     category: 'transactional',
     to,
-    subject: `${inviterName} invited you to join their EventSlot team`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem">
-        <h2 style="color:#0A0A0A">You have been invited</h2>
-        <p>${inviterName} has invited you to collaborate on their events in EventSlot.</p>
-        <p style="margin-top:1.5rem">
-          <a href="${acceptUrl}"
-             style="display:inline-block;background:#C8F55A;color:#0A0A0A;
-                    padding:12px 24px;border-radius:100px;text-decoration:none;font-weight:500">
-            Accept invitation
-          </a>
-        </p>
-        <p style="margin-top:1rem;color:#888;font-size:0.8rem">
-          This invite expires in 7 days. If you did not expect this, ignore this email.
-        </p>
-      </div>
-    `,
+    subject,
+    html,
   })
 }
 

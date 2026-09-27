@@ -42,12 +42,13 @@ export async function POST(req: NextRequest) {
     const emails = parsed.data.emails
     const eventId = parsed.data.eventId
 
+    let eventDetails: { id: string; title: string; startDate: Date | null; location: string | null } | null = null
     if (eventId) {
-      const eventCheck = await prisma.event.findFirst({
+      eventDetails = await prisma.event.findFirst({
         where: { id: eventId, organizerId: session.user.id },
-        select: { id: true },
+        select: { id: true, title: true, startDate: true, location: true },
       })
-      if (!eventCheck) {
+      if (!eventDetails) {
         return NextResponse.json({ error: 'Event not found or access denied' }, { status: 403 })
       }
     }
@@ -105,12 +106,36 @@ export async function POST(req: NextRequest) {
               where: { teamMemberId: existing.id, eventId },
             })
             if (alreadyAssigned) {
-              return { email, ok: false, alreadyInvited: true, error: 'Member already has access to this event' }
+              const acceptUrl = existing.inviteToken ? `${baseUrl}/team/accept?token=${existing.inviteToken}` : undefined
+              return { email, ok: false, alreadyInvited: true, acceptUrl, error: 'Member already has access to this event' }
             }
             await prisma.teamMemberEvent.create({
               data: { teamMemberId: existing.id, eventId },
             }).catch(() => {})
-            return { email, ok: true, emailFailed: false, error: undefined }
+            const tokenToUse = existing.inviteToken || uuidv4()
+            if (!existing.inviteToken) {
+              await prisma.teamMember.update({
+                where: { id: existing.id },
+                data: { inviteToken: tokenToUse },
+              }).catch(() => {})
+            }
+            const acceptUrl = `${baseUrl}/team/accept?token=${tokenToUse}`
+            try {
+              await sendTeamInviteEmail({
+                to: email,
+                inviterName,
+                inviterEmail: owner?.email ?? undefined,
+                inviteToken: tokenToUse,
+                eventTitle: eventDetails?.title ?? undefined,
+                eventDate: eventDetails?.startDate ?? undefined,
+                eventLocation: eventDetails?.location ?? undefined,
+              })
+              return { email, ok: true, emailFailed: false, acceptUrl }
+            } catch (emailErr) {
+              const message = emailErr instanceof Error ? emailErr.message : 'Email delivery failed'
+              console.error('[team/invite] email failed for existing member:', message)
+              return { email, ok: true, emailFailed: true, acceptUrl, error: message }
+            }
           }
           return { email, ok: false, alreadyInvited: true, error: 'Already invited or a workspace member' }
         }
@@ -130,7 +155,15 @@ export async function POST(req: NextRequest) {
 
         const acceptUrl = `${baseUrl}/team/accept?token=${inviteToken}`
         try {
-          await sendTeamInviteEmail({ to: email, inviterName, inviteToken })
+          await sendTeamInviteEmail({
+            to: email,
+            inviterName,
+            inviterEmail: owner?.email ?? undefined,
+            inviteToken,
+            eventTitle: eventDetails?.title ?? undefined,
+            eventDate: eventDetails?.startDate ?? undefined,
+            eventLocation: eventDetails?.location ?? undefined,
+          })
           return { email, ok: true, emailFailed: false, acceptUrl }
         } catch (emailErr) {
           const message = emailErr instanceof Error ? emailErr.message : 'Email delivery failed'

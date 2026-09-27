@@ -1,10 +1,15 @@
 import { z } from 'zod'
+import { detectEmailTypo } from '@/lib/emailTypo'
 
 const emailField = z
   .string()
   .email('A valid email address is required')
   .max(254)
   .transform((v) => v.toLowerCase().trim())
+  .refine(
+    (email) => !detectEmailTypo(email).hasTypo,
+    (email) => ({ message: detectEmailTypo(email).reason || 'Invalid email address domain' })
+  )
 
 export const teamInviteSchema = z.object({
   emails: z

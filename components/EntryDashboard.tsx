@@ -36,34 +36,39 @@ export function EntryDashboard({ eventId }: { eventId: string }) {
 
   if (loading) return <div className="p-4 text-sm text-[#525252]">Loading entry data...</div>
   if (!data) return null
-  if (data.eventType === "PHYSICAL") return null
 
+  const isPhysical = data.eventType === "PHYSICAL"
   const entryRate =
     data.totalConfirmed > 0
       ? Math.round((data.totalEntered / data.totalConfirmed) * 100)
       : 0
+  const remaining = Math.max(0, data.totalConfirmed - data.totalEntered)
 
   return (
     <div className="mt-6 rounded-xl border border-[#2A2A2A] bg-[#141414] p-5">
       <div className="mb-4 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wider text-[#C8F55A]">
-          Live Entry Tracker
+          {isPhysical ? "Gate Verification & Entry Tracker" : "Live Entry Tracker"}
         </p>
         <span className="text-xs text-[#525252]">Auto-refreshes every 30s</span>
       </div>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-xl bg-[#0A0A0A] p-3 text-center">
           <p className="text-2xl font-bold text-[#C8F55A]">{data.totalEntered}</p>
-          <p className="text-xs text-[#525252]">Joined</p>
+          <p className="text-xs text-[#525252]">{isPhysical ? "Actual Admitted" : "Joined"}</p>
         </div>
         <div className="rounded-xl bg-[#0A0A0A] p-3 text-center">
           <p className="text-2xl font-bold text-white">{data.totalConfirmed}</p>
-          <p className="text-xs text-[#525252]">Registered</p>
+          <p className="text-xs text-[#525252]">Expected Total</p>
+        </div>
+        <div className="rounded-xl bg-[#0A0A0A] p-3 text-center">
+          <p className="text-2xl font-bold text-white">{remaining}</p>
+          <p className="text-xs text-[#525252]">Awaiting Entry</p>
         </div>
         <div className="rounded-xl bg-[#0A0A0A] p-3 text-center">
           <p className="text-2xl font-bold text-white">{entryRate}%</p>
-          <p className="text-xs text-[#525252]">Attendance</p>
+          <p className="text-xs text-[#525252]">Turnout</p>
         </div>
       </div>
 

@@ -17,6 +17,7 @@ import { normalizeCommunityLink } from "@/lib/communityLink"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 import { copyTextToClipboard as copyTextInBrowser } from "@/lib/browserClipboard"
+import { detectEmailTypo } from "@/lib/emailTypo"
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, type PieLabelRenderProps,
@@ -44,6 +45,8 @@ type Registration = {
   source?: string
   occurrenceDate?: string | null
   attendeeEmail?: string | null
+  checkedIn?: boolean
+  checkedInAt?: string | null
 }
 
 type DupReg = {
@@ -67,6 +70,7 @@ type EventData = {
   capacity: number | null
   deadline: string | null
   confirmedCount: number
+  checkedInCount?: number
   waitlistCount: number
   slug: string
   questions: Question[]
@@ -1834,6 +1838,8 @@ export default function EventDashboardPage() {
   const [resendTeamSuccessId, setResendTeamSuccessId] = useState<string | null>(null)
   const [resendTeamFailedUrls, setResendTeamFailedUrls] = useState<Record<string, string>>({})
   const [copiedTeamInviteKey, setCopiedTeamInviteKey] = useState<string | null>(null)
+  const [copiedVerifierCode, setCopiedVerifierCode] = useState(false)
+  const [copiedVerifierLink, setCopiedVerifierLink] = useState(false)
   const [shareFeedback, setShareFeedback] = useState("")
   const hasPendingTeamInvite = eventTeam.some((member) => member.status === "pending")
 
@@ -2554,7 +2560,7 @@ export default function EventDashboardPage() {
   const hasRegistrations = confirmed.length + waitlist.length > 0
   const invalidTeamInviteEntries = teamInviteEmails
     .map((email, index) => ({ email: email.trim(), index }))
-    .filter(({ email }) => email.length > 0 && !isValidEmailAddress(email))
+    .filter(({ email }) => email.length > 0 && (!isValidEmailAddress(email) || detectEmailTypo(email).hasTypo))
   const tabs: { key: TabKey; label: string }[] = isWalkInEvent
     ? [
         { key: "overview", label: ORGANIZER_SURFACE_COPY.eventDetail.tabs.overview },
@@ -2609,6 +2615,11 @@ export default function EventDashboardPage() {
       setTeamInviteError(`Enter a valid email address for ${invalidEmails.join(", ")}.`)
       return
     }
+    const typoHit = emails.map(email => detectEmailTypo(email)).find(t => t.hasTypo)
+    if (typoHit) {
+      setTeamInviteError(typoHit.reason || "Please check the email address for typos.")
+      return
+    }
     const uniqueEmails = [...new Set(emails)]
     if (uniqueEmails.length !== emails.length) {
       setTeamInviteError("Each invite email must be unique.")
@@ -2640,11 +2651,13 @@ export default function EventDashboardPage() {
         return
       }
       setTeamInviteEmails(["", ""])
+      if (acceptLinks.length > 0) {
+        setTeamInviteAcceptLinks(acceptLinks)
+      }
       if (data.emailFailed) {
         // DB records created but email delivery failed - surface the accept links
         const failureReason = results.find(r => r.emailFailed && r.error)?.error
         setTeamInviteError(buildDomainVerificationHelp(failureReason))
-        setTeamInviteAcceptLinks(acceptLinks)
       } else {
         const sent = results.filter(r => r.ok && !r.emailFailed).length
         setTeamInviteSuccess(`Invite${sent !== 1 ? 's' : ''} sent to ${sent} email${sent !== 1 ? 's' : ''}.`)
@@ -2652,6 +2665,31 @@ export default function EventDashboardPage() {
       await loadEventTeam()
     } finally {
       setTeamInviting(false)
+    }
+  }
+
+  const handleCopyTeamInviteLink = async (memberId: string) => {
+    if (resendTeamFailedUrls[memberId]) {
+      await copyTeamInviteLink(resendTeamFailedUrls[memberId], `resend-${memberId}`)
+      return
+    }
+    setResendingTeamMember(memberId)
+    setTeamInviteError("")
+    try {
+      const res = await fetch("/api/team/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      })
+      const data = await res.json()
+      if (data.acceptUrl) {
+        setResendTeamFailedUrls(prev => ({ ...prev, [memberId]: data.acceptUrl }))
+        await copyTeamInviteLink(data.acceptUrl, `resend-${memberId}`)
+      } else if (!res.ok) {
+        setTeamInviteError(data.error || "Failed to generate invite link.")
+      }
+    } finally {
+      setResendingTeamMember(null)
     }
   }
 
@@ -2670,16 +2708,13 @@ export default function EventDashboardPage() {
         setTeamInviteError(data.error || "Failed to resend invite.")
         return
       }
-      if (data.emailFailed && data.acceptUrl) {
+      if (data.acceptUrl) {
         setResendTeamFailedUrls(prev => ({ ...prev, [memberId]: data.acceptUrl }))
+      }
+      if (data.emailFailed) {
         setTeamInviteError(buildDomainVerificationHelp("eventsslot.com domain is not verified"))
         return
       }
-      setResendTeamFailedUrls(prev => {
-        const next = { ...prev }
-        delete next[memberId]
-        return next
-      })
       setResendTeamSuccessId(memberId)
       window.setTimeout(() => setResendTeamSuccessId(current => current === memberId ? null : current), 3000)
     } finally {
@@ -4817,21 +4852,150 @@ export default function EventDashboardPage() {
         {/* -- Tab: Check-in --- */}
         {activeTab === "checkin" && (
           <div data-tutorial="confirm-attendance">
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.5rem" }}>
-              Ticket Verification
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.25rem" }}>
+              Ticket Verification & Gate Control
             </h2>
-            {eventData && <EntryDashboard eventId={eventData.id} />}
-            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: themeTextSecondary, margin: "0 0 1rem" }}>
-              Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
-            </p>
 
-            <ScannerHome
-              eventSlug={slug}
-              accessToken={token || eventData.dashboardToken}
-              onVerified={() => {
-                void fetchDashboard()
-              }}
-            />
+            {/* Gate Verifier Quick Access */}
+            {eventData && eventData.verifierCode && (
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1.25rem", marginBottom: "1.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                  <div>
+                    <span style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                      Gate Staff Quick Access
+                    </span>
+                    <h3 style={{ fontSize: "1rem", fontWeight: 600, color: themeTextPrimary, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
+                      Verifier Access Code & Link
+                    </h3>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const code = eventData.verifierCode ?? ""
+                        const copied = await copyTextInBrowser(code)
+                        if (copied) {
+                          setCopiedVerifierCode(true)
+                          window.setTimeout(() => setCopiedVerifierCode(false), 2500)
+                        }
+                      }}
+                      style={{
+                        background: themeSurfaceAlt,
+                        border: themeBorderSoft,
+                        borderRadius: 8,
+                        padding: "0.5rem 0.85rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        letterSpacing: "0.05em",
+                        color: themeTextPrimary,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    >
+                      {copiedVerifierCode ? "Code Copied!" : `Code: ${eventData.verifierCode}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const link = `${origin ? `${origin}/verify-tickets` : "https://www.eventsslot.com/verify-tickets"}/${eventData.slug}?token=${encodeURIComponent(eventData.verifierCode ?? "")}`
+                        const copied = await copyTextInBrowser(link)
+                        if (copied) {
+                          setCopiedVerifierLink(true)
+                          window.setTimeout(() => setCopiedVerifierLink(false), 2500)
+                        }
+                      }}
+                      style={{
+                        background: "#C8F55A",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        color: "#0A0A0A",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    >
+                      {copiedVerifierLink ? "Link Copied!" : "Copy Verifier Link"}
+                    </button>
+                  </div>
+                </div>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                  Share this dedicated link or code with your gate staff, bouncers, or ushers. They can verify attendee tickets without logging in or having access to your full dashboard.
+                </p>
+              </div>
+            )}
+
+            {/* Attendance Contrast Metrics */}
+            {eventData && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }} className="stat-grid sm:grid-cols-4">
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                    Actual Attendees
+                  </div>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#C8F55A" }}>
+                    {eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
+                    Admitted at gate
+                  </div>
+                </div>
+
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                    Expected Attendees
+                  </div>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>
+                    {eventData.confirmedCount}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
+                    Total confirmed tickets
+                  </div>
+                </div>
+
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                    Awaiting Entry
+                  </div>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>
+                    {Math.max(0, eventData.confirmedCount - (eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length))}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
+                    Remaining to check in
+                  </div>
+                </div>
+
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                    Live Turnout
+                  </div>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>
+                    {eventData.confirmedCount > 0
+                      ? `${Math.round(((eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length) / eventData.confirmedCount) * 100)}%`
+                      : "0%"}
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
+                    Attendance percentage
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {eventData && <EntryDashboard eventId={eventData.id} />}
+
+            <div style={{ marginTop: "1.5rem" }}>
+              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: themeTextSecondary, margin: "0 0 1rem" }}>
+                Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
+              </p>
+
+              <ScannerHome
+                eventSlug={slug}
+                accessToken={token || eventData.dashboardToken}
+                onVerified={() => {
+                  void fetchDashboard()
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -4854,7 +5018,7 @@ export default function EventDashboardPage() {
                 Team members with access to this event
               </h3>
               <p style={{ margin: "0 0 0.9rem", color: themeTextMuted, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", lineHeight: 1.6 }}>
-                Pending means the invite is waiting for acceptance. Accepted means the teammate can already open this event from their dashboard.
+                Collaborators have admin privileges (manage attendees, scan tickets, send updates) strictly for this event. They cannot delete this event.
               </p>
               {teamLoading ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -4889,21 +5053,41 @@ export default function EventDashboardPage() {
                           {m.status === "accepted" ? "Has access" : "Pending"}
                         </span>
                         {m.status === "pending" && (
-                          <button
-                            onClick={() => void handleResendTeamInvite(m.teamMemberId)}
-                            disabled={resendingTeamMember === m.teamMemberId}
-                            style={{ background: "transparent", border: themeBorderSoft, borderRadius: 7, color: resendTeamSuccessId === m.teamMemberId ? "#7A941B" : themeTextSecondary, fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer", opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1 }}
-                          >
-                            {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sending..." : "Resend"}
-                          </button>
-                        )}
-                        {m.status === "pending" && resendTeamFailedUrls[m.teamMemberId] && (
-                          <button
-                            onClick={() => void copyTeamInviteLink(resendTeamFailedUrls[m.teamMemberId], `resend-${m.teamMemberId}`)}
-                            style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 7, color: copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "#C8F55A" : "rgba(200,245,90,0.7)", fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", padding: "0.3rem 0.625rem", cursor: "pointer" }}
-                          >
-                            {copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "Copied!" : "Copy link"}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => void handleCopyTeamInviteLink(m.teamMemberId)}
+                              disabled={resendingTeamMember === m.teamMemberId}
+                              style={{
+                                background: "transparent",
+                                border: "0.5px solid rgba(200,245,90,0.3)",
+                                borderRadius: 7,
+                                color: copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "#C8F55A" : "rgba(200,245,90,0.85)",
+                                fontSize: "0.75rem",
+                                fontFamily: "var(--font-dm-sans)",
+                                padding: "0.3rem 0.625rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "Copied Link!" : "Copy Invite Link"}
+                            </button>
+                            <button
+                              onClick={() => void handleResendTeamInvite(m.teamMemberId)}
+                              disabled={resendingTeamMember === m.teamMemberId}
+                              style={{
+                                background: "transparent",
+                                border: themeBorderSoft,
+                                borderRadius: 7,
+                                color: resendTeamSuccessId === m.teamMemberId ? "#7A941B" : themeTextSecondary,
+                                fontSize: "0.75rem",
+                                fontFamily: "var(--font-dm-sans)",
+                                padding: "0.3rem 0.625rem",
+                                cursor: "pointer",
+                                opacity: resendingTeamMember === m.teamMemberId ? 0.6 : 1,
+                              }}
+                            >
+                              {resendTeamSuccessId === m.teamMemberId ? "Sent!" : resendingTeamMember === m.teamMemberId ? "Sending..." : "Resend"}
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => void handleRemoveTeamMember(m.teamMemberId)}
@@ -4924,21 +5108,102 @@ export default function EventDashboardPage() {
               <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
                 Invite a team member to this event
               </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {teamInviteEmails.map((email, i) => (
-                  <input
-                    key={i}
-                    type="email"
-                    value={email}
-                    onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
-                    placeholder={i === 0 ? "teammate@example.com" : "second@example.com (optional)"}
-                    style={{ width: "100%", background: themeSurfaceAlt, border: invalidTeamInviteEntries.some(entry => entry.index === i) ? "0.5px solid rgba(239,68,68,0.6)" : themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
-                  />
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {teamInviteEmails.map((email, i) => {
+                  const trimmed = email.trim()
+                  const typoCheck = trimmed ? detectEmailTypo(trimmed) : { hasTypo: false }
+                  const isValid = trimmed.length > 0 && isValidEmailAddress(trimmed) && !typoCheck.hasTypo
+                  const hasTypo = Boolean(trimmed.length > 0 && typoCheck.hasTypo && typoCheck.suggestion)
+                  const isMalformed = trimmed.length > 0 && !isValidEmailAddress(trimmed)
+
+                  return (
+                    <div key={i} style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div style={{ position: "relative", flex: 1 }}>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
+                            placeholder={i === 0 ? "teammate@example.com" : "second@example.com"}
+                            style={{
+                              width: "100%",
+                              background: themeSurfaceAlt,
+                              border: hasTypo
+                                ? "0.5px solid rgba(234,179,8,0.7)"
+                                : isMalformed
+                                ? "0.5px solid rgba(239,68,68,0.6)"
+                                : isValid
+                                ? "0.5px solid rgba(200,245,90,0.6)"
+                                : themeBorderSoft,
+                              borderRadius: 8,
+                              padding: "0.6rem 2.2rem 0.6rem 0.875rem",
+                              fontSize: "0.875rem",
+                              color: themeTextPrimary,
+                              fontFamily: "var(--font-dm-sans)",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          {isValid && (
+                            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#C8F55A", fontSize: "0.85rem", fontWeight: 700 }}>
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                        {teamInviteEmails.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setTeamInviteEmails(prev => prev.filter((_, idx) => idx !== i))}
+                            title="Remove field"
+                            style={{ background: "transparent", border: "none", color: themeTextMuted, fontSize: "1.1rem", cursor: "pointer", padding: "0 4px" }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Gmail-style typo suggestion */}
+                      {hasTypo && typoCheck.suggestion && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(234,179,8,0.12)", border: "0.5px solid rgba(234,179,8,0.3)", borderRadius: 6, padding: "0.3rem 0.6rem" }}>
+                          <span style={{ fontSize: "0.74rem", color: "#FDE047", fontFamily: "var(--font-dm-sans)" }}>
+                            Did you mean <strong>{typoCheck.suggestion}</strong>?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const arr = [...teamInviteEmails]
+                              arr[i] = typoCheck.suggestion!
+                              setTeamInviteEmails(arr)
+                            }}
+                            style={{ background: "#CA8A04", color: "#000", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                          >
+                            Use suggestion
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Validation note when valid */}
+                      {isValid && (
+                        <p style={{ margin: "2px 0 0 2px", fontSize: "0.72rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                          ✓ Valid email format · Ready to invite
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setTeamInviteEmails(prev => [...prev, ""])}
+                style={{ background: "transparent", border: "none", color: "#C8F55A", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", marginTop: "0.6rem", padding: "0.2rem 0", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+              >
+                + Add another team member
+              </button>
+
               {invalidTeamInviteEntries.length > 0 && (
                 <p style={{ color: "#EF4444", fontSize: "0.78rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>
-                  Enter a valid email address before sending the invite.
+                  Please ensure all entered emails are complete and valid before sending.
                 </p>
               )}
               {teamInviteError && <p style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteError}</p>}

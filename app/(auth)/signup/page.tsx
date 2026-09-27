@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Mail, ArrowLeft } from 'lucide-react'
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type SupportedLanguageCode } from '@/lib/i18n/languages'
 
-export default function SignUpPage() {
+function SignUpForm() {
   const { status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const rawCallback = searchParams.get('callbackUrl')
+  const targetCallbackUrl = rawCallback && rawCallback.startsWith('/') ? rawCallback : '/my-events'
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,9 +26,10 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace('/dashboard')
+      const target = rawCallback && rawCallback.startsWith('/') ? rawCallback : '/dashboard'
+      router.replace(target)
     }
-  }, [status, router])
+  }, [status, router, rawCallback])
 
   if (status === 'authenticated') {
     return null
@@ -32,7 +37,9 @@ export default function SignUpPage() {
 
   function handleGoogleSignUp() {
     setError('')
-    const googleCallbackUrl = `/dashboard/profile?preferredLanguage=${encodeURIComponent(preferredLanguage)}&fromSignup=google`
+    const googleCallbackUrl = rawCallback && rawCallback.startsWith('/')
+      ? rawCallback
+      : `/dashboard/profile?preferredLanguage=${encodeURIComponent(preferredLanguage)}&fromSignup=google`
     signIn('google', { callbackUrl: googleCallbackUrl })
   }
 
@@ -67,16 +74,19 @@ export default function SignUpPage() {
       const result = await signIn('credentials', {
         email: email.trim(),
         password,
-        callbackUrl: '/my-events',
+        callbackUrl: targetCallbackUrl,
         redirect: false,
       })
 
       if (result?.error) {
-        router.push('/signin?registered=true')
+        const signinUrl = rawCallback
+          ? `/signin?registered=true&callbackUrl=${encodeURIComponent(rawCallback)}`
+          : '/signin?registered=true'
+        router.push(signinUrl)
         return
       }
 
-      router.push(result?.url || '/my-events')
+      router.push(result?.url || targetCallbackUrl)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)
@@ -420,7 +430,7 @@ export default function SignUpPage() {
         >
           Already have an account?{' '}
           <Link
-            href="/signin"
+            href={rawCallback ? `/signin?callbackUrl=${encodeURIComponent(rawCallback)}` : '/signin'}
             style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}
           >
             Sign in
@@ -428,6 +438,14 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
   )
 }
 

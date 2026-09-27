@@ -57,6 +57,7 @@ describe('TeamAcceptPage', () => {
     mockPurgeUserCache.mockReset()
 
     mockFindUnique.mockResolvedValue({
+      ownerId: 'organizer-1',
       email: 'invitee@example.com',
       status: 'pending',
       createdAt: new Date(),
@@ -75,7 +76,7 @@ describe('TeamAcceptPage', () => {
     ).rejects.toThrow('REDIRECT:/signin?callbackUrl=%2Fteam%2Faccept%3Ftoken%3Dabc123%253D%253D')
   })
 
-  it('blocks accepting an invite with the wrong signed-in email', async () => {
+  it('displays a claim option when signed in with a different email', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-1', email: 'wrong@example.com' },
     })
@@ -84,9 +85,45 @@ describe('TeamAcceptPage', () => {
     const element = await TeamAcceptPage({ searchParams: Promise.resolve({ token: 'invite-token' }) })
     render(element)
 
-    expect(screen.getByText('This invite belongs to a different email')).toBeInTheDocument()
+    expect(screen.getByText("Join Owner Name's Event Team")).toBeInTheDocument()
     expect(screen.getByText(/invitee@example\.com/)).toBeInTheDocument()
+    expect(screen.getByText(/Claim & join team as wrong@example\.com/)).toBeInTheDocument()
     expect(mockUpdate).not.toHaveBeenCalled()
     expect(mockPurgeUserCache).not.toHaveBeenCalled()
+  })
+
+  it('allows claiming the invite with claim=true when signed in with a different email', async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'user-1', email: 'claimed@example.com' },
+    })
+    mockUpdate.mockResolvedValue({})
+
+    const TeamAcceptPage = (await import('@/app/team/accept/page')).default
+    const element = await TeamAcceptPage({ searchParams: Promise.resolve({ token: 'invite-token', claim: 'true' }) })
+    render(element)
+
+    expect(screen.getByText('Invite accepted!')).toBeInTheDocument()
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { inviteToken: 'invite-token' },
+      data: {
+        memberId: 'user-1',
+        email: 'claimed@example.com',
+        status: 'accepted',
+      },
+    })
+    expect(mockPurgeUserCache).toHaveBeenCalledWith('user-1', 'claimed@example.com')
+  })
+
+  it('informs the organizer if they open their own invite link', async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'organizer-1', email: 'owner@example.com' },
+    })
+
+    const TeamAcceptPage = (await import('@/app/team/accept/page')).default
+    const element = await TeamAcceptPage({ searchParams: Promise.resolve({ token: 'invite-token' }) })
+    render(element)
+
+    expect(screen.getByText('You are the event organizer')).toBeInTheDocument()
+    expect(mockUpdate).not.toHaveBeenCalled()
   })
 })
