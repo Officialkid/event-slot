@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
                 inviterEmail: owner?.email ?? undefined,
                 inviteToken: tokenToUse,
                 eventTitle: eventDetails?.title ?? undefined,
-                eventDate: eventDetails?.startDate ?? undefined,
+                eventDate: eventDetails?.eventDate ?? undefined,
                 eventLocation: eventDetails?.location ?? undefined,
               })
               return { email, ok: true, emailFailed: false, acceptUrl }

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         eventAccess: {
           take: 1,
           include: {
-            event: { select: { title: true, startDate: true, location: true } },
+            event: { select: { title: true, eventDate: true, location: true } },
           },
         },
       },
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         inviterEmail: record.owner.email ?? session.user.email ?? undefined,
         inviteToken: newToken,
         eventTitle: assignedEvent?.title ?? undefined,
-        eventDate: assignedEvent?.startDate ?? undefined,
+        eventDate: assignedEvent?.eventDate ?? undefined,
         eventLocation: assignedEvent?.location ?? undefined,
       })
     } catch (emailErr) {
