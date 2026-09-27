@@ -2560,7 +2560,7 @@ export default function EventDashboardPage() {
   const hasRegistrations = confirmed.length + waitlist.length > 0
   const invalidTeamInviteEntries = teamInviteEmails
     .map((email, index) => ({ email: email.trim(), index }))
-    .filter(({ email }) => email.length > 0 && !isValidEmailAddress(email))
+    .filter(({ email }) => email.length > 0 && (!isValidEmailAddress(email) || detectEmailTypo(email).hasTypo))
   const tabs: { key: TabKey; label: string }[] = isWalkInEvent
     ? [
         { key: "overview", label: ORGANIZER_SURFACE_COPY.eventDetail.tabs.overview },
@@ -5108,21 +5108,102 @@ export default function EventDashboardPage() {
               <h3 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginBottom: "0.875rem" }}>
                 Invite a team member to this event
               </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {teamInviteEmails.map((email, i) => (
-                  <input
-                    key={i}
-                    type="email"
-                    value={email}
-                    onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
-                    placeholder={i === 0 ? "teammate@example.com" : "second@example.com (optional)"}
-                    style={{ width: "100%", background: themeSurfaceAlt, border: invalidTeamInviteEntries.some(entry => entry.index === i) ? "0.5px solid rgba(239,68,68,0.6)" : themeBorderSoft, borderRadius: 8, padding: "0.6rem 0.875rem", fontSize: "0.875rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", outline: "none", boxSizing: "border-box" }}
-                  />
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {teamInviteEmails.map((email, i) => {
+                  const trimmed = email.trim()
+                  const typoCheck = trimmed ? detectEmailTypo(trimmed) : { hasTypo: false }
+                  const isValid = trimmed.length > 0 && isValidEmailAddress(trimmed) && !typoCheck.hasTypo
+                  const hasTypo = Boolean(trimmed.length > 0 && typoCheck.hasTypo && typoCheck.suggestion)
+                  const isMalformed = trimmed.length > 0 && !isValidEmailAddress(trimmed)
+
+                  return (
+                    <div key={i} style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div style={{ position: "relative", flex: 1 }}>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={e => { const arr = [...teamInviteEmails]; arr[i] = e.target.value; setTeamInviteEmails(arr) }}
+                            placeholder={i === 0 ? "teammate@example.com" : "second@example.com"}
+                            style={{
+                              width: "100%",
+                              background: themeSurfaceAlt,
+                              border: hasTypo
+                                ? "0.5px solid rgba(234,179,8,0.7)"
+                                : isMalformed
+                                ? "0.5px solid rgba(239,68,68,0.6)"
+                                : isValid
+                                ? "0.5px solid rgba(200,245,90,0.6)"
+                                : themeBorderSoft,
+                              borderRadius: 8,
+                              padding: "0.6rem 2.2rem 0.6rem 0.875rem",
+                              fontSize: "0.875rem",
+                              color: themeTextPrimary,
+                              fontFamily: "var(--font-dm-sans)",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                          {isValid && (
+                            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#C8F55A", fontSize: "0.85rem", fontWeight: 700 }}>
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                        {teamInviteEmails.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setTeamInviteEmails(prev => prev.filter((_, idx) => idx !== i))}
+                            title="Remove field"
+                            style={{ background: "transparent", border: "none", color: themeTextMuted, fontSize: "1.1rem", cursor: "pointer", padding: "0 4px" }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Gmail-style typo suggestion */}
+                      {hasTypo && typoCheck.suggestion && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "rgba(234,179,8,0.12)", border: "0.5px solid rgba(234,179,8,0.3)", borderRadius: 6, padding: "0.3rem 0.6rem" }}>
+                          <span style={{ fontSize: "0.74rem", color: "#FDE047", fontFamily: "var(--font-dm-sans)" }}>
+                            Did you mean <strong>{typoCheck.suggestion}</strong>?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const arr = [...teamInviteEmails]
+                              arr[i] = typoCheck.suggestion!
+                              setTeamInviteEmails(arr)
+                            }}
+                            style={{ background: "#CA8A04", color: "#000", border: "none", borderRadius: 4, padding: "2px 6px", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                          >
+                            Use suggestion
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Validation note when valid */}
+                      {isValid && (
+                        <p style={{ margin: "2px 0 0 2px", fontSize: "0.72rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                          ✓ Valid email format · Ready to invite
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setTeamInviteEmails(prev => [...prev, ""])}
+                style={{ background: "transparent", border: "none", color: "#C8F55A", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", marginTop: "0.6rem", padding: "0.2rem 0", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+              >
+                + Add another team member
+              </button>
+
               {invalidTeamInviteEntries.length > 0 && (
                 <p style={{ color: "#EF4444", fontSize: "0.78rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>
-                  Enter a valid email address before sending the invite.
+                  Please ensure all entered emails are complete and valid before sending.
                 </p>
               )}
               {teamInviteError && <p style={{ color: "#EF4444", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteError}</p>}
