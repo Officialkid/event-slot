@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -e
 
 # Resolve project ID from gcloud config or default to the EventSlot project

@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
     const emails = parsed.data.emails
     const eventId = parsed.data.eventId
 
-    let eventDetails: { id: string; title: string; startDate: Date | null; location: string | null } | null = null
+    let eventDetails: { id: string; title: string; eventDate: Date | null; location: string | null } | null = null
     if (eventId) {
       eventDetails = await prisma.event.findFirst({
         where: { id: eventId, organizerId: session.user.id },
-        select: { id: true, title: true, startDate: true, location: true },
+        select: { id: true, title: true, eventDate: true, location: true },
       })
       if (!eventDetails) {
         return NextResponse.json({ error: 'Event not found or access denied' }, { status: 403 })
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
             inviterEmail: owner?.email ?? undefined,
             inviteToken,
             eventTitle: eventDetails?.title ?? undefined,
-            eventDate: eventDetails?.startDate ?? undefined,
+            eventDate: eventDetails?.eventDate ?? undefined,
             eventLocation: eventDetails?.location ?? undefined,
           })
           return { email, ok: true, emailFailed: false, acceptUrl }
