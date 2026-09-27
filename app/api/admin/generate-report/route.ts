@@ -43,6 +43,16 @@ type PreparedReportData = {
   confirmed: IRegistration[]
   waitlist: IRegistration[]
   paymentSummary?: EventReportData["paymentSummary"]
+  totalPageViews?: number
+  viewsTracked?: boolean
+  conversionRate?: number
+  checkedInCount?: number
+  checkInDataAvailable?: boolean
+  turnoutRate?: number
+  noShowCount?: number
+  noShowRate?: number
+  sourceBreakdown?: Array<{ source: string; count: number; percentage: number }>
+  attributionTracked?: boolean
 }
 
 function buildReportPreviewPaymentSummary(paymentSummary: EventReportData["paymentSummary"]) {
@@ -140,6 +150,16 @@ function buildEventReportData(prepared: PreparedReportData): EventReportData {
     peakDate: peak.date,
     peakDayCount: peak.count,
     paymentSummary: prepared.paymentSummary,
+    totalPageViews: prepared.totalPageViews,
+    viewsTracked: prepared.viewsTracked,
+    conversionRate: prepared.conversionRate,
+    checkedInCount: prepared.checkedInCount,
+    checkInDataAvailable: prepared.checkInDataAvailable,
+    turnoutRate: prepared.turnoutRate,
+    noShowCount: prepared.noShowCount,
+    noShowRate: prepared.noShowRate,
+    sourceBreakdown: prepared.sourceBreakdown,
+    attributionTracked: prepared.attributionTracked,
     customQuestionResponses: prepared.eventPayload.questions.map((question) => ({
       question: question.label,
       answers: allRegistrations
@@ -170,10 +190,62 @@ async function prepareReportDataFromSlug(slugInput: string): Promise<PreparedRep
 
   if (!event) return null
 
-  const registrations = await prisma.registration.findMany({
-    where: { eventId: event.id },
-    orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
-  })
+  const [registrations, totalPageViews, scannedTicketsCount, sourceGroups] = await Promise.all([
+    prisma.registration.findMany({
+      where: { eventId: event.id },
+      orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
+    }),
+    prisma.eventView?.count
+      ? prisma.eventView.count({ where: { eventId: event.id } }).catch(() => 0)
+      : Promise.resolve(0),
+    prisma.ticket?.count
+      ? prisma.ticket.count({
+          where: {
+            registration: { eventId: event.id },
+            scannedAt: { not: null },
+          },
+        }).catch(() => 0)
+      : Promise.resolve(0),
+    prisma.registration?.groupBy
+      ? prisma.registration.groupBy({
+          by: ['source'],
+          where: { eventId: event.id },
+          _count: { id: true },
+        }).catch(() => [])
+      : Promise.resolve([]),
+  ])
+
+  const totalRegs = registrations.length
+  const checkedInRegistrations = registrations.filter((r) => r.checkedIn).length
+  const checkedInCount = Math.max(checkedInRegistrations, scannedTicketsCount)
+  const viewsTracked = totalPageViews > 0
+  const conversionRate = viewsTracked ? Math.round((totalRegs / totalPageViews) * 1000) / 10 : undefined
+
+  const hasValidSources = sourceGroups.some(
+    (g) => g.source && !['form', 'direct', 'manual'].includes(g.source.toLowerCase())
+  )
+  const sourceBreakdown = sourceGroups
+    .map((g) => ({
+      source: g.source || 'Direct Link',
+      count: g._count.id,
+      percentage: totalRegs > 0 ? Math.round((g._count.id / totalRegs) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  const confirmedCount = event.confirmedCount
+  const checkInDataAvailable = checkedInCount > 0 || (event.eventDate ? new Date(event.eventDate).getTime() < Date.now() : false)
+  const turnoutRate =
+    confirmedCount > 0 && checkedInCount > 0
+      ? Math.round((checkedInCount / confirmedCount) * 1000) / 10
+      : undefined
+  const noShowCount =
+    confirmedCount > 0 && checkedInCount > 0
+      ? Math.max(0, confirmedCount - checkedInCount)
+      : undefined
+  const noShowRate =
+    confirmedCount > 0 && checkedInCount > 0 && typeof turnoutRate === 'number'
+      ? Math.max(0, Math.round((100 - turnoutRate) * 10) / 10)
+      : undefined
 
   const [payments, paidOrders] = event.isPaid
     ? await Promise.all([

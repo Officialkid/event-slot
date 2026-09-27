@@ -16,8 +16,7 @@ import {
   Footer,
   PageBreak,
   ImageRun,
-  SimpleField,
-  TableOfContents,
+  SimpleField
 } from 'docx'
 import { format } from 'date-fns'
 import { AIReportContent, generateAIReportContent } from './generateAIReportContent'
@@ -49,6 +48,16 @@ export interface IEvent {
   organizerEmail: string
   confirmedCount: number
   waitlistCount: number
+  totalPageViews?: number
+  viewsTracked?: boolean
+  conversionRate?: number
+  checkedInCount?: number
+  checkInDataAvailable?: boolean
+  turnoutRate?: number
+  noShowCount?: number
+  noShowRate?: number
+  sourceBreakdown?: Array<{ source: string; count: number; percentage: number }>
+  attributionTracked?: boolean
   capacity: number | null
   eventDate: string | null
   location: string | null
@@ -78,6 +87,16 @@ export interface EventReportData {
   totalRegistrations: number
   confirmedCount: number
   waitlistCount: number
+  totalPageViews?: number
+  viewsTracked?: boolean
+  conversionRate?: number
+  checkedInCount?: number
+  checkInDataAvailable?: boolean
+  turnoutRate?: number
+  noShowCount?: number
+  noShowRate?: number
+  sourceBreakdown?: Array<{ source: string; count: number; percentage: number }>
+  attributionTracked?: boolean
   attendees: {
     name: string
     registrationNumber: number
@@ -118,7 +137,7 @@ type ActionItem = {
   timeframe: string
 }
 
-type ReportChild = Paragraph | Table | TableOfContents
+type ReportChild = Paragraph | Table
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -455,32 +474,6 @@ function buildEventReportHeader(event: IEvent & { organizerName?: string }, pale
       ],
       border: { left: { style: BorderStyle.SINGLE, size: 8, color: palette.accent, space: 140 } },
       indent: { left: 280 },
-    }),
-    new Paragraph({ children: [new PageBreak()] }),
-  ]
-}
-
-function buildTableOfContentsPage(): ReportChild[] {
-  return [
-    new Paragraph({
-      heading: HeadingLevel.HEADING_1,
-      children: [new TextRun({ text: 'Table of Contents', font: 'Arial', bold: true, size: 32 })],
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: 'Open this file in Microsoft Word or another compatible editor and update the table if prompted to refresh page numbers.',
-          font: 'Arial',
-          size: 19,
-          color: '666666',
-        }),
-      ],
-      spacing: { after: 180 },
-    }),
-    new TableOfContents('Contents', {
-      hyperlink: true,
-      headingStyleRange: '1-2',
-      useAppliedParagraphOutlineLevel: true,
     }),
     new Paragraph({ children: [new PageBreak()] }),
   ]
@@ -1555,86 +1548,172 @@ function buildPostEventActionsSection(data: EventReportData): (Paragraph | Table
   ]
 }
 
-function buildEventScoreBreakdown(data: EventReportData): { table: Table; totalScore: number } {
-  const capacity = Math.max(1, data.capacity)
-  const fillRate = (data.confirmedCount / capacity) * 100
-  const peakDayCount = data.peakDayCount
-  const totalRegistrations = Math.max(1, data.totalRegistrations)
-  const peakConcentration = (peakDayCount / totalRegistrations) * 100
+function buildSectionCard(
+  title: string,
+  palette: { banner: string; accent: string; sub: string },
+  paragraphsText: string[],
+): Table {
+  const paragraphs = paragraphsText
+    .flatMap((t) => t.split('\n'))
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map(
+      (line) =>
+        new Paragraph({
+          children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '334155' })],
+          spacing: { after: 70 },
+        }),
+    )
 
-  const setupScore =
-    [data.eventDate, data.location, data.registrationDeadline].filter((value) => !!value && String(value).trim().length > 0).length >= 3
-      ? 8
-      : 6
+  return new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'E2E8F0' },
+      left: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
+      right: { style: BorderStyle.SINGLE, size: 2, color: 'E2E8F0' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
+            margins: { top: 120, bottom: 120, left: 180, right: 180 },
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 21, bold: true, color: palette.accent })],
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
+            margins: { top: 110, bottom: 110, left: 180, right: 180 },
+            children: paragraphs.length > 0 ? paragraphs : [new Paragraph({ text: 'Details unavailable.' })],
+          }),
+        ],
+      }),
+    ],
+  })
+}
 
-  const categories: Array<{ name: string; score: number; benchmark: string; actual: string }> = [
+function buildBulletCard(title: string, accentHex: string, bullets: string[]): Table {
+  const bulletParagraphs = bullets.map(
+    (b) =>
+      new Paragraph({
+        children: [
+          new TextRun({ text: '·  ', bold: true, color: accentHex, font: 'Arial', size: 20 }),
+          new TextRun({ text: b, font: 'Arial', size: 20, color: '1E293B' }),
+        ],
+        spacing: { after: 70 },
+      }),
+  )
+
+  return new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 6, color: accentHex },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'E2E8F0' },
+      left: { style: BorderStyle.SINGLE, size: 6, color: accentHex },
+      right: { style: BorderStyle.SINGLE, size: 2, color: 'E2E8F0' },
+      insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' },
+            margins: { top: 110, bottom: 110, left: 180, right: 180 },
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: '0F172A' })],
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: TABLE_WIDTH, type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
+            margins: { top: 110, bottom: 110, left: 180, right: 180 },
+            children: bulletParagraphs.length > 0 ? bulletParagraphs : [new Paragraph({ text: 'None recorded.' })],
+          }),
+        ],
+      }),
+    ],
+  })
+}
+
+function buildFunnelDiagnosticTable(data: EventReportData, palette: { banner: string; accent: string }): Table {
+  const widths = [2600, 1800, 2400, TABLE_WIDTH - 6800]
+  const rows = [
     {
-      name: 'Attendance Rate',
-      score: fillRate >= 80 ? 10 : fillRate >= 60 ? 8 : fillRate >= 40 ? 6 : fillRate >= 20 ? 4 : 2,
-      benchmark: '80%+ = 10, 60-79% = 8, 40-59% = 6, 20-39% = 4, <20% = 2',
-      actual: `${Math.round(fillRate)}%`,
+      stage: '1. Page Visits',
+      volume: data.viewsTracked && typeof data.totalPageViews === 'number' ? data.totalPageViews.toLocaleString() : 'Untracked',
+      conversion: '100% (Baseline)',
+      friction: data.viewsTracked ? 'Top of funnel' : 'Page views not tracked',
     },
     {
-      name: 'Registration Distribution',
-      score: peakConcentration < 50 ? 10 : peakConcentration < 70 ? 7 : 4,
-      benchmark: 'Spread across days = 10, 1 day dominant = 4',
-      actual: `${Math.round(peakConcentration)}% on peak day`,
+      stage: '2. Registrations Completed',
+      volume: String(data.totalRegistrations),
+      conversion: data.viewsTracked && typeof data.conversionRate === 'number' ? `${data.conversionRate}% visit-to-reg` : 'Baseline captured',
+      friction: data.viewsTracked && typeof data.conversionRate === 'number' ? `${Math.max(0, Math.round((100 - data.conversionRate) * 10) / 10)}% drop-off on page` : 'Drop-off unmeasured',
     },
     {
-      name: 'Waitlist Generation',
-      score: data.waitlistCount > 0 ? 10 : fillRate > 70 ? 6 : 3,
-      benchmark: 'Waitlist generated = 10, Near capacity = 6, Low fill = 3',
-      actual: `${data.waitlistCount} on waitlist`,
+      stage: '3. Confirmed Passes',
+      volume: String(data.confirmedCount),
+      conversion: `${Math.round((data.confirmedCount / Math.max(1, data.totalRegistrations)) * 100)}% confirmed`,
+      friction: data.waitlistCount > 0 ? `${data.waitlistCount} overflow waitlisted` : '0 waitlisted',
     },
     {
-      name: 'Setup Quality',
-      score: setupScore,
-      benchmark: 'All fields complete, clear description, appropriate capacity',
-      actual: setupScore >= 8 ? 'Adequate' : 'Needs setup cleanup',
+      stage: '4. Gate Verified Check-ins',
+      volume: data.checkInDataAvailable && typeof data.checkedInCount === 'number' && data.checkedInCount > 0 ? String(data.checkedInCount) : 'Not recorded',
+      conversion: data.checkInDataAvailable && typeof data.turnoutRate === 'number' ? `${data.turnoutRate}% turnout` : 'Unavailable',
+      friction: data.checkInDataAvailable && typeof data.noShowRate === 'number' ? `${data.noShowRate}% no-show rate` : 'Gate data unrecorded',
     },
   ]
 
-  const totalScore = Math.round(categories.reduce((sum, category) => sum + category.score, 0) / categories.length)
-
-  const widths = [1900, 900, 3600, TABLE_WIDTH - (1900 + 900 + 3600)]
-  const table = new Table({
+  return new Table({
     width: { size: TABLE_WIDTH, type: WidthType.DXA },
     borders: thinBorder(),
     columnWidths: widths,
     rows: [
       new TableRow({
         tableHeader: true,
-        children: ['Category', 'Score', 'Benchmark', 'Actual'].map((title, index) =>
+        children: ['Funnel Stage', 'Volume', 'Conversion Rate', 'Drop-off / Notes'].map((title, i) =>
           new TableCell({
-            width: { size: widths[index], type: WidthType.DXA },
-            shading: { type: ShadingType.CLEAR, fill: 'F1F5F9', color: 'auto' },
+            width: { size: widths[i], type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
             margins: CELL_MARGINS,
             children: [
               new Paragraph({
-                children: [new TextRun({ text: title, font: 'Arial', size: 20, bold: true, color: 'FFFFFF' })],
+                children: [new TextRun({ text: title, font: 'Arial', size: 19, bold: true, color: 'FFFFFF' })],
               }),
             ],
           }),
         ),
       }),
-      ...categories.map((category, rowIndex) =>
+      ...rows.map((r: { stage: string; volume: string; conversion: string; friction: string }, rowIndex: number) =>
         new TableRow({
-          children: [
-            category.name,
-            String(category.score),
-            category.benchmark,
-            category.actual,
-          ].map((value, index) =>
+          children: [r.stage, r.volume, r.conversion, r.friction].map((val, colIndex) =>
             new TableCell({
-              width: { size: widths[index], type: WidthType.DXA },
-              shading:
-                rowIndex % 2 === 1
-                  ? { type: ShadingType.CLEAR, fill: 'F8FAFC', color: 'auto' }
-                  : { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
+              width: { size: widths[colIndex], type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, fill: rowIndex % 2 === 1 ? 'F8FAFC' : 'FFFFFF', color: 'auto' },
               margins: CELL_MARGINS,
               children: [
                 new Paragraph({
-                  children: [new TextRun({ text: value, font: 'Arial', size: 19, color: '334155' })],
+                  children: [new TextRun({ text: val, font: 'Arial', size: 19, bold: colIndex === 0, color: colIndex === 0 ? '0F172A' : '334155' })],
                 }),
               ],
             }),
@@ -1643,8 +1722,156 @@ function buildEventScoreBreakdown(data: EventReportData): { table: Table; totalS
       ),
     ],
   })
+}
 
-  return { table, totalScore }
+function buildAttributionDiagnosticTable(data: EventReportData, palette: { banner: string }): Table {
+  const widths = [3600, 2600, TABLE_WIDTH - 6200]
+  const validSources = (data.sourceBreakdown ?? []).filter((s: { source: string; count: number; percentage: number }) => s.count > 0)
+  const rows = validSources.length > 0 && data.attributionTracked
+    ? validSources.map((s: { source: string; count: number; percentage: number }) => ({ channel: s.source, count: String(s.count), share: `${s.percentage}%` }))
+    : [{ channel: 'Direct Event Link (Attribution untracked)', count: String(data.totalRegistrations), share: '100%' }]
+
+  return new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: thinBorder(),
+    columnWidths: widths,
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: ['Acquisition Channel / Source', 'Registrations', 'Share of Demand'].map((title, i) =>
+          new TableCell({
+            width: { size: widths[i], type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
+            margins: CELL_MARGINS,
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 19, bold: true, color: 'FFFFFF' })],
+              }),
+            ],
+          }),
+        ),
+      }),
+      ...rows.map((r: { channel: string; count: string; share: string }, rowIndex: number) =>
+        new TableRow({
+          children: [r.channel, r.count, r.share].map((val, colIndex) =>
+            new TableCell({
+              width: { size: widths[colIndex], type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, fill: rowIndex % 2 === 1 ? 'F8FAFC' : 'FFFFFF', color: 'auto' },
+              margins: CELL_MARGINS,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: val, font: 'Arial', size: 19, bold: colIndex === 0, color: colIndex === 0 ? '0F172A' : '334155' })],
+                }),
+              ],
+            }),
+          ),
+        }),
+      ),
+    ],
+  })
+}
+
+function buildGateAttendanceDiagnosticTable(data: EventReportData, palette: { banner: string }): Table {
+  const widths = [3200, 2600, TABLE_WIDTH - 5800]
+  const hasCheckIn = data.checkInDataAvailable && typeof data.checkedInCount === 'number' && data.checkedInCount > 0
+
+  const rows = [
+    { metric: 'Confirmed Passes Issued', result: String(data.confirmedCount), status: 'Expected attendance' },
+    { metric: 'Gate Verified Admissions', result: hasCheckIn ? String(data.checkedInCount) : 'Not recorded', status: hasCheckIn ? 'Actual verified entry' : 'Check-in untracked' },
+    { metric: 'Gate Turnout Rate', result: hasCheckIn && typeof data.turnoutRate === 'number' ? `${data.turnoutRate}%` : 'Unavailable', status: hasCheckIn && (data.turnoutRate ?? 0) >= 75 ? 'Healthy turnout' : 'Review attendance drivers' },
+    { metric: 'No-Show Rate', result: hasCheckIn && typeof data.noShowRate === 'number' ? `${data.noShowRate}%` : 'Unavailable', status: hasCheckIn && (data.noShowRate ?? 0) <= 20 ? 'Standard range' : 'High no-show friction' },
+  ]
+
+  return new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: thinBorder(),
+    columnWidths: widths,
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: ['Gate Attendance Metric', 'Actual Result', 'Operational Status'].map((title, i) =>
+          new TableCell({
+            width: { size: widths[i], type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
+            margins: CELL_MARGINS,
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 19, bold: true, color: 'FFFFFF' })],
+              }),
+            ],
+          }),
+        ),
+      }),
+      ...rows.map((r: { metric: string; result: string; status: string }, rowIndex: number) =>
+        new TableRow({
+          children: [r.metric, r.result, r.status].map((val, colIndex) =>
+            new TableCell({
+              width: { size: widths[colIndex], type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, fill: rowIndex % 2 === 1 ? 'F8FAFC' : 'FFFFFF', color: 'auto' },
+              margins: CELL_MARGINS,
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: val, font: 'Arial', size: 19, bold: colIndex === 0, color: colIndex === 0 ? '0F172A' : '334155' })],
+                }),
+              ],
+            }),
+          ),
+        }),
+      ),
+    ],
+  })
+}
+
+function buildPlaybookTable(recommendations: AIReportContent['actionableRecommendations'], palette: { banner: string }): Table {
+  const widths = [1300, 2200, 3100, TABLE_WIDTH - 6600]
+  return new Table({
+    width: { size: TABLE_WIDTH, type: WidthType.DXA },
+    borders: thinBorder(),
+    columnWidths: widths,
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: ['Priority', 'Timeframe', 'Recommended Action', 'Expected Outcome'].map((title, i) =>
+          new TableCell({
+            width: { size: widths[i], type: WidthType.DXA },
+            shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
+            margins: CELL_MARGINS,
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: title, font: 'Arial', size: 19, bold: true, color: 'FFFFFF' })],
+              }),
+            ],
+          }),
+        ),
+      }),
+      ...recommendations.map((rec: AIReportContent['actionableRecommendations'][number], rowIndex: number) =>
+        new TableRow({
+          children: [rec.priority, rec.timeframe, rec.action, rec.expectedOutcome].map((val, colIndex) => {
+            const isPriority = colIndex === 0
+            const pColor = rec.priority === 'HIGH' ? 'B91C1C' : rec.priority === 'MEDIUM' ? 'D97706' : '15803D'
+            return new TableCell({
+              width: { size: widths[colIndex], type: WidthType.DXA },
+              shading: { type: ShadingType.CLEAR, fill: rowIndex % 2 === 1 ? 'F8FAFC' : 'FFFFFF', color: 'auto' },
+              margins: CELL_MARGINS,
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: val,
+                      font: 'Arial',
+                      size: 19,
+                      bold: isPriority,
+                      color: isPriority ? pColor : '334155',
+                    }),
+                  ],
+                }),
+              ],
+            })
+          }),
+        }),
+      ),
+    ],
+  })
 }
 
 function aiInsightsPage(
@@ -1652,151 +1879,102 @@ function aiInsightsPage(
   palette: { banner: string; accent: string; sub: string },
   data: EventReportData,
 ): (Paragraph | Table)[] {
-  const sectionRows: Array<{ title: string; text: string }> = [
-    { title: '1. Event Overview', text: aiContent.eventOverview },
-    { title: '2. Executive Summary', text: aiContent.executiveSummary },
-    { title: '3. Strengths', text: aiContent.strengths },
-    { title: '4. Weaknesses & Risks', text: aiContent.weaknessesAndRisks },
-    { title: '5. Audience Profile', text: aiContent.audienceProfile },
-    { title: '6. Registration Behaviour', text: aiContent.registrationBehaviour },
-    { title: '7. Competitive Positioning', text: aiContent.competitivePositioning },
-    { title: '8. Waitlist Analysis', text: aiContent.waitlistAnalysis },
-    { title: '9. Recommendations', text: aiContent.recommendations },
-  ]
-
   const blocks: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
-      children: [new TextRun({ text: 'AI Strategic Intelligence', font: 'Arial', bold: true, size: 32, color: palette.banner })],
+      children: [
+        new TextRun({
+          text: 'EventSlot AI Event Intelligence',
+          font: 'Arial',
+          bold: true,
+          size: 32,
+          color: palette.banner,
+        }),
+      ],
     }),
     new Paragraph({
       children: [
         new TextRun({
-          text: 'Professional strategic narrative generated from live event registration and waitlist data.',
+          text: 'Operational analysis, funnel diagnostics, and strategic action playbook.',
           font: 'Arial',
           size: 20,
-          color: '4A4A4A',
+          color: '555555',
         }),
       ],
-      spacing: { after: 220 },
+      spacing: { after: 180 },
     }),
-  ]
-
-  const { table: scoreTable, totalScore } = buildEventScoreBreakdown(data)
-
-  for (const section of sectionRows) {
-    const paragraphs = section.text
-      .split('\n')
-      .map((line) => line.trim().replace(/^#{1,6}\s+/, '').replace(/^[-*+]\s+/, '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`([^`]+)`/g, '$1'))
-      .filter(Boolean)
-      .map(
-        (line) =>
-          new Paragraph({
-            children: [new TextRun({ text: line, font: 'Arial', size: 20, color: '334155' })],
-            spacing: { after: 80 },
-          })
-      )
-
-    blocks.push(
-      new Table({
-        width: { size: TABLE_WIDTH, type: WidthType.DXA },
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
-          bottom: { style: BorderStyle.SINGLE, size: 2, color: 'DFDFDF' },
-          left: { style: BorderStyle.SINGLE, size: 6, color: palette.sub },
-          right: { style: BorderStyle.SINGLE, size: 2, color: 'DFDFDF' },
-          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-          insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-        },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                width: { size: TABLE_WIDTH, type: WidthType.DXA },
-                shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
-                margins: { top: 130, bottom: 130, left: 220, right: 220 },
-                children: [
-                  new Paragraph({
-                    children: [new TextRun({ text: section.title, font: 'Arial', size: 21, bold: true, color: palette.accent })],
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new TableRow({
-            children: [
-              new TableCell({
-                width: { size: TABLE_WIDTH, type: WidthType.DXA },
-                shading: { type: ShadingType.CLEAR, fill: 'FFFFFF', color: 'auto' },
-                margins: { top: 100, bottom: 100, left: 220, right: 220 },
-                children: paragraphs.length > 0
-                  ? paragraphs
-                  : [
-                      new Paragraph({
-                        children: [new TextRun({ text: 'No section content available.', font: 'Arial', size: 20, italics: true })],
-                      }),
-                    ],
-              }),
-            ],
-          }),
-        ],
-      }),
-      spacer()
-    )
-  }
-
-  blocks.push(
-    new Table({
-      width: { size: TABLE_WIDTH, type: WidthType.DXA },
-      borders: {
-        top: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
-        bottom: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
-        left: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
-        right: { style: BorderStyle.SINGLE, size: 8, color: palette.sub },
-        insideHorizontal: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-        insideVertical: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              shading: { type: ShadingType.CLEAR, fill: palette.banner, color: 'auto' },
-              margins: { top: 180, bottom: 180, left: 220, right: 220 },
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [new TextRun({ text: '10. Overall Score', font: 'Arial', size: 22, bold: true, color: palette.accent })],
-                }),
-                new Paragraph({
-                  alignment: AlignmentType.CENTER,
-                  children: [new TextRun({ text: `${totalScore}/10`, font: 'Arial', size: 30, bold: true, color: 'FFFFFF' })],
-                  spacing: { before: 80 },
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    }),
-    spacer(),
-    scoreTable,
+    buildSectionCard('1. WHAT HAPPENED? — Executive Performance Brief', palette, [aiContent.executiveBrief]),
     spacer(),
     new Paragraph({
-      children: [
-        new TextRun({
-          text: aiContent.overallScore,
-          font: 'Arial',
-          size: 20,
-          color: '333333',
-        }),
-      ],
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '2. Registration Funnel & Conversion Journey', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: aiContent.funnelAnalysis, font: 'Arial', size: 20, color: '334155' })],
+      spacing: { after: 120 },
+    }),
+    buildFunnelDiagnosticTable(data, palette),
+    spacer(),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '3. Traffic Sources & Campaign Attribution', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: aiContent.attributionAnalysis, font: 'Arial', size: 20, color: '334155' })],
+      spacing: { after: 120 },
+    }),
+    buildAttributionDiagnosticTable(data, palette),
+    spacer(),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '4. Capacity & Demand Velocity', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: aiContent.demandVelocityAnalysis, font: 'Arial', size: 20, color: '334155' })],
       spacing: { after: 140 },
     }),
-  )
+    spacer(),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '5. Gate Attendance & No-Show Analysis', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: aiContent.attendanceAnalysis, font: 'Arial', size: 20, color: '334155' })],
+      spacing: { after: 120 },
+    }),
+    buildGateAttendanceDiagnosticTable(data, palette),
+    spacer(),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '6. Strategic Intelligence: Patterns & Diagnostics', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    buildBulletCard('What Worked (Data-Backed Successes)', '15803D', aiContent.whatWorked),
+    spacer(),
+    buildBulletCard('What Needs Attention (Friction & Drop-Offs)', 'D97706', aiContent.whatNeedsAttention),
+    spacer(),
+    buildSectionCard('EventSlot Strategic Interpretation', palette, [aiContent.strategicInterpretation]),
+    spacer(),
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: '7. Recommended Action Playbook for Next Edition', font: 'Arial', bold: true, size: 26, color: palette.banner })],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Prioritized, concrete operational steps connected directly to observed event data.',
+          font: 'Arial',
+          size: 19,
+          color: '555555',
+        }),
+      ],
+      spacing: { after: 120 },
+    }),
+    buildPlaybookTable(aiContent.actionableRecommendations, palette),
+    spacer(),
+  ]
 
   return blocks
 }
-
 function footerNotePage(): Paragraph[] {
   return [
     new Paragraph({
@@ -1875,7 +2053,22 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     waitlistPosition: item.position,
   }))
 
-  const aiContentPromise = generateAIReportContent({ event, confirmed, waitlist })
+  const aiContentPromise = generateAIReportContent({
+    event,
+    confirmed,
+    waitlist,
+    totalPageViews: data.totalPageViews,
+    viewsTracked: data.viewsTracked,
+    conversionRate: data.conversionRate,
+    checkedInCount: data.checkedInCount,
+    checkInDataAvailable: data.checkInDataAvailable,
+    turnoutRate: data.turnoutRate,
+    noShowCount: data.noShowCount,
+    noShowRate: data.noShowRate,
+    sourceBreakdown: data.sourceBreakdown,
+    attributionTracked: data.attributionTracked,
+    paymentSummary: data.paymentSummary,
+  })
   const theme = data.theme ?? 'eventslot'
   const palette = THEMES[theme] ?? THEMES.eventslot
   const timelineAttendees = [...confirmed, ...waitlist]
@@ -1921,7 +2114,6 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
         footers: { default: makeFooter(event.title) },
         children: [
           ...buildEventReportHeader(event, palette),
-          ...buildTableOfContentsPage(),
           ...summarySections,
           ...commercialSections,
           ...aiInsightsPage(aiContent, palette, data),

@@ -210,7 +210,7 @@ type WalkInDashboard = {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  direct: '#C8F55A',
+  direct: 'var(--accent)',
   shared: '#3B82F6',
   referral: '#F59E0B',
   qr: '#22C55E',
@@ -428,7 +428,7 @@ function StatusBadge({ event }: { event: EventData }) {
     )
   }
   return (
-    <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: "rgba(200,245,90,0.12)", color: "#C8F55A", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
+    <span style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.04em", background: themeAccentSoft, color: themeAccent, borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)" }}>
       ACTIVE
     </span>
   )
@@ -525,7 +525,7 @@ function RenameModal({ current, onClose, onSave }: { current: string; onClose: (
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.4rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.25rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save"}</button>
+          <button onClick={handleSave} disabled={saving} style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save"}</button>
         </div>
       </div>
     </>
@@ -550,7 +550,7 @@ function ArchiveConfirm({ onClose, onConfirm }: { onClose: () => void; onConfirm
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handle} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Archiving..." : "Archive"}</button>
+          <button onClick={handle} disabled={saving} style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>{saving ? "Archiving..." : "Archive"}</button>
         </div>
       </div>
     </>
@@ -653,7 +653,7 @@ function EditRegModal({
         </div>
         <div style={{ display: "flex", gap: "0.625rem", justifyContent: "flex-end" }}>
           <button type="button" onClick={onClose} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: themeBorderSoft, background: "transparent", color: themeTextSecondary, cursor: "pointer", fontSize: "0.875rem", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "#C8F55A", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving..." : "Save changes"}</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: "0.5rem 1.25rem", borderRadius: 100, border: "none", background: saving ? "rgba(200,245,90,0.4)" : "var(--accent)", color: "#0A0A0A", cursor: saving ? "default" : "pointer", fontSize: "0.875rem", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>{saving ? "Saving..." : "Save changes"}</button>
         </div>
       </div>
     </div>
@@ -750,7 +750,7 @@ function RegTable({
                 <td style={{ ...tdStyle, width: 60 }}>
                   <Link
                     href={`/dashboard/events/${slug}/registrations/${reg.id}${registrationStatus !== 'confirmed' ? `?from=${registrationStatus}` : ''}`}
-                    style={{ fontSize: "0.72rem", color: "#C8F55A", textDecoration: "none", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}
+                    style={{ fontSize: "0.72rem", color: themeAccent, textDecoration: "none", whiteSpace: "nowrap", fontFamily: "var(--font-dm-sans)" }}
                     onClick={e => e.stopPropagation()}
                   >
                     View
@@ -777,7 +777,7 @@ function RegTable({
                     <span style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
                       <button
                         onClick={() => setEditingReg(reg)}
-                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "#7A941B", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                        style={{ background: "transparent", border: themeAccentBorder, borderRadius: 6, padding: "3px 10px", fontSize: "0.72rem", color: "#7A941B", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                       >
                         Edit
                       </button>
@@ -1116,7 +1116,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
             href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
             target="_blank"
             rel="noreferrer"
-            style={{ display: "inline-flex", marginTop: "0.75rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.85rem", color: "#C8F55A", textDecoration: "none", fontSize: "0.78rem", fontWeight: 800, fontFamily: "var(--font-dm-sans)" }}
+            style={{ display: "inline-flex", marginTop: "0.75rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.85rem", color: themeAccent, textDecoration: "none", fontSize: "0.78rem", fontWeight: 800, fontFamily: "var(--font-dm-sans)" }}
           >
             Search venue on Google Maps
           </a>
@@ -1201,7 +1201,7 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
                     setError("Couldn't copy the verifier link automatically. Please copy it manually.")
                   }
                 }}
-                style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, #C8F55A 16%, var(--surface))", color: themeTextPrimary }}
+                style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, var(--accent) 16%, var(--surface))", color: themeTextPrimary }}
               >
                 {verifierLinkCopied ? "Copied!" : "Copy verifier link"}
               </button>
@@ -1334,12 +1334,12 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
+          style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}
         >
           {saving ? "Saving..." : "Save changes"}
         </button>
         {saved && (
-          <span style={{ fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+          <span style={{ fontSize: "0.82rem", color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>
             Saved
           </span>
         )}
@@ -1494,7 +1494,7 @@ function ManualRegModal({
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
               <span style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Closing automatically...</span>
-              <button onClick={onClose} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
+              <button onClick={onClose} style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Done</button>
             </div>
           </div>
         </div>
@@ -1511,7 +1511,7 @@ function ManualRegModal({
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.25rem" }}>
           <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.2rem", color: themeTextPrimary, margin: 0 }}>Register manually</h3>
-          <button onClick={addAttendee} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "rgba(200,245,90,0.1)", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.3rem 0.75rem", fontSize: "0.75rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0 }}>
+          <button onClick={addAttendee} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "rgba(200,245,90,0.1)", border: "0.5px solid rgba(200,245,90,0.25)", borderRadius: 8, padding: "0.3rem 0.75rem", fontSize: "0.75rem", color: themeAccent, cursor: "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0 }}>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M5 1v8M1 5h8" /></svg>
             Add person
           </button>
@@ -1537,7 +1537,7 @@ function ManualRegModal({
               {attendees.length > 1 ? `Attendee ${dupWarning.attendeeIdx + 1} appears` : "This person appears"} to already be registered (#{dupWarning.regNumber}). Add anyway?
             </p>
             <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button onClick={handleForce} style={{ background: "#C8F55A", border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Add anyway</button>
+              <button onClick={handleForce} style={{ background: themeAccent, border: "none", borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Add anyway</button>
               <button onClick={() => setDupWarning(null)} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 6, padding: "0.375rem 0.875rem", fontSize: "0.78rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
             </div>
           </div>
@@ -1555,7 +1555,7 @@ function ManualRegModal({
               {questions.map(q => (
                 <div key={q.id}>
                   <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", marginBottom: "0.35rem" }}>
-                    {q.label}{q.required && <span style={{ color: "#C8F55A", marginLeft: 2 }}>*</span>}
+                    {q.label}{q.required && <span style={{ color: themeAccent, marginLeft: 2 }}>*</span>}
                   </label>
                   {q.type === "select" && q.options ? (
                     <select value={form[q.id] ?? ""} onChange={e => handleChange(idx, q.id, e.target.value)} style={{ ...inputStyle }}>
@@ -1601,7 +1601,7 @@ function ManualRegModal({
           <div style={{ display: "flex", gap: "1rem" }}>
             {(['confirmed', 'waitlist'] as const).map(s => (
               <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", color: regStatus === s ? themeTextPrimary : themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
-                <input type="radio" name="regStatus" value={s} checked={regStatus === s} onChange={() => setRegStatus(s)} style={{ accentColor: "#C8F55A" }} />
+                <input type="radio" name="regStatus" value={s} checked={regStatus === s} onChange={() => setRegStatus(s)} style={{ accentColor: "var(--accent)" }} />
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </label>
             ))}
@@ -1613,7 +1613,7 @@ function ManualRegModal({
         {error && <p style={{ fontSize: "0.78rem", color: "#FF6B6B", marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>{error}</p>}
         <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.5rem 1rem", fontSize: "0.82rem", color: themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>
+          <button onClick={handleSubmit} disabled={saving} style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: saving ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Registering..." : attendees.length > 1 ? `Register ${attendees.length} people` : "Add registration"}
           </button>
         </div>
@@ -2523,7 +2523,7 @@ export default function EventDashboardPage() {
         <div style={{ background: themeSurface, border: themeBorder, borderRadius: 16, padding: "2.5rem", textAlign: "center" }}>
           <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.5rem", color: themeTextPrimary, marginBottom: "0.75rem" }}>Access denied</h1>
           <p style={{ fontSize: "0.875rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>Invalid or missing access credentials.</p>
-          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: "#C8F55A", fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to {ORGANIZER_SURFACE_COPY.eventDetail.backLabel}</Link>
+          <Link href="/dashboard/events" style={{ display: "inline-block", marginTop: "1.5rem", color: themeAccent, fontSize: "0.82rem", fontFamily: "var(--font-dm-sans)", textDecoration: "none" }}>Back to {ORGANIZER_SURFACE_COPY.eventDetail.backLabel}</Link>
         </div>
       </div>
     )
@@ -2863,8 +2863,7 @@ export default function EventDashboardPage() {
             <button
               onClick={handleDownloadQR}
               style={{
-                background: "#C8F55A",
-                color: "#0A0A0A",
+                background: themeAccent, color: "var(--accent-contrast)",
                 border: "none",
                 borderRadius: "100px",
                 padding: "0.7rem 1.8rem",
@@ -3011,7 +3010,7 @@ export default function EventDashboardPage() {
           />
 
           {passSuccess ? (
-            <div style={{ marginTop: "0.9rem", marginBottom: "0.9rem", borderRadius: 12, padding: "0.85rem 1rem", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.18)", color: "#C8F55A", fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
+            <div style={{ marginTop: "0.9rem", marginBottom: "0.9rem", borderRadius: 12, padding: "0.85rem 1rem", background: themeAccentSoft, border: "0.5px solid rgba(200,245,90,0.18)", color: themeAccent, fontSize: "0.8rem", fontFamily: "var(--font-dm-sans)" }}>
               One-time event pass activated. Premium event features are now unlocked for this event.
             </div>
           ) : null}
@@ -3028,7 +3027,7 @@ export default function EventDashboardPage() {
             <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
               <button
                 onClick={handleCopy}
-                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.55rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copied ? "#C8F55A" : themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, width: "100%" }}
+                style={{ background: "transparent", border: themeBorderSoft, borderRadius: 8, padding: "0.55rem 0.875rem", fontSize: "0.78rem", fontWeight: 500, color: copied ? "var(--accent)" : themeTextSecondary, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap", flexShrink: 0, width: "100%" }}
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
@@ -3067,7 +3066,7 @@ export default function EventDashboardPage() {
               </button>
             </div>
             {shareFeedback && (
-              <span style={{ fontSize: "0.75rem", color: shareFeedback.includes("Could not") ? "#FF6B6B" : "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+              <span style={{ fontSize: "0.75rem", color: shareFeedback.includes("Could not") ? "#FF6B6B" : "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>
                 {shareFeedback}
               </span>
             )}
@@ -3089,7 +3088,7 @@ export default function EventDashboardPage() {
               style={{
                 background: "transparent",
                 border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #C8F55A" : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? `2px solid ${themeAccent}` : "2px solid transparent",
                 padding: "0.6rem 1.1rem",
                 fontSize: "0.875rem",
                 fontFamily: "var(--font-dm-sans)",
@@ -3149,14 +3148,14 @@ export default function EventDashboardPage() {
                   type="button"
                   onClick={() => void handleGenerateQR()}
                   disabled={qrGenerating}
-                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: qrGenerating ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qrGenerating ? 0.65 : 1 }}
+                  style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.55rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: qrGenerating ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qrGenerating ? 0.65 : 1 }}
                 >
                   {qrGenerating ? "Generating..." : "QR Code"}
                 </button>
               </div>
 
               {walkInDashboard?.status === "ACTIVE" && (
-                <div style={{ marginBottom: "1rem", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.9rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div style={{ marginBottom: "1rem", background: themeAccentSoft, border: "0.5px solid rgba(200,245,90,0.18)", borderRadius: 10, padding: "0.9rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
                   <div>
                     <p style={{ margin: 0, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                       Live
@@ -3165,7 +3164,7 @@ export default function EventDashboardPage() {
                       {walkInDashboard.days.find((day) => day.status === "ACTIVE")?.count.toLocaleString() ?? "0"} check-ins today
                     </p>
                   </div>
-                  <div style={{ fontSize: "1.35rem", fontWeight: 700, color: "#C8F55A", fontFamily: "var(--font-instrument-serif)" }}>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 700, color: themeAccent, fontFamily: "var(--font-instrument-serif)" }}>
                     {(walkInDashboard.days.find((day) => day.status === "ACTIVE")?.count ?? 0).toLocaleString()}
                   </div>
                 </div>
@@ -3211,20 +3210,20 @@ export default function EventDashboardPage() {
                         <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           Day {day.dayNumber} ({day.label.split(",")[0]})
                         </td>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "UPCOMING" ? themeTextMuted : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", fontWeight: 700 }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "UPCOMING" ? themeTextMuted : "var(--accent)", fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem", fontWeight: 700 }}>
                           {day.status === "UPCOMING" && day.count === 0 ? "-" : day.count.toLocaleString()}{day.status === "ACTIVE" ? " (Live)" : ""}
                         </td>
                         <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: themeTextMuted, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           -
                         </td>
-                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "ACTIVE" ? "#C8F55A" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
+                        <td style={{ padding: "0.8rem 0.9rem", borderBottom: themeBorderSoft, color: day.status === "ACTIVE" ? "var(--accent)" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", fontSize: "0.88rem" }}>
                           {day.status === "CLOSED" ? "Closed" : day.status === "ACTIVE" ? "Active" : "Upcoming"}
                         </td>
                       </tr>
                     ))}
                     <tr>
                       <td style={{ padding: "0.9rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Total</td>
-                      <td style={{ padding: "0.9rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 800 }}>
+                      <td style={{ padding: "0.9rem", color: themeAccent, fontFamily: "var(--font-dm-sans)", fontWeight: 800 }}>
                         {(walkInDashboard?.totalCheckins ?? 0).toLocaleString()}
                       </td>
                       <td />
@@ -3238,7 +3237,7 @@ export default function EventDashboardPage() {
                 <button
                   type="button"
                   onClick={handleDownloadQR}
-                  style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.35)", borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ background: "transparent", border: themeAccentBorder, borderRadius: 8, padding: "0.6rem 1rem", fontSize: "0.82rem", color: themeAccent, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                 >
                   Download QR Code
                 </button>
@@ -3292,8 +3291,8 @@ export default function EventDashboardPage() {
 
             {/* Google Calendar sync status */}
             {eventData.calendarSynced ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", background: "rgba(200,245,90,0.08)", border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 100, padding: "0.3rem 0.75rem" }}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#C8F55A" strokeWidth="1.2"/><path d="M3 5l1.5 1.5L7 3.5" stroke="#C8F55A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.78rem", color: themeAccent, fontFamily: "var(--font-dm-sans)", background: themeAccentSoft, border: "0.5px solid rgba(200,245,90,0.2)", borderRadius: 100, padding: "0.3rem 0.75rem" }}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="var(--accent)" strokeWidth="1.2"/><path d="M3 5l1.5 1.5L7 3.5" stroke="var(--accent)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 In your Google Calendar
               </span>
             ) : eventData.googleCalendarConnected === false ? (
@@ -3577,12 +3576,12 @@ export default function EventDashboardPage() {
                 <button
                   onClick={handleCapacityUpdate}
                   disabled={updatingCapacity}
-                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: updatingCapacity ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: updatingCapacity ? 0.7 : 1 }}
+                  style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.5rem 1.25rem", fontSize: "0.875rem", fontWeight: 600, color: "#0A0A0A", cursor: updatingCapacity ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: updatingCapacity ? 0.7 : 1 }}
                 >
                   {updatingCapacity ? "Updating..." : "Update capacity"}
                 </button>
               </div>
-              {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
+              {capacityMessage && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>{capacityMessage}</p>}
               {capacityError && <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#FF6B6B", fontFamily: "var(--font-dm-sans)" }}>{capacityError}</p>}
             </div>
 
@@ -3621,7 +3620,7 @@ export default function EventDashboardPage() {
                         return (
                           <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "#C8F55A" : themeTextMuted, whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? themeAccentSoft : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "var(--accent)" : themeTextMuted, whiteSpace: "nowrap" }}>
                                 {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
                               </span>
                               {reg.registrationNumber && (
@@ -3658,7 +3657,7 @@ export default function EventDashboardPage() {
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   <button
                     onClick={() => setActiveTab('settings')}
-                    style={{ background: "#C8F55A", border: "none", borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                    style={{ background: themeAccent, border: "none", borderRadius: 10, padding: "0.5rem 1rem", fontSize: "0.82rem", fontWeight: 700, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                   >
                     Increase Capacity
                   </button>
@@ -3699,7 +3698,7 @@ export default function EventDashboardPage() {
               <div style={{ background: "rgba(200,245,90,0.04)", border: "0.5px solid rgba(200,245,90,0.12)", borderRadius: 10, padding: "0.875rem 1.125rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(200,245,90,0.5)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>Community link</div>
-                  <a href={normalizeCommunityLink(eventData.communityLink) || eventData.communityLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", textDecoration: "none", wordBreak: "break-all" }}>{normalizeCommunityLink(eventData.communityLink) || eventData.communityLink}</a>
+                  <a href={normalizeCommunityLink(eventData.communityLink) || eventData.communityLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", color: themeAccent, fontFamily: "var(--font-dm-sans)", textDecoration: "none", wordBreak: "break-all" }}>{normalizeCommunityLink(eventData.communityLink) || eventData.communityLink}</a>
                 </div>
               </div>
             )}
@@ -3872,14 +3871,14 @@ export default function EventDashboardPage() {
             {waitlistEmailDiagnostics && waitlistEmailDiagnostics.attempted > 0 && (
               <div
                 style={{
-                  background: waitlistEmailDiagnostics.failed > 0 ? "rgba(255,107,107,0.08)" : "rgba(200,245,90,0.08)",
+                  background: waitlistEmailDiagnostics.failed > 0 ? "rgba(255,107,107,0.08)" : themeAccentSoft,
                   border: waitlistEmailDiagnostics.failed > 0 ? "0.5px solid rgba(255,107,107,0.25)" : "0.5px solid rgba(200,245,90,0.25)",
                   borderRadius: 10,
                   padding: "0.75rem 0.9rem",
                   marginBottom: "0.9rem",
                 }}
               >
-                <p style={{ margin: 0, fontSize: "0.8rem", color: waitlistEmailDiagnostics.failed > 0 ? "#FF6B6B" : "#C8F55A", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: waitlistEmailDiagnostics.failed > 0 ? "#FF6B6B" : "var(--accent)", fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
                   Promotion email status: {waitlistEmailDiagnostics.sent} sent, {waitlistEmailDiagnostics.failed} failed, {waitlistEmailDiagnostics.skippedNoEmail} skipped (no email)
                 </p>
               </div>
@@ -3897,7 +3896,7 @@ export default function EventDashboardPage() {
                 <button
                   onClick={runDuplicateScan}
                   disabled={scanning}
-                  style={{ background: scanning ? "rgba(200,245,90,0.08)" : "#C8F55A", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "#C8F55A" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
+                  style={{ background: scanning ? themeAccentSoft : "var(--accent)", border: "none", borderRadius: 8, padding: "0.5rem 1.1rem", fontSize: "0.8rem", fontWeight: 600, color: scanning ? "var(--accent)" : "#0A0A0A", cursor: scanning ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", flexShrink: 0, opacity: scanning ? 0.7 : 1 }}
                 >
                   {scanning ? "Scanning..." : "Run scan"}
                 </button>
@@ -3908,7 +3907,7 @@ export default function EventDashboardPage() {
               )}
 
               {dupGroups !== null && dupGroups.length === 0 && (
-                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
+                <p style={{ marginTop: "0.75rem", fontSize: "0.82rem", color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>No duplicates found</p>
               )}
 
               {dupGroups !== null && dupGroups.length > 0 && (
@@ -3927,7 +3926,7 @@ export default function EventDashboardPage() {
                         return (
                           <div key={reg.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.625rem 0.875rem", borderTop: ri > 0 ? "0.5px solid rgba(255,168,0,0.1)" : undefined, flexWrap: "wrap" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? "rgba(200,245,90,0.12)" : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "#C8F55A" : themeTextMuted, whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "0.62rem", fontWeight: 600, letterSpacing: "0.04em", borderRadius: 100, padding: "2px 8px", fontFamily: "var(--font-dm-sans)", background: reg.status === "confirmed" ? themeAccentSoft : "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: reg.status === "confirmed" ? "var(--accent)" : themeTextMuted, whiteSpace: "nowrap" }}>
                                 {reg.status === "confirmed" ? "CONFIRMED" : "WAITLIST"}
                               </span>
                               {reg.registrationNumber && (
@@ -4023,7 +4022,7 @@ export default function EventDashboardPage() {
               {!analyticsData && !analyticsLoading && (
                 <button
                   onClick={() => void loadAnalytics()}
-                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                 >
                   Load analytics
                 </button>
@@ -4250,7 +4249,7 @@ export default function EventDashboardPage() {
                         <button
                           onClick={() => loadInsights(true)}
                           disabled={insightsUnlockLoading}
-                          style={{ background: "#C8F55A", color: "#0A0A0A", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", border: "none", cursor: insightsUnlockLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: insightsUnlockLoading ? 0.6 : 1 }}
+                          style={{ background: themeAccent, color: "var(--accent-contrast)", borderRadius: 6, padding: "0.35rem 0.85rem", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", border: "none", cursor: insightsUnlockLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", opacity: insightsUnlockLoading ? 0.6 : 1 }}
                         >
                           {insightsUnlockLoading ? "Generating..." : `Regenerate (${insightsRequiredCredits} credits)`}
                         </button>
@@ -4457,7 +4456,7 @@ export default function EventDashboardPage() {
                       <div style={{ fontSize: "1.5rem", fontFamily: "var(--font-instrument-serif)", color: themeTextPrimary }}>{analyticsData.feedbackScore} / 5</div>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.18rem", marginTop: "0.35rem" }}>
                         {[1, 2, 3, 4, 5].map((n) => (
-                          <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? '#C8F55A' : 'color-mix(in srgb, var(--text-primary) 15%, transparent)' }}>
+                          <span key={n} style={{ fontSize: "0.86rem", color: n <= Math.round(analyticsData.feedbackScore ?? 0) ? 'var(--accent)' : 'color-mix(in srgb, var(--text-primary) 15%, transparent)' }}>
                             Star
                           </span>
                         ))}
@@ -4466,7 +4465,7 @@ export default function EventDashboardPage() {
                         {analyticsData.feedbackCount} response{analyticsData.feedbackCount !== 1 ? 's' : ''} -{' '}
                         <button
                           onClick={() => setActiveTab('feedback')}
-                          style={{ background: "transparent", border: "none", padding: 0, color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "0.75rem" }}
+                          style={{ background: "transparent", border: "none", padding: 0, color: themeAccent, cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "0.75rem" }}
                         >
                           View feedback
                         </button>
@@ -4520,7 +4519,7 @@ export default function EventDashboardPage() {
 
                 {(analyticsData.waitlistedCount > 0 || analyticsData.promotedCount > 0) && (
                   <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem" }}>
-                    <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                    <div style={{ fontSize: "0.7rem", color: themeAccent, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                       Featured Waitlist Funnel
                     </div>
 
@@ -4540,7 +4539,7 @@ export default function EventDashboardPage() {
                     </div>
 
                     {analyticsData.stillWaitingCount > 0 && (
-                      <div style={{ marginTop: "0.75rem", borderLeft: "4px solid #C8F55A", paddingLeft: "0.75rem", background: "rgba(200,245,90,0.05)", borderTopRightRadius: 10, borderBottomRightRadius: 10, paddingTop: "0.5rem", paddingBottom: "0.5rem" }}>
+                      <div style={{ marginTop: "0.75rem", borderLeft: `4px solid ${themeAccent}`, paddingLeft: "0.75rem", background: "rgba(200,245,90,0.05)", borderTopRightRadius: 10, borderBottomRightRadius: 10, paddingTop: "0.5rem", paddingBottom: "0.5rem" }}>
                         <p style={{ color: themeTextSecondary, fontSize: "0.75rem", fontFamily: "var(--font-dm-sans)", margin: 0 }}>
                           {analyticsData.stillWaitingCount} people are waiting.
                           {analyticsData.event?.capacity && (
@@ -4549,7 +4548,7 @@ export default function EventDashboardPage() {
                         </p>
                         <button
                           onClick={() => setActiveTab("settings")}
-                          style={{ marginTop: "0.3rem", background: "transparent", border: "none", padding: 0, color: "#C8F55A", fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
+                          style={{ marginTop: "0.3rem", background: "transparent", border: "none", padding: 0, color: themeAccent, fontSize: "0.75rem", fontWeight: 600, fontFamily: "var(--font-dm-sans)", cursor: "pointer" }}
                         >
                           Adjust capacity
                         </button>
@@ -4560,7 +4559,7 @@ export default function EventDashboardPage() {
 
                 {analyticsData.sourceBreakdown?.length > 0 && (
                   <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 12, padding: "1rem 1.25rem" }}>
-                    <div style={{ fontSize: "0.7rem", color: "#C8F55A", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
+                    <div style={{ fontSize: "0.7rem", color: themeAccent, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
                       Featured Registration Sources
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
@@ -4596,7 +4595,7 @@ export default function EventDashboardPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} tickFormatter={v => v.slice(5)} interval={4} />
                       <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }} allowDecimals={false} />
                       <Tooltip contentStyle={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 8, fontSize: "0.78rem", fontFamily: "var(--font-dm-sans)", color: themeTextPrimary }} />
-                      <Line type="monotone" dataKey="count" stroke="#C8F55A" strokeWidth={1.5} dot={false} />
+                      <Line type="monotone" dataKey="count" stroke="var(--accent)" strokeWidth={1.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -4701,7 +4700,7 @@ export default function EventDashboardPage() {
                     <button
                       onClick={() => submitQuestion(qaInput)}
                       disabled={qaLoading || !qaInput.trim()}
-                      style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.65rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: qaLoading || !qaInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qaLoading || !qaInput.trim() ? 0.55 : 1, whiteSpace: "nowrap", flexShrink: 0 }}
+                      style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.65rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: qaLoading || !qaInput.trim() ? "not-allowed" : "pointer", fontFamily: "var(--font-dm-sans)", opacity: qaLoading || !qaInput.trim() ? 0.55 : 1, whiteSpace: "nowrap", flexShrink: 0 }}
                     >
                       {qaLoading ? "..." : "Ask"}
                     </button>
@@ -4710,7 +4709,7 @@ export default function EventDashboardPage() {
                   {/* Loading indicator */}
                   {qaLoading && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "1.25rem" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: themeAccent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
                       </div>
                       <div style={{ background: themeSurface, borderRadius: "2px 12px 12px 12px", padding: "0.55rem 0.875rem", fontSize: "0.82rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", animation: "epage-pulse 1.4s ease-in-out infinite" }}>
@@ -4732,7 +4731,7 @@ export default function EventDashboardPage() {
                           </div>
                           {/* Answer bubble */}
                           <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem" }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: themeAccent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
                               <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#0A0A0A", fontFamily: "var(--font-dm-sans)" }}>AI</span>
                             </div>
                             <div>
@@ -4758,7 +4757,7 @@ export default function EventDashboardPage() {
               {!feedbackData && !feedbackLoading && !feedbackError && (
                 <button
                   onClick={loadFeedback}
-                  style={{ background: "#C8F55A", border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
+                  style={{ background: themeAccent, border: "none", borderRadius: 8, padding: "0.45rem 1.1rem", fontSize: "0.82rem", fontWeight: 600, color: "#0A0A0A", cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}
                 >
                   Load feedback
                 </button>
@@ -4805,7 +4804,7 @@ export default function EventDashboardPage() {
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: fb.enjoyed || fb.improve || fb.complaint ? "1rem" : 0, flexWrap: "wrap", gap: "0.5rem" }}>
                           <div style={{ display: "flex", gap: "2px" }}>
                             {[1, 2, 3, 4, 5].map(s => (
-                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "#C8F55A" : "color-mix(in srgb, var(--text-primary) 15%, transparent)" }}>Star</span>
+                              <span key={s} style={{ fontSize: "1rem", color: s <= fb.rating ? "var(--accent)" : "color-mix(in srgb, var(--text-primary) 15%, transparent)" }}>Star</span>
                             ))}
                           </div>
                           <span style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
@@ -4861,7 +4860,7 @@ export default function EventDashboardPage() {
               <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1.25rem", marginBottom: "1.5rem" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem" }}>
                   <div>
-                    <span style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                    <span style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>
                       Gate Staff Quick Access
                     </span>
                     <h3 style={{ fontSize: "1rem", fontWeight: 600, color: themeTextPrimary, margin: "0.25rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
@@ -4905,7 +4904,7 @@ export default function EventDashboardPage() {
                         }
                       }}
                       style={{
-                        background: "#C8F55A",
+                        background: themeAccent,
                         border: "none",
                         borderRadius: 8,
                         padding: "0.5rem 1rem",
@@ -4930,10 +4929,10 @@ export default function EventDashboardPage() {
             {eventData && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }} className="stat-grid sm:grid-cols-4">
                 <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
-                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#C8F55A", fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
                     Actual Attendees
                   </div>
-                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: "#C8F55A" }}>
+                  <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeAccent }}>
                     {eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
@@ -5059,9 +5058,9 @@ export default function EventDashboardPage() {
                               disabled={resendingTeamMember === m.teamMemberId}
                               style={{
                                 background: "transparent",
-                                border: "0.5px solid rgba(200,245,90,0.3)",
+                                border: themeAccentBorder,
                                 borderRadius: 7,
-                                color: copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "#C8F55A" : "rgba(200,245,90,0.85)",
+                                color: copiedTeamInviteKey === `resend-${m.teamMemberId}` ? "var(--accent)" : themeAccent,
                                 fontSize: "0.75rem",
                                 fontFamily: "var(--font-dm-sans)",
                                 padding: "0.3rem 0.625rem",
@@ -5145,7 +5144,7 @@ export default function EventDashboardPage() {
                             }}
                           />
                           {isValid && (
-                            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#C8F55A", fontSize: "0.85rem", fontWeight: 700 }}>
+                            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: themeAccent, fontSize: "0.85rem", fontWeight: 700 }}>
                               ✓
                             </span>
                           )}
@@ -5184,7 +5183,7 @@ export default function EventDashboardPage() {
 
                       {/* Validation note when valid */}
                       {isValid && (
-                        <p style={{ margin: "2px 0 0 2px", fontSize: "0.72rem", color: "#C8F55A", fontFamily: "var(--font-dm-sans)" }}>
+                        <p style={{ margin: "2px 0 0 2px", fontSize: "0.72rem", color: themeAccent, fontFamily: "var(--font-dm-sans)" }}>
                           ✓ Valid email format · Ready to invite
                         </p>
                       )}
@@ -5196,7 +5195,7 @@ export default function EventDashboardPage() {
               <button
                 type="button"
                 onClick={() => setTeamInviteEmails(prev => [...prev, ""])}
-                style={{ background: "transparent", border: "none", color: "#C8F55A", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", marginTop: "0.6rem", padding: "0.2rem 0", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                style={{ background: "transparent", border: "none", color: themeAccent, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", marginTop: "0.6rem", padding: "0.2rem 0", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
               >
                 + Add another team member
               </button>
@@ -5214,7 +5213,7 @@ export default function EventDashboardPage() {
                       <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</span>
                       <button
                         onClick={() => void copyTeamInviteLink(acceptUrl, `new-${email}`)}
-                        style={{ background: "transparent", border: "0.5px solid rgba(200,245,90,0.3)", borderRadius: 6, padding: "2px 8px", fontSize: "0.72rem", color: "#C8F55A", cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
+                        style={{ background: "transparent", border: themeAccentBorder, borderRadius: 6, padding: "2px 8px", fontSize: "0.72rem", color: themeAccent, cursor: "pointer", fontFamily: "var(--font-dm-sans)", whiteSpace: "nowrap" }}
                       >
                         {copiedTeamInviteKey === `new-${email}` ? "Copied!" : "Copy link"}
                       </button>
@@ -5222,11 +5221,11 @@ export default function EventDashboardPage() {
                   ))}
                 </div>
               )}
-              {teamInviteSuccess && <p style={{ color: "#C8F55A", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteSuccess}</p>}
+              {teamInviteSuccess && <p style={{ color: themeAccent, fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "var(--font-dm-sans)" }}>{teamInviteSuccess}</p>}
               <button
                 onClick={() => void handleTeamInvite()}
                 disabled={teamInviting || teamInviteEmails.every(e => !e.trim()) || invalidTeamInviteEntries.length > 0}
-                style={{ marginTop: "0.875rem", background: "#C8F55A", color: "#0A0A0A", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting || invalidTeamInviteEntries.length > 0 ? 0.6 : 1 }}
+                style={{ marginTop: "0.875rem", background: themeAccent, color: "var(--accent-contrast)", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)", opacity: teamInviting || invalidTeamInviteEntries.length > 0 ? 0.6 : 1 }}
               >
                 {teamInviting ? "Sending..." : "Send Invite"}
               </button>

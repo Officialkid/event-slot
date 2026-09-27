@@ -563,7 +563,7 @@ export default function AdminOverviewPage() {
                 style={{
                   textDecoration: 'none',
                   background: 'var(--accent)',
-                  color: '#0A0A0A',
+                  color: 'var(--accent-contrast)',
                   borderRadius: '100px',
                   padding: '0.5rem 1rem',
                   fontSize: '0.82rem',

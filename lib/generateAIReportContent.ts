@@ -2,7 +2,26 @@ import { askAI } from './ai'
 import { IEvent, IRegistration } from './generateEventReport'
 import { format } from 'date-fns'
 
+export interface AIActionItem {
+  priority: 'HIGH' | 'MEDIUM' | 'LOW'
+  action: string
+  timeframe: string
+  expectedOutcome: string
+}
+
 export interface AIReportContent {
+  // --- EventSlot AI Event Intelligence Fields ---
+  executiveBrief: string
+  funnelAnalysis: string
+  attributionAnalysis: string
+  demandVelocityAnalysis: string
+  attendanceAnalysis: string
+  whatWorked: string[]
+  whatNeedsAttention: string[]
+  strategicInterpretation: string
+  actionableRecommendations: AIActionItem[]
+
+  // --- Backwards-compatibility string mappings ---
   eventOverview: string
   executiveSummary: string
   strengths: string
@@ -10,55 +29,36 @@ export interface AIReportContent {
   audienceProfile: string
   registrationBehaviour: string
   competitivePositioning: string
-  recommendations: string
   waitlistAnalysis: string
+  recommendations: string
   overallScore: string
 }
 
-function wordCount(text: string): number {
-  return text
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length
-}
-
-function ensureTwoParagraphDepth(text: string, supplement: string): string {
-  const normalized = text.trim()
-  const paragraphs = normalized
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-
-  if (paragraphs.length >= 2 && wordCount(normalized) >= 90) {
-    return normalized
+export interface GenerateAIReportParams {
+  event: IEvent
+  confirmed: IRegistration[]
+  waitlist: IRegistration[]
+  totalPageViews?: number
+  viewsTracked?: boolean
+  conversionRate?: number
+  checkedInCount?: number
+  checkInDataAvailable?: boolean
+  turnoutRate?: number
+  noShowCount?: number
+  noShowRate?: number
+  sourceBreakdown?: Array<{ source: string; count: number; percentage: number }>
+  attributionTracked?: boolean
+  paymentSummary?: {
+    currency: string
+    grossRevenue: number
+    commissionTotal: number
+    netRevenue: number
+    successfulPayments: number
+    pendingPayments: number
+    failedPayments: number
+    ticketsSold: number
+    paymentMethodBreakdown?: Array<{ method: string; count: number; grossRevenue: number }>
   }
-
-  if (paragraphs.length >= 2 && wordCount(normalized) < 90) {
-    return `${normalized}\n\n${supplement}`
-  }
-
-  if (paragraphs.length === 1 && wordCount(paragraphs[0]) >= 120) {
-    const sentences = paragraphs[0].split(/(?<=[.!?])\s+/).filter(Boolean)
-    if (sentences.length >= 4) {
-      const midpoint = Math.ceil(sentences.length / 2)
-      return `${sentences.slice(0, midpoint).join(' ')}\n\n${sentences.slice(midpoint).join(' ')}`
-    }
-  }
-
-  return `${normalized}\n\n${supplement}`
-}
-
-type ParsedAIReport = {
-  eventOverview: string
-  executiveSummary: string
-  strengths: string
-  weaknessesAndRisks: string
-  audienceProfile: string
-  registrationBehaviour: string
-  competitivePositioning: string
-  recommendations: string
-  waitlistAnalysis: string
-  overallScore: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -104,45 +104,27 @@ function inferEventType(event: IEvent): 'virtual' | 'in-person' {
 
 function buildWaitlistInsight(confirmedCount: number, waitlistCount: number, capacity: number | null): string {
   if (!capacity || capacity <= 0) {
-    return 'No waitlist was generated. Capacity was not configured, so overflow demand could not be measured through waitlist behavior.'
+    return 'Capacity was not capped, so registrations were accepted without overflow waitlisting.'
   }
   const safeConfirmed = Math.max(0, Math.min(confirmedCount, capacity))
   const fillRate = Math.round((safeConfirmed / capacity) * 100)
 
   if (waitlistCount > 0) {
-    return `Waitlist demand is active with ${waitlistCount} people queued, confirming demand beyond available slots.`
+    return `Event exceeded 100% capacity with ${waitlistCount} attendee${waitlistCount === 1 ? '' : 's'} on the waitlist, proving unmet spillover demand.`
+  }
+  if (fillRate >= 100) {
+    return `Event reached full capacity (${confirmedCount}/${capacity}). No waitlist formed prior to registration close.`
   }
   if (fillRate < 50) {
-    return `No waitlist formed because demand remained below capacity, with ${capacity - safeConfirmed} slots unfilled.`
+    return `Event concluded below capacity at ${fillRate}% (${confirmedCount}/${capacity} spots filled).`
   }
-  if (fillRate < 90) {
-    return 'No waitlist formed because the event did not cross the overflow threshold typically seen above 85-90% fill.'
-  }
-  return 'No waitlist formed despite near-full capacity, indicating overflow demand was not captured early enough in the registration cycle.'
-}
-
-function enforceThreeRecommendations(text: string): string {
-  const compact = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-
-  const numbered = compact.filter((line) => /^\d+[.):-]?\s+/.test(line))
-  const candidates = (numbered.length >= 3 ? numbered : compact).slice(0, 3)
-
-  if (candidates.length === 0) {
-    return '1. Within 7 days: Launch registration 14 days earlier to expand the high-intent capture window and increase confirmed attendance by at least 15%.\n2. Within 3 days before deadline: run a targeted reminder burst across your strongest channel to lift late-stage conversion by at least 10%.\n3. Within 48 hours post-event: publish outcomes and open early interest for the next edition to accelerate the next registration cycle.'
-  }
-
-  return candidates
-    .map((item, index) => item.replace(/^\d+[.):-]?\s+/, `${index + 1}. `))
-    .join('\n')
+  return `Event reached ${fillRate}% capacity with ${capacity - safeConfirmed} unfilled spots.`
 }
 
 function countQuestionCoverage(regs: IRegistration[], questions: IEvent['questions']): number {
   if (!questions.length || !regs.length) return 0
   const answered = regs.reduce((sum, reg) => {
-    const nonEmpty = reg.answers.filter(a => a.value && a.value.trim().length > 0).length
+    const nonEmpty = reg.answers.filter((a) => a.value && a.value.trim().length > 0).length
     return sum + nonEmpty
   }, 0)
   const total = regs.length * questions.length
@@ -151,11 +133,11 @@ function countQuestionCoverage(regs: IRegistration[], questions: IEvent['questio
 }
 
 function summariseAnswers(regs: IRegistration[], questions: IEvent['questions']): string {
-  if (!questions.length || !regs.length) return 'No custom questions answered.'
+  if (!questions.length || !regs.length) return 'No custom questionnaire configured.'
   const lines: string[] = []
   for (const q of questions.slice(0, 5)) {
     const vals = regs
-      .flatMap(r => r.answers.filter(a => a.questionId === q.id).map(a => a.value))
+      .flatMap((r) => r.answers.filter((a) => a.questionId === q.id).map((a) => a.value))
       .filter(Boolean)
     if (!vals.length) continue
     if (vals.length <= 6) {
@@ -168,230 +150,308 @@ function summariseAnswers(regs: IRegistration[], questions: IEvent['questions'])
         .slice(0, 3)
         .map(([v, n]) => `"${v}" (${n})`)
         .join(', ')
-      lines.push(`${q.label}: top answers — ${top3}`)
+      lines.push(`${q.label}: top responses — ${top3}`)
     }
   }
-  return lines.join('\n') || 'No meaningful answers recorded.'
+  return lines.join('\n') || 'No responses recorded.'
 }
 
-function buildFallbackReport({
-  event,
-  confirmed,
-  waitlist,
-}: {
-  event: IEvent
-  confirmed: IRegistration[]
-  waitlist: IRegistration[]
-}): AIReportContent {
-  const totalRegs = confirmed.length + waitlist.length
+// ─── Deterministic Intelligence Engine (Fallback & Ground Truth) ─────────────
+
+export function buildFallbackReport(params: GenerateAIReportParams): AIReportContent {
+  const { event, confirmed, waitlist } = params
+  const allRegs = [...confirmed, ...waitlist]
+  const totalRegs = allRegs.length
   const capacity = event.capacity ?? null
-  const capacityUtilization = capacity && capacity > 0 ? safeRate(confirmed.length, capacity) : 'N/A'
-  const waitlistRate = totalRegs > 0 ? safeRate(waitlist.length, totalRegs) : '0.0%'
-  const peakDay = getPeakDayWithCount([...confirmed, ...waitlist])
+  const hasCapacity = capacity !== null && capacity > 0
+  const fillRate = hasCapacity ? Math.round((confirmed.length / capacity) * 100) : null
+  const peakDay = getPeakDayWithCount(allRegs)
+  const peakPercent = totalRegs > 0 ? Math.round((peakDay.count / totalRegs) * 100) : 0
   const questionCoverage = countQuestionCoverage(confirmed, event.questions)
   const eventType = inferEventType(event)
   const waitlistInsight = buildWaitlistInsight(confirmed.length, waitlist.length, capacity)
 
+  // 1. Executive Brief
+  const capacityText = hasCapacity ? `${fillRate}% capacity utilization (${confirmed.length}/${capacity})` : `${confirmed.length} confirmed attendees (open capacity)`
+  const executiveBrief = `${event.title} (${eventType}) generated ${totalRegs} total registrations with ${capacityText}.${waitlist.length > 0 ? ` Overflow demand created a waitlist of ${waitlist.length} attendees.` : ''} Peak registration momentum concentrated on ${peakDay.date !== 'N/A' ? `${peakDay.date} (${peakDay.count} sign-ups)` : 'the final registration window'}.`
+
+  // 2. Funnel Analysis
+  let funnelAnalysis: string
+  if (params.viewsTracked && typeof params.totalPageViews === 'number' && params.totalPageViews > 0) {
+    const convRate = typeof params.conversionRate === 'number' ? params.conversionRate : Math.round((totalRegs / params.totalPageViews) * 1000) / 10
+    const dropOffRate = Math.max(0, Math.round((100 - convRate) * 10) / 10)
+    funnelAnalysis = `${params.totalPageViews.toLocaleString()} unique visitors reached the event page, resulting in ${totalRegs} completed registrations (${convRate}% conversion rate). ${dropOffRate}% of page visitors exited without registering, indicating the primary conversion friction occurred on the event landing page.`
+  } else {
+    funnelAnalysis = 'Page view tracking was not active for this event; conversion from initial page visit to completed registration could not be calculated. Funnel metrics begin from completed registration submissions.'
+  }
+
+  // 3. Attribution Analysis
+  let attributionAnalysis: string
+  const validSources = (params.sourceBreakdown ?? []).filter((s) => s.count > 0)
+  const hasNonDefaultSources = validSources.some((s) => !['form', 'direct', 'manual'].includes(s.source.toLowerCase()))
+
+  if (params.attributionTracked && validSources.length > 0 && hasNonDefaultSources) {
+    const topSource = validSources[0]
+    const details = validSources.map((s) => `${s.source}: ${s.count} (${s.percentage}%)`).join(', ')
+    attributionAnalysis = `Acquisition was led by ${topSource.source} accounting for ${topSource.count} registrations (${topSource.percentage}% share). Breakdown across tracked channels: ${details}.`
+  } else {
+    attributionAnalysis = 'Campaign attribution was not configured for this event. All registrations were recorded via direct event link submissions.'
+  }
+
+  // 4. Demand Velocity Analysis
+  const demandVelocityAnalysis = peakDay.date !== 'N/A'
+    ? `Registration intake peaked on ${peakDay.date} with ${peakDay.count} registrations (${peakPercent}% of total volume). ${waitlistInsight}`
+    : `Demand accumulated evenly with no single disproportionate surge day. ${waitlistInsight}`
+
+  // 5. Attendance Analysis
+  let attendanceAnalysis: string
+  if (params.checkInDataAvailable && typeof params.checkedInCount === 'number' && params.checkedInCount > 0) {
+    const turnout = params.turnoutRate ?? Math.round((params.checkedInCount / Math.max(1, confirmed.length)) * 100)
+    const noShow = params.noShowRate ?? Math.max(0, 100 - turnout)
+    attendanceAnalysis = `${params.checkedInCount} of ${confirmed.length} confirmed attendees checked in at the gate (${turnout}% gate turnout rate). The no-show rate was ${noShow}%, reflecting strong in-person commitment.`
+  } else {
+    attendanceAnalysis = 'Attendance performance cannot be calculated because gate check-in data was not recorded for this event.'
+  }
+
+  // 6. What Worked
+  const whatWorked: string[] = []
+  if (hasCapacity && fillRate && fillRate >= 90) {
+    whatWorked.push(`Reached ${fillRate}% of capacity (${confirmed.length}/${capacity} confirmed spots).`)
+  } else if (confirmed.length > 0) {
+    whatWorked.push(`Secured ${confirmed.length} confirmed attendees for the event.`)
+  }
+  if (params.viewsTracked && typeof params.conversionRate === 'number' && params.conversionRate >= 20) {
+    whatWorked.push(`Achieved strong registration page conversion of ${params.conversionRate}%.`)
+  }
+  if (params.checkInDataAvailable && typeof params.turnoutRate === 'number' && params.turnoutRate >= 70) {
+    whatWorked.push(`Gate turnout reached ${params.turnoutRate}% of confirmed passes.`)
+  }
+  if (hasNonDefaultSources && validSources.length > 0) {
+    whatWorked.push(`${validSources[0].source} emerged as the top marketing channel with ${validSources[0].count} sign-ups.`)
+  }
+  if (questionCoverage >= 70) {
+    whatWorked.push(`High attendee engagement with ${questionCoverage}% completion across custom questions.`)
+  }
+  if (params.paymentSummary && params.paymentSummary.grossRevenue > 0) {
+    whatWorked.push(`Generated ${params.paymentSummary.currency} ${params.paymentSummary.grossRevenue.toLocaleString()} in ticket sales.`)
+  }
+  if (whatWorked.length === 0) {
+    whatWorked.push(`Registration workflow completed smoothly with ${totalRegs} total submissions recorded.`)
+    whatWorked.push(`Event established a verified attendee baseline for future editions.`)
+  }
+
+  // 7. What Needs Attention
+  const whatNeedsAttention: string[] = []
+  if (params.viewsTracked && typeof params.conversionRate === 'number' && params.conversionRate < 35) {
+    whatNeedsAttention.push(`${Math.round(100 - params.conversionRate)}% of visitors to the event page did not complete registration.`)
+  }
+  if (!params.viewsTracked) {
+    whatNeedsAttention.push('Page view tracking was inactive, preventing visitor-to-registration drop-off measurement.')
+  }
+  if (!params.attributionTracked || !hasNonDefaultSources) {
+    whatNeedsAttention.push('Campaign attribution was untracked, making marketing channel ROI unmeasurable.')
+  }
+  if (!params.checkInDataAvailable || typeof params.checkedInCount !== 'number' || params.checkedInCount === 0) {
+    whatNeedsAttention.push('Gate verification / QR check-in was not utilized, leaving actual attendance unrecorded.')
+  } else if (typeof params.noShowRate === 'number' && params.noShowRate > 20) {
+    whatNeedsAttention.push(`${params.noShowRate}% of confirmed attendees did not check in at the gate.`)
+  }
+  if (peakPercent >= 60 && totalRegs >= 4) {
+    whatNeedsAttention.push(`${peakPercent}% of registrations concentrated on a single peak day (${peakDay.date}), leaving registration momentum vulnerable to timing.`)
+  }
+  if (hasCapacity && waitlist.length === 0 && fillRate && fillRate >= 95) {
+    whatNeedsAttention.push('Capacity reached near 100% but no waitlist formed, indicating uncaptured spillover demand.')
+  }
+
+  // 8. Strategic Interpretation
+  const strategicInterpretation = `The data demonstrates that ${event.title} converted ${confirmed.length} confirmed attendees${hasCapacity ? ` against a capacity target of ${capacity}` : ''}.${
+    params.viewsTracked && typeof params.conversionRate === 'number'
+      ? ` The primary leverage point lies in pre-registration conversion (${params.conversionRate}% conversion from visitor to registration), where page optimization can significantly increase confirmed volume.`
+      : ' The main operational priority for the next edition is enabling visitor tracking and campaign attribution to measure channel ROI and drop-off points.'
+  } Furthermore, ${
+    params.checkInDataAvailable && typeof params.turnoutRate === 'number' && params.turnoutRate > 0
+      ? `turnout performance (${params.turnoutRate}% verified at gate) indicates ${params.turnoutRate >= 75 ? 'strong commitment from registrants' : 'a need for proactive pre-event confirmation reminders'}.`
+      : 'implementing active gate verification will provide the final link between sign-ups and actual seat occupancy.'
+  }`
+
+  // 9. Actionable Recommendations
+  const actionableRecommendations: AIActionItem[] = [
+    {
+      priority: 'HIGH',
+      action: 'Distribute tracked campaign links (WhatsApp, Instagram, LinkedIn) across all marketing channels.',
+      timeframe: 'Next campaign launch (14 days before event)',
+      expectedOutcome: 'Direct visibility into channel conversion efficiency and cost per attendee.',
+    },
+    {
+      priority: 'HIGH',
+      action: 'Send an automated reminder SMS/WhatsApp 24 hours and 2 hours before event start with directions and gate QR code.',
+      timeframe: '24 hours prior to event gate opening',
+      expectedOutcome: 'Reduce no-show rate by an estimated 12-18%.',
+    },
+    {
+      priority: 'MEDIUM',
+      action: 'Publish event key takeaways and open an early-access waitlist for the next edition.',
+      timeframe: 'Within 48 hours post-event',
+      expectedOutcome: 'Capture immediate momentum and seed initial registrations for the next cycle.',
+    },
+  ]
+
+  // Legacy mappings for backwards-compatibility
   return {
-    eventOverview: `${event.title} is an ${eventType} event scheduled for ${formatIsoDate(event.eventDate)} in ${event.location ?? 'an unspecified location'}. The event is configured with ${capacity ?? 'no fixed'} capacity and currently has ${totalRegs} registrations, including ${confirmed.length} confirmed and ${waitlist.length} waitlisted. Registration opened on ${formatIsoDate(event.createdAt)} and closes on ${formatIsoDate(event.deadline, 'no fixed close date')}.`,
-    executiveSummary: `${event.title} generated ${totalRegs} registrations with ${capacityUtilization} capacity utilisation and ${waitlistRate} waitlist pressure. The strongest signal is ${peakDay.date !== 'N/A' ? `${peakDay.date} as the peak day with ${peakDay.count} registrations` : 'insufficient day-level registration volume for a clear peak pattern'}, which shows demand concentration in a narrow window. The next operational lever is tightening campaign timing around the peak window while increasing early-window acquisition.`,
-    strengths: `1. Demand conversion is proven with ${confirmed.length} confirmed attendees from ${totalRegs} total registrations.\n2. Capacity management is measurable at ${capacityUtilization}, enabling concrete optimisation decisions for the next edition.\n3. Data capture quality is ${questionCoverage}% across custom fields, supporting usable attendee insight for targeting and follow-up.`,
-    weaknessesAndRisks: `1. Registration concentration on the peak window increases volatility in final turnout; fix this by scheduling two staged demand pushes 7 days and 2 days before close.\n2. ${waitlist.length === 0 ? 'No waitlist was generated, so overflow demand is not being captured; fix this by calibrating capacity closer to observed demand and opening earlier.' : `Waitlist volume of ${waitlist.length} requires fast promotion cadence to protect trust; fix this by setting a 24-hour promotion SLA for released slots.`}\n3. Response coverage at ${questionCoverage}% leaves profiling gaps; fix this by making one high-value segmentation question required in the next registration form.`,
-    audienceProfile: `The attendee dataset shows ${questionCoverage}% completion on custom responses, indicating ${questionCoverage >= 70 ? 'strong' : 'partial'} profile visibility for this audience. Registrants committed through required fields and completed registration in measurable volume (${totalRegs} submissions), confirming active intent rather than passive browsing. Audience messaging should prioritise concrete outcomes and execution details because this cohort is responding to specific value, not generic event branding.`,
-    registrationBehaviour: `Registration activity peaked on ${peakDay.date} with ${peakDay.count} registrations, confirming that demand clustered around a specific campaign or reminder moment. The timeline shows a compressed conversion pattern rather than evenly distributed daily intake, which concentrates risk near the close window. For the next edition, deploy structured reminders before and during the peak window to spread conversions and reduce end-window dependence.`,
-    competitivePositioning: `This event demonstrates market relevance by converting ${totalRegs} registrations within one cycle in a competitive environment. The combination of ${capacityUtilization} utilisation and ${waitlist.length} waitlisted attendees positions the offer as credible but still optimisable against alternatives. Competitive advantage will increase by sharpening positioning around one explicit attendee outcome and publishing proof of delivery from this edition within 72 hours post-event.`,
-    recommendations: `1. Within 7 days: move registration open earlier by at least 10-14 days to extend the demand-capture window and lift confirmed turnout by 15-20%.\n2. Within the next event cycle: schedule a fixed 3-touch campaign (launch, midpoint, final 48 hours) to reduce peak-day concentration and stabilise daily conversions.\n3. Within 48 hours after this event: publish outcomes and open early interest for the next edition to seed repeat demand and improve first-week registrations.`,
-    waitlistAnalysis: `${waitlistInsight} Current waitlist count is ${waitlist.length} with overall waitlist rate at ${waitlistRate}. The next cycle should formalise overflow handling with clear promotion timing and transparent communication to preserve conversion intent from queued attendees.`,
-    overallScore: `Score computed from attendance quality, registration distribution, waitlist behaviour, and setup quality.`,
+    executiveBrief,
+    funnelAnalysis,
+    attributionAnalysis,
+    demandVelocityAnalysis,
+    attendanceAnalysis,
+    whatWorked,
+    whatNeedsAttention,
+    strategicInterpretation,
+    actionableRecommendations,
+
+    eventOverview: executiveBrief,
+    executiveSummary: strategicInterpretation,
+    strengths: whatWorked.map((w, i) => `${i + 1}. ${w}`).join('\n'),
+    weaknessesAndRisks: whatNeedsAttention.map((w, i) => `${i + 1}. ${w}`).join('\n'),
+    audienceProfile: questionCoverage > 0
+      ? `Attendee profile shows ${questionCoverage}% completion rate across custom questions. Registrants provided actionable data for audience segmentation.`
+      : 'Standard registration data captured with no supplementary custom questionnaire.',
+    registrationBehaviour: demandVelocityAnalysis,
+    competitivePositioning: `${event.title} established proven attendee demand with ${totalRegs} registrations within its market segment.`,
+    waitlistAnalysis: waitlistInsight,
+    recommendations: actionableRecommendations.map((r, i) => `${i + 1}. [${r.priority}] ${r.timeframe}: ${r.action} Expected outcome: ${r.expectedOutcome}`).join('\n'),
+    overallScore: 'Performance evaluated across registration funnel, demand velocity, gate turnout, and operational setup.',
   }
 }
 
-function parseJsonReport(raw: string): ParsedAIReport | null {
-  const cleaned = raw.replace(/```json|```/gi, '').trim()
-  try {
-    const parsed = JSON.parse(cleaned) as Partial<ParsedAIReport>
-    const required: Array<keyof ParsedAIReport> = [
-      'eventOverview',
-      'executiveSummary',
-      'strengths',
-      'weaknessesAndRisks',
-      'audienceProfile',
-      'registrationBehaviour',
-      'competitivePositioning',
-      'recommendations',
-      'waitlistAnalysis',
-      'overallScore',
-    ]
-    const hasAll = required.every(key => typeof parsed[key] === 'string' && String(parsed[key]).trim().length > 0)
-    if (!hasAll) return null
-    return parsed as ParsedAIReport
-  } catch {
-    return null
-  }
-}
+// ─── Main AI Generation ───────────────────────────────────────────────────────
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+export async function generateAIReportContent(params: GenerateAIReportParams): Promise<AIReportContent> {
+  const fallback = buildFallbackReport(params)
+  const { event, confirmed, waitlist } = params
 
-export async function generateAIReportContent({
-  event,
-  confirmed,
-  waitlist,
-}: {
-  event: IEvent
-  confirmed: IRegistration[]
-  waitlist: IRegistration[]
-}): Promise<AIReportContent> {
-  const eventType = inferEventType(event)
-  const sys = `You are generating the AI Strategic Intelligence section of an EventSlot event report for the organiser and stakeholders reviewing this event.
+  const sys = `You are EventSlot AI Event Intelligence, an analytical event performance engine.
+Analyze event data and produce rigorous, evidence-based intelligence for the event organizer.
 
-EventSlot is a smart event registration and waitlist management platform launched in Kenya in April 2026.
+Core Principles:
+1. NEVER hallucinate or assume missing data.
+   - If page view data is unavailable (untracked), explicitly state: "Page view tracking was not active for this event; conversion from initial visit cannot be calculated."
+   - If campaign attribution is generic or untracked, state: "Campaign attribution was not configured for this event."
+   - If gate check-in data is unavailable, state: "Gate check-in data was not recorded; attendance turnout cannot be determined."
+   - If the event is free, state: "Free event; revenue analysis not applicable."
+2. NO vague fluff or generic essays. Do not write filler like "Your event demonstrates market relevance".
+3. Ground every statement in actual numbers from the provided event data.
+4. Identify real patterns, real drop-offs, and real friction points.
+5. Provide high-impact, prioritized, actionable recommendations with explicit timeframes and expected measurable results.
 
-Rules for every section:
-1. Reference actual numbers from the data provided and avoid generalities.
-2. Do not use weak phrasing like "may suggest" or "could indicate".
-3. Pair every weakness with a specific actionable fix.
-4. Every recommendation must include a clear timeframe.
-5. Keep the tone professional, direct, and consultant-like.
-6. Section 10 must justify the score using the provided rubric context.
-7. Sections 1-8 must each be at least two paragraphs with specific metrics and operational implications.
-8. Do not leave sections shallow; each section should be thorough, precise, and decision-ready.
-9. Optimise the report for organisers making pricing, capacity, marketing, sponsor, and operations decisions.
-10. Explain what the organiser should do next, why it matters, and what result to expect.
-
-Output requirements:
-- Return ONLY valid JSON.
-- Use exactly the required keys.
-- Recommendations must be exactly 3 actionable items with timeframe and expected outcome.
-- No markdown tables, no bullet symbols; plain text with newline-separated items when needed.`
+Output format:
+Return ONLY valid JSON matching this schema:
+{
+  "executiveBrief": "2-3 sentences summarizing performance, capacity fill, and the single biggest operational takeaway.",
+  "funnelAnalysis": "Analysis of the transition from page views (if tracked) to registration, confirmed status, and gate attendance.",
+  "attributionAnalysis": "Analysis of traffic sources and marketing channels driving registrations.",
+  "demandVelocityAnalysis": "Analysis of registration velocity over time, peak intake day, and capacity pressure.",
+  "attendanceAnalysis": "Analysis of confirmation vs actual gate attendance and no-show rate (or stating data is unavailable).",
+  "whatWorked": [
+    "Specific data-backed success point 1",
+    "Specific data-backed success point 2",
+    "Specific data-backed success point 3"
+  ],
+  "whatNeedsAttention": [
+    "Specific data-backed friction or drop-off point 1",
+    "Specific data-backed friction or drop-off point 2",
+    "Specific data-backed friction or drop-off point 3"
+  ],
+  "strategicInterpretation": "Deep consultant-grade analysis explaining the underlying dynamics of this event and what drove the results.",
+  "actionableRecommendations": [
+    {
+      "priority": "HIGH",
+      "action": "Concrete operational action to take",
+      "timeframe": "e.g. Within 48 hours post-event",
+      "expectedOutcome": "Measurable expected outcome"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Concrete operational action to take",
+      "timeframe": "...",
+      "expectedOutcome": "..."
+    },
+    {
+      "priority": "LOW",
+      "action": "Concrete operational action to take",
+      "timeframe": "...",
+      "expectedOutcome": "..."
+    }
+  ]
+}`
 
   const eventContext = `Event data:
-- Event title: ${event.title}
-- Event type: ${eventType}
+- Title: ${event.title}
+- Event type: ${inferEventType(event)}
 - Date: ${formatIsoDate(event.eventDate)}
 - Location: ${event.location ?? 'Not specified'}
 - Capacity: ${event.capacity ?? 'Unlimited'}
-- Total registrations: ${event.confirmedCount + event.waitlistCount}
-- Confirmed: ${event.confirmedCount}
-- Waitlisted: ${event.waitlistCount}
-- Fill rate: ${event.capacity && event.capacity > 0 ? Math.round((event.confirmedCount / event.capacity) * 100) : 0}%
-- Registration open date: ${formatIsoDate(event.createdAt)}
-- Registration close date: ${formatIsoDate(event.deadline, 'Not specified')}`
-
-  const allRegs = [...confirmed, ...waitlist]
-  const peakDay = getPeakDayWithCount(allRegs)
-  const byDay = groupByDay(allRegs)
-  const dayEntries = Object.entries(byDay)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([d, n]) => `${d}: ${n}`)
-    .join(', ')
-  const answersSummary = summariseAnswers(confirmed, event.questions)
-  const capacityUtilization = event.capacity && event.capacity > 0 ? safeRate(event.confirmedCount, event.capacity) : 'N/A'
-  const waitlistRate = allRegs.length > 0 ? safeRate(waitlist.length, allRegs.length) : '0.0%'
-  const questionCoverage = countQuestionCoverage(confirmed, event.questions)
-  const peakPercent = allRegs.length > 0 ? Math.round((peakDay.count / allRegs.length) * 100) : 0
-  const waitlistInsight = buildWaitlistInsight(confirmed.length, waitlist.length, event.capacity)
-
-  const sectionSupplements = {
-    eventOverview: `Operational context: ${event.title} has ${allRegs.length} total registrations (${confirmed.length} confirmed, ${waitlist.length} waitlisted) with ${capacityUtilization} utilisation and ${waitlistRate} waitlist pressure as of this report date.`,
-    executiveSummary: `Execution implication: concentration at ${peakPercent}% on the peak day requires earlier campaign sequencing and a controlled reminder cadence to reduce last-minute conversion volatility.`,
-    strengths: `Commercial implication: the current conversion profile supports stronger sponsor confidence and gives a measurable baseline for improving next-cycle conversion efficiency and attendee quality.`,
-    weaknessesAndRisks: `Risk control: assign accountable owners for each weakness, track intervention timelines weekly, and monitor movement against fill rate, waitlist pressure, and response-quality KPIs.`,
-    audienceProfile: `Audience strategy: convert this profile into targeted messaging segments so each campaign speaks to concrete attendee outcomes, not generic event promotion.`,
-    registrationBehaviour: `Timeline strategy: use the first half of the window for demand seeding, then switch to urgency conversion messaging near deadline to improve distribution and reduce single-day dependency.`,
-    competitivePositioning: `Market execution: publish evidence of attendee outcomes and event delivery quality quickly after the event to compound trust and improve next-cycle acquisition efficiency.`,
-    waitlistAnalysis: `Operational next step: set explicit overflow handling rules, promotion SLAs for released slots, and communication standards to protect conversion intent among waitlisted prospects.`,
-    overallScore: `Score rationale: this score reflects measurable attendance quality, registration distribution resilience, overflow demand capture, and event setup completeness.`
-  }
-
-  const prompt = `${eventContext}
-
-Timeline and audience context:
-- Daily registration counts: ${dayEntries || 'N/A'}
-- Peak registration day: ${peakDay.date} (${peakDay.count} registrations)
-- Peak-day concentration: ${peakPercent}% of total registrations
-- Capacity utilisation: ${capacityUtilization}
-- Waitlist rate: ${waitlistRate}
-- Waitlist section logic context: ${waitlistInsight}
-- Custom-question response coverage: ${questionCoverage}%
-- Event stage: ${
-    event.eventDate
-      ? new Date(event.eventDate).getTime() > Date.now()
-        ? 'upcoming'
-        : 'completed'
-      : 'unspecified'
-  }
-
-Registrant answer intelligence:
-${answersSummary}
-
-Return JSON exactly in this shape:
-{
-  "eventOverview": "...",
-  "executiveSummary": "...",
-  "strengths": "...",
-  "weaknessesAndRisks": "...",
-  "audienceProfile": "...",
-  "registrationBehaviour": "...",
-  "competitivePositioning": "...",
-  "recommendations": "...",
-  "waitlistAnalysis": "...",
-  "overallScore": "X/10 - concise rationale"
-}
-
-Section guidance (must follow this exact 10-section intent):
-1) eventOverview: factual summary in maximum 3 sentences.
-2) executiveSummary: what happened, key number, one insight.
-3) strengths: 2-4 strengths with data support.
-4) weaknessesAndRisks: direct risks and each risk paired with a fix.
-5) audienceProfile: infer from responses and registration behavior.
-6) registrationBehaviour: timeline pattern, peak explanation, and implication.
-7) competitivePositioning: what this event says about market demand and positioning.
-8) waitlistAnalysis: analyze even when waitlist is zero using waitlist logic context.
-9) recommendations: exactly 3 recommendations, each with timeframe and expected outcome.
-10) overallScore: provide X/10 and short rationale aligned to attendance, distribution, waitlist, and setup quality.
-
-Organiser priorities:
-- Call out what the numbers mean for demand quality, pricing confidence, seat allocation, and marketing timing.
-- If response coverage is thin, say what decision remains uncertain.
-- If capacity utilisation is high or waitlist exists, include concrete next-cycle capacity guidance.
-- If registrations are concentrated on one day, explain the campaign-risk implication and how to reduce it.
-
-Write with consultant tone. Keep statements data-anchored and direct.`
+- Total registrations: ${confirmed.length + waitlist.length}
+- Confirmed passes: ${confirmed.length}
+- Waitlist count: ${waitlist.length}
+- Total page views: ${params.viewsTracked ? params.totalPageViews : 'Untracked'}
+- Visitor conversion rate: ${params.viewsTracked && typeof params.conversionRate === 'number' ? `${params.conversionRate}%` : 'Unavailable (untracked views)'}
+- Gate check-ins: ${params.checkInDataAvailable && typeof params.checkedInCount === 'number' ? params.checkedInCount : 'Not recorded'}
+- Gate turnout rate: ${params.checkInDataAvailable && typeof params.turnoutRate === 'number' ? `${params.turnoutRate}%` : 'Unavailable (no check-in data)'}
+- No-show rate: ${params.checkInDataAvailable && typeof params.noShowRate === 'number' ? `${params.noShowRate}%` : 'Unavailable (no check-in data)'}
+- Attribution channels: ${params.attributionTracked && params.sourceBreakdown?.length ? params.sourceBreakdown.map((s) => `${s.source}: ${s.count}`).join(', ') : 'Untracked (direct link only)'}
+- Questionnaire responses: ${summariseAnswers(confirmed, event.questions)}
+- Payment: ${params.paymentSummary ? `${params.paymentSummary.currency} ${params.paymentSummary.grossRevenue} gross (${params.paymentSummary.ticketsSold} tickets sold)` : 'Free registration (no payment required)'}`
 
   try {
     const raw = await Promise.race([
       askAI({
         system: sys,
-        prompt,
+        prompt: eventContext,
         taskType: 'report',
-        maxTokens: 2800,
+        maxTokens: 2500,
       }),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
     ])
 
-    if (!raw) {
-      return buildFallbackReport({ event, confirmed, waitlist })
+    if (!raw) return fallback
+
+    const cleaned = raw.replace(/```json|```/gi, '').trim()
+    const parsed = JSON.parse(cleaned) as Partial<AIReportContent>
+
+    if (
+      !parsed.executiveBrief ||
+      !Array.isArray(parsed.whatWorked) ||
+      !Array.isArray(parsed.whatNeedsAttention) ||
+      !Array.isArray(parsed.actionableRecommendations)
+    ) {
+      return fallback
     }
 
-    const parsed = parseJsonReport(raw)
-    if (!parsed) {
-      return buildFallbackReport({ event, confirmed, waitlist })
+    return {
+      executiveBrief: parsed.executiveBrief || fallback.executiveBrief,
+      funnelAnalysis: parsed.funnelAnalysis || fallback.funnelAnalysis,
+      attributionAnalysis: parsed.attributionAnalysis || fallback.attributionAnalysis,
+      demandVelocityAnalysis: parsed.demandVelocityAnalysis || fallback.demandVelocityAnalysis,
+      attendanceAnalysis: parsed.attendanceAnalysis || fallback.attendanceAnalysis,
+      whatWorked: parsed.whatWorked.length > 0 ? parsed.whatWorked : fallback.whatWorked,
+      whatNeedsAttention: parsed.whatNeedsAttention.length > 0 ? parsed.whatNeedsAttention : fallback.whatNeedsAttention,
+      strategicInterpretation: parsed.strategicInterpretation || fallback.strategicInterpretation,
+      actionableRecommendations: parsed.actionableRecommendations.length > 0 ? parsed.actionableRecommendations : fallback.actionableRecommendations,
+
+      eventOverview: parsed.executiveBrief || fallback.executiveBrief,
+      executiveSummary: parsed.strategicInterpretation || fallback.strategicInterpretation,
+      strengths: (parsed.whatWorked ?? fallback.whatWorked).map((w, i) => `${i + 1}. ${w}`).join('\n'),
+      weaknessesAndRisks: (parsed.whatNeedsAttention ?? fallback.whatNeedsAttention).map((w, i) => `${i + 1}. ${w}`).join('\n'),
+      audienceProfile: fallback.audienceProfile,
+      registrationBehaviour: parsed.demandVelocityAnalysis || fallback.demandVelocityAnalysis,
+      competitivePositioning: fallback.competitivePositioning,
+      waitlistAnalysis: fallback.waitlistAnalysis,
+      recommendations: (parsed.actionableRecommendations ?? fallback.actionableRecommendations)
+        .map((r, i) => `${i + 1}. [${r.priority}] ${r.timeframe}: ${r.action} (${r.expectedOutcome})`)
+        .join('\n'),
+      overallScore: fallback.overallScore,
     }
-
-    parsed.eventOverview = ensureTwoParagraphDepth(parsed.eventOverview, sectionSupplements.eventOverview)
-    parsed.executiveSummary = ensureTwoParagraphDepth(parsed.executiveSummary, sectionSupplements.executiveSummary)
-    parsed.strengths = ensureTwoParagraphDepth(parsed.strengths, sectionSupplements.strengths)
-    parsed.weaknessesAndRisks = ensureTwoParagraphDepth(parsed.weaknessesAndRisks, sectionSupplements.weaknessesAndRisks)
-    parsed.audienceProfile = ensureTwoParagraphDepth(parsed.audienceProfile, sectionSupplements.audienceProfile)
-    parsed.registrationBehaviour = ensureTwoParagraphDepth(parsed.registrationBehaviour, sectionSupplements.registrationBehaviour)
-    parsed.competitivePositioning = ensureTwoParagraphDepth(parsed.competitivePositioning, sectionSupplements.competitivePositioning)
-    parsed.waitlistAnalysis = ensureTwoParagraphDepth(parsed.waitlistAnalysis, sectionSupplements.waitlistAnalysis)
-    parsed.overallScore = ensureTwoParagraphDepth(parsed.overallScore, sectionSupplements.overallScore)
-
-    parsed.recommendations = enforceThreeRecommendations(parsed.recommendations)
-
-    return parsed
   } catch {
-    return buildFallbackReport({ event, confirmed, waitlist })
+    return fallback
   }
 }

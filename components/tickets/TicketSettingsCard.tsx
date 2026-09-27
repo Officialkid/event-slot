@@ -71,7 +71,7 @@ export default function TicketSettingsCard({
           margin: 0,
           marginBottom: "0.45rem",
           fontSize: "0.72rem",
-          color: "#C8F55A",
+          color: "var(--accent)",
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           fontFamily: "var(--font-dm-sans)",
@@ -117,7 +117,7 @@ export default function TicketSettingsCard({
             height: 24,
             borderRadius: 999,
             border: "none",
-            background: enabled ? "#C8F55A" : "#2A2A2A",
+            background: enabled ? "var(--accent)" : "var(--border)",
             cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.6 : 1,
             transition: "background 160ms ease",
@@ -133,7 +133,7 @@ export default function TicketSettingsCard({
               width: 16,
               height: 16,
               borderRadius: "50%",
-              background: enabled ? "#0A0A0A" : ticketSurfaceAlt,
+              background: enabled ? "var(--accent-contrast)" : ticketSurfaceAlt,
               transition: "left 160ms ease",
             }}
           />

@@ -50,22 +50,39 @@ function buildDailyRegistrationCounts(regs: IRegistration[]): { date: string; co
     })
 }
 
-function buildEventReportData(eventPayload: {
-  title: string
-  slug: string
-  organizerEmail: string
-  confirmedCount: number
-  waitlistCount: number
-  capacity: number | null
-  isPaid: boolean
-  currency: string
-  eventDate: string | null
-  location: string | null
-  deadline: string | null
-  createdAt: string
-  questions: Array<{ id: string; label: string; type: string }>
-  paymentSummary?: EventReportData["paymentSummary"]
-}, confirmed: IRegistration[], waitlist: IRegistration[], theme: ReportTheme): EventReportData {
+function buildEventReportData(
+  eventPayload: {
+    title: string
+    slug: string
+    organizerEmail: string
+    confirmedCount: number
+    waitlistCount: number
+    capacity: number | null
+    isPaid: boolean
+    currency: string
+    eventDate: string | null
+    location: string | null
+    deadline: string | null
+    createdAt: string
+    questions: Array<{ id: string; label: string; type: string }>
+    paymentSummary?: EventReportData["paymentSummary"]
+  },
+  confirmed: IRegistration[],
+  waitlist: IRegistration[],
+  theme: ReportTheme,
+  intelligenceMetrics?: {
+    totalPageViews?: number
+    viewsTracked?: boolean
+    conversionRate?: number
+    checkedInCount?: number
+    checkInDataAvailable?: boolean
+    turnoutRate?: number
+    noShowCount?: number
+    noShowRate?: number
+    sourceBreakdown?: Array<{ source: string; count: number; percentage: number }>
+    attributionTracked?: boolean
+  }
+): EventReportData {
   const allRegistrations = [...confirmed, ...waitlist]
   const dailyRegistrationCounts = buildDailyRegistrationCounts(allRegistrations)
   const peak = dailyRegistrationCounts.reduce(
@@ -89,6 +106,16 @@ function buildEventReportData(eventPayload: {
     totalRegistrations: eventPayload.confirmedCount + eventPayload.waitlistCount,
     confirmedCount: eventPayload.confirmedCount,
     waitlistCount: eventPayload.waitlistCount,
+    totalPageViews: intelligenceMetrics?.totalPageViews,
+    viewsTracked: intelligenceMetrics?.viewsTracked,
+    conversionRate: intelligenceMetrics?.conversionRate,
+    checkedInCount: intelligenceMetrics?.checkedInCount,
+    checkInDataAvailable: intelligenceMetrics?.checkInDataAvailable,
+    turnoutRate: intelligenceMetrics?.turnoutRate,
+    noShowCount: intelligenceMetrics?.noShowCount,
+    noShowRate: intelligenceMetrics?.noShowRate,
+    sourceBreakdown: intelligenceMetrics?.sourceBreakdown,
+    attributionTracked: intelligenceMetrics?.attributionTracked,
     attendees: confirmed.map((registration, index) => ({
       name: getRegistrationName(registration),
       registrationNumber: registration.registrationNumber ?? index + 1,
@@ -173,18 +200,87 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const registrations = await prisma.registration.findMany({
-      where: { eventId: event.id },
-      orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
-      select: {
-        id: true,
-        status: true,
-        answers: true,
-        registrationNumber: true,
-        submittedAt: true,
-        waitlistPosition: true,
-      },
-    })
+    const [registrations, totalPageViews, scannedTicketsCount, sourceGroups] = await Promise.all([
+      prisma.registration.findMany({
+        where: { eventId: event.id },
+        orderBy: [{ submittedAt: 'asc' }, { waitlistPosition: 'asc' }],
+        select: {
+          id: true,
+          status: true,
+          answers: true,
+          registrationNumber: true,
+          submittedAt: true,
+          waitlistPosition: true,
+          checkedIn: true,
+          checkedInAt: true,
+          source: true,
+          utmSource: true,
+        },
+      }),
+      prisma.eventView?.count
+        ? prisma.eventView.count({ where: { eventId: event.id } }).catch(() => 0)
+        : Promise.resolve(0),
+      prisma.ticket?.count
+        ? prisma.ticket.count({
+            where: {
+              registration: { eventId: event.id },
+              scannedAt: { not: null },
+            },
+          }).catch(() => 0)
+        : Promise.resolve(0),
+      prisma.registration?.groupBy
+        ? prisma.registration.groupBy({
+            by: ['source'],
+            where: { eventId: event.id },
+            _count: { id: true },
+          }).catch(() => [])
+        : Promise.resolve([]),
+    ])
+
+    const totalRegs = registrations.length
+    const checkedInRegistrations = registrations.filter((r) => r.checkedIn).length
+    const checkedInCount = Math.max(checkedInRegistrations, scannedTicketsCount)
+    const viewsTracked = totalPageViews > 0
+    const conversionRate = viewsTracked ? Math.round((totalRegs / totalPageViews) * 1000) / 10 : undefined
+
+    const hasValidSources = sourceGroups.some(
+      (g) => g.source && !['form', 'direct', 'manual'].includes(g.source.toLowerCase())
+    )
+    const sourceBreakdown = sourceGroups
+      .map((g) => ({
+        source: g.source || 'Direct Link',
+        count: g._count.id,
+        percentage: totalRegs > 0 ? Math.round((g._count.id / totalRegs) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+
+    const confirmedCount = event.confirmedCount
+    const checkInDataAvailable = checkedInCount > 0 || (event.eventDate ? new Date(event.eventDate).getTime() < Date.now() : false)
+    const turnoutRate =
+      confirmedCount > 0 && checkedInCount > 0
+        ? Math.round((checkedInCount / confirmedCount) * 1000) / 10
+        : undefined
+    const noShowCount =
+      confirmedCount > 0 && checkedInCount > 0
+        ? Math.max(0, confirmedCount - checkedInCount)
+        : undefined
+    const noShowRate =
+      confirmedCount > 0 && checkedInCount > 0 && typeof turnoutRate === 'number'
+        ? Math.max(0, Math.round((100 - turnoutRate) * 10) / 10)
+        : undefined
+
+    const intelligenceMetrics = {
+      totalPageViews,
+      viewsTracked,
+      conversionRate,
+      checkedInCount,
+      checkInDataAvailable,
+      turnoutRate,
+      noShowCount,
+      noShowRate,
+      sourceBreakdown,
+      attributionTracked: hasValidSources,
+    }
 
     const [payments, paidOrders] = event.isPaid
       ? await Promise.all([
@@ -330,7 +426,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         return NextResponse.json({ error: 'Rate limit exceeded. Please try again later.' }, { status: 429 })
       }
 
-      const reportData = buildEventReportData(eventPayload, confirmed, waitlist, theme)
+      const reportData = buildEventReportData(eventPayload, confirmed, waitlist, theme, intelligenceMetrics)
       let buffer: Buffer | ArrayBuffer
       try {
         buffer = await generateEventReport(reportData)

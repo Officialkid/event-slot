@@ -115,9 +115,9 @@ export function EventWhatsAppInput({
     <div className="space-y-4 rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${contactMode === "CALL" ? "bg-[#C8F55A]/10 border-[#C8F55A]/30" : "bg-[#25D366]/10 border-[#25D366]/30"}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${contactMode === "CALL" ? "bg-[var(--accent)]/10 border-[var(--accent)]/30" : "bg-[#25D366]/10 border-[#25D366]/30"}`}>
             {contactMode === "CALL" ? (
-              <Phone className="w-4 h-4 text-[#C8F55A]" />
+              <Phone className="w-4 h-4 text-[var(--accent)]" />
             ) : (
               <MessageCircle className="w-4 h-4 text-[#25D366]" />
             )}
@@ -132,7 +132,7 @@ export function EventWhatsAppInput({
 
         {/* Prominent Live Status Badge */}
         {hasConfiguredContact ? (
-          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.75rem] font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.75rem] font-semibold border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Active Contact
           </span>
@@ -147,17 +147,17 @@ export function EventWhatsAppInput({
       {hasConfiguredContact ? (
         <div className="rounded-[10px] border p-3 flex items-center justify-between gap-2" style={{ background: "color-mix(in srgb, var(--accent) 8%, transparent)", borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)" }}>
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#C8F55A] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[var(--accent)] shrink-0" />
             <div>
               <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
                 {contactMode === "CALL" ? "Direct Call Line Active" : "WhatsApp Chat Active"}
               </p>
-              <p className="text-[0.78rem] font-mono text-[#C8F55A]">
+              <p className="text-[0.78rem] font-mono text-[var(--accent)]">
                 {number}
               </p>
             </div>
           </div>
-          <span className="text-[0.7rem] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-[#C8F55A]/20 text-[#C8F55A]">
+          <span className="text-[0.7rem] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-[var(--accent)]/15 text-[var(--accent)]">
             Live on Event
           </span>
         </div>
@@ -200,7 +200,7 @@ export function EventWhatsAppInput({
             type="button"
             onClick={save}
             disabled={saving}
-            className={`px-4 py-2.5 text-sm font-bold rounded-[8px] transition-colors disabled:opacity-50 shrink-0 ${contactMode === "CALL" ? "bg-[#C8F55A] text-[#0A0A0A] hover:bg-[#b8e34f]" : "bg-[#25D366] text-white hover:bg-[#1fbe5a]"}`}
+            className={`px-4 py-2.5 text-sm font-bold rounded-[8px] transition-colors disabled:opacity-50 shrink-0 ${contactMode === "CALL" ? "bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-90" : "bg-[#25D366] text-white hover:bg-[#1fbe5a]"}`}
           >
             {saving ? "..." : saved ? "Saved" : "Save"}
           </button>
