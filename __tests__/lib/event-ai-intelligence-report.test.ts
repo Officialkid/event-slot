@@ -94,4 +94,30 @@ describe('EventSlot AI Event Intelligence Engine', () => {
     expect(buffer).toBeInstanceOf(Buffer)
     expect(buffer.length).toBeGreaterThan(10000)
   }, 25000)
-})
+  it('generates a clean operational report when EventSlot Intelligence is disabled (production mode)', async () => {
+    const reportData: EventReportData = {
+      title: 'DevFest Nairobi 2026',
+      slug: 'devfest-nairobi-2026',
+      organizerEmail: 'organizer@devfest.ke',
+      organizerName: 'DevFest Team',
+      eventDate: new Date('2026-11-25T08:00:00Z'),
+      location: 'Sarit Expo Centre, Nairobi',
+      registrationOpenDate: new Date('2026-10-01T08:00:00Z'),
+      registrationDeadline: new Date('2026-11-24T23:59:00Z'),
+      capacity: 500,
+      totalRegistrations: 420,
+      confirmedCount: 390,
+      waitlistCount: 30,
+      dailyRegistrationCounts: [{ date: '1 Nov', count: 250 }],
+      peakDate: '1 Nov',
+      peakDayCount: 250,
+      attendees: [{ name: 'Attendee One', registrationNumber: 1, registeredAt: new Date() }],
+      waitlist: [],
+      enableIntelligence: false,
+    }
+
+    const buffer = await generateEventReport(reportData)
+    expect(buffer).toBeInstanceOf(Buffer)
+    expect(buffer.length).toBeGreaterThan(5000)
+  }, 25000)
+});

@@ -128,6 +128,17 @@ export interface EventReportData {
   }
   customQuestionResponses?: { question: string; answers: string[] }[]
   theme?: ReportTheme
+  enableIntelligence?: boolean
+}
+
+export function isEventSlotIntelligenceEnabled(): boolean {
+  if (process.env.ENABLE_EVENTSLOT_INTELLIGENCE === 'true') return true
+  if (process.env.APP_ENV === 'staging') return true
+  if (process.env.NEXT_PUBLIC_APP_ENV === 'staging') return true
+  if (process.env.NEXT_PUBLIC_APP_URL?.includes('staging')) return true
+  if (process.env.NEXTAUTH_URL?.includes('staging')) return true
+  if (process.env.NODE_ENV === 'test') return true
+  return false
 }
 
 type ActionItem = {
@@ -2053,7 +2064,8 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     waitlistPosition: item.position,
   }))
 
-  const aiContentPromise = generateAIReportContent({
+  const intelligenceEnabled = data.enableIntelligence ?? isEventSlotIntelligenceEnabled()
+  const aiContentPromise = intelligenceEnabled ? generateAIReportContent({
     event,
     confirmed,
     waitlist,
@@ -2068,7 +2080,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     sourceBreakdown: data.sourceBreakdown,
     attributionTracked: data.attributionTracked,
     paymentSummary: data.paymentSummary,
-  })
+  }) : Promise.resolve(null)
   const theme = data.theme ?? 'eventslot'
   const palette = THEMES[theme] ?? THEMES.eventslot
   const timelineAttendees = [...confirmed, ...waitlist]
@@ -2080,6 +2092,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
     data.registrationDeadline.toISOString(),
   )
   const aiContent = await aiContentPromise
+  const aiSections = intelligenceEnabled && aiContent ? aiInsightsPage(aiContent, palette, data) : []
   const commercialSections = data.paymentSummary ? buildCommercialPerformanceSection(data.paymentSummary) : []
   const postEventActionsSections = buildPostEventActionsSection(data)
   const doc = new Document({
@@ -2116,7 +2129,7 @@ export async function generateEventReport(data: EventReportData): Promise<Buffer
           ...buildEventReportHeader(event, palette),
           ...summarySections,
           ...commercialSections,
-          ...aiInsightsPage(aiContent, palette, data),
+          ...aiSections,
           ...confirmedPage(event, confirmed),
           ...waitlistPage(event, waitlist),
           ...postEventActionsSections,
