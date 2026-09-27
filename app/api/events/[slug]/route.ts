@@ -108,6 +108,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         occurrenceDate: true,
         attendeeEmail: true,
         registrationNumber: true,
+        checkedIn: true,
+        checkedInAt: true,
       },
       orderBy: [
         { submittedAt: 'asc' },
@@ -126,7 +128,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         occurrenceDate: r.occurrenceDate,
         attendeeEmail: r.attendeeEmail,
         registrationNumber: r.registrationNumber,
+        checkedIn: Boolean(r.checkedIn),
+        checkedInAt: r.checkedInAt,
       }))
+
+    const checkedInCount = registrations.filter(r => Boolean(r.checkedIn)).length
 
     const waitlist = registrations
       .filter(r => WAITLIST_STATUSES.has(r.status))
@@ -164,6 +170,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         capacity: event.capacity,
         deadline: event.deadline,
         confirmedCount: event.confirmedCount,
+        checkedInCount,
         waitlistCount: event.waitlistCount,
         slug: event.slug,
         questions: event.questions,

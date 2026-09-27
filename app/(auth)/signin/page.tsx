@@ -30,9 +30,11 @@ function SignInForm() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace('/dashboard')
+      const rawCallback = searchParams.get('callbackUrl')
+      const target = rawCallback && rawCallback.startsWith('/') ? rawCallback : '/dashboard'
+      router.replace(target)
     }
-  }, [status, router])
+  }, [status, router, searchParams])
 
   useEffect(() => {
     try {
@@ -59,11 +61,14 @@ function SignInForm() {
     setIsLocalhost(hostname === 'localhost' || hostname === '127.0.0.1')
   }, [])
 
+  const rawCallback = searchParams.get('callbackUrl')
+  const targetCallbackUrl = rawCallback && rawCallback.startsWith('/') ? rawCallback : '/my-events'
+
   async function handleGoogleSignIn() {
     setError('')
     setLoading(true)
     try {
-      await signIn('google', { callbackUrl: '/my-events' })
+      await signIn('google', { callbackUrl: targetCallbackUrl })
     } catch {
       setError('Google sign-in failed. Please try again.')
       setLoading(false)
@@ -81,7 +86,7 @@ function SignInForm() {
         password,
         otp: otpRequired ? otp : '',
         rememberMe: rememberMe ? 'true' : 'false',
-        callbackUrl: '/my-events',
+        callbackUrl: targetCallbackUrl,
         redirect: false,
       })
 
@@ -122,7 +127,7 @@ function SignInForm() {
         return
       }
 
-      router.push(result?.url || '/my-events')
+      router.push(result?.url || targetCallbackUrl)
     } finally {
       setLoading(false)
     }
@@ -470,7 +475,10 @@ function SignInForm() {
           }}
         >
           Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}>
+          <Link
+            href={rawCallback ? `/signup?callbackUrl=${encodeURIComponent(rawCallback)}` : '/signup'}
+            style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 500 }}
+          >
             Sign up
           </Link>
         </p>

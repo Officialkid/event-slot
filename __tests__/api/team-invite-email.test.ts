@@ -94,11 +94,13 @@ describe('POST /api/team/invite email delivery', () => {
     expect(mockTeamMemberCreate).toHaveBeenCalledWith({
       data: { ownerId: 'owner-1', email: 'helper@example.com', status: 'pending', inviteToken: 'invite-token-123' },
     })
-    expect(mockSendTeamInviteEmail).toHaveBeenCalledWith({
-      to: 'helper@example.com',
-      inviterName: 'EventSlot Owner',
-      inviteToken: 'invite-token-123',
-    })
+    expect(mockSendTeamInviteEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'helper@example.com',
+        inviterName: 'EventSlot Owner',
+        inviteToken: 'invite-token-123',
+      })
+    )
   })
 
   it('keeps the invite link available when email delivery fails', async () => {

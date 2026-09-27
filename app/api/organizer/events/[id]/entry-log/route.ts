@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { decrypt } from '@/lib/encrypt'
+import { hasTeamEventAccess } from '@/lib/eventAccess'
 
 export async function GET(
   _req: NextRequest,
@@ -18,6 +19,7 @@ export async function GET(
   const event = await prisma.event.findUnique({
     where: { id },
     select: {
+      id: true,
       organizerId: true,
       title: true,
       eventDate: true,
@@ -40,7 +42,13 @@ export async function GET(
   }
 
   const isSuperAdmin = session.user.role === 'SUPER_ADMIN' || session.user.isAdmin
-  if (event.organizerId !== session.user.id && !isSuperAdmin) {
+  const hasTeamAccess = await hasTeamEventAccess({
+    userId: session.user.id,
+    organizerId: event.organizerId,
+    eventId: event.id,
+  })
+
+  if (event.organizerId !== session.user.id && !isSuperAdmin && !hasTeamAccess) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

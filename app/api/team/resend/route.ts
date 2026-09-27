@@ -20,7 +20,15 @@ export async function POST(req: NextRequest) {
 
     const record = await prisma.teamMember.findUnique({
       where: { id: memberId },
-      include: { owner: { select: { name: true } } },
+      include: {
+        owner: { select: { name: true, email: true } },
+        eventAccess: {
+          take: 1,
+          include: {
+            event: { select: { title: true, startDate: true, location: true } },
+          },
+        },
+      },
     })
 
     if (!record) {
@@ -49,11 +57,16 @@ export async function POST(req: NextRequest) {
     const acceptUrl = `${BASE_URL}/team/accept?token=${newToken}`
 
     let emailFailed = false
+    const assignedEvent = record.eventAccess[0]?.event
     try {
       await sendTeamInviteEmail({
         to: record.email,
         inviterName: record.owner.name ?? session.user.email ?? 'Your teammate',
+        inviterEmail: record.owner.email ?? session.user.email ?? undefined,
         inviteToken: newToken,
+        eventTitle: assignedEvent?.title ?? undefined,
+        eventDate: assignedEvent?.startDate ?? undefined,
+        eventLocation: assignedEvent?.location ?? undefined,
       })
     } catch (emailErr) {
       console.error('[team/resend] email failed:', emailErr)
