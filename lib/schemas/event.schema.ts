@@ -9,6 +9,7 @@ const questionSchema = z.object({
   options: z.array(z.string()).optional(),
   optionLimits: z.record(z.string(), z.number().int().positive().nullable()).optional(),
   allowMultiple: z.boolean().optional(),
+  allowOther: z.boolean().optional(),
 })
 
 const ticketTierSchema = z.object({

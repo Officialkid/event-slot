@@ -195,42 +195,168 @@ export default function EditRegistrationPage() {
               {q.label}
               {q.required && <span style={{ color: "var(--accent)", marginLeft: 4 }}>*</span>}
             </label>
-            {q.type === "select" && q.options ? (
-              <select
-                value={answers[q.id] || ""}
-                disabled={isClosed}
-                onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
-                style={{ ...inputStyle, cursor: isClosed ? "not-allowed" : "pointer" }}
-              >
-                <option value="">Select an option</option>
-                {q.options.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            ) : q.type === "checkbox" && q.options ? (
-              <div style={{ ...inputStyle, padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem", opacity: isClosed ? 0.5 : 1 }}>
-                {q.options.map(opt => {
-                  const selectedValues = parseCheckboxValue(answers[q.id])
-                  const isChecked = selectedValues.includes(opt)
-                  return (
-                    <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+            {q.type === "select" && q.options ? (() => {
+              const rawValue = answers[q.id] || ""
+              const isOtherSelected = /^(other|nyingine)/i.test(rawValue.trim())
+              const customText = isOtherSelected ? rawValue.replace(/^(other|nyingine):\s*/i, "") : ""
+              const allOptions = q.options ?? []
+              const hasOther = Boolean((q as any).allowOther) || allOptions.some(opt => /^(other|nyingine)/i.test(opt.trim()))
+              const regularOptions = allOptions.filter(opt => !/^(other|nyingine)/i.test(opt.trim()))
+
+              return (
+                <div style={{ ...inputStyle, padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem", opacity: isClosed ? 0.5 : 1 }}>
+                  {regularOptions.map(opt => {
+                    const isSelected = rawValue === opt
+                    return (
+                      <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+                        <input
+                          type="radio"
+                          name={`edit-mc-${q.id}`}
+                          value={opt}
+                          checked={isSelected}
+                          disabled={isClosed}
+                          onChange={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
+                          style={{ accentColor: "var(--accent)" }}
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    )
+                  })}
+                  {hasOther && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "var(--text-primary)" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer" }}>
+                        <input
+                          type="radio"
+                          name={`edit-mc-${q.id}`}
+                          value="Other"
+                          checked={isOtherSelected}
+                          disabled={isClosed}
+                          onChange={() => {
+                            const nextVal = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                            setAnswers(a => ({ ...a, [q.id]: nextVal }))
+                          }}
+                          style={{ accentColor: "var(--accent)" }}
+                        />
+                        <span>Other:</span>
+                      </label>
                       <input
-                        type="checkbox"
-                        checked={isChecked}
+                        type="text"
+                        placeholder="Your answer"
+                        value={customText}
                         disabled={isClosed}
+                        onFocus={() => {
+                          if (!isOtherSelected && !isClosed) {
+                            const nextVal = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                            setAnswers(a => ({ ...a, [q.id]: nextVal }))
+                          }
+                        }}
                         onChange={e => {
-                          const nextValues = e.target.checked
-                            ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
-                            : selectedValues.filter(value => value !== opt)
-                          setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(nextValues) }))
+                          const val = e.target.value
+                          const nextVal = val.trim() ? `Other: ${val.trim()}` : "Other"
+                          setAnswers(a => ({ ...a, [q.id]: nextVal }))
+                        }}
+                        style={{
+                          flex: 1,
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: isOtherSelected ? "1px solid var(--accent)" : "1px solid var(--border)",
+                          color: "var(--text-primary)",
+                          outline: "none",
+                          padding: "2px 4px",
+                          fontSize: "0.85rem",
                         }}
                       />
-                      <span>{opt}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            ) : (
+                    </div>
+                  )}
+                </div>
+              )
+            })() : q.type === "checkbox" && q.options ? (() => {
+              const selectedValues = parseCheckboxValue(answers[q.id])
+              const otherItem = selectedValues.find(v => /^(other|nyingine)/i.test(v.trim()))
+              const isOtherChecked = Boolean(otherItem)
+              const customText = otherItem ? otherItem.replace(/^(other|nyingine):\s*/i, "") : ""
+              const allOptions = q.options ?? []
+              const hasOther = Boolean((q as any).allowOther) || allOptions.some(opt => /^(other|nyingine)/i.test(opt.trim()))
+              const regularOptions = allOptions.filter(opt => !/^(other|nyingine)/i.test(opt.trim()))
+
+              return (
+                <div style={{ ...inputStyle, padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem", opacity: isClosed ? 0.5 : 1 }}>
+                  {regularOptions.map(opt => {
+                    const isChecked = selectedValues.includes(opt)
+                    return (
+                      <label key={`${q.id}-${opt}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer", fontSize: "0.85rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={isClosed}
+                          onChange={e => {
+                            const nextValues = e.target.checked
+                              ? (q.allowMultiple ? [...selectedValues, opt] : [opt])
+                              : selectedValues.filter(value => value !== opt)
+                            setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(nextValues) }))
+                          }}
+                          style={{ accentColor: "var(--accent)" }}
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    )
+                  })}
+                  {hasOther && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "var(--text-primary)" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: isClosed ? "not-allowed" : "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={isOtherChecked}
+                          disabled={isClosed}
+                          onChange={e => {
+                            let next = selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim()))
+                            if (e.target.checked) {
+                              const item = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                              next = q.allowMultiple ? [...next, item] : [item]
+                            }
+                            setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(next) }))
+                          }}
+                          style={{ accentColor: "var(--accent)" }}
+                        />
+                        <span>Other:</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Your answer"
+                        value={customText}
+                        disabled={isClosed}
+                        onFocus={() => {
+                          if (!isOtherChecked && !isClosed) {
+                            const item = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                            const next = q.allowMultiple
+                              ? [...selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim())), item]
+                              : [item]
+                            setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(next) }))
+                          }
+                        }}
+                        onChange={e => {
+                          const val = e.target.value
+                          const item = val.trim() ? `Other: ${val.trim()}` : "Other"
+                          const base = selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim()))
+                          const next = q.allowMultiple ? [...base, item] : [item]
+                          setAnswers(a => ({ ...a, [q.id]: serializeCheckboxValue(next) }))
+                        }}
+                        style={{
+                          flex: 1,
+                          background: "transparent",
+                          border: "none",
+                          borderBottom: isOtherChecked ? "1px solid var(--accent)" : "1px solid var(--border)",
+                          color: "var(--text-primary)",
+                          outline: "none",
+                          padding: "2px 4px",
+                          fontSize: "0.85rem",
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })() : (
               <input
                 type={q.type === "email" ? "email" : q.type === "phone" ? "tel" : "text"}
                 value={answers[q.id] || ""}

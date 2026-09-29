@@ -25,6 +25,7 @@ type Question = {
   required: boolean
   options: string[]
   allowMultiple?: boolean
+  allowOther?: boolean
   optionLimits?: Record<string, string>
 }
 
@@ -399,9 +400,11 @@ export default function CreateEventPage() {
         const draft = optionDrafts[q.id]?.trim()
         if (!draft) return q
         if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
+        const isOther = /^(other|nyingine)/i.test(draft)
         return {
           ...q,
           options: [...q.options, draft],
+          allowOther: isOther ? true : q.allowOther,
           optionLimits: { ...(q.optionLimits ?? {}), [draft]: q.optionLimits?.[draft] ?? "" },
         }
       })
@@ -412,26 +415,42 @@ export default function CreateEventPage() {
     }
   }
 
+  const addOtherOption = (idx: number) => {
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== idx) return q
+        if (q.options.some(opt => /^(other|nyingine)/i.test(opt.trim())) || q.allowOther) return q
+        return {
+          ...q,
+          options: [...q.options, "Other"],
+          allowOther: true,
+        }
+      })
+    )
+  }
+
   const removeOption = (idx: number, optionIdx: number) => {
     setQuestions(qs =>
-      qs.map((q, i) =>
-        i === idx
-          ? {
-              ...q,
-              options: q.options.filter((_, j) => j !== optionIdx),
-              optionLimits: Object.fromEntries(
-                Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== q.options[optionIdx])
-              ),
-            }
-          : q
-      )
+      qs.map((q, i) => {
+        if (i !== idx) return q
+        const removedOpt = q.options[optionIdx]
+        const isOther = /^(other|nyingine)/i.test(removedOpt?.trim() ?? "")
+        return {
+          ...q,
+          options: q.options.filter((_, j) => j !== optionIdx),
+          allowOther: isOther ? false : q.allowOther,
+          optionLimits: Object.fromEntries(
+            Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== removedOpt)
+          ),
+        }
+      })
     )
   }
 
   const buildOptionLimitsPayload = (question: Question) => {
     const entries = Object.entries(question.optionLimits ?? {})
       .map(([label, raw]) => [label, raw.trim()] as const)
-      .filter(([, raw]) => raw.length > 0)
+      .filter(([label, raw]) => raw.length > 0 && !/^(other|nyingine)/i.test(label))
       .map(([label, raw]) => [label, Number(raw)] as const)
       .filter(([, value]) => Number.isFinite(value) && value > 0)
 
@@ -674,6 +693,7 @@ export default function CreateEventPage() {
                 type: q.type,
                 options: typeUsesOptions(q.type) ? q.options : undefined,
                 allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+                allowOther: typeUsesOptions(q.type) ? (Boolean(q.allowOther) || q.options.some(opt => /^(other|nyingine)/i.test(opt.trim()))) : undefined,
                 optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
                 required: q.required,
               }))
@@ -1707,12 +1727,30 @@ export default function CreateEventPage() {
                               <div className="border-t pt-3 space-y-2" style={{ borderColor: "var(--border-subtle)" }}>
                                 <label className="block text-[0.7rem] font-semibold" style={labelStyle}>Options</label>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {q.options.map((opt, optIdx) => (
-                                    <span key={optIdx} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-                                      <span>{opt}</span>
-                                      <button type="button" onClick={() => removeOption(idx, optIdx)} className="text-red-400 text-xs">×</button>
-                                    </span>
-                                  ))}
+                                  {q.options.map((opt, optIdx) => {
+                                    const isOther = /^(other|nyingine)/i.test(opt.trim())
+                                    return (
+                                      <span
+                                        key={optIdx}
+                                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs border"
+                                        style={{
+                                          borderColor: isOther ? "color-mix(in srgb, var(--accent) 40%, transparent)" : "var(--border)",
+                                          background: isOther ? "color-mix(in srgb, var(--accent) 8%, var(--surface))" : "var(--surface)",
+                                          color: "var(--text-primary)",
+                                        }}
+                                      >
+                                        <span>{isOther ? "Other (write-in response)" : opt}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => removeOption(idx, optIdx)}
+                                          className="text-red-400 hover:text-red-500 text-xs ml-0.5"
+                                          aria-label={`Remove ${opt}`}
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    )
+                                  })}
                                 </div>
                                 <div className="flex gap-2">
                                   <input
@@ -1738,6 +1776,21 @@ export default function CreateEventPage() {
                                     Add
                                   </button>
                                 </div>
+
+                                {/* Google Forms style: Add "Other" quick link */}
+                                {(!q.options.some(opt => /^(other|nyingine)/i.test(opt.trim())) && !q.allowOther) && (
+                                  <div className="flex items-center gap-1.5 text-[0.72rem]">
+                                    <span style={{ color: "var(--text-muted)" }}>or</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => addOtherOption(idx)}
+                                      className="font-semibold underline hover:opacity-80 transition inline-flex items-center gap-1"
+                                      style={{ color: "var(--accent)" }}
+                                    >
+                                      <span>+ add &quot;Other&quot;</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
 

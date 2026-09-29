@@ -19,6 +19,7 @@ type EventQuestion = {
   options?: string[]
   required: boolean
   allowMultiple?: boolean
+  allowOther?: boolean
   optionLimits?: Record<string, number | null | undefined>
   condition?: { questionId: string; value: string }
 }
@@ -1279,47 +1280,127 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
           )
         })()}
 
-        {q.type === "select" && (
-          <div className="space-y-2">
-            <select
-              id={elementId}
-              className={fieldClassName}
-              style={activeFieldStyle}
-              required={q.required}
-              value={attendees[attendeeIndex]?.[q.id] || ""}
-              onChange={e => {
-                handleChange(attendeeIndex, q.id, e.target.value)
-                if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
-              }}
-            >
-              <option value="" className="bg-[#141414] text-[#F0EDE6]">{formCopy.select}</option>
-              {q.options?.map((opt, optionIndex) => (
-                <option key={opt} value={opt} className="bg-[#141414] text-[#F0EDE6]">
-                  {getOptionLabel(q, opt, optionIndex)}
-                </option>
-              ))}
-            </select>
+        {q.type === "select" && (() => {
+          const rawValue = attendees[attendeeIndex]?.[q.id] || ""
+          const otherKey = `${attendeeIndex}:${q.id}`
+          const isOtherSelected = /^(other|nyingine)/i.test(rawValue.trim())
+          const customText = otherCustomAnswers[otherKey] ?? (isOtherSelected ? rawValue.replace(/^(other|nyingine):\s*/i, "") : "")
+          const allOptions = q.options ?? []
+          const hasOther = Boolean(q.allowOther) || allOptions.some(opt => /^(other|nyingine)/i.test(opt.trim()))
+          const regularOptions = allOptions.filter(opt => !/^(other|nyingine)/i.test(opt.trim()))
 
-            {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-              <p className="text-[0.72rem] text-[var(--text-muted)]">
-                Some positions have limited slots and may close once full.
-              </p>
-            )}
-          </div>
-        )}
-
-        {q.type === "checkbox" && (
-          <div className="mt-1 space-y-2 rounded-[14px] p-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
-            {q.options?.map((opt, optionIndex) => {
-              const selectedValues = parseCheckboxValue(attendees[attendeeIndex]?.[q.id])
-              const isChecked = selectedValues.includes(opt)
-              const isOtherOption = /^(other|nyingine)/i.test(opt.trim())
-              const otherKey = `${attendeeIndex}:${q.id}`
-              return (
-                <div key={`${q.id}-${opt}`} className="space-y-1.5">
-                  <label className="flex cursor-pointer items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition" style={{ color: "var(--text-primary)" }}>
+          return (
+            <div className="mt-1 space-y-2 rounded-[14px] p-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+              {regularOptions.map((opt, optionIndex) => {
+                const isSelected = rawValue === opt
+                return (
+                  <label
+                    key={`${q.id}-${opt}`}
+                    className="flex cursor-pointer items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     <input
-                      id={elementId}
+                      id={`${elementId}-${optionIndex}`}
+                      type="radio"
+                      name={`mc-${attendeeIndex}-${q.id}`}
+                      value={opt}
+                      checked={isSelected}
+                      onChange={() => {
+                        handleChange(attendeeIndex, q.id, opt)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                      className="h-4 w-4"
+                      style={{ accentColor: "var(--accent)" }}
+                    />
+                    <span>{getOptionLabel(q, opt, optionIndex)}</span>
+                  </label>
+                )
+              })}
+
+              {/* Google Forms style: Other with inline write-in line */}
+              {hasOther && (
+                <div
+                  className="flex items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <label className="flex cursor-pointer items-center gap-2 shrink-0">
+                    <input
+                      id={`${elementId}-other`}
+                      type="radio"
+                      name={`mc-${attendeeIndex}-${q.id}`}
+                      value="Other"
+                      checked={isOtherSelected}
+                      onChange={() => {
+                        const nextVal = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                        handleChange(attendeeIndex, q.id, nextVal)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                      className="h-4 w-4"
+                      style={{ accentColor: "var(--accent)" }}
+                    />
+                    <span>Other:</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Your answer"
+                    value={customText}
+                    onFocus={() => {
+                      if (!isOtherSelected) {
+                        const nextVal = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                        handleChange(attendeeIndex, q.id, nextVal)
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }
+                    }}
+                    onChange={e => {
+                      const val = e.target.value
+                      setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: val }))
+                      const nextVal = val.trim() ? `Other: ${val.trim()}` : "Other"
+                      handleChange(attendeeIndex, q.id, nextVal)
+                      if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                    }}
+                    className="flex-1 min-w-[140px] bg-transparent border-b pb-0.5 text-[0.86rem] focus:outline-none transition"
+                    style={{
+                      borderColor: isOtherSelected ? "var(--accent)" : "color-mix(in srgb, var(--text-primary) 20%, transparent)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+              )}
+
+              {q.required && !rawValue && (
+                <p className="text-[0.72rem] text-[var(--text-muted)]">Please select an option.</p>
+              )}
+              {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+                <p className="text-[0.72rem] text-[var(--text-muted)]">
+                  Some options have limited slots and may stop accepting selections once full.
+                </p>
+              )}
+            </div>
+          )
+        })()}
+
+        {q.type === "checkbox" && (() => {
+          const selectedValues = parseCheckboxValue(attendees[attendeeIndex]?.[q.id])
+          const otherKey = `${attendeeIndex}:${q.id}`
+          const otherItem = selectedValues.find(v => /^(other|nyingine)/i.test(v.trim()))
+          const isOtherChecked = Boolean(otherItem)
+          const customText = otherCustomAnswers[otherKey] ?? (otherItem ? otherItem.replace(/^(other|nyingine):\s*/i, "") : "")
+          const allOptions = q.options ?? []
+          const hasOther = Boolean(q.allowOther) || allOptions.some(opt => /^(other|nyingine)/i.test(opt.trim()))
+          const regularOptions = allOptions.filter(opt => !/^(other|nyingine)/i.test(opt.trim()))
+
+          return (
+            <div className="mt-1 space-y-2 rounded-[14px] p-3" style={qError ? { ...mutedCardStyle, border: "1px solid #EF4444" } : mutedCardStyle}>
+              {regularOptions.map((opt, optionIndex) => {
+                const isChecked = selectedValues.includes(opt)
+                return (
+                  <label
+                    key={`${q.id}-${opt}`}
+                    className="flex cursor-pointer items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <input
+                      id={`${elementId}-${optionIndex}`}
                       type="checkbox"
                       checked={isChecked}
                       onChange={e => {
@@ -1329,37 +1410,82 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         handleChange(attendeeIndex, q.id, serializeCheckboxValue(nextValues))
                         if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
                       }}
-                      className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-                      style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
+                      className="h-4 w-4 rounded"
+                      style={{ accentColor: "var(--accent)" }}
                     />
                     <span>{getOptionLabel(q, opt, optionIndex)}</span>
                   </label>
-                  {isChecked && isOtherOption && (
-                    <div className="pl-6 pt-1">
-                      <input
-                        type="text"
-                        placeholder="Please specify your answer..."
-                        value={otherCustomAnswers[otherKey] ?? ""}
-                        onChange={e => {
-                          const customVal = e.target.value
-                          setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: customVal }))
-                        }}
-                        className="w-full rounded-[8px] border px-3 py-2 text-[0.82rem] focus:outline-none focus:ring-1 focus:ring-[#C8F55A]"
-                        style={{ borderColor: "var(--border-emphasis)", background: "var(--surface)", color: "var(--text-primary)" }}
-                      />
-                    </div>
-                  )}
+                )
+              })}
+
+              {/* Google Forms style: Other with inline write-in line */}
+              {hasOther && (
+                <div
+                  className="flex items-center gap-2.5 text-[0.86rem] p-1.5 rounded-[8px] hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <label className="flex cursor-pointer items-center gap-2 shrink-0">
+                    <input
+                      id={`${elementId}-other`}
+                      type="checkbox"
+                      checked={isOtherChecked}
+                      onChange={e => {
+                        let next = selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim()))
+                        if (e.target.checked) {
+                          const item = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                          next = q.allowMultiple ? [...next, item] : [item]
+                        }
+                        handleChange(attendeeIndex, q.id, serializeCheckboxValue(next))
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }}
+                      className="h-4 w-4 rounded"
+                      style={{ accentColor: "var(--accent)" }}
+                    />
+                    <span>Other:</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Your answer"
+                    value={customText}
+                    onFocus={() => {
+                      if (!isOtherChecked) {
+                        const item = customText.trim() ? `Other: ${customText.trim()}` : "Other"
+                        const next = q.allowMultiple
+                          ? [...selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim())), item]
+                          : [item]
+                        handleChange(attendeeIndex, q.id, serializeCheckboxValue(next))
+                        if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                      }
+                    }}
+                    onChange={e => {
+                      const val = e.target.value
+                      setOtherCustomAnswers(prev => ({ ...prev, [otherKey]: val }))
+                      const item = val.trim() ? `Other: ${val.trim()}` : "Other"
+                      const base = selectedValues.filter(v => !/^(other|nyingine)/i.test(v.trim()))
+                      const next = q.allowMultiple ? [...base, item] : [item]
+                      handleChange(attendeeIndex, q.id, serializeCheckboxValue(next))
+                      if (qError) setQuestionErrors(prev => ({ ...prev, [qKey]: "" }))
+                    }}
+                    className="flex-1 min-w-[140px] bg-transparent border-b pb-0.5 text-[0.86rem] focus:outline-none transition"
+                    style={{
+                      borderColor: isOtherChecked ? "var(--accent)" : "color-mix(in srgb, var(--text-primary) 20%, transparent)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
                 </div>
-              )
-            })}
-            {q.required && parseCheckboxValue(attendees[attendeeIndex]?.[q.id]).length === 0 && (
-              <p className="text-[0.72rem] text-[var(--text-muted)]">Select at least one option.</p>
-            )}
-            {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
-              <p className="text-[0.72rem] text-[var(--text-muted)]">Some options have limited slots and may stop accepting selections once full.</p>
-            )}
-          </div>
-        )}
+              )}
+
+              {q.required && selectedValues.length === 0 && (
+                <p className="text-[0.72rem] text-[var(--text-muted)]">Select at least one option.</p>
+              )}
+              {q.optionLimits && Object.keys(q.optionLimits).length > 0 && (
+                <p className="text-[0.72rem] text-[var(--text-muted)]">
+                  Some options have limited slots and may stop accepting selections once full.
+                </p>
+              )}
+            </div>
+          )
+        })()}
 
         {qError && (
           <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-red-500">

@@ -20,6 +20,7 @@ type Question = {
   required: boolean
   options: string[]
   allowMultiple?: boolean
+  allowOther?: boolean
   optionLimits?: Record<string, string>
 }
 
@@ -285,6 +286,7 @@ export default function EditEventPage() {
           ? e.questions.map((q: Question) => ({
               ...q,
               options: q.options ?? [],
+              allowOther: Boolean(q.allowOther) || (q.options ?? []).some((opt: string) => /^(other|nyingine)/i.test(opt.trim())),
               optionLimits: Object.fromEntries(
                 Object.entries(q.optionLimits ?? {}).map(([key, value]) => [key, value == null ? "" : String(value)])
               ),
@@ -339,9 +341,11 @@ export default function EditEventPage() {
           const draft = optionDrafts[q.id]?.trim()
           if (!draft) return q
           if (q.options.some(opt => opt.toLowerCase() === draft.toLowerCase())) return q
+          const isOther = /^(other|nyingine)/i.test(draft)
           return {
             ...q,
             options: [...q.options, draft],
+            allowOther: isOther ? true : q.allowOther,
             optionLimits: { ...(q.optionLimits ?? {}), [draft]: q.optionLimits?.[draft] ?? "" },
           }
         })
@@ -352,20 +356,36 @@ export default function EditEventPage() {
       }
   }
 
-    function removeOption(idx: number, optionIdx: number) {
-      setQuestions(qs =>
-        qs.map((q, i) =>
-          i === idx
-            ? {
-                ...q,
-                options: q.options.filter((_, j) => j !== optionIdx),
-                optionLimits: Object.fromEntries(
-                  Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== q.options[optionIdx])
-                ),
-              }
-            : q
-        )
-      )
+  function addOtherOption(idx: number) {
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== idx) return q
+        if (q.options.some(opt => /^(other|nyingine)/i.test(opt.trim())) || q.allowOther) return q
+        return {
+          ...q,
+          options: [...q.options, "Other"],
+          allowOther: true,
+        }
+      })
+    )
+  }
+
+  function removeOption(idx: number, optionIdx: number) {
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== idx) return q
+        const removedOpt = q.options[optionIdx]
+        const isOther = /^(other|nyingine)/i.test(removedOpt?.trim() ?? "")
+        return {
+          ...q,
+          options: q.options.filter((_, j) => j !== optionIdx),
+          allowOther: isOther ? false : q.allowOther,
+          optionLimits: Object.fromEntries(
+            Object.entries(q.optionLimits ?? {}).filter(([label]) => label !== removedOpt)
+          ),
+        }
+      })
+    )
   }
 
   function updateOptionLimit(idx: number, option: string, value: string) {
@@ -498,6 +518,7 @@ export default function EditEventPage() {
         required: question.required,
         options: question.options.map((option) => option.trim()),
         allowMultiple: !!question.allowMultiple,
+        allowOther: !!question.allowOther,
       }))
     )
   }
@@ -584,6 +605,7 @@ export default function EditEventPage() {
             type: q.type,
             options: typeUsesOptions(q.type) ? q.options : undefined,
             allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+            allowOther: typeUsesOptions(q.type) ? (Boolean(q.allowOther) || q.options.some(opt => /^(other|nyingine)/i.test(opt.trim()))) : undefined,
             optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
             required: q.required,
           })),
@@ -1524,32 +1546,55 @@ export default function EditEventPage() {
                             Add
                           </button>
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {q.options.map((opt, optionIdx) => (
-                            <span
-                              key={`${q.id}-${opt}-${optionIdx}`}
-                              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.78rem]"
-                              style={{ borderColor: "var(--border)", color: "var(--text-primary)", background: "var(--surface)" }}
+
+                        {/* Google Forms style: Add "Other" quick link */}
+                        {(!q.options.some(opt => /^(other|nyingine)/i.test(opt.trim())) && !q.allowOther) && (
+                          <div className="mt-2 flex items-center gap-1.5 text-[0.78rem]">
+                            <span style={{ color: "var(--text-muted)" }}>or</span>
+                            <button
+                              type="button"
+                              onClick={() => addOtherOption(idx)}
+                              className="font-semibold underline hover:opacity-80 transition inline-flex items-center gap-1"
+                              style={{ color: "var(--accent)" }}
                             >
-                              {opt}
-                              <button
-                                type="button"
-                                className="text-[0.8rem]"
-                                style={{ color: "var(--text-muted)" }}
-                                onClick={() => removeOption(idx, optionIdx)}
-                                aria-label={`Remove ${opt}`}
+                              <span>+ add &quot;Other&quot;</span>
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {q.options.map((opt, optionIdx) => {
+                            const isOther = /^(other|nyingine)/i.test(opt.trim())
+                            return (
+                              <span
+                                key={`${q.id}-${opt}-${optionIdx}`}
+                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[0.78rem]"
+                                style={{
+                                  borderColor: isOther ? "color-mix(in srgb, var(--accent) 40%, transparent)" : "var(--border)",
+                                  color: "var(--text-primary)",
+                                  background: isOther ? "color-mix(in srgb, var(--accent) 8%, var(--surface))" : "var(--surface)",
+                                }}
                               >
-                                x
-                              </button>
-                            </span>
-                          ))}
+                                <span>{isOther ? 'Other (write-in response)' : opt}</span>
+                                <button
+                                  type="button"
+                                  className="text-[0.8rem] hover:text-red-400 transition"
+                                  style={{ color: "var(--text-muted)" }}
+                                  onClick={() => removeOption(idx, optionIdx)}
+                                  aria-label={`Remove ${opt}`}
+                                >
+                                  x
+                                </button>
+                              </span>
+                            )
+                          })}
                         </div>
-                        {q.options.length > 0 && (
+                        {q.options.filter(opt => !/^(other|nyingine)/i.test(opt.trim())).length > 0 && (
                           <div className="mt-3 space-y-2 rounded-[10px] border p-3" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                             <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
                               Optional per-option slots. Leave blank if an option should stay unlimited.
                             </p>
-                            {q.options.map((opt) => (
+                            {q.options.filter(opt => !/^(other|nyingine)/i.test(opt.trim())).map((opt) => (
                               <div key={`${q.id}-${opt}-limit`} className="flex items-center gap-3">
                                 <span className="min-w-0 flex-1 truncate text-[0.78rem]" style={{ color: "var(--text-primary)" }}>{opt}</span>
                                 <input
@@ -1563,6 +1608,12 @@ export default function EditEventPage() {
                                 />
                               </div>
                             ))}
+                            {(q.options.some(opt => /^(other|nyingine)/i.test(opt.trim())) || q.allowOther) && (
+                              <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)] text-[0.75rem]" style={{ color: "var(--text-muted)" }}>
+                                <span>Other (write-in response)</span>
+                                <span className="italic font-medium" style={{ color: "var(--accent)" }}>Unlimited write-in slots</span>
+                              </div>
+                            )}
                           </div>
                         )}
                         {q.options.length === 0 && (
