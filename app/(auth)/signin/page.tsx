@@ -25,8 +25,18 @@ function SignInForm() {
   const [otp, setOtp] = useState('')
   const [otpRequired, setOtpRequired] = useState(false)
   const [otpHint, setOtpHint] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resending, setResending] = useState(false)
   const [isLocalhost, setIsLocalhost] = useState(false)
   const [showEmailForm, setShowEmailForm] = useState(false)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -92,6 +102,7 @@ function SignInForm() {
 
       if (result?.error === 'OTP_REQUIRED') {
         setOtpRequired(true)
+        setResendCooldown(30)
         setOtpHint('We sent a 6-digit code to your email. Enter it below to finish signing in.')
         setError('')
         return
@@ -130,6 +141,33 @@ function SignInForm() {
       router.push(result?.url || targetCallbackUrl)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    if (resendCooldown > 0 || resending || !email) return
+    setResending(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.waitSeconds) {
+          setResendCooldown(data.waitSeconds)
+        }
+        setError(data.error || 'Failed to resend verification code.')
+        return
+      }
+      setResendCooldown(30)
+      setOtpHint('A new 6-digit verification code has been sent to your email.')
+    } catch {
+      setError('Network error sending code. Please try again.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -384,9 +422,28 @@ function SignInForm() {
 
               {otpRequired && (
                 <>
-                  <label style={fieldLabelStyle} htmlFor="signin-otp">
-                    Verification code
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                    <label style={{ ...fieldLabelStyle, marginBottom: 0 }} htmlFor="signin-otp">
+                      Verification code
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendCooldown > 0 || resending}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: resendCooldown > 0 ? 'var(--text-muted)' : 'var(--accent)',
+                        fontSize: '0.78rem',
+                        cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-dm-sans)',
+                        padding: 0,
+                        textDecoration: resendCooldown > 0 ? 'none' : 'underline',
+                      }}
+                    >
+                      {resending ? 'Sending...' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                    </button>
+                  </div>
                   <input
                     id="signin-otp"
                     type="text"

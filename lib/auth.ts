@@ -124,6 +124,9 @@ providers.push(
           if (error instanceof Error && error.name === 'OTP_RATE_LIMIT') {
             throw new Error('OTP_RATE_LIMIT')
           }
+          if (error instanceof Error && error.name === 'OTP_COOLDOWN') {
+            throw new Error('OTP_REQUIRED')
+          }
           throw error
         }
 

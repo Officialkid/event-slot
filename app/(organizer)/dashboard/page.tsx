@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { formatDistanceToNow } from "date-fns"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
+import { OrganizerPostEventFeedbackModal } from "@/components/feedback/OrganizerPostEventFeedbackModal"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -334,6 +335,14 @@ export default function DashboardOverviewPage() {
     items: Array<{ id: string; subject: string; type: string; createdAt: string; organizer: { name: string | null; email: string | null } }>
   } | null>(null)
   const [adminLoading, setAdminLoading] = useState(false)
+  const [securityBannerDismissed, setSecurityBannerDismissed] = useState(true)
+
+  function handleDismissSecurityBanner() {
+    try {
+      localStorage.setItem("eventslot_security_banner_dismissed_nov2026", "true")
+    } catch {}
+    setSecurityBannerDismissed(true)
+  }
 
   const identityName = profileName || session?.user?.name || null
   const firstName = identityName
@@ -357,6 +366,12 @@ export default function DashboardOverviewPage() {
         if (profile && typeof profile.name === "string" && profile.name.trim()) {
           setProfileName(profile.name.trim())
         }
+        try {
+          const dismissed = localStorage.getItem("eventslot_security_banner_dismissed_nov2026")
+          if (!dismissed && profile && !profile.twoFactorEnabled) {
+            setSecurityBannerDismissed(false)
+          }
+        } catch {}
       })
       .catch(() => {})
   }, [])
@@ -400,7 +415,95 @@ export default function DashboardOverviewPage() {
         />
       )}
 
+      <OrganizerPostEventFeedbackModal />
+
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
+        {!securityBannerDismissed && (
+          <div
+            style={{
+              marginBottom: "1.5rem",
+              background: "color-mix(in srgb, var(--accent) 8%, var(--surface))",
+              border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              borderRadius: 12,
+              padding: "0.85rem 1.25rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap",
+              boxShadow: "0 2px 8px -2px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 260, flex: 1 }}>
+              <span style={{ fontSize: "1.25rem" }}>🛡️</span>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.84rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                    Mandatory Security Rollout Notice
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      background: "var(--accent-dim)",
+                      color: "var(--accent)",
+                      padding: "0.15rem 0.45rem",
+                      borderRadius: 4,
+                    }}
+                  >
+                    Action Required by Dec 1
+                  </span>
+                </div>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                  Starting December 1st, all EventSlot organizer accounts require 2-Step OTP Verification for payouts and administrative access. Secure your account and test voluntary verification today.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <Link
+                href="/dashboard/profile#security"
+                style={{
+                  background: "#15803d",
+                  color: "#FFFFFF",
+                  borderRadius: 8,
+                  padding: "0.45rem 0.9rem",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  whiteSpace: "nowrap",
+                  transition: "opacity 0.15s ease",
+                }}
+              >
+                <span>Enable &amp; Test 2FA</span>
+                <span>→</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleDismissSecurityBanner}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "0.35rem",
+                  fontSize: "0.95rem",
+                  lineHeight: 1,
+                }}
+                title="Dismiss notification"
+                aria-label="Dismiss banner"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Page header */}
         <div
           style={{

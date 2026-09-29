@@ -13,6 +13,12 @@ export async function POST(req: NextRequest) {
   try {
     await issueOtpForEmail(normalizeEmailForOtp(email))
   } catch (error) {
+    if (error instanceof Error && error.name === "OTP_COOLDOWN") {
+      return NextResponse.json(
+        { error: error.message, waitSeconds: (error as any).remainingSeconds ?? 30 },
+        { status: 429 }
+      )
+    }
     if (error instanceof Error && error.name === "OTP_RATE_LIMIT") {
       return NextResponse.json(
         { error: "Too many attempts. Please wait 10 minutes before trying again." },

@@ -15,6 +15,7 @@ import { TierBadge } from "@/components/TierBadge"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
+import { detectTypoSuggestions, applyTypoCorrection } from "@/lib/typoFixer"
 
 type QuestionType = "text" | "textarea" | "number" | "email" | "phone" | "select" | "checkbox" | "file"
 
@@ -425,6 +426,59 @@ export default function CreateEventPage() {
           options: [...q.options, "Other"],
           allowOther: true,
         }
+      })
+    )
+  }
+
+  const [editingOption, setEditingOption] = useState<{ qIdx: number; optIdx: number; text: string } | null>(null)
+
+  const saveEditedOption = () => {
+    if (!editingOption) return
+    const { qIdx, optIdx, text } = editingOption
+    const trimmed = text.trim()
+    if (!trimmed) {
+      setEditingOption(null)
+      return
+    }
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== qIdx) return q
+        const oldOpt = q.options[optIdx]
+        if (!oldOpt) return q
+        const newOptions = [...q.options]
+        newOptions[optIdx] = trimmed
+        const isOther = /^(other|nyingine)/i.test(trimmed)
+        const oldLimits = q.optionLimits ?? {}
+        const newLimits: Record<string, string> = {}
+        for (const [k, v] of Object.entries(oldLimits)) {
+          if (k === oldOpt) {
+            newLimits[trimmed] = v
+          } else {
+            newLimits[k] = v
+          }
+        }
+        return {
+          ...q,
+          options: newOptions,
+          allowOther: isOther ? true : q.allowOther,
+          optionLimits: newLimits,
+        }
+      })
+    )
+    setEditingOption(null)
+  }
+
+  const moveOption = (qIdx: number, optIdx: number, direction: "left" | "right") => {
+    setQuestions(qs =>
+      qs.map((q, i) => {
+        if (i !== qIdx) return q
+        const targetIdx = direction === "left" ? optIdx - 1 : optIdx + 1
+        if (targetIdx < 0 || targetIdx >= q.options.length) return q
+        const newOptions = [...q.options]
+        const temp = newOptions[optIdx]
+        newOptions[optIdx] = newOptions[targetIdx]
+        newOptions[targetIdx] = temp
+        return { ...q, options: newOptions }
       })
     )
   }
@@ -1699,12 +1753,38 @@ export default function CreateEventPage() {
                                 <label className="block text-[0.7rem] font-medium mb-1" style={labelStyle}>Question Prompt</label>
                                 <input
                                   type="text"
+                                  spellCheck={true}
+                                  autoCorrect="on"
+                                  autoCapitalize="sentences"
                                   placeholder="e.g. Dietary preferences, T-shirt size, Job title..."
                                   value={q.label}
                                   onChange={(e) => handleQuestionChange(idx, "label", e.target.value)}
                                   className="w-full rounded-[8px] px-3 py-1.5 text-xs outline-none"
                                   style={inputStyle}
                                 />
+                                {(() => {
+                                  const typos = detectTypoSuggestions(q.label)
+                                  if (typos.length === 0) return null
+                                  return (
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.7rem]" style={{ color: "var(--warning, #eab308)" }}>
+                                      <span>💡 Typo detected:</span>
+                                      {typos.map((t, tIdx) => (
+                                        <button
+                                          key={tIdx}
+                                          type="button"
+                                          onClick={() => {
+                                            const corrected = applyTypoCorrection(q.label, t.original, t.suggestion)
+                                            handleQuestionChange(idx, "label", corrected)
+                                          }}
+                                          className="underline font-semibold hover:opacity-80 transition"
+                                          style={{ color: "var(--accent)" }}
+                                        >
+                                          Change &quot;{t.original}&quot; to &quot;{t.suggestion}&quot;
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )
+                                })()}
                               </div>
 
                               <div>
@@ -1729,6 +1809,35 @@ export default function CreateEventPage() {
                                 <div className="flex flex-wrap gap-1.5">
                                   {q.options.map((opt, optIdx) => {
                                     const isOther = /^(other|nyingine)/i.test(opt.trim())
+                                    const isEditingThis = editingOption?.qIdx === idx && editingOption?.optIdx === optIdx
+
+                                    if (isEditingThis) {
+                                      return (
+                                        <div key={optIdx} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 border" style={{ borderColor: "var(--accent)", background: "var(--surface)" }}>
+                                          <input
+                                            type="text"
+                                            value={editingOption.text}
+                                            spellCheck={true}
+                                            autoCorrect="on"
+                                            autoFocus
+                                            onChange={e => setEditingOption({ ...editingOption, text: e.target.value })}
+                                            onKeyDown={e => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault()
+                                                saveEditedOption()
+                                              } else if (e.key === "Escape") {
+                                                setEditingOption(null)
+                                              }
+                                            }}
+                                            onBlur={saveEditedOption}
+                                            className="text-xs bg-transparent border-none outline-none w-24 sm:w-32"
+                                            style={{ color: "var(--text-primary)" }}
+                                          />
+                                          <button type="button" onMouseDown={saveEditedOption} className="text-xs font-bold text-green-600 px-1" title="Save">✓</button>
+                                        </div>
+                                      )
+                                    }
+
                                     return (
                                       <span
                                         key={optIdx}
@@ -1739,7 +1848,52 @@ export default function CreateEventPage() {
                                           color: "var(--text-primary)",
                                         }}
                                       >
-                                        <span>{isOther ? "Other (write-in response)" : opt}</span>
+                                        {/* Move Left */}
+                                        {optIdx > 0 && !isOther && (
+                                          <button
+                                            type="button"
+                                            onClick={() => moveOption(idx, optIdx, "left")}
+                                            className="text-[0.65rem] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+                                            title="Move left"
+                                          >
+                                            ◀
+                                          </button>
+                                        )}
+
+                                        {/* Option Text (click to edit) */}
+                                        <span
+                                          onClick={() => {
+                                            if (!isOther) setEditingOption({ qIdx: idx, optIdx, text: opt })
+                                          }}
+                                          className={!isOther ? "cursor-pointer hover:underline" : ""}
+                                          title={!isOther ? "Click to edit option" : ""}
+                                        >
+                                          {isOther ? "Other (write-in response)" : opt}
+                                        </span>
+
+                                        {!isOther && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingOption({ qIdx: idx, optIdx, text: opt })}
+                                            className="text-[0.65rem] text-[var(--text-muted)] hover:text-[var(--accent)] transition"
+                                            title="Edit option"
+                                          >
+                                            ✏️
+                                          </button>
+                                        )}
+
+                                        {/* Move Right */}
+                                        {optIdx < q.options.length - 1 && !isOther && !/^(other|nyingine)/i.test(q.options[optIdx + 1]?.trim()) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => moveOption(idx, optIdx, "right")}
+                                            className="text-[0.65rem] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+                                            title="Move right"
+                                          >
+                                            ▶
+                                          </button>
+                                        )}
+
                                         <button
                                           type="button"
                                           onClick={() => removeOption(idx, optIdx)}
@@ -1755,6 +1909,9 @@ export default function CreateEventPage() {
                                 <div className="flex gap-2">
                                   <input
                                     type="text"
+                                    spellCheck={true}
+                                    autoCorrect="on"
+                                    autoCapitalize="sentences"
                                     placeholder="Add option..."
                                     value={optionDrafts[q.id] || ""}
                                     onChange={(e) => setOptionDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
@@ -1808,6 +1965,18 @@ export default function CreateEventPage() {
                             </div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Add Question Button (Bottom) */}
+                      <div className="pt-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={addQuestion}
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs sm:text-sm font-bold border transition hover:opacity-90 shadow-sm"
+                          style={{ background: "#15803d", color: "#FFFFFF", borderColor: "#15803d", cursor: "pointer" }}
+                        >
+                          <span>+ Add Question</span>
+                        </button>
                       </div>
                     </div>
 
