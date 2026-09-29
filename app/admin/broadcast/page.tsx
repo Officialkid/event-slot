@@ -49,7 +49,7 @@ export default function AdminBroadcastPage() {
   const [subject, setSubject] = useState("")
   const [preheader, setPreheader] = useState("")
   const [bannerUrl, setBannerUrl] = useState("")
-  const [content, setContent] = useState("Hi {{name}},\n\n")
+  const [content, setContent] = useState("Hi {{name}},\\n\\n")
   const [ctaText, setCtaText] = useState("")
   const [ctaUrl, setCtaUrl] = useState("")
   const [eventDateLabel, setEventDateLabel] = useState("")
@@ -354,7 +354,7 @@ export default function AdminBroadcastPage() {
       subject: subject || "Preview: EventSlot Announcement",
       preheader: preheader || null,
       bannerUrl: bannerUrl || null,
-      content: content || "Hi {{name}},\n\nYour message preview will appear here...",
+      content: content || "Hi {{name}},\\n\\nYour message preview will appear here...",
       ctaText: ctaText || null,
       ctaUrl: ctaUrl || null,
       eventDateLabel: eventDateLabel || null,
@@ -370,37 +370,42 @@ export default function AdminBroadcastPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Broadcast Studio</h1>
-          <p className="text-[var(--text-secondary)] mt-1 text-sm">
-            Send instant announcements or preschedule promotional campaigns up to 3 months ahead.
+          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--text-primary)" }}>
+            Broadcast Studio
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Send instant announcements or preschedule promotional campaigns to subscribers and platform users.
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="inline-flex rounded-xl p-1 bg-[var(--surface)] border border-[var(--border)]">
+        <div className="inline-flex rounded-xl p-1 border" style={{ background: "var(--bg-surface)", borderColor: "var(--border)" }}>
           <button
             type="button"
             onClick={() => setActiveTab("compose")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-              activeTab === "compose"
-                ? "bg-[#C8F55A] text-[#0A0A0A] shadow-md shadow-[#C8F55A]/20"
-                : "text-[#A3A3A3] hover:text-white"
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition"
+            style={{
+              background: activeTab === "compose" ? "var(--accent)" : "transparent",
+              color: activeTab === "compose" ? "var(--accent-contrast)" : "var(--text-secondary)",
+            }}
           >
             Compose Broadcast
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("scheduled")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 ${
-              activeTab === "scheduled"
-                ? "bg-[#C8F55A] text-[#0A0A0A] shadow-md shadow-[#C8F55A]/20"
-                : "text-[#A3A3A3] hover:text-white"
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2"
+            style={{
+              background: activeTab === "scheduled" ? "var(--accent)" : "transparent",
+              color: activeTab === "scheduled" ? "var(--accent-contrast)" : "var(--text-secondary)",
+            }}
           >
             <span>Scheduled Queue</span>
             {scheduledList.filter((s) => s.status === "SCHEDULED").length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-xs font-bold bg-[#0A0A0A] text-[#C8F55A]">
+              <span
+                className="px-1.5 py-0.5 rounded-full text-xs font-bold"
+                style={{ background: "var(--bg-elevated)", color: "var(--accent)" }}
+              >
                 {scheduledList.filter((s) => s.status === "SCHEDULED").length}
               </span>
             )}
@@ -410,82 +415,80 @@ export default function AdminBroadcastPage() {
 
       {activeTab === "compose" ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Main Form (8 Cols or Full) */}
           <div className="lg:col-span-12 space-y-6">
             {/* View Mode Toggle: Editor vs Live Preview */}
-            <div className="flex items-center justify-between border-b border-[#262626] pb-3">
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setViewMode("editor")}
-                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
-                    viewMode === "editor"
-                      ? "bg-[#262626] text-white border border-[#333]"
-                      : "text-[#888] hover:text-white"
-                  }`}
+                  className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition"
+                  style={{
+                    background: viewMode === "editor" ? "var(--accent)" : "var(--bg-surface)",
+                    color: viewMode === "editor" ? "var(--accent-contrast)" : "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}
                 >
                   ✏️ Editor
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("preview")}
-                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
-                    viewMode === "preview"
-                      ? "bg-[#262626] text-[#C8F55A] border border-[#333]"
-                      : "text-[#888] hover:text-white"
-                  }`}
+                  className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition"
+                  style={{
+                    background: viewMode === "preview" ? "var(--accent)" : "var(--bg-surface)",
+                    color: viewMode === "preview" ? "var(--accent-contrast)" : "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}
                 >
-                  👁️ Live Preview
+                  👁️ Live Email Preview
                 </button>
               </div>
 
-              <div className="text-xs text-[#737373]">
-                Engine: <span className="text-[#C8F55A] font-medium">Nodemailer Primary (SMTP)</span> · Resend Backup
+              <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Engine: <strong style={{ color: "var(--accent)" }}>Nodemailer Primary (SMTP)</strong> · Resend Backup
               </div>
             </div>
 
             {viewMode === "preview" ? (
-              <div className="rounded-2xl border border-[#2A2A2A] bg-[#0A0A0A] p-4 sm:p-8">
-                <div className="max-w-2xl mx-auto shadow-2xl rounded-2xl overflow-hidden border border-[#222]">
-                  <div className="bg-[#181818] px-4 py-2 text-xs text-[#737373] border-b border-[#2A2A2A] flex items-center justify-between">
-                    <span>Email Preview (Desktop & Mobile Responsive)</span>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("editor")}
-                      className="text-[#C8F55A] hover:underline"
-                    >
-                      Back to Editor
-                    </button>
+              <div className="rounded-2xl border p-4 sm:p-8" style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}>
+                <div className="max-w-2xl mx-auto shadow-2xl rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+                  <div className="px-4 py-2.5 text-xs border-b flex items-center justify-between font-semibold" style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)", borderColor: "var(--border)" }}>
+                    <span>Subject: {subject || "(No Subject Set)"}</span>
+                    <span>To: daniel@example.com</span>
                   </div>
                   <iframe
                     srcDoc={previewHtml}
                     title="Live Email Preview"
-                    className="w-full min-h-[600px] border-0 bg-[#0A0A0A]"
+                    className="w-full min-h-[600px] border-0"
+                    style={{ background: "#FFFFFF" }}
                   />
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 space-y-6">
+              <div className="rounded-2xl border p-6 sm:p-8 space-y-6" style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}>
                 {/* 1. Layout Mode Selection */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-white">
+                  <label className="block text-sm font-bold mb-2" style={{ color: "var(--text-primary)" }}>
                     Template Layout Style
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setLayoutType("PROMOTIONAL_HERO")}
-                      className={`p-4 rounded-xl text-left border transition-all ${
-                        layoutType === "PROMOTIONAL_HERO"
-                          ? "border-[#C8F55A] bg-[#C8F55A]/5 shadow-md shadow-[#C8F55A]/10"
-                          : "border-[var(--border)] bg-[var(--surface)] hover:border-neutral-700"
-                      }`}
+                      className="p-4 rounded-xl text-left border transition-all"
+                      style={{
+                        borderColor: layoutType === "PROMOTIONAL_HERO" ? "var(--accent)" : "var(--border)",
+                        background: layoutType === "PROMOTIONAL_HERO" ? "var(--accent-dim)" : "var(--bg-surface)",
+                      }}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">🎨</span>
-                        <span className="font-semibold text-white text-sm">Promotional Event Spotlight</span>
+                        <span className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                          Promotional Event Spotlight
+                        </span>
                       </div>
-                      <p className="text-xs text-[#888] leading-relaxed">
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                         Hero poster/banner graphic, event date & venue cards, bold headings, and prominent CTA button.
                       </p>
                     </button>
@@ -493,17 +496,19 @@ export default function AdminBroadcastPage() {
                     <button
                       type="button"
                       onClick={() => setLayoutType("TEXT_MINIMAL")}
-                      className={`p-4 rounded-xl text-left border transition-all ${
-                        layoutType === "TEXT_MINIMAL"
-                          ? "border-[#C8F55A] bg-[#C8F55A]/5 shadow-md shadow-[#C8F55A]/10"
-                          : "border-[var(--border)] bg-[var(--surface)] hover:border-neutral-700"
-                      }`}
+                      className="p-4 rounded-xl text-left border transition-all"
+                      style={{
+                        borderColor: layoutType === "TEXT_MINIMAL" ? "var(--accent)" : "var(--border)",
+                        background: layoutType === "TEXT_MINIMAL" ? "var(--accent-dim)" : "var(--bg-surface)",
+                      }}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">📝</span>
-                        <span className="font-semibold text-white text-sm">Clean Announcement (No Hero Banner)</span>
+                        <span className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                          Clean Announcement (No Hero Banner)
+                        </span>
                       </div>
-                      <p className="text-xs text-[#888] leading-relaxed">
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                         Focused typography, markdown links, bullet lists, and optional action button. Fast and readable.
                       </p>
                     </button>
@@ -512,28 +517,51 @@ export default function AdminBroadcastPage() {
 
                 {/* 2. Target Audience */}
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-white">Audience</label>
+                  <label className="block text-sm font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                    Select Recipients (Audience)
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(["SUBSCRIBED", "ALL", "INDIVIDUAL"] as const).map((m) => (
+                    {( ["SUBSCRIBED", "ALL", "INDIVIDUAL"] as const).map((m) => (
                       <button
                         key={m}
                         type="button"
                         onClick={() => setMode(m)}
-                        className={`rounded-xl px-4 py-2.5 text-xs sm:text-sm font-medium transition ${
-                          mode === m
-                            ? "bg-[#C8F55A] text-black font-semibold"
-                            : "bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-white border border-[var(--border)]"
-                        }`}
+                        className="rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition"
+                        style={{
+                          background: mode === m ? "var(--accent)" : "var(--bg-input)",
+                          color: mode === m ? "var(--accent-contrast)" : "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
                       >
                         {m === "SUBSCRIBED" ? "Subscribers" : m === "ALL" ? "All Users" : "Specific Users"}
                       </button>
                     ))}
                   </div>
 
+                  {/* Contextual Recipient Metric Card */}
                   {mode !== "INDIVIDUAL" && (
-                    <div className="mt-3 flex items-center justify-between text-xs text-[#888] bg-[var(--surface)] px-3.5 py-2 rounded-xl border border-[var(--border)]">
-                      <span>Estimated Recipients:</span>
-                      <strong className="text-white text-sm font-bold">{loadingPreview ? "..." : prettyCount}</strong>
+                    <div
+                      className="mt-3 flex items-center justify-between text-xs px-4 py-3 rounded-xl border"
+                      style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
+                    >
+                      <div>
+                        <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
+                          {mode === "SUBSCRIBED"
+                            ? "Subscribed Organizers & Registered Users with Marketing Consent"
+                            : "All Registered Organizers & Users on the Platform"}
+                        </span>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", marginTop: "2px" }}>
+                          {mode === "SUBSCRIBED"
+                            ? "Only sends to people who actively agreed to receive promotional updates and broadcasts."
+                            : "Sends a global system announcement to every registered account."}
+                        </p>
+                      </div>
+                      <div className="text-right pl-4">
+                        <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", display: "block" }}>Total Recipients</span>
+                        <strong className="text-sm font-bold" style={{ color: "var(--accent)" }}>
+                          {loadingPreview ? "Calculating..." : `${prettyCount} recipients`}
+                        </strong>
+                      </div>
                     </div>
                   )}
 
@@ -543,10 +571,16 @@ export default function AdminBroadcastPage() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search user by name or email..."
-                        className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                        className="rounded-xl px-3.5 py-2.5 text-xs sm:text-sm w-full focus:outline-none focus:ring-1"
+                        style={{
+                          background: "var(--bg-input)",
+                          borderColor: "var(--border)",
+                          color: "var(--text-primary)",
+                          border: "1px solid var(--border)",
+                        }}
                       />
                       {foundUsers.length > 0 && (
-                        <div className="max-h-36 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+                        <div className="max-h-36 overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}>
                           {foundUsers.map((u) => (
                             <button
                               key={u.id}
@@ -556,7 +590,8 @@ export default function AdminBroadcastPage() {
                                   setSelectedUsers((prev) => [...prev, u])
                                 }
                               }}
-                              className="w-full text-left px-3 py-1.5 border-b border-[#222] hover:bg-[#202020] text-xs text-white"
+                              className="w-full text-left px-3 py-2 border-b text-xs transition"
+                              style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
                             >
                               {u.name ? `${u.name} (${u.email})` : u.email}
                             </button>
@@ -568,13 +603,18 @@ export default function AdminBroadcastPage() {
                           {selectedUsers.map((u) => (
                             <span
                               key={u.id}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-[#C8F55A]/10 text-[#C8F55A] border border-[#C8F55A]/30 px-2.5 py-1 text-xs"
+                              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border"
+                              style={{
+                                background: "var(--accent-dim)",
+                                color: "var(--accent)",
+                                borderColor: "var(--border)",
+                              }}
                             >
                               {u.email}
                               <button
                                 type="button"
                                 onClick={() => setSelectedUsers((prev) => prev.filter((x) => x.id !== u.id))}
-                                className="hover:text-red-400"
+                                className="hover:text-red-500 font-bold ml-1"
                               >
                                 ×
                               </button>
@@ -588,240 +628,305 @@ export default function AdminBroadcastPage() {
 
                 {/* 3. Promotional Fields (when Promotional Mode is active) */}
                 {layoutType === "PROMOTIONAL_HERO" && (
-                  <div className="space-y-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>🖼️</span> Hero Graphic & Promotional Meta
+                  <div className="space-y-4 rounded-xl border p-5" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                    <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+                      <span>🖼️</span> Hero Graphic & Promotional Details
                     </h3>
 
                     {/* Preheader Top Hook */}
                     <div>
-                      <label className="block text-xs text-[#A3A3A3] mb-1">
-                        Top Preheader Tag (Hook / Headline)
+                      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                        Top Preheader Tag (Hook / Category)
                       </label>
                       <input
                         value={preheader}
                         onChange={(e) => setPreheader(e.target.value)}
-                        placeholder="e.g. LIGHTS OUT. THE FACTORY RUNS ANYWAY."
-                        className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                        placeholder="e.g. SPECIAL ANNOUNCEMENT · NAIROBI EXPO 2026"
+                        className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                        style={{
+                          background: "var(--bg-input)",
+                          borderColor: "var(--border)",
+                          color: "var(--text-primary)",
+                          border: "1px solid var(--border)",
+                        }}
                       />
                     </div>
 
-                    {/* Hero Banner Image */}
+                    {/* Banner Image URL / Upload */}
                     <div>
-                      <label className="block text-xs text-[#A3A3A3] mb-1">Hero Poster / Banner Image</label>
-                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                        Hero Banner Image URL (or upload from device)
+                      </label>
+                      <div className="flex gap-2">
                         <input
                           value={bannerUrl}
                           onChange={(e) => setBannerUrl(e.target.value)}
-                          placeholder="Paste image URL (https://...) or upload directly"
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          placeholder="https://cdn.eventsslot.com/banners/poster.jpg"
+                          className="rounded-lg px-3 py-2 text-xs flex-1 focus:outline-none"
+                          style={{
+                            background: "var(--bg-input)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border)",
+                          }}
                         />
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploadingImage}
-                          className="px-4 py-2.5 bg-[#262626] border border-[#3A3A3A] text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-[#333] transition shrink-0 cursor-pointer disabled:opacity-50"
+                          className="px-3.5 py-2 rounded-lg text-xs font-bold transition"
+                          style={{
+                            background: "var(--accent)",
+                            color: "var(--accent-contrast)",
+                          }}
                         >
-                          {uploadingImage ? "Uploading..." : "Upload Poster"}
+                          {uploadingImage ? "Uploading..." : "Upload Image"}
                         </button>
                         <input
                           ref={fileInputRef}
                           type="file"
                           accept="image/*"
-                          onChange={handleImageUpload}
                           className="hidden"
+                          onChange={handleImageUpload}
                         />
                       </div>
-
-                      {bannerUrl && (
-                        <div className="mt-3 relative rounded-xl overflow-hidden border border-[#333] max-h-40 max-w-sm">
-                          <img src={bannerUrl} alt="Banner Preview" className="w-full h-auto object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => setBannerUrl("")}
-                            className="absolute top-2 right-2 bg-black/80 hover:bg-black text-red-400 text-xs px-2 py-1 rounded-md"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Event Detail Chips */}
+                    {/* Event Meta Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs text-[#A3A3A3] mb-1">Date Tag (Optional)</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                          Event Date Badge
+                        </label>
                         <input
                           value={eventDateLabel}
                           onChange={(e) => setEventDateLabel(e.target.value)}
-                          placeholder="e.g. SEP 26 - OCT 5"
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          placeholder="e.g. Sat, 15 Oct · 2:00 PM"
+                          className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                          style={{
+                            background: "var(--bg-input)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border)",
+                          }}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#A3A3A3] mb-1">Location Tag (Optional)</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                          Venue Location Badge
+                        </label>
                         <input
                           value={eventLocation}
                           onChange={(e) => setEventLocation(e.target.value)}
-                          placeholder="e.g. ONLINE or Nairobi"
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          placeholder="e.g. KICC Tsavo Hall, Nairobi"
+                          className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                          style={{
+                            background: "var(--bg-input)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border)",
+                          }}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#A3A3A3] mb-1">Highlight Badge (Optional)</label>
+                        <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                          Highlight Tag / Price
+                        </label>
                         <input
                           value={eventBadge}
                           onChange={(e) => setEventBadge(e.target.value)}
-                          placeholder="e.g. $5,000 Cash Prizes"
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          placeholder="e.g. FREE ENTRY / VIP PASSHOLDER"
+                          className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                          style={{
+                            background: "var(--bg-input)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border)",
+                          }}
                         />
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* 4. Subject */}
-                <div>
-                  <label className="block text-sm font-semibold mb-1 text-white">Subject Line</label>
-                  <input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="e.g. Quick 2-minute feedback — Help shape EventSlot"
-                    className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
-                  />
-                </div>
-
-                {/* 5. Message Content */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-semibold text-white">Message Body</label>
-                    <span className="text-xs text-[#737373]">
-                      Supports Markdown (<strong>**bold**</strong>, <em>*italic*</em>, links, and lists)
-                    </span>
-                  </div>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={9}
-                    placeholder="Type your announcement or promotional body..."
-                    className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-sm text-white w-full font-mono focus:outline-none focus:border-[#C8F55A] leading-relaxed"
-                  />
-                  <p className="mt-1 text-xs text-[#737373]">
-                    Pro-tip: Use <code className="text-[#C8F55A]">{"{{name}}"}</code> to automatically insert the recipient's first name.
-                  </p>
-                </div>
-
-                {/* 6. Call-to-Action Button (Optional) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
+                {/* 4. Subject & Content */}
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs text-[#A3A3A3] mb-1">CTA Button Text (Optional)</label>
+                    <label className="block text-sm font-bold mb-1" style={{ color: "var(--text-primary)" }}>
+                      Subject Line *
+                    </label>
                     <input
-                      value={ctaText}
-                      onChange={(e) => setCtaText(e.target.value)}
-                      placeholder="e.g. JOIN THE CHALLENGE →"
-                      className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g. Introducing EventSlot 2.0: Higher Speed, Better Experience"
+                      className="rounded-xl px-4 py-2.5 text-sm w-full font-medium focus:outline-none"
+                      style={{
+                        background: "var(--bg-input)",
+                        borderColor: "var(--border)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
+                      }}
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs text-[#A3A3A3] mb-1">CTA Button Destination URL</label>
-                    <input
-                      value={ctaUrl}
-                      onChange={(e) => setCtaUrl(e.target.value)}
-                      placeholder="e.g. https://www.eventsslot.com/events/..."
-                      className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                        Message Content (Markdown supported) *
+                      </label>
+                      <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                        Tip: You can use <code style={{ color: "var(--accent)" }}>{"{{name}}"}</code> for attendee name.
+                      </span>
+                    </div>
+                    <textarea
+                      rows={8}
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="rounded-xl p-4 text-xs sm:text-sm font-mono w-full focus:outline-none leading-relaxed"
+                      style={{
+                        background: "var(--bg-input)",
+                        borderColor: "var(--border)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
+                      }}
                     />
+                  </div>
+
+                  {/* 5. Call to Action Button */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                        CTA Button Text (Optional)
+                      </label>
+                      <input
+                        value={ctaText}
+                        onChange={(e) => setCtaText(e.target.value)}
+                        placeholder="e.g. Claim Free Ticket / Open Event"
+                        className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                        style={{
+                          background: "var(--bg-input)",
+                          borderColor: "var(--border)",
+                          color: "var(--text-primary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                        CTA Button URL (Optional)
+                      </label>
+                      <input
+                        value={ctaUrl}
+                        onChange={(e) => setCtaUrl(e.target.value)}
+                        placeholder="https://www.eventsslot.com/events/tech-summit"
+                        className="rounded-lg px-3 py-2 text-xs w-full focus:outline-none"
+                        style={{
+                          background: "var(--bg-input)",
+                          borderColor: "var(--border)",
+                          color: "var(--text-primary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* 7. Dispatch Timing: Send Now vs. Schedule */}
-                <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 space-y-3">
-                  <label className="block text-sm font-semibold text-white">Delivery Schedule</label>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-white">
+                {/* 6. Scheduling / Delivery Timing */}
+                <div className="pt-4 border-t space-y-3" style={{ borderColor: "var(--border)" }}>
+                  <label className="block text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                    Delivery Timing
+                  </label>
+                  <div className="flex flex-wrap items-center gap-4 text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="timing"
                         checked={deliveryTiming === "immediate"}
                         onChange={() => setDeliveryTiming("immediate")}
-                        className="accent-[#C8F55A]"
+                        className="accent-green-600"
                       />
-                      <span>Send Immediately</span>
+                      <span>🚀 Send Immediately</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-white">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
                         name="timing"
                         checked={deliveryTiming === "scheduled"}
                         onChange={() => setDeliveryTiming("scheduled")}
-                        className="accent-[#C8F55A]"
+                        className="accent-green-600"
                       />
-                      <span>Schedule for Later (Up to 3 Months)</span>
+                      <span>⏰ Schedule for Future Date</span>
                     </label>
                   </div>
 
                   {deliveryTiming === "scheduled" && (
-                    <div className="pt-3 border-t border-[#262626] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-wrap gap-3 pt-2">
                       <div>
-                        <label className="block text-xs text-[#A3A3A3] mb-1">Date</label>
+                        <label className="block text-xs mb-1" style={{ color: "var(--text-muted)" }}>Date</label>
                         <input
                           type="date"
                           min={minDate}
                           max={maxDate}
                           value={scheduledDate}
                           onChange={(e) => setScheduledDate(e.target.value)}
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          className="rounded-lg px-3 py-1.5 text-xs focus:outline-none border"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#A3A3A3] mb-1">Time</label>
+                        <label className="block text-xs mb-1" style={{ color: "var(--text-muted)" }}>Time</label>
                         <input
                           type="time"
                           value={scheduledTime}
                           onChange={(e) => setScheduledTime(e.target.value)}
-                          className="bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white w-full focus:outline-none focus:border-[#C8F55A]"
+                          className="rounded-lg px-3 py-1.5 text-xs focus:outline-none border"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                         />
                       </div>
-                      <p className="sm:col-span-2 text-xs text-[#C8F55A]">
-                        🕒 The automated cron worker dispatches queued campaigns at your exact scheduled date and time.
-                      </p>
                     </div>
                   )}
                 </div>
 
                 {/* Status Messages */}
                 {statusError && (
-                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                  <div className="p-3 rounded-xl border text-xs font-semibold" style={{ background: "rgba(220,38,38,0.08)", borderColor: "#DC2626", color: "#DC2626" }}>
                     ⚠️ {statusError}
                   </div>
                 )}
-
                 {statusMessage && (
-                  <div className="p-3.5 rounded-xl bg-[#C8F55A]/10 border border-[#C8F55A]/30 text-[#C8F55A] text-sm">
+                  <div className="p-3 rounded-xl border text-xs font-semibold" style={{ background: "rgba(21,128,61,0.08)", borderColor: "#15803D", color: "#15803D" }}>
                     {statusMessage}
                   </div>
                 )}
 
                 {/* Submit Buttons */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: "var(--border)" }}>
                   <button
                     type="button"
-                    onClick={handleSubmit}
-                    disabled={submitting}
-                    className="px-6 py-3 bg-[#C8F55A] text-[#0A0A0A] font-bold rounded-xl text-sm hover:bg-[#b5e648] transition shadow-lg shadow-[#C8F55A]/20 disabled:opacity-50 cursor-pointer"
+                    onClick={() => setViewMode("preview")}
+                    className="px-4 py-2 rounded-xl text-xs font-bold border transition"
+                    style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text-secondary)" }}
                   >
-                    {submitting
-                      ? "Processing..."
-                      : deliveryTiming === "scheduled"
-                      ? "📅 Schedule Broadcast"
-                      : `🚀 Send Broadcast Now (${mode})`}
+                    Preview Email First
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setViewMode("preview")}
-                    className="px-4 py-3 bg-[#262626] text-white font-semibold rounded-xl text-sm hover:bg-[#333] transition cursor-pointer"
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-lg transition"
+                    style={{
+                      background: "var(--accent)",
+                      color: "var(--accent-contrast)",
+                      opacity: submitting ? 0.7 : 1,
+                      cursor: submitting ? "not-allowed" : "pointer",
+                    }}
                   >
-                    Preview Email
+                    {submitting
+                      ? "Dispatching..."
+                      : deliveryTiming === "scheduled"
+                      ? "⏰ Schedule Broadcast"
+                      : `🚀 Send Broadcast (${mode === "INDIVIDUAL" ? selectedUsers.length : prettyCount})`}
                   </button>
                 </div>
               </div>
@@ -829,105 +934,82 @@ export default function AdminBroadcastPage() {
           </div>
         </div>
       ) : (
-        /* Scheduled Campaigns Tab */
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#262626]">
-            <div>
-              <h2 className="text-lg font-bold text-white">Scheduled Broadcast Queue</h2>
-              <p className="text-xs text-[#888]">
-                Campaigns scheduled in advance. The cron worker checks and sends them at the configured time.
-              </p>
-            </div>
+        /* Scheduled Queue Tab */
+        <div className="rounded-2xl border p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}>
+          <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: "var(--border)" }}>
+            <h2 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+              Scheduled Broadcast Campaigns
+            </h2>
             <button
               type="button"
               onClick={fetchScheduled}
-              disabled={loadingScheduled}
-              className="text-xs px-3 py-1.5 rounded-lg border border-[#333] text-[#A3A3A3] hover:text-white"
+              className="text-xs font-semibold"
+              style={{ color: "var(--accent)" }}
             >
-              {loadingScheduled ? "Refreshing..." : "Refresh"}
+              🔄 Refresh List
             </button>
           </div>
 
-          {scheduledList.length === 0 ? (
-            <div className="text-center py-12 text-[#737373] text-sm">
-              <span className="text-3xl block mb-2">📅</span>
-              No scheduled broadcasts found. Use the Compose tab to schedule campaigns up to 3 months ahead!
+          {loadingScheduled ? (
+            <p className="text-xs py-8 text-center" style={{ color: "var(--text-muted)" }}>Loading scheduled queue...</p>
+          ) : scheduledList.length === 0 ? (
+            <div className="py-12 text-center space-y-2">
+              <span className="text-3xl">📅</span>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No upcoming scheduled broadcasts</p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                When you schedule campaigns for future dates, they will appear here.
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm">
-                <thead>
-                  <tr className="border-b border-[#262626] text-[#888]">
-                    <th className="pb-3 pr-4 font-semibold">Scheduled Date</th>
-                    <th className="pb-3 pr-4 font-semibold">Subject & Style</th>
-                    <th className="pb-3 pr-4 font-semibold">Target</th>
-                    <th className="pb-3 pr-4 font-semibold">Status</th>
-                    <th className="pb-3 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1F1F1F]">
-                  {scheduledList.map((item) => (
-                    <tr key={item.id} className="text-[#D4D4D4]">
-                      <td className="py-3 pr-4 font-mono text-xs text-white">
-                        {new Date(item.scheduledFor).toLocaleDateString()} {new Date(item.scheduledFor).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <strong className="text-white block">{item.subject}</strong>
-                        <span className="text-xs text-[#888]">
-                          {item.layoutType === "PROMOTIONAL_HERO" ? "🎨 Promotional Poster" : "📝 Minimal Text"}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className="px-2 py-0.5 rounded text-xs bg-[var(--surface)] border border-[var(--border)] text-white">
-                          {item.mode}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            item.status === "SCHEDULED"
-                              ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                              : item.status === "SENT"
-                              ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                              : item.status === "SENDING"
-                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                              : "bg-red-500/10 text-red-400 border border-red-500/20"
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                        {item.status === "SENT" && (
-                          <span className="block text-[11px] text-[#737373] mt-0.5">
-                            {item.sentCount} sent
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {item.status === "SCHEDULED" && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleSendNowScheduled(item.id)}
-                                className="px-2.5 py-1 rounded-md text-xs font-semibold bg-[#C8F55A] text-black hover:bg-[#b0de43]"
-                              >
-                                Send Now
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCancelScheduled(item.id)}
-                                className="px-2.5 py-1 rounded-md text-xs font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/10"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {scheduledList.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  style={{ borderColor: "var(--border)", background: "var(--bg-elevated)" }}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <strong className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                        {item.subject}
+                      </strong>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[0.65rem] font-bold"
+                        style={{
+                          background: item.status === "SCHEDULED" ? "var(--accent-dim)" : "rgba(100,116,139,0.1)",
+                          color: item.status === "SCHEDULED" ? "var(--accent)" : "var(--text-muted)",
+                        }}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      Scheduled For: <strong>{new Date(item.scheduledFor).toLocaleString()}</strong> · Audience: {item.mode}
+                    </p>
+                  </div>
+
+                  {item.status === "SCHEDULED" && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSendNowScheduled(item.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border"
+                        style={{ background: "var(--accent)", color: "var(--accent-contrast)", borderColor: "var(--accent)" }}
+                      >
+                        Send Now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelScheduled(item.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border"
+                        style={{ borderColor: "var(--border)", background: "transparent", color: "#DC2626" }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -101,7 +101,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     }
 
     // Keep the dashboard analytics query lightweight enough to resolve quickly on live pages.
-    const [totalViews, registrations, confirmedCount, checkedInCount, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate] = await Promise.all([
+    const [totalViews, registrations, confirmedCount, scannedTickets, waitlistedCount, promotionLogs, sourceBreakdown, feedbackAggregate] = await Promise.all([
       prisma.eventView.count({ where: { eventId: event.id } }),
       prisma.registration.findMany({
         where: { eventId: event.id },
@@ -113,10 +113,14 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
           status: { in: CONFIRMED_STATUSES as unknown as string[] },
         },
       }),
-      prisma.ticket.count({
+      prisma.ticket.findMany({
         where: {
           registration: { eventId: event.id },
           scannedAt: { not: null },
+        },
+        select: {
+          id: true,
+          scannedAt: true,
         },
       }),
       prisma.registration.count({
@@ -168,6 +172,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         ])
       : [[], []]
 
+    const checkedInCount = Array.isArray(scannedTickets) ? scannedTickets.length : 0
     const totalRegistrations = registrations.length
     const waitlistCount = waitlistedCount
     const stillWaitingCount = waitlistedCount
@@ -209,6 +214,91 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       grossKes: tier.soldCount * tier.priceKes,
       admissionsIssued: tier.soldCount * Math.max(1, tier.bundleSize),
     }))
+
+    // --- 1. Event Intelligence: No-Show & Attendance Matrix ---
+    const noShowCount = Math.max(0, confirmedCount - checkedInCount)
+    const noShowRate = confirmedCount > 0 ? Math.round((noShowCount / confirmedCount) * 100) : 0
+    const attendanceRate = checkInRate
+
+    // --- 2. Event Intelligence: Peak Arrival Velocity & Gate Flow ---
+    let peakArrivalWindow: string | null = null
+    let peakVelocityCount = 0
+    let recommendedScanners = 1
+    const gateArrivalSlots: Array<{ timeLabel: string; count: number }> = []
+
+    if (Array.isArray(scannedTickets) && scannedTickets.length > 0) {
+      const slotMap = new Map<string, number>()
+      for (const t of scannedTickets) {
+        if (!t.scannedAt) continue
+        const d = new Date(t.scannedAt)
+        const hour = d.getHours()
+        const minBucket = Math.floor(d.getMinutes() / 15) * 15
+        const startStr = `${hour.toString().padStart(2, '0')}:${minBucket.toString().padStart(2, '0')}`
+        const endMin = (minBucket + 15) % 60
+        const endHour = minBucket + 15 >= 60 ? (hour + 1) % 24 : hour
+        const endStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`
+        const slotKey = `${startStr} - ${endStr}`
+        slotMap.set(slotKey, (slotMap.get(slotKey) ?? 0) + 1)
+      }
+
+      let maxSlot = ''
+      let maxCount = 0
+      for (const [slot, count] of slotMap.entries()) {
+        gateArrivalSlots.push({ timeLabel: slot, count })
+        if (count > maxCount) {
+          maxCount = count
+          maxSlot = slot
+        }
+      }
+      peakArrivalWindow = maxSlot || null
+      peakVelocityCount = maxCount
+      recommendedScanners = Math.max(1, Math.ceil(maxCount / 45))
+    }
+
+    // --- 3. Event Intelligence: Cross-Event Loyalty & Retention ---
+    let returningAttendeesCount = 0
+    let firstTimeAttendeesCount = totalRegistrations
+    let returningRate = 0
+    let vipLoyalCount = 0
+
+    if (event.organizerId) {
+      const pastEvents = await prisma.event.findMany({
+        where: { organizerId: event.organizerId, id: { not: event.id } },
+        select: {
+          id: true,
+          registrations: {
+            select: { attendeeEmail: true, answers: true },
+          },
+        },
+      })
+
+      const pastEmailCounts = new Map<string, number>()
+      for (const pe of pastEvents) {
+        for (const reg of pe.registrations) {
+          const email = reg.attendeeEmail?.trim().toLowerCase()
+          if (email) {
+            pastEmailCounts.set(email, (pastEmailCounts.get(email) ?? 0) + 1)
+          }
+        }
+      }
+
+      const currentRegistrations = await prisma.registration.findMany({
+        where: { eventId: event.id },
+        select: { attendeeEmail: true },
+      })
+
+      for (const cr of currentRegistrations) {
+        const em = cr.attendeeEmail?.trim().toLowerCase()
+        if (em && pastEmailCounts.has(em)) {
+          returningAttendeesCount++
+          const times = pastEmailCounts.get(em) ?? 0
+          if (times >= 2) vipLoyalCount++
+        }
+      }
+
+      firstTimeAttendeesCount = Math.max(0, totalRegistrations - returningAttendeesCount)
+      returningRate = totalRegistrations > 0 ? Math.round((returningAttendeesCount / totalRegistrations) * 100) : 0
+    }
 
     // Comparative performance vs organizer average
     let vsAverage: number | null = null
@@ -285,6 +375,19 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       paidAdmissionsIssued,
       pendingPaidOrders: pendingPayments.length,
       tierBreakdown,
+      intelligence: {
+        noShowCount,
+        noShowRate,
+        attendanceRate,
+        peakArrivalWindow,
+        peakVelocityCount,
+        recommendedScanners,
+        gateArrivalSlots,
+        returningAttendeesCount,
+        firstTimeAttendeesCount,
+        returningRate,
+        vipLoyalCount,
+      },
     })
   } catch (err) {
     console.error('Analytics error:', err)

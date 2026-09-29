@@ -192,6 +192,19 @@ type AnalyticsData = {
     grossKes: number
     admissionsIssued: number
   }>
+  intelligence?: {
+    noShowCount: number
+    noShowRate: number
+    attendanceRate: number
+    peakArrivalWindow: string | null
+    peakVelocityCount: number
+    recommendedScanners: number
+    gateArrivalSlots: Array<{ timeLabel: string; count: number }>
+    returningAttendeesCount: number
+    firstTimeAttendeesCount: number
+    returningRate: number
+    vipLoyalCount: number
+  }
 }
 
 type WalkInDashboard = {
@@ -4422,6 +4435,138 @@ export default function EventDashboardPage() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Executive Event Intelligence & Post-Event Action Hub */}
+                <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1.35rem 1.5rem", marginBottom: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ fontSize: "1.1rem" }}>⚡</span>
+                        <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                          Event Intelligence & Attendance Velocity
+                        </h3>
+                      </div>
+                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.76rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+                        Synthesizes gate check-ins, no-show drop-offs, peak arrival velocity, and cross-event audience retention.
+                      </p>
+                    </div>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", background: "var(--accent-dim)", color: "var(--accent)", padding: "0.3rem 0.75rem", borderRadius: 100, border: "1px solid var(--border)" }}>
+                      Live Intelligence
+                    </span>
+                  </div>
+
+                  {/* 4 Key Intelligence Metric Tiles */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.65rem", marginBottom: "1.25rem" }}>
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 1rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Confirmed</div>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 700, color: themeTextPrimary, fontFamily: "var(--font-instrument-serif)", marginTop: "0.2rem" }}>
+                        {analyticsData.confirmedCount}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: themeTextSecondary, marginTop: "0.15rem" }}>100% capacity</div>
+                    </div>
+
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 1rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>Checked In</div>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-instrument-serif)", marginTop: "0.2rem" }}>
+                        {analyticsData.checkedInCount}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--accent)", marginTop: "0.15rem", fontWeight: 600 }}>
+                        {analyticsData.checkInRate}% Show-up Rate
+                      </div>
+                    </div>
+
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 1rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#EF4444", fontFamily: "var(--font-dm-sans)" }}>No-Shows</div>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#EF4444", fontFamily: "var(--font-instrument-serif)", marginTop: "0.2rem" }}>
+                        {analyticsData.intelligence?.noShowCount ?? Math.max(0, analyticsData.confirmedCount - analyticsData.checkedInCount)}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "#EF4444", marginTop: "0.15rem", fontWeight: 600 }}>
+                        {analyticsData.intelligence?.noShowRate ?? (analyticsData.confirmedCount > 0 ? Math.round((Math.max(0, analyticsData.confirmedCount - analyticsData.checkedInCount) / analyticsData.confirmedCount) * 100) : 0)}% Drop-off
+                      </div>
+                    </div>
+
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.85rem 1rem" }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>Returning Fans</div>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 700, color: themeTextPrimary, fontFamily: "var(--font-instrument-serif)", marginTop: "0.2rem" }}>
+                        {analyticsData.intelligence?.returningRate ?? 0}%
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: themeTextSecondary, marginTop: "0.15rem" }}>
+                        {analyticsData.intelligence?.returningAttendeesCount ?? 0} repeat attendees
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gate Velocity & Loyalty Deep Dive */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "1rem" }}>
+                      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: themeTextPrimary, display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.5rem" }}>
+                        <span>⏱️</span> Gate Flow & Arrival Velocity
+                      </div>
+                      <div style={{ fontSize: "0.82rem", color: themeTextSecondary, lineHeight: 1.5 }}>
+                        {analyticsData.intelligence?.peakArrivalWindow ? (
+                          <>
+                            Peak arrival window occurred at <strong style={{ color: "var(--text-primary)" }}>{analyticsData.intelligence.peakArrivalWindow}</strong> with <strong style={{ color: "var(--accent)" }}>{analyticsData.intelligence.peakVelocityCount} check-ins</strong> in that 15-minute slot.
+                            <div style={{ marginTop: "0.4rem", fontSize: "0.74rem", color: "var(--accent)" }}>
+                              💡 Staffing recommendation: Deploy at least <strong>{analyticsData.intelligence.recommendedScanners} gate scanner(s)</strong> during peak hours.
+                            </div>
+                          </>
+                        ) : (
+                          "Gate velocity statistics update live as tickets are scanned at the venue entrance."
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "1rem" }}>
+                      <div style={{ fontSize: "0.72rem", fontWeight: 700, color: themeTextPrimary, display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.5rem" }}>
+                        <span>🎯</span> Audience Retention & Loyalty
+                      </div>
+                      <div style={{ fontSize: "0.82rem", color: themeTextSecondary, lineHeight: 1.5 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                          <span>First-Time Attendees:</span>
+                          <strong style={{ color: themeTextPrimary }}>{analyticsData.intelligence?.firstTimeAttendeesCount ?? analyticsData.totalRegistrations} ({100 - (analyticsData.intelligence?.returningRate ?? 0)}%)</strong>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                          <span>Repeat Attendees (2+ events):</span>
+                          <strong style={{ color: "var(--accent)" }}>{analyticsData.intelligence?.returningAttendeesCount ?? 0} ({analyticsData.intelligence?.returningRate ?? 0}%)</strong>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Super VIPs (3+ events):</span>
+                          <strong style={{ color: "var(--accent)" }}>{analyticsData.intelligence?.vipLoyalCount ?? 0}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1-Click Action Triggers */}
+                  <div>
+                    <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: themeTextMuted, marginBottom: "0.5rem" }}>
+                      1-Click Post-Event Action Hub
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/events/${slug}/emails?segment=CHECKED_IN`)}
+                        style={{ padding: "0.45rem 0.9rem", borderRadius: 8, border: "1px solid var(--border)", background: "var(--accent-dim)", color: "var(--accent)", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        🎓 Send Certificates to {analyticsData.checkedInCount} Attended
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/events/${slug}/emails?segment=NOT_CHECKED_IN`)}
+                        style={{ padding: "0.45rem 0.9rem", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: themeTextSecondary, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        💌 Re-engage {analyticsData.intelligence?.noShowCount ?? Math.max(0, analyticsData.confirmedCount - analyticsData.checkedInCount)} No-Shows
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/dashboard/events/${slug}/emails?type=UPDATE`)}
+                        style={{ padding: "0.45rem 0.9rem", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: themeTextSecondary, fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        🎟️ Invite {analyticsData.intelligence?.returningAttendeesCount ?? 0} Repeat Fans to Next Event
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Stat cards */}

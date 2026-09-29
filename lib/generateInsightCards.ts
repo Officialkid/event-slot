@@ -15,6 +15,12 @@ interface InsightAnalytics {
   waitlistConversionRate: number
   peakDay: string | null
   peakHour: number | null
+  checkedInCount?: number
+  noShowCount?: number
+  noShowRate?: number
+  peakArrivalWindow?: string | null
+  returningRate?: number
+  returningAttendeesCount?: number
 }
 
 interface InsightEvent {
@@ -37,17 +43,22 @@ export interface InsightGenerationResult {
 function buildFallbackCards(analytics: InsightAnalytics): InsightCard[] {
   const waitlistPressure = analytics.waitlistCount > 0 && analytics.confirmedCount > 0
   const lowConversion = analytics.totalViews >= 20 && analytics.conversionRate < 10
+  const hasCheckins = (analytics.checkedInCount ?? 0) > 0
 
   return [
     {
       type: analytics.conversionRate >= 20 ? "success" : "info",
       title: analytics.conversionRate >= 20 ? "Strong conversion trend" : "Conversion baseline",
-      body: `You have ${analytics.totalRegistrations} registrations from ${analytics.totalViews} views (${analytics.conversionRate}% conversion).`,
+      body: hasCheckins
+        ? `${analytics.checkedInCount} attended (${100 - (analytics.noShowRate ?? 0)}% show-up rate). ${analytics.noShowCount ?? 0} no-shows detected.`
+        : `You have ${analytics.totalRegistrations} registrations from ${analytics.totalViews} views (${analytics.conversionRate}% conversion).`,
     },
     {
-      type: waitlistPressure ? "warning" : "tip",
-      title: waitlistPressure ? "Waitlist pressure detected" : "Capacity headroom available",
-      body: waitlistPressure
+      type: waitlistPressure ? "warning" : (analytics.returningRate ?? 0) > 20 ? "success" : "tip",
+      title: (analytics.returningRate ?? 0) > 0 ? "Audience Loyalty & Retention" : waitlistPressure ? "Waitlist pressure detected" : "Capacity headroom available",
+      body: (analytics.returningRate ?? 0) > 0
+        ? `${analytics.returningAttendeesCount ?? 0} attendees (${analytics.returningRate}%) came from your previous events!`
+        : waitlistPressure
         ? `${analytics.waitlistCount} attendees are on the waitlist. Consider increasing capacity or adding a second session.`
         : `Waitlist is currently low (${analytics.waitlistCount}). Keep promoting while the event is still open.`,
     },
