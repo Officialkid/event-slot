@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { ratelimit } from '@/lib/ratelimit'
 
 type EventQuestion = { id: string; type: string; label: string }
 type RegistrationAnswer = { questionId: string; value: string }
@@ -31,11 +32,20 @@ function normalizeStatus(status: string): 'CONFIRMED' | 'WAITLISTED' | 'NOT_REGI
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '127.0.0.1'
+  const { success } = await ratelimit.limit(`lookup:${ip}`)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many lookup requests. Please try again shortly.' },
+      { status: 429 }
+    )
+  }
+
   const { slug } = await props.params
   const query = req.nextUrl.searchParams.get('q')?.trim() ?? ''
 
-  if (query.length < 2) {
-    return NextResponse.json({ error: 'Search query too short' }, { status: 400 })
+  if (query.length < 3) {
+    return NextResponse.json({ error: 'Search query must be at least 3 characters' }, { status: 400 })
   }
 
   const event = await prisma.event.findUnique({
@@ -73,6 +83,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
   const q = query.toLowerCase()
   const isEmailLookup = q.includes('@')
+  const isConfirmationCode = q.startsWith('evt-') || q.length >= 8
   const questions = (event.questions as EventQuestion[]) ?? []
 
   const registration = all.find((r) => {
@@ -80,17 +91,22 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       return (r.attendeeEmail ?? '').toLowerCase() === q
     }
 
+    if (isConfirmationCode && r.confirmationCode) {
+      return r.confirmationCode.toLowerCase() === q
+    }
+
     const attendeeName = getAttendeeName(r.answers, questions).toLowerCase()
     if (!attendeeName) return false
 
-    return attendeeName.includes(q)
+    // Require full exact name match to prevent attendee list harvesting
+    return attendeeName === q
   })
 
   if (!registration) {
     return NextResponse.json({
       found: false,
       status: 'NOT_REGISTERED',
-      message: 'No registration found for this name or email.',
+      message: 'No registration found for this exact name, email, or confirmation code.',
       ticketsEnabled: event.ticketsEnabled,
     })
   }

@@ -1,3 +1,5 @@
+import { randomInt } from 'crypto'
+
 // Characters that are unambiguous to read aloud or transcribe (no 0/O, 1/I/L)
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -9,7 +11,7 @@ const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 export function generateConfirmationCode(): string {
   let suffix = ''
   for (let i = 0; i < 8; i++) {
-    suffix += CHARS[Math.floor(Math.random() * CHARS.length)]
+    suffix += CHARS[randomInt(0, CHARS.length)]
   }
   return `EVT-${suffix}`
 }

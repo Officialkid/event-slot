@@ -6,6 +6,7 @@ import { normalizeCommunityLink } from '@/lib/communityLink'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { purgeUserCache } from '@/lib/cache'
 import { hasOrganiserAccess } from '@/lib/adminMode'
+import { isAdminEmail } from '@/lib/isAdmin'
 import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
@@ -456,10 +457,14 @@ export async function DELETE(_req: NextRequest, props: { params: Promise<{ slug:
     }
 
     const isOwner = !!(session?.user?.id && event.organizerId === session.user.id)
-    const adminAccess = !!(session && await hasOrganiserAccess(session, event.id))
+    const isSuperAdmin = Boolean(
+      session?.user?.role === 'SUPER_ADMIN' ||
+      session?.user?.isAdmin ||
+      isAdminEmail(session?.user?.email)
+    )
 
-    if (!isOwner && !adminAccess) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    if (!isOwner && !isSuperAdmin) {
+      return NextResponse.json({ success: false, error: 'Only the event creator or a super administrator can delete this event.' }, { status: 403 })
     }
 
     // Cancel Google Calendar events if connected

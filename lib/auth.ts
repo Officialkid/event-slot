@@ -279,10 +279,13 @@ export const authOptions = {
 
       try {
         const parsed = new URL(url)
+        const host = parsed.hostname.toLowerCase()
+        const isEventslot = host === 'eventsslot.com' || host.endsWith('.eventsslot.com')
+        const isLocalhost = host === 'localhost' || host.endsWith('.localhost')
         if (
           parsed.origin === safeBaseUrl ||
-          parsed.hostname.endsWith('eventsslot.com') ||
-          parsed.hostname.endsWith('localhost')
+          isEventslot ||
+          isLocalhost
         ) {
           return url
         }

@@ -27,20 +27,26 @@ function isProtectedPage(pathname: string) {
 }
 
 function applySecurityHeaders(res: NextResponse) {
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   res.headers.set('X-Content-Type-Options', 'nosniff')
   res.headers.set('X-Frame-Options', 'DENY')
   res.headers.set('X-XSS-Protection', '1; mode=block')
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  res.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
+  res.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), browsing-topics=()')
   res.headers.set('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
     "font-src 'self' fonts.gstatic.com",
-    "img-src 'self' data: blob: *.r2.dev lh3.googleusercontent.com",
-    "connect-src 'self' *.groq.com *.openai.com",
+    "img-src 'self' data: blob: *.r2.dev https://*.r2.dev lh3.googleusercontent.com https://staticmap.openstreetmap.de",
+    "connect-src 'self' *.groq.com *.openai.com https://*.r2.dev https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com",
+    "frame-src 'self' https://www.google.com https://maps.google.com",
     "media-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
     "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
   ].join('; '))
   return res
 }
@@ -70,7 +76,7 @@ export function middlewareHandler(req: NextRequest & { nextauth?: { token?: any 
         if (!token) {
           const signInUrl = new URL('/signin', req.url)
           signInUrl.searchParams.set('callbackUrl', req.url)
-          return NextResponse.redirect(signInUrl)
+          return applySecurityHeaders(NextResponse.redirect(signInUrl))
         }
 
         if (targetPath !== pathname) {
@@ -95,11 +101,11 @@ export function middlewareHandler(req: NextRequest & { nextauth?: { token?: any 
         if (!token) {
           const signInUrl = new URL('/signin', req.url)
           signInUrl.searchParams.set('callbackUrl', req.url)
-          return NextResponse.redirect(signInUrl)
+          return applySecurityHeaders(NextResponse.redirect(signInUrl))
         }
 
         if (!isSuperAdmin) {
-          return NextResponse.redirect(new URL('/unauthorized', req.url))
+          return applySecurityHeaders(NextResponse.redirect(new URL('/unauthorized', req.url)))
         }
 
         if (targetPath !== pathname) {
@@ -149,15 +155,15 @@ export function middlewareHandler(req: NextRequest & { nextauth?: { token?: any 
     if (isProtectedPage(pathname) && !token) {
       const signInUrl = new URL('/signin', req.url)
       signInUrl.searchParams.set('callbackUrl', req.url)
-      return NextResponse.redirect(signInUrl)
+      return applySecurityHeaders(NextResponse.redirect(signInUrl))
     }
 
     if (pathname.startsWith('/admin') && !isSuperAdmin) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
+      return applySecurityHeaders(NextResponse.redirect(new URL('/unauthorized', req.url)))
     }
 
     if (pathname.startsWith('/api/admin') && !isSuperAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return applySecurityHeaders(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
     }
 
     return applySecurityHeaders(NextResponse.next())

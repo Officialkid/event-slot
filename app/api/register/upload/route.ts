@@ -41,12 +41,21 @@ function getR2Client(config: { accountId: string; accessKeyId: string; secretAcc
   })
 }
 
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "text/plain": "txt",
+}
+
 function extensionFor(file: File) {
-  const fromName = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "")
-  if (fromName && fromName.length <= 8) return fromName
-  if (file.type === "image/jpeg") return "jpg"
-  if (file.type === "application/pdf") return "pdf"
-  return "bin"
+  return MIME_TO_EXT[file.type] ?? "bin"
 }
 
 export async function POST(req: NextRequest) {

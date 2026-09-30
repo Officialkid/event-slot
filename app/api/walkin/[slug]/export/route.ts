@@ -6,7 +6,10 @@ import { authOptions } from '@/lib/auth'
 import { canUseEventFeature } from '@/lib/planEnforcement'
 
 function csvCell(value: unknown): string {
-  const raw = value == null ? '' : String(value)
+  let raw = value == null ? '' : String(value)
+  if (/^[=+\-@\t\r]/.test(raw)) {
+    raw = `'${raw}`
+  }
   return `"${raw.replace(/"/g, '""')}"`
 }
 

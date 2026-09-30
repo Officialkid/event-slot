@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendEmailOtp } from '@/lib/email'
 
@@ -5,13 +6,32 @@ export const OTP_EXPIRY_MINUTES = 10
 export const OTP_COOLDOWN_SECONDS = 30
 const OTP_WINDOW_MINUTES = 10
 const OTP_MAX_PER_WINDOW = 5
+const MAX_VERIFY_FAILURES = 5
+
+// In-memory failed attempt tracking per email: [count, resetAt]
+const verifyFailureMap = new Map<string, { count: number; resetAt: number }>()
+
+function recordFailedAttempt(email: string): number {
+  const now = Date.now()
+  const entry = verifyFailureMap.get(email)
+  if (!entry || entry.resetAt < now) {
+    verifyFailureMap.set(email, { count: 1, resetAt: now + OTP_WINDOW_MINUTES * 60 * 1000 })
+    return 1
+  }
+  entry.count += 1
+  return entry.count
+}
+
+function clearFailedAttempts(email: string) {
+  verifyFailureMap.delete(email)
+}
 
 export function normalizeEmailForOtp(email: string) {
   return email.trim().toLowerCase()
 }
 
 export function generateOtpCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  return randomInt(100000, 1000000).toString()
 }
 
 export async function issueOtpForEmail(email: string) {
@@ -53,6 +73,8 @@ export async function issueOtpForEmail(email: string) {
     data: { used: true },
   })
 
+  clearFailedAttempts(normalizedEmail)
+
   const otp = generateOtpCode()
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)
 
@@ -78,6 +100,17 @@ export async function verifyOtpForEmail(email: string, otp: string) {
     return null
   }
 
+  // Check if locked out due to excessive failed verification attempts
+  const currentFailures = verifyFailureMap.get(normalizedEmail)
+  if (currentFailures && currentFailures.resetAt > Date.now() && currentFailures.count >= MAX_VERIFY_FAILURES) {
+    // Invalidate any active OTPs to protect the account
+    await prisma.emailOTP.updateMany({
+      where: { email: normalizedEmail, used: false },
+      data: { used: true },
+    }).catch(() => {})
+    return null
+  }
+
   // 1. Primary check: unused valid OTP
   const record = await prisma.emailOTP.findFirst({
     where: {
@@ -94,6 +127,7 @@ export async function verifyOtpForEmail(email: string, otp: string) {
       where: { id: record.id },
       data: { used: true },
     })
+    clearFailedAttempts(normalizedEmail)
     return record
   }
 
@@ -104,7 +138,7 @@ export async function verifyOtpForEmail(email: string, otp: string) {
       email: normalizedEmail,
       otp: cleanOtp,
       used: true,
-      createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) },
+      createdAt: { gte: new Date(Date.now() - 60 * 1000) },
       expiresAt: { gt: new Date() },
     },
     orderBy: { createdAt: 'desc' },
@@ -112,6 +146,15 @@ export async function verifyOtpForEmail(email: string, otp: string) {
 
   if (recentlyVerified) {
     return recentlyVerified
+  }
+
+  // Verification failed: record failure and invalidate OTP if limit exceeded
+  const failures = recordFailedAttempt(normalizedEmail)
+  if (failures >= MAX_VERIFY_FAILURES) {
+    await prisma.emailOTP.updateMany({
+      where: { email: normalizedEmail, used: false },
+      data: { used: true },
+    }).catch(() => {})
   }
 
   return null

@@ -1,4 +1,4 @@
-import { createHmac } from "crypto"
+import { createHmac, timingSafeEqual } from "crypto"
 
 function getQrSecret(): string {
   const secret = process.env.QR_SECRET
@@ -39,7 +39,9 @@ export function verifyQRPayload(payload: string): {
       .digest("hex")
       .substring(0, 16)
 
-    if (signature !== expected) {
+    const sigBuf = Buffer.from(signature)
+    const expBuf = Buffer.from(expected)
+    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
       return { valid: false, ticketId: null, eventId: null, userId: null }
     }
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { updateProfileSchema } from "@/lib/schemas/profile.schema"
+import { createNotification } from "@/lib/notifications"
 
 export async function GET() {
   try {
@@ -73,6 +74,23 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof twoFactorEnabled === "boolean") {
       data.twoFactorEnabled = twoFactorEnabled
+      await prisma.auditLog.create({
+        data: {
+          actorId: session.user.id,
+          action: twoFactorEnabled ? "2FA_ENABLED" : "2FA_DISABLED",
+          metadata: { at: new Date().toISOString() },
+        },
+      }).catch(() => {})
+
+      await createNotification({
+        userId: session.user.id,
+        type: "PLATFORM",
+        title: twoFactorEnabled ? "Two-Factor Authentication Enabled" : "Security Alert: Two-Factor Authentication Disabled",
+        message: twoFactorEnabled
+          ? "Two-factor authentication has been enabled for your EventSlot account."
+          : "Two-factor authentication was disabled for your account. If this wasn't you, please change your password immediately.",
+        link: "/dashboard/profile",
+      }).catch(() => {})
     }
     if (typeof preferredLanguage === "string") {
       data.preferredLanguage = preferredLanguage

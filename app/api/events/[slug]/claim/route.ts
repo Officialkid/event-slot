@@ -27,6 +27,17 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 })
     }
 
+    if (event.organizerId && event.organizerId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: "This event is already claimed by another organizer." },
+        { status: 409 }
+      )
+    }
+
+    if (event.organizerId === session.user.id) {
+      return NextResponse.json({ success: true, alreadyOwned: true })
+    }
+
     await prisma.event.update({
       where: { slug },
       data: { organizerId: session.user.id },
