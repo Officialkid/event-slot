@@ -337,8 +337,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const displayTitle = publicTranslation?.title || event.title
   const displayLocation = publicTranslation?.location || event.location
   const displayOrganizerName = publicTranslation?.organizerName || event.organizerName
-  const displayEntryLabel = publicTranslation?.entryFeeLabel || entryLabel
-  const consentRequired = event.attendeeConsentEnabled !== false
+  const consentRequired = Boolean(event.attendeeConsentEnabled)
   const consentBody = event.attendeeConsentText?.trim() || formCopy.consentBody.replace("{organizer}", displayOrganizerName ?? "the organiser")
 
   const translatedQuestionById = new Map((publicTranslation?.questions ?? []).map((question) => [question.id, question]))
@@ -887,7 +886,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       return
     }
     if (consentRequired && !consentDataProcessing) {
-      setError("Please confirm the data-processing consent before submitting.")
+      setError("Please check the consent box below to agree to data processing before submitting.")
+      const consentEl = document.getElementById("consent-card-wrapper") || document.getElementById("consent-data-processing")
+      if (consentEl) {
+        consentEl.scrollIntoView?.({ behavior: "smooth", block: "center" })
+      }
       return
     }
 
@@ -921,7 +924,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
     if (Object.keys(qErrors).length > 0) {
       setQuestionErrors(qErrors)
-      setError("Please fill in the required fields highlighted in red.")
+      const firstErrorMsg = Object.values(qErrors)[0]
+      setError(firstErrorMsg || "Please fill in the required fields highlighted in red.")
       if (firstErrorElementId) {
         const el = document.getElementById(firstErrorElementId)
         if (el) {
@@ -2159,7 +2163,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     {entryLabel && (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>
-                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>{displayEntryLabel}</p>
+                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>{entryLabel}</p>
                       </div>
                     )}
                     {event.organizerName && (
@@ -2451,9 +2455,18 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                 ))}
               </div>
 
-              {/* Consent Card — Always accessible in DOM */}
+              {/* Consent Card — Only shown when organizer explicitly required it */}
               {consentRequired && (
-                <div className={`rounded-[18px] p-4 sm:p-5 ${isLastStep ? "block" : "hidden"}`} style={questionCardStyle}>
+                <div
+                  id="consent-card-wrapper"
+                  className={`rounded-[18px] p-4 sm:p-5 transition-all ${isLastStep ? "block" : "hidden"}`}
+                  style={{
+                    ...questionCardStyle,
+                    ...(consentRequired && !consentDataProcessing && error
+                      ? { borderColor: "var(--error, #ef4444)", background: "color-mix(in srgb, var(--error, #ef4444) 4%, var(--surface))" }
+                      : {}),
+                  }}
+                >
                   <div className="mb-3">
                     <p className="m-0 text-[0.94rem] font-semibold" style={{ color: "var(--text-primary)" }}>{formCopy.consentTitle}</p>
                     <p className="mt-1.5 text-[0.86rem] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
@@ -2467,7 +2480,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         id="consent-data-processing"
                         type="checkbox"
                         checked={consentDataProcessing}
-                        onChange={e => setConsentDataProcessing(e.target.checked)}
+                        onChange={e => {
+                          setConsentDataProcessing(e.target.checked)
+                          if (error) setError("")
+                        }}
                         className="sr-only"
                       />
                       <span style={{
@@ -2475,43 +2491,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         width: 20,
                         height: 20,
                         borderRadius: 6,
-                        border: consentDataProcessing ? "1.5px solid #C8F55A" : "1.5px solid color-mix(in srgb, var(--text-primary) 22%, transparent)",
-                        background: consentDataProcessing ? "#C8F55A" : "transparent",
+                        border: consentDataProcessing
+                          ? "1.5px solid var(--accent, #15803d)"
+                          : consentRequired && !consentDataProcessing && error
+                          ? "1.5px solid var(--error, #ef4444)"
+                          : "1.5px solid color-mix(in srgb, var(--text-primary) 22%, transparent)",
+                        background: consentDataProcessing ? "var(--accent, #15803d)" : "transparent",
                         transition: "background 0.15s, border 0.15s",
                       }}>
                         {consentDataProcessing && (
                           <svg width="12" height="9" viewBox="0 0 10 7" fill="none" style={{ display: "block", margin: "5px auto 0" }}>
-                            <path d="M1 3.5L3.8 6 9 1" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M1 3.5L3.8 6 9 1" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         )}
                       </span>
                     </span>
                     <span className="text-[0.86rem] leading-snug" style={{ color: "var(--text-primary)" }}>
                       I consent to my data being collected and used for event registration, communication, and event planning purposes.
-                      <span className="ml-1 text-[#C8F55A]">*</span>
+                      <span className="ml-1 text-[var(--accent,#15803d)]">*</span>
                     </span>
                   </label>
+                  {consentRequired && !consentDataProcessing && error && (
+                    <p className="text-[0.78rem] text-[var(--error,#ef4444)] font-semibold mt-2.5">
+                      ⚠️ Please check this box to confirm consent before submitting.
+                    </p>
+                  )}
                 </div>
               )}
-
-              {/* Send Response Copy Checkbox */}
-              <label className={`flex items-center gap-3 rounded-[18px] px-4 py-3.5 cursor-pointer ${isLastStep ? "flex" : "hidden"}`} style={questionCardStyle}>
-                <input
-                  id="send-response-copy"
-                  type="checkbox"
-                  checked={sendResponseCopy}
-                  onChange={e => setSendResponseCopy(e.target.checked)}
-                  className="h-4 w-4 rounded text-[#C8F55A] focus:ring-[#C8F55A]"
-                  style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
-                />
-                <span className="flex items-center gap-2 text-[0.86rem]" style={{ color: "var(--text-primary)" }}>
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-secondary)" }}>
-                    <rect x="1.5" y="3" width="13" height="10" rx="2" />
-                    <path d="M2 4l6 4 6-4" />
-                  </svg>
-                  <span>{formCopy.sendCopy}</span>
-                </span>
-              </label>
 
               {/* Marketing Updates Opt-In Checkbox */}
               <label className={`flex items-start gap-3 rounded-[18px] px-4 py-3.5 cursor-pointer ${isLastStep ? "flex" : "hidden"}`} style={questionCardStyle}>
@@ -2520,7 +2526,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   type="checkbox"
                   checked={consentMarketing}
                   onChange={e => setConsentMarketing(e.target.checked)}
-                  className="h-4 w-4 rounded mt-0.5 text-[#C8F55A] focus:ring-[#C8F55A]"
+                  className="h-4 w-4 rounded mt-0.5 text-[#15803d] focus:ring-[#15803d]"
                   style={{ borderColor: "color-mix(in srgb, var(--text-primary) 20%, transparent)", background: "var(--bg-input)" }}
                 />
                 <span className="flex flex-col text-[0.86rem]" style={{ color: "var(--text-primary)" }}>
@@ -2532,6 +2538,25 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                   </span>
                 </span>
               </label>
+
+              {/* Visible Form Error Banner */}
+              {error && (
+                <div
+                  id="registration-submit-error"
+                  role="alert"
+                  className="rounded-[14px] p-4 border flex items-start gap-3 text-[0.88rem] animate-fadeIn"
+                  style={{
+                    background: "color-mix(in srgb, var(--error, #ef4444) 10%, var(--surface))",
+                    borderColor: "var(--error, #ef4444)",
+                    color: "var(--error, #ef4444)",
+                  }}
+                >
+                  <span className="text-xl leading-none">⚠️</span>
+                  <div className="flex-1 font-semibold leading-relaxed">
+                    {error}
+                  </div>
+                </div>
+              )}
 
               {/* Action Controls & Single Submit Button */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>

@@ -13,29 +13,45 @@ export function normalizeInternationalPhoneNumber(raw: string | null | undefined
     return { ok: false, error: 'Phone number is required' }
   }
 
+  // Reject non-phone characters
   if (!/^\+?[\d\s().-]+$/.test(value)) {
-    return { ok: false, error: 'Use digits only, with an optional leading +' }
+    return { ok: false, error: 'Invalid phone number: use digits only, with an optional leading +' }
   }
 
-  const digits = value.replace(/\D/g, '')
-  if (digits.length < 8 || digits.length > 15) {
-    return { ok: false, error: 'Phone number must be between 8 and 15 digits' }
+  let digits = value.replace(/\D/g, '')
+
+  // Reject dummy or repeating numbers
+  if (/^(\d)\1{6,}$/.test(digits)) {
+    return { ok: false, error: 'Invalid phone number: dummy or repeated digits cannot be used for WhatsApp' }
   }
 
+  // Kenyan number format validation (07..., 01..., 254..., or +254...)
   if (value.startsWith('0') && digits.length === 10) {
-    return { ok: true, number: `254${digits.slice(1)}` }
-  }
-
-  if (value.startsWith('254') || value.startsWith('+254')) {
-    return { ok: true, number: digits.startsWith('254') ? digits : `254${digits}` }
-  }
-
-  if (value.startsWith('0')) {
-    return { ok: false, error: 'Use the full country code, for example +254...' }
+    const mobilePrefix = digits.charAt(1)
+    if (mobilePrefix !== '7' && mobilePrefix !== '1') {
+      return { ok: false, error: 'Invalid WhatsApp number: Kenyan mobile numbers must start with 07... or 01...' }
+    }
+    digits = `254${digits.slice(1)}`
+  } else if (digits.startsWith('254')) {
+    // If user typed 25407..., strip the redundant zero
+    if (digits.startsWith('2540') && digits.length === 13) {
+      digits = `254${digits.slice(4)}`
+    }
+    if (digits.length !== 12) {
+      return { ok: false, error: 'Invalid WhatsApp number: Kenyan numbers must have 9 digits after +254 (e.g. +254712345678)' }
+    }
+    const mobilePrefix = digits.charAt(3)
+    if (mobilePrefix !== '7' && mobilePrefix !== '1') {
+      return { ok: false, error: 'Invalid WhatsApp number: Kenyan mobile lines must start with 7 or 1 (e.g. +2547... or +2541...)' }
+    }
   }
 
   if (digits.startsWith('0')) {
-    return { ok: false, error: 'Use the full country code, for example +254...' }
+    return { ok: false, error: 'Invalid number: please include the full country code (e.g. +254...)' }
+  }
+
+  if (digits.length < 9 || digits.length > 15) {
+    return { ok: false, error: 'Invalid phone number: WhatsApp numbers must be between 9 and 15 digits including country code' }
   }
 
   return { ok: true, number: digits }

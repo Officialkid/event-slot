@@ -8,7 +8,7 @@ import { CREATE_EVENT_COPY } from "@/lib/createEventContent"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 import { getPublicEventUrl } from "@/lib/eventUrls"
 import { markFeatureUsed } from "@/lib/markFeatureUsed"
-import type { EventContactMode } from "@/lib/eventContact"
+import { normalizeInternationalPhoneNumber, type EventContactMode } from "@/lib/eventContact"
 import { getEffectivePlanPolicy, getNextPlanKey, normalizePlanKey } from "@/lib/effectivePlanPolicy"
 import { isPricingRolloutActive } from "@/lib/pricingRollout"
 import { TierBadge } from "@/components/TierBadge"
@@ -701,6 +701,15 @@ export default function CreateEventPage() {
     if (!validateStep3()) {
       setCurrentStep(3)
       return
+    }
+
+    if (whatsappNumber.trim()) {
+      const validated = normalizeInternationalPhoneNumber(whatsappNumber.trim())
+      if (!validated.ok) {
+        setError(`Invalid WhatsApp number: ${validated.error}`)
+        setCurrentStep(4)
+        return
+      }
     }
 
     setFieldErrors({})
@@ -2105,6 +2114,11 @@ export default function CreateEventPage() {
                         className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
                         style={inputStyle}
                       />
+                      {whatsappNumber.trim() && !normalizeInternationalPhoneNumber(whatsappNumber.trim()).ok && (
+                        <p className="text-[0.7rem] mt-1 text-red-500 font-medium">
+                          {(normalizeInternationalPhoneNumber(whatsappNumber.trim()) as { ok: false; error: string }).error}
+                        </p>
+                      )}
                       <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                         Enables a floating WhatsApp contact button on your event page.
                       </p>

@@ -1,13 +1,14 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
 import { v4 as uuidv4 } from "uuid"
 import { EventFAQEditor } from "@/components/events/EventFAQEditor"
 import { EventWhatsAppInput } from "@/components/events/EventWhatsAppInput"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
-import type { EventContactMode } from "@/lib/eventContact"
+import { normalizeInternationalPhoneNumber, type EventContactMode } from "@/lib/eventContact"
 import { TierBadge } from "@/components/TierBadge"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 import { detectTypoSuggestions, applyTypoCorrection } from "@/lib/typoFixer"
@@ -611,6 +612,14 @@ export default function EditEventPage() {
       setError("Public events require a visible location or venue label so attendees can discover where to go.")
       return
     }
+    if (whatsappNumber.trim()) {
+      const validated = normalizeInternationalPhoneNumber(whatsappNumber)
+      if (!validated.ok) {
+        setSaving(false)
+        setError(`Invalid WhatsApp number: ${validated.error}`)
+        return
+      }
+    }
     try {
       const res = await fetch(`/api/events/${slug}`, {
         method: "PATCH",
@@ -725,16 +734,74 @@ export default function EditEventPage() {
   }
 
   return (
-    <div className="px-4 py-12">
-      <div className="mx-auto max-w-[640px] space-y-6">
+    <div className="px-4 py-8 sm:py-12">
+      <div className="mx-auto max-w-3xl space-y-6">
 
+        {/* Top Navigation & Header */}
         <div>
-          <h1 className="text-[1.8rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-            Edit event
-          </h1>
-          <p className="mt-2 text-[0.9rem] font-[300]" style={{ color: "var(--text-secondary)" }}>
-            Changes take effect immediately.
-          </p>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <Link
+              href={`/dashboard/events/${slug}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            >
+              ← Back to Event Dashboard
+            </Link>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/events/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition"
+              >
+                <span>View Public Page</span>
+                <span className="text-[0.7rem]">↗</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => formRef.current?.requestSubmit()}
+                disabled={saving || success}
+                className="inline-flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-bold shadow-sm transition hover:opacity-90 disabled:opacity-50"
+                style={{ background: "#15803d", color: "#FFFFFF" }}
+              >
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                Edit Event
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-secondary)" }}>
+                Changes update your public event page and attendee registration immediately.
+              </p>
+            </div>
+            {accessType === "WALK_IN" && (
+              <span className="self-start sm:self-auto inline-flex items-center gap-1 rounded-full px-3 py-1 text-[0.75rem] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-500">
+                🚶 Walk-In Mode
+              </span>
+            )}
+          </div>
+
+          {/* Quick Section Jump Navigator */}
+          <div className="mt-4 flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+            <a href="#section-details" className="rounded-lg px-2.5 py-1 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition shrink-0">
+              📝 Details
+            </a>
+            <a href="#section-tickets" className="rounded-lg px-2.5 py-1 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition shrink-0">
+              🎟️ Tickets &amp; Capacity
+            </a>
+            <a href="#section-questions" className="rounded-lg px-2.5 py-1 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition shrink-0">
+              ❓ Questions ({questions.length})
+            </a>
+            <a href="#section-poster" className="rounded-lg px-2.5 py-1 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition shrink-0">
+              🖼️ Event Poster
+            </a>
+            <a href="#section-contact" className="rounded-lg px-2.5 py-1 border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] transition shrink-0">
+              💬 Helpline &amp; FAQ
+            </a>
+          </div>
         </div>
 
         {success && (
@@ -745,7 +812,7 @@ export default function EditEventPage() {
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           {/* Event Details */}
-          <div className="rounded-[12px] p-6" style={cardStyle}>
+          <div id="section-details" className="rounded-[12px] p-6" style={cardStyle}>
             <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Event Details
             </h2>
@@ -797,7 +864,7 @@ export default function EditEventPage() {
                   Line breaks, spacing, and emojis are preserved on the public event page and registration form.
                 </p>
               </div>
-              <div>
+              <div id="section-tickets" className="scroll-mt-6">
                 {isPaid && (
                   <PaymentMaintenanceBanner
                     compact
@@ -1349,7 +1416,7 @@ export default function EditEventPage() {
           </div>
 
           {/* Event Poster */}
-          <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <div id="section-poster" className="rounded-[12px] border p-6 scroll-mt-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
             <h2 className="mb-1 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
               Event Poster
             </h2>
@@ -1396,7 +1463,7 @@ export default function EditEventPage() {
           </div>
 
           {/* Questions */}
-          <div className="rounded-[12px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <div id="section-questions" className="rounded-[12px] border p-6 scroll-mt-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                 Registration Questions
@@ -1845,8 +1912,8 @@ export default function EditEventPage() {
             )}
             <button
               type="submit"
-              className="w-full rounded-full px-7 py-3 text-[0.875rem] font-semibold transition flex items-center justify-center gap-2"
-              style={{ background: "var(--accent)", color: "var(--accent-contrast)", opacity: saving ? 0.75 : 1 }}
+              className="w-full rounded-xl px-7 py-3.5 text-sm font-bold shadow-md transition flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50"
+              style={{ background: "#15803d", color: "#FFFFFF", cursor: saving || success ? "default" : "pointer" }}
               disabled={saving || success}
             >
               {saving ? (
@@ -1867,23 +1934,25 @@ export default function EditEventPage() {
           </div>
         </form>
 
-        {/* FAQ editor — lives outside the main form so it saves independently */}
-        <EventFAQEditor eventSlug={slug} />
-        <EventWhatsAppInput
-          eventSlug={slug}
-          eventTitle={title}
-          eventDate={eventDate ? new Date(eventDate).toISOString() : null}
-          initialNumber={whatsappNumber}
-          initialMode={contactMode}
-          onChange={({ number, mode }) => {
-            setWhatsappNumber(number)
-            setContactMode(mode)
-          }}
-          onSaved={({ number, mode }) => {
-            setWhatsappNumber(number)
-            setContactMode(mode)
-          }}
-        />
+        {/* Helpline & FAQ Section */}
+        <div id="section-contact" className="space-y-6 scroll-mt-6">
+          <EventFAQEditor eventSlug={slug} />
+          <EventWhatsAppInput
+            eventSlug={slug}
+            eventTitle={title}
+            eventDate={eventDate ? new Date(eventDate).toISOString() : null}
+            initialNumber={whatsappNumber}
+            initialMode={contactMode}
+            onChange={({ number, mode }) => {
+              setWhatsappNumber(number)
+              setContactMode(mode)
+            }}
+            onSaved={({ number, mode }) => {
+              setWhatsappNumber(number)
+              setContactMode(mode)
+            }}
+          />
+        </div>
 
         {showQuestionChangePrompt && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "color-mix(in srgb, var(--bg-page) 62%, transparent)" }}>

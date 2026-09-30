@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Eye, EyeOff, MessageCircle, Phone, CheckCircle2, AlertCircle } from "lucide-react"
-import { toTelHref, toWhatsAppHref, type EventContactMode } from "@/lib/eventContact"
+import { toTelHref, toWhatsAppHref, normalizeInternationalPhoneNumber, type EventContactMode } from "@/lib/eventContact"
 
 interface Props {
   eventSlug: string
@@ -77,6 +77,15 @@ export function EventWhatsAppInput({
     setSaving(true)
     setSaved(false)
     setError("")
+
+    if (number.trim()) {
+      const validated = normalizeInternationalPhoneNumber(number)
+      if (!validated.ok) {
+        setError(validated.error)
+        setSaving(false)
+        return
+      }
+    }
 
     try {
       const res = await fetch(`/api/events/${eventSlug}/whatsapp`, {
