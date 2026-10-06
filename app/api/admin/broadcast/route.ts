@@ -60,7 +60,7 @@ function buildEmailHtml(content: string, userId: string): string {
     <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:16px;padding:32px 28px;box-shadow:0 4px 20px rgba(0,0,0,0.03);font-size:15px;line-height:1.68;color:#374151;">
       ${bodyHtml}
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid #F3F4F6;color:#111827;font-size:15px;line-height:1.6;">
-        <p style="margin:0;">Warm regards,<br/><strong>Daniel and the EventSlot Team</strong> 💙</p>
+        <p style="margin:0;">Warm regards,<br/><strong>The EventSlot Team</strong> 💙</p>
       </div>
     </div>
 

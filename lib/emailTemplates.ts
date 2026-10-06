@@ -234,7 +234,7 @@ export function renderBroadcastEmail(options: BroadcastTemplateOptions): string 
 
         <!-- Friendly Sign-off -->
         <div style="margin-top:28px;padding-top:20px;border-top:1px solid #F3F4F6;color:#111827;font-size:15px;line-height:1.6;">
-          <p style="margin:0;">Warm regards,<br/><strong>Daniel and the EventSlot Team</strong> 💙</p>
+          <p style="margin:0;">Warm regards,<br/><strong>The EventSlot Team</strong> 💙</p>
         </div>
 
       </div>
