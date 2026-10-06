@@ -111,17 +111,45 @@ export async function POST(req: NextRequest) {
     const isRegistrationEvent = !isWalkInEvent
     const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
     let normalizedVirtualLink = rawVirtualLink
-    if (/^meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = `https://${rawVirtualLink}`
-    else if (/^http:\/\/meet\.google\.com\//i.test(rawVirtualLink)) normalizedVirtualLink = rawVirtualLink.replace(/^http:\/\//i, 'https://')
+    if (rawVirtualLink && !/^https?:\/\//i.test(rawVirtualLink)) {
+      normalizedVirtualLink = `https://${rawVirtualLink}`
+    }
 
     if (eventType === 'VIRTUAL') {
-      if (!normalizedVirtualLink.toLowerCase().startsWith('https://meet.google.com/')) {
+      if (!normalizedVirtualLink) {
         return NextResponse.json(
-          { success: false, error: 'Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij)' },
+          { success: false, error: 'A meeting link is required for virtual events.' },
+          { status: 400 }
+        )
+      }
+      try {
+        const parsedUrl = new URL(normalizedVirtualLink)
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          throw new Error('Invalid protocol')
+        }
+      } catch {
+        return NextResponse.json(
+          { success: false, error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).' },
           { status: 400 }
         )
       }
     }
+
+    const pregeneratedGoogleEventId =
+      typeof rawBody === 'object' && rawBody !== null && 'googleEventId' in rawBody
+        ? String((rawBody as { googleEventId?: unknown }).googleEventId || '').trim() || null
+        : null
+
+    const computedJoinOpensAt =
+      eventType === 'VIRTUAL'
+        ? joinOpensAt
+          ? new Date(joinOpensAt)
+          : eventDate
+          ? new Date(new Date(eventDate).getTime() - 30 * 60 * 1000)
+          : undefined
+        : joinOpensAt
+        ? new Date(joinOpensAt)
+        : undefined
 
     const normalizedTicketTiers = isPaid && isRegistrationEvent
       ? normalizeTicketTiers(ticketTiers, { ticketPrice, capacity })
@@ -238,8 +266,16 @@ export async function POST(req: NextRequest) {
         recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : undefined,
         registrationOpensDays: isRecurring ? (registrationOpensDays || 4) : undefined,
         registrationOpensTime: isRecurring ? (registrationOpensTime || '08:00') : undefined,
-        joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : undefined,
-        location: eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || undefined,
+        joinOpensAt: computedJoinOpensAt,
+        location: eventType === 'VIRTUAL'
+          ? (normalizedVirtualLink.includes('meet.google.com')
+              ? 'Online - Google Meet'
+              : normalizedVirtualLink.includes('zoom.us')
+              ? 'Online - Zoom'
+              : normalizedVirtualLink.includes('teams.microsoft')
+              ? 'Online - Microsoft Teams'
+              : 'Online - Virtual Event')
+          : location || undefined,
         mapDirectionsUrl: eventType === 'VIRTUAL' ? undefined : mapDirectionsUrl?.trim() || undefined,
         entryFeeLabel: entryFeeLabel?.trim() || undefined,
         showRemainingSpots: showRemainingSpots ?? true,
@@ -309,8 +345,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-push to organiser's Google Calendar (fire-and-forget)
-    if (organizerId && eventDate) {
+    if (pregeneratedGoogleEventId && organizerId) {
+      await prisma.calendarEventSync.upsert({
+        where: {
+          userId_eventId_role: {
+            userId: organizerId,
+            eventId: event.id,
+            role: 'organiser',
+          },
+        },
+        update: {
+          googleEventId: pregeneratedGoogleEventId,
+          syncStatus: 'synced',
+          lastSyncedAt: new Date(),
+        },
+        create: {
+          userId: organizerId,
+          eventId: event.id,
+          googleEventId: pregeneratedGoogleEventId,
+          role: 'organiser',
+          syncStatus: 'synced',
+        },
+      }).catch(console.error)
+    }
+
+    // Auto-push to organiser's Google Calendar if not pregenerated
+    if (!pregeneratedGoogleEventId && organizerId && eventDate) {
       createCalendarEvent({
         userId:       organizerId,
         eventSlotId:  event.id,

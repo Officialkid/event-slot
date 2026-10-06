@@ -114,7 +114,11 @@ providers.push(
 
       await clearFailedLoginAttempts(normalizedEmail)
 
-      const requiresOtp = !isLocalTestAccount(normalizedEmail) && Boolean(user.twoFactorEnabled || user.otpRequired)
+      const MANDATORY_OTP_ENFORCEMENT_DATE = new Date('2027-01-01T00:00:00Z')
+      const isEnforcementActive = Date.now() >= MANDATORY_OTP_ENFORCEMENT_DATE.getTime()
+      const requiresOtp =
+        !isLocalTestAccount(normalizedEmail) &&
+        Boolean(user.otpRequired || (isEnforcementActive && !user.emailVerified))
       const submittedOtp = typeof credentials.otp === 'string' ? credentials.otp.trim() : ''
 
       if (requiresOtp && !submittedOtp) {
@@ -251,6 +255,8 @@ export const authOptions = {
               onboardingSkipped: true,
               suspended: true,
               plan: true,
+              emailVerified: true,
+              otpRequired: true,
             },
           })
 
@@ -262,6 +268,8 @@ export const authOptions = {
             session.user.suspended = user.suspended ?? false
             session.user.tier = normalizeTier(user.plan)
             session.user.plan = normalizePlanKey(user.plan)
+            session.user.emailVerified = Boolean(user.emailVerified)
+            session.user.otpRequired = user.otpRequired ?? false
           }
         } catch (error) {
           console.error('[NextAuth session callback error]', error)

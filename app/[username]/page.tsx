@@ -370,6 +370,7 @@ export default async function PublicProfilePage({
                 event={{
                   ...event,
                   slug: username,
+                  eventType: event.eventType,
                   questions: event.questions as EventQuestion[],
                   organizerName: event.organizerName ?? event.organizer?.name ?? null,
                   mapDirectionsUrl: event.mapDirectionsUrl,

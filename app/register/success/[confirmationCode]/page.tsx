@@ -8,6 +8,7 @@ import { APP_URL } from "@/lib/config"
 import { AddToCalendarButton } from "@/components/AddToCalendarButton"
 import { isCalendarConnected } from "@/lib/googleCalendar"
 import { buildGoogleCalendarTemplateUrl } from "@/lib/calendarLinks"
+import { VirtualEventAccessPortal } from "@/components/events/VirtualEventAccessPortal"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type Answer = { questionId: string; value: string }
@@ -95,9 +96,13 @@ export default async function TicketSuccessPage({
     include: {
       event: {
         select: {
+          id: true,
           title: true,
           eventDate: true,
           eventEndAt: true,
+          joinOpensAt: true,
+          status: true,
+          archived: true,
           location: true,
           questions: true,
           ticketsEnabled: true,
@@ -137,7 +142,7 @@ export default async function TicketSuccessPage({
     eventTitle: event.title,
     eventDate,
     attendanceDays,
-    eventLocation: event.location,
+    eventLocation: event.eventType === "VIRTUAL" ? "💻 Virtual Event (Online)" : event.location,
     attendeeName,
     attendeeEmail: attendeeEmail || null,
     attendeePhone: attendeePhone || null,
@@ -168,7 +173,7 @@ export default async function TicketSuccessPage({
     staticGoogleUrl = buildGoogleCalendarTemplateUrl({
       title: event.title,
       description: details,
-      location: event.location,
+      location: event.eventType === "VIRTUAL" ? "Online" : event.location,
       startDate: start,
       endDate: event.eventEndAt ? new Date(event.eventEndAt) : null,
     })
@@ -227,9 +232,29 @@ export default async function TicketSuccessPage({
             lineHeight: 1.45,
           }}
         >
-          Here is your digital entry credential for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>.
+          Here is your {event.eventType === "VIRTUAL" ? "virtual access pass" : "digital entry credential"} for <strong style={{ color: "var(--text-primary)" }}>{event.title}</strong>.
         </p>
       </div>
+
+      {/* ── Virtual Event Access Portal (Prominent at top for Virtual Events) ── */}
+      {event.eventType === "VIRTUAL" && (
+        <div style={{ width: "100%", maxWidth: 460, marginBottom: "1.25rem" }}>
+          <VirtualEventAccessPortal
+            eventId={event.id}
+            eventSlug={event.slug}
+            eventTitle={event.title}
+            eventType={event.eventType}
+            startDate={event.eventDate}
+            endDate={event.eventEndAt}
+            opensAt={event.joinOpensAt}
+            initialTicketCode={confirmationCode}
+            attendeeEmail={attendeeEmail}
+            isEventCancelled={event.status === "cancelled" || event.archived}
+            calendarUrl={staticGoogleUrl}
+            icsUrl={`/api/events/${eventSlug}/calendar.ics`}
+          />
+        </div>
+      )}
 
       {/* Ticket Container */}
       <div style={{ width: "100%", maxWidth: 460 }}>

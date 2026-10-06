@@ -16,6 +16,10 @@ type PreviewResponse = {
   mode: Mode
   recipientCount: number
   sampleRecipients: User[]
+  counts?: {
+    subscribers: number
+    allUsers: number
+  }
 }
 
 type ScheduledItem = {
@@ -62,6 +66,7 @@ export default function AdminBroadcastPage() {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [preview, setPreview] = useState<PreviewResponse | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [audienceCounts, setAudienceCounts] = useState<{ subscribers: number; allUsers: number } | null>(null)
 
   // Scheduling
   const [deliveryTiming, setDeliveryTiming] = useState<"immediate" | "scheduled">("immediate")
@@ -148,7 +153,10 @@ export default function AdminBroadcastPage() {
       try {
         const res = await fetch(`/api/admin/broadcast?mode=${mode}`)
         const data = (await res.json()) as PreviewResponse
-        if (!cancelled) setPreview(data)
+        if (!cancelled) {
+          setPreview(data)
+          if (data.counts) setAudienceCounts(data.counts)
+        }
       } catch {
         if (!cancelled) setPreview(null)
       } finally {
@@ -526,14 +534,38 @@ export default function AdminBroadcastPage() {
                         key={m}
                         type="button"
                         onClick={() => setMode(m)}
-                        className="rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition"
+                        className="rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5"
                         style={{
                           background: mode === m ? "var(--accent)" : "var(--bg-input)",
                           color: mode === m ? "var(--accent-contrast)" : "var(--text-secondary)",
                           border: "1px solid var(--border)",
                         }}
                       >
-                        {m === "SUBSCRIBED" ? "Subscribers" : m === "ALL" ? "All Users" : "Specific Users"}
+                        <span>
+                          {m === "SUBSCRIBED" ? "Subscribers" : m === "ALL" ? "All Users" : "Specific Users"}
+                        </span>
+                        {m === "SUBSCRIBED" && audienceCounts?.subscribers !== undefined && (
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                            style={{
+                              background: mode === m ? "rgba(0,0,0,0.15)" : "var(--bg-elevated)",
+                              color: mode === m ? "var(--accent-contrast)" : "var(--accent)",
+                            }}
+                          >
+                            {audienceCounts.subscribers}
+                          </span>
+                        )}
+                        {m === "ALL" && audienceCounts?.allUsers !== undefined && (
+                          <span
+                            className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                            style={{
+                              background: mode === m ? "rgba(0,0,0,0.15)" : "var(--bg-elevated)",
+                              color: mode === m ? "var(--accent-contrast)" : "var(--accent)",
+                            }}
+                          >
+                            {audienceCounts.allUsers}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>

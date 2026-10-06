@@ -56,10 +56,17 @@ export async function POST(
             metallic: true,
           },
         },
+        paidOrder: {
+          select: {
+            status: true,
+          },
+        },
         event: {
           select: {
             id: true,
             title: true,
+            status: true,
+            archived: true,
             eventDate: true,
             eventEndAt: true,
             joinOpensAt: true,
@@ -83,13 +90,37 @@ export async function POST(
     const answers = (registration.answers as Answer[]) ?? []
     const attendeeName = getNameFromAnswers(answers, questions) || 'Attendee'
 
-    if (registration.status !== 'confirmed') {
+    if (registration.event.status === 'cancelled' || registration.event.archived) {
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'EVENT_CANCELLED')
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'EVENT_CANCELLED',
+          message: 'Virtual access is no longer available because this event has been cancelled.',
+        },
+        { status: 403 }
+      )
+    }
+
+    if (registration.status?.toLowerCase() !== 'confirmed') {
       await logEntry(eventId, lookupTicketId, attendeeName, false, 'NOT_CONFIRMED')
       return NextResponse.json(
         {
           success: false,
           reason: 'NOT_CONFIRMED',
           message: 'Your registration is not confirmed.',
+        },
+        { status: 403 }
+      )
+    }
+
+    if (registration.event.isPaid && registration.paidOrder && registration.paidOrder.status !== 'PAID') {
+      await logEntry(eventId, lookupTicketId, attendeeName, false, 'PAYMENT_REQUIRED')
+      return NextResponse.json(
+        {
+          success: false,
+          reason: 'PAYMENT_REQUIRED',
+          message: 'Complete your payment to access this virtual event.',
         },
         { status: 403 }
       )
@@ -246,10 +277,17 @@ export async function POST(
           metallic: true,
         },
       },
+      paidOrder: {
+        select: {
+          status: true,
+        },
+      },
       event: {
         select: {
           id: true,
           title: true,
+          status: true,
+          archived: true,
           eventDate: true,
           eventEndAt: true,
           joinOpensAt: true,
@@ -280,13 +318,37 @@ export async function POST(
   const answers = (registration.answers as Answer[]) ?? []
   const attendeeName = getNameFromAnswers(answers, questions) || 'Attendee'
 
-  if (registration.status !== 'confirmed') {
+  if (registration.event.status === 'cancelled' || registration.event.archived) {
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'EVENT_CANCELLED')
+    return NextResponse.json(
+      {
+        success: false,
+        reason: 'EVENT_CANCELLED',
+        message: 'Virtual access is no longer available because this event has been cancelled.',
+      },
+      { status: 403 }
+    )
+  }
+
+  if (registration.status?.toLowerCase() !== 'confirmed') {
     await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'NOT_CONFIRMED')
     return NextResponse.json(
       {
         success: false,
         reason: 'NOT_CONFIRMED',
         message: `Your registration status is ${registration.status}. Only confirmed attendees can join.`,
+      },
+      { status: 403 }
+    )
+  }
+
+  if (registration.event.isPaid && registration.paidOrder && registration.paidOrder.status !== 'PAID') {
+    await logEntry(eventId, legacyLookupTicketId || qrTicketId, attendeeName, false, 'PAYMENT_REQUIRED')
+    return NextResponse.json(
+      {
+        success: false,
+        reason: 'PAYMENT_REQUIRED',
+        message: 'Complete your payment to access this virtual event.',
       },
       { status: 403 }
     )

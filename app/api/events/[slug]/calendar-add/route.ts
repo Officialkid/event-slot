@@ -46,7 +46,7 @@ export async function POST(
         durationMins: getDurationMins(event.eventDate, event.eventEndAt),
         eventUrl,
         isVirtual,
-        meetingLink,
+        meetingLink:  null,
       });
 
       if (result.success) {

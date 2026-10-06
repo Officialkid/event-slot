@@ -99,6 +99,76 @@ function sanitizeName(rawName: string | null | undefined): string {
   return first.charAt(0).toUpperCase() + first.slice(1)
 }
 
+async function getSubscribedRecipients(): Promise<{ id: string; name: string | null; email: string; marketingConsent?: boolean }[]> {
+  const [users, registrations] = await Promise.all([
+    prisma.user.findMany({
+      where: { suspended: false, email: { not: null }, marketingConsent: true },
+      select: { id: true, name: true, email: true, marketingConsent: true },
+    }),
+    prisma.registration.findMany({
+      where: { consentMarketing: true, attendeeEmail: { not: null } },
+      select: { id: true, attendeeEmail: true, answers: true },
+      orderBy: { submittedAt: 'desc' },
+    }),
+  ])
+
+  const emailMap = new Map<string, { id: string; name: string | null; email: string; marketingConsent?: boolean }>()
+
+  // 1. Organizers & registered users with marketing consent
+  for (const user of users) {
+    if (user.email) {
+      const clean = user.email.trim().toLowerCase()
+      if (isDeliverableEmail(clean)) {
+        emailMap.set(clean, {
+          id: user.id,
+          name: user.name,
+          email: user.email.trim(),
+          marketingConsent: true,
+        })
+      }
+    }
+  }
+
+  // 2. Event attendees who checked promotional consent
+  for (const reg of registrations) {
+    if (!reg.attendeeEmail) continue
+    const clean = reg.attendeeEmail.trim().toLowerCase()
+    if (!emailMap.has(clean) && isDeliverableEmail(clean)) {
+      let attendeeName: string | null = null
+      if (Array.isArray(reg.answers)) {
+        const nameAns = (reg.answers as { questionId?: string; value?: string }[]).find(
+          (a) => typeof a.value === 'string' && a.value.trim().length > 1
+        )
+        if (nameAns?.value) attendeeName = nameAns.value.trim()
+      }
+      emailMap.set(clean, {
+        id: `reg_${reg.id}`,
+        name: attendeeName,
+        email: reg.attendeeEmail.trim(),
+        marketingConsent: true,
+      })
+    }
+  }
+
+  return Array.from(emailMap.values())
+}
+
+async function getAllPlatformUsers(): Promise<{ id: string; name: string | null; email: string; marketingConsent?: boolean }[]> {
+  const users = await prisma.user.findMany({
+    where: { suspended: false, email: { not: null } },
+    select: { id: true, name: true, email: true, marketingConsent: true },
+  })
+
+  return users
+    .filter((u): u is { id: string; name: string | null; email: string; marketingConsent: boolean } => Boolean(u.email && isDeliverableEmail(u.email)))
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email.trim(),
+      marketingConsent: Boolean(u.marketingConsent),
+    }))
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -109,31 +179,36 @@ export async function GET(req: NextRequest) {
 
     const mode = parseMode(req.nextUrl.searchParams.get('mode'))
 
-    if (mode === 'INDIVIDUAL') {
-      return NextResponse.json({
-        recipientCount: 0,
-        sampleRecipients: [],
-        mode,
-      })
-    }
-
-    const where = mode === 'SUBSCRIBED'
-      ? { marketingConsent: true, email: { not: null }, suspended: false }
-      : { email: { not: null }, suspended: false }
-
-    const [recipientCount, sampleRecipients] = await Promise.all([
-      prisma.user.count({ where }),
-      prisma.user.findMany({
-        where,
-        select: { id: true, name: true, email: true, marketingConsent: true },
-        take: 5,
-      }),
+    const [subscribedRecipients, allUsersRecipients] = await Promise.all([
+      getSubscribedRecipients(),
+      getAllPlatformUsers(),
     ])
+
+    const totalSubscribers = subscribedRecipients.length
+    const totalAllUsers = allUsersRecipients.length
+
+    let sampleRecipients: { id: string; name: string | null; email: string; marketingConsent?: boolean }[] = []
+    let recipientCount = 0
+
+    if (mode === 'INDIVIDUAL') {
+      recipientCount = 0
+      sampleRecipients = []
+    } else if (mode === 'SUBSCRIBED') {
+      recipientCount = totalSubscribers
+      sampleRecipients = subscribedRecipients.slice(0, 5)
+    } else {
+      recipientCount = totalAllUsers
+      sampleRecipients = allUsersRecipients.slice(0, 5)
+    }
 
     return NextResponse.json({
       recipientCount,
       sampleRecipients,
       mode,
+      counts: {
+        subscribers: totalSubscribers,
+        allUsers: totalAllUsers,
+      },
     })
   } catch (error) {
     console.error('Error fetching broadcast preview:', error)
@@ -195,14 +270,10 @@ export async function POST(req: NextRequest) {
         where: { id: { in: specificUserIds }, suspended: false, email: { not: null } },
         select: { id: true, name: true, email: true },
       })
+    } else if (mode === 'SUBSCRIBED') {
+      recipients = await getSubscribedRecipients()
     } else {
-      const where = mode === 'SUBSCRIBED'
-        ? { suspended: false, email: { not: null }, marketingConsent: true }
-        : { suspended: false, email: { not: null } }
-      recipients = await prisma.user.findMany({
-        where,
-        select: { id: true, name: true, email: true },
-      })
+      recipients = await getAllPlatformUsers()
     }
 
     const validRecipients = recipients.filter(

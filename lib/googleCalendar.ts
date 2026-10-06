@@ -138,8 +138,7 @@ async function getCalendarClient(userId: string) {
   return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
-// Build the Google Calendar event object from an EventSlot event
-function buildCalendarEvent(params: {
+export function buildCalendarEvent(params: {
   title:        string;
   description:  string;
   location:     string | null;
@@ -148,8 +147,10 @@ function buildCalendarEvent(params: {
   eventUrl:     string;
   isVirtual:    boolean;
   meetingLink?: string | null;
+  role?:        'organiser' | 'attendee';
 }) {
   const endDate = new Date(params.startDate.getTime() + params.durationMins * 60_000);
+  const isAttendee = params.role === 'attendee';
 
   return {
     summary:     params.title,
@@ -157,7 +158,9 @@ function buildCalendarEvent(params: {
       params.description,
       '',
       `Event page: ${params.eventUrl}`,
-      params.meetingLink ? `Meeting link: ${params.meetingLink}` : '',
+      params.isVirtual && isAttendee
+        ? `Virtual Access: Your virtual event access will unlock through your EventSlot ticket when the access window opens: ${params.eventUrl}`
+        : params.meetingLink ? `Meeting link: ${params.meetingLink}` : '',
     ].filter(Boolean).join('\n'),
     location: params.location ?? (params.isVirtual ? 'Online' : undefined),
     start: {
@@ -168,7 +171,7 @@ function buildCalendarEvent(params: {
       dateTime: endDate.toISOString(),
       timeZone: 'Africa/Nairobi',
     },
-    ...(params.meetingLink ? {
+    ...(!isAttendee && params.meetingLink ? {
       conferenceData: {
         entryPoints: [{
           entryPointType: 'video',
@@ -192,6 +195,132 @@ function buildCalendarEvent(params: {
   };
 }
 
+// GENERATE GOOGLE MEET CONFERENCE — 1-click room creation for organizers
+export async function generateGoogleMeetConference(params: {
+  userId:       string;
+  title:        string;
+  description?: string;
+  startDate:    Date;
+  durationMins: number;
+}): Promise<{ success: boolean; meetingUrl?: string; googleEventId?: string; error?: string }> {
+  if (!isCalendarConfigured()) {
+    return { success: false, error: 'Google Calendar integration is not configured on the server.' };
+  }
+  const calendar = await getCalendarClient(params.userId);
+  if (!calendar) {
+    return { success: false, error: 'Google Calendar is not connected. Please connect your Google Calendar in Settings or paste a link manually.' };
+  }
+
+  try {
+    const endDate = new Date(params.startDate.getTime() + params.durationMins * 60_000);
+    const requestId = `meet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    const response = await calendar.events.insert({
+      calendarId:            'primary',
+      conferenceDataVersion: 1,
+      requestBody: {
+        summary:     params.title || 'EventSlot Virtual Event',
+        description: [
+          params.description || '',
+          '',
+          'Managed via EventSlot (https://www.eventsslot.com)',
+        ].filter(Boolean).join('\n'),
+        start: {
+          dateTime: params.startDate.toISOString(),
+          timeZone: 'Africa/Nairobi',
+        },
+        end: {
+          dateTime: endDate.toISOString(),
+          timeZone: 'Africa/Nairobi',
+        },
+        conferenceData: {
+          createRequest: {
+            requestId,
+            conferenceSolutionKey: {
+              type: 'hangoutsMeet',
+            },
+          },
+        },
+      },
+    });
+
+    const hangoutLink =
+      response.data.hangoutLink ||
+      response.data.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri;
+    const googleEventId = response.data.id;
+
+    if (!hangoutLink || !googleEventId) {
+      return { success: false, error: 'Google did not return a valid Google Meet link. Please try again or paste a link manually.' };
+    }
+
+    return {
+      success: true,
+      meetingUrl: hangoutLink,
+      googleEventId,
+    };
+  } catch (err: unknown) {
+    const e = err as { code?: number; message?: string };
+    console.error('[calendar] generateGoogleMeetConference failed:', e.message);
+    return { success: false, error: e.message || 'Failed to generate Google Meet room.' };
+  }
+}
+
+// SYNC ATTENDEE TO GOOGLE CALENDAR GUEST LIST — Guarantees auto-admission to Google Meet
+export async function syncAttendeeToGoogleCalendar(params: {
+  organizerUserId: string;
+  googleEventId:   string;
+  calendarId?:     string;
+  attendeeEmail:   string;
+  attendeeName?:   string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!isCalendarConfigured()) return { success: false, error: 'Google Calendar not configured' };
+  const calendar = await getCalendarClient(params.organizerUserId);
+  if (!calendar) return { success: false, error: 'Organizer calendar not connected' };
+
+  try {
+    const calendarId = params.calendarId || 'primary';
+    const currentEvent = await calendar.events.get({
+      calendarId,
+      eventId: params.googleEventId,
+    });
+
+    const existingAttendees = currentEvent.data.attendees || [];
+    const normalizedNewEmail = params.attendeeEmail.trim().toLowerCase();
+
+    // Prevent duplicate attendee entries (Section 10.6 & Test 15)
+    const alreadyExists = existingAttendees.some(
+      (a) => a.email?.trim().toLowerCase() === normalizedNewEmail
+    );
+
+    if (alreadyExists) {
+      return { success: true };
+    }
+
+    const updatedAttendees = [
+      ...existingAttendees,
+      {
+        email:       normalizedNewEmail,
+        displayName: params.attendeeName?.trim() || undefined,
+      },
+    ];
+
+    await calendar.events.patch({
+      calendarId,
+      eventId: params.googleEventId,
+      requestBody: {
+        attendees: updatedAttendees,
+      },
+      sendUpdates: 'none', // Do not send standard Google invites since EventSlot handles confirmation emails
+    });
+
+    return { success: true };
+  } catch (err: unknown) {
+    const e = err as { code?: number; message?: string };
+    console.warn('[calendar] syncAttendeeToGoogleCalendar failed:', e.message);
+    return { success: false, error: e.message || 'Failed to sync attendee to Google Calendar.' };
+  }
+}
+
 // CREATE — push an event to a user's Google Calendar
 export async function createCalendarEvent(params: {
   userId:       string;
@@ -213,7 +342,7 @@ export async function createCalendarEvent(params: {
   try {
     const response = await calendar.events.insert({
       calendarId:            'primary',
-      conferenceDataVersion: params.isVirtual ? 1 : 0,
+      conferenceDataVersion: params.isVirtual && params.role === 'organiser' ? 1 : 0,
       requestBody:           buildCalendarEvent(params),
     });
 

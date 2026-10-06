@@ -34,7 +34,7 @@ export function generateOtpCode() {
   return randomInt(100000, 1000000).toString()
 }
 
-export async function issueOtpForEmail(email: string) {
+export async function issueOtpForEmail(email: string, userName?: string) {
   const normalizedEmail = normalizeEmailForOtp(email)
 
   // 30-Second Cooldown Check
@@ -86,7 +86,16 @@ export async function issueOtpForEmail(email: string) {
     },
   })
 
-  await sendEmailOtp({ to: normalizedEmail, otp })
+  let resolvedName = userName
+  if (!resolvedName) {
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      select: { name: true },
+    })
+    if (existingUser?.name) resolvedName = existingUser.name
+  }
+
+  await sendEmailOtp({ to: normalizedEmail, otp, userName: resolvedName })
 
   return { otp, expiresAt }
 }

@@ -1,9 +1,10 @@
-﻿import { getServerSession } from "next-auth"
+import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { PioneerCongratulationsModal } from "@/components/PioneerCongratulationsModal"
 import { WeeklyRankingPopup } from "@/components/WeeklyRankingPopup"
 import { AdminModeBanner } from "@/components/admin/AdminModeBanner"
+import { AccountVerificationBanner } from "@/components/dashboard/AccountVerificationBanner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import DashboardShell from "./_shell"
 
@@ -20,6 +21,10 @@ export default async function DashboardLayout({
   return (
     <ErrorBoundary>
       <AdminModeBanner />
+      <AccountVerificationBanner
+        initialVerified={Boolean(session.user.emailVerified)}
+        email={session.user.email}
+      />
       <div className="admin-mode-aware-layout">
         <DashboardShell>{children}</DashboardShell>
       </div>

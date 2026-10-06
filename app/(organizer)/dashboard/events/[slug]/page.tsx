@@ -9,6 +9,7 @@ import CountdownTimer from "@/components/CountdownTimer"
 import { EventExpiryBanner } from "@/components/EventExpiryBanner"
 import EventImageWithFallback from "@/components/ui/EventImageWithFallback"
 import TicketSettingsCard from "@/components/tickets/TicketSettingsCard"
+import { OrganizerVirtualEventCard } from "@/components/events/OrganizerVirtualEventCard"
 import { EntryDashboard } from "@/components/EntryDashboard"
 import { ScannerHome } from "@/components/scanner/ScannerHome"
 import { EventPassSelector } from "@/components/billing/EventPassSelector"
@@ -1050,18 +1051,20 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
         </div>
 
         {/* Date / Location row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: event.eventType === "VIRTUAL" ? "1fr" : "1fr 1fr", gap: "1rem" }}>
           <div>
             <label style={fieldLabel}>Event start</label>
             <input type="datetime-local" value={eventDate} onChange={e => setEventDate(e.target.value)} style={inputStyle} className="dt-input" />
           </div>
-          <div>
-            <label style={fieldLabel}>Venue / location text</label>
-            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city shown to attendees" style={inputStyle} />
-            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-              This text is shown as the venue. It does not create directions by itself.
-            </p>
-          </div>
+          {event.eventType !== "VIRTUAL" && (
+            <div>
+              <label style={fieldLabel}>Venue / location text</label>
+              <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Venue or city shown to attendees" style={inputStyle} />
+              <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                This text is shown as the venue. It does not create directions by itself.
+              </p>
+            </div>
+          )}
         </div>
 
         <div>
@@ -1113,27 +1116,29 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           </div>
         </div>
 
-        <div>
-          <label style={fieldLabel}>Google Maps directions link</label>
-          <input
-            type="url"
-            value={mapDirectionsUrl}
-            onChange={e => setMapDirectionsUrl(e.target.value)}
-            placeholder="Paste the exact Google Maps share link"
-            style={{ ...inputStyle, maxWidth: 720 }}
-          />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-            Attendees only see Get directions when this organiser-provided link is saved.
-          </p>
-          <a
-            href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
-            target="_blank"
-            rel="noreferrer"
-            style={{ display: "inline-flex", marginTop: "0.75rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.85rem", color: themeAccent, textDecoration: "none", fontSize: "0.78rem", fontWeight: 800, fontFamily: "var(--font-dm-sans)" }}
-          >
-            Search venue on Google Maps
-          </a>
-        </div>
+        {event.eventType !== "VIRTUAL" && (
+          <div>
+            <label style={fieldLabel}>Google Maps directions link</label>
+            <input
+              type="url"
+              value={mapDirectionsUrl}
+              onChange={e => setMapDirectionsUrl(e.target.value)}
+              placeholder="Paste the exact Google Maps share link"
+              style={{ ...inputStyle, maxWidth: 720 }}
+            />
+            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+              Attendees only see Get directions when this organiser-provided link is saved.
+            </p>
+            <a
+              href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: "inline-flex", marginTop: "0.75rem", border: themeBorderSoft, borderRadius: 999, padding: "0.55rem 0.85rem", color: themeAccent, textDecoration: "none", fontSize: "0.78rem", fontWeight: 800, fontFamily: "var(--font-dm-sans)" }}
+            >
+              Search venue on Google Maps
+            </a>
+          </div>
+        )}
 
         <div>
           <label style={fieldLabel}>Entry / contribution note</label>
@@ -1188,39 +1193,41 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           </p>
         </div>
 
-        <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
-          <label style={fieldLabel}>Verifier access code</label>
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            <input
-              type="text"
-              value={event.verifierCode ?? "Code will appear after the next refresh"}
-              readOnly
-              style={{ ...inputStyle, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}
-            />
-            <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
-              Share this code with as many gate verifiers as you need. They can
-              open the EventSlot Verify page, enter the code, and only access ticket
-              scanning for this event.
-            </p>
-            {verifierLink && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const copied = await copyTextInBrowser(verifierLink)
-                  if (copied) {
-                    setVerifierLinkCopied(true)
-                    window.setTimeout(() => setVerifierLinkCopied(false), 2500)
-                  } else {
-                    setError("Couldn't copy the verifier link automatically. Please copy it manually.")
-                  }
-                }}
-                style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, var(--accent) 16%, var(--surface))", color: themeTextPrimary }}
-              >
-                {verifierLinkCopied ? "Copied!" : "Copy verifier link"}
-              </button>
-            )}
+        {event.eventType !== "VIRTUAL" && (
+          <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 14, padding: "1rem" }}>
+            <label style={fieldLabel}>Verifier access code</label>
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              <input
+                type="text"
+                value={event.verifierCode ?? "Code will appear after the next refresh"}
+                readOnly
+                style={{ ...inputStyle, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}
+              />
+              <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                Share this code with as many gate verifiers as you need. They can
+                open the EventSlot Verify page, enter the code, and only access ticket
+                scanning for this event.
+              </p>
+              {verifierLink && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const copied = await copyTextInBrowser(verifierLink)
+                    if (copied) {
+                      setVerifierLinkCopied(true)
+                      window.setTimeout(() => setVerifierLinkCopied(false), 2500)
+                    } else {
+                      setError("Couldn't copy the verifier link automatically. Please copy it manually.")
+                    }
+                  }}
+                  style={{ ...inputStyle, cursor: "pointer", fontWeight: 800, background: "color-mix(in srgb, var(--accent) 16%, var(--surface))", color: themeTextPrimary }}
+                >
+                  {verifierLinkCopied ? "Copied!" : "Copy verifier link"}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label style={fieldLabel}>Event end</label>
@@ -1230,13 +1237,15 @@ function SettingsTab({ event, hasRegistrations, onSaved }: { event: EventData; h
           </p>
         </div>
 
-        <div>
-          <label style={fieldLabel}>Link opens at (optional)</label>
-          <input type="datetime-local" value={joinOpensAt} onChange={e => setJoinOpensAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
-          <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-            If left empty, attendee join access opens 30 minutes before the event start.
-          </p>
-        </div>
+        {event.eventType === "VIRTUAL" && (
+          <div>
+            <label style={fieldLabel}>Virtual Access Window Opens (optional)</label>
+            <input type="datetime-local" value={joinOpensAt} onChange={e => setJoinOpensAt(e.target.value)} style={{ ...inputStyle, maxWidth: 320 }} className="dt-input" />
+            <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+              When attendee &quot;Join Live Event&quot; button unlocks. If left empty, opens 30 minutes before event start.
+            </p>
+          </div>
+        )}
 
         {/* Deadline */}
         <div>
@@ -2590,7 +2599,7 @@ export default function EventDashboardPage() {
           : []),
         { key: "analytics", label: "Analytics" },
         { key: "feedback", label: "Feedback" },
-        { key: "checkin" as TabKey, label: "Verify Ticket" },
+        { key: "checkin" as TabKey, label: eventData.eventType === "VIRTUAL" ? "Virtual Gate" : "Verify Ticket" },
         ...(eventData.canEdit ? [{ key: "settings" as TabKey, label: "Settings" }] : []),
         ...(eventData.canEdit ? [{ key: "team" as TabKey, label: "Team" }] : []),
       ]
@@ -2953,7 +2962,7 @@ export default function EventDashboardPage() {
               </div>
 
               {/* Meta: date, location, deadline */}
-              {(eventData.eventDate || eventData.location || eventData.deadline) && (
+              {(eventData.eventDate || eventData.location || eventData.eventType === "VIRTUAL" || eventData.deadline) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginTop: "0.5rem" }}>
                   {eventData.eventDate && (
                     <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
@@ -2961,12 +2970,17 @@ export default function EventDashboardPage() {
                       {formatDate(eventData.eventDate)}
                     </span>
                   )}
-                  {eventData.location && (
+                  {eventData.eventType === "VIRTUAL" ? (
+                    <span style={{ fontSize: "0.78rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.35rem", fontWeight: 600 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                      Virtual Event (Online)
+                    </span>
+                  ) : eventData.location ? (
                     <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="6.5" r="2.5"/><path d="M8 1C4.686 1 2 3.686 2 7c0 4 6 8 6 8s6-4 6-7c0-3.314-2.686-6-6-6z"/></svg>
                       {eventData.location}
                     </span>
-                  )}
+                  ) : null}
                   {eventData.deadline && (
                     <span style={{ fontSize: "0.78rem", color: isEventPast(eventData) ? "rgba(255,107,107,0.76)" : themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2.5 2"/></svg>
@@ -3338,6 +3352,19 @@ export default function EventDashboardPage() {
                 Email Attendees
               </Link>
             </div>
+
+            {eventData.eventType === "VIRTUAL" && (
+              <OrganizerVirtualEventCard
+                eventSlug={eventData.slug}
+                eventTitle={eventData.title}
+                eventType={eventData.eventType}
+                startDate={eventData.eventDate}
+                joinOpensAt={eventData.joinOpensAt}
+                googleCalendarConnected={eventData.googleCalendarConnected}
+                calendarSynced={eventData.calendarSynced}
+                confirmedCount={eventData.confirmedCount}
+              />
+            )}
 
             <TicketSettingsCard
               eventId={eventData.id}
@@ -4997,11 +5024,11 @@ export default function EventDashboardPage() {
         {activeTab === "checkin" && (
           <div data-tutorial="confirm-attendance">
             <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.3rem", fontWeight: 400, color: themeTextPrimary, margin: "0 0 1.25rem" }}>
-              Ticket Verification & Gate Control
+              {eventData.eventType === "VIRTUAL" ? "Virtual Gate & Online Attendance" : "Ticket Verification & Gate Control"}
             </h2>
 
-            {/* Gate Verifier Quick Access */}
-            {eventData && eventData.verifierCode && (
+            {/* Gate Verifier Quick Access - In-person events only */}
+            {eventData && eventData.eventType !== "VIRTUAL" && eventData.verifierCode && (
               <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1.25rem", marginBottom: "1.5rem" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem" }}>
                   <div>
@@ -5075,13 +5102,13 @@ export default function EventDashboardPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }} className="stat-grid sm:grid-cols-4">
                 <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 10, padding: "1.1rem 1.25rem" }}>
                   <div style={{ fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", marginBottom: "0.5rem" }}>
-                    Actual Attendees
+                    {eventData.eventType === "VIRTUAL" ? "Online Attendees" : "Actual Attendees"}
                   </div>
                   <div style={{ fontSize: "1.6rem", fontFamily: "var(--font-instrument-serif)", color: themeAccent }}>
                     {eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
-                    Admitted at gate
+                    {eventData.eventType === "VIRTUAL" ? "Joined meeting room" : "Admitted at gate"}
                   </div>
                 </div>
 
@@ -5105,7 +5132,7 @@ export default function EventDashboardPage() {
                     {Math.max(0, eventData.confirmedCount - (eventData.checkedInCount ?? confirmed.filter(r => r.checkedIn).length))}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", marginTop: "0.25rem" }}>
-                    Remaining to check in
+                    {eventData.eventType === "VIRTUAL" ? "Remaining to join" : "Remaining to check in"}
                   </div>
                 </div>
 
@@ -5127,19 +5154,33 @@ export default function EventDashboardPage() {
 
             {eventData && <EntryDashboard eventId={eventData.id} />}
 
-            <div style={{ marginTop: "1.5rem" }}>
-              <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: themeTextSecondary, margin: "0 0 1rem" }}>
-                Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
-              </p>
+            {eventData.eventType !== "VIRTUAL" ? (
+              <div style={{ marginTop: "1.5rem" }}>
+                <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "0.84rem", color: themeTextSecondary, margin: "0 0 1rem" }}>
+                  Choose scan mode. Both Quick Scan and Deep Scan support camera scanning, uploaded ticket images, and manual lookup by ticket code or attendee email/name.
+                </p>
 
-              <ScannerHome
-                eventSlug={slug}
-                accessToken={token || eventData.dashboardToken}
-                onVerified={() => {
-                  void fetchDashboard()
-                }}
-              />
-            </div>
+                <ScannerHome
+                  eventSlug={slug}
+                  accessToken={token || eventData.dashboardToken}
+                  onVerified={() => {
+                    void fetchDashboard()
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ background: themeSurface, border: themeBorderSoft, borderRadius: 14, padding: "1.25rem", marginTop: "1.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  <span style={{ fontSize: "0.88rem", fontWeight: 600, color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                    Automated Virtual Gate Admission
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                  Attendees enter the virtual room directly through their ticket pass when the access window opens. Each entry is cryptographically authorized and logged in the tracker above. No physical scanners or door staff are needed.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

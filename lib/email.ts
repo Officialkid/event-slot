@@ -1134,33 +1134,65 @@ export async function sendPasswordResetEmail({
 export async function sendEmailOtp({
   to,
   otp,
+  userName,
 }: {
   to: string
   otp: string
+  userName?: string
 }) {
+  const digits = otp.split('')
+  const recipientName = userName ? userName.trim() : 'there'
+
   await sendEmail({
     from: 'EventSlot Auth <notifications@eventsslot.com>',
     category: 'transactional',
     to,
-    subject: `${otp} - Your EventSlot verification code`,
+    subject: `OTP: ${otp} is your EventSlot verification code`,
     html: `
-      <div style="background:#0A0A0A;padding:40px;font-family:sans-serif;max-width:400px;">
+      <div style="background:#0A0A0A;padding:40px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:440px;margin:0 auto;color:#F0EDE6;border-radius:16px;border:1px solid rgba(255,255,255,0.08);">
         <div style="margin-bottom:24px;">
-          <span style="font-size:20px;font-weight:bold;color:#fff;">Event</span>
-          <span style="font-size:20px;font-weight:bold;color:#C8F55A;">Slot</span>
+          <span style="font-size:22px;font-weight:700;color:#FFFFFF;letter-spacing:-0.02em;">Event</span>
+          <span style="font-size:22px;font-weight:700;color:#C8F55A;letter-spacing:-0.02em;">Slot</span>
         </div>
-        <h2 style="color:#fff;margin-bottom:8px;">Verify your email</h2>
-        <p style="color:#A3A3A3;font-size:14px;margin-bottom:24px;">
-          Enter this code to verify your email address.
-          It expires in 10 minutes.
+
+        <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#C8F55A;margin:0 0 8px;">
+          Code Requested
         </p>
-        <div style="background:#141414;border:2px solid #C8F55A;border-radius:12px;
-                    padding:20px;text-align:center;margin-bottom:24px;">
-          <span style="font-size:36px;font-weight:bold;color:#C8F55A;
-                       letter-spacing:8px;">${otp}</span>
+        <h2 style="color:#FFFFFF;margin:0 0 10px;font-size:20px;font-weight:600;line-height:1.3;">
+          Your login verification code
+        </h2>
+        <p style="color:#A3A3A3;font-size:14px;line-height:1.5;margin:0 0 20px;">
+          Dear ${recipientName}, your login code for <a href="https://www.eventsslot.com" style="color:#C8F55A;text-decoration:none;">https://www.eventsslot.com</a> is <strong>${otp}</strong>. It&apos;s valid for 10 minutes.
+        </p>
+
+        <!-- Digit Boxes (matches the Gmail & eCitizen Quick Action style) -->
+        <div style="background:#141414;border:1px solid rgba(200,245,90,0.3);border-radius:14px;padding:22px 14px;text-align:center;margin-bottom:20px;">
+          <table align="center" border="0" cellpadding="0" cellspacing="8" style="margin:0 auto;">
+            <tr>
+              ${digits
+                .map(
+                  (d) => `
+                <td style="width:42px;height:50px;background:#1F1F1F;border:1.5px solid rgba(200,245,90,0.5);border-radius:10px;text-align:center;vertical-align:middle;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:24px;font-weight:800;color:#C8F55A;">
+                  ${d}
+                </td>
+              `
+                )
+                .join('')}
+            </tr>
+          </table>
+          <p style="font-size:12px;color:#737373;margin:14px 0 0;font-family:sans-serif;">
+            Direct code: <span style="font-family:monospace;color:#FFFFFF;font-weight:700;letter-spacing:2px;">${otp}</span>
+          </p>
         </div>
-        <p style="color:#525252;font-size:12px;">
-          If you did not request this, ignore this email.
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;margin-bottom:20px;">
+          <p style="margin:0;font-size:12px;color:#A3A3A3;line-height:1.45;">
+            🔒 If you did not initiate this login, please ignore this message and do <strong>NOT</strong> share the code with anyone. EventSlot staff will never ask for your code.
+          </p>
+        </div>
+
+        <p style="color:#525252;font-size:11px;margin:0;line-height:1.4;">
+          This is an automated security notification sent to ${to}.
         </p>
       </div>
     `,

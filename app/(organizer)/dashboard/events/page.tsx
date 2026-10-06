@@ -24,6 +24,7 @@ type OrgEvent = {
   status: string
   eventDate: string | null
   location: string | null
+  eventType?: "PHYSICAL" | "VIRTUAL"
   dataExpired: boolean
   eventPassTier?: string | null
   eventPassStatus?: string | null
@@ -44,6 +45,7 @@ type OrgGroupBooking = {
     slug: string
     eventDate: string | null
     location: string | null
+    eventType?: "PHYSICAL" | "VIRTUAL"
   }
 }
 
@@ -744,11 +746,11 @@ function EventCard({
             )}
 
             {/* Date / location */}
-            {(event.eventDate || event.location) && (
+            {(event.eventDate || event.location || event.eventType === "VIRTUAL") && (
               <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                 {event.eventDate && formatDate(event.eventDate)}
-                {event.eventDate && event.location && " · "}
-                {event.location}
+                {event.eventDate && (event.eventType === "VIRTUAL" || event.location) && " · "}
+                {event.eventType === "VIRTUAL" ? "💻 Virtual Event" : event.location}
               </p>
             )}
           </div>
@@ -1044,11 +1046,15 @@ export default function DashboardEventsPage() {
                       <p style={{ fontSize: "0.84rem", color: "var(--text-secondary)", margin: 0 }}>
                         Event: <strong style={{ color: "var(--text-primary)" }}>{b.event.title}</strong>
                       </p>
-                      {b.event.location && (
+                      {b.event.eventType === "VIRTUAL" ? (
+                        <p style={{ fontSize: "0.78rem", color: "var(--accent)", margin: "0.25rem 0 0", fontWeight: 600 }}>
+                          💻 Virtual Event (Online)
+                        </p>
+                      ) : b.event.location ? (
                         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.25rem 0 0" }}>
                           📍 {b.event.location}
                         </p>
-                      )}
+                      ) : null}
                     </div>
 
                     <div style={{ textAlign: "right" }}>

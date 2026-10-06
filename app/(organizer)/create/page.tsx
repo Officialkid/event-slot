@@ -148,6 +148,11 @@ export default function CreateEventPage() {
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
   const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
   const [virtualLink, setVirtualLink] = useState("")
+  const [virtualPlatform, setVirtualPlatform] = useState<"MEET" | "ZOOM" | "TEAMS" | "YOUTUBE" | "OTHER">("MEET")
+  const [generatingMeet, setGeneratingMeet] = useState(false)
+  const [meetGenNotice, setMeetGenNotice] = useState<{ type: "success" | "error" | "auth"; message: string } | null>(null)
+  const [generatedGoogleEventId, setGeneratedGoogleEventId] = useState<string | null>(null)
+  const [accessWindowPreset, setAccessWindowPreset] = useState<"30_MINS_BEFORE" | "15_MINS_BEFORE" | "1_HOUR_BEFORE" | "AT_START" | "CUSTOM">("30_MINS_BEFORE")
   const [location, setLocation] = useState("")
   const [mapDirectionsUrl, setMapDirectionsUrl] = useState("")
   const [eventDate, setEventDate] = useState("")
@@ -354,6 +359,39 @@ export default function CreateEventPage() {
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000)
     } catch {
       window.location.assign(`/api/events/${eventInfo.slug}/qr`)
+    }
+  }
+
+  const handleGenerateGoogleMeet = async () => {
+    setGeneratingMeet(true)
+    setMeetGenNotice(null)
+    try {
+      const res = await fetch("/api/events/virtual/generate-meet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || "EventSlot Virtual Event",
+          description: description || undefined,
+          startDate: eventDate || new Date().toISOString(),
+          durationMins: 60,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success && data.meetingUrl) {
+        setVirtualLink(data.meetingUrl)
+        if (data.googleEventId) setGeneratedGoogleEventId(data.googleEventId)
+        setMeetGenNotice({ type: "success", message: `✓ Google Meet room generated: ${data.meetingUrl}` })
+      } else {
+        const isAuthError = data.error?.toLowerCase().includes("not connected")
+        setMeetGenNotice({
+          type: isAuthError ? "auth" : "error",
+          message: data.error || "Failed to generate Google Meet room.",
+        })
+      }
+    } catch {
+      setMeetGenNotice({ type: "error", message: "Network error while connecting to Google Calendar." })
+    } finally {
+      setGeneratingMeet(false)
     }
   }
 
@@ -632,11 +670,12 @@ export default function CreateEventPage() {
     }
     if (eventType === "VIRTUAL") {
       if (!virtualLink.trim()) {
-        setStepError("A Google Meet link is required for virtual events.")
+        setStepError("A meeting link is required for virtual events.")
         return false
       }
-      if (!virtualLink.toLowerCase().includes("meet.google.com/")) {
-        setStepError("Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij).")
+      const norm = virtualLink.trim().toLowerCase()
+      if (!norm.startsWith("http://") && !norm.startsWith("https://") && !norm.includes(".")) {
+        setStepError("Please provide a valid meeting link (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).")
         return false
       }
     }
@@ -735,8 +774,21 @@ export default function CreateEventPage() {
           recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : undefined,
           registrationOpensDays: isRecurring ? registrationOpensDays : undefined,
-          registrationOpensTime: isRecurring ? registrationOpensTime : undefined,
-          joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
+          joinOpensAt: eventType === "VIRTUAL"
+            ? (accessWindowPreset === "CUSTOM" && joinOpensAt
+                ? new Date(joinOpensAt).toISOString()
+                : eventDate
+                ? (() => {
+                    const startMs = new Date(eventDate).getTime()
+                    const offsetMs =
+                      accessWindowPreset === "15_MINS_BEFORE" ? 15 * 60 * 1000 :
+                      accessWindowPreset === "1_HOUR_BEFORE" ? 60 * 60 * 1000 :
+                      accessWindowPreset === "AT_START" ? 0 : 30 * 60 * 1000
+                    return new Date(startMs - offsetMs).toISOString()
+                  })()
+                : undefined)
+            : undefined,
+          googleEventId: generatedGoogleEventId || undefined,
           location: location || undefined,
           mapDirectionsUrl: mapDirectionsUrl || undefined,
           entryFeeLabel: entryFeeLabel || undefined,
@@ -1358,10 +1410,15 @@ export default function CreateEventPage() {
 
                 {/* Location Card */}
                 <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                      Location
-                    </h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                        {eventType === "PHYSICAL" ? "Event Location & Venue" : "Virtual Event & Access Room"}
+                      </h3>
+                      <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                        {eventType === "PHYSICAL" ? "Specify where attendees should gather in person." : "Set up your online meeting room with automatic attendee access."}
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -1386,7 +1443,7 @@ export default function CreateEventPage() {
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
-                        💻 Google Meet
+                        💻 Virtual Event
                       </button>
                     </div>
                   </div>
@@ -1435,23 +1492,121 @@ export default function CreateEventPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
+                      {/* Platform selector */}
+                      <div>
+                        <label className="block text-[0.75rem] font-semibold mb-1.5" style={labelStyle}>
+                          Virtual Meeting Platform
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {[
+                            { key: "MEET", label: "Google Meet" },
+                            { key: "ZOOM", label: "Zoom" },
+                            { key: "TEAMS", label: "Teams" },
+                            { key: "YOUTUBE", label: "YouTube Live" },
+                            { key: "OTHER", label: "Custom Link" },
+                          ].map((p) => (
+                            <button
+                              key={p.key}
+                              type="button"
+                              onClick={() => setVirtualPlatform(p.key as any)}
+                              className="rounded-xl border py-2 px-2 text-xs font-semibold text-center transition"
+                              style={
+                                virtualPlatform === p.key
+                                  ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))", color: "var(--text-primary)" }
+                                  : { borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }
+                              }
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 1-Click Google Meet Generator Banner */}
+                      {virtualPlatform === "MEET" && (
+                        <div className="p-3.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 space-y-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                              <p className="text-xs font-bold text-emerald-600">Google Meet Instant Integration</p>
+                              <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                                Auto-generates meeting room & whitelists registered attendees on your calendar for instant auto-admission.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleGenerateGoogleMeet}
+                              disabled={generatingMeet}
+                              className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition disabled:opacity-50"
+                            >
+                              {generatingMeet ? "Generating Room..." : "✨ Generate Google Meet Room"}
+                            </button>
+                          </div>
+                          {meetGenNotice && (
+                            <div className={`p-2 rounded-lg text-xs ${meetGenNotice.type === "success" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                              {meetGenNotice.message}
+                              {meetGenNotice.type === "auth" && (
+                                <a href="/api/auth/google-calendar" className="ml-2 font-bold underline">
+                                  Connect Google Calendar →
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Meeting URL input */}
                       <div>
                         <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                          Google Meet Meeting Link <span style={{ color: "#EF4444" }}>*</span>
+                          {virtualPlatform === "MEET" ? "Google Meet Link" : virtualPlatform === "ZOOM" ? "Zoom Meeting URL" : virtualPlatform === "TEAMS" ? "Microsoft Teams URL" : virtualPlatform === "YOUTUBE" ? "YouTube Live Stream URL" : "Virtual Meeting / Stream URL"} <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
                           type="url"
                           required
-                          placeholder="https://meet.google.com/abc-defg-hij"
+                          placeholder={
+                            virtualPlatform === "MEET" ? "https://meet.google.com/abc-defg-hij" :
+                            virtualPlatform === "ZOOM" ? "https://zoom.us/j/123456789" :
+                            virtualPlatform === "TEAMS" ? "https://teams.microsoft.com/l/meetup-join/..." :
+                            virtualPlatform === "YOUTUBE" ? "https://www.youtube.com/watch?v=..." :
+                            "https://..."
+                          }
                           value={virtualLink}
                           onChange={(e) => setVirtualLink(e.target.value)}
                           className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
                           style={inputStyle}
                         />
                         <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
-                          🔒 Secured: Meeting links are only revealed to verified ticket holders.
+                          🔒 Secured: Meeting links are encrypted with AES-256 and only revealed to verified ticket holders.
                         </p>
+                      </div>
+
+                      {/* Access Opening Window */}
+                      <div className="pt-1">
+                        <label className="block text-[0.75rem] font-semibold mb-1.5" style={labelStyle}>
+                          When should attendees be allowed to join?
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {[
+                            { key: "30_MINS_BEFORE", label: "30 mins before (Default)" },
+                            { key: "15_MINS_BEFORE", label: "15 mins before" },
+                            { key: "1_HOUR_BEFORE", label: "1 hour before" },
+                            { key: "AT_START", label: "At event start" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => setAccessWindowPreset(opt.key as any)}
+                              className="rounded-xl border py-2 px-2 text-xs font-semibold text-center transition"
+                              style={
+                                accessWindowPreset === opt.key
+                                  ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))", color: "var(--text-primary)" }
+                                  : { borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }
+                              }
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1474,51 +1629,53 @@ export default function CreateEventPage() {
             {/* ── STEP 2: TICKETS & ACCESS ── */}
             {currentStep === 2 && (
               <div className="space-y-5">
-                {/* Access Type (RSVP vs Walk-in) */}
-                <div className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                  <h3 className="text-[1.1rem] font-semibold mb-3" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                    Event Access Type
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setAccessType("REGISTRATION")}
-                      className="rounded-[12px] border p-4 text-left transition"
-                      style={
-                        accessType === "REGISTRATION"
-                          ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
-                          : { borderColor: "var(--border)", background: "var(--surface-2)" }
-                      }
-                    >
-                      <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
-                        <span>{accessType === "REGISTRATION" ? "◉" : "○"}</span>
-                        <span>Registration & Tickets</span>
-                      </div>
-                      <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                        Attendees register in advance and receive a digital ticket pass with QR code.
-                      </p>
-                    </button>
+                {/* Access Type (RSVP vs Walk-in) - Only relevant for Physical in-person events */}
+                {eventType === "PHYSICAL" && (
+                  <div className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <h3 className="text-[1.1rem] font-semibold mb-3" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      Event Access Type
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setAccessType("REGISTRATION")}
+                        className="rounded-[12px] border p-4 text-left transition"
+                        style={
+                          accessType === "REGISTRATION"
+                            ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
+                            : { borderColor: "var(--border)", background: "var(--surface-2)" }
+                        }
+                      >
+                        <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                          <span>{accessType === "REGISTRATION" ? "◉" : "○"}</span>
+                          <span>Registration &amp; Tickets</span>
+                        </div>
+                        <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          Attendees register in advance and receive a digital ticket pass with QR code.
+                        </p>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setAccessType("WALK_IN")}
-                      className="rounded-[12px] border p-4 text-left transition"
-                      style={
-                        accessType === "WALK_IN"
-                          ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
-                          : { borderColor: "var(--border)", background: "var(--surface-2)" }
-                      }
-                    >
-                      <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
-                        <span>{accessType === "WALK_IN" ? "◉" : "○"}</span>
-                        <span>Walk-In Check-In</span>
-                      </div>
-                      <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                        Free and open admission. Attendees scan a door QR code to check in instantly.
-                      </p>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setAccessType("WALK_IN")}
+                        className="rounded-[12px] border p-4 text-left transition"
+                        style={
+                          accessType === "WALK_IN"
+                            ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))" }
+                            : { borderColor: "var(--border)", background: "var(--surface-2)" }
+                        }
+                      >
+                        <div className="flex items-center gap-2 font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                          <span>{accessType === "WALK_IN" ? "◉" : "○"}</span>
+                          <span>Walk-In Check-In</span>
+                        </div>
+                        <p className="text-xs mt-2" style={{ color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          Free and open admission. Attendees scan a door QR code to check in instantly.
+                        </p>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Capacity & Pricing Card */}
                 <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>

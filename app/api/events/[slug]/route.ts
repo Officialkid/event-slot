@@ -8,7 +8,7 @@ import { purgeUserCache } from '@/lib/cache'
 import { hasOrganiserAccess } from '@/lib/adminMode'
 import { isAdminEmail } from '@/lib/isAdmin'
 import { updateCalendarEvent, cancelCalendarEvent } from '@/lib/googleCalendar'
-import { decrypt } from '@/lib/encrypt'
+import { decrypt, encrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
 import { parseEventContact, validateAndEncodeEventContact } from '@/lib/eventContact'
 import { getEffectiveEventPlan, syncEventPassStatusForEvent } from '@/lib/eventPasses'
@@ -283,6 +283,68 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       return NextResponse.json({ success: true })
     }
 
+    if (action === 'update_virtual_link') {
+      const rawUrl = typeof body.virtualLink === 'string' ? body.virtualLink.trim() : ''
+      if (!rawUrl) {
+        return NextResponse.json({ success: false, error: 'Meeting link cannot be empty.' }, { status: 400 })
+      }
+      let normalizedUrl = rawUrl
+      if (!/^https?:\/\//i.test(normalizedUrl)) {
+        normalizedUrl = `https://${normalizedUrl}`
+      }
+      try {
+        const parsedUrl = new URL(normalizedUrl)
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Invalid protocol')
+      } catch {
+        return NextResponse.json({ success: false, error: 'Invalid meeting link URL.' }, { status: 400 })
+      }
+
+      const encrypted = encrypt(normalizedUrl)
+      const nextJoinOpensAt = body.joinOpensAt ? new Date(body.joinOpensAt) : event.joinOpensAt
+
+      await prisma.event.update({
+        where: { slug },
+        data: {
+          virtualLink: encrypted.encrypted,
+          virtualLinkIv: encrypted.iv,
+          ...(nextJoinOpensAt ? { joinOpensAt: nextJoinOpensAt } : {}),
+        },
+      })
+
+      if (event.organizerId && event.eventDate) {
+        updateCalendarEvent({
+          userId: event.organizerId,
+          eventSlotId: event.id,
+          role: 'organiser',
+          title: `[EventSlot] ${event.title}`,
+          description: `${event.description ?? ''}\n\nManage: ${APP_URL}/dashboard/events/${event.slug}`,
+          location: event.location,
+          startDate: event.eventDate,
+          durationMins: getDurationMins(event.eventDate, event.eventEndAt),
+          eventUrl: `${APP_URL}/dashboard/events/${event.slug}`,
+          isVirtual: true,
+          meetingLink: normalizedUrl,
+        }).catch(console.error)
+      }
+
+      return NextResponse.json({ success: true, message: 'Meeting link updated successfully.' })
+    }
+
+    if (action === 'update_join_opens_at') {
+      if (!body.joinOpensAt) {
+        return NextResponse.json({ success: false, error: 'joinOpensAt is required.' }, { status: 400 })
+      }
+      const parsedDate = new Date(body.joinOpensAt)
+      if (Number.isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ success: false, error: 'Invalid date format.' }, { status: 400 })
+      }
+      await prisma.event.update({
+        where: { slug },
+        data: { joinOpensAt: parsedDate },
+      })
+      return NextResponse.json({ success: true, joinOpensAt: parsedDate.toISOString() })
+    }
+
     // Full update (existing edit flow)
     if (!title) {
       return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
@@ -383,8 +445,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           recurrenceFrequency: isRecurring ? (recurrenceFrequency || 'WEEKLY') : isRecurring === false ? null : undefined,
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : isRecurring === false ? null : undefined,
           registrationOpensDays: isRecurring ? (registrationOpensDays || 4) : isRecurring === false ? null : undefined,
-          registrationOpensTime: isRecurring ? (registrationOpensTime || '08:00') : isRecurring === false ? null : undefined,
-          joinOpensAt: joinOpensAt ? new Date(joinOpensAt) : null,
+          joinOpensAt: joinOpensAt !== undefined
+            ? (joinOpensAt ? new Date(joinOpensAt) : null)
+            : event.joinOpensAt,
+          ...(typeof body.virtualLink === 'string' && body.virtualLink.trim().length > 0 ? {
+            virtualLink: encrypt(/^https?:\/\//i.test(body.virtualLink.trim()) ? body.virtualLink.trim() : `https://${body.virtualLink.trim()}`).encrypted,
+            virtualLinkIv: encrypt(/^https?:\/\//i.test(body.virtualLink.trim()) ? body.virtualLink.trim() : `https://${body.virtualLink.trim()}`).iv,
+          } : {}),
+          ...(body.eventType ? { eventType: body.eventType } : {}),
           location: location || null,
           mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
           entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,

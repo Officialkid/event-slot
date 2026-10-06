@@ -77,6 +77,7 @@ export async function GET(req: Request) {
           status: true,
           eventDate: true,
           location: true,
+          eventType: true,
           dataExpired: true,
           eventPass: {
             select: {
@@ -102,6 +103,7 @@ export async function GET(req: Request) {
                   slug: true,
                   eventDate: true,
                   location: true,
+                  eventType: true,
                 },
               },
             },

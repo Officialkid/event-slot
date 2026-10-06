@@ -8,12 +8,22 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid unsubscribe link.", { status: 400 })
   }
 
-  await prisma.user
-    .update({
-      where: { id: userId },
-      data: { marketingConsent: false },
-    })
-    .catch(() => {})
+  if (userId.startsWith("reg_")) {
+    const regId = userId.replace("reg_", "")
+    await prisma.registration
+      .update({
+        where: { id: regId },
+        data: { consentMarketing: false },
+      })
+      .catch(() => {})
+  } else {
+    await prisma.user
+      .update({
+        where: { id: userId },
+        data: { marketingConsent: false },
+      })
+      .catch(() => {})
+  }
 
   return new NextResponse(
     `

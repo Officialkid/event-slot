@@ -155,6 +155,12 @@ export default function EditEventPage() {
   const [description, setDescription] = useState("")
   const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE")
+  const [eventType, setEventType] = useState<"PHYSICAL" | "VIRTUAL">("PHYSICAL")
+  const [virtualLink, setVirtualLink] = useState("")
+  const [virtualPlatform, setVirtualPlatform] = useState<"MEET" | "ZOOM" | "TEAMS" | "YOUTUBE" | "OTHER">("MEET")
+  const [generatingMeet, setGeneratingMeet] = useState(false)
+  const [meetGenNotice, setMeetGenNotice] = useState<{ type: "success" | "error" | "auth"; message: string } | null>(null)
+  const [accessWindowPreset, setAccessWindowPreset] = useState<"30_MINS_BEFORE" | "15_MINS_BEFORE" | "1_HOUR_BEFORE" | "AT_START" | "CUSTOM">("30_MINS_BEFORE")
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
   const [eventDate, setEventDate] = useState("")
@@ -223,6 +229,7 @@ export default function EditEventPage() {
         setDescription(e.description ?? "")
         setAccessType(e.accessType === "WALK_IN" ? "WALK_IN" : "REGISTRATION")
         setVisibility(e.visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE")
+        setEventType(e.eventType === "VIRTUAL" ? "VIRTUAL" : "PHYSICAL")
         setCapacity(e.capacity != null ? String(e.capacity) : "")
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
@@ -234,6 +241,9 @@ export default function EditEventPage() {
         setRegistrationOpensDays(e.registrationOpensDays ?? 4)
         setRegistrationOpensTime(e.registrationOpensTime || "08:00")
         setJoinOpensAt(toDatetimeLocal(e.joinOpensAt))
+        if (e.joinOpensAt) {
+          setAccessWindowPreset("CUSTOM")
+        }
         setLocation(e.location ?? "")
         setMapDirectionsUrl(e.mapDirectionsUrl ?? "")
         setEntryFeeLabel(e.entryFeeLabel ?? "")
@@ -301,6 +311,38 @@ export default function EditEventPage() {
       .catch(() => setError("Failed to load event"))
       .finally(() => setLoading(false))
   }, [status, slug])
+
+  const handleGenerateGoogleMeet = async () => {
+    setGeneratingMeet(true)
+    setMeetGenNotice(null)
+    try {
+      const res = await fetch("/api/events/virtual/generate-meet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title || "EventSlot Virtual Event",
+          description: description || undefined,
+          startDate: eventDate || new Date().toISOString(),
+          durationMins: 60,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success && data.meetingUrl) {
+        setVirtualLink(data.meetingUrl)
+        setMeetGenNotice({ type: "success", message: `✨ Google Meet room generated: ${data.meetingUrl}` })
+      } else {
+        const isAuthError = data.error?.toLowerCase().includes("not connected")
+        setMeetGenNotice({
+          type: isAuthError ? "auth" : "error",
+          message: data.error || "Failed to generate Google Meet room",
+        })
+      }
+    } catch {
+      setMeetGenNotice({ type: "error", message: "Failed to connect to Google Calendar service." })
+    } finally {
+      setGeneratingMeet(false)
+    }
+  }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -607,7 +649,7 @@ export default function EditEventPage() {
       setError("Public events require a start date so attendees can see when the event is happening.")
       return
     }
-    if (visibility === "PUBLIC" && !location.trim()) {
+    if (eventType === "PHYSICAL" && visibility === "PUBLIC" && !location.trim()) {
       setSaving(false)
       setError("Public events require a visible location or venue label so attendees can discover where to go.")
       return
@@ -620,6 +662,24 @@ export default function EditEventPage() {
         return
       }
     }
+
+    let computedJoinOpensAt: string | undefined = undefined
+    if (eventType === "VIRTUAL") {
+      if (accessWindowPreset === "CUSTOM" && joinOpensAt) {
+        computedJoinOpensAt = new Date(joinOpensAt).toISOString()
+      } else if (eventDate) {
+        const startMs = new Date(eventDate).getTime()
+        const offsetMs =
+          accessWindowPreset === "15_MINS_BEFORE" ? 15 * 60 * 1000 :
+          accessWindowPreset === "1_HOUR_BEFORE" ? 60 * 60 * 1000 :
+          accessWindowPreset === "AT_START" ? 0 :
+          30 * 60 * 1000
+        computedJoinOpensAt = new Date(Math.max(0, startMs - offsetMs)).toISOString()
+      } else if (joinOpensAt) {
+        computedJoinOpensAt = new Date(joinOpensAt).toISOString()
+      }
+    }
+
     try {
       const res = await fetch(`/api/events/${slug}`, {
         method: "PATCH",
@@ -639,9 +699,11 @@ export default function EditEventPage() {
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
           registrationOpensDays: isRecurring ? registrationOpensDays : null,
           registrationOpensTime: isRecurring ? registrationOpensTime : null,
-          joinOpensAt: joinOpensAt ? new Date(joinOpensAt).toISOString() : undefined,
-          location: location || undefined,
-          mapDirectionsUrl: mapDirectionsUrl || undefined,
+          eventType,
+          virtualLink: virtualLink.trim() || undefined,
+          joinOpensAt: eventType === "VIRTUAL" ? computedJoinOpensAt : undefined,
+          location: eventType === "PHYSICAL" ? (location || undefined) : (location || "Virtual / Online"),
+          mapDirectionsUrl: eventType === "PHYSICAL" ? (mapDirectionsUrl || undefined) : undefined,
           entryFeeLabel: entryFeeLabel || undefined,
           showRemainingSpots,
           groupRegistrationEnabled,
@@ -1227,71 +1289,236 @@ export default function EditEventPage() {
                   Enables a dedicated &ldquo;Register as Organization / Group&rdquo; tab on the attendee registration page. Organizations reserve slot allocations, assign delegates via an Organization Manager portal, or share private self-claim links.
                 </p>
               </div>
-              <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Link Opens At (optional)
-                </label>
-                <input
-                  type="datetime-local"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  value={joinOpensAt}
-                  {...bindDateTimeField(setJoinOpensAt)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Location / Venue
-                </label>
-                <input
-                  type="text"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  placeholder="e.g. iHub, Nairobi"
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
-                  Google Maps directions link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
-                </label>
-                <input
-                  type="url"
-                  inputMode="url"
-                  className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  placeholder="Paste the exact Google Maps share link"
-                  value={mapDirectionsUrl}
-                  onChange={e => setMapDirectionsUrl(e.target.value)}
-                />
-                <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                  EventSlot only shows directions when this link is provided by the organiser.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (location.trim()) {
-                        setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
+              <div className="md:col-span-2 rounded-[14px] border p-4 sm:p-5 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-[1.05rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+                      {eventType === "PHYSICAL" ? "Event Location & Venue" : "Virtual Event & Access Room"}
+                    </h3>
+                    <p className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                      {eventType === "PHYSICAL" ? "Specify where attendees should gather in person." : "Set up your online meeting room with automatic attendee access."}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEventType("PHYSICAL")}
+                      className="rounded-full px-3.5 py-1 text-xs font-bold transition"
+                      style={
+                        eventType === "PHYSICAL"
+                          ? { background: "#15803d", color: "#FFFFFF" }
+                          : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                       }
-                    }}
-                    disabled={!location.trim()}
-                    className="rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
-                    style={{ ...accentButtonStyle, opacity: location.trim() ? 1 : 0.4, cursor: location.trim() ? "pointer" : "not-allowed" }}
-                  >
-                    ⚡ Auto-fill Map Link from Venue
-                  </button>
-                  <a
-                    href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
-                    style={{ ...accentButtonStyle, textDecoration: "none" }}
-                  >
-                    Search on Google Maps ↗
-                  </a>
+                    >
+                      📍 In-Person
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEventType("VIRTUAL")}
+                      disabled={isWalkInEvent}
+                      className="rounded-full px-3.5 py-1 text-xs font-bold transition"
+                      style={
+                        eventType === "VIRTUAL"
+                          ? { background: "#15803d", color: "#FFFFFF" }
+                          : { background: "var(--surface-2)", color: "var(--text-secondary)" }
+                      }
+                    >
+                      💻 Virtual Event
+                    </button>
+                  </div>
                 </div>
+
+                {eventType === "PHYSICAL" ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                        Venue Address or Name
+                      </label>
+                      <input
+                        type="text"
+                        className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                        style={inputStyle}
+                        placeholder="e.g. iHub, Nairobi"
+                        value={location}
+                        onChange={e => setLocation(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                        Google Maps directions link <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>(optional)</span>
+                      </label>
+                      <input
+                        type="url"
+                        inputMode="url"
+                        className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                        style={inputStyle}
+                        placeholder="Paste the exact Google Maps share link"
+                        value={mapDirectionsUrl}
+                        onChange={e => setMapDirectionsUrl(e.target.value)}
+                      />
+                      <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                        EventSlot only shows directions when this link is provided by the organiser.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (location.trim()) {
+                              setMapDirectionsUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}`)
+                            }
+                          }}
+                          disabled={!location.trim()}
+                          className="rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                          style={{ ...accentButtonStyle, opacity: location.trim() ? 1 : 0.4, cursor: location.trim() ? "pointer" : "not-allowed" }}
+                        >
+                          ⚡ Auto-fill Map Link from Venue
+                        </button>
+                        <a
+                          href={location.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.trim())}` : "https://www.google.com/maps"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex rounded-full border px-3 py-1.5 text-[0.78rem] font-semibold"
+                          style={{ ...accentButtonStyle, textDecoration: "none" }}
+                        >
+                          Search on Google Maps ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Platform selector */}
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1.5" style={labelStyle}>
+                        Virtual Meeting Platform
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {[
+                          { key: "MEET", label: "Google Meet" },
+                          { key: "ZOOM", label: "Zoom" },
+                          { key: "TEAMS", label: "Teams" },
+                          { key: "YOUTUBE", label: "YouTube Live" },
+                          { key: "OTHER", label: "Custom Link" },
+                        ].map((p) => (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => setVirtualPlatform(p.key as any)}
+                            className="rounded-xl border py-2 px-2 text-xs font-semibold text-center transition"
+                            style={
+                              virtualPlatform === p.key
+                                ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))", color: "var(--text-primary)" }
+                                : { borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }
+                            }
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 1-Click Google Meet Generator Banner */}
+                    {virtualPlatform === "MEET" && (
+                      <div className="p-3.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="text-xs font-bold text-emerald-600">Google Meet Instant Integration</p>
+                            <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                              Auto-generates meeting room &amp; whitelists registered attendees on your calendar for instant auto-admission.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleGenerateGoogleMeet}
+                            disabled={generatingMeet}
+                            className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition disabled:opacity-50"
+                          >
+                            {generatingMeet ? "Generating Room..." : "✨ Generate Google Meet Room"}
+                          </button>
+                        </div>
+                        {meetGenNotice && (
+                          <div className={`p-2 rounded-lg text-xs ${meetGenNotice.type === "success" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                            {meetGenNotice.message}
+                            {meetGenNotice.type === "auth" && (
+                              <a href="/api/auth/google-calendar" className="ml-2 font-bold underline">
+                                Connect Google Calendar →
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Meeting URL input */}
+                    <div>
+                      <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
+                        {virtualPlatform === "MEET" ? "Google Meet Link" : virtualPlatform === "ZOOM" ? "Zoom Meeting URL" : virtualPlatform === "TEAMS" ? "Microsoft Teams URL" : virtualPlatform === "YOUTUBE" ? "YouTube Live Stream URL" : "Virtual Meeting / Stream URL"}
+                      </label>
+                      <input
+                        type="url"
+                        placeholder={
+                          virtualPlatform === "MEET" ? "https://meet.google.com/abc-defg-hij" :
+                          virtualPlatform === "ZOOM" ? "https://zoom.us/j/123456789" :
+                          virtualPlatform === "TEAMS" ? "https://teams.microsoft.com/l/meetup-join/..." :
+                          virtualPlatform === "YOUTUBE" ? "https://www.youtube.com/watch?v=..." :
+                          "Leave blank to keep existing encrypted link, or enter new URL"
+                        }
+                        value={virtualLink}
+                        onChange={(e) => setVirtualLink(e.target.value)}
+                        className="w-full rounded-[8px] px-3.5 py-2 text-[0.85rem] outline-none"
+                        style={inputStyle}
+                      />
+                      <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                        🔒 Secured: Meeting links are encrypted with AES-256 and only revealed to verified ticket holders. Leave blank to keep existing link.
+                      </p>
+                    </div>
+
+                    {/* Access Opening Window */}
+                    <div className="pt-1">
+                      <label className="block text-[0.75rem] font-semibold mb-1.5" style={labelStyle}>
+                        When should attendees be allowed to join?
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {[
+                          { key: "30_MINS_BEFORE", label: "30 mins before" },
+                          { key: "15_MINS_BEFORE", label: "15 mins before" },
+                          { key: "1_HOUR_BEFORE", label: "1 hour before" },
+                          { key: "AT_START", label: "At event start" },
+                          { key: "CUSTOM", label: "Custom Time" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => setAccessWindowPreset(opt.key as any)}
+                            className="rounded-xl border py-2 px-2 text-xs font-semibold text-center transition"
+                            style={
+                              accessWindowPreset === opt.key
+                                ? { borderColor: "#15803d", background: "color-mix(in srgb, #15803d 10%, var(--surface))", color: "var(--text-primary)" }
+                                : { borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }
+                            }
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {accessWindowPreset === "CUSTOM" && (
+                        <div className="mt-3">
+                          <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
+                            Custom Access Window Opening Time
+                          </label>
+                          <input
+                            type="datetime-local"
+                            className="w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
+                            style={inputStyle}
+                            value={joinOpensAt}
+                            {...bindDateTimeField(setJoinOpensAt)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>

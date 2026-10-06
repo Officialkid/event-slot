@@ -54,6 +54,7 @@ type EventProps = {
     eventDate?: Date | string | null
     eventEndAt?: Date | string | null
     deadline?: Date | string | null
+    eventType?: "PHYSICAL" | "VIRTUAL"
     location?: string | null
     mapDirectionsUrl?: string | null
     entryFeeLabel?: string | null
@@ -2142,7 +2143,15 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                         </p>
                       </div>
                     )}
-                    {event.location && (
+                    {event.eventType === "VIRTUAL" ? (
+                      <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
+                        <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--accent)" }}>Format</p>
+                        <p className="m-0 text-[0.95rem] font-medium" style={{ color: "var(--text-primary)" }}>💻 Virtual Event (Online)</p>
+                        <p className="mt-1 text-[0.75rem]" style={{ color: "var(--text-muted)", lineHeight: 1.4 }}>
+                          Direct meeting room unlocks on your ticket pass before start.
+                        </p>
+                      </div>
+                    ) : event.location ? (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Location</p>
                         <p className="m-0 text-[0.95rem] font-medium truncate" style={{ color: "var(--text-primary)" }}>{displayLocation}</p>
@@ -2159,7 +2168,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                           </a>
                         )}
                       </div>
-                    )}
+                    ) : null}
                     {entryLabel && (
                       <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>
                         <p className="mb-1 text-[0.7rem] uppercase tracking-[0.08em]" style={{ color: "var(--text-muted)" }}>Entry amount</p>

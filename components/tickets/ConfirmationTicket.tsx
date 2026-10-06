@@ -185,7 +185,9 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
 
             {ticket.eventLocation && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                <span style={{ fontSize: "0.85rem", lineHeight: 1.2 }}>📍</span>
+                <span style={{ fontSize: "0.85rem", lineHeight: 1.2 }}>
+                  {ticket.eventLocation.toLowerCase().includes("virtual") || ticket.eventLocation.toLowerCase().includes("online") ? "💻" : "📍"}
+                </span>
                 <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.35 }}>
                   {ticket.eventLocation}
                 </span>
@@ -366,7 +368,9 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
               textAlign: "center",
             }}
           >
-            Scan at entry · Gate check-in
+            {ticket.eventLocation && (ticket.eventLocation.toLowerCase().includes("virtual") || ticket.eventLocation.toLowerCase().includes("online"))
+              ? "Online Pass · Verified Virtual Entry"
+              : "Scan at entry · Gate check-in"}
           </p>
 
           {/* Monospace Confirmation Code Container */}

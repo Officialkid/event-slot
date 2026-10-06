@@ -15,6 +15,8 @@ declare module 'next-auth' {
       onboardingCompleted: boolean
       onboardingSkipped: boolean
       suspended: boolean
+      emailVerified?: boolean
+      otpRequired?: boolean
       // Admin Mode fields
       adminModeActive: boolean
       adminModeEventId: string | null

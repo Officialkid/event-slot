@@ -11,7 +11,7 @@ import {
 import { generateConfirmationCode } from '@/lib/confirmationCode'
 import { generateTicketForRegistration } from '@/lib/tickets'
 import { detectCountry } from '@/lib/geoip'
-import { createCalendarEvent, isCalendarConnected } from '@/lib/googleCalendar'
+import { createCalendarEvent, isCalendarConnected, syncAttendeeToGoogleCalendar } from '@/lib/googleCalendar'
 import { decrypt } from '@/lib/encrypt'
 import { APP_URL } from '@/lib/config'
 import { canUseEventFeature } from '@/lib/planEnforcement'
@@ -481,6 +481,33 @@ export async function POST(req: NextRequest) {
             eventLocation: event.location,
           })
 
+          // Sync attendee to organizer's Google Calendar event as guest (Section 10 - Auto-Admit)
+          if (event.eventType === 'VIRTUAL' && event.organizerId) {
+            try {
+              const syncRecord = await prisma.calendarEventSync.findUnique({
+                where: {
+                  userId_eventId_role: {
+                    userId: event.organizerId,
+                    eventId: event.id,
+                    role: 'organiser',
+                  },
+                },
+                select: { googleEventId: true, calendarId: true },
+              })
+              if (syncRecord?.googleEventId) {
+                syncAttendeeToGoogleCalendar({
+                  organizerUserId: event.organizerId,
+                  googleEventId: syncRecord.googleEventId,
+                  calendarId: syncRecord.calendarId,
+                  attendeeEmail,
+                  attendeeName,
+                }).catch((syncErr) => console.warn('[calendar] Background attendee whitelist sync failed:', syncErr))
+              }
+            } catch (err) {
+              console.warn('[calendar] Failed to query organizer calendar sync record:', err)
+            }
+          }
+
           // Auto-push to Google Calendar if attendee has it connected
           if (user?.id && event.eventDate) {
             const isVirtual = event.eventType === 'VIRTUAL'
@@ -502,7 +529,7 @@ export async function POST(req: NextRequest) {
               durationMins: getDurationMins(event.eventDate, event.eventEndAt),
               eventUrl,
               isVirtual,
-              meetingLink,
+              meetingLink:  null,
             }).catch(err => console.error('[calendar] Auto-push after registration failed:', err))
           }
         })
