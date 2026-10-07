@@ -139,6 +139,23 @@ function toDatetimeLocal(val: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function computeDefaultEndDateTime(startIsoOrLocal: string, hoursToAdd = 3): string {
+  if (!startIsoOrLocal) return ""
+  try {
+    const d = new Date(startIsoOrLocal)
+    if (isNaN(d.getTime())) return ""
+    d.setHours(d.getHours() + hoursToAdd)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    const hours = String(d.getHours()).padStart(2, "0")
+    const mins = String(d.getMinutes()).padStart(2, "0")
+    return `${year}-${month}-${day}T${hours}:${mins}`
+  } catch {
+    return ""
+  }
+}
+
 export default function EditEventPage() {
   const { status } = useSession()
   const router = useRouter()
@@ -148,6 +165,7 @@ export default function EditEventPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
 
   const [title, setTitle] = useState("")
@@ -611,6 +629,81 @@ export default function EditEventPage() {
     )
   }
 
+  // Smooth scroll and focus helper for error correction
+  const scrollToAndFocus = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      setTimeout(() => {
+        el.focus()
+      }, 300)
+    }
+  }
+
+  // Auto-sync start and end dates
+  const handleEventDateChange = (newStartDate: string) => {
+    setEventDate(newStartDate)
+    if (fieldErrors.eventDate) {
+      setFieldErrors(prev => {
+        const next = { ...prev }
+        delete next.eventDate
+        return next
+      })
+    }
+    if (!newStartDate) return
+
+    // If recurring, auto-detect day of week from date
+    const d = new Date(newStartDate)
+    if (!isNaN(d.getTime())) {
+      setRecurrenceDayOfWeek(d.getDay())
+    }
+
+    // Auto-populate or advance end date/time
+    if (hasSpecificTime) {
+      if (!eventEndAt || new Date(eventEndAt) <= new Date(newStartDate)) {
+        const autoEnd = computeDefaultEndDateTime(newStartDate, 3)
+        setEventEndAt(autoEnd)
+        setFieldErrors(prev => {
+          const next = { ...prev }
+          delete next.eventEndAt
+          return next
+        })
+      }
+    } else {
+      const startDateOnly = newStartDate.slice(0, 10)
+      if (!eventEndAt || eventEndAt.slice(0, 10) < startDateOnly) {
+        setEventEndAt(startDateOnly)
+        setFieldErrors(prev => {
+          const next = { ...prev }
+          delete next.eventEndAt
+          return next
+        })
+      }
+    }
+  }
+
+  const handleEventEndAtChange = (newEndDate: string) => {
+    setEventEndAt(newEndDate)
+    if (eventDate && newEndDate) {
+      if (new Date(newEndDate) <= new Date(eventDate)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          eventEndAt: hasSpecificTime
+            ? "Event end time must be after the start time."
+            : "Event end date must be on or after the start date."
+        }))
+        return
+      }
+    }
+    if (fieldErrors.eventEndAt) {
+      setFieldErrors(prev => {
+        const next = { ...prev }
+        delete next.eventEndAt
+        return next
+      })
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const questionsChanged = serializeQuestions(questions) !== serializeQuestions(initialQuestions)
@@ -620,12 +713,27 @@ export default function EditEventPage() {
     }
     setSaving(true)
     setError("")
+    setFieldErrors({})
+
+    if (!title.trim()) {
+      setSaving(false)
+      const msg = "Please provide an event title."
+      setFieldErrors({ title: msg })
+      setError(msg)
+      scrollToAndFocus("edit-field-title")
+      return
+    }
+
     const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
     if (invalidQuestion) {
       setSaving(false)
-      setError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+      const msg = `Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`
+      setFieldErrors({ [`q-${invalidQuestion.id}`]: msg })
+      setError(msg)
+      scrollToAndFocus(`edit-field-q-${invalidQuestion.id}`)
       return
     }
+
     if (isPaid) {
       const invalidTier = ticketTiers.find((tier) => {
         const price = Number(tier.priceKes)
@@ -639,21 +747,52 @@ export default function EditEventPage() {
         return
       }
     }
+
     if (visibility === "PUBLIC" && !imageUrl.trim()) {
       setSaving(false)
       setError("Public events require a poster image so they can appear on the Events page.")
+      scrollToAndFocus("section-poster")
       return
     }
+
     if (visibility === "PUBLIC" && !eventDate) {
       setSaving(false)
-      setError("Public events require a start date so attendees can see when the event is happening.")
+      const msg = "Public events require a start date so attendees can see when the event is happening."
+      setFieldErrors({ eventDate: msg })
+      setError(msg)
+      scrollToAndFocus("edit-field-eventDate")
       return
     }
+
+    if (eventEndAt && eventDate && new Date(eventEndAt) <= new Date(eventDate)) {
+      setSaving(false)
+      const msg = hasSpecificTime
+        ? "Event end time must be after the start time."
+        : "Event end date must be on or after the start date."
+      setFieldErrors({ eventEndAt: msg })
+      setError(msg)
+      scrollToAndFocus("edit-field-eventEndAt")
+      return
+    }
+
     if (eventType === "PHYSICAL" && visibility === "PUBLIC" && !location.trim()) {
       setSaving(false)
-      setError("Public events require a visible location or venue label so attendees can discover where to go.")
+      const msg = "Public events require a visible location or venue label so attendees can discover where to go."
+      setFieldErrors({ location: msg })
+      setError(msg)
+      scrollToAndFocus("edit-field-location")
       return
     }
+
+    if (eventType === "VIRTUAL" && !virtualLink.trim()) {
+      setSaving(false)
+      const msg = "A meeting link is required for virtual events."
+      setFieldErrors({ virtualLink: msg })
+      setError(msg)
+      scrollToAndFocus("edit-field-virtualLink")
+      return
+    }
+
     if (whatsappNumber.trim()) {
       const validated = normalizeInternationalPhoneNumber(whatsappNumber)
       if (!validated.ok) {
@@ -884,13 +1023,27 @@ export default function EditEventPage() {
                   Event Title <span style={accentTextStyle}>*</span>
                 </label>
                 <input
+                  id="edit-field-title"
                   type="text"
                   required
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
+                  style={{
+                    ...inputStyle,
+                    borderColor: fieldErrors.title ? "#EF4444" : "var(--border)",
+                    boxShadow: fieldErrors.title ? "0 0 0 1px #EF4444" : "none",
+                  }}
                   value={title}
-                  onChange={e => setTitle(e.target.value)}
+                  onChange={e => {
+                    setTitle(e.target.value)
+                    if (fieldErrors.title) setFieldErrors(prev => ({ ...prev, title: "" }))
+                  }}
                 />
+                {fieldErrors.title && (
+                  <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.title}</span>
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
@@ -1117,19 +1270,23 @@ export default function EditEventPage() {
                   </label>
                 </div>
                 <input
+                  id="edit-field-eventDate"
                   type={hasSpecificTime ? "datetime-local" : "date"}
                   className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                  style={inputStyle}
-                  value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setEventDate(val)
-                    if (val) {
-                      const day = new Date(val).getDay()
-                      if (!isNaN(day)) setRecurrenceDayOfWeek(day)
-                    }
+                  style={{
+                    ...inputStyle,
+                    borderColor: fieldErrors.eventDate ? "#EF4444" : "var(--border)",
+                    boxShadow: fieldErrors.eventDate ? "0 0 0 1px #EF4444" : "none",
                   }}
+                  value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
+                  onChange={(e) => handleEventDateChange(e.target.value)}
                 />
+                {fieldErrors.eventDate && (
+                  <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.eventDate}</span>
+                  </p>
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -1150,12 +1307,24 @@ export default function EditEventPage() {
                     {isWalkInEvent ? "Walk-In End (optional)" : "Event End (optional)"}
                   </label>
                   <input
+                    id="edit-field-eventEndAt"
                     type="datetime-local"
+                    min={eventDate || undefined}
                     className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      borderColor: fieldErrors.eventEndAt ? "#EF4444" : "var(--border)",
+                      boxShadow: fieldErrors.eventEndAt ? "0 0 0 1px #EF4444" : "none",
+                    }}
                     value={eventEndAt}
-                    {...bindDateTimeField(setEventEndAt)}
+                    onChange={(e) => handleEventEndAtChange(e.target.value)}
                   />
+                  {fieldErrors.eventEndAt && (
+                    <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.eventEndAt}</span>
+                    </p>
+                  )}
                   <p style={{ ...helperStyle, fontSize: "0.72rem", marginTop: "0.35rem" }}>
                     {isWalkInEvent
                       ? "Leave empty for a single-day walk-in event. Use an end date for multi-day events."
@@ -1335,13 +1504,27 @@ export default function EditEventPage() {
                         Venue Address or Name
                       </label>
                       <input
+                        id="edit-field-location"
                         type="text"
                         className="mt-1 w-full rounded-[8px] px-3 py-2 text-[0.875rem] font-medium placeholder:text-[var(--text-muted)] focus:border-[color-mix(in_srgb,var(--accent)_50%,transparent)] focus:outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.location ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.location ? "0 0 0 1px #EF4444" : "none",
+                        }}
                         placeholder="e.g. iHub, Nairobi"
                         value={location}
-                        onChange={e => setLocation(e.target.value)}
+                        onChange={e => {
+                          setLocation(e.target.value)
+                          if (fieldErrors.location) setFieldErrors(prev => ({ ...prev, location: "" }))
+                        }}
                       />
+                      {fieldErrors.location && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.location}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="mb-1 block text-[0.72rem] font-semibold" style={labelStyle}>
@@ -1455,6 +1638,7 @@ export default function EditEventPage() {
                         {virtualPlatform === "MEET" ? "Google Meet Link" : virtualPlatform === "ZOOM" ? "Zoom Meeting URL" : virtualPlatform === "TEAMS" ? "Microsoft Teams URL" : virtualPlatform === "YOUTUBE" ? "YouTube Live Stream URL" : "Virtual Meeting / Stream URL"}
                       </label>
                       <input
+                        id="edit-field-virtualLink"
                         type="url"
                         placeholder={
                           virtualPlatform === "MEET" ? "https://meet.google.com/abc-defg-hij" :
@@ -1464,10 +1648,23 @@ export default function EditEventPage() {
                           "Leave blank to keep existing encrypted link, or enter new URL"
                         }
                         value={virtualLink}
-                        onChange={(e) => setVirtualLink(e.target.value)}
+                        onChange={(e) => {
+                          setVirtualLink(e.target.value)
+                          if (fieldErrors.virtualLink) setFieldErrors(prev => ({ ...prev, virtualLink: "" }))
+                        }}
                         className="w-full rounded-[8px] px-3.5 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.virtualLink ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.virtualLink ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
+                      {fieldErrors.virtualLink && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.virtualLink}</span>
+                        </p>
+                      )}
                       <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                         🔒 Secured: Meeting links are encrypted with AES-256 and only revealed to verified ticket holders. Leave blank to keep existing link.
                       </p>
@@ -2137,6 +2334,15 @@ export default function EditEventPage() {
                 <span className="text-[1.1rem]">✓</span> Saved! Kindly wait as it reloads...
               </div>
             )}
+            {error && (
+              <div
+                className="w-full rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2 mb-2"
+                style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
+              >
+                <span>⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
             <button
               type="submit"
               className="w-full rounded-xl px-7 py-3.5 text-sm font-bold shadow-md transition flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50"
@@ -2157,7 +2363,6 @@ export default function EditEventPage() {
                 "Save Changes"
               )}
             </button>
-            {error && <div className="text-[0.82rem] text-center" style={errorTextStyle}>{error}</div>}
           </div>
         </form>
 

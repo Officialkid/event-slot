@@ -98,6 +98,23 @@ const defaultTicketTier = (): TicketTierDraft => {
   }
 }
 
+function computeDefaultEndDateTime(startIsoOrLocal: string, hoursToAdd = 3): string {
+  if (!startIsoOrLocal) return ""
+  try {
+    const d = new Date(startIsoOrLocal)
+    if (isNaN(d.getTime())) return ""
+    d.setHours(d.getHours() + hoursToAdd)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    const hours = String(d.getHours()).padStart(2, "0")
+    const mins = String(d.getMinutes()).padStart(2, "0")
+    return `${year}-${month}-${day}T${hours}:${mins}`
+  } catch {
+    return ""
+  }
+}
+
 const cardStyle: React.CSSProperties = {
   background: "var(--surface)",
   border: "1px solid var(--border-subtle)",
@@ -642,49 +659,203 @@ export default function CreateEventPage() {
     })
   }
 
-  // Step Validations
+  // Helper to smoothly scroll to and focus any invalid field or area
+  const scrollToAndFocus = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+      setTimeout(() => {
+        el.focus()
+      }, 300)
+    }
+  }
+
+  // Auto-sync start and end dates
+  const handleEventDateChange = (newStartDate: string) => {
+    setEventDate(newStartDate)
+    if (fieldErrors.eventDate) {
+      setFieldErrors(prev => {
+        const next = { ...prev }
+        delete next.eventDate
+        return next
+      })
+    }
+    if (!newStartDate) return
+
+    // If recurring, auto-detect day of week from date
+    const d = new Date(newStartDate)
+    if (!isNaN(d.getTime())) {
+      setRecurrenceDayOfWeek(d.getDay())
+    }
+
+    // Auto-populate or advance end date/time
+    if (hasSpecificTime) {
+      if (!eventEndAt || new Date(eventEndAt) <= new Date(newStartDate)) {
+        const autoEnd = computeDefaultEndDateTime(newStartDate, 3)
+        setEventEndAt(autoEnd)
+        setFieldErrors(prev => {
+          const next = { ...prev }
+          delete next.eventEndAt
+          return next
+        })
+      }
+    } else {
+      const startDateOnly = newStartDate.slice(0, 10)
+      if (!eventEndAt || eventEndAt.slice(0, 10) < startDateOnly) {
+        setEventEndAt(startDateOnly)
+        setFieldErrors(prev => {
+          const next = { ...prev }
+          delete next.eventEndAt
+          return next
+        })
+      }
+    }
+  }
+
+  const handleEventEndAtChange = (newEndDate: string) => {
+    setEventEndAt(newEndDate)
+    if (eventDate && newEndDate) {
+      if (new Date(newEndDate) <= new Date(eventDate)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          eventEndAt: hasSpecificTime
+            ? "Event end time must be after the start time."
+            : "Event end date must be on or after the start date."
+        }))
+        return
+      }
+    }
+    if (fieldErrors.eventEndAt) {
+      setFieldErrors(prev => {
+        const next = { ...prev }
+        delete next.eventEndAt
+        return next
+      })
+    }
+  }
+
+  // Step Validations with field-level errors and auto-scroll focus
   const validateStep1 = (): boolean => {
     setStepError("")
     setError("")
+    const errors: Record<string, string> = {}
+
     if (!title.trim()) {
+      errors.title = "Please provide an event title."
+      setFieldErrors(errors)
       setStepError("Please provide an event title.")
-      document.getElementById("create-field-title")?.focus()
+      scrollToAndFocus("create-field-title")
       return false
     }
+
     if (!category.trim()) {
+      errors.category = "Please select an event category to help attendees discover your event."
+      setFieldErrors(errors)
       setStepError("Please select an event category to help attendees discover your event.")
+      scrollToAndFocus("create-field-category")
       return false
     }
+
     if (visibility === "PUBLIC" && !imageUrl.trim()) {
+      errors.image = "Public events require a poster image so they can appear on the Events discovery page."
+      setFieldErrors(errors)
       setStepError("Public events require a poster image so they can appear on the Events discovery page.")
-      fileInputRef.current?.focus()
+      scrollToAndFocus("create-field-poster")
       return false
     }
-    if (visibility === "PUBLIC" && !eventDate) {
-      setStepError("Public events require a start date so attendees know when it is happening.")
+
+    if (!eventDate) {
+      errors.eventDate = "Please choose an event start date and time."
+      setFieldErrors(errors)
+      setStepError("Please choose when this event starts.")
+      scrollToAndFocus("create-field-eventDate")
       return false
     }
-    if (visibility === "PUBLIC" && eventType === "PHYSICAL" && !location.trim()) {
-      setStepError("Public physical events require a venue location.")
+
+    if (eventEndAt && eventDate && new Date(eventEndAt) <= new Date(eventDate)) {
+      const msg = hasSpecificTime
+        ? "Event end time must be after the start time."
+        : "Event end date must be on or after the start date."
+      errors.eventEndAt = msg
+      setFieldErrors(errors)
+      setStepError(msg)
+      scrollToAndFocus("create-field-eventEndAt")
       return false
     }
+
+    if (eventType === "PHYSICAL" && !location.trim()) {
+      errors.location = "Please specify the venue address or name where attendees will gather."
+      setFieldErrors(errors)
+      setStepError("Please specify the venue address or name.")
+      scrollToAndFocus("create-field-location")
+      return false
+    }
+
     if (eventType === "VIRTUAL") {
       if (!virtualLink.trim()) {
+        errors.virtualLink = "A meeting link is required for virtual events. Click 'Generate Google Meet Room' or paste your URL."
+        setFieldErrors(errors)
         setStepError("A meeting link is required for virtual events.")
+        scrollToAndFocus("create-field-virtualLink")
         return false
       }
       const norm = virtualLink.trim().toLowerCase()
       if (!norm.startsWith("http://") && !norm.startsWith("https://") && !norm.includes(".")) {
-        setStepError("Please provide a valid meeting link (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).")
+        errors.virtualLink = "Please provide a valid meeting link (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live)."
+        setFieldErrors(errors)
+        setStepError("Please provide a valid meeting link.")
+        scrollToAndFocus("create-field-virtualLink")
         return false
       }
     }
+
+    setFieldErrors({})
     return true
   }
 
   const validateStep2 = (): boolean => {
     setStepError("")
     setError("")
+    const errors: Record<string, string> = {}
+
+    if (capacity.trim()) {
+      const cap = Number(capacity)
+      if (isNaN(cap) || cap < 1) {
+        errors.capacity = "Capacity must be a positive number."
+        setFieldErrors(errors)
+        setStepError("Please enter a valid attendee capacity.")
+        scrollToAndFocus("create-field-capacity")
+        return false
+      }
+    }
+
+    if (isPaid) {
+      if (ticketTiers.length === 0) {
+        errors.ticketTiers = "Please add at least one ticket tier for your paid event."
+        setFieldErrors(errors)
+        setStepError("Please add at least one ticket tier for your paid event.")
+        scrollToAndFocus("create-field-ticket-tiers")
+        return false
+      }
+      for (const tier of ticketTiers) {
+        if (!tier.name.trim()) {
+          errors[`tier-${tier.id}`] = "Please enter a tier name."
+          setFieldErrors(errors)
+          setStepError("Please enter a name for each ticket tier.")
+          scrollToAndFocus(`create-field-tier-${tier.id}`)
+          return false
+        }
+        if (Number(tier.priceKes) < 0 || isNaN(Number(tier.priceKes))) {
+          errors[`tier-price-${tier.id}`] = "Please enter a valid price."
+          setFieldErrors(errors)
+          setStepError("Please enter a valid ticket price for each tier.")
+          scrollToAndFocus(`create-field-tier-price-${tier.id}`)
+          return false
+        }
+      }
+    }
+
+    setFieldErrors({})
     return true
   }
 
@@ -694,10 +865,14 @@ export default function CreateEventPage() {
     if (isRegistrationEvent) {
       const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
       if (invalidQuestion) {
-        setStepError(`Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`)
+        const msg = `Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`
+        setStepError(msg)
+        setFieldErrors({ [`q-${invalidQuestion.id}`]: msg })
+        scrollToAndFocus(`create-field-q-${invalidQuestion.id}`)
         return false
       }
     }
+    setFieldErrors({})
     return true
   }
 
@@ -1119,7 +1294,7 @@ export default function CreateEventPage() {
                 </div>
 
                 {/* Event Poster Upload */}
-                <div className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                <div id="create-field-poster" className="rounded-[14px] border p-5 sm:p-6" style={{ borderColor: fieldErrors.image ? "#EF4444" : "var(--border)", background: "var(--surface)", boxShadow: fieldErrors.image ? "0 0 0 1px #EF4444" : "none" }}>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <h2 className="text-[1.15rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                       Event Poster
@@ -1170,7 +1345,7 @@ export default function CreateEventPage() {
                     <div
                       onClick={() => fileInputRef.current?.click()}
                       className="rounded-[12px] border-2 border-dashed p-6 text-center cursor-pointer transition hover:border-[#15803d]"
-                      style={{ borderColor: "var(--border)", background: "var(--surface-muted)" }}
+                      style={{ borderColor: fieldErrors.image ? "#EF4444" : "var(--border)", background: "var(--surface-muted)" }}
                     >
                       <input
                         ref={fileInputRef}
@@ -1189,7 +1364,13 @@ export default function CreateEventPage() {
                       </p>
                     </div>
                   )}
-                  {imageError && <p className="text-xs text-red-500 mt-2">{imageError}</p>}
+                  {imageError && <p className="text-xs text-red-500 mt-2 font-semibold">⚠️ {imageError}</p>}
+                  {fieldErrors.image && (
+                    <p className="text-xs text-red-500 mt-2 font-semibold flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.image}</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* Title & Category Card */}
@@ -1204,11 +1385,24 @@ export default function CreateEventPage() {
                       required
                       placeholder="e.g. Kenya Tech Summit 2026"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(e) => {
+                        setTitle(e.target.value)
+                        if (fieldErrors.title) setFieldErrors(prev => ({ ...prev, title: "" }))
+                      }}
                       onBlur={(e) => fetchAiPrediction(e.target.value, description)}
                       className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.95rem] font-medium outline-none focus:border-[#15803d]"
-                      style={inputStyle}
+                      style={{
+                        ...inputStyle,
+                        borderColor: fieldErrors.title ? "#EF4444" : "var(--border)",
+                        boxShadow: fieldErrors.title ? "0 0 0 1px #EF4444" : "none",
+                      }}
                     />
+                    {fieldErrors.title && (
+                      <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.title}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1216,16 +1410,30 @@ export default function CreateEventPage() {
                       Event Category <span style={{ color: "#EF4444" }}>*</span>
                     </label>
                     <select
+                      id="create-field-category"
                       value={category}
-                      onChange={(e) => setCategory(e.target.value)}
+                      onChange={(e) => {
+                        setCategory(e.target.value)
+                        if (fieldErrors.category) setFieldErrors(prev => ({ ...prev, category: "" }))
+                      }}
                       className="w-full rounded-[10px] px-3.5 py-2.5 text-[0.88rem] outline-none"
-                      style={inputStyle}
+                      style={{
+                        ...inputStyle,
+                        borderColor: fieldErrors.category ? "#EF4444" : "var(--border)",
+                        boxShadow: fieldErrors.category ? "0 0 0 1px #EF4444" : "none",
+                      }}
                     >
                       <option value="">Select event category...</option>
                       {EVENT_CATEGORIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
+                    {fieldErrors.category && (
+                      <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.category}</span>
+                      </p>
+                    )}
                     <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                       Required for proper indexing on EventSlot Discover.
                     </p>
@@ -1333,27 +1541,54 @@ export default function CreateEventPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        {hasSpecificTime ? "Starts At (Date & Time)" : "Event Date (Time Not Specified)"}
+                        {hasSpecificTime ? "Starts At (Date & Time)" : "Event Date (Time Not Specified)"} <span style={{ color: "#EF4444" }}>*</span>
                       </label>
                       <input
+                        id="create-field-eventDate"
                         type={hasSpecificTime ? "datetime-local" : "date"}
                         value={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : "")}
-                        onChange={(e) => setEventDate(e.target.value)}
+                        onChange={(e) => handleEventDateChange(e.target.value)}
                         className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.eventDate ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.eventDate ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
+                      {fieldErrors.eventDate && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.eventDate}</span>
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                        {hasSpecificTime ? "Ends At (Optional)" : "End Date (Optional)"}
+                        {hasSpecificTime ? "Ends At (Auto-Set / Optional)" : "End Date (Auto-Set / Optional)"}
                       </label>
                       <input
+                        id="create-field-eventEndAt"
                         type={hasSpecificTime ? "datetime-local" : "date"}
+                        min={hasSpecificTime ? eventDate : (eventDate ? eventDate.slice(0, 10) : undefined)}
                         value={hasSpecificTime ? eventEndAt : (eventEndAt ? eventEndAt.slice(0, 10) : "")}
-                        onChange={(e) => setEventEndAt(e.target.value)}
+                        onChange={(e) => handleEventEndAtChange(e.target.value)}
                         className="w-full rounded-[10px] px-3 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.eventEndAt ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.eventEndAt ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
+                      {fieldErrors.eventEndAt ? (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.eventEndAt}</span>
+                        </p>
+                      ) : (
+                        <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
+                          Automatically set after start time. You can adjust the hours, or pick a later day for multi-day events.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -1452,16 +1687,30 @@ export default function CreateEventPage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-[0.75rem] font-semibold mb-1" style={labelStyle}>
-                          Venue Address or Name
+                          Venue Address or Name <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
+                          id="create-field-location"
                           type="text"
                           placeholder="e.g. Nairobi National Museum Hall, Museum Hill"
                           value={location}
-                          onChange={(e) => setLocation(e.target.value)}
+                          onChange={(e) => {
+                            setLocation(e.target.value)
+                            if (fieldErrors.location) setFieldErrors(prev => ({ ...prev, location: "" }))
+                          }}
                           className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                          style={inputStyle}
+                          style={{
+                            ...inputStyle,
+                            borderColor: fieldErrors.location ? "#EF4444" : "var(--border)",
+                            boxShadow: fieldErrors.location ? "0 0 0 1px #EF4444" : "none",
+                          }}
                         />
+                        {fieldErrors.location && (
+                          <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                            <span>⚠️</span>
+                            <span>{fieldErrors.location}</span>
+                          </p>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-1">
@@ -1561,6 +1810,7 @@ export default function CreateEventPage() {
                           {virtualPlatform === "MEET" ? "Google Meet Link" : virtualPlatform === "ZOOM" ? "Zoom Meeting URL" : virtualPlatform === "TEAMS" ? "Microsoft Teams URL" : virtualPlatform === "YOUTUBE" ? "YouTube Live Stream URL" : "Virtual Meeting / Stream URL"} <span style={{ color: "#EF4444" }}>*</span>
                         </label>
                         <input
+                          id="create-field-virtualLink"
                           type="url"
                           required
                           placeholder={
@@ -1571,10 +1821,23 @@ export default function CreateEventPage() {
                             "https://..."
                           }
                           value={virtualLink}
-                          onChange={(e) => setVirtualLink(e.target.value)}
+                          onChange={(e) => {
+                            setVirtualLink(e.target.value)
+                            if (fieldErrors.virtualLink) setFieldErrors(prev => ({ ...prev, virtualLink: "" }))
+                          }}
                           className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                          style={inputStyle}
+                          style={{
+                            ...inputStyle,
+                            borderColor: fieldErrors.virtualLink ? "#EF4444" : "var(--border)",
+                            boxShadow: fieldErrors.virtualLink ? "0 0 0 1px #EF4444" : "none",
+                          }}
                         />
+                        {fieldErrors.virtualLink && (
+                          <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                            <span>⚠️</span>
+                            <span>{fieldErrors.virtualLink}</span>
+                          </p>
+                        )}
                         <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                           🔒 Secured: Meeting links are encrypted with AES-256 and only revealed to verified ticket holders.
                         </p>
@@ -1612,16 +1875,27 @@ export default function CreateEventPage() {
                   )}
                 </div>
 
-                {/* Next Step CTA */}
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleNextStep(2)}
-                    className="w-full sm:w-auto rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
-                    style={{ background: "#15803d" }}
-                  >
-                    Continue to Tickets & Access →
-                  </button>
+                {/* Next Step CTA with contextual error display */}
+                <div className="pt-2 space-y-2">
+                  {stepError && (
+                    <div
+                      className="rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2"
+                      style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
+                    >
+                      <span>⚠️</span>
+                      <span>{stepError}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleNextStep(2)}
+                      className="w-full sm:w-auto rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                      style={{ background: "#15803d" }}
+                    >
+                      Continue to Tickets & Access →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1733,14 +2007,28 @@ export default function CreateEventPage() {
                             Total Available Capacity
                           </label>
                           <input
+                            id="create-field-capacity"
                             type="number"
                             min="1"
                             placeholder="e.g. 150 (Leave blank for unlimited)"
                             value={capacity}
-                            onChange={(e) => setCapacity(e.target.value)}
+                            onChange={(e) => {
+                              setCapacity(e.target.value)
+                              if (fieldErrors.capacity) setFieldErrors(prev => ({ ...prev, capacity: "" }))
+                            }}
                             className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                            style={inputStyle}
+                            style={{
+                              ...inputStyle,
+                              borderColor: fieldErrors.capacity ? "#EF4444" : "var(--border)",
+                              boxShadow: fieldErrors.capacity ? "0 0 0 1px #EF4444" : "none",
+                            }}
                           />
+                          {fieldErrors.capacity && (
+                            <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>{fieldErrors.capacity}</span>
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pb-2 sm:pb-3">
@@ -1817,23 +2105,34 @@ export default function CreateEventPage() {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(1)}
-                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-                  >
-                    ← Back to Identity
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNextStep(3)}
-                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
-                    style={{ background: "#15803d" }}
-                  >
-                    Continue to Questions →
-                  </button>
+                <div className="pt-2 space-y-2">
+                  {stepError && (
+                    <div
+                      className="rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2"
+                      style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
+                    >
+                      <span>⚠️</span>
+                      <span>{stepError}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    >
+                      ← Back to Identity
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNextStep(3)}
+                      className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                      style={{ background: "#15803d" }}
+                    >
+                      Continue to Questions →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1878,7 +2177,22 @@ export default function CreateEventPage() {
 
                       <div className="space-y-4">
                         {questions.map((q, idx) => (
-                          <div key={q.id} className="rounded-xl border p-4 space-y-3" style={cardMutedStyle}>
+                          <div
+                            key={q.id}
+                            id={`create-field-q-${q.id}`}
+                            className="rounded-xl border p-4 space-y-3"
+                            style={{
+                              ...cardMutedStyle,
+                              borderColor: fieldErrors[`q-${q.id}`] ? "#EF4444" : "var(--border-subtle)",
+                              boxShadow: fieldErrors[`q-${q.id}`] ? "0 0 0 1px #EF4444" : "none",
+                            }}
+                          >
+                            {fieldErrors[`q-${q.id}`] && (
+                              <div className="p-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-500 flex items-center gap-1.5">
+                                <span>⚠️</span>
+                                <span>{fieldErrors[`q-${q.id}`]}</span>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#15803d" }}>
                                 Question {idx + 1}
@@ -2188,23 +2502,34 @@ export default function CreateEventPage() {
                 )}
 
                 {/* Navigation */}
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(2)}
-                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-                  >
-                    ← Back to Tickets
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNextStep(4)}
-                    className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
-                    style={{ background: "#15803d" }}
-                  >
-                    Review & Launch →
-                  </button>
+                <div className="pt-2 space-y-2">
+                  {stepError && (
+                    <div
+                      className="rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2"
+                      style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
+                    >
+                      <span>⚠️</span>
+                      <span>{stepError}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(2)}
+                      className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    >
+                      ← Back to Tickets
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNextStep(4)}
+                      className="rounded-full px-8 py-3 text-[0.88rem] font-bold text-white shadow-md transition hover:opacity-90"
+                      style={{ background: "#15803d" }}
+                    >
+                      Review & Launch →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2229,6 +2554,7 @@ export default function CreateEventPage() {
                         Organizer Display Name
                       </label>
                       <input
+                        id="create-field-organizerName"
                         type="text"
                         value={organizerName}
                         onChange={(e) => setOrganizerName(e.target.value)}
@@ -2264,6 +2590,7 @@ export default function CreateEventPage() {
                         WhatsApp Attendee Helpline (Optional)
                       </label>
                       <input
+                        id="create-field-whatsappNumber"
                         type="tel"
                         value={whatsappNumber}
                         onChange={(e) => setWhatsappNumber(e.target.value)}
@@ -2347,24 +2674,35 @@ export default function CreateEventPage() {
                 </div>
 
                 {/* Primary Launch Actions */}
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="rounded-full px-6 py-2.5 text-xs font-semibold border"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
-                  >
-                    ← Back to Questions
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSubmit()}
-                    disabled={loading}
-                    className="rounded-full px-10 py-3.5 text-[0.95rem] font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
-                    style={{ background: "#15803d" }}
-                  >
-                    {loading ? "Publishing Event..." : "🚀 Publish Event Now"}
-                  </button>
+                <div className="pt-2 space-y-2">
+                  {(error || stepError) && (
+                    <div
+                      className="rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2"
+                      style={{ borderColor: "rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#EF4444" }}
+                    >
+                      <span>⚠️</span>
+                      <span>{error || stepError}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="rounded-full px-6 py-2.5 text-xs font-semibold border"
+                      style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                    >
+                      ← Back to Questions
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit()}
+                      disabled={loading}
+                      className="rounded-full px-10 py-3.5 text-[0.95rem] font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "#15803d" }}
+                    >
+                      {loading ? "Publishing Event..." : "🚀 Publish Event Now"}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
