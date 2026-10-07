@@ -59,13 +59,20 @@ export async function POST(req: NextRequest) {
 
     const parsed = createEventSchema.safeParse(rawBody)
     if (!parsed.success) {
-      const firstIssue = parsed.error.issues[0]
+      const issues = parsed.error.issues
+      const firstIssue = issues[0]
       const fieldPath = firstIssue?.path.join('.') || ''
-      const humanMessage = firstIssue?.message || 'Invalid input'
+      const lastSegment = firstIssue?.path[firstIssue.path.length - 1] ?? 'field'
+      let humanMessage = firstIssue?.message || 'Invalid form input'
+
+      if (humanMessage === 'Invalid input' || humanMessage === 'Required' || humanMessage.startsWith('Expected ')) {
+        humanMessage = `Please check "${String(lastSegment)}": ${firstIssue?.message}`
+      }
+
       console.error('[Event Creation Validation Error]', {
         field: fieldPath,
         message: humanMessage,
-        issues: parsed.error.issues,
+        issues,
       })
       return NextResponse.json(
         {
@@ -419,8 +426,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const errorMessage = err instanceof Error ? err.message : 'Failed to create event. Please try again.'
     return NextResponse.json(
-      { success: false, error: 'Failed to create event. Please try again.' },
+      { success: false, error: errorMessage },
       { status: 500 }
     )
   }

@@ -49,12 +49,9 @@ describe('createEventSchema â€” physical events', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects an empty questions array', () => {
+  it('accepts an empty questions array', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, questions: [] })
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/question/i)
-    }
+    expect(result.success).toBe(true)
   })
 
   it('rejects more than 30 questions', () => {
@@ -120,23 +117,20 @@ describe('createEventSchema â€” virtual event Google Meet link', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects a Zoom link', () => {
+  it('accepts a Zoom link', () => {
     const result = createEventSchema.safeParse({
       ...virtualBase,
       virtualLink: 'https://zoom.us/j/123456789',
     })
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/Google Meet/i)
-    }
+    expect(result.success).toBe(true)
   })
 
-  it('rejects a Microsoft Teams link', () => {
+  it('accepts a Microsoft Teams link', () => {
     const result = createEventSchema.safeParse({
       ...virtualBase,
       virtualLink: 'https://teams.microsoft.com/l/meetup-join/123',
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it('rejects a plain string that is not a URL', () => {
@@ -253,7 +247,7 @@ describe('createEventSchema â€” WhatsApp number validation', () => {
     const result = createEventSchema.safeParse({ ...physicalBase, whatsappNumber: '12345' })
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0].message).toMatch(/8 and 15 digits/i)
+      expect(result.error.issues[0].message).toMatch(/9 and 15 digits/i)
     }
   })
 

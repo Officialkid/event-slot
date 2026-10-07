@@ -69,15 +69,6 @@ const EVENT_CATEGORIES = [
   "Other",
 ]
 
-const defaultQuestion = (): Question => ({
-  id: "question-0",
-  label: "Full Name",
-  type: "text",
-  required: true,
-  options: [],
-  optionLimits: {},
-})
-
 const typeUsesOptions = (type: QuestionType) => type === "select" || type === "checkbox"
 
 const defaultTicketTier = (): TicketTierDraft => {
@@ -196,7 +187,7 @@ export default function CreateEventPage() {
   const [showPaidNotice, setShowPaidNotice] = useState(false)
 
   // Step 3: Registration Questions
-  const [questions, setQuestions] = useState([defaultQuestion()])
+  const [questions, setQuestions] = useState<Question[]>([])
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
   const [attendeeConsentEnabled, setAttendeeConsentEnabled] = useState(true)
   const [attendeeConsentText, setAttendeeConsentText] = useState("")
@@ -1037,14 +1028,31 @@ export default function CreateEventPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  // Format ISO date helper for submittal
-  const serializeDate = (d: string, hasTime: boolean) => {
-    if (!d) return undefined
-    if (hasTime) {
-      return new Date(d).toISOString()
+  // Safe ISO date helper to prevent RangeError: Invalid time value
+  const safeIsoString = (val: string | null | undefined): string | undefined => {
+    if (!val || typeof val !== "string" || !val.trim()) return undefined
+    try {
+      const parsed = new Date(val)
+      return isNaN(parsed.getTime()) ? undefined : parsed.toISOString()
+    } catch {
+      return undefined
     }
-    // Date only: YYYY-MM-DD -> add midday UTC
-    return new Date(`${d}T12:00:00.000Z`).toISOString()
+  }
+
+  // Format ISO date helper for submittal
+  const serializeDate = (d: string, hasTime: boolean): string | undefined => {
+    if (!d || typeof d !== "string" || !d.trim()) return undefined
+    try {
+      if (hasTime) {
+        const dt = new Date(d)
+        return isNaN(dt.getTime()) ? undefined : dt.toISOString()
+      }
+      // Date only: YYYY-MM-DD -> add midday UTC
+      const dt = new Date(`${d}T12:00:00.000Z`)
+      return isNaN(dt.getTime()) ? undefined : dt.toISOString()
+    } catch {
+      return undefined
+    }
   }
 
   // Master Form Submission
@@ -1052,6 +1060,11 @@ export default function CreateEventPage() {
     e?.preventDefault()
     setError("")
     setStepError("")
+
+    if (status === "unauthenticated" || !session?.user) {
+      setError("Your session has expired. Please refresh the page or sign in again to create your event.")
+      return
+    }
 
     if (!validateStep1()) {
       setCurrentStep(1)
@@ -1090,7 +1103,7 @@ export default function CreateEventPage() {
           eventType,
           virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
           capacity: isRegistrationEvent && capacity ? Number(capacity) : undefined,
-          deadline: isRegistrationEvent && deadline ? new Date(deadline).toISOString() : undefined,
+          deadline: isRegistrationEvent && deadline ? safeIsoString(deadline) : undefined,
           eventDate: serializeDate(eventDate, hasSpecificTime),
           eventEndAt: serializeDate(eventEndAt, hasSpecificTime),
           hasSpecificTime,
@@ -1100,10 +1113,11 @@ export default function CreateEventPage() {
           registrationOpensDays: isRecurring ? registrationOpensDays : undefined,
           joinOpensAt: eventType === "VIRTUAL"
             ? (accessWindowPreset === "CUSTOM" && joinOpensAt
-                ? new Date(joinOpensAt).toISOString()
+                ? safeIsoString(joinOpensAt)
                 : eventDate
                 ? (() => {
                     const startMs = new Date(eventDate).getTime()
+                    if (isNaN(startMs)) return undefined
                     const offsetMs =
                       accessWindowPreset === "15_MINS_BEFORE" ? 15 * 60 * 1000 :
                       accessWindowPreset === "1_HOUR_BEFORE" ? 60 * 60 * 1000 :
@@ -1143,7 +1157,19 @@ export default function CreateEventPage() {
           organizerEmail: organizerEmail || session?.user?.email || undefined,
         }),
       })
-      const data = await res.json()
+
+      const resText = await res.text()
+      let data: any
+      try {
+        data = JSON.parse(resText)
+      } catch {
+        throw new Error(
+          res.status === 504 || res.status === 502
+            ? "The server took too long to respond (Gateway Timeout / Upstream error). Please check your internet connection and try submitting again."
+            : `Server returned error (${res.status}): ${resText.slice(0, 160) || res.statusText || "Unexpected response format"}`
+        )
+      }
+
       if (data.success) {
         try {
           if (typeof window !== "undefined") {
@@ -1153,7 +1179,7 @@ export default function CreateEventPage() {
         setEventInfo(data.event)
         setSuccess(true)
       } else {
-        const errorMsg = data.error || "Failed to create event."
+        const errorMsg = data.error || (data.details ? JSON.stringify(data.details) : "Failed to create event. Please check the form fields.")
         setError(errorMsg)
         if (data.code === "PLAN_LIMIT_ATTENDEES") {
           setShowCapacityUpgradeHint(true)
@@ -1163,12 +1189,12 @@ export default function CreateEventPage() {
           let targetStep: 1 | 2 | 3 | 4 = 1
           let targetId = `create-field-${field}`
 
-          if (["title", "category", "imageUrl", "image", "eventDate", "eventEndAt", "location", "virtualLink"].includes(field)) {
+          if (["title", "category", "imageUrl", "image", "eventDate", "eventEndAt", "location", "mapDirectionsUrl", "virtualLink", "visibility", "eventType", "accessType"].includes(field)) {
             targetStep = 1
             if (field === "imageUrl" || field === "image") {
               targetId = "create-field-poster"
             }
-          } else if (["capacity", "deadline", "ticketTiers", "isPaid", "ticketPrice"].includes(field) || field.startsWith("ticketTiers")) {
+          } else if (["capacity", "deadline", "ticketTiers", "isPaid", "ticketPrice", "entryFeeLabel"].includes(field) || field.startsWith("ticketTiers")) {
             targetStep = 2
             if (field === "deadline") {
               setShowAdvancedTickets(true)
@@ -1185,7 +1211,7 @@ export default function CreateEventPage() {
             } else {
               targetId = "create-field-questions"
             }
-          } else if (["organizerName", "organizerEmail", "whatsappNumber", "communityLink"].includes(field)) {
+          } else if (["organizerName", "organizerEmail", "whatsappNumber", "communityLink", "contactMode"].includes(field)) {
             targetStep = 4
           }
 
@@ -1199,8 +1225,10 @@ export default function CreateEventPage() {
           setStepError(errorMsg)
         }
       }
-    } catch {
-      setError("Unexpected error. Please try again.")
+    } catch (err: any) {
+      const errorMsg = err?.message || "An unexpected error occurred while creating the event. Please check your inputs and try again."
+      setError(errorMsg)
+      setStepError(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -1516,7 +1544,7 @@ export default function CreateEventPage() {
                         type="button"
                         onClick={() => {
                           setSelectedTemplateId(null)
-                          setQuestions([defaultQuestion()])
+                          setQuestions([])
                         }}
                         className="text-[0.7rem] underline"
                         style={{ color: "var(--text-muted)" }}
@@ -2410,13 +2438,6 @@ export default function CreateEventPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="rounded-[14px] border p-4 flex items-center gap-3" style={{ borderColor: "rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)" }}>
-                      <span className="text-lg">✓</span>
-                      <p className="text-xs" style={{ color: "var(--text-primary)" }}>
-                        <strong>Full Name</strong> and <strong>Email Address</strong> are already included by default for all registrations.
-                      </p>
-                    </div>
-
                     {/* Questions Builder */}
                     <div id="create-field-questions" className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                       <div className="flex items-center justify-between">
@@ -2438,7 +2459,7 @@ export default function CreateEventPage() {
                           <div className="rounded-xl border p-6 text-center space-y-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                             <span className="text-2xl block">📋</span>
                             <p className="text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                              No custom questions added. Attendees will only be asked for their <strong>Full Name</strong> and <strong>Email Address</strong>.
+                              No questions added yet. You have full freedom to keep this form question-free or add custom fields below.
                             </p>
                             <button
                               type="button"
@@ -2446,7 +2467,7 @@ export default function CreateEventPage() {
                               className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:opacity-90"
                               style={{ background: "#15803d", cursor: "pointer" }}
                             >
-                              + Add a Custom Question
+                              + Add Question
                             </button>
                           </div>
                         ) : (

@@ -802,20 +802,32 @@ export default function EditEventPage() {
       }
     }
 
+    const safeIsoString = (val: string | null | undefined): string | undefined => {
+      if (!val || typeof val !== "string" || !val.trim()) return undefined
+      try {
+        const parsed = new Date(val)
+        return isNaN(parsed.getTime()) ? undefined : parsed.toISOString()
+      } catch {
+        return undefined
+      }
+    }
+
     let computedJoinOpensAt: string | undefined = undefined
     if (eventType === "VIRTUAL") {
       if (accessWindowPreset === "CUSTOM" && joinOpensAt) {
-        computedJoinOpensAt = new Date(joinOpensAt).toISOString()
+        computedJoinOpensAt = safeIsoString(joinOpensAt)
       } else if (eventDate) {
         const startMs = new Date(eventDate).getTime()
-        const offsetMs =
-          accessWindowPreset === "15_MINS_BEFORE" ? 15 * 60 * 1000 :
-          accessWindowPreset === "1_HOUR_BEFORE" ? 60 * 60 * 1000 :
-          accessWindowPreset === "AT_START" ? 0 :
-          30 * 60 * 1000
-        computedJoinOpensAt = new Date(Math.max(0, startMs - offsetMs)).toISOString()
+        if (!isNaN(startMs)) {
+          const offsetMs =
+            accessWindowPreset === "15_MINS_BEFORE" ? 15 * 60 * 1000 :
+            accessWindowPreset === "1_HOUR_BEFORE" ? 60 * 60 * 1000 :
+            accessWindowPreset === "AT_START" ? 0 :
+            30 * 60 * 1000
+          computedJoinOpensAt = new Date(Math.max(0, startMs - offsetMs)).toISOString()
+        }
       } else if (joinOpensAt) {
-        computedJoinOpensAt = new Date(joinOpensAt).toISOString()
+        computedJoinOpensAt = safeIsoString(joinOpensAt)
       }
     }
 
@@ -829,9 +841,9 @@ export default function EditEventPage() {
           description: description || undefined,
           visibility,
           capacity: capacity ? Number(capacity) : undefined,
-          deadline: deadline ? new Date(deadline).toISOString() : undefined,
-          eventDate: eventDate ? new Date(eventDate).toISOString() : undefined,
-          eventEndAt: hasSpecificTime && eventEndAt ? new Date(eventEndAt).toISOString() : undefined,
+          deadline: deadline ? safeIsoString(deadline) : undefined,
+          eventDate: eventDate ? safeIsoString(eventDate) : undefined,
+          eventEndAt: hasSpecificTime && eventEndAt ? safeIsoString(eventEndAt) : undefined,
           hasSpecificTime,
           isRecurring,
           recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
@@ -866,7 +878,19 @@ export default function EditEventPage() {
           })),
         }),
       })
-      const data = await res.json()
+
+      const resText = await res.text()
+      let data: any
+      try {
+        data = JSON.parse(resText)
+      } catch {
+        throw new Error(
+          res.status === 504 || res.status === 502
+            ? "The server took too long to respond. Please check your connection and try saving again."
+            : `Server returned error (${res.status}): ${resText.slice(0, 160) || res.statusText || "Unexpected response"}`
+        )
+      }
+
       if (data.success) {
         questionChangeModeRef.current = null
         if (isPaid) {
@@ -890,7 +914,13 @@ export default function EditEventPage() {
               })),
             }),
           })
-          const tierData = await tierRes.json()
+          const tierResText = await tierRes.text()
+          let tierData: any
+          try {
+            tierData = JSON.parse(tierResText)
+          } catch {
+            tierData = { success: false, error: "Failed to parse ticket tier response" }
+          }
           if (!tierRes.ok || !tierData.success) {
             setError(tierData.error || "Event details saved, but ticket tiers failed to update.")
             setSaving(false)
@@ -903,9 +933,9 @@ export default function EditEventPage() {
         questionChangeModeRef.current = null
         setError(data.error || "Failed to save changes.")
       }
-    } catch {
+    } catch (err: any) {
       questionChangeModeRef.current = null
-      setError("Unexpected error. Please try again.")
+      setError(err?.message || "Failed to save changes. Please try again.")
     } finally {
       setSaving(false)
     }

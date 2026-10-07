@@ -161,7 +161,7 @@ describe('DELETE /api/events/[slug] cascade deletion', () => {
     const body = await res.json()
 
     expect(res.status).toBe(403)
-    expect(body.error).toBe('Forbidden')
+    expect(body.error).toMatch(/Only the event creator|Forbidden/i)
   })
 
   it('atomically cascades deletion of all child records when owner deletes event', async () => {

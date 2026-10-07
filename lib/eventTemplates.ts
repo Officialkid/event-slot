@@ -22,14 +22,12 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     icon: "👥",
     description: "Casual gathering for a community or group.",
     questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Email address", type: "email", required: true },
-      { id: "q3", label: "Phone number", type: "phone", required: false },
+      { id: "q1", label: "Phone number", type: "phone", required: false },
       {
-        id: "q4",
+        id: "q2",
         label: "How did you hear about this event?",
         type: "select",
-        options: ["Social media", "Friend", "Email", "Other"],
+        options: ["Social media", "Friend / Word of mouth", "Email newsletter", "Community group", "Other"],
         required: false,
       },
     ],
@@ -40,11 +38,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     icon: "🏢",
     description: "Professional training session or workshop.",
     questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Work email", type: "email", required: true },
-      { id: "q3", label: "Job title", type: "text", required: true },
-      { id: "q4", label: "Company name", type: "text", required: true },
-      { id: "q5", label: "Department", type: "text", required: false },
+      { id: "q1", label: "Job title", type: "text", required: false },
+      { id: "q2", label: "Company / Organisation name", type: "text", required: false },
+      { id: "q3", label: "Department / Team", type: "text", required: false },
     ],
   },
   {
@@ -53,17 +49,15 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     icon: "🛠️",
     description: "Hands-on skills workshop or class.",
     questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Email address", type: "email", required: true },
       {
-        id: "q3",
+        id: "q1",
         label: "Experience level",
         type: "select",
         options: ["Beginner", "Intermediate", "Advanced"],
-        required: true,
+        required: false,
       },
       {
-        id: "q4",
+        id: "q2",
         label: "What do you hope to learn?",
         type: "text",
         required: false,
@@ -76,19 +70,17 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     icon: "🎤",
     description: "Large conference or summit.",
     questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Email address", type: "email", required: true },
-      { id: "q3", label: "Organisation", type: "text", required: false },
-      { id: "q4", label: "Job title", type: "text", required: false },
+      { id: "q1", label: "Organisation / Affiliation", type: "text", required: false },
+      { id: "q2", label: "Job title", type: "text", required: false },
       {
-        id: "q5",
+        id: "q3",
         label: "Dietary requirements",
         type: "select",
-        options: ["None", "Vegetarian", "Vegan", "Halal", "Other"],
+        options: ["None", "Vegetarian", "Vegan", "Halal", "Gluten-free", "Other"],
         required: false,
       },
       {
-        id: "q6",
+        id: "q4",
         label: "T-shirt size",
         type: "select",
         options: ["XS", "S", "M", "L", "XL", "XXL"],
@@ -102,11 +94,9 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     icon: "⛪",
     description: "Church service, crusade, or faith-based gathering.",
     questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Phone number", type: "phone", required: true },
-      { id: "q3", label: "Email address", type: "email", required: false },
+      { id: "q1", label: "Phone number", type: "phone", required: false },
       {
-        id: "q4",
+        id: "q2",
         label: "Are you a first-time visitor?",
         type: "select",
         options: ["Yes", "No"],
@@ -119,9 +109,6 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     name: "Start from scratch",
     icon: "✏️",
     description: "Build your own form from zero.",
-    questions: [
-      { id: "q1", label: "Full name", type: "text", required: true },
-      { id: "q2", label: "Email address", type: "email", required: true },
-    ],
+    questions: [],
   },
 ]
