@@ -7,6 +7,13 @@ import { markFeatureUsed } from "@/lib/markFeatureUsed"
 import { useTutorial } from "@/hooks/useTutorial"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
 import { isPricingRolloutActive } from "@/lib/pricingRollout"
+import {
+  type EventDraft,
+  getEventDrafts,
+  deleteEventDraft,
+  formatDraftTimeAgo,
+  getDraftStepLabel,
+} from "@/lib/eventDrafts"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +30,8 @@ type OrgEvent = {
   archived: boolean
   status: string
   eventDate: string | null
+  eventEndAt?: string | null
+  isRecurring?: boolean
   location: string | null
   eventType?: "PHYSICAL" | "VIRTUAL"
   dataExpired: boolean
@@ -49,14 +58,19 @@ type OrgGroupBooking = {
   }
 }
 
-type TabKey = "active" | "past" | "archived"
+type TabKey = "active" | "drafts" | "past" | "archived"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function classifyEvent(event: OrgEvent): TabKey {
+function classifyEvent(event: OrgEvent): "active" | "past" | "archived" {
   if (event.archived || event.status === "archived") return "archived"
+  if (event.status === "closed" || event.status === "expired" || event.dataExpired) return "past"
   const now = new Date()
-  if (event.deadline && new Date(event.deadline) < now) return "past"
+  if (!event.isRecurring) {
+    if (event.eventEndAt && new Date(event.eventEndAt) < now) return "past"
+    if (event.eventDate && new Date(event.eventDate) < now) return "past"
+    if (event.deadline && new Date(event.deadline) < now) return "past"
+  }
   return "active"
 }
 
@@ -820,7 +834,52 @@ function EventCard({
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => void }) {
-  const messages: Record<TabKey, { heading: string; body: string }> = {
+  if (tab === "drafts") {
+    return (
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "0.5px solid var(--border-subtle)",
+          borderRadius: 12,
+          padding: "2.5rem 1.5rem",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📝</div>
+        <p
+          style={{
+            fontFamily: "var(--font-instrument-serif)",
+            fontSize: "1.2rem",
+            color: "var(--text-primary)",
+            marginBottom: "0.4rem",
+          }}
+        >
+          No saved drafts
+        </p>
+        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", margin: "0 auto 1.25rem", maxWidth: 380 }}>
+          When you start creating an event, your progress is automatically saved so you can pick up right where you left off.
+        </p>
+        <Link
+          href="/create"
+          style={{
+            display: "inline-block",
+            background: "var(--accent)",
+            color: "var(--accent-contrast)",
+            borderRadius: 8,
+            padding: "0.55rem 1.15rem",
+            fontSize: "0.82rem",
+            fontWeight: 600,
+            fontFamily: "var(--font-dm-sans)",
+            textDecoration: "none",
+          }}
+        >
+          Create New Event
+        </Link>
+      </div>
+    )
+  }
+
+  const messages: Record<Exclude<TabKey, "drafts">, { heading: string; body: string }> = {
     active: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.active,
     past: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.past,
     archived: ORGANIZER_SURFACE_COPY.eventsList.emptyStates.archived,
@@ -894,6 +953,7 @@ function EmptyState({ tab, onRestartTour }: { tab: TabKey; onRestartTour: () => 
 
 export default function DashboardEventsPage() {
   const [events, setEvents] = useState<OrgEvent[]>([])
+  const [drafts, setDrafts] = useState<EventDraft[]>([])
   const [groupBookings, setGroupBookings] = useState<OrgGroupBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("active")
@@ -903,6 +963,7 @@ export default function DashboardEventsPage() {
   useEffect(() => {
     markFeatureUsed("view_events")
     setOrigin(window.location.origin)
+    setDrafts(getEventDrafts())
     fetch("/api/my-events")
       .then(r => r.json())
       .then(data => {
@@ -915,6 +976,11 @@ export default function DashboardEventsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  const handleDeleteDraft = (draftId: string) => {
+    deleteEventDraft(draftId)
+    setDrafts(prev => prev.filter(d => d.id !== draftId))
+  }
 
   const handleRenameSuccess = (slug: string, title: string) => {
     setEvents(prev => prev.map(e => e.slug === slug ? { ...e, title } : e))
@@ -942,6 +1008,7 @@ export default function DashboardEventsPage() {
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: "active", label: "Active" },
+    { key: "drafts", label: "Drafts" },
     { key: "past", label: "Past" },
     { key: "archived", label: "Archived" },
   ]
@@ -950,6 +1017,7 @@ export default function DashboardEventsPage() {
 
   const counts: Record<TabKey, number> = {
     active: events.filter(e => classifyEvent(e) === "active").length,
+    drafts: drafts.length,
     past: events.filter(e => classifyEvent(e) === "past").length,
     archived: events.filter(e => classifyEvent(e) === "archived").length,
   }
@@ -1170,6 +1238,100 @@ export default function DashboardEventsPage() {
               />
             ))}
           </div>
+        ) : activeTab === "drafts" ? (
+          drafts.length === 0 ? (
+            <EmptyState tab="drafts" onRestartTour={restartTutorial} />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+              {drafts.map(draft => (
+                <div
+                  key={draft.id}
+                  style={{
+                    background: "var(--surface)",
+                    border: "0.5px solid var(--border-subtle)",
+                    borderRadius: 12,
+                    padding: "1.25rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "1rem",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 240 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.3rem", flexWrap: "wrap" }}>
+                      <h3
+                        style={{
+                          fontFamily: "var(--font-instrument-serif)",
+                          fontSize: "1.15rem",
+                          fontWeight: 400,
+                          color: "var(--text-primary)",
+                          margin: 0,
+                        }}
+                      >
+                        {draft.title || "Untitled Event Draft"}
+                      </h3>
+                      <span
+                        style={{
+                          fontSize: "0.65rem",
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          background: "color-mix(in srgb, var(--accent) 14%, transparent)",
+                          color: "var(--accent)",
+                          borderRadius: 100,
+                          padding: "2px 8px",
+                          fontFamily: "var(--font-dm-sans)",
+                        }}
+                      >
+                        {getDraftStepLabel(draft.currentStep)}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)" }}>
+                      Saved {formatDraftTimeAgo(draft.updatedAt)}
+                      {draft.eventDate && ` · Target Date: ${formatDate(draft.eventDate)}`}
+                      {draft.location && ` · 📍 ${draft.location}`}
+                      {draft.eventType === "VIRTUAL" && " · 💻 Virtual"}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <button
+                      onClick={() => handleDeleteDraft(draft.id)}
+                      style={{
+                        background: "transparent",
+                        border: "0.5px solid var(--border)",
+                        borderRadius: 8,
+                        padding: "0.45rem 0.85rem",
+                        fontSize: "0.78rem",
+                        color: "var(--error)",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    >
+                      Discard
+                    </button>
+                    <Link
+                      href={`/create?draftId=${draft.id}`}
+                      style={{
+                        background: "var(--accent)",
+                        color: "var(--accent-contrast)",
+                        borderRadius: 8,
+                        padding: "0.45rem 1rem",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        fontFamily: "var(--font-dm-sans)",
+                        textDecoration: "none",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                      }}
+                    >
+                      Resume →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : filtered.length === 0 ? (
           <EmptyState tab={activeTab} onRestartTour={restartTutorial} />
         ) : (

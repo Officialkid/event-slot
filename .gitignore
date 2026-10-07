@@ -48,6 +48,7 @@ tmp_*.txt
 tmp_*.json
 eventslot_google_client_id.txt
 eventslot_google_client_secret.txt
+*.docx
 
 # Android signing — NEVER commit these
 *.keystore

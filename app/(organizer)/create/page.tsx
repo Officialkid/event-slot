@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { CREATE_EVENT_COPY } from "@/lib/createEventContent"
 import { EVENT_TEMPLATES } from "@/lib/eventTemplates"
 import { getPublicEventUrl } from "@/lib/eventUrls"
@@ -16,6 +17,14 @@ import { EventPassSelector } from "@/components/billing/EventPassSelector"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 import { detectTypoSuggestions, applyTypoCorrection } from "@/lib/typoFixer"
+import {
+  type EventDraft,
+  getEventDrafts,
+  getEventDraft,
+  saveEventDraft,
+  deleteEventDraft,
+  getDraftStepLabel,
+} from "@/lib/eventDrafts"
 
 type QuestionType = "text" | "textarea" | "number" | "email" | "phone" | "select" | "checkbox" | "file"
 
@@ -230,10 +239,13 @@ export default function CreateEventPage() {
   } | null>(null)
   const [aiPredictionLoading, setAiPredictionLoading] = useState(false)
   const [draftAvailable, setDraftAvailable] = useState<{
+    id?: string
     title: string
     step: 1 | 2 | 3 | 4
     updatedAt: number
+    totalDrafts?: number
   } | null>(null)
+  const [activeDraftId, setActiveDraftId] = useState<string>("")
   const [draftNotice, setDraftNotice] = useState<string>("")
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -251,18 +263,79 @@ export default function CreateEventPage() {
     markFeatureUsed("create_event")
   }, [])
 
-  // Check for auto-saved draft on mount
+  const applyDraftToForm = (d: EventDraft) => {
+    if (d.title !== undefined) setTitle(d.title)
+    if (d.category !== undefined) setCategory(d.category || "")
+    if (d.description !== undefined) setDescription(d.description || "")
+    if (d.visibility !== undefined) setVisibility((d.visibility as "PUBLIC" | "PRIVATE") || "PRIVATE")
+    if (d.eventType !== undefined) setEventType(d.eventType || "PHYSICAL")
+    if (d.virtualLink !== undefined) setVirtualLink(d.virtualLink || "")
+    if (d.accessWindowPreset !== undefined) {
+      const validPresets = ["30_MINS_BEFORE", "15_MINS_BEFORE", "1_HOUR_BEFORE", "AT_START", "CUSTOM"] as const
+      if (validPresets.includes(d.accessWindowPreset as any)) {
+        setAccessWindowPreset(d.accessWindowPreset as any)
+      }
+    }
+    if (d.joinOpensAt !== undefined) setJoinOpensAt(d.joinOpensAt || "")
+    if (d.eventDate !== undefined) setEventDate(d.eventDate || "")
+    if (d.eventEndAt !== undefined) setEventEndAt(d.eventEndAt || "")
+    if (d.hasSpecificTime !== undefined) setHasSpecificTime(Boolean(d.hasSpecificTime))
+    if (d.isRecurring !== undefined) setIsRecurring(Boolean(d.isRecurring))
+    if (d.recurrenceFrequency !== undefined) {
+      const validFreqs = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const
+      if (validFreqs.includes(d.recurrenceFrequency as any)) {
+        setRecurrenceFrequency(d.recurrenceFrequency as any)
+      }
+    }
+    if (d.recurrenceDayOfWeek !== undefined) setRecurrenceDayOfWeek(d.recurrenceDayOfWeek ?? 3)
+    if (d.registrationOpensDays !== undefined) setRegistrationOpensDays(d.registrationOpensDays ?? 6)
+    if (d.location !== undefined) setLocation(d.location || "")
+    if (d.mapDirectionsUrl !== undefined) setMapDirectionsUrl(d.mapDirectionsUrl || "")
+    if (d.imageUrl !== undefined) setImageUrl(d.imageUrl || "")
+    if (d.accessType !== undefined) setAccessType(d.accessType || "REGISTRATION")
+    if (d.capacity !== undefined) setCapacity(d.capacity || "")
+    if (d.showRemainingSpots !== undefined) setShowRemainingSpots(Boolean(d.showRemainingSpots))
+    if (d.deadline !== undefined) setDeadline(d.deadline || "")
+    if (d.entryFeeLabel !== undefined) setEntryFeeLabel(d.entryFeeLabel || "")
+    if (d.groupRegistrationEnabled !== undefined) setGroupRegistrationEnabled(Boolean(d.groupRegistrationEnabled))
+    if (Array.isArray(d.questions)) setQuestions(d.questions)
+    if (d.attendeeConsentEnabled !== undefined) setAttendeeConsentEnabled(Boolean(d.attendeeConsentEnabled))
+    if (d.attendeeConsentText !== undefined) setAttendeeConsentText(d.attendeeConsentText || "")
+    if (d.organizerName !== undefined) setOrganizerName(d.organizerName || "")
+    if (d.whatsappNumber !== undefined) setWhatsappNumber(d.whatsappNumber || "")
+    if (d.contactMode !== undefined) setContactMode(d.contactMode || "WHATSAPP")
+    if (d.communityLink !== undefined) setCommunityLink(d.communityLink || "")
+    if (d.currentStep && [1, 2, 3, 4].includes(d.currentStep)) setCurrentStep(d.currentStep as 1 | 2 | 3 | 4)
+  }
+
+  // Check for URL draftId parameter or auto-saved drafts on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("eventslot_create_event_draft")
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (parsed && typeof parsed === "object" && parsed.updatedAt && Date.now() - parsed.updatedAt < 14 * 24 * 60 * 60 * 1000) {
-          if (parsed.title || parsed.description || parsed.eventDate) {
+      const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+      const draftIdParam = urlParams?.get("draftId")
+      if (draftIdParam) {
+        const d = getEventDraft(draftIdParam)
+        if (d) {
+          applyDraftToForm(d)
+          setActiveDraftId(d.id)
+          setDraftNotice(`Resumed draft: "${d.title}"! You are at ${getDraftStepLabel(d.currentStep)}.`)
+          setTimeout(() => setDraftNotice(""), 4500)
+          return
+        }
+      }
+
+      // Check for available drafts
+      const drafts = getEventDrafts()
+      if (drafts.length > 0) {
+        const latest = drafts[0]
+        if (Date.now() - (latest.updatedAt || 0) < 14 * 24 * 60 * 60 * 1000) {
+          if (latest.title || latest.description || latest.eventDate) {
             setDraftAvailable({
-              title: parsed.title || "Untitled Draft",
-              step: (parsed.currentStep >= 1 && parsed.currentStep <= 4) ? parsed.currentStep : 1,
-              updatedAt: parsed.updatedAt,
+              id: latest.id,
+              title: latest.title || "Untitled Draft",
+              step: ([1, 2, 3, 4].includes(latest.currentStep) ? latest.currentStep : 1) as 1 | 2 | 3 | 4,
+              updatedAt: latest.updatedAt,
+              totalDrafts: drafts.length,
             })
           }
         }
@@ -272,65 +345,41 @@ export default function CreateEventPage() {
     }
   }, [])
 
-  const handleResumeDraft = () => {
+  const handleResumeDraft = (specificId?: string) => {
     try {
-      const raw = localStorage.getItem("eventslot_create_event_draft")
-      if (!raw) return
-      const d = JSON.parse(raw)
-      if (d.title !== undefined) setTitle(d.title)
-      if (d.category !== undefined) setCategory(d.category)
-      if (d.description !== undefined) setDescription(d.description)
-      if (d.visibility !== undefined) setVisibility(d.visibility)
-      if (d.eventType !== undefined) setEventType(d.eventType)
-      if (d.virtualLink !== undefined) setVirtualLink(d.virtualLink)
-      if (d.accessWindowPreset !== undefined) setAccessWindowPreset(d.accessWindowPreset)
-      if (d.joinOpensAt !== undefined) setJoinOpensAt(d.joinOpensAt)
-      if (d.eventDate !== undefined) setEventDate(d.eventDate)
-      if (d.eventEndAt !== undefined) setEventEndAt(d.eventEndAt)
-      if (d.hasSpecificTime !== undefined) setHasSpecificTime(d.hasSpecificTime)
-      if (d.isRecurring !== undefined) setIsRecurring(d.isRecurring)
-      if (d.recurrenceFrequency !== undefined) setRecurrenceFrequency(d.recurrenceFrequency)
-      if (d.recurrenceDayOfWeek !== undefined) setRecurrenceDayOfWeek(d.recurrenceDayOfWeek)
-      if (d.registrationOpensDays !== undefined) setRegistrationOpensDays(d.registrationOpensDays)
-      if (d.location !== undefined) setLocation(d.location)
-      if (d.mapDirectionsUrl !== undefined) setMapDirectionsUrl(d.mapDirectionsUrl)
-      if (d.imageUrl !== undefined) setImageUrl(d.imageUrl)
-      if (d.accessType !== undefined) setAccessType(d.accessType)
-      if (d.capacity !== undefined) setCapacity(d.capacity)
-      if (d.showRemainingSpots !== undefined) setShowRemainingSpots(d.showRemainingSpots)
-      if (d.deadline !== undefined) setDeadline(d.deadline)
-      if (d.entryFeeLabel !== undefined) setEntryFeeLabel(d.entryFeeLabel)
-      if (d.groupRegistrationEnabled !== undefined) setGroupRegistrationEnabled(d.groupRegistrationEnabled)
-      if (Array.isArray(d.questions)) setQuestions(d.questions)
-      if (d.attendeeConsentEnabled !== undefined) setAttendeeConsentEnabled(d.attendeeConsentEnabled)
-      if (d.attendeeConsentText !== undefined) setAttendeeConsentText(d.attendeeConsentText)
-      if (d.organizerName !== undefined) setOrganizerName(d.organizerName)
-      if (d.whatsappNumber !== undefined) setWhatsappNumber(d.whatsappNumber)
-      if (d.contactMode !== undefined) setContactMode(d.contactMode)
-      if (d.communityLink !== undefined) setCommunityLink(d.communityLink)
-      if (d.currentStep && [1, 2, 3, 4].includes(d.currentStep)) setCurrentStep(d.currentStep)
-      setDraftAvailable(null)
-      setDraftNotice("Draft restored! You can continue right where you left off.")
-      setTimeout(() => setDraftNotice(""), 4500)
+      const targetId = specificId || draftAvailable?.id
+      const draft = targetId ? getEventDraft(targetId) : getEventDrafts()[0]
+      if (draft) {
+        applyDraftToForm(draft)
+        setActiveDraftId(draft.id)
+        setDraftAvailable(null)
+        setDraftNotice(`Draft restored: "${draft.title}"! You can continue right where you left off.`)
+        setTimeout(() => setDraftNotice(""), 4500)
+      }
     } catch {
       // ignore
     }
   }
 
-  const handleDiscardDraft = () => {
+  const handleDiscardDraft = (specificId?: string) => {
     try {
-      localStorage.removeItem("eventslot_create_event_draft")
+      const targetId = specificId || draftAvailable?.id
+      if (targetId) {
+        deleteEventDraft(targetId)
+      } else {
+        localStorage.removeItem("eventslot_create_event_draft")
+      }
     } catch {}
     setDraftAvailable(null)
   }
 
-  // Auto-save form progress to localStorage
+  // Auto-save form progress to localStorage with multi-draft manager
   useEffect(() => {
     if (!title.trim() && !description.trim() && !eventDate) return
     const timer = setTimeout(() => {
       try {
-        const draft = {
-          updatedAt: Date.now(),
+        const savedId = saveEventDraft({
+          id: activeDraftId || undefined,
           currentStep,
           title,
           category,
@@ -363,16 +412,18 @@ export default function CreateEventPage() {
           whatsappNumber,
           contactMode,
           communityLink,
+        })
+        if (savedId && !activeDraftId) {
+          setActiveDraftId(savedId)
         }
-        localStorage.setItem("eventslot_create_event_draft", JSON.stringify(draft))
       } catch {
         // ignore
       }
     }, 1000)
     return () => clearTimeout(timer)
   }, [
-    currentStep, title, category, description, visibility, eventType, virtualLink,
-    accessWindowPreset, joinOpensAt, eventDate, eventEndAt, hasSpecificTime,
+    activeDraftId, currentStep, title, category, description, visibility, eventType,
+    virtualLink, accessWindowPreset, joinOpensAt, eventDate, eventEndAt, hasSpecificTime,
     isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays,
     location, mapDirectionsUrl, imageUrl, accessType, capacity, showRemainingSpots,
     deadline, entryFeeLabel, groupRegistrationEnabled, questions,
@@ -1173,6 +1224,9 @@ export default function CreateEventPage() {
       if (data.success) {
         try {
           if (typeof window !== "undefined") {
+            if (activeDraftId) {
+              deleteEventDraft(activeDraftId)
+            }
             localStorage.removeItem("eventslot_create_event_draft")
           }
         } catch {}
@@ -1473,12 +1527,20 @@ export default function CreateEventPage() {
                     <span>
                       &quot;{draftAvailable.title}&quot; (Saved at Step {draftAvailable.step} of 4)
                     </span>
+                    {(draftAvailable.totalDrafts ?? 1) > 1 && (
+                      <span className="block sm:inline sm:ml-2 text-[0.72rem] text-muted">
+                        • {draftAvailable.totalDrafts} drafts available in{" "}
+                        <Link href="/dashboard/history" className="underline font-semibold" style={{ color: "var(--accent)" }}>
+                          History
+                        </Link>
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
                     type="button"
-                    onClick={handleResumeDraft}
+                    onClick={() => handleResumeDraft(draftAvailable.id)}
                     className="rounded-full px-4 py-1.5 text-xs font-bold transition shadow-sm hover:opacity-90"
                     style={{
                       background: "#15803d",
@@ -1491,7 +1553,7 @@ export default function CreateEventPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleDiscardDraft}
+                    onClick={() => handleDiscardDraft(draftAvailable.id)}
                     className="rounded-full px-3 py-1.5 text-xs font-medium transition hover:opacity-80"
                     style={{
                       background: "transparent",

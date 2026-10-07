@@ -128,6 +128,16 @@ function IconLogOut() {
   )
 }
 
+function IconHistory() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 8a6.5 6.5 0 1 1 1.9 4.6" />
+      <path d="M1.5 4.5v3.5h3.5" />
+      <path d="M8 4.75v3.5l2.25 1.5" />
+    </svg>
+  )
+}
+
 function IconAdmin() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -160,6 +170,7 @@ function IconDotsHorizontal() {
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
+  { labelKey: "history", href: "/dashboard/history", icon: <IconHistory />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
   { labelKey: "community", href: "/dashboard/community", icon: <IconTrophy />, exact: false },
   { labelKey: "notifications", href: "/dashboard/notifications", icon: <IconBell />, exact: false },
@@ -178,6 +189,7 @@ const MOBILE_TAB_ITEMS = [
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
+  if (pathname.startsWith("/dashboard/history")) return getI18nMessage(language, "history")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
   if (pathname.startsWith("/dashboard/profile")) return getI18nMessage(language, "profile")
   if (pathname.startsWith("/dashboard/team")) return getI18nMessage(language, "team")

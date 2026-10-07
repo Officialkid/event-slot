@@ -76,6 +76,8 @@ export async function GET(req: Request) {
           archived: true,
           status: true,
           eventDate: true,
+          eventEndAt: true,
+          isRecurring: true,
           location: true,
           eventType: true,
           dataExpired: true,
