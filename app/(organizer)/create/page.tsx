@@ -797,7 +797,16 @@ export default function CreateEventPage() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" })
       setTimeout(() => {
-        el.focus()
+        const innerInput = el.querySelector("input, select, textarea") as HTMLElement | null
+        if (innerInput && typeof innerInput.focus === "function") {
+          innerInput.focus()
+        } else if (typeof (el as HTMLElement).focus === "function") {
+          (el as HTMLElement).focus()
+        }
+        el.classList.add("ring-2", "ring-red-500", "transition-all")
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-red-500")
+        }, 3000)
       }, 300)
     }
   }
@@ -1156,11 +1165,26 @@ export default function CreateEventPage() {
 
           if (["title", "category", "imageUrl", "image", "eventDate", "eventEndAt", "location", "virtualLink"].includes(field)) {
             targetStep = 1
+            if (field === "imageUrl" || field === "image") {
+              targetId = "create-field-poster"
+            }
           } else if (["capacity", "deadline", "ticketTiers", "isPaid", "ticketPrice"].includes(field) || field.startsWith("ticketTiers")) {
             targetStep = 2
+            if (field === "deadline") {
+              setShowAdvancedTickets(true)
+              targetId = "create-field-deadline"
+            } else if (field.startsWith("ticketTiers") || field === "isPaid" || field === "ticketPrice") {
+              targetId = "create-field-ticket-tiers"
+            }
           } else if (field.startsWith("questions")) {
             targetStep = 3
-            targetId = "create-field-questions"
+            const parts = field.split(".")
+            const qIdx = parts.length > 1 && !isNaN(Number(parts[1])) ? Number(parts[1]) : -1
+            if (qIdx >= 0 && questions[qIdx]) {
+              targetId = `create-field-q-${questions[qIdx].id}`
+            } else {
+              targetId = "create-field-questions"
+            }
           } else if (["organizerName", "organizerEmail", "whatsappNumber", "communityLink"].includes(field)) {
             targetStep = 4
           }
@@ -1171,6 +1195,8 @@ export default function CreateEventPage() {
           setTimeout(() => {
             scrollToAndFocus(targetId)
           }, 200)
+        } else {
+          setStepError(errorMsg)
         }
       }
     } catch {
@@ -2183,7 +2209,7 @@ export default function CreateEventPage() {
                 )}
 
                 {/* Capacity & Pricing Card */}
-                <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                <div id="create-field-ticket-tiers" className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                       Pricing & Spots
@@ -2321,6 +2347,7 @@ export default function CreateEventPage() {
                           Registration Deadline (Optional)
                         </label>
                         <input
+                          id="create-field-deadline"
                           type="datetime-local"
                           value={deadline}
                           onChange={(e) => setDeadline(e.target.value)}
@@ -2391,7 +2418,7 @@ export default function CreateEventPage() {
                     </div>
 
                     {/* Questions Builder */}
-                    <div className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <div id="create-field-questions" className="rounded-[14px] border p-5 sm:p-6 space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                       <div className="flex items-center justify-between">
                         <h3 className="text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
                           Custom Event Questions
@@ -2806,11 +2833,24 @@ export default function CreateEventPage() {
                         id="create-field-organizerName"
                         type="text"
                         value={organizerName}
-                        onChange={(e) => setOrganizerName(e.target.value)}
+                        onChange={(e) => {
+                          setOrganizerName(e.target.value)
+                          if (fieldErrors.organizerName) setFieldErrors(prev => ({ ...prev, organizerName: "" }))
+                        }}
                         placeholder={session?.user?.name || "Your name or organization"}
                         className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.organizerName ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.organizerName ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
+                      {fieldErrors.organizerName && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.organizerName}</span>
+                        </p>
+                      )}
                       <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                         Shown to attendees as &quot;Hosted by {organizerName || session?.user?.name || "You"}&quot;.
                       </p>
@@ -2842,14 +2882,27 @@ export default function CreateEventPage() {
                         id="create-field-whatsappNumber"
                         type="tel"
                         value={whatsappNumber}
-                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        onChange={(e) => {
+                          setWhatsappNumber(e.target.value)
+                          if (fieldErrors.whatsappNumber) setFieldErrors(prev => ({ ...prev, whatsappNumber: "" }))
+                        }}
                         placeholder="+254712345678"
                         className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.whatsappNumber ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.whatsappNumber ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
                       {whatsappNumber.trim() && !normalizeInternationalPhoneNumber(whatsappNumber.trim()).ok && (
                         <p className="text-[0.7rem] mt-1 text-red-500 font-medium">
                           {(normalizeInternationalPhoneNumber(whatsappNumber.trim()) as { ok: false; error: string }).error}
+                        </p>
+                      )}
+                      {fieldErrors.whatsappNumber && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.whatsappNumber}</span>
                         </p>
                       )}
                       <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
@@ -2862,13 +2915,27 @@ export default function CreateEventPage() {
                         Community Group Link (Optional)
                       </label>
                       <input
+                        id="create-field-communityLink"
                         type="url"
                         value={communityLink}
-                        onChange={(e) => setCommunityLink(e.target.value)}
+                        onChange={(e) => {
+                          setCommunityLink(e.target.value)
+                          if (fieldErrors.communityLink) setFieldErrors(prev => ({ ...prev, communityLink: "" }))
+                        }}
                         placeholder="https://chat.whatsapp.com/... or telegram"
                         className="w-full rounded-[10px] px-3.5 py-2 text-[0.85rem] outline-none"
-                        style={inputStyle}
+                        style={{
+                          ...inputStyle,
+                          borderColor: fieldErrors.communityLink ? "#EF4444" : "var(--border)",
+                          boxShadow: fieldErrors.communityLink ? "0 0 0 1px #EF4444" : "none",
+                        }}
                       />
+                      {fieldErrors.communityLink && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.communityLink}</span>
+                        </p>
+                      )}
                       <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                         Link shown to registered guests to join your group.
                       </p>
