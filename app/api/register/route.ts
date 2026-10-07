@@ -131,12 +131,12 @@ export async function POST(req: NextRequest) {
     if (event.status === 'closed' || event.status === 'COMPLETED') {
       return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
     }
-    const effectiveCloseAt = event.deadline ?? null
-    if (effectiveCloseAt && new Date(effectiveCloseAt) < new Date()) {
-      return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
-    }
-
-    if (event.isRecurring) {
+    if (!event.isRecurring) {
+      const effectiveCloseAt = event.deadline ?? null
+      if (effectiveCloseAt && new Date(effectiveCloseAt) < new Date()) {
+        return NextResponse.json({ success: false, error: 'Registration is closed' }, { status: 400 })
+      }
+    } else {
       const windowStatus = getRegistrationWindowStatus(event)
       if (!windowStatus.isOpen) {
         return NextResponse.json({ success: false, error: windowStatus.label }, { status: 400 })

@@ -306,7 +306,17 @@ export default function AdminBroadcastPage() {
           }),
         })
 
-        const data = await res.json()
+        let data: any
+        try {
+          data = await res.json()
+        } catch {
+          if (res.status === 504 || res.status === 502) {
+            throw new Error("Server gateway timeout: Delivery is continuing in the background. Please check audit logs or email inboxes in 1-2 minutes.")
+          }
+          const rawText = await res.text().catch(() => "")
+          throw new Error(`Server response error (${res.status}): ${rawText.slice(0, 100) || "Unable to read response"}`)
+        }
+
         if (!res.ok || !data.success) {
           throw new Error(data.error || "Failed to send")
         }

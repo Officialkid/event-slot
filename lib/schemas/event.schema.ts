@@ -64,33 +64,32 @@ export const createEventSchema = z.object({
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
   organizerName: z.string().min(1, 'Organizer name is required').max(200),
 }).superRefine((data, ctx) => {
-  if (data.accessType === 'REGISTRATION' && data.questions.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['questions'],
-      message: 'At least one question is required',
-    })
-  }
+  // Note: Registration events do not require custom questions because Name and Email are captured by default.
 
   if (data.eventType === 'VIRTUAL' && !data.virtualLink?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['virtualLink'],
-      message: 'Google Meet link is required for virtual events',
+      message: 'A meeting link is required for virtual events (Google Meet, Zoom, Microsoft Teams, etc.)',
     })
   }
 
-    if (data.eventType === 'VIRTUAL' && data.virtualLink?.trim()) {
+  if (data.eventType === 'VIRTUAL' && data.virtualLink?.trim()) {
     const raw = data.virtualLink.trim()
-    // Normalise: accept links pasted without the https:// scheme, or with http://
     let withScheme = raw
-    if (/^meet\.google\.com\//i.test(raw)) withScheme = `https://${raw}`
-    else if (/^http:\/\/meet\.google\.com\//i.test(raw)) withScheme = raw.replace(/^http:\/\//i, 'https://')
-    if (!withScheme.toLowerCase().startsWith('https://meet.google.com/')) {
+    if (!/^https?:\/\//i.test(raw)) {
+      withScheme = `https://${raw}`
+    }
+    try {
+      const parsedUrl = new URL(withScheme)
+      if (!['http:', 'https:'].includes(parsedUrl.protocol) || !parsedUrl.hostname.includes('.')) {
+        throw new Error('Invalid URL format')
+      }
+    } catch {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['virtualLink'],
-        message: 'Please provide a valid Google Meet link (e.g. meet.google.com/abc-defg-hij)',
+        message: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live)',
       })
     }
   }

@@ -35,8 +35,9 @@ export async function PATCH(_req: NextRequest, props: { params: Promise<{ slug: 
 
     const isCurrentlyClosed = event.status === "closed" || event.status === "COMPLETED"
     const isPastEvent =
-      (event.eventDate ? new Date(event.eventDate) < new Date() : false) ||
-      (event.deadline ? new Date(event.deadline) < new Date() : false)
+      !event.isRecurring &&
+      ((event.eventDate ? new Date(event.eventDate) < new Date() : false) ||
+        (event.deadline ? new Date(event.deadline) < new Date() : false))
 
     if (isCurrentlyClosed) {
       await prisma.event.update({

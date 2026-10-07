@@ -310,7 +310,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [draftMessage, setDraftMessage] = useState("")
   const [restoredDraftEmail, setRestoredDraftEmail] = useState("")
   const [deadlineExpired, setDeadlineExpired] = useState(() => {
-    if (!event.deadline) return false
+    if (event.isRecurring || !event.deadline) return false
     return new Date(event.deadline).getTime() <= Date.now()
   })
 
@@ -324,7 +324,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const effectiveEventEndAt = event.isRecurring && effectiveEventDate
     ? computeOccurrenceEnd(new Date(effectiveEventDate), event.eventDate, event.eventEndAt)
     : event.eventEndAt
-  const registrationClosed = deadlineExpired || event.status === "closed" || windowClosed
+  const registrationClosed = (event.isRecurring ? false : deadlineExpired) || event.status === "closed" || windowClosed
   const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
@@ -1873,14 +1873,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         </div>
       )}
 
-      {!compactHeader && event.deadline && (
+      {!compactHeader && !event.isRecurring && event.deadline && (
         <CountdownTimer
           deadline={event.deadline}
           urgentMode
           onExpiredChange={setDeadlineExpired}
         />
       )}
-      {compactHeader && event.deadline && (
+      {compactHeader && !event.isRecurring && event.deadline && (
         <div style={{ display: 'none' }}>
           <CountdownTimer
             deadline={event.deadline}

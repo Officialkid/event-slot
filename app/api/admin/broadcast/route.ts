@@ -294,8 +294,8 @@ export async function POST(req: NextRequest) {
     let failed = 0
     const failedRecipients: { email: string; error: string }[] = []
 
-    // Paced delivery loop using Nodemailer Primary with Resend Backup
-    for (const recipient of validRecipients) {
+    // Fast, batched delivery loop using concurrent chunks of 10 to avoid gateway timeouts
+    async function processRecipient(recipient: { id: string; name: string | null; email: string }) {
       const emailHtml = renderBroadcastEmail({
         layoutType,
         subject: subject.trim(),
@@ -315,7 +315,7 @@ export async function POST(req: NextRequest) {
       let success = false
       let lastErrorMsg = ''
 
-      while (attempts < 3 && !success) {
+      while (attempts < 2 && !success) {
         attempts++
         try {
           await sendEmail({
@@ -336,8 +336,8 @@ export async function POST(req: NextRequest) {
           })
         } catch (err) {
           lastErrorMsg = err instanceof Error ? err.message : String(err)
-          if (/429|too many|rate/i.test(lastErrorMsg) && attempts < 3) {
-            await new Promise((r) => setTimeout(r, 1200 * attempts))
+          if (/429|too many|rate/i.test(lastErrorMsg) && attempts < 2) {
+            await new Promise((r) => setTimeout(r, 1000 * attempts))
           } else {
             break
           }
@@ -378,9 +378,16 @@ export async function POST(req: NextRequest) {
           console.error('[Bounce Shield] Failed to record bounce for user:', updateErr)
         }
       }
+    }
 
-      // 250ms pacing between recipients (safe for SMTP & Resend backup)
-      await new Promise((r) => setTimeout(r, 250))
+    // Process recipients in batches of 10 concurrent connections with pacing between batches
+    const BATCH_SIZE = 10
+    for (let i = 0; i < validRecipients.length; i += BATCH_SIZE) {
+      const batch = validRecipients.slice(i, i + BATCH_SIZE)
+      await Promise.allSettled(batch.map((r) => processRecipient(r)))
+      if (i + BATCH_SIZE < validRecipients.length) {
+        await new Promise((r) => setTimeout(r, 200))
+      }
     }
 
     if (session?.user?.id) {

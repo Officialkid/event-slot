@@ -59,8 +59,21 @@ export async function POST(req: NextRequest) {
 
     const parsed = createEventSchema.safeParse(rawBody)
     if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0]
+      const fieldPath = firstIssue?.path.join('.') || ''
+      const humanMessage = firstIssue?.message || 'Invalid input'
+      console.error('[Event Creation Validation Error]', {
+        field: fieldPath,
+        message: humanMessage,
+        issues: parsed.error.issues,
+      })
       return NextResponse.json(
-        { success: false, error: 'Invalid input', details: parsed.error.flatten() },
+        {
+          success: false,
+          error: humanMessage,
+          field: fieldPath,
+          details: parsed.error.flatten(),
+        },
         { status: 400 }
       )
     }
@@ -118,7 +131,7 @@ export async function POST(req: NextRequest) {
     if (eventType === 'VIRTUAL') {
       if (!normalizedVirtualLink) {
         return NextResponse.json(
-          { success: false, error: 'A meeting link is required for virtual events.' },
+          { success: false, error: 'A meeting link is required for virtual events.', field: 'virtualLink' },
           { status: 400 }
         )
       }
@@ -129,7 +142,7 @@ export async function POST(req: NextRequest) {
         }
       } catch {
         return NextResponse.json(
-          { success: false, error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).' },
+          { success: false, error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).', field: 'virtualLink' },
           { status: 400 }
         )
       }

@@ -238,6 +238,12 @@ export default function CreateEventPage() {
     reasoning: string
   } | null>(null)
   const [aiPredictionLoading, setAiPredictionLoading] = useState(false)
+  const [draftAvailable, setDraftAvailable] = useState<{
+    title: string
+    step: 1 | 2 | 3 | 4
+    updatedAt: number
+  } | null>(null)
+  const [draftNotice, setDraftNotice] = useState<string>("")
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -253,6 +259,135 @@ export default function CreateEventPage() {
   useEffect(() => {
     markFeatureUsed("create_event")
   }, [])
+
+  // Check for auto-saved draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("eventslot_create_event_draft")
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === "object" && parsed.updatedAt && Date.now() - parsed.updatedAt < 14 * 24 * 60 * 60 * 1000) {
+          if (parsed.title || parsed.description || parsed.eventDate) {
+            setDraftAvailable({
+              title: parsed.title || "Untitled Draft",
+              step: (parsed.currentStep >= 1 && parsed.currentStep <= 4) ? parsed.currentStep : 1,
+              updatedAt: parsed.updatedAt,
+            })
+          }
+        }
+      }
+    } catch {
+      // localStorage unavailable or private browsing
+    }
+  }, [])
+
+  const handleResumeDraft = () => {
+    try {
+      const raw = localStorage.getItem("eventslot_create_event_draft")
+      if (!raw) return
+      const d = JSON.parse(raw)
+      if (d.title !== undefined) setTitle(d.title)
+      if (d.category !== undefined) setCategory(d.category)
+      if (d.description !== undefined) setDescription(d.description)
+      if (d.visibility !== undefined) setVisibility(d.visibility)
+      if (d.eventType !== undefined) setEventType(d.eventType)
+      if (d.virtualLink !== undefined) setVirtualLink(d.virtualLink)
+      if (d.accessWindowPreset !== undefined) setAccessWindowPreset(d.accessWindowPreset)
+      if (d.joinOpensAt !== undefined) setJoinOpensAt(d.joinOpensAt)
+      if (d.eventDate !== undefined) setEventDate(d.eventDate)
+      if (d.eventEndAt !== undefined) setEventEndAt(d.eventEndAt)
+      if (d.hasSpecificTime !== undefined) setHasSpecificTime(d.hasSpecificTime)
+      if (d.isRecurring !== undefined) setIsRecurring(d.isRecurring)
+      if (d.recurrenceFrequency !== undefined) setRecurrenceFrequency(d.recurrenceFrequency)
+      if (d.recurrenceDayOfWeek !== undefined) setRecurrenceDayOfWeek(d.recurrenceDayOfWeek)
+      if (d.registrationOpensDays !== undefined) setRegistrationOpensDays(d.registrationOpensDays)
+      if (d.location !== undefined) setLocation(d.location)
+      if (d.mapDirectionsUrl !== undefined) setMapDirectionsUrl(d.mapDirectionsUrl)
+      if (d.imageUrl !== undefined) setImageUrl(d.imageUrl)
+      if (d.accessType !== undefined) setAccessType(d.accessType)
+      if (d.capacity !== undefined) setCapacity(d.capacity)
+      if (d.showRemainingSpots !== undefined) setShowRemainingSpots(d.showRemainingSpots)
+      if (d.deadline !== undefined) setDeadline(d.deadline)
+      if (d.entryFeeLabel !== undefined) setEntryFeeLabel(d.entryFeeLabel)
+      if (d.groupRegistrationEnabled !== undefined) setGroupRegistrationEnabled(d.groupRegistrationEnabled)
+      if (Array.isArray(d.questions)) setQuestions(d.questions)
+      if (d.attendeeConsentEnabled !== undefined) setAttendeeConsentEnabled(d.attendeeConsentEnabled)
+      if (d.attendeeConsentText !== undefined) setAttendeeConsentText(d.attendeeConsentText)
+      if (d.organizerName !== undefined) setOrganizerName(d.organizerName)
+      if (d.whatsappNumber !== undefined) setWhatsappNumber(d.whatsappNumber)
+      if (d.contactMode !== undefined) setContactMode(d.contactMode)
+      if (d.communityLink !== undefined) setCommunityLink(d.communityLink)
+      if (d.currentStep && [1, 2, 3, 4].includes(d.currentStep)) setCurrentStep(d.currentStep)
+      setDraftAvailable(null)
+      setDraftNotice("Draft restored! You can continue right where you left off.")
+      setTimeout(() => setDraftNotice(""), 4500)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem("eventslot_create_event_draft")
+    } catch {}
+    setDraftAvailable(null)
+  }
+
+  // Auto-save form progress to localStorage
+  useEffect(() => {
+    if (!title.trim() && !description.trim() && !eventDate) return
+    const timer = setTimeout(() => {
+      try {
+        const draft = {
+          updatedAt: Date.now(),
+          currentStep,
+          title,
+          category,
+          description,
+          visibility,
+          eventType,
+          virtualLink,
+          accessWindowPreset,
+          joinOpensAt,
+          eventDate,
+          eventEndAt,
+          hasSpecificTime,
+          isRecurring,
+          recurrenceFrequency,
+          recurrenceDayOfWeek,
+          registrationOpensDays,
+          location,
+          mapDirectionsUrl,
+          imageUrl,
+          accessType,
+          capacity,
+          showRemainingSpots,
+          deadline,
+          entryFeeLabel,
+          groupRegistrationEnabled,
+          questions,
+          attendeeConsentEnabled,
+          attendeeConsentText,
+          organizerName,
+          whatsappNumber,
+          contactMode,
+          communityLink,
+        }
+        localStorage.setItem("eventslot_create_event_draft", JSON.stringify(draft))
+      } catch {
+        // ignore
+      }
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [
+    currentStep, title, category, description, visibility, eventType, virtualLink,
+    accessWindowPreset, joinOpensAt, eventDate, eventEndAt, hasSpecificTime,
+    isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays,
+    location, mapDirectionsUrl, imageUrl, accessType, capacity, showRemainingSpots,
+    deadline, entryFeeLabel, groupRegistrationEnabled, questions,
+    attendeeConsentEnabled, attendeeConsentText, organizerName, whatsappNumber,
+    contactMode, communityLink
+  ])
 
   // Auto-fill organizer details from signed-in session
   useEffect(() => {
@@ -595,10 +730,7 @@ export default function CreateEventPage() {
   }
 
   const removeQuestion = (idx: number) =>
-    setQuestions(qs => {
-      if (qs.length <= 1) return qs
-      return qs.filter((_, i) => i !== idx)
-    })
+    setQuestions(qs => qs.filter((_, i) => i !== idx))
 
   // Ticket tier management
   const updateTicketTier = (id: string, field: keyof TicketTierDraft, value: string | boolean | number) => {
@@ -863,13 +995,21 @@ export default function CreateEventPage() {
     setStepError("")
     setError("")
     if (isRegistrationEvent) {
-      const invalidQuestion = questions.find(q => typeUsesOptions(q.type) && q.options.length === 0)
-      if (invalidQuestion) {
-        const msg = `Please add at least one option for "${invalidQuestion.label || 'Untitled question'}".`
-        setStepError(msg)
-        setFieldErrors({ [`q-${invalidQuestion.id}`]: msg })
-        scrollToAndFocus(`create-field-q-${invalidQuestion.id}`)
-        return false
+      for (const q of questions) {
+        if (!q.label.trim()) {
+          const msg = "Please enter a question title, or delete the question if not needed."
+          setStepError(msg)
+          setFieldErrors({ [`q-${q.id}`]: msg })
+          scrollToAndFocus(`create-field-q-${q.id}`)
+          return false
+        }
+        if (typeUsesOptions(q.type) && q.options.length === 0) {
+          const msg = `Please add at least one option for "${q.label}".`
+          setStepError(msg)
+          setFieldErrors({ [`q-${q.id}`]: msg })
+          scrollToAndFocus(`create-field-q-${q.id}`)
+          return false
+        }
       }
     }
     setFieldErrors({})
@@ -977,16 +1117,18 @@ export default function CreateEventPage() {
           contactMode,
           imageUrl: imageUrl || undefined,
           questions: isRegistrationEvent
-            ? questions.map(q => ({
-                id: q.id,
-                label: q.label,
-                type: q.type,
-                options: typeUsesOptions(q.type) ? q.options : undefined,
-                allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
-                allowOther: typeUsesOptions(q.type) ? (Boolean(q.allowOther) || q.options.some(opt => /^(other|nyingine)/i.test(opt.trim()))) : undefined,
-                optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
-                required: q.required,
-              }))
+            ? questions
+                .filter(q => q.label && q.label.trim().length > 0)
+                .map(q => ({
+                  id: q.id,
+                  label: q.label.trim(),
+                  type: q.type,
+                  options: typeUsesOptions(q.type) ? q.options : undefined,
+                  allowMultiple: q.type === "checkbox" ? !!q.allowMultiple : undefined,
+                  allowOther: typeUsesOptions(q.type) ? (Boolean(q.allowOther) || q.options.some(opt => /^(other|nyingine)/i.test(opt.trim()))) : undefined,
+                  optionLimits: typeUsesOptions(q.type) ? buildOptionLimitsPayload(q) : undefined,
+                  required: q.required,
+                }))
             : [],
           organizerName: organizerName.trim() || session?.user?.name || "Organizer",
           organizerEmail: organizerEmail || session?.user?.email || undefined,
@@ -994,12 +1136,41 @@ export default function CreateEventPage() {
       })
       const data = await res.json()
       if (data.success) {
+        try {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("eventslot_create_event_draft")
+          }
+        } catch {}
         setEventInfo(data.event)
         setSuccess(true)
       } else {
-        setError(data.error || "Failed to create event.")
+        const errorMsg = data.error || "Failed to create event."
+        setError(errorMsg)
         if (data.code === "PLAN_LIMIT_ATTENDEES") {
           setShowCapacityUpgradeHint(true)
+        }
+        if (data.field) {
+          const field = String(data.field)
+          let targetStep: 1 | 2 | 3 | 4 = 1
+          let targetId = `create-field-${field}`
+
+          if (["title", "category", "imageUrl", "image", "eventDate", "eventEndAt", "location", "virtualLink"].includes(field)) {
+            targetStep = 1
+          } else if (["capacity", "deadline", "ticketTiers", "isPaid", "ticketPrice"].includes(field) || field.startsWith("ticketTiers")) {
+            targetStep = 2
+          } else if (field.startsWith("questions")) {
+            targetStep = 3
+            targetId = "create-field-questions"
+          } else if (["organizerName", "organizerEmail", "whatsappNumber", "communityLink"].includes(field)) {
+            targetStep = 4
+          }
+
+          setCurrentStep(targetStep)
+          setStepError(errorMsg)
+          setFieldErrors({ [field]: errorMsg })
+          setTimeout(() => {
+            scrollToAndFocus(targetId)
+          }, 200)
         }
       }
     } catch {
@@ -1230,6 +1401,66 @@ export default function CreateEventPage() {
                 })}
               </div>
             </div>
+
+            {/* Draft Auto-Recovery Banner */}
+            {draftAvailable && (
+              <div
+                className="rounded-xl border p-4 text-xs font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
+                  background: "color-mix(in srgb, var(--accent) 12%, var(--surface))",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">📝</span>
+                  <div>
+                    <span className="font-bold">Unpublished Draft Found:</span>{" "}
+                    <span>
+                      &quot;{draftAvailable.title}&quot; (Saved at Step {draftAvailable.step} of 4)
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={handleResumeDraft}
+                    className="rounded-full px-4 py-1.5 text-xs font-bold transition shadow-sm hover:opacity-90"
+                    style={{
+                      background: "#15803d",
+                      color: "#FFFFFF",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Resume Draft →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDiscardDraft}
+                    className="rounded-full px-3 py-1.5 text-xs font-medium transition hover:opacity-80"
+                    style={{
+                      background: "transparent",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {draftNotice && (
+              <div
+                className="rounded-xl border p-3.5 text-xs font-semibold flex items-center gap-2 shadow-sm"
+                style={{ borderColor: "rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.1)", color: "#15803d" }}
+              >
+                <span>✓</span>
+                <span>{draftNotice}</span>
+              </div>
+            )}
 
             {/* Error Banners */}
             {stepError && (
@@ -2176,57 +2407,72 @@ export default function CreateEventPage() {
                       </div>
 
                       <div className="space-y-4">
-                        {questions.map((q, idx) => (
-                          <div
-                            key={q.id}
-                            id={`create-field-q-${q.id}`}
-                            className="rounded-xl border p-4 space-y-3"
-                            style={{
-                              ...cardMutedStyle,
-                              borderColor: fieldErrors[`q-${q.id}`] ? "#EF4444" : "var(--border-subtle)",
-                              boxShadow: fieldErrors[`q-${q.id}`] ? "0 0 0 1px #EF4444" : "none",
-                            }}
-                          >
-                            {fieldErrors[`q-${q.id}`] && (
-                              <div className="p-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-500 flex items-center gap-1.5">
-                                <span>⚠️</span>
-                                <span>{fieldErrors[`q-${q.id}`]}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#15803d" }}>
-                                Question {idx + 1}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  disabled={idx === 0}
-                                  onClick={() => moveQuestionUp(idx)}
-                                  className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
-                                  style={{ borderColor: "var(--border)" }}
-                                >
-                                  ▲
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={idx === questions.length - 1}
-                                  onClick={() => moveQuestionDown(idx)}
-                                  className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
-                                  style={{ borderColor: "var(--border)" }}
-                                >
-                                  ▼
-                                </button>
-                                {questions.length > 1 && (
+                        {questions.length === 0 ? (
+                          <div className="rounded-xl border p-6 text-center space-y-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                            <span className="text-2xl block">📋</span>
+                            <p className="text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                              No custom questions added. Attendees will only be asked for their <strong>Full Name</strong> and <strong>Email Address</strong>.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={addQuestion}
+                              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:opacity-90"
+                              style={{ background: "#15803d", cursor: "pointer" }}
+                            >
+                              + Add a Custom Question
+                            </button>
+                          </div>
+                        ) : (
+                          questions.map((q, idx) => (
+                            <div
+                              key={q.id}
+                              id={`create-field-q-${q.id}`}
+                              className="rounded-xl border p-4 space-y-3"
+                              style={{
+                                ...cardMutedStyle,
+                                borderColor: fieldErrors[`q-${q.id}`] ? "#EF4444" : "var(--border-subtle)",
+                                boxShadow: fieldErrors[`q-${q.id}`] ? "0 0 0 1px #EF4444" : "none",
+                              }}
+                            >
+                              {fieldErrors[`q-${q.id}`] && (
+                                <div className="p-2 rounded-lg text-xs font-semibold bg-red-500/10 text-red-500 flex items-center gap-1.5">
+                                  <span>⚠️</span>
+                                  <span>{fieldErrors[`q-${q.id}`]}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "#15803d" }}>
+                                  Question {idx + 1}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={idx === 0}
+                                    onClick={() => moveQuestionUp(idx)}
+                                    className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
+                                    style={{ borderColor: "var(--border)" }}
+                                  >
+                                    ▲
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={idx === questions.length - 1}
+                                    onClick={() => moveQuestionDown(idx)}
+                                    className="text-xs px-1.5 py-0.5 rounded border disabled:opacity-30"
+                                    style={{ borderColor: "var(--border)" }}
+                                  >
+                                    ▼
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => removeQuestion(idx)}
-                                    className="text-xs text-red-400 hover:text-red-300 ml-1"
+                                    className="text-xs text-red-400 hover:text-red-300 ml-1 px-1.5 py-0.5 rounded border"
+                                    style={{ borderColor: "var(--border)" }}
                                   >
                                     ✕ Remove
                                   </button>
-                                )}
+                                </div>
                               </div>
-                            </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div className="sm:col-span-2">
@@ -2444,20 +2690,23 @@ export default function CreateEventPage() {
                               </label>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        ))
+                      )}
+                    </div>
 
                       {/* Add Question Button (Bottom) */}
-                      <div className="pt-2 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={addQuestion}
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs sm:text-sm font-bold border transition hover:opacity-90 shadow-sm"
-                          style={{ background: "#15803d", color: "#FFFFFF", borderColor: "#15803d", cursor: "pointer" }}
-                        >
-                          <span>+ Add Question</span>
-                        </button>
-                      </div>
+                      {questions.length > 0 && (
+                        <div className="pt-2 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={addQuestion}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-xs sm:text-sm font-bold border transition hover:opacity-90 shadow-sm"
+                            style={{ background: "#15803d", color: "#FFFFFF", borderColor: "#15803d", cursor: "pointer" }}
+                          >
+                            <span>+ Add Question</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Attendee Consent with Customizable Text */}
