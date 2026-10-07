@@ -1862,8 +1862,31 @@ export default function EventDashboardPage() {
   const [copiedTeamInviteKey, setCopiedTeamInviteKey] = useState<string | null>(null)
   const [copiedVerifierCode, setCopiedVerifierCode] = useState(false)
   const [copiedVerifierLink, setCopiedVerifierLink] = useState(false)
+  const [showVerifierQrModal, setShowVerifierQrModal] = useState(false)
+  const [verifierQrDataUrl, setVerifierQrDataUrl] = useState("")
+  const [generatingVerifierQr, setGeneratingVerifierQr] = useState(false)
   const [shareFeedback, setShareFeedback] = useState("")
   const hasPendingTeamInvite = eventTeam.some((member) => member.status === "pending")
+
+  const openVerifierQrModal = async (link: string) => {
+    setShowVerifierQrModal(true)
+    if (!verifierQrDataUrl && link) {
+      setGeneratingVerifierQr(true)
+      try {
+        const QRCode = (await import("qrcode")).default
+        const url = await QRCode.toDataURL(link, {
+          width: 320,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" },
+        })
+        setVerifierQrDataUrl(url)
+      } catch (err) {
+        console.error("Failed to generate verifier QR", err)
+      } finally {
+        setGeneratingVerifierQr(false)
+      }
+    }
+  }
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -2902,6 +2925,159 @@ export default function EventDashboardPage() {
             <p style={{ fontSize: "0.7rem", color: themeTextMuted, marginTop: "0.75rem", fontFamily: "var(--font-dm-sans)" }}>
               1024x1024px - Print-ready resolution
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Gate Verifier Instant Onboarding Modal */}
+      {showVerifierQrModal && eventData && (
+        <div
+          onClick={() => setShowVerifierQrModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: themeOverlayStrong,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1.5rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: themeSurface,
+              border: themeBorder,
+              borderRadius: "20px",
+              padding: "1.75rem",
+              maxWidth: "420px",
+              width: "100%",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+              <div>
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: themeAccent, fontFamily: "var(--font-dm-sans)", display: "block" }}>
+                  Instant Gate Onboarding
+                </span>
+                <h3 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.35rem", color: themeTextPrimary, margin: "0.25rem 0 0" }}>
+                  Scan to Verify Tickets
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVerifierQrModal(false)}
+                style={{ background: "none", border: "none", color: themeTextMuted, fontSize: "1.2rem", cursor: "pointer", padding: "0.25rem" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.82rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5, margin: "0 0 1.25rem" }}>
+              Have your ushers, bouncers, or gate volunteers point their mobile camera at this QR code. It opens the verifier workspace instantly on their phone with zero login required.
+            </p>
+
+            {/* QR Code Container */}
+            <div style={{ display: "flex", justifyContent: "center", margin: "0.5rem 0 1.25rem" }}>
+              <div style={{ background: "#FFFFFF", padding: "0.85rem", borderRadius: "16px", boxShadow: "0 6px 18px rgba(0,0,0,0.12)" }}>
+                {verifierQrDataUrl ? (
+                  <img
+                    src={verifierQrDataUrl}
+                    alt="Gate Verifier Access QR"
+                    style={{ width: "220px", height: "220px", display: "block" }}
+                  />
+                ) : (
+                  <div style={{ width: "220px", height: "220px", display: "flex", alignItems: "center", justifyContent: "center", color: "#666", fontSize: "0.85rem" }}>
+                    {generatingVerifierQr ? "Generating QR code..." : "Preparing..."}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Code Box */}
+            <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 10, padding: "0.75rem 1rem", marginBottom: "1.25rem", textAlign: "center" }}>
+              <span style={{ fontSize: "0.68rem", color: themeTextMuted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "0.25rem" }}>
+                Verifier Access Code
+              </span>
+              <strong style={{ fontSize: "1.15rem", color: themeAccent, letterSpacing: "0.08em", fontFamily: "var(--font-dm-sans)" }}>
+                {eventData.verifierCode}
+              </strong>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const link = `${origin ? `${origin}/verify-tickets` : "https://www.eventsslot.com/verify-tickets"}/${eventData.slug}?token=${encodeURIComponent(eventData.verifierCode ?? "")}`
+                  const text = `Hi, here is the ticket scanner link for ${eventData.title}: ${link}`
+                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank")
+                }}
+                style={{
+                  background: "#25D366",
+                  border: "none",
+                  borderRadius: "100px",
+                  padding: "0.7rem 1.5rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-dm-sans)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                }}
+              >
+                <span>💬 Share via WhatsApp</span>
+              </button>
+
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const link = `${origin ? `${origin}/verify-tickets` : "https://www.eventsslot.com/verify-tickets"}/${eventData.slug}?token=${encodeURIComponent(eventData.verifierCode ?? "")}`
+                    const copied = await copyTextInBrowser(link)
+                    if (copied) {
+                      setCopiedVerifierLink(true)
+                      window.setTimeout(() => setCopiedVerifierLink(false), 2500)
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    background: themeSurfaceAlt,
+                    border: themeBorderSoft,
+                    borderRadius: "100px",
+                    padding: "0.65rem 1rem",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    color: themeTextPrimary,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-dm-sans)",
+                  }}
+                >
+                  {copiedVerifierLink ? "Link Copied!" : "Copy Verifier Link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowVerifierQrModal(false)}
+                  style={{
+                    background: "transparent",
+                    border: themeBorderSoft,
+                    borderRadius: "100px",
+                    padding: "0.65rem 1.25rem",
+                    fontSize: "0.82rem",
+                    fontWeight: 500,
+                    color: themeTextMuted,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-dm-sans)",
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -5089,6 +5265,30 @@ export default function EventDashboardPage() {
                     >
                       {copiedVerifierLink ? "Link Copied!" : "Copy Verifier Link"}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const link = `${origin ? `${origin}/verify-tickets` : "https://www.eventsslot.com/verify-tickets"}/${eventData.slug}?token=${encodeURIComponent(eventData.verifierCode ?? "")}`
+                        void openVerifierQrModal(link)
+                      }}
+                      style={{
+                        background: themeSurfaceAlt,
+                        border: themeBorderSoft,
+                        borderRadius: 8,
+                        padding: "0.5rem 0.9rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        color: themeTextPrimary,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                      }}
+                      title="Display QR code for gate team to scan and start"
+                    >
+                      <span>📱 Show Gate QR</span>
+                    </button>
                   </div>
                 </div>
                 <p style={{ margin: 0, fontSize: "0.78rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
@@ -5152,7 +5352,14 @@ export default function EventDashboardPage() {
               </div>
             )}
 
-            {eventData && <EntryDashboard eventId={eventData.id} />}
+            {eventData && (
+              <EntryDashboard
+                eventId={eventData.id}
+                onUpdate={(entryData) => {
+                  setEventData((prev) => (prev ? { ...prev, checkedInCount: entryData.totalEntered } : null))
+                }}
+              />
+            )}
 
             {eventData.eventType !== "VIRTUAL" ? (
               <div style={{ marginTop: "1.5rem" }}>

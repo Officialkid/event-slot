@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Camera, FileUp, Search } from "lucide-react"
 import { ManualTicketVerifier } from "@/components/scanner/ManualTicketVerifier"
 import { QuickScan } from "@/components/scanner/QuickScan"
@@ -24,6 +24,26 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
   const [mode, setMode] = useState<Mode>(null)
   const [showCameraRationale, setShowCameraRationale] = useState(false)
   const [pendingMode, setPendingMode] = useState<Mode>(null)
+  const [stats, setStats] = useState<{ totalConfirmed: number; totalCheckedIn: number; remaining: number; turnoutRate: number } | null>(null)
+
+  useEffect(() => {
+    let active = true
+    async function loadStats() {
+      try {
+        const res = await fetch(`/api/events/${eventSlug}/verify-ticket/stats?token=${encodeURIComponent(accessToken)}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (active && data.success) {
+            setStats(data)
+          }
+        }
+      } catch {}
+    }
+    void loadStats()
+    return () => {
+      active = false
+    }
+  }, [accessToken, eventSlug, mode])
 
   const requestCameraAccess = (target: Mode) => {
     setPendingMode(target)
@@ -85,9 +105,39 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
   return (
     <>
       <div
-        className="min-h-[70vh] border rounded-2xl flex flex-col items-center justify-center p-6"
+        className="min-h-[70vh] border rounded-2xl flex flex-col items-center justify-center p-6 gap-6"
         style={{ backgroundColor: scannerSurfaceAlt, borderColor: scannerBorder }}
       >
+        {stats && (
+          <div
+            className="w-full max-w-4xl rounded-2xl border p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-sm"
+            style={{ backgroundColor: scannerSurface, borderColor: scannerBorderSoft }}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#C8F55A] animate-pulse" />
+              <div>
+                <span className="text-[0.68rem] font-bold uppercase tracking-wider text-[#C8F55A] block">
+                  Live Gate Overview
+                </span>
+                <span className="text-xs font-semibold" style={{ color: scannerTextPrimary }}>
+                  {stats.totalCheckedIn} of {stats.totalConfirmed} Admitted
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs">
+              <div className="text-center sm:text-left">
+                <span className="block text-[0.7rem]" style={{ color: scannerTextSecondary }}>Turnout Rate</span>
+                <strong className="text-[#C8F55A] text-sm font-bold">{stats.turnoutRate}%</strong>
+              </div>
+              <div className="hidden sm:block text-white/20">•</div>
+              <div className="text-center sm:text-left">
+                <span className="block text-[0.7rem]" style={{ color: scannerTextSecondary }}>Awaiting Entry</span>
+                <strong style={{ color: scannerTextPrimary }} className="text-sm font-bold">{stats.remaining}</strong>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="w-full max-w-4xl grid md:grid-cols-3 gap-4">
           <button
             onClick={() => requestCameraAccess("scan")}

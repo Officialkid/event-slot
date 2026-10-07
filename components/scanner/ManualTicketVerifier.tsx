@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { scannerAudio } from "@/lib/scannerAudio"
 
 type LookupResult = {
   registrationId: string
@@ -81,9 +82,17 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
       })
       const data = await res.json()
       if (!res.ok && !data.alreadyVerified) {
+        scannerAudio.playWarning()
         setError(data.error || "Unable to verify ticket.")
         return
       }
+
+      if (data.alreadyVerified) {
+        scannerAudio.playWarning()
+      } else {
+        scannerAudio.playSuccess()
+      }
+
       setResults((current) =>
         current.map((item) =>
           item.ticketCode === ticketCode

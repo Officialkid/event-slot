@@ -259,6 +259,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
         message: remaining > 0
           ? `${nextAdmissionsUsed} of ${admissionsTotal} entries verified. ${remaining} remaining.`
           : 'Ticket verified successfully.',
+        eventStats: {
+          totalConfirmed: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed' } }),
+          totalCheckedIn: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed', checkedIn: true } }),
+          remaining,
+        },
         ticket: buildTicketPayload({
           registrationId: ticket.registration.id,
           registrationNumber: ticket.registration.registrationNumber,
@@ -483,6 +488,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       message: remaining > 0
         ? `${nextAdmissionsUsed} of ${admissionsTotal} entries verified. ${remaining} remaining.`
         : 'Ticket verified successfully.',
+      eventStats: {
+        totalConfirmed: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed' } }),
+        totalCheckedIn: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed', checkedIn: true } }),
+        remaining,
+      },
       ticket: buildTicketPayload({
         registrationId: target.id,
         registrationNumber: target.registrationNumber,

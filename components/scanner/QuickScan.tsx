@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import jsQR from "jsqr"
+import { Flashlight } from "lucide-react"
 import { extractTicketReferenceFromFile, normalizeDecodedValue } from "@/components/scanner/qr-utils"
+import { scannerAudio } from "@/lib/scannerAudio"
 
 type ScanState = "scanning" | "valid" | "used" | "not_found" | "error"
 type InputMode = "camera" | "upload" | "manual"
@@ -13,6 +15,11 @@ type QuickScanResult = {
   alreadyVerified?: boolean
   message?: string
   error?: string
+  eventStats?: {
+    totalConfirmed: number
+    totalCheckedIn: number
+    remaining?: number
+  }
   ticket?: {
     attendeeName?: string | null
     checkedInAt?: string | null
@@ -60,6 +67,50 @@ export function QuickScan({
   const [cameraReady, setCameraReady] = useState(false)
   const [manualCode, setManualCode] = useState("")
   const [manualIdentity, setManualIdentity] = useState("")
+  const [myScansCount, setMyScansCount] = useState(0)
+  const [eventStats, setEventStats] = useState<{ totalConfirmed: number; totalCheckedIn: number; remaining?: number } | null>(null)
+  const [torchAvailable, setTorchAvailable] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+
+  // Fetch initial live event admission stats on mount
+  useEffect(() => {
+    let active = true
+    async function loadStats() {
+      try {
+        const res = await fetch(`/api/events/${eventSlug}/verify-ticket/stats?token=${encodeURIComponent(accessToken)}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (active && data.success) {
+            setEventStats({
+              totalConfirmed: data.totalConfirmed,
+              totalCheckedIn: data.totalCheckedIn,
+              remaining: data.remaining,
+            })
+          }
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+    void loadStats()
+    return () => {
+      active = false
+    }
+  }, [accessToken, eventSlug])
+
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0]
+    if (!track) return
+    try {
+      const nextState = !torchOn
+      await (track as MediaStreamTrack & { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({
+        advanced: [{ torch: nextState }],
+      })
+      setTorchOn(nextState)
+    } catch {
+      // Hardware constraint error
+    }
+  }
 
   const resetVisualState = useCallback(() => {
     lockRef.current = false
@@ -70,6 +121,7 @@ export function QuickScan({
   const submitVerification = useCallback(
     async (payload: { ticketCode?: string; code?: string; identity?: string }) => {
       lockRef.current = true
+      scannerAudio.resume()
 
       try {
         const res = await fetch(`/api/events/${eventSlug}/verify-ticket`, {
@@ -91,6 +143,15 @@ export function QuickScan({
               ? `Welcome, ${data.ticket?.attendeeName || "Attendee"}! ${data.ticket.admissionsRemaining ?? 0} remaining.`
               : `Welcome, ${data.ticket?.attendeeName || "Attendee"}!`
           onVerified?.()
+          scannerAudio.playSuccess()
+          setMyScansCount((c) => c + 1)
+          if (data.eventStats) {
+            setEventStats(data.eventStats)
+          } else {
+            setEventStats((prev) =>
+              prev ? { ...prev, totalCheckedIn: prev.totalCheckedIn + 1, remaining: Math.max(0, (prev.remaining ?? 1) - 1) } : null
+            )
+          }
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             navigator.vibrate([100, 60, 100])
           }
@@ -101,6 +162,7 @@ export function QuickScan({
             ? `Already scanned at ${new Date(scannedAt).toLocaleTimeString()}`
             : "Already scanned"
           delay = 3000
+          scannerAudio.playWarning()
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             navigator.vibrate([500])
           }
@@ -108,9 +170,11 @@ export function QuickScan({
           nextState = "error"
           nextMessage = "Connection error. Tap retry."
           delay = 2500
+          scannerAudio.playWarning()
         } else {
           nextState = "not_found"
           nextMessage = data.error || "Ticket not found"
+          scannerAudio.playWarning()
           if (typeof navigator !== "undefined" && navigator.vibrate) {
             navigator.vibrate([500])
           }
@@ -124,6 +188,7 @@ export function QuickScan({
       } catch {
         setState("error")
         setMessage("Connection error. Tap retry.")
+        scannerAudio.playWarning()
         window.setTimeout(() => {
           resetVisualState()
         }, 2500)
@@ -165,9 +230,21 @@ export function QuickScan({
       frameRef.current = null
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
+      const track = streamRef.current.getVideoTracks()[0]
+      if (track && torchOn) {
+        try {
+          (track as MediaStreamTrack & { applyConstraints: (c: unknown) => Promise<void> })
+            .applyConstraints({ advanced: [{ torch: false }] })
+            .catch(() => {})
+        } catch {
+          // Ignore
+        }
+      }
+      streamRef.current.getTracks().forEach((t) => t.stop())
       streamRef.current = null
     }
+    setTorchOn(false)
+    setTorchAvailable(false)
     setCameraReady(false)
   }
 
@@ -194,6 +271,18 @@ export function QuickScan({
         streamRef.current = media
         const video = videoRef.current
         if (!video) return
+
+        const track = media.getVideoTracks()[0]
+        if (track) {
+          try {
+            const capabilities = (track.getCapabilities ? track.getCapabilities() : {}) as { torch?: boolean }
+            if (capabilities.torch) {
+              setTorchAvailable(true)
+            }
+          } catch {
+            // Ignore
+          }
+        }
 
         video.srcObject = media
         await video.play()
@@ -320,6 +409,43 @@ export function QuickScan({
             {mode === "camera" ? "Scan" : mode === "upload" ? "Upload" : "Manual"}
           </button>
         ))}
+      </div>
+
+      {/* Live Admission Status & Torch Controls */}
+      <div className="absolute z-20 top-14 left-4 right-4 flex items-center justify-between pointer-events-none gap-2 flex-wrap">
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-lg pointer-events-auto"
+          style={{
+            backgroundColor: "rgba(15, 23, 42, 0.82)",
+            borderColor: "rgba(255, 255, 255, 0.16)",
+            color: "#f8fafc",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <span className="w-2 h-2 rounded-full bg-[#C8F55A] animate-pulse" />
+          <span>My Scans: <strong className="text-[#C8F55A] font-bold">{myScansCount}</strong></span>
+          <span className="text-white/40">•</span>
+          <span>
+            Total Admitted: <strong className="text-white font-bold">{eventStats ? `${eventStats.totalCheckedIn} / ${eventStats.totalConfirmed}` : "..."}</strong>
+          </span>
+        </div>
+
+        {inputMode === "camera" && torchAvailable && (
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={`pointer-events-auto px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-lg ${
+              torchOn
+                ? "bg-amber-400 text-black border-amber-300 shadow-amber-400/20"
+                : "text-white border-white/20 hover:bg-white/10"
+            }`}
+            style={torchOn ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.82)", backdropFilter: "blur(12px)" }}
+            title={torchOn ? "Turn off torch" : "Turn on torch for low light"}
+          >
+            <Flashlight className={`w-3.5 h-3.5 ${torchOn ? "text-black fill-current" : "text-amber-400"}`} />
+            <span>{torchOn ? "Torch On" : "Torch"}</span>
+          </button>
+        )}
       </div>
 
       <div className="h-[78vh] relative">

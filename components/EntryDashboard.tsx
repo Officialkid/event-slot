@@ -1,8 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { RefreshCw } from "lucide-react"
 
-interface EntryData {
+export interface EntryData {
   eventTitle: string
   eventType: string
   totalConfirmed: number
@@ -11,30 +12,42 @@ interface EntryData {
   entryLogs: { attendeeName: string; scannedAt: string }[]
 }
 
-export function EntryDashboard({ eventId }: { eventId: string }) {
+interface EntryDashboardProps {
+  eventId: string
+  onUpdate?: (data: EntryData) => void
+}
+
+export function EntryDashboard({ eventId, onUpdate }: EntryDashboardProps) {
   const [data, setData] = useState<EntryData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true)
     try {
       const res = await fetch(`/api/organizer/events/${eventId}/entry-log`)
       if (res.ok) {
-        setData((await res.json()) as EntryData)
+        const json = (await res.json()) as EntryData
+        setData(json)
+        onUpdate?.(json)
+        setLastUpdated(new Date().toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }))
       }
     } finally {
       setLoading(false)
+      if (manual) setRefreshing(false)
     }
-  }, [eventId])
+  }, [eventId, onUpdate])
 
   useEffect(() => {
     void load()
     const interval = window.setInterval(() => {
       void load()
-    }, 30000)
+    }, 10000)
     return () => clearInterval(interval)
   }, [load])
 
-  if (loading) return <div className="p-4 text-sm text-[var(--text-muted)]">Loading entry data...</div>
+  if (loading && !data) return <div className="p-4 text-sm text-[var(--text-muted)]">Loading entry data...</div>
   if (!data) return null
 
   const isPhysical = data.eventType === "PHYSICAL"
@@ -46,11 +59,28 @@ export function EntryDashboard({ eventId }: { eventId: string }) {
 
   return (
     <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-[var(--text-primary)] shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
           {isPhysical ? "Gate Verification & Entry Tracker" : "Live Entry Tracker"}
         </p>
-        <span className="text-xs text-[var(--text-muted)]">Auto-refreshes every 30s</span>
+        <div className="flex items-center gap-2.5">
+          {lastUpdated && (
+            <span className="text-[0.72rem] text-[var(--text-muted)] hidden sm:inline">
+              Updated {lastUpdated}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            disabled={refreshing || loading}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)] transition-colors text-[var(--text-secondary)] disabled:opacity-50 cursor-pointer"
+            title="Refresh entry log immediately"
+          >
+            <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin text-[var(--accent)]" : ""}`} />
+            <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+          </button>
+          <span className="text-xs text-[var(--text-muted)]">Auto-sync 10s</span>
+        </div>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
