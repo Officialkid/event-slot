@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ count })
     }
 
-    const [notifications, total] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where: { userId: session.user.id },
         select: {
@@ -41,10 +41,12 @@ export async function GET(req: NextRequest) {
         skip,
       }),
       prisma.notification.count({ where: { userId: session.user.id } }),
+      prisma.notification.count({ where: { userId: session.user.id, read: false } }),
     ])
 
     return NextResponse.json({
       notifications,
+      unreadCount,
       pagination: {
         page,
         limit,
@@ -55,6 +57,6 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[notifications] GET error:", err)
     // Return safe empty payload if DB is unavailable (e.g. Neon free tier paused) or table is missing
-    return NextResponse.json({ notifications: [], count: 0, pagination: { page: 1, limit: 50, total: 0, totalPages: 1 } })
+    return NextResponse.json({ notifications: [], count: 0, unreadCount: 0, pagination: { page: 1, limit: 50, total: 0, totalPages: 1 } })
   }
 }

@@ -66,21 +66,62 @@ function StarRating({
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [markingAll, setMarkingAll] = useState(false)
   const [filter, setFilter] = useState<"all" | "unread">("all")
   const [feedbackStates, setFeedbackStates] = useState<Record<string, FeedbackState>>({})
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [serverUnreadCount, setServerUnreadCount] = useState(0)
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications")
+      const res = await fetch("/api/notifications?page=1&limit=50")
       const data = await res.json()
-      if (data.notifications) setNotifications(data.notifications)
+      if (data.notifications) {
+        setNotifications(data.notifications)
+        setTotalCount(data.pagination?.total ?? data.notifications.length)
+        if (typeof data.unreadCount === "number") {
+          setServerUnreadCount(data.unreadCount)
+        } else {
+          setServerUnreadCount(data.notifications.filter((n: Notification) => !n.read).length)
+        }
+        setPage(1)
+      }
     } catch {
       // ignore
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const loadMore = async () => {
+    if (loadingMore || notifications.length >= totalCount) return
+    setLoadingMore(true)
+    try {
+      const nextPage = page + 1
+      const res = await fetch(`/api/notifications?page=${nextPage}&limit=50`)
+      const data = await res.json()
+      if (data.notifications && data.notifications.length > 0) {
+        setNotifications(prev => {
+          const existingIds = new Set(prev.map(n => n.id))
+          const newItems = data.notifications.filter((n: Notification) => !existingIds.has(n.id))
+          return [...prev, ...newItems]
+        })
+        setPage(nextPage)
+        if (typeof data.pagination?.total === "number") {
+          setTotalCount(data.pagination.total)
+        }
+        if (typeof data.unreadCount === "number") {
+          setServerUnreadCount(data.unreadCount)
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     markFeatureUsed("notifications")
@@ -92,6 +133,7 @@ export default function NotificationsPage() {
     try {
       await fetch("/api/notifications/read", { method: "PATCH" })
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+      setServerUnreadCount(0)
     } catch {
       // ignore
     } finally {
@@ -105,6 +147,7 @@ export default function NotificationsPage() {
       setNotifications(prev =>
         prev.map(n => (n.id === id ? { ...n, read: true } : n))
       )
+      setServerUnreadCount(prev => Math.max(0, prev - 1))
     } catch {
       // ignore
     }
@@ -143,7 +186,7 @@ export default function NotificationsPage() {
     }
   }
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = Math.max(serverUnreadCount, notifications.filter(n => !n.read).length)
   const displayed =
     filter === "unread" ? notifications.filter(n => !n.read) : notifications
 
@@ -229,7 +272,7 @@ export default function NotificationsPage() {
               transition: "background 0.15s, color 0.15s",
             }}
           >
-            {tab === "all" ? `All (${notifications.length})` : `Unread (${unreadCount})`}
+            {tab === "all" ? `All (${Math.max(totalCount, notifications.length)})` : `Unread (${unreadCount})`}
           </button>
         ))}
       </div>
@@ -567,6 +610,50 @@ export default function NotificationsPage() {
               </div>
             )
           })}
+
+          {filter === "all" && notifications.length < totalCount && (
+            <div style={{ marginTop: "1.25rem", textAlign: "center" }}>
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                style={{
+                  background: "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)",
+                  borderRadius: 8,
+                  padding: "0.55rem 1.25rem",
+                  fontSize: "0.82rem",
+                  fontFamily: "var(--font-dm-sans)",
+                  color: "var(--text-primary)",
+                  cursor: loadingMore ? "default" : "pointer",
+                  opacity: loadingMore ? 0.6 : 1,
+                  transition: "all 0.15s ease",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                {loadingMore ? (
+                  <>
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        border: "2px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                        borderTopColor: "var(--accent)",
+                        animation: "notif-spin 0.8s linear infinite",
+                      }}
+                    />
+                    <span>Loading more…</span>
+                  </>
+                ) : (
+                  <span>Load older notifications ({notifications.length} of {totalCount})</span>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
