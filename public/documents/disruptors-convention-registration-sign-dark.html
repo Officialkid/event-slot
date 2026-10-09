@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Disruptors Convention - Official Registration Sign (Dark Edition)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      width: 794px;
+      height: 1123px;
+      max-width: 794px;
+      max-height: 1123px;
+      overflow: hidden;
+      background: #090d16;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      padding: 38px 46px 28px 46px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background: linear-gradient(90deg, #10b981 0%, #059669 45%, #0284c7 100%);
+    }
+
+    .bg-glow {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 550px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.16) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+    }
+
+    .header-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(16, 185, 129, 0.35);
+      color: #a7f3d0;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 6px 20px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #10b981;
+    }
+    .title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.05;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 16px;
+      font-weight: 700;
+      color: #34d399;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .welcome-card {
+      width: 100%;
+      max-width: 650px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 14px 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    .welcome-card h2 {
+      font-size: 17px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .welcome-card p {
+      font-size: 12.5px;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+
+    .qr-card {
+      background: #ffffff;
+      border: 4px solid #10b981;
+      border-radius: 28px;
+      padding: 22px 28px 18px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.3);
+      position: relative;
+      margin: 8px 0;
+    }
+    .qr-pill-top {
+      position: absolute;
+      top: -14px;
+      background: #10b981;
+      color: #064e3b;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 22px;
+      border-radius: 9999px;
+    }
+    .qr-img {
+      width: 330px;
+      height: 330px;
+      display: block;
+      margin: 4px 0 12px 0;
+    }
+    .qr-action-bar {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 10px 26px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .qr-action-bar svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: #34d399;
+      stroke-width: 2.2;
+    }
+    .qr-action-bar span {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .instructions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 660px;
+    }
+    .step-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #10b981;
+      color: #064e3b;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+    .step-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .step-desc {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    .direct-link-bar {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1.5px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 660px;
+    }
+    .direct-link-bar span {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .direct-link-bar strong {
+      font-size: 13px;
+      font-family: monospace;
+      color: #34d399;
+      letter-spacing: 0.5px;
+    }
+
+    .footer-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1.5px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      color: #64748b;
+    }
+    .footer-left {
+      font-weight: 700;
+      color: #94a3b8;
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge-eventslot {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 5px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar"></div>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <div class="header-section">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Official Event Registration
+      </div>
+      <h1 class="title">DISRUPTORS CONVENTION</h1>
+      <div class="subtitle">Navigating Corridors of Power &bull; Weekly Movement</div>
+
+      <div class="welcome-card">
+        <h2>Welcome to Disruptors Convention!</h2>
+        <p>
+          Thank you for being part of this inspiring movement. Please scan the official QR code below 
+          to complete your registration and receive your verified entrance pass.
+        </p>
+      </div>
+    </div>
+
+    <div class="qr-card">
+      <div class="qr-pill-top">Fast Registration</div>
+      <img src="data:image/png;base64,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" alt="Disruptors Convention Registration QR" class="qr-img" />
+      <div class="qr-action-bar">
+        <svg viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>SCAN WITH ANY SMARTPHONE CAMERA</span>
+      </div>
+    </div>
+
+    <div class="instructions-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Open Camera</div>
+        <div class="step-desc">Open the native camera or QR scanner on your phone.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Scan Code</div>
+        <div class="step-desc">Point your lens directly at the QR code above.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Access Ticket</div>
+        <div class="step-desc">Tap the link to submit your details & get your ticket.</div>
+      </div>
+    </div>
+
+    <div class="direct-link-bar">
+      <span>Or visit directly:</span>
+      <strong>https://eventsslot.com/disruptors-convention-fykf</strong>
+    </div>
+
+    <div class="footer-bar">
+      <div class="footer-left">&copy; Disruptors Convention &bull; Official Registration Sign</div>
+      <div class="footer-right">
+        <span>Powered by</span>
+        <span class="badge-eventslot">EVENTSLOT</span>
+        <span>Instant Gate Check-in</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
