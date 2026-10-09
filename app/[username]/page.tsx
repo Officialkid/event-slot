@@ -176,6 +176,8 @@ async function getEventBySlug(slug: string) {
       recurrenceDayOfWeek: true,
       registrationOpensDays: true,
       registrationOpensTime: true,
+      isMultiDay: true,
+      multiDaySchedule: true,
       faqEnabled: true,
       whatsappNumber: true,
       organizerName: true,
@@ -359,6 +361,8 @@ export default async function PublicProfilePage({
             recurrenceDayOfWeek={event.recurrenceDayOfWeek}
             registrationOpensDays={event.registrationOpensDays}
             registrationOpensTime={event.registrationOpensTime}
+            isMultiDay={event.isMultiDay}
+            multiDaySchedule={event.multiDaySchedule as any}
           />
 
           {/* Form + lookup grid */}
@@ -389,6 +393,8 @@ export default async function PublicProfilePage({
                   recurrenceDayOfWeek: event.recurrenceDayOfWeek,
                   registrationOpensDays: event.registrationOpensDays,
                   registrationOpensTime: event.registrationOpensTime,
+                  isMultiDay: event.isMultiDay,
+                  multiDaySchedule: event.multiDaySchedule as any,
                 }}
                 showBranding={showBranding}
                 maxAttendees={maxAttendees}

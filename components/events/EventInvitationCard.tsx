@@ -33,6 +33,17 @@ export type EventInvitationCardProps = {
   recurrenceDayOfWeek?: number | null
   registrationOpensDays?: number | null
   registrationOpensTime?: string | null
+  isMultiDay?: boolean
+  multiDaySchedule?: Array<{
+    id?: string
+    dayNumber: number
+    label?: string | null
+    date: string
+    startTime?: string | null
+    endTime?: string | null
+    venue?: string | null
+    mapDirectionsUrl?: string | null
+  }> | null
 }
 
 function formatEventDateOnly(d: Date): string {
@@ -193,6 +204,8 @@ export default function EventInvitationCard({
   recurrenceDayOfWeek,
   registrationOpensDays,
   registrationOpensTime,
+  isMultiDay,
+  multiDaySchedule,
 }: EventInvitationCardProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
@@ -394,34 +407,55 @@ export default function EventInvitationCard({
             EventSlot
           </span>
 
-          {/* Status badge */}
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              background: badge.bg,
-              border: `1px solid ${badge.border}`,
-              borderRadius: 999,
-              padding: "0.3rem 0.75rem",
-              fontSize: "0.68rem",
-              fontWeight: 600,
-              color: badge.color,
-              letterSpacing: "0.03em",
-            }}
-          >
+          {/* Status badge & Multi-Day badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+            {isMultiDay && Array.isArray(multiDaySchedule) && multiDaySchedule.length > 1 && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                  borderRadius: 999,
+                  padding: "0.3rem 0.75rem",
+                  fontSize: "0.68rem",
+                  fontWeight: 600,
+                  color: "var(--accent)",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                ✨ {multiDaySchedule.length}-Day Event
+              </span>
+            )}
             <span
               style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background: badge.color,
-                flexShrink: 0,
-                display: "inline-block",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                background: badge.bg,
+                border: `1px solid ${badge.border}`,
+                borderRadius: 999,
+                padding: "0.3rem 0.75rem",
+                fontSize: "0.68rem",
+                fontWeight: 600,
+                color: badge.color,
+                letterSpacing: "0.03em",
               }}
-            />
-            {badge.label}
-          </span>
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: badge.color,
+                  flexShrink: 0,
+                  display: "inline-block",
+                }}
+              />
+              {badge.label}
+            </span>
+          </div>
         </div>
 
         <h1
@@ -509,6 +543,132 @@ export default function EventInvitationCard({
             </div>
           )}
         </div>
+
+        {isMultiDay && Array.isArray(multiDaySchedule) && multiDaySchedule.length > 1 && (
+          <div
+            style={{
+              marginTop: "0.4rem",
+              marginBottom: "0.25rem",
+              padding: "1rem",
+              background: "color-mix(in srgb, var(--surface) 92%, var(--accent) 8%)",
+              border: "1px solid color-mix(in srgb, var(--border) 75%, var(--accent) 25%)",
+              borderRadius: 14,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "0.75rem",
+                flexWrap: "wrap",
+                gap: "0.5rem",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--accent)",
+                }}
+              >
+                Multi-Day Itinerary & Venues ({multiDaySchedule.length} Days)
+              </span>
+              <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                Single ticket grants admission to all days
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              {multiDaySchedule.map((day, idx) => {
+                let formattedDate = day.date
+                if (day.date) {
+                  const d = new Date(day.date)
+                  if (!Number.isNaN(d.getTime())) {
+                    formattedDate = d.toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  }
+                }
+
+                return (
+                  <div
+                    key={day.dayNumber || idx}
+                    style={{
+                      padding: "0.75rem 0.9rem",
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.35rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                        {day.label || `Day ${day.dayNumber || idx + 1}`}: {formattedDate}
+                      </span>
+                      {(day.startTime || day.endTime) && (
+                        <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontWeight: 500 }}>
+                          🕒 {day.startTime || ""}{day.endTime ? ` – ${day.endTime}` : ""}
+                        </span>
+                      )}
+                    </div>
+
+                    {day.venue && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          flexWrap: "wrap",
+                          gap: "0.5rem",
+                          fontSize: "0.8rem",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                          📍 {day.venue}
+                        </span>
+                        {day.mapDirectionsUrl && (
+                          <a
+                            href={day.mapDirectionsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              color: "var(--accent)",
+                              textDecoration: "none",
+                              fontWeight: 600,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.2rem",
+                            }}
+                          >
+                            <span>Directions</span>
+                            <span aria-hidden="true">↗</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {description && (
           <>

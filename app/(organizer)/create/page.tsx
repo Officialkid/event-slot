@@ -25,6 +25,7 @@ import {
   deleteEventDraft,
   getDraftStepLabel,
 } from "@/lib/eventDrafts"
+import { MultiDayScheduleEditor, type MultiDayScheduleItem } from "@/components/events/MultiDayScheduleEditor"
 
 type QuestionType = "text" | "textarea" | "number" | "email" | "phone" | "select" | "checkbox" | "file"
 
@@ -175,6 +176,8 @@ export default function CreateEventPage() {
   const [eventDate, setEventDate] = useState("")
   const [eventEndAt, setEventEndAt] = useState("")
   const [hasSpecificTime, setHasSpecificTime] = useState(true)
+  const [isMultiDay, setIsMultiDay] = useState(false)
+  const [multiDaySchedule, setMultiDaySchedule] = useState<MultiDayScheduleItem[]>([])
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<"WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY")
   const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState<number>(5)
@@ -280,6 +283,8 @@ export default function CreateEventPage() {
     if (d.eventDate !== undefined) setEventDate(d.eventDate || "")
     if (d.eventEndAt !== undefined) setEventEndAt(d.eventEndAt || "")
     if (d.hasSpecificTime !== undefined) setHasSpecificTime(Boolean(d.hasSpecificTime))
+    if (d.isMultiDay !== undefined) setIsMultiDay(Boolean(d.isMultiDay))
+    if (Array.isArray(d.multiDaySchedule)) setMultiDaySchedule(d.multiDaySchedule as any)
     if (d.isRecurring !== undefined) setIsRecurring(Boolean(d.isRecurring))
     if (d.recurrenceFrequency !== undefined) {
       const validFreqs = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const
@@ -392,6 +397,8 @@ export default function CreateEventPage() {
           eventDate,
           eventEndAt,
           hasSpecificTime,
+          isMultiDay,
+          multiDaySchedule,
           isRecurring,
           recurrenceFrequency,
           recurrenceDayOfWeek,
@@ -1158,6 +1165,8 @@ export default function CreateEventPage() {
           eventDate: serializeDate(eventDate, hasSpecificTime),
           eventEndAt: serializeDate(eventEndAt, hasSpecificTime),
           hasSpecificTime,
+          isMultiDay,
+          multiDaySchedule: isMultiDay && multiDaySchedule.length > 0 ? multiDaySchedule : undefined,
           isRecurring,
           recurrenceFrequency: isRecurring ? recurrenceFrequency : undefined,
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : undefined,
@@ -1938,6 +1947,34 @@ export default function CreateEventPage() {
                       )}
                     </div>
                   </div>
+
+                  <MultiDayScheduleEditor
+                    enabled={isMultiDay}
+                    onToggle={setIsMultiDay}
+                    schedule={multiDaySchedule}
+                    onChange={(newSchedule) => {
+                      setMultiDaySchedule(newSchedule)
+                      if (newSchedule.length > 0) {
+                        const first = newSchedule[0]
+                        const last = newSchedule[newSchedule.length - 1]
+                        if (first.date) {
+                          const sTime = first.startTime || "09:00"
+                          setEventDate(`${first.date}T${sTime}`)
+                        }
+                        if (last.date) {
+                          const eTime = last.endTime || "17:00"
+                          setEventEndAt(`${last.date}T${eTime}`)
+                        }
+                        if (first.venue && !location) {
+                          setLocation(first.venue)
+                        }
+                      }
+                    }}
+                    fallbackStartDate={eventDate}
+                    fallbackEndDate={eventEndAt}
+                    fallbackVenue={location}
+                    fallbackMapUrl={mapDirectionsUrl}
+                  />
 
                   <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--border-subtle)" }}>
                     <div>

@@ -34,6 +34,8 @@ type WalkInEventPageProps = {
       pioneerBadge?: { id: string } | null
     } | null
     mapPreviewImageUrl?: string | null
+    isMultiDay?: boolean
+    multiDaySchedule?: any
   }
 }
 

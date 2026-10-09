@@ -70,6 +70,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
           questions: true,
           ticketsEnabled: true,
           isPaid: true,
+          isMultiDay: true,
+          multiDaySchedule: true,
           organizer: {
             select: { name: true },
           },
@@ -100,7 +102,14 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
   const answers = (registration.answers as Answer[]) ?? []
 
   const attendeeName = extractField(answers, questions, ['text'], ['name']) || 'Attendee'
-  const attendanceDays = extractAttendanceDays(answers, questions)
+  const rawAttendanceDays = extractAttendanceDays(answers, questions)
+  const eventData = registration.event as any
+  const rawSchedule = Array.isArray(eventData.multiDaySchedule) ? (eventData.multiDaySchedule as any[]) : []
+  const attendanceDays =
+    rawAttendanceDays ||
+    (eventData.isMultiDay && rawSchedule.length > 1
+      ? `All Days (${rawSchedule.map((d: any) => d.label || `Day ${d.dayNumber}`).join(', ')})`
+      : null)
 
   let pdfBuffer: Buffer
   try {

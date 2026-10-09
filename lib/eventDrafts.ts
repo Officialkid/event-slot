@@ -12,6 +12,8 @@ export interface EventDraft {
   eventDate?: string
   eventEndAt?: string
   hasSpecificTime?: boolean
+  isMultiDay?: boolean
+  multiDaySchedule?: any[]
   isRecurring?: boolean
   recurrenceFrequency?: string
   recurrenceDayOfWeek?: number

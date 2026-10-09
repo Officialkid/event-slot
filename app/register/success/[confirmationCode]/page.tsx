@@ -108,6 +108,8 @@ export default async function TicketSuccessPage({
           ticketsEnabled: true,
           slug: true,
           eventType: true,
+          isMultiDay: true,
+          multiDaySchedule: true,
           organizer: { select: { username: true } },
         },
       },
@@ -127,7 +129,13 @@ export default async function TicketSuccessPage({
   const attendeeName = extractField(answers, questions, ["text"], ["name"]) ?? ""
   const attendeeEmail = extractField(answers, questions, ["email"], ["email"]) ?? registration.attendeeEmail
   const attendeePhone = extractField(answers, questions, ["tel"], ["phone", "mobile"])
-  const attendanceDays = extractAttendanceDays(answers, questions)
+  const rawAttendanceDays = extractAttendanceDays(answers, questions)
+  const rawSchedule = Array.isArray(event.multiDaySchedule) ? (event.multiDaySchedule as any[]) : []
+  const attendanceDays =
+    rawAttendanceDays ||
+    (event.isMultiDay && rawSchedule.length > 1
+      ? `All Days (${rawSchedule.map((d: any) => d.label || `Day ${d.dayNumber}`).join(", ")})`
+      : null)
 
   const targetStart = registration.occurrenceDate ?? event.eventDate
   let targetEnd = event.eventEndAt
@@ -152,6 +160,8 @@ export default async function TicketSuccessPage({
     ticketTierMetallic: registration.ticketTier?.metallic ?? null,
     amountPaidKes: registration.ticket?.amountPaidKes ?? null,
     verifyUrl: `${BASE_URL}/verify/${confirmationCode}`,
+    isMultiDay: event.isMultiDay,
+    multiDaySchedule: event.isMultiDay && rawSchedule.length > 1 ? rawSchedule : null,
   }
 
   // Calendar add button data

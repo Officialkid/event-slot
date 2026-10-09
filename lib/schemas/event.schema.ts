@@ -26,6 +26,19 @@ const ticketTierSchema = z.object({
   bundleSize: z.number().int().positive().max(100).optional().nullable(),
 })
 
+export const multiDayScheduleItemSchema = z.object({
+  id: z.string().optional(),
+  dayNumber: z.number().int().positive(),
+  label: z.string().max(100).optional().nullable(),
+  date: z.string().max(30),
+  startTime: z.string().max(10).optional().nullable(),
+  endTime: z.string().max(10).optional().nullable(),
+  venue: z.string().max(300).optional().nullable(),
+  mapDirectionsUrl: z.string().max(1000).optional().nullable().or(z.literal('')),
+})
+
+export type MultiDayScheduleItem = z.infer<typeof multiDayScheduleItemSchema>
+
 export const createEventSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   category: z.string().max(40).optional().nullable(),
@@ -39,6 +52,8 @@ export const createEventSchema = z.object({
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
   eventEndAt: z.string().datetime({ offset: true }).optional().nullable(),
   hasSpecificTime: z.boolean().optional().default(true),
+  isMultiDay: z.boolean().optional().default(false),
+  multiDaySchedule: z.array(multiDayScheduleItemSchema).max(14, 'Maximum 14 event days').optional().nullable(),
   isRecurring: z.boolean().optional().default(false),
   recurrenceFrequency: z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY']).optional().nullable(),
   recurrenceDayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
@@ -253,6 +268,8 @@ export const updateEventSettingsSchema = z.object({
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
   eventEndAt: z.string().datetime({ offset: true }).optional().nullable(),
   hasSpecificTime: z.boolean().optional(),
+  isMultiDay: z.boolean().optional(),
+  multiDaySchedule: z.array(multiDayScheduleItemSchema).max(14, 'Maximum 14 event days').optional().nullable(),
   isRecurring: z.boolean().optional(),
   recurrenceFrequency: z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY']).optional().nullable(),
   recurrenceDayOfWeek: z.number().int().min(0).max(6).optional().nullable(),

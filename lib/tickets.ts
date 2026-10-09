@@ -19,7 +19,16 @@ export async function generateTicketForRegistration(registrationId: string) {
 
   const reg = await prisma.registration.findUnique({
     where: { id: registrationId },
-    select: { eventId: true, occurrenceDate: true },
+    select: {
+      eventId: true,
+      occurrenceDate: true,
+      event: {
+        select: {
+          isMultiDay: true,
+          multiDaySchedule: true,
+        },
+      },
+    },
   })
 
   // Disruptors Convention special 2-day pass for Oct 9-10 occurrence
@@ -27,7 +36,12 @@ export async function generateTicketForRegistration(registrationId: string) {
     reg?.eventId === 'cmuxsr0uc0011116c4c1ubnlk' &&
     (!reg.occurrenceDate || new Date(reg.occurrenceDate).getTime() <= new Date('2026-10-11T23:59:59.000Z').getTime())
 
-  const admissionsTotal = isThisWeekendDisruptors ? 2 : 1
+  let admissionsTotal = 1
+  if (isThisWeekendDisruptors) {
+    admissionsTotal = 2
+  } else if (reg?.event?.isMultiDay && Array.isArray(reg.event.multiDaySchedule) && reg.event.multiDaySchedule.length > 1) {
+    admissionsTotal = reg.event.multiDaySchedule.length
+  }
 
   return prisma.ticket.create({
     data: {

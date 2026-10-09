@@ -76,6 +76,8 @@ type EventProps = {
     recurrenceDayOfWeek?: number | null
     registrationOpensDays?: number | null
     registrationOpensTime?: string | null
+    isMultiDay?: boolean
+    multiDaySchedule?: any
   }
   showBranding?: boolean
   maxAttendees?: number
@@ -2182,6 +2184,75 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       </div>
                     )}
                   </div>
+
+                  {event.isMultiDay && Array.isArray(event.multiDaySchedule) && event.multiDaySchedule.length > 1 && (
+                    <div
+                      className="rounded-[16px] p-4"
+                      style={{
+                        background: "color-mix(in srgb, var(--surface) 92%, var(--accent) 8%)",
+                        border: "1px solid color-mix(in srgb, var(--border) 80%, var(--accent) 20%)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <span className="text-[0.72rem] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--accent)" }}>
+                          Multi-Day Schedule ({event.multiDaySchedule.length} Days)
+                        </span>
+                        <span className="text-[0.7rem]" style={{ color: "var(--text-muted)" }}>
+                          1 Ticket grants admission to all days
+                        </span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {event.multiDaySchedule.map((day: any, idx: number) => {
+                          let formattedDate = day.date
+                          if (day.date) {
+                            const d = new Date(day.date)
+                            if (!Number.isNaN(d.getTime())) {
+                              formattedDate = d.toLocaleDateString("en-GB", {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            }
+                          }
+                          return (
+                            <div
+                              key={day.dayNumber || idx}
+                              className="rounded-[12px] p-3 text-left"
+                              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                            >
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <span className="text-[0.85rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                                  {day.label || `Day ${day.dayNumber || idx + 1}`}: {formattedDate}
+                                </span>
+                                {(day.startTime || day.endTime) && (
+                                  <span className="text-[0.76rem] font-medium" style={{ color: "var(--text-secondary)" }}>
+                                    🕒 {day.startTime || ""}{day.endTime ? ` – ${day.endTime}` : ""}
+                                  </span>
+                                )}
+                              </div>
+                              {day.venue && (
+                                <div className="mt-1.5 flex items-center justify-between flex-wrap gap-2 text-[0.78rem]" style={{ color: "var(--text-muted)" }}>
+                                  <span className="truncate">📍 {day.venue}</span>
+                                  {day.mapDirectionsUrl && (
+                                    <a
+                                      href={day.mapDirectionsUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="font-semibold"
+                                      style={{ color: "var(--accent)", textDecoration: "none" }}
+                                    >
+                                      Directions ↗
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {event.description && (
                     <div className="rounded-[16px] px-4 py-3.5" style={mutedCardStyle}>

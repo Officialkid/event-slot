@@ -45,6 +45,8 @@ model Event {
   virtualLink      String?
   virtualLinkIv    String?
   hasSpecificTime        Boolean   @default(true)
+  isMultiDay             Boolean   @default(false)
+  multiDaySchedule       Json?
   isRecurring            Boolean   @default(false)
   recurrenceFrequency    String?   // "WEEKLY" | "BIWEEKLY" | "MONTHLY"
   recurrenceDayOfWeek    Int?      // 0 (Sun) to 6 (Sat)

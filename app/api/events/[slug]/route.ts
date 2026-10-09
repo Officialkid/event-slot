@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { normalizeCommunityLink } from '@/lib/communityLink'
@@ -178,6 +179,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         eventDate: event.eventDate,
         eventEndAt: event.eventEndAt,
         hasSpecificTime: event.hasSpecificTime,
+        isMultiDay: event.isMultiDay,
+        multiDaySchedule: event.multiDaySchedule,
         isRecurring: event.isRecurring,
         recurrenceFrequency: event.recurrenceFrequency,
         recurrenceDayOfWeek: event.recurrenceDayOfWeek,
@@ -242,7 +245,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
+    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isMultiDay, multiDaySchedule, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
 
     // Lightweight actions: rename or archive
     if (action === 'rename') {
@@ -441,6 +444,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           eventDate: finalEventDate,
           eventEndAt: finalEventEndAt,
           hasSpecificTime: typeof hasSpecificTime === 'boolean' ? hasSpecificTime : undefined,
+          isMultiDay: typeof isMultiDay === 'boolean' ? isMultiDay : undefined,
+          multiDaySchedule: isMultiDay !== undefined ? (isMultiDay && Array.isArray(multiDaySchedule) ? (multiDaySchedule as Prisma.InputJsonValue) : Prisma.JsonNull) : undefined,
           isRecurring: typeof isRecurring === 'boolean' ? isRecurring : undefined,
           recurrenceFrequency: isRecurring ? (recurrenceFrequency || 'WEEKLY') : isRecurring === false ? null : undefined,
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : isRecurring === false ? null : undefined,

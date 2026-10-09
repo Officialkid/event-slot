@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       where: {
         OR: [{ slug }, { id: slug }],
       },
-      select: { id: true, title: true, organizerId: true, dashboardToken: true, verifierCode: true, verifierCodeEnabled: true, questions: true },
+      select: { id: true, title: true, organizerId: true, dashboardToken: true, verifierCode: true, verifierCodeEnabled: true, questions: true, isMultiDay: true, multiDaySchedule: true },
     })
 
     if (!event) {
@@ -421,7 +421,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const isThisWeekendDisruptors =
       event.id === 'cmuxsr0uc0011116c4c1ubnlk' &&
       new Date().getTime() <= new Date('2026-10-12T00:00:00.000Z').getTime()
-    const admissionsTotal = Math.max(isThisWeekendDisruptors ? 2 : 1, target.ticket?.admissionsTotal ?? 1)
+    const scheduleDays = event.isMultiDay && Array.isArray(event.multiDaySchedule) && event.multiDaySchedule.length > 1
+      ? event.multiDaySchedule.length
+      : 1
+    const admissionsTotal = Math.max(
+      isThisWeekendDisruptors ? 2 : scheduleDays,
+      target.ticket?.admissionsTotal ?? 1
+    )
     const admissionsUsed = Math.max(0, target.ticket?.admissionsUsed ?? (target.checkedIn ? 1 : 0))
     const verifiedEntries = normalizeVerifiedEntries(target.ticket?.verifiedEntries)
 

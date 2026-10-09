@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid"
 import { EventFAQEditor } from "@/components/events/EventFAQEditor"
 import { EventWhatsAppInput } from "@/components/events/EventWhatsAppInput"
 import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanceBanner"
+import { MultiDayScheduleEditor, type MultiDayScheduleItem } from "@/components/events/MultiDayScheduleEditor"
 import { normalizeInternationalPhoneNumber, type EventContactMode } from "@/lib/eventContact"
 import { TierBadge } from "@/components/TierBadge"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
@@ -184,6 +185,8 @@ export default function EditEventPage() {
   const [eventDate, setEventDate] = useState("")
   const [eventEndAt, setEventEndAt] = useState("")
   const [hasSpecificTime, setHasSpecificTime] = useState(true)
+  const [isMultiDay, setIsMultiDay] = useState(false)
+  const [multiDaySchedule, setMultiDaySchedule] = useState<MultiDayScheduleItem[]>([])
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<"WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY")
   const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState<number>(5)
@@ -253,6 +256,10 @@ export default function EditEventPage() {
         setEventDate(toDatetimeLocal(e.eventDate))
         setEventEndAt(toDatetimeLocal(e.eventEndAt))
         setHasSpecificTime(e.hasSpecificTime !== false)
+        setIsMultiDay(Boolean(e.isMultiDay))
+        if (Array.isArray(e.multiDaySchedule)) {
+          setMultiDaySchedule(e.multiDaySchedule)
+        }
         setIsRecurring(Boolean(e.isRecurring))
         setRecurrenceFrequency(e.recurrenceFrequency || "WEEKLY")
         setRecurrenceDayOfWeek(typeof e.recurrenceDayOfWeek === "number" ? e.recurrenceDayOfWeek : (e.eventDate ? new Date(e.eventDate).getDay() : 5))
@@ -845,6 +852,8 @@ export default function EditEventPage() {
           eventDate: eventDate ? safeIsoString(eventDate) : undefined,
           eventEndAt: hasSpecificTime && eventEndAt ? safeIsoString(eventEndAt) : undefined,
           hasSpecificTime,
+          isMultiDay,
+          multiDaySchedule: isMultiDay && multiDaySchedule.length > 0 ? multiDaySchedule : null,
           isRecurring,
           recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
           recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
@@ -1362,6 +1371,37 @@ export default function EditEventPage() {
                   </p>
                 </div>
               )}
+
+              {/* MULTI-DAY SCHEDULE EDITOR */}
+              <div className="md:col-span-2">
+                <MultiDayScheduleEditor
+                  enabled={isMultiDay}
+                  onToggle={setIsMultiDay}
+                  schedule={multiDaySchedule}
+                  onChange={(newSchedule) => {
+                    setMultiDaySchedule(newSchedule)
+                    if (newSchedule.length > 0) {
+                      const first = newSchedule[0]
+                      const last = newSchedule[newSchedule.length - 1]
+                      if (first.date) {
+                        const sTime = first.startTime || "09:00"
+                        setEventDate(`${first.date}T${sTime}`)
+                      }
+                      if (last.date) {
+                        const eTime = last.endTime || "17:00"
+                        setEventEndAt(`${last.date}T${eTime}`)
+                      }
+                      if (first.venue && !location) {
+                        setLocation(first.venue)
+                      }
+                    }
+                  }}
+                  fallbackStartDate={eventDate}
+                  fallbackEndDate={eventEndAt}
+                  fallbackVenue={location}
+                  fallbackMapUrl={mapDirectionsUrl}
+                />
+              </div>
 
               {/* RECURRING EVENT CARD */}
               <div className="md:col-span-2 rounded-[12px] p-3.5 border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] mt-1">

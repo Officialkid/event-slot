@@ -19,6 +19,15 @@ export type TicketData = {
   ticketTierMetallic?: boolean | null
   amountPaidKes?: number | null
   verifyUrl: string
+  isMultiDay?: boolean
+  multiDaySchedule?: Array<{
+    dayNumber: number
+    label?: string | null
+    date: string
+    startTime?: string | null
+    endTime?: string | null
+    venue?: string | null
+  }> | null
 }
 
 export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
@@ -180,6 +189,73 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
                 <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.35 }}>
                   Attending: <strong style={{ color: "var(--text-primary)" }}>{ticket.attendanceDays}</strong>
                 </span>
+              </div>
+            )}
+
+            {ticket.multiDaySchedule && ticket.multiDaySchedule.length > 1 && (
+              <div
+                style={{
+                  marginTop: "0.35rem",
+                  marginBottom: "0.2rem",
+                  padding: "0.6rem 0.75rem",
+                  background: "color-mix(in srgb, var(--surface) 92%, var(--accent, #C8F55A) 8%)",
+                  border: "1px solid color-mix(in srgb, var(--border-subtle, rgba(255,255,255,0.1)) 80%, var(--accent, #C8F55A) 20%)",
+                  borderRadius: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.4rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span
+                    style={{
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--accent, #C8F55A)",
+                    }}
+                  >
+                    Multi-Day Itinerary ({ticket.multiDaySchedule.length} Days)
+                  </span>
+                  <span style={{ fontSize: "0.66rem", color: "var(--text-muted)" }}>
+                    All-access
+                  </span>
+                </div>
+                {ticket.multiDaySchedule.map((d, i) => {
+                  let dStr = d.date
+                  try {
+                    const parsed = new Date(d.date)
+                    if (!Number.isNaN(parsed.getTime())) {
+                      dStr = parsed.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+                    }
+                  } catch {
+                    // Fallback to raw string
+                  }
+                  return (
+                    <div
+                      key={d.dayNumber || i}
+                      style={{
+                        fontSize: "0.74rem",
+                        color: "var(--text-secondary)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        gap: "0.4rem",
+                        padding: "0.2rem 0",
+                        borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--border-subtle, rgba(255,255,255,0.06)) 60%, transparent)" : "none",
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                        {d.label || `Day ${d.dayNumber || i + 1}`}: {dStr}
+                      </span>
+                      <span>
+                        {d.startTime ? `${d.startTime}${d.endTime ? `-${d.endTime}` : ""}` : ""}
+                        {d.venue ? ` • ${d.venue}` : ""}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
