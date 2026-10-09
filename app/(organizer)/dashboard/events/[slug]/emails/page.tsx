@@ -112,6 +112,18 @@ export default function EmailDashboardPage() {
     fetchData()
   }, [fetchData])
 
+  // Actively poll while any email campaign is in SENDING state
+  useEffect(() => {
+    const hasSending = campaigns.some((c) => c.status === 'SENDING')
+    if (!hasSending) return
+
+    const pollTimer = setInterval(() => {
+      fetchData()
+    }, 3000)
+
+    return () => clearInterval(pollTimer)
+  }, [campaigns, fetchData])
+
   const applyTemplate = (t: CampaignType) => {
     setType(t)
     const tpl = TEMPLATES[t]
@@ -141,14 +153,6 @@ export default function EmailDashboardPage() {
       setType('CUSTOM')
       setPreview(false)
       fetchData()
-      // Poll campaign status dynamically after firing
-      const pollInterval = setInterval(() => {
-        fetchData()
-      }, 2500)
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        fetchData()
-      }, 15000)
       setTimeout(() => setSuccessMsg(''), 8000)
     } catch {
       setErrorMsg('Unable to send emails. Please try again.')
@@ -453,8 +457,30 @@ export default function EmailDashboardPage() {
 
       {/* Sent history */}
       <div>
-        <div style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)', marginBottom: '0.875rem' }}>
-          Sent History
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: emailTextMuted, fontFamily: 'var(--font-dm-sans)' }}>
+            Sent History
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchData()}
+            style={{
+              background: 'transparent',
+              border: emailBorder,
+              borderRadius: 6,
+              padding: '0.25rem 0.6rem',
+              fontSize: '0.72rem',
+              color: emailTextSecondary,
+              fontFamily: 'var(--font-dm-sans)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
+            <span>↻</span>
+            <span>Refresh</span>
+          </button>
         </div>
         {failedVerificationDomain && (
           <div style={{ marginBottom: '0.875rem', background: 'color-mix(in srgb, var(--error) 8%, transparent)', border: '0.5px solid color-mix(in srgb, var(--error) 24%, transparent)', borderRadius: 10, padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>

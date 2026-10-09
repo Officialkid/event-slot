@@ -191,9 +191,24 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
         ticket.registration.answers as Array<{ questionId: string; value: string }>,
         questions
       )
-      const admissionsTotal = Math.max(1, ticket.admissionsTotal || 1)
+      const isThisWeekendDisruptors =
+        event.id === 'cmuxsr0uc0011116c4c1ubnlk' &&
+        new Date().getTime() <= new Date('2026-10-12T00:00:00.000Z').getTime()
+      const scheduleDays = event.isMultiDay && Array.isArray(event.multiDaySchedule) && event.multiDaySchedule.length > 1
+        ? event.multiDaySchedule.length
+        : 1
+      const admissionsTotal = Math.max(
+        isThisWeekendDisruptors ? 2 : scheduleDays,
+        ticket.admissionsTotal || 1
+      )
       const admissionsUsed = Math.max(0, ticket.admissionsUsed || 0)
       const verifiedEntries = normalizeVerifiedEntries(ticket.verifiedEntries)
+
+      const todayInNairobi = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' })
+      const alreadyScannedToday = verifiedEntries.some((entry) => {
+        if (!entry.verifiedAt) return false
+        return new Date(entry.verifiedAt).toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' }) === todayInNairobi
+      }) || (ticket.registration.checkedInAt ? new Date(ticket.registration.checkedInAt).toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' }) === todayInNairobi : false)
 
       if (admissionsUsed >= admissionsTotal) {
         await logEntry(event.id, normalizedTicketCode, attendeeName || null, false, 'ALREADY_SCANNED')
@@ -201,7 +216,31 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
           success: true,
           valid: false,
           alreadyVerified: true,
-          message: 'Ticket already fully verified.',
+          message: admissionsTotal > 1 ? 'All entries for this multi-day ticket have already been used.' : 'Ticket already fully verified.',
+          ticket: buildTicketPayload({
+            registrationId: ticket.registration.id,
+            registrationNumber: ticket.registration.registrationNumber,
+            attendeeName,
+            attendeeEmail: ticket.registration.attendeeEmail,
+            confirmationCode: ticket.registration.confirmationCode,
+            ticketCode: ticket.code,
+            scannedAt: ticket.scannedAt,
+            checkedInAt: ticket.registration.checkedInAt,
+            admissionsTotal,
+            admissionsUsed,
+            verifiedEntries,
+          }),
+        })
+      }
+
+      if (alreadyScannedToday && admissionsTotal > 1 && admissionsUsed < admissionsTotal) {
+        await logEntry(event.id, normalizedTicketCode, attendeeName || null, false, 'ALREADY_SCANNED_TODAY')
+        const remaining = Math.max(0, admissionsTotal - admissionsUsed)
+        return NextResponse.json({
+          success: true,
+          valid: false,
+          alreadyVerified: true,
+          message: `Already scanned for today! Remaining entry (${remaining}) is valid tomorrow for Day 2.`,
           ticket: buildTicketPayload({
             registrationId: ticket.registration.id,
             registrationNumber: ticket.registration.registrationNumber,
@@ -252,12 +291,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       await logEntry(event.id, normalizedTicketCode, attendeeName || null, true)
 
       const remaining = Math.max(0, admissionsTotal - nextAdmissionsUsed)
+      const dayNum = nextAdmissionsUsed
       return NextResponse.json({
         success: true,
         valid: true,
         alreadyVerified: false,
-        message: remaining > 0
-          ? `${nextAdmissionsUsed} of ${admissionsTotal} entries verified. ${remaining} remaining.`
+        message: admissionsTotal > 1
+          ? (remaining > 0
+              ? `Verified for Day ${dayNum}! (${remaining} entry remaining for tomorrow)`
+              : `Verified for Day ${dayNum}! (All entries completed)`)
           : 'Ticket verified successfully.',
         eventStats: {
           totalConfirmed: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed' } }),
@@ -431,13 +473,43 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     const admissionsUsed = Math.max(0, target.ticket?.admissionsUsed ?? (target.checkedIn ? 1 : 0))
     const verifiedEntries = normalizeVerifiedEntries(target.ticket?.verifiedEntries)
 
+    const todayInNairobi = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' })
+    const alreadyScannedToday = verifiedEntries.some((entry) => {
+      if (!entry.verifiedAt) return false
+      return new Date(entry.verifiedAt).toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' }) === todayInNairobi
+    }) || (target.checkedInAt ? new Date(target.checkedInAt).toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' }) === todayInNairobi : false)
+
     if ((target.ticket && admissionsUsed >= admissionsTotal) || (!target.ticket && target.checkedIn)) {
       await logEntry(event.id, target.confirmationCode ?? target.id, attendeeName || null, false, 'ALREADY_SCANNED')
       return NextResponse.json({
         success: true,
         valid: false,
         alreadyVerified: true,
-        message: 'Ticket already verified and used.',
+        message: admissionsTotal > 1 ? 'All entries for this multi-day ticket have already been used.' : 'Ticket already verified and used.',
+        ticket: buildTicketPayload({
+          registrationId: target.id,
+          registrationNumber: target.registrationNumber,
+          attendeeName,
+          attendeeEmail: target.attendeeEmail,
+          confirmationCode: target.confirmationCode,
+          ticketCode: target.ticket?.code ?? target.confirmationCode ?? target.id,
+          scannedAt: target.ticket?.scannedAt ?? target.checkedInAt,
+          checkedInAt: target.checkedInAt,
+          admissionsTotal,
+          admissionsUsed,
+          verifiedEntries,
+        }),
+      })
+    }
+
+    if (alreadyScannedToday && admissionsTotal > 1 && admissionsUsed < admissionsTotal) {
+      await logEntry(event.id, target.confirmationCode ?? target.id, attendeeName || null, false, 'ALREADY_SCANNED_TODAY')
+      const remaining = Math.max(0, admissionsTotal - admissionsUsed)
+      return NextResponse.json({
+        success: true,
+        valid: false,
+        alreadyVerified: true,
+        message: `Already scanned for today! Remaining entry (${remaining}) is valid tomorrow for Day 2.`,
         ticket: buildTicketPayload({
           registrationId: target.id,
           registrationNumber: target.registrationNumber,
@@ -490,12 +562,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     await logEntry(event.id, target.ticket?.code ?? target.confirmationCode ?? target.id, attendeeName || null, true)
 
     const remaining = Math.max(0, admissionsTotal - nextAdmissionsUsed)
+    const dayNum = nextAdmissionsUsed
     return NextResponse.json({
       success: true,
       valid: true,
       alreadyVerified: false,
-      message: remaining > 0
-        ? `${nextAdmissionsUsed} of ${admissionsTotal} entries verified. ${remaining} remaining.`
+      message: admissionsTotal > 1
+        ? (remaining > 0
+            ? `Verified for Day ${dayNum}! (${remaining} entry remaining for tomorrow)`
+            : `Verified for Day ${dayNum}! (All entries completed)`)
         : 'Ticket verified successfully.',
       eventStats: {
         totalConfirmed: await prisma.registration.count({ where: { eventId: event.id, status: 'confirmed' } }),

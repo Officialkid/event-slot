@@ -138,10 +138,17 @@ export function QuickScan({
 
         if (res.ok && data.success && data.valid) {
           nextState = "valid"
-          nextMessage =
-            data.ticket?.admissionsTotal && data.ticket.admissionsTotal > 1
-              ? `Welcome, ${data.ticket?.attendeeName || "Attendee"}! ${data.ticket.admissionsRemaining ?? 0} remaining.`
-              : `Welcome, ${data.ticket?.attendeeName || "Attendee"}!`
+          const attendee = data.ticket?.attendeeName || "Attendee"
+          const total = data.ticket?.admissionsTotal ?? 1
+          const used = data.ticket?.admissionsUsed ?? 1
+          const remaining = data.ticket?.admissionsRemaining ?? 0
+          if (total > 1) {
+            nextMessage = remaining > 0
+              ? `Welcome, ${attendee}!\nVerified for Day ${used} · ${remaining} entry remaining for tomorrow`
+              : `Welcome, ${attendee}!\nVerified for Day ${used} · All entries completed`
+          } else {
+            nextMessage = `Welcome, ${attendee}!`
+          }
           onVerified?.()
           scannerAudio.playSuccess()
           setMyScansCount((c) => c + 1)
@@ -158,9 +165,9 @@ export function QuickScan({
         } else if (data.alreadyVerified || (data.message || "").toLowerCase().includes("already")) {
           nextState = "used"
           const scannedAt = data.ticket?.checkedInAt || data.ticket?.scannedAt
-          nextMessage = scannedAt
-            ? `Already scanned at ${new Date(scannedAt).toLocaleTimeString()}`
-            : "Already scanned"
+          nextMessage = data.message || (scannedAt
+            ? `Already scanned at ${new Date(scannedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            : "Already scanned")
           delay = 3000
           scannerAudio.playWarning()
           if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -369,83 +376,92 @@ export function QuickScan({
       className="relative w-full min-h-[80vh] rounded-2xl overflow-hidden border"
       style={{ backgroundColor: scannerSurfaceAlt, borderColor: scannerBorder }}
     >
-      <div className="absolute z-20 top-4 left-4 flex gap-2">
-        <button
-          onClick={onExit}
-          className="px-3 py-1.5 rounded-full text-xs border"
-          style={{
-            backgroundColor: "rgba(15, 23, 42, 0.68)",
-            borderColor: scannerBorderSoft,
-            color: "#ffffff",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          Exit
-        </button>
-        <span className="px-3 py-1.5 rounded-full bg-[#C8F55A] text-black text-xs font-semibold">{title}</span>
-      </div>
-
-      <div className="absolute z-20 top-4 right-4 flex gap-2">
-        {(["camera", "upload", "manual"] as const).map((mode) => (
+      {/* Unified Scanner Header Overlay */}
+      <div className="absolute z-20 top-0 left-0 right-0 p-3 sm:p-4 flex flex-col gap-2.5 bg-gradient-to-b from-black/85 via-black/45 to-transparent pointer-events-none">
+        {/* Row 1: Exit button + Segmented mode switcher */}
+        <div className="flex items-center justify-between gap-2 pointer-events-auto">
           <button
-            key={mode}
-            onClick={() => {
-              setInputMode(mode)
-              resetVisualState()
+            onClick={onExit}
+            className="px-3.5 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+            style={{
+              backgroundColor: "rgba(15, 23, 42, 0.8)",
+              borderColor: "rgba(255, 255, 255, 0.2)",
+              color: "#ffffff",
+              backdropFilter: "blur(12px)",
             }}
-            className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
-              inputMode === mode ? "bg-[#C8F55A] text-black border-[#C8F55A]" : ""
-            }`}
-            style={
-              inputMode === mode
-                ? undefined
-                : {
-                    backgroundColor: scannerSurface,
-                    borderColor: scannerBorderSoft,
-                    color: scannerTextSecondary,
-                  }
-            }
           >
-            {mode === "camera" ? "Scan" : mode === "upload" ? "Upload" : "Manual"}
+            <span>✕</span>
+            <span>Exit</span>
           </button>
-        ))}
-      </div>
 
-      {/* Live Admission Status & Torch Controls */}
-      <div className="absolute z-20 top-14 left-4 right-4 flex items-center justify-between pointer-events-none gap-2 flex-wrap">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-lg pointer-events-auto"
-          style={{
-            backgroundColor: "rgba(15, 23, 42, 0.82)",
-            borderColor: "rgba(255, 255, 255, 0.16)",
-            color: "#f8fafc",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#C8F55A] animate-pulse" />
-          <span>My Scans: <strong className="text-[#C8F55A] font-bold">{myScansCount}</strong></span>
-          <span className="text-white/40">•</span>
-          <span>
-            Total Admitted: <strong className="text-white font-bold">{eventStats ? `${eventStats.totalCheckedIn} / ${eventStats.totalConfirmed}` : "..."}</strong>
-          </span>
+          {/* Segmented Mode Picker: [Scan | Upload | Manual] */}
+          <div
+            className="inline-flex items-center p-0.5 rounded-full border shadow-md"
+            style={{
+              backgroundColor: "rgba(15, 23, 42, 0.8)",
+              borderColor: "rgba(255, 255, 255, 0.2)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            {(["camera", "upload", "manual"] as const).map((mode) => {
+              const isActive = inputMode === mode
+              const label = mode === "camera" ? "Scan" : mode === "upload" ? "Upload" : "Manual"
+              return (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setInputMode(mode)
+                    resetVisualState()
+                  }}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    isActive
+                      ? "bg-[#C8F55A] text-black shadow-sm"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {inputMode === "camera" && torchAvailable && (
-          <button
-            type="button"
-            onClick={toggleTorch}
-            className={`pointer-events-auto px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-lg ${
-              torchOn
-                ? "bg-amber-400 text-black border-amber-300 shadow-amber-400/20"
-                : "text-white border-white/20 hover:bg-white/10"
-            }`}
-            style={torchOn ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.82)", backdropFilter: "blur(12px)" }}
-            title={torchOn ? "Turn off torch" : "Turn on torch for low light"}
+        {/* Row 2: Live Gate Stats + Torch Controls */}
+        <div className="flex items-center justify-between gap-2 pointer-events-auto">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-md"
+            style={{
+              backgroundColor: "rgba(15, 23, 42, 0.8)",
+              borderColor: "rgba(255, 255, 255, 0.16)",
+              color: "#f8fafc",
+              backdropFilter: "blur(12px)",
+            }}
           >
-            <Flashlight className={`w-3.5 h-3.5 ${torchOn ? "text-black fill-current" : "text-amber-400"}`} />
-            <span>{torchOn ? "Torch On" : "Torch"}</span>
-          </button>
-        )}
+            <span className="w-2 h-2 rounded-full bg-[#C8F55A] animate-pulse" />
+            <span>My Scans: <strong className="text-[#C8F55A] font-bold">{myScansCount}</strong></span>
+            <span className="text-white/40">•</span>
+            <span>
+              Total: <strong className="text-white font-bold">{eventStats ? `${eventStats.totalCheckedIn} / ${eventStats.totalConfirmed}` : "..."}</strong>
+            </span>
+          </div>
+
+          {inputMode === "camera" && torchAvailable && (
+            <button
+              type="button"
+              onClick={toggleTorch}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+                torchOn
+                  ? "bg-amber-400 text-black border-amber-300 shadow-amber-400/20"
+                  : "text-white border-white/20 hover:bg-white/10"
+              }`}
+              style={torchOn ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.8)", backdropFilter: "blur(12px)" }}
+              title={torchOn ? "Turn off torch" : "Turn on torch for low light"}
+            >
+              <Flashlight className={`w-3.5 h-3.5 ${torchOn ? "text-black fill-current" : "text-amber-400"}`} />
+              <span>{torchOn ? "Torch On" : "Torch"}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="h-[78vh] relative">
