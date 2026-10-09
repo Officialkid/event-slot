@@ -36,7 +36,8 @@ $projectId = 'project-d46be384-233e-47fb-bb5'
 $region = 'us-central1'
 $repository = 'eventslot'
 $service = 'eventslot-web'
-$imageTag = 'manual'
+$gitCommit = try { (& git.exe rev-parse --short HEAD).Trim() } catch { '' }
+$imageTag = if ($gitCommit) { "$gitCommit" } else { (Get-Date -Format "yyyyMMdd-HHmmss") }
 
 Write-Host "Using CLOUDSDK_CONFIG=$env:CLOUDSDK_CONFIG"
 Write-Host "Deploying $service to $projectId in $region"
