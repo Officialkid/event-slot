@@ -227,7 +227,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
       return verificationResponse("error", "Ticket exists but the registration is not confirmed.", undefined, { status: 400 });
     }
 
-    const admissionsTotal = Math.max(1, registration.ticket?.admissionsTotal ?? 1);
+    const isThisWeekendDisruptors =
+      event.id === "cmuxsr0uc0011116c4c1ubnlk" &&
+      new Date().getTime() <= new Date("2026-10-12T00:00:00.000Z").getTime();
+    const admissionsTotal = Math.max(isThisWeekendDisruptors ? 2 : 1, registration.ticket?.admissionsTotal ?? 1);
     const admissionsUsed = Math.max(0, registration.ticket?.admissionsUsed ?? (registration.checkedIn ? 1 : 0));
 
     if ((registration.ticket && admissionsUsed >= admissionsTotal) || (!registration.ticket && registration.checkedIn)) {

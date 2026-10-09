@@ -418,7 +418,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     }
 
     const attendeeName = getNameFromAnswers(target.answers, questions)
-    const admissionsTotal = Math.max(1, target.ticket?.admissionsTotal ?? 1)
+    const isThisWeekendDisruptors =
+      event.id === 'cmuxsr0uc0011116c4c1ubnlk' &&
+      new Date().getTime() <= new Date('2026-10-12T00:00:00.000Z').getTime()
+    const admissionsTotal = Math.max(isThisWeekendDisruptors ? 2 : 1, target.ticket?.admissionsTotal ?? 1)
     const admissionsUsed = Math.max(0, target.ticket?.admissionsUsed ?? (target.checkedIn ? 1 : 0))
     const verifiedEntries = normalizeVerifiedEntries(target.ticket?.verifiedEntries)
 

@@ -17,10 +17,23 @@ export async function generateTicketForRegistration(registrationId: string) {
   const existing = await prisma.ticket.findUnique({ where: { registrationId } })
   if (existing) return existing
 
+  const reg = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    select: { eventId: true, occurrenceDate: true },
+  })
+
+  // Disruptors Convention special 2-day pass for Oct 9-10 occurrence
+  const isThisWeekendDisruptors =
+    reg?.eventId === 'cmuxsr0uc0011116c4c1ubnlk' &&
+    (!reg.occurrenceDate || new Date(reg.occurrenceDate).getTime() <= new Date('2026-10-11T23:59:59.000Z').getTime())
+
+  const admissionsTotal = isThisWeekendDisruptors ? 2 : 1
+
   return prisma.ticket.create({
     data: {
       registrationId,
       code: generateTicketCode(),
+      admissionsTotal,
     },
   })
 }
