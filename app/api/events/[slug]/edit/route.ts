@@ -29,6 +29,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
         eventDate: true,
         eventEndAt: true,
         hasSpecificTime: true,
+        isMultiDay: true,
+        multiDaySchedule: true,
         isRecurring: true,
         recurrenceFrequency: true,
         recurrenceDayOfWeek: true,

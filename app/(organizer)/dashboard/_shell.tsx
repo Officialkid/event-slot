@@ -283,8 +283,14 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-          {/* Avatar with Pioneer badge overlay */}
-          <div style={{ position: "relative", flexShrink: 0, width: 32, height: 32 }}>
+          {/* Avatar with Pioneer badge overlay - clickable to profile */}
+          <Link
+            href="/dashboard/profile"
+            onClick={onNavClick}
+            title="Go to profile"
+            className="hover:opacity-80 transition-opacity"
+            style={{ position: "relative", flexShrink: 0, width: 32, height: 32, display: "block", textDecoration: "none", cursor: "pointer" }}
+          >
             {image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -336,33 +342,41 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                 🏆
               </span>
             )}
-          </div>
+          </Link>
           <div className="dash-user-det" style={{ overflow: "hidden", minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: "0.62rem",
-                color: "var(--text-muted)",
-                fontFamily: "var(--font-dm-sans)",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                marginBottom: "0.12rem",
-              }}
+            <Link
+              href="/dashboard/profile"
+              onClick={onNavClick}
+              title="Go to profile"
+              style={{ textDecoration: "none", display: "block", cursor: "pointer" }}
+              className="hover:opacity-85 transition-opacity"
             >
-              Account profile
-            </div>
-            <div
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: "var(--text-primary)",
-                fontFamily: "var(--font-dm-sans)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {name}
-            </div>
+              <div
+                style={{
+                  fontSize: "0.62rem",
+                  color: "var(--text-muted)",
+                  fontFamily: "var(--font-dm-sans)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: "0.12rem",
+                }}
+              >
+                Account profile
+              </div>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-dm-sans)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {name}
+              </div>
+            </Link>
             {hasPioneer && (
               <div style={{ marginTop: "0.2rem" }}>
                 <span

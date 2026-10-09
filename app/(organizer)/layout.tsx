@@ -163,12 +163,17 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
               flexShrink: 0,
             }}
           >
-            <div
+            <Link
+              href="/dashboard/profile"
+              title="Go to profile"
+              className="hover:opacity-80 transition-opacity"
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "0.625rem",
                 marginBottom: "0.625rem",
+                textDecoration: "none",
+                cursor: "pointer",
               }}
             >
               <div
@@ -223,7 +228,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               style={{
@@ -299,7 +304,12 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
             )}
 
             {/* User chip */}
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Link
+              href="/dashboard/profile"
+              title="Go to profile"
+              className="hover:opacity-80 transition-opacity"
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem", textDecoration: "none", cursor: "pointer" }}
+            >
               <div
                 style={{
                   width: 28,
@@ -344,7 +354,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
                   {accountIdentity}
                 </div>
               </div>
-            </div>
+            </Link>
           </header>
 
           {/* Page content — pb-20 clears mobile tab bar */}

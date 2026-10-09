@@ -255,9 +255,9 @@ export default function EditEventPage() {
         setDeadline(toDatetimeLocal(e.deadline))
         setEventDate(toDatetimeLocal(e.eventDate))
         setEventEndAt(toDatetimeLocal(e.eventEndAt))
-        setHasSpecificTime(e.hasSpecificTime !== false)
-        setIsMultiDay(Boolean(e.isMultiDay))
-        if (Array.isArray(e.multiDaySchedule)) {
+        const hasSchedule = Array.isArray(e.multiDaySchedule) && e.multiDaySchedule.length > 0
+        setIsMultiDay(Boolean(e.isMultiDay || hasSchedule))
+        if (hasSchedule) {
           setMultiDaySchedule(e.multiDaySchedule)
         }
         setIsRecurring(Boolean(e.isRecurring))
