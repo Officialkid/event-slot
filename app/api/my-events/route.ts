@@ -96,7 +96,13 @@ export async function GET(req: Request) {
       prisma.event.count({ where }),
       email
         ? prisma.groupBooking.findMany({
-            where: { contactEmail: email.toLowerCase() },
+            where: {
+              OR: [
+                { contactEmail: email.toLowerCase() },
+                { contactEmail: email },
+              ],
+              status: { not: 'CANCELLED' },
+            },
             include: {
               event: {
                 select: {
@@ -106,6 +112,12 @@ export async function GET(req: Request) {
                   eventDate: true,
                   location: true,
                   eventType: true,
+                },
+              },
+              slots: {
+                select: {
+                  id: true,
+                  status: true,
                 },
               },
             },
@@ -124,16 +136,26 @@ export async function GET(req: Request) {
         eventPassStatus: event.eventPass?.status ?? null,
         eventPassExpiresAt: event.eventPass?.expiresAt ?? null,
       })),
-      groupBookings: (groupBookings || []).map((b) => ({
-        id: b.id,
-        orgName: b.orgName,
-        orgType: b.orgType,
-        totalSlots: b.totalSlots,
-        bookingToken: b.bookingToken,
-        claimToken: b.claimToken,
-        createdAt: b.createdAt,
-        event: b.event,
-      })),
+      groupBookings: (groupBookings || []).map((b: any) => {
+        const slots = b.slots || []
+        const assignedCount = slots.filter((s: any) => s.status === 'ASSIGNED' || s.status === 'CHECKED_IN').length
+        const checkedInCount = slots.filter((s: any) => s.status === 'CHECKED_IN').length
+        const unassignedCount = Math.max(0, b.totalSlots - assignedCount)
+
+        return {
+          id: b.id,
+          orgName: b.orgName,
+          orgType: b.orgType,
+          totalSlots: b.totalSlots,
+          assignedCount,
+          unassignedCount,
+          checkedInCount,
+          bookingToken: b.bookingToken,
+          claimToken: b.claimToken,
+          createdAt: b.createdAt,
+          event: b.event,
+        }
+      }),
       pagination: {
         page,
         limit,

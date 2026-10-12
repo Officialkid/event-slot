@@ -275,6 +275,9 @@ export default function OrganizationManagerPortal(props: { params: Promise<{ tok
               <p className="text-[0.78rem]" style={{ color: "var(--text-muted)" }}>Primary Contact</p>
               <p className="text-[0.875rem] font-semibold" style={{ color: "var(--text-primary)" }}>{data.contactName}</p>
               <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>{data.contactEmail}</p>
+              <Link href="/dashboard/events" className="mt-1 inline-block text-[0.75rem] underline" style={{ color: "var(--accent)" }}>
+                Go to EventSlot Dashboard →
+              </Link>
             </div>
           </div>
         </div>

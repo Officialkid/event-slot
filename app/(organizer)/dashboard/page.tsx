@@ -50,6 +50,27 @@ interface Stats {
   waitlistEventCount: number
 }
 
+interface OrgGroupBooking {
+  id: string
+  orgName: string
+  orgType: string
+  totalSlots: number
+  assignedCount: number
+  unassignedCount: number
+  checkedInCount: number
+  bookingToken: string
+  claimToken: string
+  createdAt: string
+  event: {
+    id: string
+    title: string
+    slug: string
+    eventDate?: string | null
+    location?: string | null
+    eventType?: string | null
+  }
+}
+
 const surfaceStyle: React.CSSProperties = {
   background: "var(--surface)",
   border: "0.5px solid color-mix(in srgb, var(--text-primary) 8%, transparent)",
@@ -336,6 +357,8 @@ export default function DashboardOverviewPage() {
   } | null>(null)
   const [adminLoading, setAdminLoading] = useState(false)
   const [securityBannerDismissed, setSecurityBannerDismissed] = useState(true)
+  const [groupBookings, setGroupBookings] = useState<OrgGroupBooking[]>([])
+  const [copiedBookingId, setCopiedBookingId] = useState<string | null>(null)
 
   function handleDismissSecurityBanner() {
     try {
@@ -354,6 +377,14 @@ export default function DashboardOverviewPage() {
       .then(r => r.json())
       .then(data => setStats(data))
       .finally(() => setLoading(false))
+    fetch("/api/my-events")
+      .then(r => r.json())
+      .then(d => {
+        if (d?.success && Array.isArray(d.groupBookings)) {
+          setGroupBookings(d.groupBookings)
+        }
+      })
+      .catch(() => {})
     fetch("/api/me")
       .then(r => r.json())
       .then(d => {
@@ -634,6 +665,153 @@ export default function DashboardOverviewPage() {
 
         {/* Sections — single column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+          {/* Organization / Group Delegations */}
+          {groupBookings.length > 0 && (
+            <section
+              style={{
+                ...surfaceStyle,
+                borderRadius: 16,
+                padding: "1.5rem",
+                border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                background: "color-mix(in srgb, var(--accent) 3%, var(--surface))",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)" }}>
+                      Delegation Portals
+                    </span>
+                    <span style={{ fontSize: "0.72rem", background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent)", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>
+                      {groupBookings.length} {groupBookings.length === 1 ? "Organization" : "Organizations"}
+                    </span>
+                  </div>
+                  <h2 style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-primary)", margin: "0.25rem 0 0" }}>
+                    Your Organization Delegations
+                  </h2>
+                </div>
+                <Link
+                  href="/dashboard/events"
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--text-secondary)",
+                    textDecoration: "underline",
+                  }}
+                >
+                  View in Events List →
+                </Link>
+              </div>
+
+              <div style={{ display: "grid", gap: "1rem" }}>
+                {groupBookings.map((b) => {
+                  const assigned = b.assignedCount || 0
+                  const total = b.totalSlots || 1
+                  const pct = Math.min(100, Math.round((assigned / total) * 100))
+                  const claimUrl = `${typeof window !== "undefined" ? window.location.origin : "https://www.eventsslot.com"}/claim/${b.claimToken}`
+
+                  return (
+                    <div
+                      key={b.id}
+                      style={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 12,
+                        padding: "1.25rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.85rem",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", color: "var(--accent)", letterSpacing: "0.06em", background: "color-mix(in srgb, var(--accent) 12%, transparent)", padding: "2px 8px", borderRadius: 4 }}>
+                              {b.orgType || "Organization"}
+                            </span>
+                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              Reserved for {b.event.title}
+                            </span>
+                          </div>
+                          <h3 style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-primary)", margin: "0.3rem 0 0.15rem" }}>
+                            {b.orgName}
+                          </h3>
+                          {b.event.location && (
+                            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
+                              📍 {b.event.location}
+                            </p>
+                          )}
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block" }}>Reserved Quota</span>
+                          <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--accent)" }}>
+                            {b.totalSlots} Seats
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Allocation Progress */}
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                          <span>Allocation: <strong style={{ color: "var(--text-primary)" }}>{assigned} of {total} assigned</strong> ({pct}%)</span>
+                          {b.checkedInCount > 0 && (
+                            <span style={{ color: "var(--accent)" }}>✓ {b.checkedInCount} checked in at gate</span>
+                          )}
+                        </div>
+                        <div style={{ height: 6, background: "color-mix(in srgb, var(--text-primary) 10%, transparent)", borderRadius: 999, overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)", borderRadius: 999, transition: "width 0.3s ease" }} />
+                        </div>
+                      </div>
+
+                      {/* Action CTAs */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem", borderTop: "1px solid var(--border)", paddingTop: "0.75rem" }}>
+                        <Link
+                          href={`/booking/${b.bookingToken}`}
+                          style={{
+                            background: "var(--accent)",
+                            color: "var(--accent-contrast, #0A0A0A)",
+                            fontWeight: 700,
+                            fontSize: "0.82rem",
+                            padding: "0.5rem 1.1rem",
+                            borderRadius: 8,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                          }}
+                        >
+                          <span>Manage Delegation ({b.totalSlots} Slots)</span>
+                          <span>→</span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(claimUrl)
+                            setCopiedBookingId(b.id)
+                            setTimeout(() => setCopiedBookingId(null), 2000)
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
+                            fontSize: "0.78rem",
+                            padding: "0.45rem 0.85rem",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {copiedBookingId === b.id ? "✓ Copied Claim Link!" : "Copy Member Self-Claim Link"}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Needs attention — only rendered when loading or there are near-capacity events */}
           {(loading || (stats?.eventsNearCapacity?.length ?? 0) > 0) && (

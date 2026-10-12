@@ -23,3 +23,13 @@ export function purgeUserCache(userId: string, email: string | null) {
   }
   dashboardStatsCache.delete(`dashboard-stats:${userId}:${email ?? 'none'}`)
 }
+
+/** Purge cached event lists for a user by email string */
+export function purgeUserCacheByEmail(email: string) {
+  const normalized = email.trim().toLowerCase()
+  for (const key of eventListCache.keys()) {
+    if (key.toLowerCase().includes(`:${normalized}:`)) {
+      eventListCache.delete(key)
+    }
+  }
+}

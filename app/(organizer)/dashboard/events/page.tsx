@@ -45,6 +45,9 @@ type OrgGroupBooking = {
   orgName: string
   orgType: string
   totalSlots: number
+  assignedCount?: number
+  unassignedCount?: number
+  checkedInCount?: number
   bookingToken: string
   claimToken: string
   createdAt: string
@@ -958,6 +961,7 @@ export default function DashboardEventsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>("active")
   const [origin, setOrigin] = useState("")
+  const [copiedClaimId, setCopiedClaimId] = useState<string | null>(null)
   const { restartTutorial } = useTutorial()
 
   useEffect(() => {
@@ -1133,6 +1137,26 @@ export default function DashboardEventsPage() {
                     </div>
                   </div>
 
+                  {/* Allocation Progress Bar */}
+                  {(() => {
+                    const assigned = b.assignedCount || 0
+                    const total = b.totalSlots || 1
+                    const pct = Math.min(100, Math.round((assigned / total) * 100))
+                    return (
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                          <span>Allocation: <strong style={{ color: "var(--text-primary)" }}>{assigned} of {total} assigned</strong> ({pct}%)</span>
+                          {(b.checkedInCount ?? 0) > 0 && (
+                            <span style={{ color: "var(--accent)" }}>✓ {b.checkedInCount} checked in at gate</span>
+                          )}
+                        </div>
+                        <div style={{ height: 6, background: "color-mix(in srgb, var(--text-primary) 10%, transparent)", borderRadius: 999, overflow: "hidden" }}>
+                          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)", borderRadius: 999, transition: "width 0.3s ease" }} />
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.9rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
                     <Link
                       href={`/booking/${b.bookingToken}`}
@@ -1152,17 +1176,41 @@ export default function DashboardEventsPage() {
                       Manage Delegation &amp; Tickets →
                     </Link>
 
-                    <Link
-                      href={`/claim/${b.claimToken}`}
-                      target="_blank"
-                      style={{
-                        fontSize: "0.78rem",
-                        color: "var(--text-secondary)",
-                        textDecoration: "underline",
-                      }}
-                    >
-                      Open Member Self-Claim Link ↗
-                    </Link>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${origin || "https://www.eventsslot.com"}/claim/${b.claimToken}`
+                          navigator.clipboard.writeText(url)
+                          setCopiedClaimId(b.id)
+                          setTimeout(() => setCopiedClaimId(null), 2000)
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "1px solid var(--border)",
+                          color: "var(--text-primary)",
+                          fontSize: "0.78rem",
+                          padding: "0.45rem 0.85rem",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {copiedClaimId === b.id ? "✓ Copied Claim Link!" : "Copy Self-Claim Link"}
+                      </button>
+
+                      <Link
+                        href={`/claim/${b.claimToken}`}
+                        target="_blank"
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--text-secondary)",
+                          textDecoration: "underline",
+                        }}
+                      >
+                        Open Claim Page ↗
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -9,6 +9,7 @@ type LookupResult = {
   registrationNumber: number | null
   attendeeName: string
   attendeeEmail: string | null
+  organizationName?: string | null
   status: string
   submittedAt: string
   waitlistPosition: number | null
@@ -302,6 +303,13 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
               <div className="min-w-0">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <p className="font-semibold" style={{ color: verifierTextPrimary }}>{item.attendeeName}</p>
+                  {item.organizationName && (
+                    <span
+                      className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[11px] font-semibold text-sky-400"
+                    >
+                      🏢 {item.organizationName} Delegate
+                    </span>
+                  )}
                   <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
                     item.admissionsUsed > 0
                       ? item.admissionsRemaining > 0

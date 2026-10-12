@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import prisma from "@/lib/prisma"
+import { generateConfirmationCode } from "@/lib/confirmationCode"
+import { generateTicketForRegistration } from "@/lib/tickets"
+import { computeNextOccurrenceDate } from "@/lib/recurringEvents"
+import { sendDelegateTicketEmail } from "@/lib/email"
 
 export async function GET(
   req: NextRequest,
@@ -64,6 +68,7 @@ export async function GET(
           attendeePhone: s.attendeePhone,
           status: s.status,
           qrToken: s.qrToken,
+          ticketId: s.ticketId,
           assignedAt: s.assignedAt,
           checkedInAt: s.checkedInAt,
         })),
@@ -91,7 +96,20 @@ export async function POST(
 
     const booking = await prisma.groupBooking.findUnique({
       where: { bookingToken: token },
-      select: { id: true, status: true },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            eventDate: true,
+            location: true,
+            isRecurring: true,
+            recurrenceFrequency: true,
+            recurrenceDayOfWeek: true,
+          },
+        },
+      },
     })
 
     if (!booking || booking.status === "CANCELLED") {
@@ -106,19 +124,92 @@ export async function POST(
       return NextResponse.json({ error: "Slot not found in this allocation" }, { status: 404 })
     }
 
-    // Assign or replace attendee with a newly issued QR token (revokes old token)
-    const newQrToken = uuidv4()
+    // If replacing an existing attendee on this slot, cancel the old registration & revoke ticket
+    if (slot.ticketId) {
+      try {
+        const oldTicket = await prisma.ticket.findUnique({
+          where: { id: slot.ticketId },
+          select: { registrationId: true },
+        })
+        if (oldTicket?.registrationId) {
+          await prisma.registration.update({
+            where: { id: oldTicket.registrationId },
+            data: { status: "cancelled" },
+          })
+        }
+      } catch (revokeErr) {
+        console.warn("[SLOT REASSIGN REVOKE OLD TICKET FAILED]", revokeErr)
+      }
+    }
+
+    // Determine event occurrence date
+    const occurrenceDate = booking.event.isRecurring
+      ? computeNextOccurrenceDate(booking.event)
+      : (booking.event.eventDate ?? new Date())
+
+    const confirmationCode = generateConfirmationCode()
+    const cleanName = attendeeName.trim()
+    const cleanEmail = attendeeEmail?.trim()?.toLowerCase() || null
+    const cleanPhone = attendeePhone?.trim() || null
+
+    // Create confirmed Registration for delegate
+    const reg = await prisma.registration.create({
+      data: {
+        eventId: booking.eventId,
+        answers: [
+          { questionId: "name", value: cleanName },
+          ...(cleanEmail ? [{ questionId: "email", value: cleanEmail }] : []),
+          ...(cleanPhone ? [{ questionId: "phone", value: cleanPhone }] : []),
+        ],
+        status: "confirmed",
+        registrationNumber: slot.slotIndex,
+        confirmationCode,
+        submittedAt: new Date(),
+        notified: false,
+        attendeeEmail: cleanEmail,
+        occurrenceDate,
+        source: "group_delegation",
+      },
+    })
+
+    // Generate formal Ticket record
+    const ticketRecord = await generateTicketForRegistration(reg.id)
+
+    // Update slot with attendee details, new QR code, and ticketId link
     const updatedSlot = await prisma.groupTicketSlot.update({
       where: { id: slot.id },
       data: {
-        attendeeName: attendeeName.trim(),
-        attendeeEmail: attendeeEmail?.trim()?.toLowerCase() || null,
-        attendeePhone: attendeePhone?.trim() || null,
-        qrToken: newQrToken,
+        attendeeName: cleanName,
+        attendeeEmail: cleanEmail,
+        attendeePhone: cleanPhone,
+        ticketId: ticketRecord.id,
+        qrToken: ticketRecord.code,
         status: "ASSIGNED",
         assignedAt: new Date(),
       },
     })
+
+    // If email is provided, dispatch the delegate's official ticket pass email
+    if (cleanEmail) {
+      const eventDateFormatted = booking.event.eventDate
+        ? new Date(booking.event.eventDate).toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : null
+
+      sendDelegateTicketEmail({
+        to: cleanEmail,
+        name: cleanName,
+        orgName: booking.orgName,
+        eventTitle: booking.event.title,
+        confirmationNumber,
+        eventDate: eventDateFormatted,
+        eventLocation: booking.event.location,
+      }).catch((emailErr) => console.error("[DELEGATE TICKET EMAIL FAILED]", emailErr))
+    }
 
     return NextResponse.json({
       success: true,
@@ -130,6 +221,8 @@ export async function POST(
         attendeePhone: updatedSlot.attendeePhone,
         status: updatedSlot.status,
         qrToken: updatedSlot.qrToken,
+        ticketId: updatedSlot.ticketId,
+        confirmationCode,
       },
     })
   } catch (error) {
@@ -160,12 +253,39 @@ export async function DELETE(
       return NextResponse.json({ error: "Booking allocation not found" }, { status: 404 })
     }
 
+    const slot = await prisma.groupTicketSlot.findFirst({
+      where: { id: slotId, bookingId: booking.id },
+    })
+
+    if (!slot) {
+      return NextResponse.json({ error: "Slot not found" }, { status: 404 })
+    }
+
+    // Cancel old registration & revoke ticket
+    if (slot.ticketId) {
+      try {
+        const oldTicket = await prisma.ticket.findUnique({
+          where: { id: slot.ticketId },
+          select: { registrationId: true },
+        })
+        if (oldTicket?.registrationId) {
+          await prisma.registration.update({
+            where: { id: oldTicket.registrationId },
+            data: { status: "cancelled" },
+          })
+        }
+      } catch (cancelErr) {
+        console.warn("[SLOT UNASSIGN CANCEL REGISTRATION FAILED]", cancelErr)
+      }
+    }
+
     const updatedSlot = await prisma.groupTicketSlot.update({
-      where: { id: slotId },
+      where: { id: slot.id },
       data: {
         attendeeName: null,
         attendeeEmail: null,
         attendeePhone: null,
+        ticketId: null,
         status: "UNASSIGNED",
         qrToken: uuidv4(), // Revoke old QR token
         assignedAt: null,

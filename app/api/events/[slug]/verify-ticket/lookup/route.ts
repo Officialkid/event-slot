@@ -102,6 +102,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       answers: true,
       ticket: {
         select: {
+          id: true,
           code: true,
           scannedAt: true,
           admissionsTotal: true,
@@ -112,7 +113,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     },
   })
 
-  const results = registrations.filter((registration) => {
+  const matchedRegistrations = registrations.filter((registration) => {
     const attendeeName = extractAttendeeName(registration.answers, questions, registration.attendeeEmail).toLowerCase()
     const email = (registration.attendeeEmail ?? '').toLowerCase()
     const ticketCode = (registration.ticket?.code ?? '').toLowerCase()
@@ -131,14 +132,42 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     if (words.some(w => w.startsWith(normalizedQuery))) return true
 
     return false
-  }).map((registration) => {
+  })
+
+  const matchedTicketIds = matchedRegistrations
+    .map((r) => r.ticket?.id)
+    .filter((id): id is string => Boolean(id))
+
+  const groupSlots = matchedTicketIds.length > 0
+    ? await prisma.groupTicketSlot.findMany({
+        where: { ticketId: { in: matchedTicketIds } },
+        select: {
+          ticketId: true,
+          booking: {
+            select: {
+              orgName: true,
+            },
+          },
+        },
+      })
+    : []
+
+  const orgByTicketId = new Map(
+    groupSlots
+      .filter((s) => s.ticketId && s.booking?.orgName)
+      .map((s) => [s.ticketId!, s.booking.orgName])
+  )
+
+  const results = matchedRegistrations.map((registration) => {
     const attendeeName = extractAttendeeName(registration.answers, questions, registration.attendeeEmail)
+    const organizationName = registration.ticket?.id ? orgByTicketId.get(registration.ticket.id) ?? null : null
 
     return {
       registrationId: registration.id,
       registrationNumber: registration.registrationNumber,
       attendeeName,
       attendeeEmail: registration.attendeeEmail,
+      organizationName,
       status: registration.status,
       submittedAt: registration.submittedAt,
       waitlistPosition: registration.waitlistPosition,

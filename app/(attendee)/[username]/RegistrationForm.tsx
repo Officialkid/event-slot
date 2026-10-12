@@ -300,6 +300,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [groupFieldErrors, setGroupFieldErrors] = useState<Record<string, string>>({})
   const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({})
   const [groupCopied, setGroupCopied] = useState(false)
+  const [managerCopied, setManagerCopied] = useState(false)
   const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
   const [mpesaPhone] = useState("")
   const [paidCheckout, setPaidCheckout] = useState<PaidCheckoutResponse | null>(null)
@@ -443,6 +444,17 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     setRegistrationSource(storedSource)
     setRegistrationRefCode(storedRef)
     setRegistrationUtmSource(storedUtmSource)
+
+    try {
+      const savedGroup = sessionStorage.getItem(`eventslot_group_booking_${event.slug}`)
+      if (savedGroup) {
+        const parsed = JSON.parse(savedGroup)
+        if (parsed.booking) {
+          setGroupResult(parsed.booking)
+          if (parsed.orgContactEmail) setOrgContactEmail(parsed.orgContactEmail)
+        }
+      }
+    } catch {}
   }, [event.slug])
 
   useEffect(() => {
@@ -875,6 +887,15 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         throw new Error(json.error || "Failed to create group booking")
       }
       setGroupResult(json.booking)
+      try {
+        sessionStorage.setItem(
+          `eventslot_group_booking_${event.slug}`,
+          JSON.stringify({
+            booking: json.booking,
+            orgContactEmail: orgContactEmail.trim(),
+          })
+        )
+      } catch {}
     } catch (err: any) {
       setGroupError(err.message || "Failed to create group booking")
     } finally {
@@ -1569,13 +1590,37 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
           </div>
 
-          <div className="rounded-[16px] border p-5 text-center space-y-3" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 6%, var(--surface))" }}>
-            <p className="text-[0.85rem] font-semibold" style={{ color: "var(--text-primary)" }}>
-              Step 1: Open your Delegation Manager Portal
-            </p>
+          <div className="rounded-[16px] border p-5 space-y-3" style={{ borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)", background: "color-mix(in srgb, var(--accent) 6%, var(--surface))" }}>
+            <div className="flex items-center justify-between">
+              <p className="text-[0.85rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                Step 1: Open Delegation Manager Portal
+              </p>
+              <span className="text-[0.72rem] font-mono" style={{ color: "var(--accent)" }}>{groupResult.totalSlots} Slots Reserved</span>
+            </div>
             <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
-              Assign attendee names, update contacts, or bulk import your roster via CSV anytime.
+              Assign attendee names, update contacts, or bulk import your roster via CSV anytime:
             </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={groupResult.managerUrl}
+                className="w-full rounded-[8px] border px-3 py-2 text-[0.78rem] font-mono"
+                style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-secondary)" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(groupResult.managerUrl)
+                  setManagerCopied(true)
+                  setTimeout(() => setManagerCopied(false), 2000)
+                }}
+                className="shrink-0 rounded-[8px] border px-4 py-2 text-[0.8rem] font-bold transition"
+                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+              >
+                {managerCopied ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
             <a
               href={groupResult.managerUrl}
               target="_blank"
@@ -1617,12 +1662,33 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </div>
           </div>
 
+          {/* Step 3: EventSlot Dashboard Integration */}
+          <div className="rounded-[16px] border p-5 space-y-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏢</span>
+              <p className="text-[0.82rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                Step 3: Access Inside Your EventSlot Dashboard
+              </p>
+            </div>
+            <p className="text-[0.78rem] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              We linked this reservation to <strong style={{ color: "var(--text-primary)" }}>{orgContactEmail}</strong>. When you sign in or create an account with this email, this event will appear in your Dashboard under <strong>My Events</strong> with real-time gate check-in tracking.
+            </p>
+            <a
+              href="/dashboard/events"
+              className="inline-flex items-center justify-center gap-1.5 w-full rounded-[10px] border py-2.5 text-[0.82rem] font-bold transition"
+              style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+            >
+              <span>Go to EventSlot Dashboard</span>
+              <span>→</span>
+            </a>
+          </div>
+
           <div className="rounded-[12px] border p-4 space-y-2" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
             <p className="text-[0.78rem] font-bold" style={{ color: "var(--text-primary)" }}>
-              🎫 How Tickets are Issued
+              🎫 How Tickets &amp; Gate Check-In Work
             </p>
             <p className="text-[0.78rem] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-              Whether you assign attendee names in the portal or your members self-claim via the link, each attendee will immediately receive their own official digital ticket with a unique QR code for seamless check-in at the venue.
+              Whether you assign attendee names in your portal or members self-claim via link, each attendee receives an official digital ticket pass with a unique QR code. At the gate, scanners immediately recognize them with their <strong>[{groupResult.orgName} Delegate]</strong> pass.
             </p>
           </div>
 
@@ -1630,6 +1696,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             <button
               type="button"
               onClick={() => {
+                try {
+                  sessionStorage.removeItem(`eventslot_group_booking_${event.slug}`)
+                } catch {}
                 setGroupResult(null)
                 setRegistrationMode("group")
               }}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import prisma from "@/lib/prisma"
 import { sendGroupBookingConfirmationEmail } from "@/lib/email"
+import { purgeUserCache, purgeUserCacheByEmail } from "@/lib/cache"
 
 export async function POST(
   req: NextRequest,
@@ -129,6 +130,31 @@ export async function POST(
     const origin = req.headers.get("origin") || "https://www.eventsslot.com"
     const managerUrl = `${origin}/booking/${result.bookingToken}`
     const claimUrl = `${origin}/claim/${result.claimToken}`
+
+    // Purge cached events lists so the reservation appears immediately in the organizer/delegate dashboard
+    purgeUserCacheByEmail(result.contactEmail)
+
+    // If an existing registered user matches contactEmail, create an in-app notification and purge their user cache
+    try {
+      const existingUser = await prisma.user.findFirst({
+        where: { email: { equals: result.contactEmail, mode: "insensitive" } },
+        select: { id: true, email: true },
+      })
+      if (existingUser) {
+        purgeUserCache(existingUser.id, existingUser.email)
+        await prisma.notification.create({
+          data: {
+            userId: existingUser.id,
+            type: "EVENT",
+            title: `Group Reservation: ${result.orgName}`,
+            message: `You reserved ${result.totalSlots} seats for "${event.title}". You can manage your delegation anytime from your dashboard.`,
+            link: `/booking/${result.bookingToken}`,
+          },
+        }).catch((err) => console.warn("[GROUP BOOKING NOTIFICATION SKIPPED]", err))
+      }
+    } catch (notifErr) {
+      console.warn("[GROUP BOOKING NOTIF LOOKUP FAILED]", notifErr)
+    }
 
     // Send confirmation email to organization contact person asynchronously
     try {
