@@ -205,7 +205,7 @@ export async function POST(
         name: cleanName,
         orgName: booking.orgName,
         eventTitle: booking.event.title,
-        confirmationNumber,
+        confirmationNumber: confirmationCode,
         eventDate: eventDateFormatted,
         eventLocation: booking.event.location,
       }).catch((emailErr) => console.error("[DELEGATE TICKET EMAIL FAILED]", emailErr))
