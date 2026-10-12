@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Camera, FileUp, Search } from "lucide-react"
+import { Camera, Search } from "lucide-react"
 import { ManualTicketVerifier } from "@/components/scanner/ManualTicketVerifier"
 import { QuickScan } from "@/components/scanner/QuickScan"
 
-type Mode = null | "scan" | "upload" | "manual"
+type Mode = null | "scan" | "manual"
 
 interface Props {
   eventSlug: string
@@ -71,22 +71,10 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
         eventSlug={eventSlug}
         accessToken={accessToken}
         onExit={() => setMode(null)}
+        onSwitchToManual={() => setMode("manual")}
         onVerified={onVerified}
         initialInputMode="camera"
         title="VERIFY TICKET"
-      />
-    )
-  }
-
-  if (mode === "upload") {
-    return (
-      <QuickScan
-        eventSlug={eventSlug}
-        accessToken={accessToken}
-        onExit={() => setMode(null)}
-        onVerified={onVerified}
-        initialInputMode="upload"
-        title="UPLOAD SOFTCOPY"
       />
     )
   }
@@ -138,60 +126,51 @@ export function ScannerHome({ eventSlug, accessToken, onVerified }: Props) {
           </div>
         )}
 
-        <div className="w-full max-w-4xl grid md:grid-cols-3 gap-4">
+        <div className="w-full max-w-4xl grid sm:grid-cols-2 gap-5">
           <button
             onClick={() => requestCameraAccess("scan")}
-            className="w-full border rounded-2xl p-5 text-left transition-colors group"
+            className="w-full border rounded-2xl p-6 text-left transition-all hover:scale-[1.01] hover:border-[#C8F55A]/50 group shadow-sm"
             style={{ borderColor: scannerBorderSoft, backgroundColor: scannerSurface }}
           >
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#C8F55A]/10 border border-[#C8F55A]/30 flex items-center justify-center shrink-0 group-hover:bg-[#C8F55A]/20 transition-colors">
-                <Camera className="w-5 h-5 text-[#C8F55A]" />
+              <div className="w-12 h-12 rounded-2xl bg-[#C8F55A]/10 border border-[#C8F55A]/30 flex items-center justify-center shrink-0 group-hover:bg-[#C8F55A]/20 transition-colors">
+                <Camera className="w-6 h-6 text-[#C8F55A]" />
               </div>
-              <div>
-                <p className="font-semibold mb-1" style={{ color: scannerTextPrimary }}>Scan QR Code</p>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="font-bold text-base" style={{ color: scannerTextPrimary }}>Scan QR Code</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#C8F55A]/15 text-[#C8F55A] border border-[#C8F55A]/30">
+                    Camera
+                  </span>
+                </div>
                 <p className="text-sm leading-relaxed" style={{ color: scannerTextSecondary }}>
-                  Use the camera to scan a physical ticket QR code and verify it instantly.
+                  Point device camera at physical or digital attendee QR codes for instant admission verification.
                 </p>
-                <p className="text-[#C8F55A] text-xs mt-2">Best for gate check-in</p>
-              </div>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setMode("upload")}
-            className="w-full border rounded-2xl p-5 text-left transition-colors group"
-            style={{ borderColor: scannerBorderSoft, backgroundColor: scannerSurface }}
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex items-center justify-center shrink-0 group-hover:bg-[#3B82F6]/20 transition-colors">
-                <FileUp className="w-5 h-5 text-[#3B82F6]" />
-              </div>
-              <div>
-                <p className="font-semibold mb-1" style={{ color: scannerTextPrimary }}>Upload Softcopy</p>
-                <p className="text-sm leading-relaxed" style={{ color: scannerTextSecondary }}>
-                  Upload a ticket image or EventSlot PDF and let the system read the ticket for you.
-                </p>
-                <p className="text-[#60A5FA] text-xs mt-2">Works with image files and EventSlot PDFs</p>
+                <p className="text-[#C8F55A] text-xs font-semibold mt-3">Primary Gate Check-in →</p>
               </div>
             </div>
           </button>
 
           <button
             onClick={() => setMode("manual")}
-            className="w-full border rounded-2xl p-5 text-left transition-colors group"
+            className="w-full border rounded-2xl p-6 text-left transition-all hover:scale-[1.01] hover:border-[#F59E0B]/50 group shadow-sm"
             style={{ borderColor: scannerBorderSoft, backgroundColor: scannerSurface }}
           >
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center shrink-0 group-hover:bg-[#F59E0B]/20 transition-colors">
-                <Search className="w-5 h-5 text-[#F59E0B]" />
+              <div className="w-12 h-12 rounded-2xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 flex items-center justify-center shrink-0 group-hover:bg-[#F59E0B]/20 transition-colors">
+                <Search className="w-6 h-6 text-[#F59E0B]" />
               </div>
-              <div>
-                <p className="font-semibold mb-1" style={{ color: scannerTextPrimary }}>Enter Details</p>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <p className="font-bold text-base" style={{ color: scannerTextPrimary }}>Search Attendee</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#F59E0B]/15 text-[#FCD34D] border border-[#F59E0B]/30">
+                    Live Search
+                  </span>
+                </div>
                 <p className="text-sm leading-relaxed" style={{ color: scannerTextSecondary }}>
-                  Search by attendee name, email, ticket number, or confirmation code, then verify or unverify manually.
+                  Instant live search by first name, surname, email address, registration number, or ticket code.
                 </p>
-                <p className="text-[#FCD34D] text-xs mt-2">Best for exceptions and follow-up questions</p>
+                <p className="text-[#FCD34D] text-xs font-semibold mt-3">Exceptions & Lookup →</p>
               </div>
             </div>
           </button>

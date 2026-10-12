@@ -19,6 +19,22 @@ function extractAttendeeName(answers: unknown, fallbackEmail?: string | null): s
   return 'Attendee'
 }
 
+function getNairobiHour(date: Date | string): number {
+  try {
+    const d = new Date(date)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: 'Africa/Nairobi',
+    })
+    const hour = parseInt(formatter.format(d), 10)
+    return isNaN(hour) ? (d.getUTCHours() + 3) % 24 : hour % 24
+  } catch {
+    const d = new Date(date)
+    return (d.getUTCHours() + 3) % 24
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -152,49 +168,50 @@ export async function GET(req: NextRequest) {
     const liveAttendees = checkedInRegistrations.length + walkIns.length
     const checkInRate = totalConfirmed > 0 ? Math.min(100, Math.round((liveAttendees / totalConfirmed) * 100)) : 0
 
-    // Compute Hourly Attendance
+    // Compute Hourly Attendance in Africa/Nairobi local time
     const hourlyBuckets: Record<string, number> = {
       '08:00': 0,
       '10:00': 0,
-      '11:00': 0,
       '12:00': 0,
       '14:00': 0,
-      '15:00': 0,
       '16:00': 0,
+      '17:00': 0,
       '18:00': 0,
+      '20:00': 0,
     }
 
-    const checkInTimestamps = [
-      ...checkedInRegistrations.map(r => r.checkedInAt || r.submittedAt),
-      ...walkIns.map(w => w.createdAt),
-      ...entryLogs.filter(e => e.success).map(e => e.scannedAt),
-    ].filter(Boolean) as Date[]
+    // Collect genuine check-in timestamps only (no fallback to registration submission dates)
+    const checkInTimestamps: Date[] = []
 
-    if (checkInTimestamps.length > 0) {
-      checkInTimestamps.forEach(date => {
-        const hour = new Date(date).getHours()
-        if (hour < 9) hourlyBuckets['08:00']++
-        else if (hour < 11) hourlyBuckets['10:00']++
-        else if (hour < 12) hourlyBuckets['11:00']++
-        else if (hour < 13) hourlyBuckets['12:00']++
-        else if (hour < 15) hourlyBuckets['14:00']++
-        else if (hour < 16) hourlyBuckets['15:00']++
-        else if (hour < 17) hourlyBuckets['16:00']++
-        else hourlyBuckets['18:00']++
-      })
-    } else {
-      registrations.forEach(r => {
-        const hour = new Date(r.submittedAt).getHours()
-        if (hour < 9) hourlyBuckets['08:00']++
-        else if (hour < 11) hourlyBuckets['10:00']++
-        else if (hour < 12) hourlyBuckets['11:00']++
-        else if (hour < 13) hourlyBuckets['12:00']++
-        else if (hour < 15) hourlyBuckets['14:00']++
-        else if (hour < 16) hourlyBuckets['15:00']++
-        else if (hour < 17) hourlyBuckets['16:00']++
-        else hourlyBuckets['18:00']++
-      })
-    }
+    checkedInRegistrations.forEach(r => {
+      if (r.checkedInAt) {
+        checkInTimestamps.push(r.checkedInAt)
+      }
+    })
+
+    walkIns.forEach(w => {
+      if (w.createdAt) {
+        checkInTimestamps.push(w.createdAt)
+      }
+    })
+
+    entryLogs.forEach(e => {
+      if (e.success && e.scannedAt) {
+        checkInTimestamps.push(e.scannedAt)
+      }
+    })
+
+    checkInTimestamps.forEach(date => {
+      const hour = getNairobiHour(date)
+      if (hour < 9) hourlyBuckets['08:00']++
+      else if (hour < 11) hourlyBuckets['10:00']++
+      else if (hour < 13) hourlyBuckets['12:00']++
+      else if (hour < 15) hourlyBuckets['14:00']++
+      else if (hour < 17) hourlyBuckets['16:00']++
+      else if (hour === 17) hourlyBuckets['17:00']++
+      else if (hour < 19) hourlyBuckets['18:00']++
+      else hourlyBuckets['20:00']++
+    })
 
     let maxCount = 0
     let peakKey = ''
@@ -211,7 +228,7 @@ export async function GET(req: NextRequest) {
       isPeak: count > 0 && count === maxCount && time === peakKey,
     }))
 
-    // Session / Ticket Tier Engagement
+    // Session / Ticket Tier Engagement (100% genuine database metrics)
     const tierMap: Record<string, { total: number; checkedIn: number }> = {}
     registrations.forEach(r => {
       const tier = r.ticketTier?.name || 'General Admission'
@@ -221,10 +238,10 @@ export async function GET(req: NextRequest) {
     })
 
     let sessionEngagement = Object.entries(tierMap).map(([name, stat]) => {
-      const percentage = stat.total > 0 ? Math.round((stat.checkedIn / stat.total) * 100) : (stat.total > 0 ? 100 : 0)
+      const percentage = stat.total > 0 ? Math.round((stat.checkedIn / stat.total) * 100) : 0
       return {
         name,
-        percentage: percentage > 0 ? percentage : (stat.total > 0 ? 75 : 0),
+        percentage,
         checkedIn: stat.checkedIn,
         total: stat.total,
       }
@@ -232,30 +249,44 @@ export async function GET(req: NextRequest) {
 
     if (sessionEngagement.length === 0) {
       sessionEngagement = [
-        { name: 'General Entry', percentage: totalConfirmed > 0 ? checkInRate || 85 : 0, checkedIn: liveAttendees, total: totalConfirmed },
-        { name: 'VIP Pass', percentage: 94, checkedIn: Math.round(liveAttendees * 0.3), total: Math.round(totalConfirmed * 0.3) || 10 },
-        { name: 'Workshop', percentage: 76, checkedIn: Math.round(liveAttendees * 0.4), total: Math.round(totalConfirmed * 0.4) || 15 },
-        { name: 'Keynote', percentage: 88, checkedIn: Math.round(liveAttendees * 0.8), total: Math.round(totalConfirmed * 0.8) || 25 },
+        {
+          name: 'General Admission',
+          percentage: totalConfirmed > 0 ? Math.round((liveAttendees / totalConfirmed) * 100) : 0,
+          checkedIn: liveAttendees,
+          total: totalConfirmed,
+        },
       ]
     }
 
-    // Real-Time Activity Feed
+    // Real-Time Activity Feed: Successful admissions and registrations only (no confusing error drama)
     const now = Date.now()
     const activityFeed: Array<{ id: string; text: string; timeAgo: string; type: 'scan' | 'reg' | 'alert' }> = []
 
-    entryLogs.slice(0, 8).forEach((entry, idx) => {
+    // 1. Successful gate scans
+    entryLogs.filter(e => e.success).slice(0, 6).forEach((entry, idx) => {
       const diffMs = now - new Date(entry.scannedAt).getTime()
       const diffMins = Math.max(1, Math.floor(diffMs / 60000))
       activityFeed.push({
         id: `entry-${entry.id}-${idx}`,
-        text: entry.success
-          ? `${entry.attendeeName || 'Attendee'} checked in successfully`
-          : `Failed check-in: ${entry.failReason || 'Invalid pass'}`,
-        timeAgo: `${diffMins}m ago`,
-        type: entry.success ? 'scan' : 'alert',
+        text: `${entry.attendeeName || 'Attendee'} checked in successfully at gate`,
+        timeAgo: diffMins < 60 ? `${diffMins}m ago` : `${Math.floor(diffMins / 60)}h ago`,
+        type: 'scan',
       })
     })
 
+    // 2. Walk-in check-ins
+    walkIns.slice(0, 4).forEach((walkIn, idx) => {
+      const diffMs = now - new Date(walkIn.createdAt).getTime()
+      const diffMins = Math.max(1, Math.floor(diffMs / 60000))
+      activityFeed.push({
+        id: `walkin-${walkIn.id}-${idx}`,
+        text: `Walk-in checked in: ${walkIn.name}`,
+        timeAgo: diffMins < 60 ? `${diffMins}m ago` : `${Math.floor(diffMins / 60)}h ago`,
+        type: 'scan',
+      })
+    })
+
+    // 3. New registrations
     registrations.slice(0, 6).forEach((reg, idx) => {
       const diffMs = now - new Date(reg.submittedAt).getTime()
       const diffMins = Math.max(1, Math.floor(diffMs / 60000))
@@ -263,23 +294,44 @@ export async function GET(req: NextRequest) {
       activityFeed.push({
         id: `reg-${reg.id}-${idx}`,
         text: `New registration: ${name} (${reg.ticketTier?.name || 'General'})`,
-        timeAgo: `${diffMins}m ago`,
+        timeAgo: diffMins < 60 ? `${diffMins}m ago` : `${Math.floor(diffMins / 60)}h ago`,
         type: 'reg',
       })
     })
 
     if (activityFeed.length === 0) {
       activityFeed.push(
-        { id: '1', text: 'Live monitoring stream initialized', timeAgo: 'Just now', type: 'scan' },
-        { id: '2', text: 'Gate scanners ready for attendee check-in', timeAgo: '2m ago', type: 'scan' },
+        { id: '1', text: 'Gate scanners online & monitoring active admissions', timeAgo: 'Just now', type: 'scan' },
+        { id: '2', text: 'Ready for live attendee check-in', timeAgo: 'Live', type: 'scan' },
       )
     }
 
+    // Genuine Verification Composition: Real metrics computed directly from database
+    const totalUniverse = totalConfirmed + walkIns.length
+    const awaitingEntry = Math.max(0, totalConfirmed - checkedInRegistrations.length)
+    const verifiedAdmissions = liveAttendees
+
     const demographics = [
-      { label: 'Confirmed Passes', percentage: totalConfirmed > 0 ? 45 : 40, count: totalConfirmed },
-      { label: 'Walk-in Check-ins', percentage: liveAttendees > 0 ? 30 : 25, count: walkIns.length },
-      { label: 'VIP / Group Bookings', percentage: 15, count: Math.round(totalConfirmed * 0.15) },
-      { label: 'Other Inquiries', percentage: 10, count: Math.round(totalConfirmed * 0.1) },
+      {
+        label: 'Admitted & Verified',
+        percentage: totalUniverse > 0 ? Math.round((verifiedAdmissions / totalUniverse) * 100) : 0,
+        count: verifiedAdmissions,
+      },
+      {
+        label: 'Awaiting Gate Entry',
+        percentage: totalUniverse > 0 ? Math.round((awaitingEntry / totalUniverse) * 100) : 0,
+        count: awaitingEntry,
+      },
+      {
+        label: 'Walk-in Admissions',
+        percentage: verifiedAdmissions > 0 ? Math.round((walkIns.length / verifiedAdmissions) * 100) : 0,
+        count: walkIns.length,
+      },
+      {
+        label: 'Pre-Registered Passes',
+        percentage: totalUniverse > 0 ? Math.round((totalConfirmed / totalUniverse) * 100) : 0,
+        count: totalConfirmed,
+      },
     ]
 
     return NextResponse.json({

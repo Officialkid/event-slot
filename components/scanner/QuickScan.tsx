@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import jsQR from "jsqr"
-import { Flashlight } from "lucide-react"
-import { extractTicketReferenceFromFile, normalizeDecodedValue } from "@/components/scanner/qr-utils"
+import { Flashlight, Search } from "lucide-react"
+import { normalizeDecodedValue } from "@/components/scanner/qr-utils"
 import { scannerAudio } from "@/lib/scannerAudio"
 
 type ScanState = "scanning" | "valid" | "used" | "not_found" | "error"
-type InputMode = "camera" | "upload" | "manual"
+type InputMode = "camera" | "manual"
 
 type QuickScanResult = {
   success?: boolean
@@ -34,6 +34,7 @@ interface Props {
   eventSlug: string
   accessToken: string
   onExit: () => void
+  onSwitchToManual?: () => void
   onVerified?: () => void
   initialInputMode?: InputMode
   title?: string
@@ -51,6 +52,7 @@ export function QuickScan({
   eventSlug,
   accessToken,
   onExit,
+  onSwitchToManual,
   onVerified,
   initialInputMode = "camera",
   title = "VERIFY TICKET",
@@ -343,18 +345,6 @@ export function QuickScan({
     }
   }, [handleDecoded, inputMode])
 
-  const onUpload = async (file: File | null) => {
-    if (!file) return
-    const decoded = await extractTicketReferenceFromFile(file)
-    if (!decoded) {
-      setState("error")
-      setMessage("We could not read a ticket from that file")
-      window.setTimeout(() => resetVisualState(), 1800)
-      return
-    }
-    await handleDecoded(decoded)
-  }
-
   const overlayClass = {
     valid: "bg-[#22C55E]/90",
     used: "bg-[#EF4444]/90",
@@ -378,60 +368,64 @@ export function QuickScan({
     >
       {/* Unified Scanner Header Overlay */}
       <div className="absolute z-20 top-0 left-0 right-0 p-3 sm:p-4 flex flex-col gap-2.5 bg-gradient-to-b from-black/85 via-black/45 to-transparent pointer-events-none">
-        {/* Row 1: Exit button + Segmented mode switcher */}
+        {/* Top Control Bar */}
         <div className="flex items-center justify-between gap-2 pointer-events-auto">
           <button
             onClick={onExit}
             className="px-3.5 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95"
             style={{
-              backgroundColor: "rgba(15, 23, 42, 0.8)",
+              backgroundColor: "rgba(15, 23, 42, 0.85)",
               borderColor: "rgba(255, 255, 255, 0.2)",
               color: "#ffffff",
               backdropFilter: "blur(12px)",
             }}
           >
             <span>✕</span>
-            <span>Exit</span>
+            <span>Exit Gate</span>
           </button>
 
-          {/* Segmented Mode Picker: [Scan | Upload | Manual] */}
-          <div
-            className="inline-flex items-center p-0.5 rounded-full border shadow-md"
-            style={{
-              backgroundColor: "rgba(15, 23, 42, 0.8)",
-              borderColor: "rgba(255, 255, 255, 0.2)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            {(["camera", "upload", "manual"] as const).map((mode) => {
-              const isActive = inputMode === mode
-              const label = mode === "camera" ? "Scan" : mode === "upload" ? "Upload" : "Manual"
-              return (
-                <button
-                  key={mode}
-                  onClick={() => {
-                    setInputMode(mode)
-                    resetVisualState()
-                  }}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                    isActive
-                      ? "bg-[#C8F55A] text-black shadow-sm"
-                      : "text-slate-300 hover:text-white"
-                  }`}
-                >
-                  {label}
-                </button>
-              )
-            })}
+          <div className="flex items-center gap-2">
+            {onSwitchToManual && (
+              <button
+                onClick={onSwitchToManual}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95 hover:border-[#F59E0B]/60"
+                style={{
+                  backgroundColor: "rgba(15, 23, 42, 0.85)",
+                  borderColor: "rgba(255, 255, 255, 0.2)",
+                  color: "#FCD34D",
+                  backdropFilter: "blur(12px)",
+                }}
+              >
+                <Search className="w-3.5 h-3.5 text-[#F59E0B]" />
+                <span>Search Name</span>
+              </button>
+            )}
+
+            {inputMode === "camera" && torchAvailable && (
+              <button
+                type="button"
+                onClick={toggleTorch}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+                  torchOn
+                    ? "bg-amber-400 text-black border-amber-300 shadow-amber-400/20"
+                    : "text-white border-white/20 hover:bg-white/10"
+                }`}
+                style={torchOn ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.85)", backdropFilter: "blur(12px)" }}
+                title={torchOn ? "Turn off torch" : "Turn on torch for low light"}
+              >
+                <Flashlight className={`w-3.5 h-3.5 ${torchOn ? "text-black fill-current" : "text-amber-400"}`} />
+                <span>{torchOn ? "Torch On" : "Torch"}</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Row 2: Live Gate Stats + Torch Controls */}
+        {/* Row 2: Live Gate Stats */}
         <div className="flex items-center justify-between gap-2 pointer-events-auto">
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border shadow-md"
             style={{
-              backgroundColor: "rgba(15, 23, 42, 0.8)",
+              backgroundColor: "rgba(15, 23, 42, 0.85)",
               borderColor: "rgba(255, 255, 255, 0.16)",
               color: "#f8fafc",
               backdropFilter: "blur(12px)",
@@ -444,59 +438,12 @@ export function QuickScan({
               Total: <strong className="text-white font-bold">{eventStats ? `${eventStats.totalCheckedIn} / ${eventStats.totalConfirmed}` : "..."}</strong>
             </span>
           </div>
-
-          {inputMode === "camera" && torchAvailable && (
-            <button
-              type="button"
-              onClick={toggleTorch}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
-                torchOn
-                  ? "bg-amber-400 text-black border-amber-300 shadow-amber-400/20"
-                  : "text-white border-white/20 hover:bg-white/10"
-              }`}
-              style={torchOn ? undefined : { backgroundColor: "rgba(15, 23, 42, 0.8)", backdropFilter: "blur(12px)" }}
-              title={torchOn ? "Turn off torch" : "Turn on torch for low light"}
-            >
-              <Flashlight className={`w-3.5 h-3.5 ${torchOn ? "text-black fill-current" : "text-amber-400"}`} />
-              <span>{torchOn ? "Torch On" : "Torch"}</span>
-            </button>
-          )}
         </div>
       </div>
 
       <div className="h-[78vh] relative">
         {inputMode === "camera" && <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />}
         {inputMode === "camera" && <canvas ref={canvasRef} className="hidden" />}
-
-        {inputMode === "upload" && (
-          <div className="h-full flex items-center justify-center p-8">
-            <label
-              className="w-full max-w-md border border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors"
-              style={{
-                borderColor: scannerBorderSoft,
-                backgroundColor: scannerSurface,
-                color: scannerTextSecondary,
-              }}
-            >
-              <p className="text-sm mb-2">Upload ticket image or PDF</p>
-              <p className="text-xs mb-4" style={{ color: scannerTextMuted }}>
-                PNG / JPG / PDF exported from EventSlot
-              </p>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null
-                  void onUpload(file)
-                }}
-              />
-              <span className="inline-block px-3 py-1.5 text-xs rounded-xl bg-[#C8F55A] text-black font-bold hover:bg-[#b8e040] transition-colors">
-                Choose file
-              </span>
-            </label>
-          </div>
-        )}
 
         {inputMode === "manual" && (
           <div className="h-full flex items-center justify-center p-6">
@@ -582,9 +529,7 @@ export function QuickScan({
         {inputMode !== "camera" && state === "scanning" && (
           <div className="absolute inset-x-0 bottom-0 px-6 py-4 text-center">
             <p className="text-xs" style={{ color: scannerTextMuted }}>
-              {inputMode === "upload"
-                ? "Upload a ticket file and we will read the QR for you."
-                : "Enter a ticket code, email, or attendee name to continue."}
+              Enter a ticket code, email, or attendee name to continue.
             </p>
           </div>
         )}

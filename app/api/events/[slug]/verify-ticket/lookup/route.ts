@@ -8,13 +8,43 @@ import { hasDashboardOrVerifierToken } from '@/lib/eventVerifierAccess'
 
 type EventQuestion = { id: string; type: string; label: string }
 
-function getNameFromAnswers(answers: Array<{ questionId: string; value: string }>, questions: EventQuestion[]) {
-  const nameQuestionIds = questions
-    .filter((q) => q.type === 'text' && q.label.toLowerCase().includes('name'))
-    .map((q) => q.id)
+function extractAttendeeName(answers: unknown, questions: EventQuestion[], fallbackEmail?: string | null): string {
+  if (Array.isArray(answers)) {
+    const nameQuestionIds = questions
+      .filter((q) => q.label && q.label.toLowerCase().includes('name'))
+      .map((q) => q.id)
 
-  const hit = answers.find((a) => nameQuestionIds.includes(a.questionId) && a.value?.trim())
-  return hit?.value?.trim() ?? ''
+    const hit = answers.find((a: any) => nameQuestionIds.includes(a.questionId) && typeof a.value === 'string' && a.value.trim())
+    if (hit?.value?.trim()) return hit.value.trim()
+
+    const anyNameHit = answers.find((a: any) =>
+      ((a.label && a.label.toLowerCase().includes('name')) || (a.questionId && a.questionId.toLowerCase().includes('name'))) &&
+      typeof a.value === 'string' && a.value.trim()
+    )
+    if (anyNameHit?.value?.trim()) return anyNameHit.value.trim()
+
+    const firstTextHit = answers.find((a: any) =>
+      typeof a.value === 'string' &&
+      a.value.trim() &&
+      !a.value.includes('@') &&
+      !/^\+?[0-9\s-]{7,}$/.test(a.value.trim()) &&
+      a.value.length < 60
+    )
+    if (firstTextHit?.value?.trim()) return firstTextHit.value.trim()
+  } else if (answers && typeof answers === 'object') {
+    const obj = answers as Record<string, unknown>
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.toLowerCase().includes('name') && typeof v === 'string' && v.trim()) {
+        return v.trim()
+      }
+    }
+  }
+
+  if (fallbackEmail) {
+    const local = fallbackEmail.split('@')[0]
+    return local.charAt(0).toUpperCase() + local.slice(1)
+  }
+  return 'Attendee'
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
@@ -22,7 +52,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
   const token = req.nextUrl.searchParams.get('token')?.trim() ?? ''
   const query = req.nextUrl.searchParams.get('q')?.trim() ?? ''
 
-  if (query.length < 2) {
+  if (query.length < 1) {
     return NextResponse.json({ error: 'Search query too short' }, { status: 400 })
   }
 
@@ -51,8 +81,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
 
   const questions = (event.questions as EventQuestion[]) ?? []
   const normalizedQuery = query.toLowerCase()
-  const looksLikeEmail = normalizedQuery.includes('@')
-  const looksLikeTicketCode = /^[a-z0-9-]{6,}$/i.test(query)
 
   const registrations = await prisma.registration.findMany({
     where: {
@@ -60,7 +88,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       status: { in: ['confirmed', 'CONFIRMED', 'waitlist', 'WAITLISTED', 'waitlisted'] },
     },
     orderBy: { submittedAt: 'desc' },
-    take: looksLikeEmail || looksLikeTicketCode ? 100 : 250,
+    take: 500,
     select: {
       id: true,
       status: true,
@@ -85,28 +113,26 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
   })
 
   const results = registrations.filter((registration) => {
-    const attendeeName = getNameFromAnswers(
-      registration.answers as Array<{ questionId: string; value: string }>,
-      questions
-    ).toLowerCase()
+    const attendeeName = extractAttendeeName(registration.answers, questions, registration.attendeeEmail).toLowerCase()
+    const email = (registration.attendeeEmail ?? '').toLowerCase()
+    const ticketCode = (registration.ticket?.code ?? '').toLowerCase()
+    const confirmation = (registration.confirmationCode ?? '').toLowerCase()
+    const regNumStr = registration.registrationNumber ? String(registration.registrationNumber) : ''
 
-    if (looksLikeEmail) {
-      return (registration.attendeeEmail ?? '').toLowerCase().includes(normalizedQuery)
-    }
+    // Match name, email, ticket code, confirmation code, or registration number
+    if (attendeeName.includes(normalizedQuery)) return true
+    if (email.includes(normalizedQuery)) return true
+    if (ticketCode.includes(normalizedQuery)) return true
+    if (confirmation.includes(normalizedQuery)) return true
+    if (regNumStr && regNumStr.includes(normalizedQuery)) return true
 
-    if (looksLikeTicketCode) {
-      return (
-        (registration.confirmationCode ?? '').toLowerCase() === normalizedQuery ||
-        (registration.ticket?.code ?? '').toLowerCase() === normalizedQuery
-      )
-    }
+    // Check individual name parts (e.g. typing "Jam" matches "James Kariuki")
+    const words = attendeeName.split(/\s+/)
+    if (words.some(w => w.startsWith(normalizedQuery))) return true
 
-    return attendeeName.includes(normalizedQuery)
+    return false
   }).map((registration) => {
-    const attendeeName = getNameFromAnswers(
-      registration.answers as Array<{ questionId: string; value: string }>,
-      questions
-    ) || 'Attendee'
+    const attendeeName = extractAttendeeName(registration.answers, questions, registration.attendeeEmail)
 
     return {
       registrationId: registration.id,

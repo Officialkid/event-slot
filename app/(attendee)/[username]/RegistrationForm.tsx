@@ -326,8 +326,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const effectiveEventEndAt = event.isRecurring && effectiveEventDate
     ? computeOccurrenceEnd(new Date(effectiveEventDate), event.eventDate, event.eventEndAt)
     : event.eventEndAt
-  const registrationClosed = (event.isRecurring ? false : deadlineExpired) || event.status === "closed" || windowClosed
-  const activeTicketTiers = Array.isArray(event.ticketTiers) ? event.ticketTiers.filter(tier => tier.priceKes > 0) : []
+  // Provided the event is not explicitly closed by organizer, attendees must always be able to register and type
+  const registrationClosed = event.status === "closed" || event.status === "archived"
+
+  const activeTicketTiers = event.ticketTiers || []
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
       ? `${activeTicketTiers[0].currency || "KSh"} ${activeTicketTiers[0].priceKes.toLocaleString()}`

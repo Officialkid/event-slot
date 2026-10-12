@@ -1,7 +1,7 @@
 // Single source of truth for the coin economy.
-// 1 coin = $0.05 USD exactly.
+// 1 coin = $0.005 USD exactly.
 
-export const COIN_RATE_USD = 0.05 // $0.05 per coin
+export const COIN_RATE_USD = 0.005 // $0.005 per coin
 
 export const COIN_PACKAGES = [
   { id: 'starter', coins: 20,  usd: 1.00,  label: 'Starter', popular: false },

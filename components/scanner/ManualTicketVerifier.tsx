@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Search, X } from "lucide-react"
 import { scannerAudio } from "@/lib/scannerAudio"
 
 type LookupResult = {
@@ -42,6 +43,7 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
   const [results, setResults] = useState<LookupResult[]>([])
   const [error, setError] = useState("")
   const [busyKey, setBusyKey] = useState<string | null>(null)
+  const lookupAbortRef = useRef<AbortController | null>(null)
 
   const summary = useMemo(() => {
     if (results.length === 0) return ""
@@ -49,27 +51,62 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
     return `${results.length} match${results.length === 1 ? "" : "es"} found · ${verified} with at least one verification`
   }, [results])
 
-  const runLookup = async () => {
-    const normalized = query.trim()
-    if (normalized.length < 2) return
+  const runLookup = useCallback(async (targetQuery?: string) => {
+    const raw = targetQuery !== undefined ? targetQuery : query
+    const normalized = raw.trim()
+    if (!normalized) {
+      setResults([])
+      setLoading(false)
+      setError("")
+      return
+    }
+
+    if (lookupAbortRef.current) {
+      lookupAbortRef.current.abort()
+    }
+    const controller = new AbortController()
+    lookupAbortRef.current = controller
+
     setLoading(true)
     setError("")
 
     try {
       const params = new URLSearchParams({ q: normalized, token: accessToken })
-      const res = await fetch(`/api/events/${eventSlug}/verify-ticket/lookup?${params.toString()}`)
+      const res = await fetch(`/api/events/${eventSlug}/verify-ticket/lookup?${params.toString()}`, {
+        signal: controller.signal,
+      })
       const data = await res.json()
       if (!res.ok) {
         setError(data.error || "Unable to search right now.")
         return
       }
       setResults(data.results ?? [])
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return
+      }
       setError("Unable to search right now.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [accessToken, eventSlug, query])
+
+  // Debounced live type-ahead lookup: triggers automatically on 1+ characters
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      setResults([])
+      setLoading(false)
+      setError("")
+      return
+    }
+
+    const timer = setTimeout(() => {
+      void runLookup(trimmed)
+    }, 180)
+
+    return () => clearTimeout(timer)
+  }, [query, runLookup])
 
   const verifyTicket = async (ticketCode: string) => {
     setBusyKey(`verify-${ticketCode}`)
@@ -204,23 +241,41 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
         </button>
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 md:flex-row">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void runLookup()
-          }}
-          placeholder="Enter name, email, ticket number, or confirmation code"
-          className="flex-1 rounded-xl border px-4 py-3 text-sm placeholder:text-[#6b7280] focus:border-[#C8F55A] focus:outline-none"
-          style={{ borderColor: verifierBorderSoft, backgroundColor: verifierSurface, color: verifierTextPrimary }}
-        />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void runLookup()
+            }}
+            placeholder="Type attendee name (e.g. James), email, or ticket code..."
+            className="w-full rounded-xl border pl-10 pr-10 py-3 text-sm placeholder:text-[#6b7280] focus:border-[#C8F55A] focus:outline-none transition-colors"
+            style={{ borderColor: verifierBorderSoft, backgroundColor: verifierSurface, color: verifierTextPrimary }}
+            autoFocus
+          />
+          {query.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("")
+                setResults([])
+                setError("")
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <button
           onClick={() => void runLookup()}
-          disabled={loading || query.trim().length < 2}
-          className="rounded-xl bg-[#C8F55A] px-5 py-3 text-sm font-bold text-black transition-colors hover:bg-[#b8e040] disabled:opacity-50"
+          disabled={loading || query.trim().length === 0}
+          className="rounded-xl bg-[#C8F55A] px-6 py-3 text-sm font-bold text-black transition-all hover:bg-[#b8e040] active:scale-95 disabled:opacity-40 shrink-0"
         >
-          {loading ? "Searching..." : "Find ticket"}
+          {loading ? "Searching..." : "Search"}
         </button>
       </div>
 
@@ -290,9 +345,9 @@ export function ManualTicketVerifier({ eventSlug, accessToken, onExit, onVerifie
                 <button
                   onClick={() => void verifyTicket(item.ticketCode)}
                   disabled={item.status.toLowerCase() !== "confirmed" || item.admissionsRemaining <= 0 || busyKey !== null}
-                  className="rounded-xl bg-[#C8F55A] px-3 py-2 text-xs font-bold text-black disabled:opacity-40"
+                  className="rounded-xl bg-[#C8F55A] px-4 py-2 text-xs font-bold text-black transition-all hover:bg-[#b8e040] active:scale-95 disabled:opacity-40 shadow-sm"
                 >
-                  {busyKey === `verify-${item.ticketCode}` ? "Verifying..." : item.admissionsRemaining > 0 ? "Verify" : "Fully used"}
+                  {busyKey === `verify-${item.ticketCode}` ? "Verifying..." : item.admissionsRemaining > 0 ? "✓ Verify Ticket" : "Fully Admitted"}
                 </button>
                 <button
                   onClick={() => void unverifyTicket(item.ticketCode)}

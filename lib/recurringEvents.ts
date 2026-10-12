@@ -24,13 +24,11 @@ export function computeNextOccurrenceDate(event: {
   const currentDay = candidate.getDay()
   let daysUntil = (targetDay - currentDay + 7) % 7
   
-  // If target day is today, check if time has already passed
+  // If target day is today, do not advance to next week while the event is ongoing today.
+  // Only roll over after the day has passed (e.g. past 23:59 or end of day)
   if (daysUntil === 0) {
-    const targetHours = baseDate.getHours()
-    const targetMinutes = baseDate.getMinutes()
-    if (now.getHours() > targetHours || (now.getHours() === targetHours && now.getMinutes() > targetMinutes)) {
-      daysUntil = 7 // Move to next week
-    }
+    // Keep today as the occurrence so attendees and walk-ins can register throughout the event day
+    daysUntil = 0
   }
 
   // Handle BIWEEKLY or MONTHLY if specified
@@ -119,6 +117,16 @@ export function getRegistrationWindowStatus(event: {
   windowOpensAt.setHours(isNaN(hours) ? 8 : hours, isNaN(mins) ? 0 : mins, 0, 0)
 
   const now = new Date()
+
+  // If today is the occurrence day itself, registration is unconditionally open for attendees and walk-ins
+  if (now.toDateString() === nextOccurrence.toDateString()) {
+    return {
+      isOpen: true,
+      opensAt: windowOpensAt,
+      nextOccurrence,
+      label: 'Registration Open Today',
+    }
+  }
 
   if (now < windowOpensAt) {
     const dayName = windowOpensAt.toLocaleDateString(undefined, { weekday: 'long' })
