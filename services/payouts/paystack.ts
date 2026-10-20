@@ -10,6 +10,7 @@ type PayoutParams = {
   amount: number
   currency: SupportedCurrency
   narrative: string
+  reference?: string
 }
 
 export type PayoutResponse = {
@@ -25,7 +26,7 @@ export type PayoutResponse = {
 export async function sendMpesaPayout(
   params: PayoutParams & { phone: string }
 ): Promise<PayoutResponse> {
-  const reference = `trf_mp_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`
+  const reference = params.reference?.trim() || `trf_mp_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`
   const amountMinorUnits = toMinorUnits(params.amount, params.currency)
 
   // 1. Create transfer recipient on Paystack
@@ -65,7 +66,7 @@ export async function sendBankPayout(
     branchCode: string
   }
 ): Promise<PayoutResponse> {
-  const reference = `trf_bk_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`
+  const reference = params.reference?.trim() || `trf_bk_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`
   const amountMinorUnits = toMinorUnits(params.amount, params.currency)
 
   // 1. Create bank transfer recipient on Paystack

@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
             amount,
             currency: currency as SupportedCurrency,
             narrative,
+            reference,
           })
           return {
             reference: response.trackingId || reference,
@@ -168,6 +169,7 @@ export async function POST(req: NextRequest) {
             amount,
             currency: currency as SupportedCurrency,
             narrative,
+            reference,
           })
           return {
             reference: response.trackingId || reference,

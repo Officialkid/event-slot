@@ -92,6 +92,20 @@ export function buildWithdrawalIdempotencyKey(organizerId: string, ref: string):
 }
 
 /**
+ * Normalizes a transfer reference to conform strictly with Paystack's requirements:
+ * - Length: 16 to 50 characters
+ * - Characters: lowercase a-z, 0-9, underscores (_), and dashes (-)
+ */
+export function normalizePaystackTransferReference(ref: string, prefix = 'wd'): string {
+  const sanitized = ref.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+  if (sanitized.length >= 16 && sanitized.length <= 50) {
+    return sanitized
+  }
+  const hash = crypto.createHash('sha256').update(ref).digest('hex').slice(0, 16)
+  return `${prefix}_${sanitized.slice(0, 20)}_${hash}`.slice(0, 50)
+}
+
+/**
  * Concurrency-safe withdrawal initiation with atomic reservation and immediate release on synchronous rejection.
  */
 export async function requestOrganizerWithdrawal(
@@ -112,7 +126,8 @@ export async function requestOrganizerWithdrawal(
   }
 
   const requestedMinorUnits = toMinorUnits(input.amount, currency)
-  const clientRef = input.clientReference || `wd_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`
+  const rawRef = input.clientReference?.trim() || `wd_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`
+  const clientRef = normalizePaystackTransferReference(rawRef)
   const idempotencyKey = buildWithdrawalIdempotencyKey(input.organizerId, clientRef)
 
   // 1. Atomic Reservation Critical Section

@@ -9,6 +9,7 @@ export async function sendMpesaPayout(params: {
   amount: number
   currency: SupportedCurrency
   narrative: string
+  reference?: string
 }) {
   if (usePaystack()) {
     return paystackPayouts.sendMpesaPayout(params)
@@ -24,6 +25,7 @@ export async function sendBankPayout(params: {
   amount: number
   currency: SupportedCurrency
   narrative: string
+  reference?: string
 }) {
   if (usePaystack()) {
     return paystackPayouts.sendBankPayout(params)
