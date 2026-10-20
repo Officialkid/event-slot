@@ -90,6 +90,7 @@ model Event {
   faqs             EventFAQ[]
   calendarSyncs    CalendarEventSync[]
   eventPass        EventPass?
+  financialLedgerEntries FinancialLedgerEntry[]
 }
 
 model EventFAQ {
@@ -215,6 +216,7 @@ model User {
   organiserBalance           OrganiserBalance?
   withdrawals                Withdrawal[]
   marketingMember            MarketingTeamMember?
+  financialLedgerEntries     FinancialLedgerEntry[]
 }
 
 model LoginSecurityState {
@@ -515,12 +517,15 @@ model PaidEventOrder {
   promotionRegistrationId String?
   registrations         Registration[]
   payment               Payment?
+  financialLedgerEntries FinancialLedgerEntry[]
+  processedProviderEvents ProcessedProviderEvent[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
   @@index([holdExpiresAt])
+  @@index([providerReference])
 }
 
 enum PaidOrderStatus {
@@ -578,9 +583,12 @@ model Payment {
   status            PaymentStatus        @default(PENDING)
   createdAt         DateTime             @default(now())
   paidAt            DateTime?
+  financialLedgerEntries FinancialLedgerEntry[]
+  processedProviderEvents ProcessedProviderEvent[]
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
+  @@index([mpesaRef])
 }
 
 model EventPass {
@@ -656,10 +664,100 @@ model Withdrawal {
   providerRef String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  financialLedgerEntries     FinancialLedgerEntry[]
 
   @@index([organiserId, currency, createdAt])
   @@index([organiserId, status])
+  @@index([providerRef])
 }
+
+// ==========================================
+// Financial Ledger & Accounting Foundation
+// ==========================================
+
+enum LedgerEntryType {
+  TICKET_PROCEEDS
+  PLATFORM_COMMISSION
+  ORGANIZER_PAYOUT
+  WITHDRAWAL_RESERVATION
+  WITHDRAWAL_COMPLETION
+  REFUND
+  REVERSAL
+  ADJUSTMENT
+}
+
+enum LedgerDirection {
+  CREDIT
+  DEBIT
+}
+
+model FinancialLedgerEntry {
+  id                String            @id @default(cuid())
+  organizerId       String
+  organizer         User              @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  eventId           String?
+  event             Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  orderId           String?
+  paidEventOrder    PaidEventOrder?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paymentId         String?
+  payment           Payment?          @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  withdrawalId      String?
+  withdrawal        Withdrawal?       @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+  entryType         LedgerEntryType
+  direction         LedgerDirection
+  amountMinorUnits  BigInt
+  currency          String            @default("KES")
+  idempotencyKey    String            @unique
+  providerReference String?
+  description       String?           @db.Text
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+
+  @@index([organizerId, createdAt])
+  @@index([eventId])
+  @@index([orderId])
+  @@index([withdrawalId])
+  @@index([providerReference])
+  @@index([entryType, createdAt])
+}
+
+// ==========================================
+// Webhook & Provider Event Idempotency
+// ==========================================
+
+enum ProcessedEventStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model ProcessedProviderEvent {
+  id             String               @id @default(cuid())
+  provider       String
+  eventId        String?
+  eventType      String
+  idempotencyKey String               @unique
+  status         ProcessedEventStatus @default(RECEIVED)
+  reference      String?
+  orderId        String?
+  paidEventOrder PaidEventOrder?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paymentId      String?
+  payment        Payment?             @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  firstSeenAt    DateTime             @default(now())
+  lastAttemptAt  DateTime?
+  processedAt    DateTime?
+  attemptCount   Int                  @default(1)
+  error          String?              @db.Text
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([provider, eventType])
+  @@index([reference])
+  @@index([status, lastAttemptAt])
+}
+
 
 model ErrorLog {
   id        String   @id @default(cuid())
