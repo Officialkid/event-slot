@@ -8,6 +8,11 @@ import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { sendEventCapacityMilestones, sendTierCapacityMilestones } from '@/lib/capacityNotifications'
 import { getEffectiveEventPlan } from '@/lib/eventPasses'
 import { getEventPassExpiryDate } from '@/lib/oneTimePassCatalog'
+import {
+  toMinorUnits,
+  buildOrderProceedsIdempotencyKey,
+  buildOrderCommissionIdempotencyKey,
+} from '@/lib/financialLedger'
 
 type SubscriptionIntent = {
   userId?: string
@@ -312,6 +317,52 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
     commission: commission.commissionAmount,
     net: commission.organizerAmount,
   })
+
+  // Immutable Financial Ledger recording with deterministic idempotency keys
+  const organizerId = eventOrder.event.organizerId
+  if (organizerId) {
+    const proceedsKey = buildOrderProceedsIdempotencyKey(eventOrder.id)
+    const commissionKey = buildOrderCommissionIdempotencyKey(eventOrder.id)
+    const proceedsMinor = toMinorUnits(eventOrder.amountKes, eventOrder.currency || 'KES')
+    const commissionMinor = toMinorUnits(commission.commissionAmount, eventOrder.currency || 'KES')
+
+    await prisma.$transaction([
+      prisma.financialLedgerEntry.upsert({
+        where: { idempotencyKey: proceedsKey },
+        create: {
+          organizerId,
+          eventId: eventOrder.event.id,
+          orderId: eventOrder.id,
+          entryType: 'TICKET_PROCEEDS',
+          direction: 'CREDIT',
+          amountMinorUnits: proceedsMinor,
+          currency: eventOrder.currency || 'KES',
+          idempotencyKey: proceedsKey,
+          providerReference: providerReference ?? eventOrder.providerReference,
+          description: `Ticket proceeds for order ${eventOrder.id} (${eventOrder.ticketTier.name})`,
+        },
+        update: {},
+      }),
+      prisma.financialLedgerEntry.upsert({
+        where: { idempotencyKey: commissionKey },
+        create: {
+          organizerId,
+          eventId: eventOrder.event.id,
+          orderId: eventOrder.id,
+          entryType: 'PLATFORM_COMMISSION',
+          direction: 'DEBIT',
+          amountMinorUnits: commissionMinor,
+          currency: eventOrder.currency || 'KES',
+          idempotencyKey: commissionKey,
+          providerReference: providerReference ?? eventOrder.providerReference,
+          description: `Platform commission (5%) for order ${eventOrder.id}`,
+        },
+        update: {},
+      }),
+    ]).catch((err) => {
+      console.error('[finalizePaidEventOrderPayment] Ledger entry creation warning:', err)
+    })
+  }
 
   if (eventOrder.attendeeEmail && confirmationCode) {
     sendConfirmationEmail({

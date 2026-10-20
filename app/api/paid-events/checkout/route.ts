@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
         }
       | null;
 
-    if (!body?.eventSlug || !body.ticketTierId || !body.attendee?.answers || !body.mpesaPhone) {
-      return NextResponse.json({ success: false, error: "Event, tier, attendee answers, and M-Pesa phone are required." }, { status: 400 });
+    if (!body?.eventSlug || !body.ticketTierId || !body.attendee?.answers) {
+      return NextResponse.json({ success: false, error: "Event, tier, and attendee answers are required." }, { status: 400 });
     }
 
     const result = await beginPaidEventCheckout({
@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: result.orderId,
       checkoutRequestId: result.checkoutRequestId,
+      url: result.authorizationUrl,
+      authorizationUrl: result.authorizationUrl,
       customerMessage: result.customerMessage,
       amountKes: result.amountKes,
       eventTitle: result.eventTitle,

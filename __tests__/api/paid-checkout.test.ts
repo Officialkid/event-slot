@@ -46,16 +46,17 @@ describe("POST /api/paid-events/checkout", () => {
     expect(mockBeginPaidEventCheckout).not.toHaveBeenCalled();
   });
 
-  it("returns checkout details when payment initiation succeeds", async () => {
+  it("returns checkout details with authorization url when payment initiation succeeds", async () => {
     mockBeginPaidEventCheckout.mockResolvedValue({
       kind: "checkout",
       orderId: "order-1",
-      checkoutRequestId: "invoice-1",
+      checkoutRequestId: "access-code-1",
+      authorizationUrl: "https://checkout.paystack.com/access-code-1",
       eventTitle: "Summit",
       ticketTierName: "VIP",
       amountKes: 2500,
-      paymentMethod: "mpesa",
-      customerMessage: "Approve the prompt.",
+      paymentMethod: "card",
+      customerMessage: "Proceed to secure Paystack checkout to complete payment.",
     });
 
     const response = await POST(
@@ -76,17 +77,57 @@ describe("POST /api/paid-events/checkout", () => {
     expect(body).toMatchObject({
       success: true,
       orderId: "order-1",
-      checkoutRequestId: "invoice-1",
+      checkoutRequestId: "access-code-1",
+      url: "https://checkout.paystack.com/access-code-1",
+      authorizationUrl: "https://checkout.paystack.com/access-code-1",
       eventTitle: "Summit",
       ticketTierName: "VIP",
       amountKes: 2500,
-      paymentMethod: "mpesa",
+      paymentMethod: "card",
     });
     expect(mockBeginPaidEventCheckout).toHaveBeenCalledWith(
       expect.objectContaining({
         eventSlug: "summit",
         ticketTierId: "tier-1",
         mpesaPhone: "0712345678",
+        consentDataProcessing: true,
+      })
+    );
+  });
+
+  it("permits paid checkout without mpesaPhone for hosted card / Paystack checkout", async () => {
+    mockBeginPaidEventCheckout.mockResolvedValue({
+      kind: "checkout",
+      orderId: "order-2",
+      checkoutRequestId: "access-code-2",
+      authorizationUrl: "https://checkout.paystack.com/access-code-2",
+      eventTitle: "Tech Conference",
+      ticketTierName: "Regular",
+      amountKes: 1000,
+      paymentMethod: "card",
+      customerMessage: "Proceed to secure Paystack checkout to complete payment.",
+    });
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/paid-events/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          eventSlug: "tech-conf",
+          ticketTierId: "tier-2",
+          attendee: { answers: [{ questionId: "email", value: "cardholder@test.com" }] },
+          consentDataProcessing: true,
+        }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.url).toBe("https://checkout.paystack.com/access-code-2");
+    expect(mockBeginPaidEventCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventSlug: "tech-conf",
+        ticketTierId: "tier-2",
         consentDataProcessing: true,
       })
     );

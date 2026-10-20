@@ -694,7 +694,7 @@ enum LedgerDirection {
 model FinancialLedgerEntry {
   id                String            @id @default(cuid())
   organizerId       String
-  organizer         User              @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizer         User              @relation(fields: [organizerId], references: [id], onDelete: Restrict)
   eventId           String?
   event             Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
   orderId           String?

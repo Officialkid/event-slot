@@ -229,6 +229,13 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         })
       }
 
+      const ledgerCount = await tx.financialLedgerEntry.count({
+        where: { organizerId: params.id },
+      })
+      if (ledgerCount > 0) {
+        throw new Error("CANNOT_DELETE_WITH_FINANCIAL_RECORDS")
+      }
+
       await tx.user.delete({ where: { id: params.id } })
     })
 
@@ -237,7 +244,13 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       eventHandling: eventHandling ?? "none",
       ownedEventCount: ownedEvents,
     })
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.message === "CANNOT_DELETE_WITH_FINANCIAL_RECORDS") {
+      return NextResponse.json(
+        { error: "Cannot delete an account with recorded financial ledger entries. Account must be suspended instead to maintain statutory audit records." },
+        { status: 400 }
+      )
+    }
     console.error("[admin/users/[id]] DELETE error:", err)
     return NextResponse.json({ error: "Unable to delete this user right now." }, { status: 500 })
   }

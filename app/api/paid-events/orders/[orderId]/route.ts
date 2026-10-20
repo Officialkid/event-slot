@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { failPaidEventOrderPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
-import { paystackFetch } from '@/lib/paystack'
+import { verifyPaystackTransaction, PaystackTimeoutError } from '@/lib/paystack'
+import { toMinorUnits } from '@/lib/financialLedger'
 import { extractInvoiceState, extractProviderReference, getIntaSendPaymentStatus } from '@/lib/intasend'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
@@ -67,22 +68,38 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
   if (status === 'PAYMENT_PENDING' && order.id) {
     const paymentOrder = await prisma.paidEventOrder.findUnique({
       where: { id: order.id },
-      select: { checkoutRequestId: true, providerReference: true },
+      select: {
+        checkoutRequestId: true,
+        providerReference: true,
+        amountKes: true,
+        currency: true,
+      },
     })
 
     if (paymentOrder?.providerReference?.startsWith('paystack:')) {
-      const reference = paymentOrder.checkoutRequestId ?? paymentOrder.providerReference.slice('paystack:'.length)
+      const reference = paymentOrder.providerReference.slice('paystack:'.length)
       try {
-        const paystack = await paystackFetch(`/transaction/verify/${reference}`)
-        if (paystack.status && paystack.data?.status === 'success') {
+        const paystack = await verifyPaystackTransaction(reference)
+        const expectedMinor = Number(toMinorUnits(paymentOrder.amountKes, paymentOrder.currency || 'KES'))
+
+        // Strict verification:
+        // 1. Transaction status must be 'success'
+        // 2. Exact amount verification in minor units
+        // 3. Exact currency verification
+        if (
+          paystack.status === 'success' &&
+          paystack.amountMinorUnits === expectedMinor &&
+          paystack.currency === (paymentOrder.currency || 'KES')
+        ) {
           await finalizePaidEventOrderPayment(order.id, reference)
           status = 'PAID'
-        } else if (paystack.data?.status === 'failed' || paystack.data?.status === 'abandoned') {
+        } else if (paystack.status === 'failed' || paystack.status === 'abandoned') {
           await failPaidEventOrderPayment(order.id, 'FAILED')
           status = 'FAILED'
         }
       } catch {
-        // Keep polling if the provider check is temporarily unavailable.
+        // INVARIANT: Never mark payment failed on timeout or transient network errors!
+        // Keep order in PAYMENT_PENDING so future poll or webhook can reconcile.
       }
     } else if (paymentOrder?.checkoutRequestId) {
       try {

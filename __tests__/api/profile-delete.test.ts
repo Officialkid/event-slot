@@ -17,6 +17,7 @@ const tx = {
   referral: { deleteMany: jest.fn() },
   message: { updateMany: jest.fn() },
   loginSecurityState: { deleteMany: jest.fn() },
+  financialLedgerEntry: { count: jest.fn().mockResolvedValue(0) },
   user: { delete: jest.fn() },
 }
 
@@ -101,6 +102,20 @@ describe('DELETE /api/profile', () => {
 
     expect(response.status).toBe(401)
     expect(mockTransaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects self-service profile deletion if user has financial transaction records', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'user-with-ledger' } })
+    mockUserFindUnique.mockResolvedValue({ id: 'user-with-ledger', email: 'owner@example.com' })
+    tx.financialLedgerEntry.count.mockResolvedValueOnce(2)
+
+    const { DELETE } = await import('@/app/api/profile/route')
+    const response = await DELETE()
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.error).toMatch(/financial transaction history/i)
+    expect(tx.user.delete).not.toHaveBeenCalled()
   })
 })
 
