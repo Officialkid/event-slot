@@ -239,3 +239,195 @@ export async function getAuthoritativeOrganizerBalance(
     },
   }
 }
+
+export type BalanceIntegrityAuditResult = {
+  organizerId: string
+  currency: 'KES' | 'USD'
+  isCompliant: boolean
+  invariants: {
+    entitlementConservation: { holds: boolean; details?: string }
+    settlementPartition: { holds: boolean; details?: string }
+    commissionRatio: { holds: boolean; details?: string }
+    ledgerPaymentConsistency: { holds: boolean; details?: string }
+    withdrawalLedgerSymmetry: { holds: boolean; details?: string }
+    nonNegativeAvailable: { holds: boolean; details?: string }
+    settledCeiling: { holds: boolean; details?: string }
+  }
+  drift: {
+    hasDrift: boolean
+    ledgerPaymentDiscrepancyMinorUnits: bigint
+    unmatchedWithdrawalReservations: string[]
+    unmatchedWithdrawalReleases: string[]
+  }
+  summary: {
+    grossMinorUnits: bigint
+    commissionMinorUnits: bigint
+    entitlementMinorUnits: bigint
+    settledEntitlementMinorUnits: bigint
+    pendingReservationsMinorUnits: bigint
+    completedWithdrawalsMinorUnits: bigint
+    availableMinorUnits: bigint
+    ledgerBalanceMinorUnits: bigint
+  }
+}
+
+/**
+ * Authoritative Offline Anti-Drift Auditor for Organizer Balances.
+ * Asserts all 7 fundamental financial invariants across Payments, Withdrawals, and Ledger entries.
+ */
+export async function auditOrganizerBalanceIntegrity(
+  organizerId: string,
+  currency: 'KES' | 'USD' = 'KES',
+  db = prisma
+): Promise<BalanceIntegrityAuditResult> {
+  const balance = await getAuthoritativeOrganizerBalance(organizerId, currency, db)
+
+  // 1. Entitlement Conservation: Gross == Commission + Entitlement
+  const conservationHolds =
+    balance.totalGrossMinorUnits ===
+    balance.totalCommissionMinorUnits + balance.totalEntitlementMinorUnits
+
+  // 2. Settlement Partition: Entitlement == Settled + Pending + Disputed/Reversed
+  const partitionHolds =
+    balance.totalEntitlementMinorUnits ===
+    balance.settledEntitlementMinorUnits +
+      balance.pendingSettlementMinorUnits +
+      balance.disputedOrReversedMinorUnits
+
+  // 3. Commission Ratio: Flat 5% platform commission
+  const expectedCommission = (balance.totalGrossMinorUnits * BigInt(5) + BigInt(99)) / BigInt(100)
+  const diffCommission =
+    balance.totalCommissionMinorUnits > expectedCommission
+      ? balance.totalCommissionMinorUnits - expectedCommission
+      : expectedCommission - balance.totalCommissionMinorUnits
+  const commissionRatioHolds = diffCommission <= BigInt(100) || balance.totalGrossMinorUnits === BigInt(0)
+
+  // 4. Ledger Payment Consistency: Ledger Net Entitlement == Payment Total Entitlement
+  const ledgerConsistencyHolds = balance.reconciliation.isBalanced
+
+  // 5. Withdrawal Ledger Symmetry:
+  const withdrawals = await db.withdrawal.findMany({
+    where: { organiserId: organizerId, currency },
+    select: { id: true, status: true, amountMinorUnits: true, amount: true },
+  })
+
+  const withdrawalEntries = await db.financialLedgerEntry.findMany({
+    where: {
+      organizerId,
+      currency,
+      withdrawalId: { not: null },
+    },
+    select: {
+      withdrawalId: true,
+      entryType: true,
+      amountMinorUnits: true,
+      idempotencyKey: true,
+    },
+  })
+
+  const unmatchedReservations: string[] = []
+  const unmatchedReleases: string[] = []
+
+  for (const w of withdrawals) {
+    if (w.status === 'PROCESSING' || w.status === 'PENDING' || w.status === 'COMPLETED') {
+      const hasReservation = withdrawalEntries.some(
+        (e) => e.withdrawalId === w.id && e.entryType === 'WITHDRAWAL_RESERVATION'
+      )
+      if (!hasReservation) {
+        unmatchedReservations.push(w.id)
+      }
+    }
+    if (w.status === 'FAILED') {
+      const hasRelease = withdrawalEntries.some(
+        (e) => e.withdrawalId === w.id && e.entryType === 'WITHDRAWAL_RELEASE'
+      )
+      if (!hasRelease) {
+        unmatchedReleases.push(w.id)
+      }
+    }
+  }
+
+  const symmetryHolds = unmatchedReservations.length === 0 && unmatchedReleases.length === 0
+
+  // 6. Non-negative Available Balance
+  const nonNegativeHolds = balance.availableMinorUnits >= BigInt(0)
+
+  // 7. Settled Balance Ceiling: Available + Reserved + Completed + Other <= Settled Entitlements
+  const settledCeilingHolds =
+    balance.availableMinorUnits +
+      balance.pendingReservationsMinorUnits +
+      balance.completedWithdrawalsMinorUnits +
+      balance.otherAdjustmentsMinorUnits <=
+    balance.settledEntitlementMinorUnits
+
+  const allHold =
+    conservationHolds &&
+    partitionHolds &&
+    commissionRatioHolds &&
+    ledgerConsistencyHolds &&
+    symmetryHolds &&
+    nonNegativeHolds &&
+    settledCeilingHolds
+
+  return {
+    organizerId,
+    currency,
+    isCompliant: allHold,
+    invariants: {
+      entitlementConservation: {
+        holds: conservationHolds,
+        details: conservationHolds
+          ? undefined
+          : `Gross (${balance.totalGrossMinorUnits}) != Comm (${balance.totalCommissionMinorUnits}) + Ent (${balance.totalEntitlementMinorUnits})`,
+      },
+      settlementPartition: {
+        holds: partitionHolds,
+        details: partitionHolds
+          ? undefined
+          : `Entitlement partition mismatch`,
+      },
+      commissionRatio: {
+        holds: commissionRatioHolds,
+        details: commissionRatioHolds ? undefined : `Commission deviates from 5% platform baseline`,
+      },
+      ledgerPaymentConsistency: {
+        holds: ledgerConsistencyHolds,
+        details: ledgerConsistencyHolds
+          ? undefined
+          : `Discrepancy: ${balance.reconciliation.discrepancyMinorUnits} minor units`,
+      },
+      withdrawalLedgerSymmetry: {
+        holds: symmetryHolds,
+        details: symmetryHolds
+          ? undefined
+          : `Unmatched reservations: ${unmatchedReservations.length}, releases: ${unmatchedReleases.length}`,
+      },
+      nonNegativeAvailable: {
+        holds: nonNegativeHolds,
+        details: nonNegativeHolds ? undefined : `Negative available balance: ${balance.availableMinorUnits}`,
+      },
+      settledCeiling: {
+        holds: settledCeilingHolds,
+        details: settledCeilingHolds
+          ? undefined
+          : `Deductions + Available exceed settled entitlement`,
+      },
+    },
+    drift: {
+      hasDrift: !allHold,
+      ledgerPaymentDiscrepancyMinorUnits: balance.reconciliation.discrepancyMinorUnits,
+      unmatchedWithdrawalReservations: unmatchedReservations,
+      unmatchedWithdrawalReleases: unmatchedReleases,
+    },
+    summary: {
+      grossMinorUnits: balance.totalGrossMinorUnits,
+      commissionMinorUnits: balance.totalCommissionMinorUnits,
+      entitlementMinorUnits: balance.totalEntitlementMinorUnits,
+      settledEntitlementMinorUnits: balance.settledEntitlementMinorUnits,
+      pendingReservationsMinorUnits: balance.pendingReservationsMinorUnits,
+      completedWithdrawalsMinorUnits: balance.completedWithdrawalsMinorUnits,
+      availableMinorUnits: balance.availableMinorUnits,
+      ledgerBalanceMinorUnits: balance.reconciliation.ledgerNetEntitlementsMinorUnits,
+    },
+  }
+}

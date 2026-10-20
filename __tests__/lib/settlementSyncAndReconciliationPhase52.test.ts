@@ -239,6 +239,70 @@ describe('Phase 5.2: Settlement Synchronization & Durable Reconciliation Suite',
       expect(prisma.payment.update).not.toHaveBeenCalled()
       expect(prisma.settlementBatch.upsert).not.toHaveBeenCalled()
     })
+
+    it('isolates currency-mismatched transactions into unmatched list without aborting batch', async () => {
+      const mockSettlements = [
+        {
+          id: 5002,
+          domain: 'live',
+          status: 'success' as const,
+          currency: 'KES',
+          total_amount: 100000,
+          effective_amount: 98000,
+          total_fees: 2000,
+          total_processed: 100000,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      const mockTxs = [
+        {
+          id: 9002,
+          reference: 'pes_ticket_kes',
+          amount: 100000,
+          currency: 'KES',
+          status: 'success',
+        },
+        {
+          id: 9003,
+          reference: 'pes_ticket_usd_anomaly',
+          amount: 5000,
+          currency: 'USD',
+          status: 'success',
+        },
+      ]
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: true, data: mockSettlements }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ status: true, data: mockTxs }),
+        })
+
+      ;(prisma.settlementBatch.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(prisma.payment.findFirst as jest.Mock).mockResolvedValue({
+        id: 'pay-kes-1',
+        amount: 1000,
+        status: 'SUCCESS',
+        settlementStatus: 'PENDING',
+      })
+
+      const res = await runPaystackSettlementSync({ dryRun: true, allowDisabled: true })
+
+      expect(res.success).toBe(true)
+      expect(res.totalSettledPayments).toBe(1)
+      expect(res.unmatchedTransactions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ reference: 'pes_ticket_usd_anomaly' }),
+        ])
+      )
+    })
   })
 
   // =========================================================================

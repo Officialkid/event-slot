@@ -357,6 +357,16 @@ export async function runPaystackSettlementSync(
       if (!ref || seenRefs.has(ref)) continue
       seenRefs.add(ref)
 
+      const txCurrency = (tx.currency || normalizedCurrency).toUpperCase()
+      if (txCurrency !== normalizedCurrency) {
+        unmatchedTransactions.push({
+          batchId: batch.id,
+          reference: ref,
+          amountMinor: String(tx.amount || 0),
+        })
+        continue
+      }
+
       const amountMinor = BigInt(tx.amount || 0)
       if (amountMinor <= BigInt(0)) continue
 
@@ -364,7 +374,7 @@ export async function runPaystackSettlementSync(
       validEvidenceTransactions.push({
         reference: ref,
         amountMinorUnits: amountMinor,
-        currency: (tx.currency || normalizedCurrency).toUpperCase(),
+        currency: normalizedCurrency,
         providerTransactionId: tx.id,
       })
     }

@@ -10,6 +10,7 @@ import { normalizeMpesaPhone } from "@/lib/intasend";
 import { detectCountry } from "@/lib/geoip";
 import { joinPaidEventWaitlist } from "@/lib/paymentFinalizers";
 import { getFullOptions } from "@/lib/registrationQuestionOptions";
+import { offerNextPaidWaitlistSpot } from "@/lib/paidEventWaitlist";
 
 type AttendeeAnswer = { questionId: string; value: string };
 type AttendeePayload = { answers: AttendeeAnswer[]; baseEmail?: string };
@@ -547,4 +548,71 @@ function parseCheckboxValue(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+/**
+ * Concurrency-safe batch cleanup for expired unpaid event holds.
+ * Transitions expired orders to EXPIRED, fails uncompleted payments,
+ * and triggers waitlist promotion for next waiting attendees.
+ */
+export async function cleanupExpiredPaidEventHolds(options?: {
+  eventId?: string;
+  limit?: number;
+  now?: Date;
+}) {
+  const cutoff = options?.now ?? new Date();
+  const limit = options?.limit ?? 100;
+
+  const expiredOrders = await prisma.paidEventOrder.findMany({
+    where: {
+      status: { in: ["PENDING", "PAYMENT_PENDING"] },
+      holdExpiresAt: { lte: cutoff },
+      ...(options?.eventId ? { eventId: options.eventId } : {}),
+    },
+    take: limit,
+    select: {
+      id: true,
+      eventId: true,
+      ticketTierId: true,
+      promotionRegistrationId: true,
+    },
+  });
+
+  if (expiredOrders.length === 0) {
+    return { expiredCount: 0, promotedCount: 0 };
+  }
+
+  let expiredCount = 0;
+  let promotedCount = 0;
+
+  for (const order of expiredOrders) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.paidEventOrder.update({
+          where: { id: order.id },
+          data: { status: "EXPIRED" },
+        });
+        await tx.payment.updateMany({
+          where: { paidEventOrderId: order.id, status: "PENDING" },
+          data: { status: "FAILED" },
+        });
+        if (order.promotionRegistrationId) {
+          await tx.registration.update({
+            where: { id: order.promotionRegistrationId },
+            data: { status: "waitlist-offer-expired" },
+          }).catch(() => {});
+        }
+      });
+      expiredCount++;
+
+      if (order.ticketTierId) {
+        await offerNextPaidWaitlistSpot(order.eventId, order.ticketTierId).catch(() => {});
+        promotedCount++;
+      }
+    } catch {
+      // Continue processing other orders even if one errors
+    }
+  }
+
+  return { expiredCount, promotedCount };
 }

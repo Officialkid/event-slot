@@ -313,9 +313,16 @@ export async function checkAndReservePinAttempt(
             orderBy: { createdAt: 'asc' },
             select: { createdAt: true },
           })
-          const elapsedMs = oldestInWindow ? Date.now() - oldestInWindow.createdAt.getTime() : 0
-          const remainingMs = Math.max(0, PIN_LOCKOUT_WINDOW_MS - elapsedMs)
-          const retryAfterSeconds = Math.ceil(remainingMs / 1000) || PIN_LOCKOUT_WINDOW_SECONDS
+          const safeElapsedMs = Math.max(0, oldestInWindow ? Date.now() - oldestInWindow.createdAt.getTime() : 0)
+          const remainingMs = Math.max(0, PIN_LOCKOUT_WINDOW_MS - safeElapsedMs)
+          const retryAfterSeconds = Math.min(
+            PIN_LOCKOUT_WINDOW_SECONDS,
+            Math.ceil(remainingMs / 1000) || PIN_LOCKOUT_WINDOW_SECONDS
+          )
+
+          console.warn(
+            `[PaymentPinSecurity] SECURITY ALERT: User ${cleanId} locked out after ${currentCount} failed attempts. Retry after ${retryAfterSeconds}s.`
+          )
 
           return {
             isLocked: true,
