@@ -15,13 +15,18 @@ import {
 } from '@/lib/paymentPinSecurity'
 
 jest.mock('@/lib/prisma', () => {
-  const mockClient = {
+  const mockClient: any = {
     rateLimitLog: {
       count: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       deleteMany: jest.fn(),
     },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    $transaction: jest.fn(async (cb: any): Promise<any> => {
+      if (typeof cb === 'function') return cb(mockClient)
+      return Promise.all(cb)
+    }),
   }
   return {
     __esModule: true,
@@ -42,6 +47,10 @@ describe('Phase 5.6: Adversarial PIN Lockout & Concurrency Closure Suite', () =>
     jest.clearAllMocks()
     ;(prisma.rateLimitLog.create as jest.Mock).mockResolvedValue({ id: 'log-1' })
     ;(prisma.rateLimitLog.deleteMany as jest.Mock).mockResolvedValue({ count: 0 })
+    ;(prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
+      if (typeof cb === 'function') return cb(prisma)
+      return Promise.all(cb)
+    })
   })
 
   describe('1. Concurrent Burst TOCTOU Defeat', () => {
@@ -77,6 +86,53 @@ describe('Phase 5.6: Adversarial PIN Lockout & Concurrency Closure Suite', () =>
       expect(bcryptSpy).toHaveBeenCalledTimes(MAX_PIN_FAILURES)
       // The remaining 15 requests were immediately short-circuited with 429 without invoking bcrypt
       expect(lockedOutResponses.length).toBeGreaterThanOrEqual(totalRequests - MAX_PIN_FAILURES)
+    })
+
+    it('strictly serializes attempt reservations across independent workers bypassing the in-process mutex', async () => {
+      let inMemoryLogCount = 0
+      let dbLockAcquired = false
+
+      ;(prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
+        // Simulate database engine row lock queue across independent worker processes
+        while (dbLockAcquired) {
+          await new Promise((resolve) => setTimeout(resolve, 5))
+        }
+        dbLockAcquired = true
+        try {
+          const tx = {
+            $queryRaw: jest.fn().mockResolvedValue([]),
+            rateLimitLog: {
+              count: jest.fn().mockImplementation(async () => inMemoryLogCount),
+              findFirst: jest.fn().mockResolvedValue({ createdAt: new Date() }),
+              create: jest.fn().mockImplementation(async () => {
+                inMemoryLogCount++
+                return { id: `log-${inMemoryLogCount}` }
+              }),
+              deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+            },
+          }
+          return await cb(tx)
+        } finally {
+          dbLockAcquired = false
+        }
+      })
+
+      // Launch 20 concurrent requests across independent workers (bypassing in-process mutex)
+      const workerRequests = Array.from({ length: 20 }).map(() =>
+        checkAndReservePinAttempt(userId, { skipProcessMutex: true })
+      )
+
+      const results = await Promise.all(workerRequests)
+
+      const permitted = results.filter((r) => !r.isLocked)
+      const rejected = results.filter((r) => r.isLocked)
+
+      // Exactly MAX_PIN_FAILURES attempts reserved
+      expect(permitted).toHaveLength(MAX_PIN_FAILURES)
+      // Exactly 15 rejected
+      expect(rejected).toHaveLength(15)
+      // Final count in database store is 5
+      expect(inMemoryLogCount).toBe(MAX_PIN_FAILURES)
     })
   })
 

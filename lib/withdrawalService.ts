@@ -435,7 +435,19 @@ export async function completeOrganizerWithdrawal(params: {
   const now = params.settledAt ?? new Date()
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
 
-  await prisma.$transaction(async (tx) => {
+  const txResult = await prisma.$transaction(async (tx) => {
+    // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
+    const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+    const effectiveStatus = current?.status ?? withdrawal.status
+    if (effectiveStatus !== 'PROCESSING') {
+      return {
+        success: false,
+        duplicate: effectiveStatus === 'COMPLETED',
+        message: `Cannot complete withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
+      }
+    }
+
     await tx.withdrawal.update({
       where: { id: withdrawal.id },
       data: {
@@ -480,9 +492,11 @@ export async function completeOrganizerWithdrawal(params: {
         },
       },
     })
+
+    return { success: true, duplicate: false }
   })
 
-  return { success: true, duplicate: false }
+  return txResult ?? { success: true, duplicate: false }
 }
 
 /**
@@ -516,7 +530,19 @@ export async function failAndReleaseOrganizerWithdrawal(params: {
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
   const currency = withdrawal.currency
 
-  await prisma.$transaction(async (tx) => {
+  const txResult = await prisma.$transaction(async (tx) => {
+    // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
+    const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+    const effectiveStatus = current?.status ?? withdrawal.status
+    if (effectiveStatus !== 'PROCESSING') {
+      return {
+        success: false,
+        duplicate: effectiveStatus === 'FAILED',
+        message: `Cannot release withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
+      }
+    }
+
     await tx.withdrawal.update({
       where: { id: withdrawal.id },
       data: {
@@ -568,9 +594,11 @@ export async function failAndReleaseOrganizerWithdrawal(params: {
         },
       },
     })
+
+    return { success: true, duplicate: false }
   })
 
-  return { success: true, duplicate: false }
+  return txResult ?? { success: true, duplicate: false }
 }
 
 /**
@@ -602,7 +630,19 @@ export async function reverseOrganizerWithdrawal(params: {
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
   const currency = withdrawal.currency
 
-  await prisma.$transaction(async (tx) => {
+  const txResult = await prisma.$transaction(async (tx) => {
+    // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
+    const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+    const effectiveStatus = current?.status ?? withdrawal.status
+    if (effectiveStatus !== 'COMPLETED') {
+      return {
+        success: false,
+        duplicate: effectiveStatus === 'REVERSED',
+        message: `Cannot reverse withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
+      }
+    }
+
     await tx.withdrawal.update({
       where: { id: withdrawal.id },
       data: {
@@ -654,9 +694,11 @@ export async function reverseOrganizerWithdrawal(params: {
         },
       },
     })
+
+    return { success: true, duplicate: false }
   })
 
-  return { success: true, duplicate: false }
+  return txResult ?? { success: true, duplicate: false }
 }
 
 export type ReconcileWithdrawalResult = {

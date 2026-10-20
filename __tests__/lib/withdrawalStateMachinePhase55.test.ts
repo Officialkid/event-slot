@@ -467,5 +467,39 @@ describe('Phase 5.5: Withdrawal State Machine & Transition Matrix Suite', () => 
       expect(res.message).toMatch(/already in terminal status: FAILED/i)
       expect(prisma.$transaction).not.toHaveBeenCalled()
     })
+
+    it('blocks conflicting concurrent transitions when withdrawal is completed while release is attempted', async () => {
+      // Withdrawal is read as PROCESSING outside transaction
+      ;(prisma.withdrawal.findUnique as jest.Mock).mockResolvedValue({
+        id: 'wd-race-1',
+        status: 'PROCESSING',
+        organiserId: 'org-race-1',
+        amount: 1000,
+        amountMinorUnits: BigInt(100000),
+        currency: 'KES',
+      })
+
+      // But competing transaction commits COMPLETED before the release transaction acquires lock
+      ;(prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
+        const tx = {
+          withdrawal: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'wd-race-1', status: 'COMPLETED' }),
+            update: jest.fn(),
+          },
+          financialLedgerEntry: { upsert: jest.fn() },
+          organiserBalance: { upsert: jest.fn() },
+          auditLog: { create: jest.fn() },
+        }
+        return cb(tx)
+      })
+
+      const res = await failAndReleaseOrganizerWithdrawal({
+        withdrawalId: 'wd-race-1',
+        reason: 'Late failure event racing with completion',
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.message).toMatch(/Cannot release withdrawal wd-race-1: current status is COMPLETED/i)
+    })
   })
 })

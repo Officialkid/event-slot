@@ -29,13 +29,13 @@ describe("POST /api/paid-events/orders/[orderId]/pay", () => {
     mockStartPaidEventOrderPayment.mockReset();
   });
 
-  it("rejects requests missing an M-Pesa phone number", async () => {
+  it("rejects requests missing an order id", async () => {
     const response = await POST(
-      new NextRequest("http://localhost/api/paid-events/orders/order-1/pay", {
+      new NextRequest("http://localhost/api/paid-events/orders//pay", {
         method: "POST",
         body: JSON.stringify({}),
       }),
-      { params: Promise.resolve({ orderId: "order-1" }) }
+      { params: Promise.resolve({ orderId: "" }) }
     );
     const body = await response.json();
 

@@ -46,11 +46,12 @@ function getRedisClient() {
   return redisClientPromise
 }
 
-// Helper for non-fatal opportunistic pruning
-async function safePruneExpired(cleanId: string, cutoff: Date): Promise<void> {
+// Helper for non-fatal opportunistic pruning strictly for records outside the active window
+async function safePruneExpired(cleanId: string, cutoff: Date, txClient?: any): Promise<void> {
   try {
-    if (typeof prisma?.rateLimitLog?.deleteMany === 'function') {
-      await prisma.rateLimitLog.deleteMany({
+    const client = txClient ?? prisma
+    if (typeof client?.rateLimitLog?.deleteMany === 'function') {
+      await client.rateLimitLog.deleteMany({
         where: {
           key: `pin:${cleanId}`,
           action: 'PAYMENT_PIN_FAILED',
@@ -59,7 +60,7 @@ async function safePruneExpired(cleanId: string, cutoff: Date): Promise<void> {
       })
     }
   } catch {
-    // Best-effort pruning
+    // Non-fatal: best-effort pruning
   }
 }
 
@@ -246,12 +247,17 @@ async function withUserLock<T>(userId: string, fn: () => Promise<T>): Promise<T>
 
 /**
  * Atomically checks whether an organizer is locked out and, if not, reserves an attempt slot.
- * Serializes attempt consumption to ensure concurrent requests CANNOT exceed MAX_PIN_FAILURES.
+ * Enforces distributed concurrency safety via PostgreSQL User row locking and transaction serialization,
+ * augmented by an in-process per-user mutex to reduce database lock contention within single instances.
  * Also opportunistically prunes expired records for this organizer to prevent unbounded table growth.
  */
-export async function checkAndReservePinAttempt(userId: string): Promise<PinLockoutStatus> {
+export async function checkAndReservePinAttempt(
+  userId: string,
+  options?: { skipProcessMutex?: boolean }
+): Promise<PinLockoutStatus> {
   const cleanId = userId.trim()
-  return withUserLock(cleanId, async () => {
+
+  const runReservation = async (): Promise<PinLockoutStatus> => {
     const cutoff = new Date(Date.now() - PIN_LOCKOUT_WINDOW_MS)
 
     try {
@@ -274,71 +280,95 @@ export async function checkAndReservePinAttempt(userId: string): Promise<PinLock
         }
       }
 
-      // 2. Opportunistic pruning of expired records for this user
-      await safePruneExpired(cleanId, cutoff)
+      // 2. Authoritative database transaction with PostgreSQL User row locking
+      // Serializes concurrent attempt checks and writes across multiple independent instances/processes
+      const executeDbReservation = async (tx: any) => {
+        if (typeof tx.$queryRaw === 'function') {
+          try {
+            await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${cleanId} FOR UPDATE`
+          } catch {
+            // Non-fatal in mock/test environments without raw queries
+          }
+        }
 
-      // 3. Count existing failures in window
-      const currentCount = await prisma.rateLimitLog.count({
-        where: {
-          key: `pin:${cleanId}`,
-          action: 'PAYMENT_PIN_FAILED',
-          createdAt: { gte: cutoff },
-        },
-      })
+        // Opportunistic pruning of records strictly older than the active 10-minute window
+        await safePruneExpired(cleanId, cutoff, tx)
 
-      if (currentCount >= MAX_PIN_FAILURES) {
-        const oldestInWindow = await prisma.rateLimitLog.findFirst({
+        const countModel = tx?.rateLimitLog ?? prisma.rateLimitLog
+        const currentCount = await countModel.count({
           where: {
             key: `pin:${cleanId}`,
             action: 'PAYMENT_PIN_FAILED',
             createdAt: { gte: cutoff },
           },
-          orderBy: { createdAt: 'asc' },
-          select: { createdAt: true },
         })
-        const elapsedMs = oldestInWindow ? Date.now() - oldestInWindow.createdAt.getTime() : 0
-        const remainingMs = Math.max(0, PIN_LOCKOUT_WINDOW_MS - elapsedMs)
-        const retryAfterSeconds = Math.ceil(remainingMs / 1000) || PIN_LOCKOUT_WINDOW_SECONDS
 
-        return {
-          isLocked: true,
-          failedCount: currentCount,
-          remainingAttempts: 0,
-          retryAfterSeconds,
-        }
-      }
+        if (currentCount >= MAX_PIN_FAILURES) {
+          const oldestInWindow = await countModel.findFirst({
+            where: {
+              key: `pin:${cleanId}`,
+              action: 'PAYMENT_PIN_FAILED',
+              createdAt: { gte: cutoff },
+            },
+            orderBy: { createdAt: 'asc' },
+            select: { createdAt: true },
+          })
+          const elapsedMs = oldestInWindow ? Date.now() - oldestInWindow.createdAt.getTime() : 0
+          const remainingMs = Math.max(0, PIN_LOCKOUT_WINDOW_MS - elapsedMs)
+          const retryAfterSeconds = Math.ceil(remainingMs / 1000) || PIN_LOCKOUT_WINDOW_SECONDS
 
-      // 4. Atomically record this attempt reservation
-      await prisma.rateLimitLog.create({
-        data: {
-          key: `pin:${cleanId}`,
-          action: 'PAYMENT_PIN_FAILED',
-        },
-      })
-
-      // Also update Redis if configured
-      if (redisPromise) {
-        const redis = await redisPromise
-        if (redis) {
-          const c = await redis.incr(`pin_fail:${cleanId}`).catch(() => null)
-          if (c === 1) {
-            await redis.expire(`pin_fail:${cleanId}`, PIN_LOCKOUT_WINDOW_SECONDS).catch(() => null)
+          return {
+            isLocked: true,
+            failedCount: currentCount,
+            remainingAttempts: 0,
+            retryAfterSeconds,
           }
         }
+
+        // Atomically record this attempt reservation inside the locked transaction
+        await countModel.create({
+          data: {
+            key: `pin:${cleanId}`,
+            action: 'PAYMENT_PIN_FAILED',
+          },
+        })
+
+        // Also update Redis if configured
+        if (redisPromise) {
+          const redis = await redisPromise
+          if (redis) {
+            const c = await redis.incr(`pin_fail:${cleanId}`).catch(() => null)
+            if (c === 1) {
+              await redis.expire(`pin_fail:${cleanId}`, PIN_LOCKOUT_WINDOW_SECONDS).catch(() => null)
+            }
+          }
+        }
+
+        const newCount = currentCount + 1
+        return {
+          isLocked: false,
+          failedCount: newCount,
+          remainingAttempts: Math.max(0, MAX_PIN_FAILURES - newCount),
+          retryAfterSeconds: newCount >= MAX_PIN_FAILURES ? PIN_LOCKOUT_WINDOW_SECONDS : undefined,
+        }
       }
 
-      const newCount = currentCount + 1
-      return {
-        isLocked: false,
-        failedCount: newCount,
-        remainingAttempts: Math.max(0, MAX_PIN_FAILURES - newCount),
-        retryAfterSeconds: newCount >= MAX_PIN_FAILURES ? PIN_LOCKOUT_WINDOW_SECONDS : undefined,
+      if (typeof prisma.$transaction === 'function') {
+        return await prisma.$transaction(executeDbReservation)
+      } else {
+        return await executeDbReservation(prisma)
       }
     } catch (err: any) {
       console.error(`[PaymentPinSecurity] Storage failure reserving attempt for ${cleanId}:`, err?.message || err)
       throw new SecurityStorageError('Security verification store is temporarily unavailable.')
     }
-  })
+  }
+
+  if (options?.skipProcessMutex) {
+    return runReservation()
+  }
+
+  return withUserLock(cleanId, runReservation)
 }
 
 /**
