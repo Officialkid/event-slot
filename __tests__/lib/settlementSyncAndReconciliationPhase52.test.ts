@@ -468,6 +468,10 @@ describe('Phase 5.2: Settlement Synchronization & Durable Reconciliation Suite',
       ).rejects.toThrow(/forceReason is strictly required/i)
 
       // 2. Succeeds when valid forceReason and operator actorId are provided
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'HEAD_FINANCE_OPERATOR_001',
+        email: 'admin@eventsslot.com',
+      })
       ;(prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
         const tx = {
           withdrawal: { update: jest.fn() },
@@ -487,7 +491,7 @@ describe('Phase 5.2: Settlement Synchronization & Durable Reconciliation Suite',
 
       expect(res.status).toBe('FAILED')
       expect(res.reconciled).toBe(true)
-      expect(res.message).toMatch(/manually released by operator/i)
+      expect(res.message).toMatch(/manually released by (authorized )?operator/i)
     })
   })
 })

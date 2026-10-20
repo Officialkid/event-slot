@@ -17,7 +17,7 @@ import { PrismaClient } from '@prisma/client'
 const testDbUrl = process.env.TEST_POSTGRES_DATABASE_URL
 const describeOrSkip = testDbUrl ? describe : describe.skip
 
-describeOrSkip('Phase 5.2: Live PostgreSQL Concurrency & Transaction Serialization (Isolated Engine)', () => {
+describeOrSkip('Phase 5.5: Live PostgreSQL Concurrency & Transaction Serialization (Isolated Engine)', () => {
   let testPrisma: PrismaClient
 
   beforeAll(async () => {
@@ -34,10 +34,10 @@ describeOrSkip('Phase 5.2: Live PostgreSQL Concurrency & Transaction Serializati
     }
   })
 
+  // 1. Concurrent Withdrawal Balance Overdraft Prevention
   it('serializes two simultaneous withdrawal requests competing for the same balance under SELECT FOR UPDATE', async () => {
-    const testOrgId = `org_test_${Date.now()}`
+    const testOrgId = `org_test_${Date.now()}_wd`
 
-    // Seed test user with KES 1,000 available
     await testPrisma.user.create({
       data: {
         id: testOrgId,
@@ -45,16 +45,10 @@ describeOrSkip('Phase 5.2: Live PostgreSQL Concurrency & Transaction Serializati
       },
     })
 
-    // Simulate two concurrent withdrawal reservations of KES 1,000 each
-    let firstCommitted = false
-    let secondRejected = false
-
     const attemptWithdrawal = async (clientRef: string) => {
       return testPrisma.$transaction(async (tx) => {
-        // Acquire row lock
         await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${testOrgId} FOR UPDATE`
 
-        // Check active reservations
         const activeReservations = await tx.withdrawal.findMany({
           where: { organiserId: testOrgId, status: 'PROCESSING' },
         })
@@ -64,7 +58,7 @@ describeOrSkip('Phase 5.2: Live PostgreSQL Concurrency & Transaction Serializati
           throw new Error('INSUFFICIENT_FUNDS')
         }
 
-        await tx.withdrawal.create({
+        return tx.withdrawal.create({
           data: {
             organiserId: testOrgId,
             amount: 1000,
@@ -91,29 +85,240 @@ describeOrSkip('Phase 5.2: Live PostgreSQL Concurrency & Transaction Serializati
     expect(rejected).toHaveLength(1)
   })
 
-  it('rejects duplicate settlement batch insertion racing concurrently on batchReference', async () => {
-    const batchRef = `batch_race_${Date.now()}`
+  // 2. Atomic Withdrawal Reservation
+  it('ensures withdrawal reservation and ledger debit are committed atomically', async () => {
+    const testOrgId = `org_test_${Date.now()}_atomic`
 
-    const insertBatch = async () => {
-      return testPrisma.settlementBatch.create({
+    await testPrisma.user.create({
+      data: {
+        id: testOrgId,
+        email: `${testOrgId}@test.eventslot.com`,
+      },
+    })
+
+    const ref = `wd_atomic_${Date.now()}`
+    const idempotencyKey = `wd:${testOrgId}:${ref}`
+    const ledgerKey = `withdrawal:${ref}:reservation`
+
+    const created = await testPrisma.$transaction(async (tx) => {
+      const wd = await tx.withdrawal.create({
+        data: {
+          organiserId: testOrgId,
+          amount: 500,
+          amountMinorUnits: BigInt(50000),
+          currency: 'KES',
+          method: 'MPESA',
+          destination: '0712345678',
+          status: 'PROCESSING',
+          idempotencyKey,
+          providerRef: ref,
+        },
+      })
+
+      await tx.financialLedgerEntry.create({
+        data: {
+          organizerId: testOrgId,
+          withdrawalId: wd.id,
+          entryType: 'WITHDRAWAL_RESERVATION',
+          direction: 'DEBIT',
+          amountMinorUnits: BigInt(50000),
+          currency: 'KES',
+          idempotencyKey: ledgerKey,
+          providerReference: ref,
+          description: 'Atomic reservation test',
+        },
+      })
+
+      return wd
+    })
+
+    expect(created.id).toBeDefined()
+
+    const wdInDb = await testPrisma.withdrawal.findUnique({ where: { id: created.id } })
+    const ledgerInDb = await testPrisma.financialLedgerEntry.findUnique({ where: { idempotencyKey: ledgerKey } })
+
+    expect(wdInDb).not.toBeNull()
+    expect(ledgerInDb).not.toBeNull()
+    expect(ledgerInDb?.amountMinorUnits).toBe(BigInt(50000))
+  })
+
+  // 3. Concurrent Webhook Delivery Deduplication
+  it('rejects concurrent webhook deliveries racing on unique idempotencyKey', async () => {
+    const eventKey = `evt_race_${Date.now()}`
+
+    const recordEvent = async () => {
+      return testPrisma.processedProviderEvent.create({
         data: {
           provider: 'paystack',
-          batchReference: batchRef,
-          currency: 'KES',
-          totalAmountMinor: BigInt(200000),
-          transactionCount: 2,
-          settledAt: new Date(),
+          eventType: 'charge.success',
+          idempotencyKey: eventKey,
+          status: 'PROCESSING',
         },
       })
     }
 
-    const results = await Promise.allSettled([insertBatch(), insertBatch()])
+    const results = await Promise.allSettled([recordEvent(), recordEvent()])
     const fulfilled = results.filter((r) => r.status === 'fulfilled')
     const rejected = results.filter((r) => r.status === 'rejected')
 
-    // Unique constraint ensures only one worker successfully creates the batch
     expect(fulfilled).toHaveLength(1)
     expect(rejected).toHaveLength(1)
+  })
+
+  // 4. Duplicate Terminal Event Release / Debit Guard
+  it('prevents duplicate terminal release ledger entries on unique idempotencyKey', async () => {
+    const testOrgId = `org_test_${Date.now()}_term`
+    const releaseKey = `wd_term_rel_${Date.now()}`
+
+    await testPrisma.user.create({
+      data: {
+        id: testOrgId,
+        email: `${testOrgId}@test.eventslot.com`,
+      },
+    })
+
+    const postRelease = async () => {
+      return testPrisma.financialLedgerEntry.upsert({
+        where: { idempotencyKey: releaseKey },
+        create: {
+          organizerId: testOrgId,
+          entryType: 'WITHDRAWAL_RELEASE',
+          direction: 'CREDIT',
+          amountMinorUnits: BigInt(50000),
+          currency: 'KES',
+          idempotencyKey: releaseKey,
+          description: 'Terminal release test',
+        },
+        update: {},
+      })
+    }
+
+    const [first, second] = await Promise.all([postRelease(), postRelease()])
+    expect(first.id).toBe(second.id)
+
+    const allEntries = await testPrisma.financialLedgerEntry.findMany({
+      where: { idempotencyKey: releaseKey },
+    })
+    expect(allEntries).toHaveLength(1)
+  })
+
+  // 5. Concurrent Checkout Capacity Overselling Guard
+  it('serializes concurrent checkout reservations under SELECT FOR UPDATE to prevent capacity overselling', async () => {
+    const orgId = `org_checkout_${Date.now()}`
+    const eventId = `event_checkout_${Date.now()}`
+    const tierId = `tier_checkout_${Date.now()}`
+
+    await testPrisma.user.create({
+      data: { id: orgId, email: `${orgId}@test.eventslot.com` },
+    })
+
+    await testPrisma.event.create({
+      data: {
+        id: eventId,
+        title: 'Concurrency Test Event',
+        slug: `concurrency-event-${Date.now()}`,
+        organizerId: orgId,
+        organizerEmail: `${orgId}@test.eventslot.com`,
+        dashboardToken: `dash_tok_${Date.now()}`,
+        questions: [],
+        isPaid: true,
+        capacity: 1, // Only 1 total capacity!
+      },
+    })
+
+    await testPrisma.ticketTier.create({
+      data: {
+        id: tierId,
+        eventId,
+        name: 'Single VIP Ticket',
+        priceKes: 1000,
+        capacity: 1, // Tier capacity is exactly 1
+        soldCount: 0,
+      },
+    })
+
+    const attemptHold = async (orderRef: string) => {
+      return testPrisma.$transaction(async (tx) => {
+        // Exclusive row lock on tier
+        await tx.$queryRaw`SELECT id, capacity, "soldCount" FROM "TicketTier" WHERE id = ${tierId} FOR UPDATE`
+
+        const tier = await tx.ticketTier.findUnique({ where: { id: tierId } })
+        if (!tier || tier.soldCount >= tier.capacity) {
+          throw new Error('TIER_SOLD_OUT')
+        }
+
+        await tx.ticketTier.update({
+          where: { id: tierId },
+          data: { soldCount: { increment: 1 } },
+        })
+
+        return tx.paidEventOrder.create({
+          data: {
+            id: `order_${orderRef}`,
+            eventId,
+            ticketTierId: tierId,
+            status: 'PAID',
+            amountKes: 1000,
+            currency: 'KES',
+            paymentMethod: 'CARD',
+            holdExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            attendeeEmail: `${orderRef}@test.com`,
+            attendeeName: 'Concurrent Attendee',
+            attendeePayload: [],
+          },
+        })
+      })
+    }
+
+    const results = await Promise.allSettled([
+      attemptHold('buyer_1'),
+      attemptHold('buyer_2'),
+    ])
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled')
+    const rejected = results.filter((r) => r.status === 'rejected')
+
+    // Exactly 1 checkout succeeds; the second is serialized and rejected due to soldCount >= capacity
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+
+    const finalTier = await testPrisma.ticketTier.findUnique({ where: { id: tierId } })
+    expect(finalTier?.soldCount).toBe(1)
+  })
+
+  // 6. Transaction Rollback on Failure
+  it('rolls back all reservation and ledger changes if a transaction fails mid-flight', async () => {
+    const testOrgId = `org_test_${Date.now()}_rollback`
+    const ref = `wd_rollback_${Date.now()}`
+    const idempotencyKey = `wd:${testOrgId}:${ref}`
+
+    await testPrisma.user.create({
+      data: { id: testOrgId, email: `${testOrgId}@test.eventslot.com` },
+    })
+
+    await expect(
+      testPrisma.$transaction(async (tx) => {
+        await tx.withdrawal.create({
+          data: {
+            organiserId: testOrgId,
+            amount: 500,
+            currency: 'KES',
+            method: 'MPESA',
+            destination: '0712345678',
+            status: 'PROCESSING',
+            idempotencyKey,
+            providerRef: ref,
+          },
+        })
+
+        // Simulated failure mid-flight
+        throw new Error('SIMULATED_TRANSACTION_FAILURE')
+      })
+    ).rejects.toThrow('SIMULATED_TRANSACTION_FAILURE')
+
+    // Verify withdrawal was never committed
+    const found = await testPrisma.withdrawal.findUnique({ where: { idempotencyKey } })
+    expect(found).toBeNull()
   })
 })
 

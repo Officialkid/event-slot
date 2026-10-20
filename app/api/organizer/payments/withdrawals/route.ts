@@ -1,37 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { z } from "zod"
-import bcrypt from "bcryptjs"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { billingRatelimit } from "@/lib/ratelimit"
 import { sendBankPayout, sendMpesaPayout, sendPaybillPayout } from "@/services/payouts"
 import { verifyOtpForEmail } from "@/lib/emailOtp"
+import { verifyPaymentPinDurable } from "@/lib/paymentPinSecurity"
 import {
   requestOrganizerWithdrawal,
   InsufficientSettledBalanceError,
 } from "@/lib/withdrawalService"
 import type { SupportedCurrency } from "@/lib/organizerPayments"
-
-// In-memory failed PIN attempt lockout per organizer ID
-const pinFailureMap = new Map<string, { count: number; resetAt: number }>()
-const MAX_PIN_FAILURES = 5
-const PIN_LOCKOUT_MS = 10 * 60 * 1000
-
-function recordPinFailure(userId: string): number {
-  const now = Date.now()
-  const entry = pinFailureMap.get(userId)
-  if (!entry || entry.resetAt < now) {
-    pinFailureMap.set(userId, { count: 1, resetAt: now + PIN_LOCKOUT_MS })
-    return 1
-  }
-  entry.count += 1
-  return entry.count
-}
-
-function clearPinFailures(userId: string) {
-  pinFailureMap.delete(userId)
-}
 
 const payloadSchema = z.object({
   currency: z.enum(["KES", "USD"]),
@@ -112,23 +92,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Turn on account 2FA in Profile before requesting withdrawals." }, { status: 400 })
     }
 
-    // Check failed PIN lockout
-    const currentPinFailures = pinFailureMap.get(session.user.id)
-    if (currentPinFailures && currentPinFailures.resetAt > Date.now() && currentPinFailures.count >= MAX_PIN_FAILURES) {
+    // Durably verify PIN with anti-brute-force lockout and distributed safety
+    const pinVerification = await verifyPaymentPinDurable({
+      userId: session.user.id,
+      pin: parsed.data.paymentPin,
+      paymentPinHash: user.paymentPinHash,
+    })
+
+    if (!pinVerification.success) {
       return NextResponse.json(
-        { error: "Too many failed PIN attempts. Withdrawals temporarily locked for 10 minutes." },
-        { status: 429 }
+        { error: pinVerification.error },
+        { status: pinVerification.status }
       )
     }
-
-    const validPin = await bcrypt.compare(parsed.data.paymentPin, user.paymentPinHash)
-    if (!validPin) {
-      const failures = recordPinFailure(session.user.id)
-      const remaining = Math.max(0, MAX_PIN_FAILURES - failures)
-      const warning = remaining > 0 ? ` (${remaining} attempts remaining before lockout)` : " Account locked for 10 minutes."
-      return NextResponse.json({ error: `The payments PIN you entered is incorrect.${warning}` }, { status: 403 })
-    }
-    clearPinFailures(session.user.id)
 
     if (!user.email) {
       return NextResponse.json({ error: "Your account needs an email address before withdrawals can be approved." }, { status: 400 })

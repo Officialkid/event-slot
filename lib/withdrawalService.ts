@@ -20,6 +20,7 @@ import {
 import { getAuthoritativeOrganizerBalance } from '@/lib/organizerBalanceEngine'
 import { PaystackApiError, PaystackValidationError } from '@/lib/paystack'
 import { verifyPaystackTransfer } from '@/lib/paystackPayouts'
+import { isAdminEmail } from '@/lib/isAdmin'
 import { WithdrawalMethod, WithdrawalStatus, Prisma } from '@prisma/client'
 import crypto from 'crypto'
 
@@ -696,11 +697,24 @@ export async function reconcileOrganizerWithdrawal(params: {
 
   const actorId = params.actorId || 'SYSTEM_RECONCILIATION'
 
-  // If manual force release is requested, require explicit reason
+  // If manual force release is requested, verify administrative authorization and require explicit reason
   if (params.forceRelease) {
     if (!params.forceReason || !params.forceReason.trim()) {
       throw new Error('forceReason is strictly required for manual administrative release of funds.')
     }
+    if (!params.actorId || params.actorId === 'SYSTEM_RECONCILIATION' || params.actorId === 'CRON_RECONCILIATION_WORKER') {
+      throw new Error('forceRelease requires a valid, authenticated administrator actorId.')
+    }
+    const actor = await prisma.user.findUnique({
+      where: { id: params.actorId },
+      select: { id: true, email: true },
+    })
+    const isAuthorized = actor && isAdminEmail(actor.email)
+
+    if (!isAuthorized) {
+      throw new Error(`Unauthorized: Actor ${params.actorId} lacks administrator privileges to force release funds.`)
+    }
+
     await failAndReleaseOrganizerWithdrawal({
       withdrawalId: withdrawal.id,
       reason: `MANUAL_ADMIN_RELEASE: ${params.forceReason.trim()}`,
@@ -710,7 +724,7 @@ export async function reconcileOrganizerWithdrawal(params: {
       withdrawalId: withdrawal.id,
       status: 'FAILED',
       reconciled: true,
-      message: `Withdrawal manually released by operator (${actorId}): ${params.forceReason}`,
+      message: `Withdrawal manually released by authorized operator (${actorId}): ${params.forceReason}`,
     }
   }
 
