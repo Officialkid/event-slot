@@ -135,13 +135,20 @@ export async function processSettlementBatchEvidence(
     const unmatchedReferences: string[] = []
 
     for (const item of evidence.transactions) {
-      // Find matching payment record
+      const rawRef = item.reference.trim()
+      const cleanRef = rawRef.replace(/^paystack:/i, '')
+      const prefixedRef = `paystack:${cleanRef}`
+
+      // Find matching payment record with reference format tolerance
       const payment = await tx.payment.findFirst({
         where: {
           OR: [
-            { mpesaRef: item.reference },
-            { paidEventOrder: { providerReference: `paystack:${item.reference}` } },
-            { paidEventOrder: { providerReference: item.reference } },
+            { mpesaRef: rawRef },
+            { mpesaRef: cleanRef },
+            { mpesaRef: prefixedRef },
+            { paidEventOrder: { providerReference: rawRef } },
+            { paidEventOrder: { providerReference: cleanRef } },
+            { paidEventOrder: { providerReference: prefixedRef } },
           ],
         },
         include: {

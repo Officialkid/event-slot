@@ -39,6 +39,7 @@ export async function sendPaybillPayout(params: {
   amount: number
   currency: SupportedCurrency
   narrative: string
+  reference?: string
 }) {
   if (usePaystack()) {
     return paystackPayouts.sendPaybillPayout(params)

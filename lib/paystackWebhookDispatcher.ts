@@ -422,12 +422,15 @@ export async function dispatchPaystackWebhook(params: {
         }
 
         const settledAt = eventData.transferred_at ? new Date(eventData.transferred_at) : new Date()
-        await completeOrganizerWithdrawal({
+        const compRes = await completeOrganizerWithdrawal({
           withdrawalId: withdrawal.id,
           providerReference: transferRef || withdrawal.providerRef || undefined,
           settledAt,
           actorId: 'PAYSTACK_WEBHOOK',
         })
+        if (!compRes.success && !compRes.duplicate) {
+          console.error(`[PaystackWebhook] CRITICAL DISCREPANCY on transfer.success for withdrawal ${withdrawal.id}: ${compRes.message}`)
+        }
         break
       }
 
@@ -470,11 +473,14 @@ export async function dispatchPaystackWebhook(params: {
           }
         }
 
-        await failAndReleaseOrganizerWithdrawal({
+        const failRes = await failAndReleaseOrganizerWithdrawal({
           withdrawalId: withdrawal.id,
           reason: eventData.reason || eventData.message || 'Transfer failed on payment provider',
           actorId: 'PAYSTACK_WEBHOOK',
         })
+        if (!failRes.success && !failRes.duplicate) {
+          console.error(`[PaystackWebhook] CRITICAL DISCREPANCY on transfer.failed for withdrawal ${withdrawal.id}: ${failRes.message}`)
+        }
         break
       }
 
@@ -517,11 +523,14 @@ export async function dispatchPaystackWebhook(params: {
           }
         }
 
-        await reverseOrganizerWithdrawal({
+        const revRes = await reverseOrganizerWithdrawal({
           withdrawalId: withdrawal.id,
           reason: eventData.reason || eventData.message || 'Transfer reversed by recipient institution',
           actorId: 'PAYSTACK_WEBHOOK',
         })
+        if (!revRes.success && !revRes.duplicate) {
+          console.error(`[PaystackWebhook] CRITICAL DISCREPANCY on transfer.reversed for withdrawal ${withdrawal.id}: ${revRes.message}`)
+        }
         break
       }
 

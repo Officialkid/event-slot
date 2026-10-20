@@ -424,6 +424,12 @@ export async function completeOrganizerWithdrawal(params: {
   if (withdrawal.status === 'REVERSED') {
     return { success: false, duplicate: false, message: `Cannot complete withdrawal ${params.withdrawalId}: already REVERSED` }
   }
+  if (withdrawal.status === 'FAILED') {
+    return { success: false, duplicate: false, message: `Cannot complete withdrawal ${params.withdrawalId}: already FAILED and reservation was released` }
+  }
+  if (withdrawal.status === 'CANCELLED') {
+    return { success: false, duplicate: false, message: `Cannot complete withdrawal ${params.withdrawalId}: already CANCELLED` }
+  }
 
   const now = params.settledAt ?? new Date()
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
@@ -498,6 +504,12 @@ export async function failAndReleaseOrganizerWithdrawal(params: {
   }
   if (withdrawal.status === 'COMPLETED') {
     return { success: false, duplicate: false, message: `Cannot release withdrawal ${params.withdrawalId}: already COMPLETED` }
+  }
+  if (withdrawal.status === 'REVERSED') {
+    return { success: false, duplicate: false, message: `Cannot release withdrawal ${params.withdrawalId}: already REVERSED and funds were restored` }
+  }
+  if (withdrawal.status === 'CANCELLED') {
+    return { success: false, duplicate: false, message: `Cannot release withdrawal ${params.withdrawalId}: already CANCELLED` }
   }
 
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
@@ -578,6 +590,12 @@ export async function reverseOrganizerWithdrawal(params: {
 
   if (withdrawal.status === 'REVERSED') {
     return { success: true, duplicate: true }
+  }
+  if (withdrawal.status === 'FAILED') {
+    return { success: false, duplicate: false, message: `Cannot reverse withdrawal ${params.withdrawalId}: already FAILED and reservation was released` }
+  }
+  if (withdrawal.status === 'CANCELLED') {
+    return { success: false, duplicate: false, message: `Cannot reverse withdrawal ${params.withdrawalId}: already CANCELLED` }
   }
 
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
