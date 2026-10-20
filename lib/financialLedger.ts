@@ -129,6 +129,10 @@ export function buildWithdrawalCompletionIdempotencyKey(withdrawalId: string): s
   return `withdrawal:${withdrawalId}:completion`
 }
 
+export function buildWithdrawalReleaseIdempotencyKey(withdrawalId: string): string {
+  return `withdrawal:${withdrawalId}:release`
+}
+
 export function buildRefundIdempotencyKey(paymentId: string, refundRef: string): string {
   return `refund:${paymentId}:${refundRef}`
 }

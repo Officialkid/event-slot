@@ -24,6 +24,11 @@ import {
   activateSubscriptionPayment,
   finalizePaidEventOrderPayment,
 } from '@/lib/paymentFinalizers'
+import {
+  completeOrganizerWithdrawal,
+  failAndReleaseOrganizerWithdrawal,
+  reverseOrganizerWithdrawal,
+} from '@/lib/withdrawalService'
 import { creditTokens } from '@/lib/tokens'
 import { toMinorUnits } from '@/lib/financialLedger'
 
@@ -376,6 +381,75 @@ export async function dispatchPaystackWebhook(params: {
         break
       }
 
+      // Handler G: Payout Transfer Events
+      case 'transfer.success': {
+        const transferRef = eventData.reference
+        const transferCode = eventData.transfer_code
+        const withdrawal = await prisma.withdrawal.findFirst({
+          where: {
+            OR: [
+              ...(transferRef ? [{ providerRef: transferRef }] : []),
+              ...(transferCode ? [{ transferCode }] : []),
+            ],
+          },
+        })
+
+        if (withdrawal) {
+          const settledAt = eventData.transferred_at ? new Date(eventData.transferred_at) : new Date()
+          await completeOrganizerWithdrawal({
+            withdrawalId: withdrawal.id,
+            providerReference: transferRef || withdrawal.providerRef || undefined,
+            settledAt,
+            actorId: 'PAYSTACK_WEBHOOK',
+          })
+        }
+        break
+      }
+
+      case 'transfer.failed': {
+        const transferRef = eventData.reference
+        const transferCode = eventData.transfer_code
+        const withdrawal = await prisma.withdrawal.findFirst({
+          where: {
+            OR: [
+              ...(transferRef ? [{ providerRef: transferRef }] : []),
+              ...(transferCode ? [{ transferCode }] : []),
+            ],
+          },
+        })
+
+        if (withdrawal) {
+          await failAndReleaseOrganizerWithdrawal({
+            withdrawalId: withdrawal.id,
+            reason: eventData.reason || eventData.message || 'Transfer failed on payment provider',
+            actorId: 'PAYSTACK_WEBHOOK',
+          })
+        }
+        break
+      }
+
+      case 'transfer.reversed': {
+        const transferRef = eventData.reference
+        const transferCode = eventData.transfer_code
+        const withdrawal = await prisma.withdrawal.findFirst({
+          where: {
+            OR: [
+              ...(transferRef ? [{ providerRef: transferRef }] : []),
+              ...(transferCode ? [{ transferCode }] : []),
+            ],
+          },
+        })
+
+        if (withdrawal) {
+          await reverseOrganizerWithdrawal({
+            withdrawalId: withdrawal.id,
+            reason: eventData.reason || eventData.message || 'Transfer reversed by recipient institution',
+            actorId: 'PAYSTACK_WEBHOOK',
+          })
+        }
+        break
+      }
+
       default:
         // Other events received and acknowledged without action
         break
@@ -397,13 +471,17 @@ export async function dispatchPaystackWebhook(params: {
     console.error(`[PaystackWebhook] Error processing event ${idempotencyKey}:`, sanitizedMsg)
 
     // 6. Record failure so retry is permitted
-    await prisma.processedProviderEvent.update({
-      where: { id: eventRecordId },
-      data: {
-        status: 'FAILED',
-        error: sanitizedMsg,
-      },
-    }).catch(() => {})
+    try {
+      await prisma.processedProviderEvent.update({
+        where: { id: eventRecordId },
+        data: {
+          status: 'FAILED',
+          error: sanitizedMsg,
+        },
+      })
+    } catch {
+      // Ignore secondary error recording failure
+    }
 
     return { status: 500, body: { error: 'Internal processing error' } }
   }

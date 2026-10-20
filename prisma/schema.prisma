@@ -588,6 +588,11 @@ model Payment {
   method            PaidOrderPaymentMethod
   mpesaRef          String?
   status            PaymentStatus        @default(PENDING)
+  settlementStatus  SettlementStatus     @default(PENDING)
+  settledAt         DateTime?
+  settlementRef     String?
+  settlementBatchId String?
+  settlementEvidence Json?
   createdAt         DateTime             @default(now())
   paidAt            DateTime?
   financialLedgerEntries FinancialLedgerEntry[]
@@ -595,6 +600,7 @@ model Payment {
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
+  @@index([settlementStatus])
   @@index([mpesaRef])
 }
 
@@ -660,22 +666,49 @@ model OrganiserBalance {
 }
 
 model Withdrawal {
-  id          String           @id @default(cuid())
-  organiserId String
-  organiser   User             @relation(fields: [organiserId], references: [id], onDelete: Cascade)
-  amount      Float
-  currency    String
-  method      WithdrawalMethod
-  destination String
-  status      WithdrawalStatus @default(PROCESSING)
-  providerRef String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                String           @id @default(cuid())
+  organiserId       String
+  organiser         User             @relation(fields: [organiserId], references: [id], onDelete: Cascade)
+  amount            Float
+  amountMinorUnits  BigInt?
+  currency          String
+  method            WithdrawalMethod
+  destination       String
+  status            WithdrawalStatus @default(PROCESSING)
+  idempotencyKey    String?          @unique
+  failureReason     String?
+  transferCode      String?
+  recipientCode     String?
+  providerRef       String?
+  settledAt         DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   financialLedgerEntries     FinancialLedgerEntry[]
 
   @@index([organiserId, currency, createdAt])
   @@index([organiserId, status])
   @@index([providerRef])
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+  DISPUTED
+  REVERSED
+}
+
+model SettlementBatch {
+  id               String   @id @default(cuid())
+  provider         String   @default("paystack")
+  batchReference   String   @unique
+  currency         String   @default("KES")
+  totalAmountMinor BigInt
+  transactionCount Int
+  settledAt        DateTime
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([provider, settledAt])
 }
 
 // ==========================================
@@ -688,6 +721,7 @@ enum LedgerEntryType {
   ORGANIZER_PAYOUT
   WITHDRAWAL_RESERVATION
   WITHDRAWAL_COMPLETION
+  WITHDRAWAL_RELEASE
   REFUND
   REVERSAL
   ADJUSTMENT
@@ -1319,10 +1353,12 @@ enum WithdrawalMethod {
 }
 
 enum WithdrawalStatus {
+  PENDING
   PROCESSING
   COMPLETED
   FAILED
   CANCELLED
+  REVERSED
 }
 
 model PaygSettings {
