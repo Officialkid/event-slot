@@ -587,15 +587,31 @@ export async function cleanupExpiredPaidEventHolds(options?: {
 
   for (const order of expiredOrders) {
     try {
+      let transitioned = false;
+
       await prisma.$transaction(async (tx) => {
-        await tx.paidEventOrder.update({
-          where: { id: order.id },
+        // Atomic conditional transition: only expire if order is still PENDING or PAYMENT_PENDING.
+        // Prevents double-expiration and duplicate waitlist promotion under concurrent cleanup workers.
+        const updateResult = await tx.paidEventOrder.updateMany({
+          where: {
+            id: order.id,
+            status: { in: ["PENDING", "PAYMENT_PENDING"] },
+          },
           data: { status: "EXPIRED" },
         });
+
+        if (updateResult.count === 0) {
+          // Another concurrent worker or payment finalizer already transitioned this order
+          return;
+        }
+
+        transitioned = true;
+
         await tx.payment.updateMany({
           where: { paidEventOrderId: order.id, status: "PENDING" },
           data: { status: "FAILED" },
         });
+
         if (order.promotionRegistrationId) {
           await tx.registration.update({
             where: { id: order.promotionRegistrationId },
@@ -603,6 +619,11 @@ export async function cleanupExpiredPaidEventHolds(options?: {
           }).catch(() => {});
         }
       });
+
+      if (!transitioned) {
+        continue;
+      }
+
       expiredCount++;
 
       if (order.ticketTierId) {

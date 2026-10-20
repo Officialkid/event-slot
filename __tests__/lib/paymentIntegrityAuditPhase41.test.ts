@@ -441,6 +441,91 @@ describe('Phase 4.1: Payment Integrity Audit & Critical Corrections', () => {
       expect(ledgerPosted).toBe(false)
     })
 
+    it('routes late-arriving payment to OVERCAPACITY_PAID when tier capacity is committed to active waitlist offers', async () => {
+      const mockOrder = {
+        id: 'order-late-waitlist-preempted',
+        eventId: 'event-1',
+        ticketTierId: 'tier-almost-full',
+        amountKes: 1000,
+        currency: 'KES',
+        status: 'EXPIRED',
+        holdExpiresAt: new Date(Date.now() - 3600000),
+        attendeeEmail: 'latecomer@example.com',
+        attendeeName: 'Late Attendee',
+        attendeePayload: [],
+        event: {
+          id: 'event-1',
+          title: 'Waitlisted Event',
+          slug: 'waitlisted',
+          eventDate: new Date(),
+          location: 'Hall B',
+          confirmedCount: 9,
+          capacity: 10,
+          currency: 'KES',
+          organizerId: 'org-1',
+          organizer: { plan: 'free' },
+        },
+        ticketTier: {
+          id: 'tier-almost-full',
+          name: 'General',
+          priceKes: 1000,
+          bundleSize: 1,
+          soldCount: 9, // 9 sold, 1 remaining spot
+          capacity: 10,
+        },
+        registrations: [],
+      }
+
+      let orderUpdatedStatus = ''
+      let ticketTierIncremented = false
+      let ledgerPosted = false
+
+      ;(prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+        const tx = {
+          $queryRaw: jest.fn().mockResolvedValue([]),
+          paidEventOrder: {
+            findUnique: jest.fn().mockResolvedValue(mockOrder),
+            // 1 active waitlist promotion hold for candidate: 9 sold + 1 offered = 10 capacity committed!
+            count: jest.fn().mockResolvedValue(1),
+            update: jest.fn().mockImplementation((args) => {
+              orderUpdatedStatus = args.data.status
+              return { id: 'order-late-waitlist-preempted', status: args.data.status }
+            }),
+          },
+          ticketTier: {
+            findUnique: jest.fn().mockResolvedValue({ id: 'tier-almost-full', capacity: 10, soldCount: 9 }),
+            update: jest.fn().mockImplementation(() => {
+              ticketTierIncremented = true
+            }),
+          },
+          registration: {
+            create: jest.fn(),
+          },
+          event: { update: jest.fn() },
+          ticket: { create: jest.fn() },
+          payment: { updateMany: jest.fn() },
+          organiserBalance: { upsert: jest.fn() },
+          financialLedgerEntry: {
+            upsert: jest.fn().mockImplementation(() => {
+              ledgerPosted = true
+            }),
+          },
+          auditLog: {
+            create: jest.fn().mockResolvedValue({ id: 'audit-log-2' }),
+          },
+        }
+        return callback(tx)
+      })
+
+      const result = await finalizePaidEventOrderPayment('order-late-waitlist-preempted', 'pes_ref_late_waitlist')
+
+      // Must move to OVERCAPACITY_PAID to protect the active waitlist offer promise
+      expect(result.status).toBe('OVERCAPACITY_PAID')
+      expect(orderUpdatedStatus).toBe('OVERCAPACITY_PAID')
+      expect(ticketTierIncremented).toBe(false)
+      expect(ledgerPosted).toBe(false)
+    })
+
     it('enforces idempotency so duplicate finalizations return existing registration without double-crediting', async () => {
       const mockOrder = {
         id: 'order-already-done',

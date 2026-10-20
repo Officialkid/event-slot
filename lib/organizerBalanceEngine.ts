@@ -268,6 +268,7 @@ export type BalanceIntegrityAuditResult = {
     completedWithdrawalsMinorUnits: bigint
     availableMinorUnits: bigint
     ledgerBalanceMinorUnits: bigint
+    ledgerNetEntitlementMinorUnits: bigint
   }
 }
 
@@ -294,8 +295,8 @@ export async function auditOrganizerBalanceIntegrity(
       balance.pendingSettlementMinorUnits +
       balance.disputedOrReversedMinorUnits
 
-  // 3. Commission Ratio: Flat 5% platform commission
-  const expectedCommission = (balance.totalGrossMinorUnits * BigInt(5) + BigInt(99)) / BigInt(100)
+  // 3. Commission Ratio: Flat 5% platform baseline with half-up rounding
+  const expectedCommission = (balance.totalGrossMinorUnits * BigInt(5) + BigInt(50)) / BigInt(100)
   const diffCommission =
     balance.totalCommissionMinorUnits > expectedCommission
       ? balance.totalCommissionMinorUnits - expectedCommission
@@ -428,6 +429,7 @@ export async function auditOrganizerBalanceIntegrity(
       completedWithdrawalsMinorUnits: balance.completedWithdrawalsMinorUnits,
       availableMinorUnits: balance.availableMinorUnits,
       ledgerBalanceMinorUnits: balance.reconciliation.ledgerNetEntitlementsMinorUnits,
+      ledgerNetEntitlementMinorUnits: balance.reconciliation.ledgerNetEntitlementsMinorUnits,
     },
   }
 }

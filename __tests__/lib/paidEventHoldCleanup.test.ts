@@ -9,6 +9,7 @@ jest.mock('@/lib/prisma', () => {
     paidEventOrder: {
       findMany: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     payment: {
       updateMany: jest.fn(),
@@ -65,7 +66,7 @@ describe('Capacity Reservation Expiration & Hold Auto-Release', () => {
     ]
 
     ;(prisma.paidEventOrder.findMany as jest.Mock).mockResolvedValue(expiredOrders)
-    ;(prisma.paidEventOrder.update as jest.Mock).mockResolvedValue({ id: 'order-expired-1' })
+    ;(prisma.paidEventOrder.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
     ;(prisma.payment.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
     ;(prisma.registration.update as jest.Mock).mockResolvedValue({ id: 'reg-waitlist-1' })
     ;(offerNextPaidWaitlistSpot as jest.Mock).mockResolvedValue({ success: true })
@@ -75,13 +76,13 @@ describe('Capacity Reservation Expiration & Hold Auto-Release', () => {
     expect(result.expiredCount).toBe(2)
     expect(result.promotedCount).toBe(2)
 
-    // Verify order updates
-    expect(prisma.paidEventOrder.update).toHaveBeenCalledWith({
-      where: { id: 'order-expired-1' },
+    // Verify atomic conditional order updates
+    expect(prisma.paidEventOrder.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-expired-1', status: { in: ['PENDING', 'PAYMENT_PENDING'] } },
       data: { status: 'EXPIRED' },
     })
-    expect(prisma.paidEventOrder.update).toHaveBeenCalledWith({
-      where: { id: 'order-expired-2' },
+    expect(prisma.paidEventOrder.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-expired-2', status: { in: ['PENDING', 'PAYMENT_PENDING'] } },
       data: { status: 'EXPIRED' },
     })
 
@@ -102,6 +103,27 @@ describe('Capacity Reservation Expiration & Hold Auto-Release', () => {
     expect(offerNextPaidWaitlistSpot).toHaveBeenCalledWith('event-101', 'tier-standard')
   })
 
+  it('prevents duplicate waitlist promotion when concurrent workers race on the same expired hold', async () => {
+    const expiredOrders = [
+      {
+        id: 'order-racing-already-expired',
+        eventId: 'event-101',
+        ticketTierId: 'tier-vip',
+        promotionRegistrationId: null,
+      },
+    ]
+
+    ;(prisma.paidEventOrder.findMany as jest.Mock).mockResolvedValue(expiredOrders)
+    // Another worker already flipped the status from PENDING to EXPIRED (count: 0)
+    ;(prisma.paidEventOrder.updateMany as jest.Mock).mockResolvedValue({ count: 0 })
+
+    const result = await cleanupExpiredPaidEventHolds()
+
+    expect(result.expiredCount).toBe(0)
+    expect(result.promotedCount).toBe(0)
+    expect(offerNextPaidWaitlistSpot).not.toHaveBeenCalled()
+  })
+
   it('continues cleanly and processes subsequent orders even if one update throws an error', async () => {
     const expiredOrders = [
       {
@@ -119,6 +141,7 @@ describe('Capacity Reservation Expiration & Hold Auto-Release', () => {
     ]
 
     ;(prisma.paidEventOrder.findMany as jest.Mock).mockResolvedValue(expiredOrders)
+    ;(prisma.paidEventOrder.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
     ;(prisma.$transaction as jest.Mock)
       .mockRejectedValueOnce(new Error('Deadlock / Connection abort'))
       .mockImplementationOnce(async (cb) => cb(prisma))

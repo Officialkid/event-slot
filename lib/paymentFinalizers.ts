@@ -226,10 +226,28 @@ export async function finalizePaidEventOrderPayment(
     })
 
     const isHoldExpired = eventOrder.holdExpiresAt < new Date() || eventOrder.status === 'EXPIRED'
-    const isTierFull = freshTier ? freshTier.soldCount >= freshTier.capacity : false
+
+    // Check for other active checkout holds and waitlist promotion holds on this tier
+    const activeHolds =
+      typeof tx.paidEventOrder?.count === 'function'
+        ? await tx.paidEventOrder
+            .count({
+              where: {
+                ticketTierId: eventOrder.ticketTierId,
+                status: { in: ['PENDING', 'PAYMENT_PENDING'] },
+                holdExpiresAt: { gt: new Date() },
+                id: { not: eventOrder.id },
+              },
+            })
+            .catch(() => 0)
+        : 0
+
+    const isTierFull = freshTier
+      ? freshTier.soldCount + activeHolds >= freshTier.capacity
+      : false
 
     // 3. Late Payment Handling:
-    // If the hold expired and the tier is now completely full:
+    // If the hold expired and the tier is now completely full (or committed to active waitlist offers):
     // DO NOT oversell. DO NOT issue a ticket. DO NOT discard payment.
     // Provider payment succeeded and is recorded as SUCCESS with zero organizer entitlement until resolved.
     // Order transitions to OVERCAPACITY_PAID with fulfillmentStatus = OVERCAPACITY_HOLD.
