@@ -335,25 +335,10 @@ export async function requestOrganizerWithdrawal(
           }
         }
       } catch (verifyErr) {
-        // If verification explicitly reports 404 (Transfer Not Found), it was never created
-        if (verifyErr instanceof PaystackApiError && verifyErr.statusCode === 404) {
-          await failAndReleaseOrganizerWithdrawal({
-            withdrawalId: withdrawal.id,
-            reason: dispatchErr instanceof Error ? dispatchErr.message : 'Transfer dispatch failed and reference was not found on provider.',
-            actorId: input.organizerId,
-          })
-
-          return {
-            success: false,
-            withdrawalId: withdrawal.id,
-            status: 'FAILED',
-            reference: clientRef,
-            amount: input.amount,
-            currency,
-            destination: input.destination,
-            message: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider rejected withdrawal request.',
-          }
-        }
+        // Inconclusive verification outcome:
+        // A 404 immediately following a timeout does NOT prove the transfer was never created,
+        // because provider background queues or replica lag may delay visibility.
+        // FAIL CLOSED: Preserve reservation and defer to durable reconciliation worker.
       }
 
       // If status is still ambiguous/unverified:
@@ -638,4 +623,223 @@ export async function reverseOrganizerWithdrawal(params: {
   })
 
   return { success: true, duplicate: false }
+}
+
+export type ReconcileWithdrawalResult = {
+  withdrawalId: string
+  status: WithdrawalStatus
+  reconciled: boolean
+  providerStatus?: string
+  message: string
+}
+
+/**
+ * Reconciles an individual withdrawal stuck in PROCESSING or uncertain status.
+ * Queries Paystack API using the stable provider reference.
+ * Treats 404, timeouts, and network errors as INCONCLUSIVE (preserves reservation).
+ */
+export async function reconcileOrganizerWithdrawal(params: {
+  withdrawalId: string
+  actorId?: string
+  forceRelease?: boolean
+  forceReason?: string
+}): Promise<ReconcileWithdrawalResult> {
+  const withdrawal = await prisma.withdrawal.findUnique({
+    where: { id: params.withdrawalId },
+  })
+  if (!withdrawal) {
+    throw new Error(`Withdrawal not found: ${params.withdrawalId}`)
+  }
+
+  // If already terminal, return existing status
+  if (withdrawal.status === 'COMPLETED' || withdrawal.status === 'FAILED' || withdrawal.status === 'REVERSED') {
+    return {
+      withdrawalId: withdrawal.id,
+      status: withdrawal.status,
+      reconciled: false,
+      message: `Withdrawal is already in terminal status: ${withdrawal.status}`,
+    }
+  }
+
+  const actorId = params.actorId || 'SYSTEM_RECONCILIATION'
+
+  // If manual force release is requested, require explicit reason
+  if (params.forceRelease) {
+    if (!params.forceReason || !params.forceReason.trim()) {
+      throw new Error('forceReason is strictly required for manual administrative release of funds.')
+    }
+    await failAndReleaseOrganizerWithdrawal({
+      withdrawalId: withdrawal.id,
+      reason: `MANUAL_ADMIN_RELEASE: ${params.forceReason.trim()}`,
+      actorId,
+    })
+    return {
+      withdrawalId: withdrawal.id,
+      status: 'FAILED',
+      reconciled: true,
+      message: `Withdrawal manually released by operator (${actorId}): ${params.forceReason}`,
+    }
+  }
+
+  const lookupRef = withdrawal.providerRef || withdrawal.idempotencyKey?.split(':')[2] || withdrawal.id
+
+  try {
+    const verified = await verifyPaystackTransfer(lookupRef)
+    const provStatus = (verified.status || 'unknown').toLowerCase()
+
+    if (provStatus === 'success') {
+      await completeOrganizerWithdrawal({
+        withdrawalId: withdrawal.id,
+        providerReference: verified.reference,
+        settledAt: verified.transferredAt || new Date(),
+        actorId,
+      })
+      return {
+        withdrawalId: withdrawal.id,
+        status: 'COMPLETED',
+        reconciled: true,
+        providerStatus: provStatus,
+        message: 'Successfully reconciled to COMPLETED via Paystack API verification.',
+      }
+    } else if (provStatus === 'failed') {
+      await failAndReleaseOrganizerWithdrawal({
+        withdrawalId: withdrawal.id,
+        reason: 'Paystack API verification confirmed transfer failure.',
+        actorId,
+      })
+      return {
+        withdrawalId: withdrawal.id,
+        status: 'FAILED',
+        reconciled: true,
+        providerStatus: provStatus,
+        message: 'Reconciled to FAILED via Paystack API verification; funds released.',
+      }
+    } else if (provStatus === 'reversed') {
+      await reverseOrganizerWithdrawal({
+        withdrawalId: withdrawal.id,
+        reason: 'Paystack API verification confirmed transfer reversal.',
+        actorId,
+      })
+      return {
+        withdrawalId: withdrawal.id,
+        status: 'REVERSED',
+        reconciled: true,
+        providerStatus: provStatus,
+        message: 'Reconciled to REVERSED via Paystack API verification; funds restored.',
+      }
+    } else {
+      // Pending, processing, or OTP on provider
+      await prisma.withdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          failureReason: `Reconciliation verified status is "${provStatus}" on provider at ${new Date().toISOString()}`,
+        },
+      })
+      return {
+        withdrawalId: withdrawal.id,
+        status: 'PROCESSING',
+        reconciled: false,
+        providerStatus: provStatus,
+        message: `Transfer remains in "${provStatus}" state on provider. Reservation maintained.`,
+      }
+    }
+  } catch (err: any) {
+    // Verification request failed, timed out, or returned 404
+    // INCONCLUSIVE: NEVER release funds on ambiguous verification!
+    const errMsg = err instanceof Error ? err.message : String(err)
+    await prisma.withdrawal.update({
+      where: { id: withdrawal.id },
+      data: {
+        failureReason: `RECONCILIATION_INCONCLUSIVE: ${errMsg} at ${new Date().toISOString()}`,
+      },
+    })
+
+    await prisma.auditLog.create({
+      data: {
+        actorId,
+        action: 'WITHDRAWAL_RECONCILIATION_INCONCLUSIVE',
+        metadata: {
+          withdrawalId: withdrawal.id,
+          reference: lookupRef,
+          error: errMsg,
+        },
+      },
+    })
+
+    return {
+      withdrawalId: withdrawal.id,
+      status: 'PROCESSING',
+      reconciled: false,
+      message: `Reconciliation check inconclusive (${errMsg}). Reservation strictly maintained.`,
+    }
+  }
+}
+
+/**
+ * Worker that scans and reconciles all active withdrawals stuck in PROCESSING.
+ */
+export async function runWithdrawalReconciliationWorker(options?: {
+  olderThanMinutes?: number
+  limit?: number
+  dryRun?: boolean
+  actorId?: string
+}): Promise<{
+  totalInspected: number
+  reconciledCount: number
+  stillPendingCount: number
+  inconclusiveCount: number
+  results: ReconcileWithdrawalResult[]
+}> {
+  const olderThanMs = (options?.olderThanMinutes ?? 5) * 60 * 1000
+  const cutoff = new Date(Date.now() - olderThanMs)
+  const limit = options?.limit ?? 50
+
+  const pendingWithdrawals = await prisma.withdrawal.findMany({
+    where: {
+      status: 'PROCESSING',
+      createdAt: { lte: cutoff },
+    },
+    take: limit,
+    orderBy: { createdAt: 'asc' },
+  })
+
+  let reconciledCount = 0
+  let stillPendingCount = 0
+  let inconclusiveCount = 0
+  const results: ReconcileWithdrawalResult[] = []
+
+  for (const wd of pendingWithdrawals) {
+    if (options?.dryRun) {
+      results.push({
+        withdrawalId: wd.id,
+        status: 'PROCESSING',
+        reconciled: false,
+        message: `DRY RUN: would reconcile withdrawal ${wd.id} (ref: ${wd.providerRef})`,
+      })
+      stillPendingCount++
+      continue
+    }
+
+    const res = await reconcileOrganizerWithdrawal({
+      withdrawalId: wd.id,
+      actorId: options?.actorId || 'CRON_RECONCILIATION_WORKER',
+    })
+    results.push(res)
+
+    if (res.reconciled) {
+      reconciledCount++
+    } else if (res.message.includes('inconclusive')) {
+      inconclusiveCount++
+    } else {
+      stillPendingCount++
+    }
+  }
+
+  return {
+    totalInspected: pendingWithdrawals.length,
+    reconciledCount,
+    stillPendingCount,
+    inconclusiveCount,
+    results,
+  }
 }
