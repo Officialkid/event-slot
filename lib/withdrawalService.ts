@@ -18,8 +18,34 @@ import {
   buildWithdrawalReleaseIdempotencyKey,
 } from '@/lib/financialLedger'
 import { getAuthoritativeOrganizerBalance } from '@/lib/organizerBalanceEngine'
+import { PaystackApiError, PaystackValidationError } from '@/lib/paystack'
+import { verifyPaystackTransfer } from '@/lib/paystackPayouts'
 import { WithdrawalMethod, WithdrawalStatus, Prisma } from '@prisma/client'
 import crypto from 'crypto'
+
+export function isAmbiguousDispatchError(err: unknown): boolean {
+  if (!err) return false
+  if (err instanceof Error) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') return true
+    const msg = err.message.toLowerCase()
+    if (
+      msg.includes('timeout') ||
+      msg.includes('timed out') ||
+      msg.includes('network') ||
+      msg.includes('fetch failed') ||
+      msg.includes('econnreset') ||
+      msg.includes('etimedout') ||
+      msg.includes('socket hang up') ||
+      msg.includes('gateway')
+    ) {
+      return true
+    }
+  }
+  if (err instanceof PaystackApiError && err.statusCode >= 500) {
+    return true
+  }
+  return false
+}
 
 export class InsufficientSettledBalanceError extends Error {
   readonly availableMinorUnits: bigint
@@ -226,6 +252,7 @@ export async function requestOrganizerWithdrawal(
           providerRef: providerRes.reference,
           transferCode: providerRes.transferCode,
           recipientCode: providerRes.recipientCode,
+          failureReason: null,
         },
       })
 
@@ -239,22 +266,127 @@ export async function requestOrganizerWithdrawal(
         destination: input.destination,
       }
     } catch (dispatchErr: any) {
-      // Synchronous failure: Atomically RELEASE the reservation
-      await failAndReleaseOrganizerWithdrawal({
-        withdrawalId: withdrawal.id,
-        reason: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider rejected withdrawal request.',
-        actorId: input.organizerId,
+      // Differentiate definitive client/provider rejections from ambiguous network/timeout outcomes
+      const isAmbiguous = isAmbiguousDispatchError(dispatchErr)
+
+      if (!isAmbiguous) {
+        // Synchronous definitive rejection: Atomically release the reservation
+        await failAndReleaseOrganizerWithdrawal({
+          withdrawalId: withdrawal.id,
+          reason: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider definitively rejected withdrawal request.',
+          actorId: input.organizerId,
+        })
+
+        return {
+          success: false,
+          withdrawalId: withdrawal.id,
+          status: 'FAILED',
+          reference: clientRef,
+          amount: input.amount,
+          currency,
+          destination: input.destination,
+          message: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider rejected withdrawal request.',
+        }
+      }
+
+      // Ambiguous outcome (timeout, 5xx gateway error, network disconnect):
+      // NEVER release the reservation immediately! Attempt verification.
+      try {
+        const verified = await verifyPaystackTransfer(clientRef)
+        if (verified.status === 'success' || verified.status === 'pending') {
+          // Transfer was created and is accepted/queued on Paystack
+          await prisma.withdrawal.update({
+            where: { id: withdrawal.id },
+            data: {
+              providerRef: verified.reference,
+              transferCode: verified.transferCode,
+              recipientCode: verified.recipientCode,
+              failureReason: `Transfer accepted (${verified.status}) after initial dispatch uncertainty`,
+            },
+          })
+
+          return {
+            success: true,
+            withdrawalId: withdrawal.id,
+            status: 'PROCESSING',
+            reference: verified.reference,
+            amount: input.amount,
+            currency,
+            destination: input.destination,
+            message: 'Transfer was accepted by provider and is currently processing.',
+          }
+        } else if (verified.status === 'failed') {
+          // Explicitly confirmed failed on provider
+          await failAndReleaseOrganizerWithdrawal({
+            withdrawalId: withdrawal.id,
+            reason: 'Provider verified transfer failure',
+            actorId: input.organizerId,
+          })
+
+          return {
+            success: false,
+            withdrawalId: withdrawal.id,
+            status: 'FAILED',
+            reference: clientRef,
+            amount: input.amount,
+            currency,
+            destination: input.destination,
+            message: 'Transfer failed on provider.',
+          }
+        }
+      } catch (verifyErr) {
+        // If verification explicitly reports 404 (Transfer Not Found), it was never created
+        if (verifyErr instanceof PaystackApiError && verifyErr.statusCode === 404) {
+          await failAndReleaseOrganizerWithdrawal({
+            withdrawalId: withdrawal.id,
+            reason: dispatchErr instanceof Error ? dispatchErr.message : 'Transfer dispatch failed and reference was not found on provider.',
+            actorId: input.organizerId,
+          })
+
+          return {
+            success: false,
+            withdrawalId: withdrawal.id,
+            status: 'FAILED',
+            reference: clientRef,
+            amount: input.amount,
+            currency,
+            destination: input.destination,
+            message: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider rejected withdrawal request.',
+          }
+        }
+      }
+
+      // If status is still ambiguous/unverified:
+      // FAIL CLOSED: Keep funds locked in PROCESSING. DO NOT RELEASE RESERVATION.
+      const reasonMsg = dispatchErr instanceof Error ? dispatchErr.message : 'Network timeout or ambiguous dispatch'
+      await prisma.withdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          failureReason: `UNCERTAIN_DISPATCH: ${reasonMsg}. Reservation held securely pending reconciliation.`,
+        },
+      })
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.organizerId,
+          action: 'WITHDRAWAL_UNCERTAIN_DISPATCH',
+          metadata: {
+            withdrawalId: withdrawal.id,
+            clientRef,
+            error: reasonMsg,
+          },
+        },
       })
 
       return {
         success: false,
         withdrawalId: withdrawal.id,
-        status: 'FAILED',
+        status: 'PROCESSING',
         reference: clientRef,
         amount: input.amount,
         currency,
         destination: input.destination,
-        message: dispatchErr instanceof Error ? dispatchErr.message : 'Payout provider rejected withdrawal request.',
+        message: 'Payout request encountered a network timeout. Your funds remain safely reserved. Please do not retry this withdrawal.',
       }
     }
   }
@@ -288,6 +420,9 @@ export async function completeOrganizerWithdrawal(params: {
 
   if (withdrawal.status === 'COMPLETED') {
     return { success: true, duplicate: true }
+  }
+  if (withdrawal.status === 'REVERSED') {
+    return { success: false, duplicate: false, message: `Cannot complete withdrawal ${params.withdrawalId}: already REVERSED` }
   }
 
   const now = params.settledAt ?? new Date()
@@ -360,6 +495,9 @@ export async function failAndReleaseOrganizerWithdrawal(params: {
 
   if (withdrawal.status === 'FAILED') {
     return { success: true, duplicate: true }
+  }
+  if (withdrawal.status === 'COMPLETED') {
+    return { success: false, duplicate: false, message: `Cannot release withdrawal ${params.withdrawalId}: already COMPLETED` }
   }
 
   const amountMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)

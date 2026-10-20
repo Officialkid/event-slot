@@ -26,15 +26,19 @@ export type AuthoritativeOrganizerBalance = {
   totalEntitlementMinorUnits: bigint
   // 4. Funds collected on Paystack but pending settlement evidence
   pendingSettlementMinorUnits: bigint
-  // 5. Settled organizer funds (verified evidence in merchant balance)
+  // 5. Quarantined or disputed funds (not pending, not settled)
+  disputedOrReversedMinorUnits: bigint
+  // 6. Settled organizer funds (verified evidence in merchant balance)
   settledEntitlementMinorUnits: bigint
-  // 6. Funds reserved for active pending/processing withdrawals
+  // 7. Funds reserved for active pending/processing withdrawals
   pendingReservationsMinorUnits: bigint
-  // 7. Completed withdrawals (paid out to organizer)
+  // 8. Completed withdrawals (paid out to organizer)
   completedWithdrawalsMinorUnits: bigint
-  // 8. Reversed withdrawals (restored to organizer)
+  // 9. Reversed withdrawals (restored to organizer)
   reversedWithdrawalsMinorUnits: bigint
-  // 9. Available balance eligible for a new withdrawal
+  // 10. Net refund or administrative adjustments debited to organizer
+  otherAdjustmentsMinorUnits: bigint
+  // 11. Available balance eligible for a new withdrawal
   availableMinorUnits: bigint
   // Display numbers (converted from integer minor units)
   formatted: {
@@ -42,9 +46,11 @@ export type AuthoritativeOrganizerBalance = {
     totalCommission: number
     totalEntitlement: number
     pendingSettlement: number
+    disputedOrReversed: number
     settledEntitlement: number
     pendingReservations: number
     completedWithdrawals: number
+    otherAdjustments: number
     available: number
   }
   // Reconciliation verification against FinancialLedgerEntry
@@ -93,6 +99,7 @@ export async function getAuthoritativeOrganizerBalance(
   let totalCommissionMinorUnits = BigInt(0)
   let totalEntitlementMinorUnits = BigInt(0)
   let pendingSettlementMinorUnits = BigInt(0)
+  let disputedOrReversedMinorUnits = BigInt(0)
   let settledEntitlementMinorUnits = BigInt(0)
 
   for (const p of payments) {
@@ -109,8 +116,11 @@ export async function getAuthoritativeOrganizerBalance(
 
     if (p.settlementStatus === 'SETTLED') {
       settledEntitlementMinorUnits += entMinor
-    } else {
+    } else if (p.settlementStatus === 'PENDING') {
       pendingSettlementMinorUnits += entMinor
+    } else {
+      // DISPUTED or REVERSED
+      disputedOrReversedMinorUnits += entMinor
     }
   }
 
@@ -143,13 +153,7 @@ export async function getAuthoritativeOrganizerBalance(
     }
   }
 
-  // 3. Compute Available Withdrawable Balance
-  // Funds must be settled, minus current reservations, minus completed withdrawals
-  const totalDeductionsMinor = pendingReservationsMinorUnits + completedWithdrawalsMinorUnits
-  const rawAvailable = settledEntitlementMinorUnits - totalDeductionsMinor
-  const availableMinorUnits = rawAvailable > BigInt(0) ? rawAvailable : BigInt(0)
-
-  // 4. Audit Reconciliation against FinancialLedgerEntry
+  // 3. Fetch all ledger entries to check for explicit refunds or adjustments
   const ledgerEntries = await db.financialLedgerEntry.findMany({
     where: {
       organizerId,
@@ -164,15 +168,38 @@ export async function getAuthoritativeOrganizerBalance(
 
   let ledgerCredits = BigInt(0)
   let ledgerDebits = BigInt(0)
+  let otherAdjustmentsDebits = BigInt(0)
+  let otherAdjustmentsCredits = BigInt(0)
 
   for (const entry of ledgerEntries) {
     if (entry.entryType === 'TICKET_PROCEEDS') {
       ledgerCredits += entry.amountMinorUnits
     } else if (entry.entryType === 'PLATFORM_COMMISSION') {
       ledgerDebits += entry.amountMinorUnits
+    } else if (entry.entryType === 'REFUND') {
+      otherAdjustmentsDebits += entry.amountMinorUnits
+    } else if (entry.entryType === 'ADJUSTMENT') {
+      if (entry.direction === 'DEBIT') {
+        otherAdjustmentsDebits += entry.amountMinorUnits
+      } else {
+        otherAdjustmentsCredits += entry.amountMinorUnits
+      }
     }
   }
 
+  const netOtherDeductionsMinor =
+    otherAdjustmentsDebits > otherAdjustmentsCredits
+      ? otherAdjustmentsDebits - otherAdjustmentsCredits
+      : BigInt(0)
+
+  // 4. Compute Available Withdrawable Balance
+  // Funds must be settled, minus current reservations, minus completed withdrawals, minus net other adjustments
+  const totalDeductionsMinor =
+    pendingReservationsMinorUnits + completedWithdrawalsMinorUnits + netOtherDeductionsMinor
+  const rawAvailable = settledEntitlementMinorUnits - totalDeductionsMinor
+  const availableMinorUnits = rawAvailable > BigInt(0) ? rawAvailable : BigInt(0)
+
+  // 5. Audit Reconciliation against FinancialLedgerEntry
   const ledgerNetEntitlementsMinorUnits = ledgerCredits - ledgerDebits
   const discrepancyMinorUnits = totalEntitlementMinorUnits - ledgerNetEntitlementsMinorUnits
   const isBalanced = discrepancyMinorUnits === BigInt(0)
@@ -186,19 +213,23 @@ export async function getAuthoritativeOrganizerBalance(
     totalCommissionMinorUnits,
     totalEntitlementMinorUnits,
     pendingSettlementMinorUnits,
+    disputedOrReversedMinorUnits,
     settledEntitlementMinorUnits,
     pendingReservationsMinorUnits,
     completedWithdrawalsMinorUnits,
     reversedWithdrawalsMinorUnits,
+    otherAdjustmentsMinorUnits: netOtherDeductionsMinor,
     availableMinorUnits,
     formatted: {
       totalGross: Number(totalGrossMinorUnits) / divisor,
       totalCommission: Number(totalCommissionMinorUnits) / divisor,
       totalEntitlement: Number(totalEntitlementMinorUnits) / divisor,
       pendingSettlement: Number(pendingSettlementMinorUnits) / divisor,
+      disputedOrReversed: Number(disputedOrReversedMinorUnits) / divisor,
       settledEntitlement: Number(settledEntitlementMinorUnits) / divisor,
       pendingReservations: Number(pendingReservationsMinorUnits) / divisor,
       completedWithdrawals: Number(completedWithdrawalsMinorUnits) / divisor,
+      otherAdjustments: Number(netOtherDeductionsMinor) / divisor,
       available: Number(availableMinorUnits) / divisor,
     },
     reconciliation: {

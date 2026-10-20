@@ -29,6 +29,7 @@ const payloadSchema = z.object({
     bankAccountName: z.string().optional(),
     bankBranchCode: z.string().optional(),
   }),
+  clientReference: z.string().max(100).optional(),
 })
 
 function buildDestinationLabel(
@@ -97,6 +98,8 @@ export async function POST(req: NextRequest) {
 
     const destinationLabel = buildDestinationLabel(method, destination)
     const narrative = `EventSlot payout ${currency} ${amount}`
+    const headerIdempotencyKey = req.headers.get("x-idempotency-key") || req.headers.get("idempotency-key")
+    const clientReference = parsed.data.clientReference || headerIdempotencyKey?.trim() || undefined
 
     // Concurrency-safe atomic reservation with payout dispatch
     const result = await requestOrganizerWithdrawal(
@@ -114,6 +117,7 @@ export async function POST(req: NextRequest) {
           accountName: destination.bankAccountName?.trim(),
         },
         narrative,
+        clientReference,
       },
       async ({ amountMinorUnits, reference }) => {
         if (method === "MPESA") {

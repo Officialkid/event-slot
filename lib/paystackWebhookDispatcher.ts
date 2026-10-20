@@ -385,6 +385,11 @@ export async function dispatchPaystackWebhook(params: {
       case 'transfer.success': {
         const transferRef = eventData.reference
         const transferCode = eventData.transfer_code
+        if (!transferRef && !transferCode) {
+          console.warn('[PaystackWebhook] transfer.success event received without reference or transfer_code')
+          break
+        }
+
         const withdrawal = await prisma.withdrawal.findFirst({
           where: {
             OR: [
@@ -394,21 +399,46 @@ export async function dispatchPaystackWebhook(params: {
           },
         })
 
-        if (withdrawal) {
-          const settledAt = eventData.transferred_at ? new Date(eventData.transferred_at) : new Date()
-          await completeOrganizerWithdrawal({
-            withdrawalId: withdrawal.id,
-            providerReference: transferRef || withdrawal.providerRef || undefined,
-            settledAt,
-            actorId: 'PAYSTACK_WEBHOOK',
-          })
+        if (!withdrawal) {
+          console.warn(`[PaystackWebhook] transfer.success event for unknown withdrawal (ref: ${transferRef}, code: ${transferCode})`)
+          break
         }
+
+        // Integrity check: Amount and currency validation
+        if (eventData.amount !== undefined) {
+          const webhookMinor = BigInt(eventData.amount)
+          const expectedMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
+          if (webhookMinor !== expectedMinor) {
+            console.error(`[PaystackWebhook] Transfer amount mismatch for withdrawal ${withdrawal.id}: expected ${expectedMinor}, got ${webhookMinor}`)
+            return { status: 400, body: { error: 'Transfer amount mismatch' } }
+          }
+        }
+        if (eventData.currency) {
+          const webhookCurr = eventData.currency.toString().trim().toUpperCase()
+          if (webhookCurr !== withdrawal.currency.toUpperCase()) {
+            console.error(`[PaystackWebhook] Transfer currency mismatch for withdrawal ${withdrawal.id}: expected ${withdrawal.currency}, got ${webhookCurr}`)
+            return { status: 400, body: { error: 'Transfer currency mismatch' } }
+          }
+        }
+
+        const settledAt = eventData.transferred_at ? new Date(eventData.transferred_at) : new Date()
+        await completeOrganizerWithdrawal({
+          withdrawalId: withdrawal.id,
+          providerReference: transferRef || withdrawal.providerRef || undefined,
+          settledAt,
+          actorId: 'PAYSTACK_WEBHOOK',
+        })
         break
       }
 
       case 'transfer.failed': {
         const transferRef = eventData.reference
         const transferCode = eventData.transfer_code
+        if (!transferRef && !transferCode) {
+          console.warn('[PaystackWebhook] transfer.failed event received without reference or transfer_code')
+          break
+        }
+
         const withdrawal = await prisma.withdrawal.findFirst({
           where: {
             OR: [
@@ -418,19 +448,44 @@ export async function dispatchPaystackWebhook(params: {
           },
         })
 
-        if (withdrawal) {
-          await failAndReleaseOrganizerWithdrawal({
-            withdrawalId: withdrawal.id,
-            reason: eventData.reason || eventData.message || 'Transfer failed on payment provider',
-            actorId: 'PAYSTACK_WEBHOOK',
-          })
+        if (!withdrawal) {
+          console.warn(`[PaystackWebhook] transfer.failed event for unknown withdrawal (ref: ${transferRef}, code: ${transferCode})`)
+          break
         }
+
+        // Integrity check: Amount and currency validation
+        if (eventData.amount !== undefined) {
+          const webhookMinor = BigInt(eventData.amount)
+          const expectedMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
+          if (webhookMinor !== expectedMinor) {
+            console.error(`[PaystackWebhook] Transfer amount mismatch for withdrawal ${withdrawal.id}: expected ${expectedMinor}, got ${webhookMinor}`)
+            return { status: 400, body: { error: 'Transfer amount mismatch' } }
+          }
+        }
+        if (eventData.currency) {
+          const webhookCurr = eventData.currency.toString().trim().toUpperCase()
+          if (webhookCurr !== withdrawal.currency.toUpperCase()) {
+            console.error(`[PaystackWebhook] Transfer currency mismatch for withdrawal ${withdrawal.id}: expected ${withdrawal.currency}, got ${webhookCurr}`)
+            return { status: 400, body: { error: 'Transfer currency mismatch' } }
+          }
+        }
+
+        await failAndReleaseOrganizerWithdrawal({
+          withdrawalId: withdrawal.id,
+          reason: eventData.reason || eventData.message || 'Transfer failed on payment provider',
+          actorId: 'PAYSTACK_WEBHOOK',
+        })
         break
       }
 
       case 'transfer.reversed': {
         const transferRef = eventData.reference
         const transferCode = eventData.transfer_code
+        if (!transferRef && !transferCode) {
+          console.warn('[PaystackWebhook] transfer.reversed event received without reference or transfer_code')
+          break
+        }
+
         const withdrawal = await prisma.withdrawal.findFirst({
           where: {
             OR: [
@@ -440,13 +495,33 @@ export async function dispatchPaystackWebhook(params: {
           },
         })
 
-        if (withdrawal) {
-          await reverseOrganizerWithdrawal({
-            withdrawalId: withdrawal.id,
-            reason: eventData.reason || eventData.message || 'Transfer reversed by recipient institution',
-            actorId: 'PAYSTACK_WEBHOOK',
-          })
+        if (!withdrawal) {
+          console.warn(`[PaystackWebhook] transfer.reversed event for unknown withdrawal (ref: ${transferRef}, code: ${transferCode})`)
+          break
         }
+
+        // Integrity check: Amount and currency validation
+        if (eventData.amount !== undefined) {
+          const webhookMinor = BigInt(eventData.amount)
+          const expectedMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
+          if (webhookMinor !== expectedMinor) {
+            console.error(`[PaystackWebhook] Transfer amount mismatch for withdrawal ${withdrawal.id}: expected ${expectedMinor}, got ${webhookMinor}`)
+            return { status: 400, body: { error: 'Transfer amount mismatch' } }
+          }
+        }
+        if (eventData.currency) {
+          const webhookCurr = eventData.currency.toString().trim().toUpperCase()
+          if (webhookCurr !== withdrawal.currency.toUpperCase()) {
+            console.error(`[PaystackWebhook] Transfer currency mismatch for withdrawal ${withdrawal.id}: expected ${withdrawal.currency}, got ${webhookCurr}`)
+            return { status: 400, body: { error: 'Transfer currency mismatch' } }
+          }
+        }
+
+        await reverseOrganizerWithdrawal({
+          withdrawalId: withdrawal.id,
+          reason: eventData.reason || eventData.message || 'Transfer reversed by recipient institution',
+          actorId: 'PAYSTACK_WEBHOOK',
+        })
         break
       }
 

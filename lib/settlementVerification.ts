@@ -75,10 +75,20 @@ export async function processSettlementBatchEvidence(
 
   // 2. Validate transaction amounts sum to batch total
   let calculatedBatchTotal = BigInt(0)
+  const seenBatchReferences = new Set<string>()
+
   for (const item of evidence.transactions) {
     if (!item.reference || !item.reference.trim()) {
       throw new SettlementVerificationError('Transaction evidence item is missing reference.')
     }
+    const cleanRef = item.reference.trim()
+    if (seenBatchReferences.has(cleanRef)) {
+      throw new SettlementVerificationError(
+        `Duplicate transaction reference within settlement batch: ${cleanRef}`
+      )
+    }
+    seenBatchReferences.add(cleanRef)
+
     if (typeof item.amountMinorUnits !== 'bigint' || item.amountMinorUnits <= BigInt(0)) {
       throw new SettlementVerificationError(
         `Invalid minor units amount for transaction ${item.reference}: ${item.amountMinorUnits}`
@@ -150,6 +160,21 @@ export async function processSettlementBatchEvidence(
       if (payment.status !== 'SUCCESS') {
         throw new SettlementVerificationError(
           `Cannot settle payment ${payment.id} for reference ${item.reference}: payment status is ${payment.status}, not SUCCESS`
+        )
+      }
+
+      // Invariant: Quarantined, disputed or reversed payments cannot be marked settled
+      if (payment.settlementStatus === 'DISPUTED' || payment.settlementStatus === 'REVERSED') {
+        throw new SettlementVerificationError(
+          `Cannot settle payment ${payment.id} (${item.reference}): payment settlementStatus is ${payment.settlementStatus}`
+        )
+      }
+
+      // Invariant: Payment order currency must match batch currency
+      const paymentOrderCurrency = (payment.paidEventOrder?.currency || 'KES').trim().toUpperCase()
+      if (paymentOrderCurrency !== normalizedCurrency) {
+        throw new SettlementVerificationError(
+          `Currency mismatch for payment ${payment.id} (${item.reference}): database order expects ${paymentOrderCurrency}, settlement evidence reports ${normalizedCurrency}`
         )
       }
 
