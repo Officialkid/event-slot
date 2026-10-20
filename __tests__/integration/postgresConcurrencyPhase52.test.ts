@@ -165,7 +165,72 @@ describeOrSkip('Phase 5.5: Live PostgreSQL Concurrency & Transaction Serializati
     expect(rejected).toHaveLength(1)
   })
 
-  // 4. Duplicate Terminal Event Release / Debit Guard
+  // 4. Conflicting Withdrawal Terminal-State Transitions Serialization
+  it('serializes conflicting withdrawal terminal-state transitions (concurrent completion vs failure release)', async () => {
+    const testOrgId = `org_test_${Date.now()}_conflict`
+    const ref = `wd_conflict_${Date.now()}`
+
+    await testPrisma.user.create({
+      data: { id: testOrgId, email: `${testOrgId}@test.eventslot.com` },
+    })
+
+    const initialWd = await testPrisma.withdrawal.create({
+      data: {
+        organiserId: testOrgId,
+        amount: 1000,
+        amountMinorUnits: BigInt(100000),
+        currency: 'KES',
+        method: 'MPESA',
+        destination: '0712345678',
+        status: 'PROCESSING',
+        idempotencyKey: `wd:${testOrgId}:${ref}`,
+        providerRef: ref,
+      },
+    })
+
+    // Worker A attempts COMPLETED transition
+    const completeAttempt = async () => {
+      return testPrisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Withdrawal" WHERE id = ${initialWd.id} FOR UPDATE`
+        const current = await tx.withdrawal.findUnique({ where: { id: initialWd.id } })
+        if (!current || current.status !== 'PROCESSING') {
+          throw new Error(`CANNOT_COMPLETE_STATUS_${current?.status}`)
+        }
+        return tx.withdrawal.update({
+          where: { id: initialWd.id },
+          data: { status: 'COMPLETED', settledAt: new Date() },
+        })
+      })
+    }
+
+    // Worker B attempts FAILED transition with release
+    const failAttempt = async () => {
+      return testPrisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Withdrawal" WHERE id = ${initialWd.id} FOR UPDATE`
+        const current = await tx.withdrawal.findUnique({ where: { id: initialWd.id } })
+        if (!current || current.status !== 'PROCESSING') {
+          throw new Error(`CANNOT_FAIL_STATUS_${current?.status}`)
+        }
+        return tx.withdrawal.update({
+          where: { id: initialWd.id },
+          data: { status: 'FAILED', failureReason: 'Simulated failure' },
+        })
+      })
+    }
+
+    const results = await Promise.allSettled([completeAttempt(), failAttempt()])
+    const fulfilled = results.filter((r) => r.status === 'fulfilled')
+    const rejected = results.filter((r) => r.status === 'rejected')
+
+    // Exactly one transition succeeds; the conflicting transition sees non-PROCESSING status and is rejected
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+
+    const finalWd = await testPrisma.withdrawal.findUnique({ where: { id: initialWd.id } })
+    expect(['COMPLETED', 'FAILED']).toContain(finalWd?.status)
+  })
+
+  // 4b. Duplicate Terminal Event Release / Debit Guard
   it('prevents duplicate terminal release ledger entries on unique idempotencyKey', async () => {
     const testOrgId = `org_test_${Date.now()}_term`
     const releaseKey = `wd_term_rel_${Date.now()}`
@@ -320,12 +385,63 @@ describeOrSkip('Phase 5.5: Live PostgreSQL Concurrency & Transaction Serializati
     const found = await testPrisma.withdrawal.findUnique({ where: { idempotencyKey } })
     expect(found).toBeNull()
   })
+
+  // 7. Distributed PIN Attempt Concurrency & Row-Lock Lockout
+  it('enforces distributed PIN lockout policy across concurrent workers using PostgreSQL row locks on User', async () => {
+    const testOrgId = `org_test_${Date.now()}_pin`
+    await testPrisma.user.create({
+      data: { id: testOrgId, email: `${testOrgId}@test.eventslot.com` },
+    })
+
+    const attemptPinReservation = async () => {
+      return testPrisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${testOrgId} FOR UPDATE`
+        const windowStart = new Date(Date.now() - 10 * 60 * 1000)
+        const count = await tx.rateLimitLog.count({
+          where: {
+            key: `pin:${testOrgId}`,
+            createdAt: { gte: windowStart },
+          },
+        })
+
+        if (count >= 5) {
+          return { permitted: false, count }
+        }
+
+        await tx.rateLimitLog.create({
+          data: {
+            key: `pin:${testOrgId}`,
+            action: 'pin_verify',
+          },
+        })
+
+        return { permitted: true, count: count + 1 }
+      })
+    }
+
+    // 15 concurrent workers racing to enter incorrect PIN
+    const attempts = await Promise.all(
+      Array.from({ length: 15 }).map(() => attemptPinReservation())
+    )
+
+    const permitted = attempts.filter((a) => a.permitted)
+    const lockedOut = attempts.filter((a) => !a.permitted)
+
+    // Exactly 5 permitted attempts under PostgreSQL row lock
+    expect(permitted).toHaveLength(5)
+    expect(lockedOut).toHaveLength(10)
+
+    const totalLogs = await testPrisma.rateLimitLog.count({
+      where: { key: `pin:${testOrgId}` },
+    })
+    expect(totalLogs).toBe(5)
+  })
 })
 
 describe('PostgreSQL Concurrency Test Environment Notice', () => {
   it('documents that live database-level concurrency is safely skipped in environments lacking an isolated PostgreSQL container', () => {
     if (!testDbUrl) {
-      console.log(
+      console.info(
         '[PostgreSQL Concurrency Audit] TEST_POSTGRES_DATABASE_URL is not set. Real PostgreSQL engine concurrency tests are skipped to safeguard shared and production databases. Concurrency row locks (SELECT ... FOR UPDATE) and transaction serialization have been strictly validated at application logic and mock levels. See scripts/run-postgres-concurrency-test.ps1 for instructions to run against a disposable container.'
       )
     }

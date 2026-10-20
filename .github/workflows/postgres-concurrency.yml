@@ -20,13 +20,14 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     env:
       DATABASE_URL: postgresql://postgres:test_ci_password@localhost:5432/eventslot_test_concurrency?schema=public
+      DIRECT_URL: postgresql://postgres:test_ci_password@localhost:5432/eventslot_test_concurrency?schema=public
       TEST_POSTGRES_DATABASE_URL: postgresql://postgres:test_ci_password@localhost:5432/eventslot_test_concurrency?schema=public
       NEXTAUTH_SECRET: ci-test-secret-value-32-chars-long
       NEXTAUTH_URL: http://localhost:3000
