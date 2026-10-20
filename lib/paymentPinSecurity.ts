@@ -46,6 +46,23 @@ function getRedisClient() {
   return redisClientPromise
 }
 
+// Helper for non-fatal opportunistic pruning
+async function safePruneExpired(cleanId: string, cutoff: Date): Promise<void> {
+  try {
+    if (typeof prisma?.rateLimitLog?.deleteMany === 'function') {
+      await prisma.rateLimitLog.deleteMany({
+        where: {
+          key: `pin:${cleanId}`,
+          action: 'PAYMENT_PIN_FAILED',
+          createdAt: { lt: cutoff },
+        },
+      })
+    }
+  } catch {
+    // Best-effort pruning
+  }
+}
+
 /**
  * Checks whether an organizer is currently locked out from PIN verification.
  * Fails closed if persistent storage is unavailable.
@@ -75,6 +92,8 @@ export async function checkPinLockout(userId: string): Promise<PinLockoutStatus>
     }
 
     // 2. Authoritative check in durable database RateLimitLog
+    await safePruneExpired(cleanId, cutoff)
+
     const count = await prisma.rateLimitLog.count({
       where: {
         key: `pin:${cleanId}`,
@@ -127,6 +146,9 @@ export async function recordFailedPinAttempt(userId: string): Promise<PinLockout
   const cutoff = new Date(Date.now() - PIN_LOCKOUT_WINDOW_MS)
 
   try {
+    // 0. Opportunistically prune expired records for this user
+    await safePruneExpired(cleanId, cutoff)
+
     // 1. Record in database RateLimitLog
     await prisma.rateLimitLog.create({
       data: {
@@ -198,12 +220,151 @@ export async function clearPinLockout(userId: string): Promise<void> {
   }
 }
 
+// In-process per-user async mutex to strictly serialize concurrent reservations for the same organizer
+const userMutexMap = new Map<string, Promise<void>>()
+
+async function withUserLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  const currentLock = userMutexMap.get(userId) || Promise.resolve()
+  let resolveNextLock: () => void
+
+  const nextLock = new Promise<void>((resolve) => {
+    resolveNextLock = resolve
+  })
+
+  userMutexMap.set(userId, nextLock)
+
+  try {
+    await currentLock
+    return await fn()
+  } finally {
+    resolveNextLock!()
+    if (userMutexMap.get(userId) === nextLock) {
+      userMutexMap.delete(userId)
+    }
+  }
+}
+
+/**
+ * Atomically checks whether an organizer is locked out and, if not, reserves an attempt slot.
+ * Serializes attempt consumption to ensure concurrent requests CANNOT exceed MAX_PIN_FAILURES.
+ * Also opportunistically prunes expired records for this organizer to prevent unbounded table growth.
+ */
+export async function checkAndReservePinAttempt(userId: string): Promise<PinLockoutStatus> {
+  const cleanId = userId.trim()
+  return withUserLock(cleanId, async () => {
+    const cutoff = new Date(Date.now() - PIN_LOCKOUT_WINDOW_MS)
+
+    try {
+      // 1. Check Redis if configured
+      const redisPromise = getRedisClient()
+      if (redisPromise) {
+        const redis = await redisPromise
+        if (redis) {
+          const val = await redis.get(`pin_fail:${cleanId}`).catch(() => null)
+          const redisCount = typeof val === 'number' ? val : parseInt(val || '0', 10)
+          if (redisCount >= MAX_PIN_FAILURES) {
+            const ttl = await redis.ttl(`pin_fail:${cleanId}`).catch(() => PIN_LOCKOUT_WINDOW_SECONDS)
+            return {
+              isLocked: true,
+              failedCount: redisCount,
+              remainingAttempts: 0,
+              retryAfterSeconds: ttl > 0 ? ttl : PIN_LOCKOUT_WINDOW_SECONDS,
+            }
+          }
+        }
+      }
+
+      // 2. Opportunistic pruning of expired records for this user
+      await safePruneExpired(cleanId, cutoff)
+
+      // 3. Count existing failures in window
+      const currentCount = await prisma.rateLimitLog.count({
+        where: {
+          key: `pin:${cleanId}`,
+          action: 'PAYMENT_PIN_FAILED',
+          createdAt: { gte: cutoff },
+        },
+      })
+
+      if (currentCount >= MAX_PIN_FAILURES) {
+        const oldestInWindow = await prisma.rateLimitLog.findFirst({
+          where: {
+            key: `pin:${cleanId}`,
+            action: 'PAYMENT_PIN_FAILED',
+            createdAt: { gte: cutoff },
+          },
+          orderBy: { createdAt: 'asc' },
+          select: { createdAt: true },
+        })
+        const elapsedMs = oldestInWindow ? Date.now() - oldestInWindow.createdAt.getTime() : 0
+        const remainingMs = Math.max(0, PIN_LOCKOUT_WINDOW_MS - elapsedMs)
+        const retryAfterSeconds = Math.ceil(remainingMs / 1000) || PIN_LOCKOUT_WINDOW_SECONDS
+
+        return {
+          isLocked: true,
+          failedCount: currentCount,
+          remainingAttempts: 0,
+          retryAfterSeconds,
+        }
+      }
+
+      // 4. Atomically record this attempt reservation
+      await prisma.rateLimitLog.create({
+        data: {
+          key: `pin:${cleanId}`,
+          action: 'PAYMENT_PIN_FAILED',
+        },
+      })
+
+      // Also update Redis if configured
+      if (redisPromise) {
+        const redis = await redisPromise
+        if (redis) {
+          const c = await redis.incr(`pin_fail:${cleanId}`).catch(() => null)
+          if (c === 1) {
+            await redis.expire(`pin_fail:${cleanId}`, PIN_LOCKOUT_WINDOW_SECONDS).catch(() => null)
+          }
+        }
+      }
+
+      const newCount = currentCount + 1
+      return {
+        isLocked: false,
+        failedCount: newCount,
+        remainingAttempts: Math.max(0, MAX_PIN_FAILURES - newCount),
+        retryAfterSeconds: newCount >= MAX_PIN_FAILURES ? PIN_LOCKOUT_WINDOW_SECONDS : undefined,
+      }
+    } catch (err: any) {
+      console.error(`[PaymentPinSecurity] Storage failure reserving attempt for ${cleanId}:`, err?.message || err)
+      throw new SecurityStorageError('Security verification store is temporarily unavailable.')
+    }
+  })
+}
+
+/**
+ * Periodically prunes expired PIN failure logs across all users to prevent unbounded table growth.
+ */
+export async function pruneExpiredPinRateLimitLogs(olderThanMs: number = PIN_LOCKOUT_WINDOW_MS): Promise<number> {
+  const cutoff = new Date(Date.now() - olderThanMs)
+  const result = await prisma.rateLimitLog.deleteMany({
+    where: {
+      action: 'PAYMENT_PIN_FAILED',
+      createdAt: { lt: cutoff },
+    },
+  }).catch((err) => {
+    console.warn('[PaymentPinSecurity] Error pruning expired PIN rate limit logs:', err?.message || err)
+    return { count: 0 }
+  })
+  return result.count
+}
+
 export type VerifyPinResult =
   | { success: true }
   | { success: false; status: 400 | 403 | 429 | 503; error: string; remainingAttempts?: number }
 
 /**
  * Durably verifies an organizer's payments PIN against their hash with anti-brute-force lockout.
+ * Uses atomic attempt reservation so concurrent requests CANNOT exceed MAX_PIN_FAILURES.
  */
 export async function verifyPaymentPinDurable(params: {
   userId: string
@@ -220,10 +381,11 @@ export async function verifyPaymentPinDurable(params: {
     }
   }
 
-  // 1. Check Lockout State (Fails closed on storage failure)
+  // 1. Atomically check lockout and reserve an attempt slot
+  // Prevents concurrent requests from exceeding MAX_PIN_FAILURES before lockout takes effect.
   let status: PinLockoutStatus
   try {
-    status = await checkPinLockout(userId)
+    status = await checkAndReservePinAttempt(userId)
   } catch (err) {
     if (err instanceof SecurityStorageError) {
       return {
@@ -248,36 +410,24 @@ export async function verifyPaymentPinDurable(params: {
   const valid = await bcrypt.compare(pin, paymentPinHash)
 
   if (!valid) {
-    // 3. Atomically Record Failure (Fails closed on storage failure)
-    try {
-      const updated = await recordFailedPinAttempt(userId)
-      if (updated.isLocked) {
-        return {
-          success: false,
-          status: 429,
-          error: 'The payments PIN you entered is incorrect. Account withdrawal locked for 10 minutes.',
-          remainingAttempts: 0,
-        }
-      }
+    // Attempt failed. The attempt was already atomically recorded in status.failedCount.
+    if (status.failedCount >= MAX_PIN_FAILURES) {
       return {
         success: false,
-        status: 403,
-        error: `The payments PIN you entered is incorrect. (${updated.remainingAttempts} attempt${updated.remainingAttempts === 1 ? '' : 's'} remaining before lockout)`,
-        remainingAttempts: updated.remainingAttempts,
+        status: 429,
+        error: 'The payments PIN you entered is incorrect. Account withdrawal locked for 10 minutes.',
+        remainingAttempts: 0,
       }
-    } catch (err) {
-      if (err instanceof SecurityStorageError) {
-        return {
-          success: false,
-          status: 503,
-          error: 'Security verification temporarily unavailable. Please try again shortly.',
-        }
-      }
-      throw err
+    }
+    return {
+      success: false,
+      status: 403,
+      error: `The payments PIN you entered is incorrect. (${status.remainingAttempts} attempt${status.remainingAttempts === 1 ? '' : 's'} remaining before lockout)`,
+      remainingAttempts: status.remainingAttempts,
     }
   }
 
-  // 4. Success: Clear failure counters
+  // 3. Success: Clear failure counters and stored attempt records
   await clearPinLockout(userId)
   return { success: true }
 }

@@ -33,6 +33,7 @@ describe('Phase 5.5: Durable Payments PIN Security & Anti-Brute-Force Suite', ()
   beforeEach(() => {
     jest.clearAllMocks()
     ;(prisma.rateLimitLog.create as jest.Mock).mockResolvedValue({ id: 'log-1' })
+    ;(prisma.rateLimitLog.deleteMany as jest.Mock).mockResolvedValue({ count: 0 })
   })
 
   describe('1. checkPinLockout', () => {
@@ -153,9 +154,7 @@ describe('Phase 5.5: Durable Payments PIN Security & Anti-Brute-Force Suite', ()
     })
 
     it('records failure and returns warning with remaining attempts on incorrect PIN', async () => {
-      ;(prisma.rateLimitLog.count as jest.Mock)
-        .mockResolvedValueOnce(2) // Initial check
-        .mockResolvedValueOnce(3) // After recording
+      ;(prisma.rateLimitLog.count as jest.Mock).mockResolvedValueOnce(2)
 
       const hash = await bcrypt.hash('9999', 8)
 
@@ -174,9 +173,7 @@ describe('Phase 5.5: Durable Payments PIN Security & Anti-Brute-Force Suite', ()
     })
 
     it('locks out user with status 429 when attempt reaches 5', async () => {
-      ;(prisma.rateLimitLog.count as jest.Mock)
-        .mockResolvedValueOnce(4) // Initial check
-        .mockResolvedValueOnce(5) // After recording 5th failure
+      ;(prisma.rateLimitLog.count as jest.Mock).mockResolvedValueOnce(4)
 
       const hash = await bcrypt.hash('8888', 8)
 

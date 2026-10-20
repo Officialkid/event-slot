@@ -707,9 +707,12 @@ export async function reconcileOrganizerWithdrawal(params: {
     }
     const actor = await prisma.user.findUnique({
       where: { id: params.actorId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, suspended: true, isAdmin: true },
     })
-    const isAuthorized = actor && isAdminEmail(actor.email)
+    if (!actor || actor.suspended) {
+      throw new Error(`Unauthorized: Actor ${params.actorId} is invalid or suspended.`)
+    }
+    const isAuthorized = isAdminEmail(actor.email) || Boolean(actor.isAdmin)
 
     if (!isAuthorized) {
       throw new Error(`Unauthorized: Actor ${params.actorId} lacks administrator privileges to force release funds.`)
@@ -717,7 +720,7 @@ export async function reconcileOrganizerWithdrawal(params: {
 
     await failAndReleaseOrganizerWithdrawal({
       withdrawalId: withdrawal.id,
-      reason: `MANUAL_ADMIN_RELEASE: ${params.forceReason.trim()}`,
+      reason: `MANUAL_ADMIN_RELEASE by ${actor.email} (${actorId}): ${params.forceReason.trim()}`,
       actorId,
     })
     return {

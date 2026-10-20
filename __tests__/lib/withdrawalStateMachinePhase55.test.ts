@@ -368,14 +368,18 @@ describe('Phase 5.5: Withdrawal State Machine & Transition Matrix Suite', () => 
       ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'admin-super',
         email: 'admin@eventslot.com',
+        suspended: false,
       })
+
+      const mockAuditLogCreate = jest.fn().mockResolvedValue({})
+      const mockLedgerUpsert = jest.fn().mockResolvedValue({})
 
       ;(prisma.$transaction as jest.Mock).mockImplementation(async (cb) => {
         const tx = {
           withdrawal: { update: jest.fn() },
-          financialLedgerEntry: { upsert: jest.fn().mockResolvedValue({}) },
+          financialLedgerEntry: { upsert: mockLedgerUpsert },
           organiserBalance: { upsert: jest.fn().mockResolvedValue({}) },
-          auditLog: { create: jest.fn().mockResolvedValue({}) },
+          auditLog: { create: mockAuditLogCreate },
         }
         return cb(tx)
       })
@@ -390,6 +394,78 @@ describe('Phase 5.5: Withdrawal State Machine & Transition Matrix Suite', () => 
       expect(res.reconciled).toBe(true)
       expect(res.status).toBe('FAILED')
       expect(res.message).toMatch(/manually released by authorized operator/i)
+
+      expect(mockAuditLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: 'WITHDRAWAL_RESERVATION_RELEASED',
+            actorId: 'admin-super',
+            metadata: expect.objectContaining({
+              withdrawalId: 'wd-force-4',
+              reason: expect.stringMatching(/MANUAL_ADMIN_RELEASE by admin@eventslot\.com/i),
+            }),
+          }),
+        })
+      )
+    })
+
+    it('rejects manual force release when administrator account is suspended', async () => {
+      ;(prisma.withdrawal.findUnique as jest.Mock).mockResolvedValue({
+        id: 'wd-force-5',
+        status: 'PROCESSING',
+      })
+
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'admin-suspended',
+        email: 'admin@eventslot.com',
+        suspended: true,
+      })
+
+      await expect(
+        reconcileOrganizerWithdrawal({
+          withdrawalId: 'wd-force-5',
+          forceRelease: true,
+          forceReason: 'Suspended admin attempted force release',
+          actorId: 'admin-suspended',
+        })
+      ).rejects.toThrow(/invalid or suspended/i)
+    })
+
+    it('rejects manual force release when actor is not found in database', async () => {
+      ;(prisma.withdrawal.findUnique as jest.Mock).mockResolvedValue({
+        id: 'wd-force-6',
+        status: 'PROCESSING',
+      })
+
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
+
+      await expect(
+        reconcileOrganizerWithdrawal({
+          withdrawalId: 'wd-force-6',
+          forceRelease: true,
+          forceReason: 'Nonexistent actor attempted force release',
+          actorId: 'ghost_actor_id',
+        })
+      ).rejects.toThrow(/invalid or suspended/i)
+    })
+
+    it('blocks repeated manual force release on already FAILED withdrawal', async () => {
+      ;(prisma.withdrawal.findUnique as jest.Mock).mockResolvedValue({
+        id: 'wd-force-7',
+        status: 'FAILED',
+      })
+
+      const res = await reconcileOrganizerWithdrawal({
+        withdrawalId: 'wd-force-7',
+        forceRelease: true,
+        forceReason: 'Attempt to force release twice',
+        actorId: 'admin-super',
+      })
+
+      expect(res.reconciled).toBe(false)
+      expect(res.status).toBe('FAILED')
+      expect(res.message).toMatch(/already in terminal status: FAILED/i)
+      expect(prisma.$transaction).not.toHaveBeenCalled()
     })
   })
 })
