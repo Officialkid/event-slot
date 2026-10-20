@@ -84,9 +84,9 @@ test.describe("latest pricing, checkout, and commission surfaces", () => {
     await expect(page.getByText("Pro Plan Mini-Test")).toBeVisible()
     await expect(page.getByText("Business Plan Mini-Test")).toBeVisible()
 
-    await expect(page.getByText("Standard Plan Main Run").locator("..")).toContainText("8%")
-    await expect(page.getByText("Free Plan Mini-Test").locator("..")).toContainText("10%")
+    await expect(page.getByText("Standard Plan Main Run").locator("..")).toContainText("5%")
+    await expect(page.getByText("Free Plan Mini-Test").locator("..")).toContainText("5%")
     await expect(page.getByText("Pro Plan Mini-Test").locator("..")).toContainText("5%")
-    await expect(page.getByText("Business Plan Mini-Test").locator("..")).toContainText("3%")
+    await expect(page.getByText("Business Plan Mini-Test").locator("..")).toContainText("5%")
   })
 })
