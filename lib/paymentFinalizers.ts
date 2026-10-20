@@ -139,7 +139,7 @@ export async function failPaidEventOrderPayment(orderId: string, status: 'FAILED
 
 export type FinalizePaidEventOrderResult =
   | { status: 'PAID'; registrationId: string; confirmationCode: string }
-  | { status: 'OVERCAPACITY_PAID'; message: string }
+  | { status: 'OVERCAPACITY_PAID'; message: string; fulfillmentStatus?: string }
   | { status: 'NOT_FOUND' }
 
 export async function finalizePaidEventOrderPayment(
@@ -231,22 +231,31 @@ export async function finalizePaidEventOrderPayment(
     // 3. Late Payment Handling:
     // If the hold expired and the tier is now completely full:
     // DO NOT oversell. DO NOT issue a ticket. DO NOT discard payment.
-    // Transition to auditable exception-resolution state OVERCAPACITY_PAID.
+    // Provider payment succeeded and is recorded as SUCCESS with zero organizer entitlement until resolved.
+    // Order transitions to OVERCAPACITY_PAID with fulfillmentStatus = OVERCAPACITY_HOLD.
     if (isHoldExpired && isTierFull) {
       await tx.paidEventOrder.update({
         where: { id: eventOrder.id },
         data: {
           status: 'OVERCAPACITY_PAID',
+          fulfillmentStatus: 'OVERCAPACITY_HOLD',
+          exceptionReason: 'Hold expired and tier capacity was exhausted before payment confirmation. Requires refund or manual organizer resolution.',
           providerReference: providerReference ?? eventOrder.providerReference,
           mpesaReceiptNumber: providerReference ?? eventOrder.mpesaReceiptNumber,
           paidAt,
         },
       })
 
+      // The Paystack charge was verified and succeeded. Do not falsely mark provider payment as FAILED!
+      // Commission and organizer entitlements are held at 0 minor units until the exception is resolved.
       await tx.payment.updateMany({
         where: { paidEventOrderId: eventOrder.id },
         data: {
-          status: 'FAILED',
+          status: 'SUCCESS',
+          amount: eventOrder.amountKes,
+          commissionAmount: 0,
+          organizerAmount: 0,
+          commissionRate: 0,
           mpesaRef: providerReference ?? eventOrder.mpesaReceiptNumber,
           paidAt,
         },
@@ -263,6 +272,8 @@ export async function finalizePaidEventOrderPayment(
             attendeeEmail: eventOrder.attendeeEmail,
             amountKes: eventOrder.amountKes,
             providerReference,
+            paymentStatus: 'SUCCESS',
+            fulfillmentStatus: 'OVERCAPACITY_HOLD',
             reason: 'Hold expired and tier capacity was exhausted before payment confirmation. Requires refund or manual organizer resolution.',
           },
         },
@@ -446,7 +457,8 @@ export async function finalizePaidEventOrderPayment(
   if (outcome.kind === 'overcapacity') {
     return {
       status: 'OVERCAPACITY_PAID',
-      message: 'Hold expired and tier reached capacity before payment confirmation. Order moved to exception resolution queue.',
+      fulfillmentStatus: 'OVERCAPACITY_HOLD',
+      message: 'Hold expired and tier reached capacity before payment confirmation. Payment succeeded on provider but ticket fulfillment requires resolution.',
     }
   }
 
@@ -501,6 +513,268 @@ export async function finalizePaidEventOrderPayment(
     registrationId,
     confirmationCode,
   }
+}
+
+export type ResolveOvercapacityResult =
+  | {
+      success: true
+      duplicate?: boolean
+      status: string
+      fulfillmentStatus: string
+      resolvedAt: Date
+      resolution?: 'MANUAL_FULFILLMENT' | 'MANUAL_REFUND'
+      registrationId?: string
+      confirmationCode?: string
+    }
+  | {
+      success: false
+      error: string
+    }
+
+/**
+ * Idempotently and auditably resolves an order in OVERCAPACITY_PAID exception state.
+ * Supports manual fulfillment (allocating ticket and crediting ledger) or manual refund marking.
+ * Does NOT invoke external provider refund APIs.
+ */
+export async function resolveOvercapacityPaidOrder(input: {
+  orderId: string
+  resolution: 'MANUAL_FULFILLMENT' | 'MANUAL_REFUND'
+  notes?: string
+  actorId: string
+}): Promise<ResolveOvercapacityResult> {
+  const order = await prisma.paidEventOrder.findUnique({
+    where: { id: input.orderId },
+    include: {
+      event: { select: { id: true, organizerId: true, title: true, currency: true, organizer: { select: { plan: true } } } },
+      ticketTier: true,
+      payment: true,
+      registrations: true,
+    },
+  })
+
+  if (!order) {
+    return { success: false, error: 'Order not found' }
+  }
+
+  if (order.status !== 'OVERCAPACITY_PAID') {
+    return {
+      success: false,
+      error: `Order is not in OVERCAPACITY_PAID status (current status: ${order.status})`,
+    }
+  }
+
+  // Idempotency: if already resolved, return existing outcome
+  if (order.fulfillmentStatus === 'RESOLVED' || order.fulfillmentStatus === 'REFUNDED') {
+    return {
+      success: true,
+      duplicate: true,
+      status: order.status,
+      fulfillmentStatus: order.fulfillmentStatus,
+      resolvedAt: order.resolvedAt ?? new Date(),
+    }
+  }
+
+  const now = new Date()
+
+  if (input.resolution === 'MANUAL_REFUND') {
+    await prisma.$transaction(async (tx) => {
+      await tx.paidEventOrder.update({
+        where: { id: order.id },
+        data: {
+          status: 'REFUNDED',
+          fulfillmentStatus: 'REFUNDED',
+          resolvedAt: now,
+          resolutionNotes: input.notes ?? 'Marked as refunded by operator',
+        },
+      })
+
+      await tx.payment.updateMany({
+        where: { paidEventOrderId: order.id },
+        data: {
+          status: 'REFUNDED',
+        },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_MANUAL_REFUND',
+          metadata: {
+            orderId: order.id,
+            amountKes: order.amountKes,
+            notes: input.notes,
+            resolvedAt: now.toISOString(),
+          },
+        },
+      })
+    })
+
+    return {
+      success: true,
+      status: 'REFUNDED',
+      fulfillmentStatus: 'REFUNDED',
+      resolvedAt: now,
+    }
+  }
+
+  // Manual Fulfillment: Issue ticket and post organizer entitlement ledger entries
+  return prisma.$transaction(async (tx) => {
+    let confirmationCode = order.registrations[0]?.confirmationCode ?? generateConfirmationCode()
+    let registrationId = order.registrations[0]?.id
+
+    if (!registrationId) {
+      const registrationNumber = (await tx.registration.count({ where: { eventId: order.eventId } })) + 1
+      const created = await tx.registration.create({
+        data: {
+          eventId: order.eventId,
+          ticketTierId: order.ticketTierId,
+          paidOrderId: order.id,
+          answers: order.attendeePayload as Prisma.InputJsonValue,
+          status: 'confirmed',
+          registrationNumber,
+          submittedAt: now,
+          notified: false,
+          attendeeEmail: order.attendeeEmail,
+          consentTransactional: true,
+          consentMarketing: false,
+          confirmationCode,
+          qrCode: crypto.randomUUID(),
+          source: 'paid-checkout-manual-resolution',
+        },
+        select: { id: true, confirmationCode: true },
+      })
+      registrationId = created.id
+      confirmationCode = created.confirmationCode ?? confirmationCode
+    }
+
+    await tx.event.update({
+      where: { id: order.eventId },
+      data: { confirmedCount: { increment: 1 } },
+    })
+
+    await tx.ticketTier.update({
+      where: { id: order.ticketTierId },
+      data: { soldCount: { increment: 1 } },
+    })
+
+    const ticketCode = crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()
+    const admissionsTotal = Math.max(1, order.ticketTier.bundleSize ?? 1)
+    const existingTicket = await tx.ticket.findUnique({ where: { registrationId: registrationId! } })
+    const ticket = existingTicket ?? await tx.ticket.create({
+      data: {
+        registrationId: registrationId!,
+        code: ticketCode,
+        admissionsTotal,
+        ticketTierId: order.ticketTierId,
+        ticketTierName: order.ticketTier.name,
+        amountPaidKes: order.amountKes,
+        admissionsUsed: 0,
+      },
+      select: { id: true },
+    })
+
+    const effectivePlan = order.event.organizer?.plan ?? 'free'
+    const commission = calculatePaidEventCommission(order.amountKes, effectivePlan)
+
+    await tx.paidEventOrder.update({
+      where: { id: order.id },
+      data: {
+        status: 'PAID',
+        fulfillmentStatus: 'RESOLVED',
+        resolvedAt: now,
+        resolutionNotes: input.notes ?? 'Manually fulfilled by operator',
+      },
+    })
+
+    await tx.payment.updateMany({
+      where: { paidEventOrderId: order.id },
+      data: {
+        registrationId,
+        ticketId: ticket.id,
+        amount: order.amountKes,
+        commissionAmount: commission.commissionAmount,
+        organizerAmount: commission.organizerAmount,
+        commissionRate: commission.commissionRate,
+        status: 'SUCCESS',
+      },
+    })
+
+    if (order.event.organizerId) {
+      await updateOrganiserBalance(
+        {
+          organiserId: order.event.organizerId,
+          currency: order.currency || order.event.currency,
+          gross: order.amountKes,
+          commission: commission.commissionAmount,
+          net: commission.organizerAmount,
+        },
+        tx
+      )
+
+      const organizerId = order.event.organizerId
+      const proceedsKey = buildOrderProceedsIdempotencyKey(order.id)
+      const commissionKey = buildOrderCommissionIdempotencyKey(order.id)
+      const proceedsMinor = toMinorUnits(order.amountKes, order.currency || 'KES')
+      const commissionMinor = toMinorUnits(commission.commissionAmount, order.currency || 'KES')
+
+      await tx.financialLedgerEntry.upsert({
+        where: { idempotencyKey: proceedsKey },
+        create: {
+          organizerId,
+          eventId: order.event.id,
+          orderId: order.id,
+          entryType: 'TICKET_PROCEEDS',
+          direction: 'CREDIT',
+          amountMinorUnits: proceedsMinor,
+          currency: order.currency || 'KES',
+          idempotencyKey: proceedsKey,
+          providerReference: order.providerReference,
+          description: `Ticket proceeds for manually resolved order ${order.id} (${order.ticketTier.name})`,
+        },
+        update: {},
+      })
+
+      await tx.financialLedgerEntry.upsert({
+        where: { idempotencyKey: commissionKey },
+        create: {
+          organizerId,
+          eventId: order.event.id,
+          orderId: order.id,
+          entryType: 'PLATFORM_COMMISSION',
+          direction: 'DEBIT',
+          amountMinorUnits: commissionMinor,
+          currency: order.currency || 'KES',
+          idempotencyKey: commissionKey,
+          providerReference: order.providerReference,
+          description: `Platform commission (5%) for manually resolved order ${order.id}`,
+        },
+        update: {},
+      })
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actorId: input.actorId,
+        action: 'ORDER_OVERCAPACITY_MANUAL_FULFILLMENT',
+        metadata: {
+          orderId: order.id,
+          registrationId,
+          ticketId: ticket.id,
+          notes: input.notes,
+          resolvedAt: now.toISOString(),
+        },
+      },
+    })
+
+    return {
+      success: true,
+      status: 'PAID',
+      fulfillmentStatus: 'RESOLVED',
+      registrationId,
+      confirmationCode,
+      resolvedAt: now,
+    }
+  })
 }
 export async function activateSubscriptionPayment(paymentId: string, providerReference?: string | null) {
   const payment = await prisma.subscriptionPayment.findUnique({

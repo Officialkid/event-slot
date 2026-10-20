@@ -14,6 +14,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
     select: {
       id: true,
       status: true,
+      fulfillmentStatus: true,
+      providerReference: true,
       holdExpiresAt: true,
       promotionRegistrationId: true,
       attendeeEmail: true,
@@ -131,6 +133,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
         select: {
           id: true,
           status: true,
+          fulfillmentStatus: true,
+          providerReference: true,
           holdExpiresAt: true,
           attendeeEmail: true,
           amountKes: true,
@@ -155,9 +159,16 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
         },
       })
 
+  const isOvercapacity = status === 'OVERCAPACITY_PAID'
+
   return NextResponse.json({
     success: true,
     status,
+    fulfillmentStatus: (responseOrder as any)?.fulfillmentStatus ?? (order as any).fulfillmentStatus ?? (isOvercapacity ? 'OVERCAPACITY_HOLD' : null),
+    message: isOvercapacity
+      ? 'Payment was successfully received, but the capacity hold expired and the event reached capacity before payment was finalized. Our team has been notified to resolve your registration or process a refund.'
+      : undefined,
+    providerReference: responseOrder?.providerReference ?? order.providerReference ?? null,
     confirmationCode: responseOrder?.registrations[0]?.confirmationCode ?? order.registrations[0]?.confirmationCode ?? null,
     registrationId: responseOrder?.registrations[0]?.id ?? order.registrations[0]?.id ?? null,
     eventTitle: responseOrder?.event.title ?? order.event.title,

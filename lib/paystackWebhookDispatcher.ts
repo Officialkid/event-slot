@@ -79,30 +79,16 @@ export async function dispatchPaystackWebhook(params: {
     return { status: 400, body: { error: 'Unidentifiable event payload' } }
   }
 
-  // 3. Idempotency Check & Lock Acquisition
-  const existingRecord = await prisma.processedProviderEvent.findUnique({
+  // 3. Idempotency Check & Distributed Lease Acquisition
+  const now = new Date()
+  const LEASE_TIMEOUT_MS = 60_000 // 60 seconds lease window
+  let eventRecordId: string = ''
+
+  let existingRecord = await prisma.processedProviderEvent.findUnique({
     where: { idempotencyKey },
   })
 
-  const decision = evaluateEventProcessingDecision(existingRecord)
-  if (!decision.shouldProcess) {
-    return { status: 200, body: { message: decision.reason } }
-  }
-
-  let eventRecordId: string
-  const now = new Date()
-
-  if (existingRecord) {
-    await prisma.processedProviderEvent.update({
-      where: { id: existingRecord.id },
-      data: {
-        status: 'PROCESSING',
-        lastAttemptAt: now,
-        attemptCount: { increment: 1 },
-      },
-    })
-    eventRecordId = existingRecord.id
-  } else {
+  if (!existingRecord) {
     try {
       const created = await prisma.processedProviderEvent.create({
         data: {
@@ -120,11 +106,81 @@ export async function dispatchPaystackWebhook(params: {
       eventRecordId = created.id
     } catch (createErr: any) {
       if (createErr?.code === 'P2002') {
-        // Concurrently inserted by another worker process; acknowledge duplicate delivery safely
-        return { status: 200, body: { message: 'Event currently being processed by another worker.' } }
+        // Race condition: another worker inserted simultaneously. Fetch that record.
+        existingRecord = await prisma.processedProviderEvent.findUnique({
+          where: { idempotencyKey },
+        })
+      } else {
+        throw createErr
       }
-      throw createErr
     }
+  }
+
+  if (existingRecord) {
+    // A. Already durably completed
+    if (existingRecord.status === 'PROCESSED') {
+      return { status: 200, body: { message: 'Event was already successfully processed.' } }
+    }
+
+    // B. In PROCESSING: check lease age
+    if (existingRecord.status === 'PROCESSING') {
+      const lastAttempt = existingRecord.lastAttemptAt ?? existingRecord.firstSeenAt
+      const ageMs = now.getTime() - new Date(lastAttempt).getTime()
+
+      if (ageMs < LEASE_TIMEOUT_MS) {
+        // Active worker in progress. Wait briefly with short polling to confirm durable completion
+        const waitIntervals = [200, 400, 600, 800]
+        let settledRecord = null
+
+        for (const waitMs of waitIntervals) {
+          await new Promise((res) => setTimeout(res, waitMs))
+          const polled = await prisma.processedProviderEvent.findUnique({
+            where: { idempotencyKey },
+          })
+          if (polled?.status === 'PROCESSED') {
+            return { status: 200, body: { message: 'Event was already successfully processed.' } }
+          }
+          if (polled?.status === 'FAILED') {
+            settledRecord = polled
+            break
+          }
+        }
+
+        if (!settledRecord) {
+          // Worker is still in progress and lease has not expired.
+          // Return 503 so Paystack will retry if worker crashes. Do NOT falsely acknowledge 200!
+          return {
+            status: 503,
+            body: { message: 'Event processing currently in progress by another worker. Retry pending.' },
+          }
+        }
+        existingRecord = settledRecord
+      }
+    }
+
+    // C. Status is FAILED or lease expired (stale PROCESSING): acquire lease atomically via optimistic lock
+    const acquired = await prisma.processedProviderEvent.updateMany({
+      where: {
+        id: existingRecord.id,
+        status: existingRecord.status,
+        lastAttemptAt: existingRecord.lastAttemptAt,
+      },
+      data: {
+        status: 'PROCESSING',
+        lastAttemptAt: now,
+        attemptCount: { increment: 1 },
+      },
+    })
+
+    if (acquired.count === 0) {
+      // Another concurrent worker acquired the lease simultaneously
+      return {
+        status: 503,
+        body: { message: 'Concurrent lease contention; retry pending.' },
+      }
+    }
+
+    eventRecordId = existingRecord.id
   }
 
   // 4. Dispatch Event to Domain Handlers
@@ -194,12 +250,31 @@ export async function dispatchPaystackWebhook(params: {
         }
 
         // Handler C: User Credits Top-Up
-        if (metadata?.type === 'credits') {
-          const creditsToAdd = amountMinor / 100
-          await prisma.user.update({
-            where: { id: metadata.userId },
-            data: { creditBalance: { increment: creditsToAdd } },
-          })
+        if (metadata?.type === 'credits' && metadata?.userId) {
+          const existingCreditTx = reference
+            ? await prisma.creditTransaction.findFirst({
+                where: { userId: metadata.userId, reference, type: 'PURCHASE' },
+              })
+            : null
+
+          if (!existingCreditTx) {
+            const creditsToAdd = amountMinor / 100
+            await prisma.$transaction([
+              prisma.user.update({
+                where: { id: metadata.userId },
+                data: { creditBalance: { increment: creditsToAdd } },
+              }),
+              prisma.creditTransaction.create({
+                data: {
+                  userId: metadata.userId,
+                  amount: creditsToAdd,
+                  type: 'PURCHASE',
+                  description: 'Credits purchase via Paystack',
+                  reference: reference ?? null,
+                },
+              }),
+            ])
+          }
           break
         }
 

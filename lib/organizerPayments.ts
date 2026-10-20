@@ -233,6 +233,9 @@ async function ensureOrganizerBalanceSnapshot(userId: string): Promise<Organizer
     prisma.payment.findMany({
       where: {
         status: "SUCCESS",
+        paidEventOrder: {
+          status: "PAID",
+        },
         event: {
           organizerId: userId,
           isPaid: true,
@@ -293,6 +296,9 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
     prisma.payment.findMany({
       where: {
         status: "SUCCESS",
+        paidEventOrder: {
+          status: "PAID",
+        },
         event: {
           organizerId: userId,
           isPaid: true,

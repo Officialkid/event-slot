@@ -503,8 +503,10 @@ describe('Phase 4.1: Payment Integrity Audit & Critical Corrections', () => {
       })
       const signature = computePaystackSignature(payload, 'sk_test_mock_secret_key_12345')
 
-      // Webhook 1 finds null
-      ;(prisma.processedProviderEvent.findUnique as jest.Mock).mockResolvedValueOnce(null)
+      // Webhook 1 finds null initially
+      ;(prisma.processedProviderEvent.findUnique as jest.Mock)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'rec-1', status: 'PROCESSED' })
 
       // Webhook 2 concurrently inserted it, so Webhook 1 gets P2002 on create
       const p2002Error: any = new Error('Unique constraint failed on the fields: (`idempotencyKey`)')
@@ -517,7 +519,7 @@ describe('Phase 4.1: Payment Integrity Audit & Critical Corrections', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(res.body.message).toMatch(/being processed by another worker/i)
+      expect(res.body.message).toMatch(/already successfully processed/i)
     })
   })
 })

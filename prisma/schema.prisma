@@ -500,6 +500,10 @@ model PaidEventOrder {
   ticketTierId          String
   ticketTier            TicketTier           @relation(fields: [ticketTierId], references: [id], onDelete: Restrict)
   status                PaidOrderStatus      @default(PENDING)
+  fulfillmentStatus     String?
+  exceptionReason       String?
+  resolvedAt            DateTime?
+  resolutionNotes       String?
   paymentMethod         PaidOrderPaymentMethod
   attendeePayload       Json
   attendeeEmail         String?
@@ -524,6 +528,7 @@ model PaidEventOrder {
 
   @@index([eventId, status])
   @@index([ticketTierId, status])
+  @@index([status, fulfillmentStatus])
   @@index([holdExpiresAt])
   @@index([providerReference])
 }
@@ -536,6 +541,7 @@ enum PaidOrderStatus {
   CANCELLED
   FAILED
   OVERCAPACITY_PAID
+  REFUNDED
 }
 
 enum PaidOrderPaymentMethod {
@@ -1302,6 +1308,7 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   CANCELLED
+  REFUNDED
 }
 
 //  PAYG opt-in and settings per user 
