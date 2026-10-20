@@ -250,6 +250,7 @@ describe('Phase 4.2: Payment Truth, Webhook Recovery & Balance Reconciliation', 
         resolution: 'MANUAL_REFUND',
         notes: 'Customer opted for bank refund through support',
         actorId: 'admin-user-1',
+        providerRefundReference: 'pstk_manual_ref_123',
       })
 
       expect(res.success).toBe(true)

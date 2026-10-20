@@ -227,20 +227,28 @@ export async function finalizePaidEventOrderPayment(
 
     const isHoldExpired = eventOrder.holdExpiresAt < new Date() || eventOrder.status === 'EXPIRED'
 
-    // Check for other active checkout holds and waitlist promotion holds on this tier
-    const activeHolds =
-      typeof tx.paidEventOrder?.count === 'function'
-        ? await tx.paidEventOrder
-            .count({
-              where: {
-                ticketTierId: eventOrder.ticketTierId,
-                status: { in: ['PENDING', 'PAYMENT_PENDING'] },
-                holdExpiresAt: { gt: new Date() },
-                id: { not: eventOrder.id },
-              },
-            })
-            .catch(() => 0)
-        : 0
+    // Check for other active checkout holds and waitlist promotion holds on this tier (fail-closed)
+    let activeHolds = 0
+    if (typeof tx.paidEventOrder?.count === 'function') {
+      try {
+        activeHolds = await tx.paidEventOrder.count({
+          where: {
+            ticketTierId: eventOrder.ticketTierId,
+            status: { in: ['PENDING', 'PAYMENT_PENDING'] },
+            holdExpiresAt: { gt: new Date() },
+            id: { not: eventOrder.id },
+          },
+        })
+      } catch (countErr: any) {
+        console.error(
+          `[PaymentFinalizers] Fail-closed capacity check error: failed to count active holds for tier ${eventOrder.ticketTierId} on order ${eventOrder.id}:`,
+          countErr instanceof Error ? countErr.message : String(countErr)
+        )
+        throw new Error(
+          `CAPACITY_CHECK_FAILED: Unable to verify committed capacity (${countErr instanceof Error ? countErr.message : String(countErr)})`
+        )
+      }
+    }
 
     const isTierFull = freshTier
       ? freshTier.soldCount + activeHolds >= freshTier.capacity
@@ -533,6 +541,15 @@ export async function finalizePaidEventOrderPayment(
   }
 }
 
+export type ResolveOvercapacityInput = {
+  orderId: string
+  resolution: 'MANUAL_FULFILLMENT' | 'MANUAL_REFUND'
+  notes?: string
+  actorId: string
+  providerRefundReference?: string
+  refundMetadata?: Record<string, unknown>
+}
+
 export type ResolveOvercapacityResult =
   | {
       success: true
@@ -543,6 +560,9 @@ export type ResolveOvercapacityResult =
       resolution?: 'MANUAL_FULFILLMENT' | 'MANUAL_REFUND'
       registrationId?: string
       confirmationCode?: string
+      providerRefundReference?: string
+      requiresProviderConfirmation?: boolean
+      message?: string
     }
   | {
       success: false
@@ -551,15 +571,13 @@ export type ResolveOvercapacityResult =
 
 /**
  * Idempotently and auditably resolves an order in OVERCAPACITY_PAID exception state.
- * Supports manual fulfillment (allocating ticket and crediting ledger) or manual refund marking.
- * Does NOT invoke external provider refund APIs.
+ * Supports manual fulfillment (allocating ticket and crediting ledger) or verified provider refund marking.
+ * Enforces a strict refund state machine: an order CANNOT become terminal REFUNDED without verified provider evidence.
+ * Does NOT invoke live external provider refund APIs.
  */
-export async function resolveOvercapacityPaidOrder(input: {
-  orderId: string
-  resolution: 'MANUAL_FULFILLMENT' | 'MANUAL_REFUND'
-  notes?: string
-  actorId: string
-}): Promise<ResolveOvercapacityResult> {
+export async function resolveOvercapacityPaidOrder(
+  input: ResolveOvercapacityInput
+): Promise<ResolveOvercapacityResult> {
   const order = await prisma.paidEventOrder.findUnique({
     where: { id: input.orderId },
     include: {
@@ -574,14 +592,14 @@ export async function resolveOvercapacityPaidOrder(input: {
     return { success: false, error: 'Order not found' }
   }
 
-  if (order.status !== 'OVERCAPACITY_PAID') {
+  if (order.status !== 'OVERCAPACITY_PAID' && order.status !== 'REFUNDED') {
     return {
       success: false,
-      error: `Order is not in OVERCAPACITY_PAID status (current status: ${order.status})`,
+      error: `Order is not in an unresolved overcapacity status (current status: ${order.status})`,
     }
   }
 
-  // Idempotency: if already resolved, return existing outcome
+  // Idempotency: if already resolved or confirmed refunded, return existing outcome
   if (order.fulfillmentStatus === 'RESOLVED' || order.fulfillmentStatus === 'REFUNDED') {
     return {
       success: true,
@@ -595,6 +613,58 @@ export async function resolveOvercapacityPaidOrder(input: {
   const now = new Date()
 
   if (input.resolution === 'MANUAL_REFUND') {
+    // If provider confirmation is missing, transition to intermediate state REFUND_PENDING_PROVIDER.
+    // A refund CANNOT become terminal (REFUNDED) until verified provider evidence exists.
+    if (!input.providerRefundReference || typeof input.providerRefundReference !== 'string' || !input.providerRefundReference.trim()) {
+      await prisma.$transaction(async (tx) => {
+        await tx.paidEventOrder.update({
+          where: { id: order.id },
+          data: {
+            fulfillmentStatus: 'REFUND_PENDING_PROVIDER',
+            resolutionNotes: input.notes ?? 'Refund requested by operator; awaiting confirmed provider refund reference',
+          },
+        })
+
+        await tx.auditLog.create({
+          data: {
+            actorId: input.actorId,
+            action: 'ORDER_OVERCAPACITY_REFUND_REQUESTED',
+            metadata: {
+              orderId: order.id,
+              amountKes: order.amountKes,
+              notes: input.notes,
+              requestedAt: now.toISOString(),
+              fulfillmentStatus: 'REFUND_PENDING_PROVIDER',
+            },
+          },
+        })
+      })
+
+      return {
+        success: true,
+        status: 'OVERCAPACITY_PAID',
+        fulfillmentStatus: 'REFUND_PENDING_PROVIDER',
+        resolvedAt: now,
+        requiresProviderConfirmation: true,
+        message: 'Refund requested. Order transitioned to REFUND_PENDING_PROVIDER. Provide providerRefundReference to confirm refund.',
+      }
+    }
+
+    const cleanRef = input.providerRefundReference.trim()
+    if (cleanRef.length < 3) {
+      return {
+        success: false,
+        error: 'A valid providerRefundReference of at least 3 characters is required to confirm a refund.',
+      }
+    }
+
+    if (input.refundMetadata && (typeof input.refundMetadata !== 'object' || Array.isArray(input.refundMetadata))) {
+      return {
+        success: false,
+        error: 'refundMetadata must be a valid object.',
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.paidEventOrder.update({
         where: { id: order.id },
@@ -602,7 +672,9 @@ export async function resolveOvercapacityPaidOrder(input: {
           status: 'REFUNDED',
           fulfillmentStatus: 'REFUNDED',
           resolvedAt: now,
-          resolutionNotes: input.notes ?? 'Marked as refunded by operator',
+          resolutionNotes: input.notes
+            ? `${input.notes} [Provider Refund Ref: ${cleanRef}]`
+            : `Refund confirmed via provider ref: ${cleanRef}`,
         },
       })
 
@@ -610,6 +682,7 @@ export async function resolveOvercapacityPaidOrder(input: {
         where: { paidEventOrderId: order.id },
         data: {
           status: 'REFUNDED',
+          settlementStatus: 'REVERSED',
         },
       })
 
@@ -620,9 +693,11 @@ export async function resolveOvercapacityPaidOrder(input: {
           metadata: {
             orderId: order.id,
             amountKes: order.amountKes,
+            providerRefundReference: cleanRef,
+            refundMetadata: (input.refundMetadata as Prisma.InputJsonValue) ?? null,
             notes: input.notes,
             resolvedAt: now.toISOString(),
-          },
+          } as Prisma.InputJsonObject,
         },
       })
     })
@@ -632,6 +707,7 @@ export async function resolveOvercapacityPaidOrder(input: {
       status: 'REFUNDED',
       fulfillmentStatus: 'REFUNDED',
       resolvedAt: now,
+      providerRefundReference: cleanRef,
     }
   }
 

@@ -14,6 +14,7 @@
 
 import prisma from '@/lib/prisma'
 import { toMinorUnits } from '@/lib/financialLedger'
+import { calculatePaidEventCommission } from '@/lib/paidEventCommission'
 
 export type AuthoritativeOrganizerBalance = {
   organizerId: string
@@ -57,6 +58,7 @@ export type AuthoritativeOrganizerBalance = {
   reconciliation: {
     isBalanced: boolean
     ledgerNetEntitlementsMinorUnits: bigint
+    expectedCommissionMinorUnits: bigint
     discrepancyMinorUnits: bigint
   }
 }
@@ -101,6 +103,7 @@ export async function getAuthoritativeOrganizerBalance(
   let pendingSettlementMinorUnits = BigInt(0)
   let disputedOrReversedMinorUnits = BigInt(0)
   let settledEntitlementMinorUnits = BigInt(0)
+  let expectedCommissionMinorUnits = BigInt(0)
 
   for (const p of payments) {
     const paymentCurrency = (p.paidEventOrder?.currency || p.event?.currency || 'KES').toUpperCase()
@@ -109,6 +112,11 @@ export async function getAuthoritativeOrganizerBalance(
     const grossMinor = toMinorUnits(p.amount, currency)
     const commMinor = toMinorUnits(p.commissionAmount, currency)
     const entMinor = toMinorUnits(p.organizerAmount, currency)
+
+    // Authoritative per-payment calculated production commission
+    const calculated = calculatePaidEventCommission(p.amount)
+    const expectedCommMinor = toMinorUnits(calculated.commissionAmount, currency)
+    expectedCommissionMinorUnits += expectedCommMinor
 
     totalGrossMinorUnits += grossMinor
     totalCommissionMinorUnits += commMinor
@@ -235,6 +243,7 @@ export async function getAuthoritativeOrganizerBalance(
     reconciliation: {
       isBalanced,
       ledgerNetEntitlementsMinorUnits,
+      expectedCommissionMinorUnits,
       discrepancyMinorUnits,
     },
   }
@@ -262,6 +271,7 @@ export type BalanceIntegrityAuditResult = {
   summary: {
     grossMinorUnits: bigint
     commissionMinorUnits: bigint
+    expectedCommissionMinorUnits: bigint
     entitlementMinorUnits: bigint
     settledEntitlementMinorUnits: bigint
     pendingReservationsMinorUnits: bigint
@@ -295,13 +305,15 @@ export async function auditOrganizerBalanceIntegrity(
       balance.pendingSettlementMinorUnits +
       balance.disputedOrReversedMinorUnits
 
-  // 3. Commission Ratio: Flat 5% platform baseline with half-up rounding
-  const expectedCommission = (balance.totalGrossMinorUnits * BigInt(5) + BigInt(50)) / BigInt(100)
+  // 3. Commission Ratio: Exact sum of per-payment production calculated commissions
+  // Production computes commission per payment via calculatePaidEventCommission(p.amount) [Math.round(amountKes * 0.05)].
+  // The auditor verifies that recorded total commission matches the exact sum of per-payment production commissions with zero tolerance.
+  const expectedCommission = balance.reconciliation.expectedCommissionMinorUnits
   const diffCommission =
     balance.totalCommissionMinorUnits > expectedCommission
       ? balance.totalCommissionMinorUnits - expectedCommission
       : expectedCommission - balance.totalCommissionMinorUnits
-  const commissionRatioHolds = diffCommission <= BigInt(100) || balance.totalGrossMinorUnits === BigInt(0)
+  const commissionRatioHolds = diffCommission === BigInt(0) || balance.totalGrossMinorUnits === BigInt(0)
 
   // 4. Ledger Payment Consistency: Ledger Net Entitlement == Payment Total Entitlement
   const ledgerConsistencyHolds = balance.reconciliation.isBalanced
@@ -389,7 +401,9 @@ export async function auditOrganizerBalanceIntegrity(
       },
       commissionRatio: {
         holds: commissionRatioHolds,
-        details: commissionRatioHolds ? undefined : `Commission deviates from 5% platform baseline`,
+        details: commissionRatioHolds
+          ? undefined
+          : `Commission sum (${balance.totalCommissionMinorUnits}) deviates from exact production calculation (${expectedCommission})`,
       },
       ledgerPaymentConsistency: {
         holds: ledgerConsistencyHolds,
@@ -423,6 +437,7 @@ export async function auditOrganizerBalanceIntegrity(
     summary: {
       grossMinorUnits: balance.totalGrossMinorUnits,
       commissionMinorUnits: balance.totalCommissionMinorUnits,
+      expectedCommissionMinorUnits: balance.reconciliation.expectedCommissionMinorUnits,
       entitlementMinorUnits: balance.totalEntitlementMinorUnits,
       settledEntitlementMinorUnits: balance.settledEntitlementMinorUnits,
       pendingReservationsMinorUnits: balance.pendingReservationsMinorUnits,
