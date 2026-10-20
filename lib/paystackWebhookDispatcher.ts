@@ -103,20 +103,28 @@ export async function dispatchPaystackWebhook(params: {
     })
     eventRecordId = existingRecord.id
   } else {
-    const created = await prisma.processedProviderEvent.create({
-      data: {
-        provider: 'paystack',
-        eventId: providerEventId ? String(providerEventId) : null,
-        eventType,
-        idempotencyKey,
-        status: 'PROCESSING',
-        reference,
-        firstSeenAt: now,
-        lastAttemptAt: now,
-        attemptCount: 1,
-      },
-    })
-    eventRecordId = created.id
+    try {
+      const created = await prisma.processedProviderEvent.create({
+        data: {
+          provider: 'paystack',
+          eventId: providerEventId ? String(providerEventId) : null,
+          eventType,
+          idempotencyKey,
+          status: 'PROCESSING',
+          reference,
+          firstSeenAt: now,
+          lastAttemptAt: now,
+          attemptCount: 1,
+        },
+      })
+      eventRecordId = created.id
+    } catch (createErr: any) {
+      if (createErr?.code === 'P2002') {
+        // Concurrently inserted by another worker process; acknowledge duplicate delivery safely
+        return { status: 200, body: { message: 'Event currently being processed by another worker.' } }
+      }
+      throw createErr
+    }
   }
 
   // 4. Dispatch Event to Domain Handlers
@@ -151,7 +159,10 @@ export async function dispatchPaystackWebhook(params: {
                 )
               }
 
-              await finalizePaidEventOrderPayment(order.id, reference)
+              const finalResult = await finalizePaidEventOrderPayment(order.id, reference)
+              if (finalResult.status === 'OVERCAPACITY_PAID') {
+                console.warn(`[PaystackWebhook] Order ${order.id} marked OVERCAPACITY_PAID: ${finalResult.message}`)
+              }
             }
           }
           break

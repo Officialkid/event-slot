@@ -91,8 +91,12 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
           paystack.amountMinorUnits === expectedMinor &&
           paystack.currency === (paymentOrder.currency || 'KES')
         ) {
-          await finalizePaidEventOrderPayment(order.id, reference)
-          status = 'PAID'
+          const finalResult = await finalizePaidEventOrderPayment(order.id, reference)
+          if (finalResult?.status === 'OVERCAPACITY_PAID') {
+            status = 'OVERCAPACITY_PAID'
+          } else {
+            status = 'PAID'
+          }
         } else if (paystack.status === 'failed' || paystack.status === 'abandoned') {
           await failPaidEventOrderPayment(order.id, 'FAILED')
           status = 'FAILED'

@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { generateConfirmationCode } from '@/lib/confirmationCode'
@@ -60,13 +61,16 @@ async function logPaidTicketEmail(orderId: string, data: {
   }).catch(() => {})
 }
 
-async function updateOrganiserBalance(input: {
-  organiserId: string | null
-  currency: string | null | undefined
-  gross: number
-  commission: number
-  net: number
-}) {
+async function updateOrganiserBalance(
+  input: {
+    organiserId: string | null
+    currency: string | null | undefined
+    gross: number
+    commission: number
+    net: number
+  },
+  db: Prisma.TransactionClient | typeof prisma = prisma
+) {
   if (!input.organiserId) return
 
   const currency = (input.currency ?? "").trim().toUpperCase() === "USD" ? "USD" : "KES"
@@ -98,7 +102,7 @@ async function updateOrganiserBalance(input: {
           netKES: { increment: input.net },
         }
 
-  await prisma.organiserBalance.upsert({
+  await db.organiserBalance.upsert({
     where: { organiserId: input.organiserId },
     create: createData,
     update: updateData,
@@ -133,93 +137,162 @@ export async function failPaidEventOrderPayment(orderId: string, status: 'FAILED
   await offerNextPaidWaitlistSpot(order.eventId, order.ticketTierId).catch(() => {})
 }
 
-export async function finalizePaidEventOrderPayment(orderId: string, providerReference?: string | null) {
-  const eventOrder = await prisma.paidEventOrder.findUnique({
-    where: { id: orderId },
-    include: {
-      event: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          eventDate: true,
-          location: true,
-          confirmedCount: true,
-          capacity: true,
-          currency: true,
-          organizerId: true,
-          organizer: { select: { plan: true } },
-        },
-      },
-      ticketTier: {
-        select: {
-          id: true,
-          name: true,
-          priceKes: true,
-          bundleSize: true,
-          soldCount: true,
-          capacity: true,
-        },
-      },
-    },
-  })
+export type FinalizePaidEventOrderResult =
+  | { status: 'PAID'; registrationId: string; confirmationCode: string }
+  | { status: 'OVERCAPACITY_PAID'; message: string }
+  | { status: 'NOT_FOUND' }
 
-  if (!eventOrder) return
-  if (eventOrder.status === 'PAID') return
-
+export async function finalizePaidEventOrderPayment(
+  orderId: string,
+  providerReference?: string | null
+): Promise<FinalizePaidEventOrderResult> {
   const paidAt = new Date()
-  const existingRegistration = await prisma.registration.findFirst({
-    where: { paidOrderId: eventOrder.id },
-    select: { id: true, confirmationCode: true },
-  })
 
-  let confirmationCode = existingRegistration?.confirmationCode ?? null
-  let registrationId = existingRegistration?.id ?? null
-  let ticketId: string | null = null
-
-  if (eventOrder.promotionRegistrationId) {
-    const promoted = await prisma.$transaction(async (tx) => {
-      const updatedRegistration = await tx.registration.update({
-        where: { id: eventOrder.promotionRegistrationId! },
-        data: {
-          status: 'confirmed',
-          paidOrderId: eventOrder.id,
-          confirmationCode: confirmationCode ?? generateConfirmationCode(),
-          submittedAt: paidAt,
+  // ---------------------------------------------------------------------------
+  // Single Atomic Database Transaction for Entire Finalization & Ledger Posting
+  // ---------------------------------------------------------------------------
+  const outcome = await prisma.$transaction(async (tx) => {
+    // 1. Fetch order within transaction with relations
+    const eventOrder = await tx.paidEventOrder.findUnique({
+      where: { id: orderId },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            eventDate: true,
+            location: true,
+            confirmedCount: true,
+            capacity: true,
+            currency: true,
+            organizerId: true,
+            organizer: { select: { plan: true } },
+          },
         },
+        ticketTier: {
+          select: {
+            id: true,
+            name: true,
+            priceKes: true,
+            bundleSize: true,
+            soldCount: true,
+            capacity: true,
+          },
+        },
+        registrations: {
+          select: { id: true, confirmationCode: true },
+          take: 1,
+        },
+      },
+    })
+
+    if (!eventOrder) {
+      return { kind: 'not_found' as const }
+    }
+
+    // Idempotency: If already finalized as PAID, return existing registration without re-processing
+    if (eventOrder.status === 'PAID') {
+      const existingReg = eventOrder.registrations[0] ?? (await tx.registration.findFirst({
+        where: { paidOrderId: eventOrder.id },
         select: { id: true, confirmationCode: true },
-      })
+      }))
+      return {
+        kind: 'already_paid' as const,
+        registrationId: existingReg?.id ?? '',
+        confirmationCode: existingReg?.confirmationCode ?? '',
+        eventOrder,
+      }
+    }
 
-      await tx.event.update({
-        where: { id: eventOrder.eventId },
-        data: { confirmedCount: { increment: 1 } },
-      })
+    // Idempotency: If already placed in OVERCAPACITY_PAID exception resolution state, return
+    if (eventOrder.status === 'OVERCAPACITY_PAID') {
+      return {
+        kind: 'overcapacity' as const,
+        eventOrder,
+      }
+    }
 
-      await tx.ticketTier.update({
-        where: { id: eventOrder.ticketTierId },
-        data: { soldCount: { increment: 1 } },
-      })
+    // 2. Lock TicketTier row to check authoritative capacity
+    try {
+      await tx.$queryRaw`SELECT id, capacity, "soldCount" FROM "TicketTier" WHERE id = ${eventOrder.ticketTierId} FOR UPDATE`
+    } catch {
+      // Fallback for non-Postgres test environments
+    }
 
+    const freshTier = await tx.ticketTier.findUnique({
+      where: { id: eventOrder.ticketTierId },
+      select: { id: true, capacity: true, soldCount: true },
+    })
+
+    const isHoldExpired = eventOrder.holdExpiresAt < new Date() || eventOrder.status === 'EXPIRED'
+    const isTierFull = freshTier ? freshTier.soldCount >= freshTier.capacity : false
+
+    // 3. Late Payment Handling:
+    // If the hold expired and the tier is now completely full:
+    // DO NOT oversell. DO NOT issue a ticket. DO NOT discard payment.
+    // Transition to auditable exception-resolution state OVERCAPACITY_PAID.
+    if (isHoldExpired && isTierFull) {
       await tx.paidEventOrder.update({
         where: { id: eventOrder.id },
         data: {
-          status: 'PAID',
+          status: 'OVERCAPACITY_PAID',
           providerReference: providerReference ?? eventOrder.providerReference,
           mpesaReceiptNumber: providerReference ?? eventOrder.mpesaReceiptNumber,
           paidAt,
         },
       })
 
-      return updatedRegistration
-    })
+      await tx.payment.updateMany({
+        where: { paidEventOrderId: eventOrder.id },
+        data: {
+          status: 'FAILED',
+          mpesaRef: providerReference ?? eventOrder.mpesaReceiptNumber,
+          paidAt,
+        },
+      })
 
-    confirmationCode = promoted.confirmationCode
-    registrationId = promoted.id
-  } else if (!existingRegistration) {
-    const registrationNumber = (await prisma.registration.count({ where: { eventId: eventOrder.eventId } })) + 1
-    confirmationCode = generateConfirmationCode()
+      await tx.auditLog.create({
+        data: {
+          actorId: eventOrder.event.organizerId || 'SYSTEM',
+          action: 'OVERCAPACITY_PAID_EXCEPTION',
+          metadata: {
+            orderId: eventOrder.id,
+            eventId: eventOrder.eventId,
+            ticketTierId: eventOrder.ticketTierId,
+            attendeeEmail: eventOrder.attendeeEmail,
+            amountKes: eventOrder.amountKes,
+            providerReference,
+            reason: 'Hold expired and tier capacity was exhausted before payment confirmation. Requires refund or manual organizer resolution.',
+          },
+        },
+      }).catch(() => {})
 
-    const registration = await prisma.$transaction(async (tx) => {
+      return {
+        kind: 'overcapacity' as const,
+        eventOrder,
+      }
+    }
+
+    // 4. Capacity Available: Fulfill registration, ticket issuance, and ledger posting
+    let confirmationCode = eventOrder.registrations[0]?.confirmationCode ?? generateConfirmationCode()
+    let registrationId = eventOrder.registrations[0]?.id
+
+    if (eventOrder.promotionRegistrationId) {
+      const updatedRegistration = await tx.registration.update({
+        where: { id: eventOrder.promotionRegistrationId },
+        data: {
+          status: 'confirmed',
+          paidOrderId: eventOrder.id,
+          confirmationCode,
+          submittedAt: paidAt,
+        },
+        select: { id: true, confirmationCode: true },
+      })
+      registrationId = updatedRegistration.id
+      confirmationCode = updatedRegistration.confirmationCode ?? confirmationCode
+    } else if (!registrationId) {
+      const registrationNumber = (await tx.registration.count({ where: { eventId: eventOrder.eventId } })) + 1
       const created = await tx.registration.create({
         data: {
           eventId: eventOrder.eventId,
@@ -239,33 +312,41 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
         },
         select: { id: true, confirmationCode: true },
       })
+      registrationId = created.id
+      confirmationCode = created.confirmationCode ?? confirmationCode
+    }
 
-      await tx.event.update({
-        where: { id: eventOrder.eventId },
-        data: { confirmedCount: { increment: 1 } },
-      })
-
-      await tx.ticketTier.update({
-        where: { id: eventOrder.ticketTierId },
-        data: { soldCount: { increment: 1 } },
-      })
-
-      await tx.paidEventOrder.update({
-        where: { id: eventOrder.id },
-        data: {
-          status: 'PAID',
-          providerReference: providerReference ?? eventOrder.providerReference,
-          mpesaReceiptNumber: providerReference ?? eventOrder.mpesaReceiptNumber,
-          paidAt,
-        },
-      })
-
-      return created
+    // Atomically increment confirmed attendee count and sold ticket count
+    await tx.event.update({
+      where: { id: eventOrder.eventId },
+      data: { confirmedCount: { increment: 1 } },
     })
 
-    registrationId = registration.id
-  } else {
-    await prisma.paidEventOrder.update({
+    await tx.ticketTier.update({
+      where: { id: eventOrder.ticketTierId },
+      data: { soldCount: { increment: 1 } },
+    })
+
+    // Atomically issue ticket record
+    const ticketCode = crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()
+    const admissionsTotal = Math.max(1, eventOrder.ticketTier.bundleSize ?? 1)
+
+    const existingTicket = await tx.ticket.findUnique({ where: { registrationId: registrationId! } })
+    const ticket = existingTicket ?? await tx.ticket.create({
+      data: {
+        registrationId: registrationId!,
+        code: ticketCode,
+        admissionsTotal,
+        ticketTierId: eventOrder.ticketTierId,
+        ticketTierName: eventOrder.ticketTier.name,
+        amountPaidKes: eventOrder.amountKes,
+        admissionsUsed: 0,
+      },
+      select: { id: true },
+    })
+
+    // Update order status to PAID
+    await tx.paidEventOrder.update({
       where: { id: eventOrder.id },
       data: {
         status: 'PAID',
@@ -274,60 +355,47 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
         paidAt,
       },
     })
-  }
 
-  if (registrationId) {
-    const ticket = await generateTicketForRegistration(registrationId)
-    ticketId = ticket.id
+    // Calculate commission & update payment record
+    const effectivePlan = eventOrder.event.organizer?.plan ?? 'free'
+    const commission = calculatePaidEventCommission(eventOrder.amountKes, effectivePlan)
 
-    await prisma.ticket.update({
-      where: { id: ticket.id },
+    await tx.payment.updateMany({
+      where: { paidEventOrderId: eventOrder.id },
       data: {
-        ticketTierId: eventOrder.ticketTierId,
-        ticketTierName: eventOrder.ticketTier.name,
-        amountPaidKes: eventOrder.amountKes,
-        admissionsTotal: Math.max(1, eventOrder.ticketTier.bundleSize ?? 1),
-        admissionsUsed: 0,
-        verifiedEntries: [],
+        registrationId,
+        ticketId: ticket.id,
+        amount: eventOrder.amountKes,
+        commissionAmount: commission.commissionAmount,
+        organizerAmount: commission.organizerAmount,
+        commissionRate: commission.commissionRate,
+        mpesaRef: providerReference ?? eventOrder.mpesaReceiptNumber,
+        status: 'SUCCESS',
+        paidAt,
       },
-    }).catch(() => {})
-  }
+    })
 
-  const effectiveEventPlan = await getEffectiveEventPlan(eventOrder.event.id, eventOrder.event.organizerId)
-  const commission = calculatePaidEventCommission(eventOrder.amountKes, effectiveEventPlan.planKey)
-  await prisma.payment.updateMany({
-    where: { paidEventOrderId: eventOrder.id },
-    data: {
-      registrationId,
-      ticketId,
-      amount: eventOrder.amountKes,
-      commissionAmount: commission.commissionAmount,
-      organizerAmount: commission.organizerAmount,
-      commissionRate: commission.commissionRate,
-      mpesaRef: providerReference ?? eventOrder.mpesaReceiptNumber,
-      status: 'SUCCESS',
-      paidAt,
-    },
-  })
+    // Update legacy organizer balance inside transaction
+    if (eventOrder.event.organizerId) {
+      await updateOrganiserBalance(
+        {
+          organiserId: eventOrder.event.organizerId,
+          currency: eventOrder.currency || eventOrder.event.currency,
+          gross: eventOrder.amountKes,
+          commission: commission.commissionAmount,
+          net: commission.organizerAmount,
+        },
+        tx
+      )
 
-  await updateOrganiserBalance({
-    organiserId: eventOrder.event.organizerId,
-    currency: eventOrder.currency || eventOrder.event.currency,
-    gross: eventOrder.amountKes,
-    commission: commission.commissionAmount,
-    net: commission.organizerAmount,
-  })
+      // Post immutable Financial Ledger entries atomically
+      const organizerId = eventOrder.event.organizerId
+      const proceedsKey = buildOrderProceedsIdempotencyKey(eventOrder.id)
+      const commissionKey = buildOrderCommissionIdempotencyKey(eventOrder.id)
+      const proceedsMinor = toMinorUnits(eventOrder.amountKes, eventOrder.currency || 'KES')
+      const commissionMinor = toMinorUnits(commission.commissionAmount, eventOrder.currency || 'KES')
 
-  // Immutable Financial Ledger recording with deterministic idempotency keys
-  const organizerId = eventOrder.event.organizerId
-  if (organizerId) {
-    const proceedsKey = buildOrderProceedsIdempotencyKey(eventOrder.id)
-    const commissionKey = buildOrderCommissionIdempotencyKey(eventOrder.id)
-    const proceedsMinor = toMinorUnits(eventOrder.amountKes, eventOrder.currency || 'KES')
-    const commissionMinor = toMinorUnits(commission.commissionAmount, eventOrder.currency || 'KES')
-
-    await prisma.$transaction([
-      prisma.financialLedgerEntry.upsert({
+      await tx.financialLedgerEntry.upsert({
         where: { idempotencyKey: proceedsKey },
         create: {
           organizerId,
@@ -342,8 +410,9 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
           description: `Ticket proceeds for order ${eventOrder.id} (${eventOrder.ticketTier.name})`,
         },
         update: {},
-      }),
-      prisma.financialLedgerEntry.upsert({
+      })
+
+      await tx.financialLedgerEntry.upsert({
         where: { idempotencyKey: commissionKey },
         create: {
           organizerId,
@@ -358,55 +427,81 @@ export async function finalizePaidEventOrderPayment(orderId: string, providerRef
           description: `Platform commission (5%) for order ${eventOrder.id}`,
         },
         update: {},
-      }),
-    ]).catch((err) => {
-      console.error('[finalizePaidEventOrderPayment] Ledger entry creation warning:', err)
-    })
+      })
+    }
+
+    return {
+      kind: 'fulfilled' as const,
+      registrationId: registrationId!,
+      confirmationCode,
+      eventOrder,
+    }
+  })
+
+  // Post-Transaction Side Effects
+  if (outcome.kind === 'not_found') {
+    return { status: 'NOT_FOUND' }
   }
 
-  if (eventOrder.attendeeEmail && confirmationCode) {
-    sendConfirmationEmail({
-      to: eventOrder.attendeeEmail,
-      name: eventOrder.attendeeName || 'there',
-      eventTitle: eventOrder.event.title,
-      confirmationNumber: confirmationCode,
-      userId: null,
-      eventDate: eventOrder.event.eventDate,
+  if (outcome.kind === 'overcapacity') {
+    return {
+      status: 'OVERCAPACITY_PAID',
+      message: 'Hold expired and tier reached capacity before payment confirmation. Order moved to exception resolution queue.',
+    }
+  }
+
+  const { eventOrder, confirmationCode, registrationId } = outcome
+
+  if (outcome.kind === 'fulfilled') {
+    if (eventOrder.attendeeEmail && confirmationCode) {
+      sendConfirmationEmail({
+        to: eventOrder.attendeeEmail,
+        name: eventOrder.attendeeName || 'there',
+        eventTitle: eventOrder.event.title,
+        confirmationNumber: confirmationCode,
+        userId: null,
+        eventDate: eventOrder.event.eventDate,
+        eventSlug: eventOrder.event.slug,
+        eventLocation: eventOrder.event.location,
+      })
+        .then(() => logPaidTicketEmail(eventOrder.id, {
+          attendeeEmail: eventOrder.attendeeEmail as string,
+          status: 'sent',
+        }))
+        .catch((error) => logPaidTicketEmail(eventOrder.id, {
+          attendeeEmail: eventOrder.attendeeEmail as string,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown email error',
+        }))
+    }
+
+    await sendTierCapacityMilestones({
+      eventId: eventOrder.event.id,
       eventSlug: eventOrder.event.slug,
-      eventLocation: eventOrder.event.location,
-    })
-      .then(() => logPaidTicketEmail(eventOrder.id, {
-        attendeeEmail: eventOrder.attendeeEmail as string,
-        status: 'sent',
-      }))
-      .catch((error) => logPaidTicketEmail(eventOrder.id, {
-        attendeeEmail: eventOrder.attendeeEmail as string,
-        status: 'failed',
-        error: error instanceof Error ? error.message : 'Unknown email error',
-      }))
+      eventTitle: eventOrder.event.title,
+      organizerId: eventOrder.event.organizerId,
+      tierId: eventOrder.ticketTier.id,
+      tierName: eventOrder.ticketTier.name,
+      previousSoldCount: eventOrder.ticketTier.soldCount,
+      capacity: eventOrder.ticketTier.capacity,
+    }).catch(() => {})
+
+    await sendEventCapacityMilestones({
+      eventId: eventOrder.event.id,
+      eventSlug: eventOrder.event.slug,
+      eventTitle: eventOrder.event.title,
+      organizerId: eventOrder.event.organizerId,
+      previousConfirmedCount: eventOrder.event.confirmedCount,
+      capacity: eventOrder.event.capacity,
+    }).catch(() => {})
   }
 
-  await sendTierCapacityMilestones({
-    eventId: eventOrder.event.id,
-    eventSlug: eventOrder.event.slug,
-    eventTitle: eventOrder.event.title,
-    organizerId: eventOrder.event.organizerId,
-    tierId: eventOrder.ticketTier.id,
-    tierName: eventOrder.ticketTier.name,
-    previousSoldCount: eventOrder.ticketTier.soldCount,
-    capacity: eventOrder.ticketTier.capacity,
-  }).catch(() => {})
-
-  await sendEventCapacityMilestones({
-    eventId: eventOrder.event.id,
-    eventSlug: eventOrder.event.slug,
-    eventTitle: eventOrder.event.title,
-    organizerId: eventOrder.event.organizerId,
-    previousConfirmedCount: eventOrder.event.confirmedCount,
-    capacity: eventOrder.event.capacity,
-  }).catch(() => {})
+  return {
+    status: 'PAID',
+    registrationId,
+    confirmationCode,
+  }
 }
-
 export async function activateSubscriptionPayment(paymentId: string, providerReference?: string | null) {
   const payment = await prisma.subscriptionPayment.findUnique({
     where: { id: paymentId },

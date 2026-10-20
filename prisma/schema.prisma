@@ -535,6 +535,7 @@ enum PaidOrderStatus {
   EXPIRED
   CANCELLED
   FAILED
+  OVERCAPACITY_PAID
 }
 
 enum PaidOrderPaymentMethod {

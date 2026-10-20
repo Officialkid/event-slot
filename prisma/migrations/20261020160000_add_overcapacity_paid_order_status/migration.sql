@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PaidOrderStatus" ADD VALUE 'OVERCAPACITY_PAID';

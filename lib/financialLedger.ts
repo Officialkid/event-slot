@@ -4,11 +4,21 @@
  * Implements immutable ledger entry conventions, integer minor units calculations,
  * deterministic idempotency keys, and account direction semantics for EventSlot.
  *
- * Accounting Convention:
- * - The ledger tracks the organizer's account balance (EventSlot's liability to the organizer).
- * - CREDIT: Increases the organizer's available balance / entitlement (+).
+ * Accounting Model:
+ * - The ledger implements organizer entitlement accounting (EventSlot's liability / payout entitlement to the organizer).
+ * - For every paid ticket sold, two immutable entries are recorded:
+ *   1. TICKET_PROCEEDS (CREDIT): 100% of gross ticket price (e.g., KES 1,000 / 100,000 minor units).
+ *   2. PLATFORM_COMMISSION (DEBIT): Flat 5% platform commission (e.g., KES 50 / 5,000 minor units).
+ *   Net organizer entitlement before withdrawals or adjustments = KES 950 (95,000 minor units).
+ * - Scope: This ledger specifically tracks organizer payout entitlements and adjustments.
+ *   It is NOT a full multi-account general ledger with double-entry cash/clearing/equity balancing accounts.
+ * - Immutability & Idempotency: All entries enforce a unique database constraint on idempotencyKey.
+ *   Upsert semantics with empty update blocks guarantee historical records cannot be overwritten or posted twice.
+ *
+ * Accounting Direction Convention:
+ * - CREDIT: Increases the organizer's entitlement balance (+).
  *   Example: TICKET_PROCEEDS, positive ADJUSTMENT, dispute REVERSAL.
- * - DEBIT: Decreases the organizer's available balance / entitlement (-).
+ * - DEBIT: Decreases the organizer's entitlement balance (-).
  *   Example: PLATFORM_COMMISSION (5%), WITHDRAWAL_RESERVATION, REFUND, negative ADJUSTMENT.
  *
  * Monetary Representation:
