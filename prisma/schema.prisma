@@ -438,6 +438,8 @@ model Registration {
   @@index([eventId, submittedAt])
   @@index([eventId, waitlistPosition])
   @@index([eventId, occurrenceDate])
+  @@index([paidOrderId])
+  @@index([eventId, attendeeEmail])
 }
 
 model RegistrationDraft {

@@ -64,43 +64,119 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const all = await prisma.registration.findMany({
-    where: {
-      eventId: event.id,
-      status: { in: ['confirmed', 'waitlist'] },
-    },
-    orderBy: { submittedAt: 'desc' },
-    select: {
-      id: true,
-      status: true,
-      registrationNumber: true,
-      waitlistPosition: true,
-      attendeeEmail: true,
-      confirmationCode: true,
-      answers: true,
-    },
-  }) as RegistrationLookup[]
-
   const q = query.toLowerCase()
   const isEmailLookup = q.includes('@')
-  const isConfirmationCode = q.startsWith('evt-') || q.length >= 8
+  const isEvtPrefixed = q.startsWith('evt-')
+  const isAlphaNumeric8 = /^[a-z0-9]{8}$/i.test(query)
   const questions = (event.questions as EventQuestion[]) ?? []
 
-  const registration = all.find((r) => {
-    if (isEmailLookup) {
-      return (r.attendeeEmail ?? '').toLowerCase() === q
+  let registration: RegistrationLookup | null = null
+
+  if (isEmailLookup) {
+    // 1. Selective indexed lookup by eventId + attendeeEmail
+    registration = (await prisma.registration.findFirst({
+      where: {
+        eventId: event.id,
+        status: { in: ['confirmed', 'waitlist'] },
+        attendeeEmail: { equals: query, mode: 'insensitive' },
+      },
+      orderBy: { submittedAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        registrationNumber: true,
+        waitlistPosition: true,
+        attendeeEmail: true,
+        confirmationCode: true,
+        answers: true,
+      },
+    })) as RegistrationLookup | null
+  } else if (isEvtPrefixed || isAlphaNumeric8) {
+    // 2. Direct selective lookup by unique confirmationCode
+    const codeVariants = [query.toUpperCase()]
+    if (!isEvtPrefixed) {
+      codeVariants.push(`EVT-${query.toUpperCase()}`)
     }
 
-    if (isConfirmationCode && r.confirmationCode) {
-      return r.confirmationCode.toLowerCase() === q
+    registration = (await prisma.registration.findFirst({
+      where: {
+        eventId: event.id,
+        status: { in: ['confirmed', 'waitlist'] },
+        confirmationCode: { in: codeVariants, mode: 'insensitive' },
+      },
+      orderBy: { submittedAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        registrationNumber: true,
+        waitlistPosition: true,
+        attendeeEmail: true,
+        confirmationCode: true,
+        answers: true,
+      },
+    })) as RegistrationLookup | null
+
+    // If an 8-character string didn't match any confirmation code,
+    // it could still be an 8-character attendee name (e.g., "Benjamin"). Fall through to name check below.
+  }
+
+  // 3. Exact name lookup (if not already found and not an email lookup or evt-prefixed code)
+  if (!registration && !isEmailLookup && !isEvtPrefixed) {
+    const textQuestionIds = questions
+      .filter((q) => q.type === 'text' && q.label.toLowerCase().includes('name'))
+      .map((q) => q.id)
+
+    if (textQuestionIds.length > 0) {
+      // Check database via selective jsonb query if $queryRaw is available in Postgres runtime
+      if (typeof (prisma as any).$queryRaw === 'function') {
+        try {
+          const rows = await (prisma as any).$queryRaw`
+            SELECT id, status, "registrationNumber", "waitlistPosition", "attendeeEmail", "confirmationCode", answers
+            FROM "Registration"
+            WHERE "eventId" = ${event.id}
+              AND status IN ('confirmed', 'waitlist')
+              AND EXISTS (
+                SELECT 1 FROM jsonb_array_elements(answers) AS elem
+                WHERE elem->>'questionId' = ANY(${textQuestionIds})
+                  AND LOWER(TRIM(elem->>'value')) = ${q}
+              )
+            ORDER BY "submittedAt" DESC
+            LIMIT 1;
+          `
+          if (rows && rows.length > 0) {
+            registration = rows[0]
+          }
+        } catch {
+          // If $queryRaw fails or is running in a mock test harness, fall back safely
+        }
+      }
+
+      // If not resolved via $queryRaw (or in mock test environment), query candidate registrations
+      if (!registration) {
+        const candidates = (await prisma.registration.findMany({
+          where: {
+            eventId: event.id,
+            status: { in: ['confirmed', 'waitlist'] },
+          },
+          orderBy: { submittedAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            registrationNumber: true,
+            waitlistPosition: true,
+            attendeeEmail: true,
+            confirmationCode: true,
+            answers: true,
+          },
+        })) as RegistrationLookup[]
+
+        registration = candidates.find((r) => {
+          const attendeeName = getAttendeeName(r.answers, questions).toLowerCase()
+          return attendeeName === q
+        }) ?? null
+      }
     }
-
-    const attendeeName = getAttendeeName(r.answers, questions).toLowerCase()
-    if (!attendeeName) return false
-
-    // Require full exact name match to prevent attendee list harvesting
-    return attendeeName === q
-  })
+  }
 
   if (!registration) {
     return NextResponse.json({

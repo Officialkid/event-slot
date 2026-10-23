@@ -203,6 +203,10 @@ export async function fetchAllSettlementTransactions(
   return transactions
 }
 
+let isSyncRunningInProcess = false
+const LEASE_KEY = 'lock:settlement_sync_worker'
+const LEASE_DURATION_MS = 5 * 60 * 1000
+
 /**
  * Main settlement synchronization runner.
  * Fetches confirmed settlement batches from Paystack, validates them, and ingests evidence.
@@ -232,6 +236,76 @@ export async function runPaystackSettlementSync(
   const dryRun = Boolean(options?.dryRun)
   const actorId = options?.actorId || 'SETTLEMENT_SYNC_WORKER'
   const limit = options?.limit ?? 10
+
+  // 0. Concurrency Lock: In-process & Distributed Lease
+  if (!dryRun) {
+    if (isSyncRunningInProcess) {
+      return {
+        success: false,
+        dryRun,
+        batchesInspected: 0,
+        batchesProcessed: 0,
+        batchesSkipped: 0,
+        totalSettledPayments: 0,
+        totalAlreadySettled: 0,
+        unmatchedTransactions: [],
+        batchResults: [],
+        message: 'Settlement synchronization is already in progress in this process.',
+      }
+    }
+
+    if (typeof (prisma.processedProviderEvent as any)?.findUnique === 'function') {
+      const activeLock = await prisma.processedProviderEvent.findUnique({
+        where: { idempotencyKey: LEASE_KEY },
+      }).catch(() => null)
+
+      if (activeLock && activeLock.status === 'PROCESSING') {
+        const lockAge = Date.now() - activeLock.firstSeenAt.getTime()
+        if (lockAge < LEASE_DURATION_MS) {
+          return {
+            success: false,
+            dryRun,
+            batchesInspected: 0,
+            batchesProcessed: 0,
+            batchesSkipped: 0,
+            totalSettledPayments: 0,
+            totalAlreadySettled: 0,
+            unmatchedTransactions: [],
+            batchResults: [],
+            message: 'Settlement synchronization is already in progress by another worker.',
+          }
+        }
+      }
+
+      if (typeof (prisma.processedProviderEvent as any)?.create === 'function') {
+        await prisma.processedProviderEvent.create({
+          data: {
+            provider: 'paystack',
+            eventType: 'settlement_sync_lease',
+            idempotencyKey: LEASE_KEY,
+            status: 'PROCESSING',
+            firstSeenAt: new Date(),
+            metadata: { actorId, startedAt: new Date().toISOString() },
+          },
+        }).catch(async () => {
+          if (typeof (prisma.processedProviderEvent as any)?.update === 'function') {
+            await prisma.processedProviderEvent.update({
+              where: { idempotencyKey: LEASE_KEY },
+              data: {
+                status: 'PROCESSING',
+                firstSeenAt: new Date(),
+                metadata: { actorId, startedAt: new Date().toISOString() },
+              },
+            }).catch(() => {})
+          }
+        })
+      }
+    }
+  }
+
+  isSyncRunningInProcess = true
+
+  try {
 
   // 1. Fetch confirmed settlements from Paystack
   let settlements: PaystackSettlementItem[] = []
@@ -305,6 +379,24 @@ export async function runPaystackSettlementSync(
           unmatchedReferences: [],
         })
         continue
+      }
+
+      if (!dryRun && meta.syncInProgress === true) {
+        const leaseStarted = meta.syncStartedAt ? new Date(meta.syncStartedAt as string).getTime() : 0
+        if (Date.now() - leaseStarted < 10 * 60 * 1000) {
+          batchesSkipped++
+          batchResults.push({
+            batchId: batch.id,
+            batchReference,
+            status: 'SKIPPED_IN_PROGRESS',
+            transactionCount: existingBatch.transactionCount,
+            settledCount: 0,
+            alreadySettledCount: 0,
+            unmatchedCount: 0,
+            unmatchedReferences: [],
+          })
+          continue
+        }
       }
     }
 
@@ -462,6 +554,7 @@ export async function runPaystackSettlementSync(
           metadata: {
             ...(evidence.metadata ?? {}),
             syncCompleted: true,
+            syncInProgress: false,
             settledCount: ingestResult.settledCount,
             alreadySettledCount: ingestResult.alreadySettledCount,
             unmatchedCount: ingestResult.unmatchedReferences.length,
@@ -497,6 +590,18 @@ export async function runPaystackSettlementSync(
         `[SettlementSyncWorker] Ingestion failed for batch ${batch.id}:`,
         ingestErr instanceof Error ? ingestErr.message : String(ingestErr)
       )
+      if (!dryRun) {
+        await prisma.settlementBatch.update({
+          where: { batchReference },
+          data: {
+            metadata: {
+              ...((evidence?.metadata as Record<string, unknown>) || {}),
+              syncInProgress: false,
+              syncError: ingestErr instanceof Error ? ingestErr.message : String(ingestErr),
+            },
+          },
+        }).catch(() => {})
+      }
       batchResults.push({
         batchId: batch.id,
         batchReference,
@@ -524,5 +629,18 @@ export async function runPaystackSettlementSync(
     message: dryRun
       ? `Dry run complete. Inspected ${settlements.length} batches; ${totalSettledPayments} payments eligible for settlement.`
       : `Settlement sync complete. Processed ${batchesProcessed} batches, marked ${totalSettledPayments} payments settled.`,
+  }
+  } finally {
+    isSyncRunningInProcess = false
+    if (!dryRun && typeof (prisma.processedProviderEvent as any)?.update === 'function') {
+      await prisma.processedProviderEvent.update({
+        where: { idempotencyKey: LEASE_KEY },
+        data: {
+          status: 'PROCESSED',
+          processedAt: new Date(),
+          metadata: { releasedAt: new Date().toISOString() },
+        },
+      }).catch(() => {})
+    }
   }
 }

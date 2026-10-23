@@ -46,6 +46,46 @@ function processingTime(method: "MPESA" | "PAYBILL" | "BANK") {
   return method === "BANK" ? "1-3 business days" : "Instant to 1 business day"
 }
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const withdrawals = await prisma.withdrawal.findMany({
+      where: { organiserId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        amount: true,
+        amountMinorUnits: true,
+        currency: true,
+        method: true,
+        destination: true,
+        status: true,
+        providerRef: true,
+        failureReason: true,
+        createdAt: true,
+        settledAt: true,
+      },
+    })
+
+    const serializedWithdrawals = withdrawals.map((w) => ({
+      ...w,
+      amountMinorUnits: w.amountMinorUnits != null ? w.amountMinorUnits.toString() : null,
+    }))
+
+    return NextResponse.json(
+      { withdrawals: serializedWithdrawals },
+      { headers: { "Cache-Control": "private, no-store" } }
+    )
+  } catch (error) {
+    console.error("[organizer-withdrawals] GET error:", error)
+    return NextResponse.json({ error: "Failed to load withdrawals." }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)

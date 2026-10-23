@@ -23,6 +23,7 @@ import {
   activateEventPassPayment,
   activateSubscriptionPayment,
   finalizePaidEventOrderPayment,
+  resolveOvercapacityPaidOrder,
 } from '@/lib/paymentFinalizers'
 import {
   completeOrganizerWithdrawal,
@@ -198,7 +199,7 @@ export async function dispatchPaystackWebhook(params: {
         const { type, orderId, paymentRecordId, userId, tokens } = metadata
 
         // Handler A: Paid Ticket Checkout
-        if (type === 'paid_event_checkout' || orderId || paymentRecordId) {
+        if (type === 'paid_event_checkout' || orderId || (paymentRecordId && type !== 'subscription_plan' && type !== 'event_pass')) {
           const targetOrderId = orderId || paymentRecordId
           if (targetOrderId) {
             const order = await prisma.paidEventOrder.findUnique({
@@ -295,6 +296,69 @@ export async function dispatchPaystackWebhook(params: {
           break
         }
 
+        // Handler D2: Recurring renewal charge without paymentRecordId
+        if (eventData.plan && (eventData.customer?.customer_code || eventData.customer?.email)) {
+          const custCode = eventData.customer?.customer_code
+          const custEmail = eventData.customer?.email
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                ...(custCode ? [{ paystackCustomerCode: custCode }] : []),
+                ...(custEmail ? [{ email: custEmail }] : []),
+              ],
+            },
+          })
+          if (user) {
+            const subscription = await prisma.subscription.findFirst({
+              where: { userId: user.id },
+              orderBy: { updatedAt: 'desc' },
+            })
+            if (subscription) {
+              const amountKes = amountMinor / 100
+              const isAnnual = subscription.billingCycle === 'ANNUAL'
+              const now = new Date()
+              const nextEnd = new Date(now)
+              if (isAnnual) nextEnd.setFullYear(nextEnd.getFullYear() + 1)
+              else nextEnd.setMonth(nextEnd.getMonth() + 1)
+
+              await prisma.$transaction([
+                prisma.subscriptionPayment.create({
+                  data: {
+                    subscriptionId: subscription.id,
+                    amountKes,
+                    amountUsd: Math.round((amountKes / 130) * 100) / 100,
+                    exchangeRate: 130,
+                    provider: 'paystack',
+                    providerRef: reference ?? null,
+                    status: 'SUCCESS',
+                    paidAt: now,
+                    description: `Automatic subscription renewal via Paystack (${subscription.billingCycle})`,
+                  },
+                }),
+                prisma.subscription.update({
+                  where: { id: subscription.id },
+                  data: {
+                    status: 'ACTIVE',
+                    currentPeriodStart: now,
+                    currentPeriodEnd: nextEnd,
+                    lastPaymentRef: reference ?? subscription.lastPaymentRef,
+                    lastPaymentAmount: amountKes,
+                    lastPaymentAt: now,
+                    cancelledAt: null,
+                  },
+                }),
+                prisma.user.update({
+                  where: { id: user.id },
+                  data: {
+                    planEndDate: nextEnd,
+                  },
+                }),
+              ])
+              break
+            }
+          }
+        }
+
         // Handler E: Event Pass Payment
         if (metadata?.type === 'event_pass' && metadata?.paymentRecordId) {
           await activateEventPassPayment(metadata.paymentRecordId, reference ?? null)
@@ -306,39 +370,273 @@ export async function dispatchPaystackWebhook(params: {
 
       // Handler F: Subscription Lifecycle Events
       case 'subscription.create': {
-        const { customer, subscription_code } = eventData
-        const userId = eventData.metadata?.userId
+        const { customer, subscription_code, plan: subPlan, next_payment_date } = eventData
+        const userId =
+          eventData.metadata?.userId ||
+          (customer?.customer_code
+            ? (await prisma.user.findFirst({
+                where: { paystackCustomerCode: customer.customer_code },
+                select: { id: true },
+              }))?.id
+            : null) ||
+          (customer?.email
+            ? (await prisma.user.findFirst({
+                where: { email: customer.email },
+                select: { id: true },
+              }))?.id
+            : null)
+
         if (userId) {
+          const planKey = (
+            eventData.metadata?.planKey ||
+            subPlan?.name ||
+            'standard'
+          )
+            .toString()
+            .trim()
+            .toLowerCase()
+          const isAnnual =
+            eventData.metadata?.billingCycle === 'annual' ||
+            subPlan?.interval === 'annually' ||
+            subPlan?.interval === 'annual'
+          const periodEnd = next_payment_date
+            ? new Date(next_payment_date)
+            : (() => {
+                const d = new Date()
+                if (isAnnual) d.setFullYear(d.getFullYear() + 1)
+                else d.setMonth(d.getMonth() + 1)
+                return d
+              })()
+
+          const dbPlan = await prisma.plan.findUnique({
+            where: { name: planKey },
+          })
+
+          const now = new Date()
+
+          const existingSub = await prisma.subscription.findFirst({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+          })
+
+          if (existingSub) {
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: {
+                ...(dbPlan ? { planId: dbPlan.id } : {}),
+                status: 'ACTIVE',
+                billingCycle: isAnnual ? 'ANNUAL' : 'MONTHLY',
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                paymentProvider: 'paystack',
+                cancelledAt: null,
+              },
+            })
+          } else if (dbPlan) {
+            await prisma.subscription.create({
+              data: {
+                userId,
+                planId: dbPlan.id,
+                status: 'ACTIVE',
+                billingCycle: isAnnual ? 'ANNUAL' : 'MONTHLY',
+                currentPeriodStart: now,
+                currentPeriodEnd: periodEnd,
+                paymentProvider: 'paystack',
+              },
+            })
+          }
+
           await prisma.user.update({
             where: { id: userId },
             data: {
-              plan: 'free',
-              billingCycle: null,
-              planEndDate: null,
+              plan: planKey,
+              billingCycle: isAnnual ? 'annual' : 'monthly',
+              planStartDate: now,
+              planEndDate: periodEnd,
               paystackCustomerCode: customer?.customer_code,
               paystackSubscriptionCode: subscription_code,
             },
           })
+
+          await prisma.auditLog.create({
+            data: {
+              actorId: userId,
+              action: 'SUBSCRIPTION_CREATED',
+              metadata: {
+                subscriptionCode: subscription_code,
+                planKey,
+                isAnnual,
+                periodEnd: periodEnd.toISOString(),
+              },
+            },
+          }).catch(() => {})
+        }
+        break
+      }
+
+      case 'invoice.create': {
+        console.info(
+          `[PaystackWebhook] Received invoice.create for subscription ${eventData.subscription?.subscription_code || eventData.id}`
+        )
+        break
+      }
+
+      case 'invoice.update': {
+        const isPaid = eventData.status === 'success' || eventData.paid === true
+        const subscriptionCode =
+          eventData.subscription?.subscription_code || eventData.subscription_code
+        const txRef = eventData.transaction?.reference || eventData.reference
+
+        if (isPaid && subscriptionCode) {
+          const user = await prisma.user.findFirst({
+            where: { paystackSubscriptionCode: subscriptionCode },
+          })
+
+          if (user) {
+            const subscription = await prisma.subscription.findFirst({
+              where: { userId: user.id },
+              orderBy: { updatedAt: 'desc' },
+            })
+
+            const now = new Date()
+            const periodStart = eventData.period_start ? new Date(eventData.period_start) : now
+            const periodEnd = eventData.period_end
+              ? new Date(eventData.period_end)
+              : (() => {
+                  const d = new Date(periodStart)
+                  if (subscription?.billingCycle === 'ANNUAL') d.setFullYear(d.getFullYear() + 1)
+                  else d.setMonth(d.getMonth() + 1)
+                  return d
+                })()
+
+            const amountMinor = Number(eventData.amount || 0)
+            const amountKes = amountMinor / 100
+
+            if (subscription) {
+              await prisma.$transaction([
+                prisma.subscriptionPayment.create({
+                  data: {
+                    subscriptionId: subscription.id,
+                    amountKes,
+                    amountUsd: Math.round((amountKes / 130) * 100) / 100,
+                    exchangeRate: 130,
+                    provider: 'paystack',
+                    providerRef: txRef ?? null,
+                    status: 'SUCCESS',
+                    paidAt: now,
+                    description: `Paystack subscription renewal invoice (${subscription.billingCycle})`,
+                  },
+                }),
+                prisma.subscription.update({
+                  where: { id: subscription.id },
+                  data: {
+                    status: 'ACTIVE',
+                    currentPeriodStart: periodStart,
+                    currentPeriodEnd: periodEnd,
+                    lastPaymentRef: txRef ?? subscription.lastPaymentRef,
+                    lastPaymentAmount: amountKes,
+                    lastPaymentAt: now,
+                    cancelledAt: null,
+                  },
+                }),
+                prisma.user.update({
+                  where: { id: user.id },
+                  data: {
+                    planEndDate: periodEnd,
+                  },
+                }),
+              ])
+
+              await prisma.notification.create({
+                data: {
+                  userId: user.id,
+                  type: 'EVENT',
+                  title: 'Subscription Renewed',
+                  message: `Your ${user.plan} subscription has renewed through ${periodEnd.toLocaleDateString()}.`,
+                  link: '/dashboard/billing',
+                },
+              }).catch(() => {})
+
+              await prisma.auditLog.create({
+                data: {
+                  actorId: user.id,
+                  action: 'SUBSCRIPTION_RENEWED',
+                  metadata: {
+                    subscriptionCode,
+                    amountKes,
+                    txRef,
+                    periodEnd: periodEnd.toISOString(),
+                  },
+                },
+              }).catch(() => {})
+            }
+          }
         }
         break
       }
 
       case 'invoice.payment_failed': {
-        const subscriptionCode = eventData.subscription?.subscription_code
+        const subscriptionCode =
+          eventData.subscription?.subscription_code || eventData.subscription_code
         if (subscriptionCode) {
           const user = await prisma.user.findFirst({
             where: { paystackSubscriptionCode: subscriptionCode },
           })
           if (user) {
+            const subscription = await prisma.subscription.findFirst({
+              where: { userId: user.id },
+              orderBy: { updatedAt: 'desc' },
+            })
+
+            const now = new Date()
+            const periodEnd = subscription?.currentPeriodEnd || user.planEndDate
+            const inGracePeriod = periodEnd
+              ? now.getTime() <= new Date(periodEnd).getTime() + 3 * 24 * 60 * 60 * 1000
+              : false
+
+            if (subscription) {
+              await prisma.subscription.update({
+                where: { id: subscription.id },
+                data: {
+                  status: inGracePeriod ? 'PAST_DUE' : 'EXPIRED',
+                },
+              })
+            }
+
+            if (!inGracePeriod) {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  plan: 'free',
+                  billingCycle: null,
+                  planEndDate: null,
+                },
+              })
+            }
+
             await prisma.notification.create({
               data: {
                 userId: user.id,
                 type: 'EVENT',
-                title: 'Payment Failed',
-                message: 'Your last payment failed. Please update your payment method to keep your plan active.',
+                title: 'Subscription Payment Failed',
+                message: inGracePeriod
+                  ? 'Your renewal payment failed. You are currently in a 3-day grace period. Please update your payment method to keep your benefits active.'
+                  : 'Your subscription renewal failed and the grace period has ended. Your account has been placed on the Free tier.',
                 link: '/dashboard/billing',
               },
-            })
+            }).catch(() => {})
+
+            await prisma.auditLog.create({
+              data: {
+                actorId: user.id,
+                action: 'SUBSCRIPTION_PAYMENT_FAILED',
+                metadata: {
+                  subscriptionCode,
+                  inGracePeriod,
+                  reason: eventData.message || eventData.description,
+                },
+              },
+            }).catch(() => {})
           }
         }
         break
@@ -351,15 +649,55 @@ export async function dispatchPaystackWebhook(params: {
             where: { paystackSubscriptionCode: subscriptionCode },
           })
           if (user) {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                plan: 'free',
-                billingCycle: null,
-                planEndDate: null,
-                paystackSubscriptionCode: null,
-              },
+            const now = new Date()
+            const subscription = await prisma.subscription.findFirst({
+              where: { userId: user.id },
+              orderBy: { updatedAt: 'desc' },
             })
+
+            const isPeriodEnded = subscription?.currentPeriodEnd
+              ? now.getTime() >= subscription.currentPeriodEnd.getTime()
+              : true
+
+            if (subscription) {
+              await prisma.subscription.update({
+                where: { id: subscription.id },
+                data: {
+                  status: 'CANCELLED',
+                  cancelledAt: now,
+                },
+              })
+            }
+
+            if (isPeriodEnded) {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  plan: 'free',
+                  billingCycle: null,
+                  planEndDate: null,
+                  paystackSubscriptionCode: null,
+                },
+              })
+            } else {
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  paystackSubscriptionCode: null,
+                },
+              })
+            }
+
+            await prisma.auditLog.create({
+              data: {
+                actorId: user.id,
+                action: 'SUBSCRIPTION_DISABLED',
+                metadata: {
+                  subscriptionCode,
+                  isPeriodEnded,
+                },
+              },
+            }).catch(() => {})
           }
         }
         break
@@ -367,15 +705,66 @@ export async function dispatchPaystackWebhook(params: {
 
       case 'subscription.not_renew': {
         const { subscription_code, next_payment_date } = eventData
-        if (subscription_code && next_payment_date) {
+        if (subscription_code) {
           const user = await prisma.user.findFirst({
             where: { paystackSubscriptionCode: subscription_code },
           })
           if (user) {
+            const now = new Date()
+            const subscription = await prisma.subscription.findFirst({
+              where: { userId: user.id },
+              orderBy: { updatedAt: 'desc' },
+            })
+
+            const finalDate = next_payment_date ? new Date(next_payment_date) : subscription?.currentPeriodEnd || now
+
+            if (subscription) {
+              await prisma.subscription.update({
+                where: { id: subscription.id },
+                data: {
+                  cancelledAt: now,
+                },
+              })
+            }
+
             await prisma.user.update({
               where: { id: user.id },
-              data: { planEndDate: new Date(next_payment_date) },
+              data: {
+                planEndDate: finalDate,
+              },
             })
+
+            await prisma.auditLog.create({
+              data: {
+                actorId: user.id,
+                action: 'SUBSCRIPTION_NOT_RENEWING',
+                metadata: {
+                  subscriptionCode: subscription_code,
+                  finalDate: finalDate.toISOString(),
+                },
+              },
+            }).catch(() => {})
+          }
+        }
+        break
+      }
+
+      case 'subscription.expiring_cards': {
+        const { subscription_code, brand, expiry_month, expiry_year } = eventData
+        if (subscription_code) {
+          const user = await prisma.user.findFirst({
+            where: { paystackSubscriptionCode: subscription_code },
+          })
+          if (user) {
+            await prisma.notification.create({
+              data: {
+                userId: user.id,
+                type: 'EVENT',
+                title: 'Card Expiring Soon',
+                message: `Your ${brand || 'payment'} card ends ${expiry_month}/${expiry_year}. Please update it in Billing to avoid service interruption.`,
+                link: '/dashboard/billing',
+              },
+            }).catch(() => {})
           }
         }
         break
@@ -531,6 +920,344 @@ export async function dispatchPaystackWebhook(params: {
         if (!revRes.success && !revRes.duplicate) {
           console.error(`[PaystackWebhook] CRITICAL DISCREPANCY on transfer.reversed for withdrawal ${withdrawal.id}: ${revRes.message}`)
         }
+        break
+      }
+
+      // Handler H: Refund Events
+      case 'refund.processed': {
+        const refundRef =
+          eventData.reference ||
+          (typeof eventData.id === 'string' ? eventData.id : String(eventData.id || ''))
+        const txObj =
+          typeof eventData.transaction === 'object' && eventData.transaction !== null
+            ? eventData.transaction
+            : null
+        const txRef =
+          (txObj && typeof txObj.reference === 'string' && txObj.reference) ||
+          (typeof eventData.transaction_reference === 'string' && eventData.transaction_reference) ||
+          (typeof eventData.transaction === 'string' && eventData.transaction) ||
+          null
+
+        if (!refundRef && !txRef) {
+          console.warn(
+            '[PaystackWebhook] refund.processed event received without refund reference or transaction reference'
+          )
+          break
+        }
+
+        const order = await prisma.paidEventOrder.findFirst({
+          where: {
+            OR: [
+              ...(txRef ? [{ providerReference: txRef }] : []),
+              ...(refundRef ? [{ providerReference: refundRef }] : []),
+            ],
+          },
+          select: {
+            id: true,
+            status: true,
+            fulfillmentStatus: true,
+            amountKes: true,
+            currency: true,
+            providerReference: true,
+          },
+        })
+
+        if (!order) {
+          console.warn(
+            `[PaystackWebhook] refund.processed event for unknown order (txRef: ${txRef}, refundRef: ${refundRef})`
+          )
+          break
+        }
+
+        // Integrity check: amount & currency
+        if (eventData.amount !== undefined) {
+          const webhookMinor = BigInt(eventData.amount)
+          const expectedMinor = toMinorUnits(order.amountKes, order.currency || 'KES')
+          if (webhookMinor !== expectedMinor) {
+            console.error(
+              `[PaystackWebhook] Refund amount mismatch for order ${order.id}: expected ${expectedMinor}, got ${webhookMinor}`
+            )
+            return { status: 400, body: { error: 'Refund amount mismatch' } }
+          }
+        }
+        if (eventData.currency) {
+          const webhookCurr = eventData.currency.toString().trim().toUpperCase()
+          const orderCurr = (order.currency || 'KES').toUpperCase()
+          if (webhookCurr !== orderCurr) {
+            console.error(
+              `[PaystackWebhook] Refund currency mismatch for order ${order.id}: expected ${orderCurr}, got ${webhookCurr}`
+            )
+            return { status: 400, body: { error: 'Refund currency mismatch' } }
+          }
+        }
+
+        const refundRes = await resolveOvercapacityPaidOrder({
+          orderId: order.id,
+          resolution: 'MANUAL_REFUND',
+          actorId: 'PAYSTACK_WEBHOOK',
+          providerRefundReference: refundRef,
+          refundMetadata: {
+            webhookEvent: 'refund.processed',
+            refundId: eventData.id,
+            transactionReference: txRef,
+            amountMinorUnits: eventData.amount,
+            currency: eventData.currency,
+            refundedAt: eventData.refunded_at,
+          },
+          notes:
+            eventData.customer_note ||
+            eventData.merchant_note ||
+            'Refund confirmed by Paystack webhook (refund.processed)',
+        })
+
+        if (!refundRes.success && !refundRes.duplicate) {
+          console.error(
+            `[PaystackWebhook] Failed to process refund.processed for order ${order.id}: ${refundRes.error}`
+          )
+        }
+        break
+      }
+
+      case 'refund.failed': {
+        const refundRef =
+          eventData.reference ||
+          (typeof eventData.id === 'string' ? eventData.id : String(eventData.id || ''))
+        const txObj =
+          typeof eventData.transaction === 'object' && eventData.transaction !== null
+            ? eventData.transaction
+            : null
+        const txRef =
+          (txObj && typeof txObj.reference === 'string' && txObj.reference) ||
+          (typeof eventData.transaction_reference === 'string' && eventData.transaction_reference) ||
+          (typeof eventData.transaction === 'string' && eventData.transaction) ||
+          null
+
+        if (!refundRef && !txRef) {
+          console.warn('[PaystackWebhook] refund.failed event received without reference')
+          break
+        }
+
+        const order = await prisma.paidEventOrder.findFirst({
+          where: {
+            OR: [
+              ...(txRef ? [{ providerReference: txRef }] : []),
+              ...(refundRef ? [{ providerReference: refundRef }] : []),
+            ],
+          },
+          select: {
+            id: true,
+            status: true,
+            fulfillmentStatus: true,
+          },
+        })
+
+        if (!order) {
+          console.warn(
+            `[PaystackWebhook] refund.failed event for unknown order (txRef: ${txRef}, refundRef: ${refundRef})`
+          )
+          break
+        }
+
+        if (order.status === 'OVERCAPACITY_PAID' || order.fulfillmentStatus?.startsWith('REFUND_')) {
+          await prisma.paidEventOrder.update({
+            where: { id: order.id },
+            data: {
+              fulfillmentStatus: 'REFUND_FAILED',
+              resolutionNotes: `Provider reported refund failed via webhook: ${
+                eventData.reason || eventData.message || refundRef
+              }`,
+            },
+          })
+
+          await prisma.auditLog.create({
+            data: {
+              actorId: 'PAYSTACK_WEBHOOK',
+              action: 'ORDER_OVERCAPACITY_REFUND_FAILED',
+              metadata: {
+                orderId: order.id,
+                refundReference: refundRef,
+                transactionReference: txRef,
+                reason: eventData.reason || eventData.message,
+                receivedAt: new Date().toISOString(),
+              },
+            },
+          }).catch(() => {})
+        }
+        break
+      }
+
+      case 'settlement.create':
+      case 'settlement.success': {
+        // Paystack does not provide per-transaction breakdown in webhook payloads.
+        // Webhooks only signal that a bulk merchant payout was created/completed.
+        // Invariant: NEVER mark individual payments as settled from an unverified bulk webhook signal.
+        // Settlement verification MUST ingest authoritative transaction evidence via the verified
+        // settlement API sync worker (GET /settlement/:id/transactions) or verified settlement reports.
+        console.info(
+          `[PaystackWebhook] Received bulk ${eventType} event (id: ${eventData.id}, batch: ${eventData.settlement_date || eventData.createdAt}). ` +
+          `Per-transaction settlement evidence must be verified through the settlement sync worker.`
+        )
+        break
+      }
+
+      // Handler I: Charge Dispute & Quarantine Events
+      case 'charge.dispute.create':
+      case 'charge.dispute.remind': {
+        const txObj =
+          typeof eventData.transaction === 'object' && eventData.transaction !== null
+            ? eventData.transaction
+            : null
+        const txRef =
+          (txObj && typeof txObj.reference === 'string' && txObj.reference) ||
+          (typeof eventData.transaction_reference === 'string' && eventData.transaction_reference) ||
+          (typeof eventData.reference === 'string' && eventData.reference) ||
+          null
+
+        if (!txRef) {
+          console.warn(`[PaystackWebhook] ${eventType} event received without transaction reference`)
+          break
+        }
+
+        const payment = await prisma.payment.findFirst({
+          where: {
+            OR: [
+              { mpesaRef: txRef },
+              { paidEventOrder: { providerReference: txRef } },
+            ],
+          },
+          include: {
+            event: { select: { id: true, organizerId: true } },
+            paidEventOrder: { select: { id: true } },
+          },
+        })
+
+        if (!payment) {
+          console.warn(`[PaystackWebhook] ${eventType} event for unknown payment (txRef: ${txRef})`)
+          break
+        }
+
+        // Quarantines the disputed funds: immediately transitions settlementStatus to DISPUTED
+        // This removes the funds from the organizer's withdrawable balance in organizerBalanceEngine
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            settlementStatus: 'DISPUTED',
+            settlementEvidence: {
+              ...(typeof payment.settlementEvidence === 'object' && payment.settlementEvidence !== null
+                ? (payment.settlementEvidence as Record<string, unknown>)
+                : {}),
+              dispute: {
+                disputeId: eventData.id,
+                status: eventData.status,
+                amountMinorUnits: eventData.amount,
+                currency: eventData.currency,
+                reason: eventData.reason,
+                evidenceSupplied: eventData.evidence,
+                createdAt: new Date().toISOString(),
+              },
+            },
+          },
+        })
+
+        await prisma.auditLog.create({
+          data: {
+            actorId: 'PAYSTACK_WEBHOOK',
+            action: 'PAYMENT_DISPUTE_QUARANTINED',
+            metadata: {
+              paymentId: payment.id,
+              orderId: payment.paidEventOrderId,
+              organizerId: payment.event.organizerId,
+              disputeId: eventData.id,
+              amount: eventData.amount,
+              reason: eventData.reason,
+            },
+          },
+        }).catch(() => {})
+
+        console.warn(
+          `[PaystackWebhook] Quarantined disputed payment ${payment.id} (tx: ${txRef}, dispute: ${eventData.id})`
+        )
+        break
+      }
+
+      case 'charge.dispute.resolve': {
+        const txObj =
+          typeof eventData.transaction === 'object' && eventData.transaction !== null
+            ? eventData.transaction
+            : null
+        const txRef =
+          (txObj && typeof txObj.reference === 'string' && txObj.reference) ||
+          (typeof eventData.transaction_reference === 'string' && eventData.transaction_reference) ||
+          (typeof eventData.reference === 'string' && eventData.reference) ||
+          null
+
+        if (!txRef) {
+          console.warn('[PaystackWebhook] charge.dispute.resolve event received without transaction reference')
+          break
+        }
+
+        const payment = await prisma.payment.findFirst({
+          where: {
+            OR: [
+              { mpesaRef: txRef },
+              { paidEventOrder: { providerReference: txRef } },
+            ],
+          },
+          include: {
+            event: { select: { id: true, organizerId: true } },
+          },
+        })
+
+        if (!payment) {
+          console.warn(`[PaystackWebhook] charge.dispute.resolve event for unknown payment (txRef: ${txRef})`)
+          break
+        }
+
+        const resolution = (eventData.resolution || eventData.status || '').toString().toLowerCase()
+        const isDisputeWon =
+          resolution === 'merchant-accepted' ||
+          resolution === 'won' ||
+          resolution === 'resolved'
+
+        const nextSettlementStatus = isDisputeWon
+          ? (payment.settledAt || payment.settlementBatchId ? 'SETTLED' : 'PENDING')
+          : 'REVERSED'
+
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            settlementStatus: nextSettlementStatus,
+            settlementEvidence: {
+              ...(typeof payment.settlementEvidence === 'object' && payment.settlementEvidence !== null
+                ? (payment.settlementEvidence as Record<string, unknown>)
+                : {}),
+              disputeResolution: {
+                disputeId: eventData.id,
+                resolution,
+                resolvedAt: new Date().toISOString(),
+              },
+            },
+          },
+        })
+
+        await prisma.auditLog.create({
+          data: {
+            actorId: 'PAYSTACK_WEBHOOK',
+            action: isDisputeWon ? 'PAYMENT_DISPUTE_RESOLVED_WON' : 'PAYMENT_DISPUTE_RESOLVED_LOST',
+            metadata: {
+              paymentId: payment.id,
+              orderId: payment.paidEventOrderId,
+              organizerId: payment.event.organizerId,
+              disputeId: eventData.id,
+              resolution,
+              newSettlementStatus: nextSettlementStatus,
+            },
+          },
+        }).catch(() => {})
+
+        console.info(
+          `[PaystackWebhook] Dispute ${eventData.id} for payment ${payment.id} resolved (${resolution} -> ${nextSettlementStatus})`
+        )
         break
       }
 

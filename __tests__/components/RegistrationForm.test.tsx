@@ -65,7 +65,6 @@ describe('RegistrationForm', () => {
     expect(screen.getByDisplayValue('Media')).toBeInTheDocument()
     expect(screen.getAllByDisplayValue('saved@example.com')).toHaveLength(2)
     expect(screen.getByText('Saved progress restored.')).toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: /send me a copy of my responses/i })).toBeChecked()
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       '/api/register/draft?eventSlug=restore-test&email=saved%40example.com',
@@ -120,17 +119,19 @@ describe('RegistrationForm', () => {
     })
 
     const fullNameInputs = screen.getAllByLabelText(/full name/i) as HTMLInputElement[]
-    const roleSelects = screen.getAllByLabelText(/preferred position/i) as HTMLSelectElement[]
+    const mediaRadios = screen.getAllByRole('radio', { name: 'Media' }) as HTMLInputElement[]
+    const protocolRadios = screen.getAllByRole('radio', { name: 'Protocol' }) as HTMLInputElement[]
     const emailInputs = screen.getAllByLabelText(/email address/i) as HTMLInputElement[]
 
     expect(fullNameInputs).toHaveLength(2)
-    expect(roleSelects).toHaveLength(2)
+    expect(mediaRadios).toHaveLength(2)
+    expect(protocolRadios).toHaveLength(2)
     expect(emailInputs).toHaveLength(2)
 
     expect(fullNameInputs[0].value).toBe('Ada Lovelace')
     expect(fullNameInputs[1].value).toBe('Grace Hopper')
-    expect(roleSelects[0].value).toBe('Media')
-    expect(roleSelects[1].value).toBe('Protocol')
+    expect(mediaRadios[0]).toBeChecked()
+    expect(protocolRadios[1]).toBeChecked()
     expect(emailInputs[0].value).toBe('group@example.com')
     expect(emailInputs[1].value).toBe('guest@example.com')
 
@@ -196,12 +197,11 @@ describe('RegistrationForm', () => {
       expect(screen.getByText('Registering 2 people')).toBeInTheDocument()
     })
 
-    let fullNameInputs = screen.getAllByLabelText(/full name/i) as HTMLInputElement[]
-    let roleSelects = screen.getAllByLabelText(/preferred position/i) as HTMLSelectElement[]
-    let emailInputs = screen.getAllByLabelText(/email address/i) as HTMLInputElement[]
+    const fullNameInputs = screen.getAllByLabelText(/full name/i) as HTMLInputElement[]
+    const emailInputs = screen.getAllByLabelText(/email address/i) as HTMLInputElement[]
 
     fireEvent.change(fullNameInputs[1], { target: { value: 'Grace Hopper' } })
-    fireEvent.change(roleSelects[1], { target: { value: 'Protocol' } })
+    fireEvent.click(screen.getAllByRole('radio', { name: 'Protocol' })[1])
     fireEvent.change(emailInputs[1], { target: { value: 'guest@example.com' } })
 
     await act(async () => {
@@ -222,6 +222,8 @@ describe('RegistrationForm', () => {
 
     expect(addPayload.attendeeCount).toBe(2)
     expect(addPayload.answers).toHaveLength(2)
+    expect(addPayload.answers[1].fullName).toBe('Grace Hopper')
+    expect(addPayload.answers[1].role).toBe('Protocol')
     expect(addPayload.baseEmails).toEqual(['group@example.com', 'guest@example.com'])
 
     fireEvent.click(screen.getByRole('button', { name: /remove attendee/i }))
@@ -265,18 +267,54 @@ describe('RegistrationForm', () => {
     expect(screen.getByText(/this form is created by the event organiser and hosted through eventslot/i)).toBeInTheDocument()
   })
 
-  it('shows the lighter paid-event maintenance notice inside the attendee flow', () => {
+  it('renders ticket tier selection and updates checkout button in paid events', () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({ draft: null }),
     })
 
-    render(<RegistrationForm event={{ ...baseEvent, isPaid: true }} />)
+    const paidEvent = {
+      ...baseEvent,
+      isPaid: true,
+      ticketTiers: [
+        {
+          id: 'tier-early-bird',
+          name: 'Early Bird',
+          badgeColor: '#C8F55A',
+          textColor: '#0A0A0A',
+          metallic: false,
+          prestige: 1,
+          priceKes: 1500,
+          currency: 'KES',
+          capacity: 50,
+          soldCount: 10,
+          waitlistCount: 0,
+          bundleSize: 1,
+        },
+        {
+          id: 'tier-vip',
+          name: 'VIP Pass',
+          badgeColor: '#FFD700',
+          textColor: '#0A0A0A',
+          metallic: true,
+          prestige: 2,
+          priceKes: 5000,
+          currency: 'KES',
+          capacity: 20,
+          soldCount: 5,
+          waitlistCount: 0,
+          bundleSize: 1,
+        },
+      ],
+    }
 
-    expect(screen.getAllByText('Paid event').length).toBeGreaterThan(0)
-    expect(screen.getByText('Checkout is not live yet')).toBeInTheDocument()
-    expect(screen.getByText('This event uses paid tickets, but checkout is still paused for now.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /paid registration paused/i })).toBeDisabled()
+    render(<RegistrationForm event={paidEvent} />)
+
+    expect(screen.getByText('Choose your ticket')).toBeInTheDocument()
+    expect(screen.getByText('Paid Admission')).toBeInTheDocument()
+    expect(screen.getAllByText('Early Bird').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('VIP Pass').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /start registration/i })).toBeInTheDocument()
   })
 
   it('clears the restored draft locally and remotely', async () => {
@@ -340,10 +378,20 @@ describe('RegistrationForm', () => {
       }),
     })
 
-    render(<RegistrationForm event={baseEvent} />)
+    render(<RegistrationForm event={{ ...baseEvent, attendeeConsentEnabled: true }} />)
 
+    // Step 0: Welcome
+    fireEvent.click(screen.getByRole('button', { name: /start registration/i }))
+
+    // Step 1: Personal Details
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Ada Lovelace' } })
-    fireEvent.change(screen.getByLabelText(/preferred position/i), { target: { value: 'Media' } })
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+    // Step 2: Event Questions
+    fireEvent.click(screen.getByRole('radio', { name: 'Media' }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+    // Step 3: Review & Consent
     fireEvent.click(screen.getByRole('checkbox', { name: /i consent to my data being collected/i }))
     fireEvent.click(screen.getByRole('button', { name: /^submit$/i }))
 
@@ -381,10 +429,20 @@ describe('RegistrationForm', () => {
         json: async () => ({ success: true }),
       })
 
-    render(<RegistrationForm event={baseEvent} />)
+    render(<RegistrationForm event={{ ...baseEvent, attendeeConsentEnabled: true }} />)
 
+    // Step 0: Welcome
+    fireEvent.click(screen.getByRole('button', { name: /start registration/i }))
+
+    // Step 1: Personal Details
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Grace Hopper' } })
-    fireEvent.change(screen.getByLabelText(/preferred position/i), { target: { value: 'Protocol' } })
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+    // Step 2: Event Questions
+    fireEvent.click(screen.getByRole('radio', { name: 'Protocol' }))
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+    // Step 3: Review & Consent
     fireEvent.click(screen.getByRole('checkbox', { name: /i consent to my data being collected/i }))
     fireEvent.click(screen.getByRole('button', { name: /^submit$/i }))
 

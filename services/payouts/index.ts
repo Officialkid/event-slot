@@ -1,8 +1,11 @@
 import * as paystackPayouts from "./paystack"
-import * as intasendPayouts from "./intrasend"
 import type { SupportedCurrency } from "@/lib/organizerPayments"
 
-const usePaystack = () => (process.env.PAYOUT_PROVIDER || "paystack").toLowerCase() === "paystack"
+/**
+ * EventSlot Payout Adapter (Paystack Only)
+ * IntraSend payout processing has been decommissioned.
+ * All payouts (M-Pesa and Bank) are routed strictly through Paystack Transfers.
+ */
 
 export async function sendMpesaPayout(params: {
   phone: string
@@ -11,10 +14,7 @@ export async function sendMpesaPayout(params: {
   narrative: string
   reference?: string
 }) {
-  if (usePaystack()) {
-    return paystackPayouts.sendMpesaPayout(params)
-  }
-  return intasendPayouts.sendMpesaPayout(params)
+  return paystackPayouts.sendMpesaPayout(params)
 }
 
 export async function sendBankPayout(params: {
@@ -27,10 +27,7 @@ export async function sendBankPayout(params: {
   narrative: string
   reference?: string
 }) {
-  if (usePaystack()) {
-    return paystackPayouts.sendBankPayout(params)
-  }
-  return intasendPayouts.sendBankPayout(params)
+  return paystackPayouts.sendBankPayout(params)
 }
 
 export async function sendPaybillPayout(params: {
@@ -41,8 +38,5 @@ export async function sendPaybillPayout(params: {
   narrative: string
   reference?: string
 }) {
-  if (usePaystack()) {
-    return paystackPayouts.sendPaybillPayout(params)
-  }
-  return intasendPayouts.sendPaybillPayout(params)
+  return paystackPayouts.sendPaybillPayout(params)
 }

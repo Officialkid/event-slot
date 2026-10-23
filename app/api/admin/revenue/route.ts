@@ -143,9 +143,11 @@ export async function GET() {
       tokensOnVoice: Math.abs(tokensOnVoiceAgg._sum.amount ?? 0),
       uniqueBuyerCount: uniqueBuyers.length,
       monthlyPurchases: monthlyTokenPurchases,
+    }, {
+      headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch (err) {
     console.error('[admin/revenue] GET error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: { 'Cache-Control': 'private, no-store' } })
   }
 }

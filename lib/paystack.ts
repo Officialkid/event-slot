@@ -473,3 +473,123 @@ export function getBillingCycleFromPlanCode(planCode: string): string {
   ]
   return annualCodes.includes(planCode) ? 'annual' : 'monthly'
 }
+
+// ---------------------------------------------------------------------------
+// Refund Verification
+// ---------------------------------------------------------------------------
+
+export type PaystackRefundStatus = 'processed' | 'pending' | 'failed' | 'unknown'
+
+export type PaystackRefundVerifyResult = {
+  refundId: number | string
+  reference?: string
+  status: PaystackRefundStatus
+  isProcessed: boolean
+  amountMinorUnits: number
+  currency: string
+  transactionReference?: string
+  transactionId?: number | string
+  refundedAt?: Date | null
+  customerNote?: string
+  merchantNote?: string
+  raw: unknown
+}
+
+/**
+ * Authoritatively verifies a refund record via the Paystack API (/refund/:reference_or_id).
+ * Does NOT mutate orders or balances; returns verified provider data for caller consumption.
+ * Enforces timeout handling, error classification, and payload sanitization.
+ */
+export async function verifyPaystackRefund(
+  refundReferenceOrId: string | number,
+  options: PaystackRequestOptions = {}
+): Promise<PaystackRefundVerifyResult> {
+  const secretKey = getPaystackSecretKey()
+
+  const trimmedRef = String(refundReferenceOrId ?? '').trim()
+  if (!trimmedRef) {
+    throw new PaystackValidationError('A valid refund reference or ID is required for verification.')
+  }
+
+  const timeoutMs = options.timeoutMs ?? DEFAULT_PAYSTACK_TIMEOUT_MS
+  const fetchImpl = options.fetchFn ?? fetch
+
+  let response: Response
+  try {
+    response = await fetchImpl(
+      `${PAYSTACK_BASE_URL}/refund/${encodeURIComponent(trimmedRef)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(timeoutMs),
+      }
+    )
+  } catch (err: unknown) {
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      throw new PaystackTimeoutError(
+        `Paystack refund verification timed out after ${timeoutMs}ms for reference "${trimmedRef}". Refund state remains indeterminate.`,
+        trimmedRef
+      )
+    }
+    const message = err instanceof Error ? err.message : String(err)
+    throw new PaystackError(`Paystack network error during refund verification: ${redactSensitivePaystackString(message)}`)
+  }
+
+  const rawText = await response.text()
+  let parsed: any
+  try {
+    parsed = JSON.parse(rawText)
+  } catch {
+    throw new PaystackApiError(
+      `Paystack returned non-JSON refund verification response (HTTP ${response.status})`,
+      response.status,
+      rawText
+    )
+  }
+
+  if (!response.ok || !parsed.status) {
+    const errorMsg = parsed.message || `Paystack refund verification failed (HTTP ${response.status})`
+    throw new PaystackApiError(errorMsg, response.status, sanitizePaystackPayload(parsed))
+  }
+
+  const data = parsed.data || {}
+  const rawStatus = (data.status || 'unknown').toString().toLowerCase()
+  const status: PaystackRefundStatus =
+    rawStatus === 'processed'
+      ? 'processed'
+      : rawStatus === 'pending'
+      ? 'pending'
+      : rawStatus === 'failed'
+      ? 'failed'
+      : 'unknown'
+
+  const txObj = typeof data.transaction === 'object' && data.transaction !== null ? data.transaction : null
+  const transactionReference =
+    (txObj && typeof txObj.reference === 'string' && txObj.reference) ||
+    (typeof data.transaction_reference === 'string' && data.transaction_reference) ||
+    (typeof data.transaction === 'string' && data.transaction) ||
+    undefined
+
+  const transactionId =
+    (txObj && (typeof txObj.id === 'number' || typeof txObj.id === 'string') && txObj.id) ||
+    (typeof data.transaction === 'number' || typeof data.transaction === 'string' ? data.transaction : undefined)
+
+  return {
+    refundId: data.id ?? trimmedRef,
+    reference: data.reference || (typeof data.id === 'string' ? data.id : trimmedRef),
+    status,
+    isProcessed: status === 'processed',
+    amountMinorUnits: Number(data.amount || 0),
+    currency: (data.currency || 'KES').toString().toUpperCase(),
+    transactionReference,
+    transactionId,
+    refundedAt: data.refunded_at ? new Date(data.refunded_at) : null,
+    customerNote: data.customer_note || undefined,
+    merchantNote: data.merchant_note || undefined,
+    raw: sanitizePaystackPayload(parsed),
+  }
+}
+

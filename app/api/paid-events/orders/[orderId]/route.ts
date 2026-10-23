@@ -4,7 +4,6 @@ import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { failPaidEventOrderPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
 import { verifyPaystackTransaction, PaystackTimeoutError } from '@/lib/paystack'
 import { toMinorUnits } from '@/lib/financialLedger'
-import { extractInvoiceState, extractProviderReference, getIntaSendPaymentStatus } from '@/lib/intasend'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params
@@ -107,22 +106,6 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
         // INVARIANT: Never mark payment failed on timeout or transient network errors!
         // Keep order in PAYMENT_PENDING so future poll or webhook can reconcile.
       }
-    } else if (paymentOrder?.checkoutRequestId) {
-      try {
-        const providerStatus = await getIntaSendPaymentStatus(paymentOrder.checkoutRequestId)
-        const state = extractInvoiceState(providerStatus)
-        const providerRef = extractProviderReference(providerStatus) ?? paymentOrder.providerReference
-
-        if (state === 'COMPLETE') {
-          await finalizePaidEventOrderPayment(order.id, providerRef)
-          status = 'PAID'
-        } else if (state === 'FAILED') {
-          await failPaidEventOrderPayment(order.id, 'FAILED')
-          status = 'FAILED'
-        }
-      } catch {
-        // Keep the stored status if the provider check is temporarily unavailable.
-      }
     }
   }
 
@@ -177,5 +160,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
     amountKes: responseOrder?.amountKes ?? order.amountKes,
     attendeeEmail: responseOrder?.attendeeEmail ?? order.attendeeEmail,
     holdExpiresAt: (responseOrder?.holdExpiresAt ?? order.holdExpiresAt).toISOString(),
+  }, {
+    headers: { 'Cache-Control': 'private, no-store' },
   })
 }

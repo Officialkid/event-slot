@@ -562,6 +562,21 @@ describe('Phase 5.12: Financial Integrity Hardening Verification Suite', () => {
 
       ;(prisma.paidEventOrder.findUnique as jest.Mock).mockResolvedValue(mockOrder)
 
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            status: true,
+            message: 'Refund retrieved',
+            data: {
+              id: 'pstk_ref_rev_987654',
+              status: 'processed',
+              amount: 500000,
+              currency: 'KES',
+            },
+          }),
+      })
+
       const result = await resolveOvercapacityPaidOrder({
         orderId: 'order-refund-confirmed-1',
         resolution: 'MANUAL_REFUND',
@@ -569,6 +584,7 @@ describe('Phase 5.12: Financial Integrity Hardening Verification Suite', () => {
         providerRefundReference: 'pstk_ref_rev_987654',
         refundMetadata: { channel: 'card', bankRef: 'BKN-112233' },
         notes: 'Dispatched through Paystack dashboard',
+        paystackOptions: { fetchFn: mockFetch as any },
       })
 
       expect(result.success).toBe(true)

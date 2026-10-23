@@ -108,9 +108,15 @@ export default function PaidWaitlistPaymentPage() {
         </p>
 
         {order.status === "PAID" ? (
-          <p className="mt-6 text-[#C8F55A]">Payment received. Redirecting to your ticket...</p>
+          <p className="mt-6 text-[#C8F55A] font-semibold">Payment confirmed! Redirecting to your ticket...</p>
+        ) : order.status === "PAYMENT_PENDING" ? (
+          <div className="mt-6 space-y-3 rounded-xl border border-[rgba(240,237,230,0.12)] bg-[#0A0A0A] p-4 text-center">
+            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[#C8F55A] border-t-transparent" />
+            <p className="text-[0.92rem] font-semibold text-[#F0EDE6]">Confirming payment with Paystack...</p>
+            <p className="text-[0.8rem] text-[rgba(240,237,230,0.6)]">Please keep this window open while we secure your ticket and generate your QR pass.</p>
+          </div>
         ) : order.status === "EXPIRED" ? (
-          <p className="mt-6 text-[#FF6B6B]">This payment offer has expired.</p>
+          <p className="mt-6 text-[#FF6B6B]">This payment hold has expired.</p>
         ) : (
           <div className="mt-6 space-y-4">
             <div>

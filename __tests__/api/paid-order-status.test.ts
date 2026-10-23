@@ -34,12 +34,6 @@ jest.mock('@/lib/paymentFinalizers', () => ({
   finalizePaidEventOrderPayment: jest.fn(),
 }))
 
-jest.mock('@/lib/intasend', () => ({
-  extractInvoiceState: jest.fn(),
-  extractProviderReference: jest.fn(),
-  getIntaSendPaymentStatus: jest.fn(),
-}))
-
 describe('GET /api/paid-events/orders/[orderId]', () => {
   beforeEach(() => {
     mockFindUnique.mockReset()

@@ -245,12 +245,28 @@ describe('Phase 4.2: Payment Truth, Webhook Recovery & Balance Reconciliation', 
         return callback(tx)
       })
 
+      const mockFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        text: async () =>
+          JSON.stringify({
+            status: true,
+            message: 'Refund retrieved',
+            data: {
+              id: 'pstk_manual_ref_123',
+              status: 'processed',
+              amount: 500000,
+              currency: 'KES',
+            },
+          }),
+      })
+
       const res = await resolveOvercapacityPaidOrder({
         orderId: 'order-to-refund',
         resolution: 'MANUAL_REFUND',
         notes: 'Customer opted for bank refund through support',
         actorId: 'admin-user-1',
         providerRefundReference: 'pstk_manual_ref_123',
+        paystackOptions: { fetchFn: mockFetch as any },
       })
 
       expect(res.success).toBe(true)

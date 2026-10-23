@@ -98,8 +98,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
       googleCalendarConnected = !!organizer?.googleCalendarConnected
     }
 
+    const takeParam = req.nextUrl.searchParams.get('take') ?? req.nextUrl.searchParams.get('limit')
+    const take = takeParam && Number.isInteger(Number(takeParam)) && Number(takeParam) > 0 ? Number(takeParam) : undefined
+
     const registrations = await prisma.registration.findMany({
       where: { eventId: event.id },
+      ...(take ? { take } : {}),
       select: {
         id: true,
         answers: true,
@@ -217,6 +221,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
         calendarSynced,
         googleCalendarConnected,
       },
+    }, {
+      headers: { 'Cache-Control': 'private, no-store' },
     })
   } catch (err) {
     console.error('[EVENT API ERROR]', err)
@@ -247,12 +253,22 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     const body = await req.json()
     const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isMultiDay, multiDaySchedule, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
 
+    const purgeEventOwnerCache = () => {
+      if (event.organizerId) {
+        purgeUserCache(event.organizerId, event.organizerEmail ?? null)
+      }
+      if (session?.user?.id && session.user.id !== event.organizerId) {
+        purgeUserCache(session.user.id, session.user.email ?? null)
+      }
+    }
+
     // Lightweight actions: rename or archive
     if (action === 'rename') {
       if (!title?.trim()) {
         return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
       }
       await prisma.event.update({ where: { slug }, data: { title: title.trim() } })
+      purgeEventOwnerCache()
       return NextResponse.json({ success: true })
     }
 
@@ -283,6 +299,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         }
       }
 
+      purgeEventOwnerCache()
       return NextResponse.json({ success: true })
     }
 
@@ -330,6 +347,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
         }).catch(console.error)
       }
 
+      purgeEventOwnerCache()
       return NextResponse.json({ success: true, message: 'Meeting link updated successfully.' })
     }
 
@@ -503,6 +521,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       }
     }
 
+    purgeEventOwnerCache()
     return NextResponse.json({ success: true, event: updated, registrationsReset: shouldResetRegistrationsForQuestionChange })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'

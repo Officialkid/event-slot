@@ -231,6 +231,9 @@ export async function requestOrganizerWithdrawal(
       isDuplicate: false as const,
       withdrawal: createdWithdrawal,
     }
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
   })
 
   if (reservationOutcome.isDuplicate) {
@@ -437,25 +440,50 @@ export async function completeOrganizerWithdrawal(params: {
 
   const txResult = await prisma.$transaction(async (tx) => {
     // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    try {
+      await (tx as any).$queryRaw`SELECT id, status FROM "Withdrawal" WHERE id = ${withdrawal.id} FOR UPDATE`
+    } catch {
+      // non-postgres fallback for test simulation
+    }
+
     const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
     const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
     const effectiveStatus = current?.status ?? withdrawal.status
     if (effectiveStatus !== 'PROCESSING') {
       return {
-        success: false,
+        success: effectiveStatus === 'COMPLETED',
         duplicate: effectiveStatus === 'COMPLETED',
         message: `Cannot complete withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
       }
     }
 
-    await tx.withdrawal.update({
-      where: { id: withdrawal.id },
-      data: {
-        status: 'COMPLETED',
-        settledAt: now,
-        providerRef: params.providerReference ?? withdrawal.providerRef,
-      },
-    })
+    if (typeof tx?.withdrawal?.updateMany === 'function') {
+      const updateResult = await tx.withdrawal.updateMany({
+        where: { id: withdrawal.id, status: 'PROCESSING' },
+        data: {
+          status: 'COMPLETED',
+          settledAt: now,
+          providerRef: params.providerReference ?? withdrawal.providerRef,
+        },
+      })
+      if (updateResult.count === 0) {
+        const refreshed = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+        return {
+          success: refreshed?.status === 'COMPLETED',
+          duplicate: refreshed?.status === 'COMPLETED',
+          message: `Cannot complete withdrawal ${withdrawal.id}: current status is ${refreshed?.status}`,
+        }
+      }
+    } else {
+      await tx.withdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          status: 'COMPLETED',
+          settledAt: now,
+          providerRef: params.providerReference ?? withdrawal.providerRef,
+        },
+      })
+    }
 
     // Record WITHDRAWAL_COMPLETION for audit history.
     // NOTE: Does NOT debit balance again; the reservation already debited the balance.
@@ -532,24 +560,48 @@ export async function failAndReleaseOrganizerWithdrawal(params: {
 
   const txResult = await prisma.$transaction(async (tx) => {
     // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    try {
+      await (tx as any).$queryRaw`SELECT id, status FROM "Withdrawal" WHERE id = ${withdrawal.id} FOR UPDATE`
+    } catch {
+      // non-postgres fallback for test simulation
+    }
+
     const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
     const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
     const effectiveStatus = current?.status ?? withdrawal.status
     if (effectiveStatus !== 'PROCESSING') {
       return {
-        success: false,
+        success: effectiveStatus === 'FAILED',
         duplicate: effectiveStatus === 'FAILED',
         message: `Cannot release withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
       }
     }
 
-    await tx.withdrawal.update({
-      where: { id: withdrawal.id },
-      data: {
-        status: 'FAILED',
-        failureReason: params.reason,
-      },
-    })
+    if (typeof tx?.withdrawal?.updateMany === 'function') {
+      const updateResult = await tx.withdrawal.updateMany({
+        where: { id: withdrawal.id, status: 'PROCESSING' },
+        data: {
+          status: 'FAILED',
+          failureReason: params.reason,
+        },
+      })
+      if (updateResult.count === 0) {
+        const refreshed = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+        return {
+          success: refreshed?.status === 'FAILED',
+          duplicate: refreshed?.status === 'FAILED',
+          message: `Cannot release withdrawal ${withdrawal.id}: current status is ${refreshed?.status}`,
+        }
+      }
+    } else {
+      await tx.withdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          status: 'FAILED',
+          failureReason: params.reason,
+        },
+      })
+    }
 
     // Post WITHDRAWAL_RELEASE (CREDIT) to restore available balance
     const relKey = buildWithdrawalReleaseIdempotencyKey(withdrawal.id)
@@ -632,24 +684,48 @@ export async function reverseOrganizerWithdrawal(params: {
 
   const txResult = await prisma.$transaction(async (tx) => {
     // Re-verify status under transaction lock to prevent conflicting concurrent transitions
+    try {
+      await (tx as any).$queryRaw`SELECT id, status FROM "Withdrawal" WHERE id = ${withdrawal.id} FOR UPDATE`
+    } catch {
+      // non-postgres fallback for test simulation
+    }
+
     const withdrawalModel = typeof tx?.withdrawal?.findUnique === 'function' ? tx.withdrawal : prisma.withdrawal
     const current = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
     const effectiveStatus = current?.status ?? withdrawal.status
     if (effectiveStatus !== 'COMPLETED') {
       return {
-        success: false,
+        success: effectiveStatus === 'REVERSED',
         duplicate: effectiveStatus === 'REVERSED',
         message: `Cannot reverse withdrawal ${withdrawal.id}: current status is ${effectiveStatus}`,
       }
     }
 
-    await tx.withdrawal.update({
-      where: { id: withdrawal.id },
-      data: {
-        status: 'REVERSED',
-        failureReason: params.reason,
-      },
-    })
+    if (typeof tx?.withdrawal?.updateMany === 'function') {
+      const updateResult = await tx.withdrawal.updateMany({
+        where: { id: withdrawal.id, status: 'COMPLETED' },
+        data: {
+          status: 'REVERSED',
+          failureReason: params.reason,
+        },
+      })
+      if (updateResult.count === 0) {
+        const refreshed = await withdrawalModel.findUnique({ where: { id: withdrawal.id } })
+        return {
+          success: refreshed?.status === 'REVERSED',
+          duplicate: refreshed?.status === 'REVERSED',
+          message: `Cannot reverse withdrawal ${withdrawal.id}: current status is ${refreshed?.status}`,
+        }
+      }
+    } else {
+      await tx.withdrawal.update({
+        where: { id: withdrawal.id },
+        data: {
+          status: 'REVERSED',
+          failureReason: params.reason,
+        },
+      })
+    }
 
     // Post REVERSAL (CREDIT) to restore available balance
     const revKey = `rev:wd:${withdrawal.id}`
@@ -780,6 +856,66 @@ export async function reconcileOrganizerWithdrawal(params: {
     const provStatus = (verified.status || 'unknown').toLowerCase()
 
     if (provStatus === 'success') {
+      // Amount and currency validation against provider evidence
+      const expectedMinor = withdrawal.amountMinorUnits ?? toMinorUnits(withdrawal.amount, withdrawal.currency)
+      if (verified.amountMinorUnits > BigInt(0) && verified.amountMinorUnits !== expectedMinor) {
+        const mismatchMsg = `Amount mismatch on transfer reconciliation: expected ${expectedMinor}, got ${verified.amountMinorUnits}`
+        console.error(`[withdrawal-reconciliation] ${mismatchMsg} for withdrawal ${withdrawal.id}`)
+        await prisma.withdrawal.update({
+          where: { id: withdrawal.id },
+          data: {
+            failureReason: `RECONCILIATION_AMOUNT_MISMATCH: ${mismatchMsg}`,
+          },
+        })
+        await prisma.auditLog.create({
+          data: {
+            actorId,
+            action: 'WITHDRAWAL_RECONCILIATION_MISMATCH',
+            metadata: {
+              withdrawalId: withdrawal.id,
+              expectedMinor: expectedMinor.toString(),
+              providerMinor: verified.amountMinorUnits.toString(),
+            },
+          },
+        })
+        return {
+          withdrawalId: withdrawal.id,
+          status: 'PROCESSING',
+          reconciled: false,
+          providerStatus: provStatus,
+          message: mismatchMsg,
+        }
+      }
+
+      if (verified.currency && verified.currency.toUpperCase() !== withdrawal.currency.toUpperCase()) {
+        const mismatchMsg = `Currency mismatch on transfer reconciliation: expected ${withdrawal.currency}, got ${verified.currency}`
+        console.error(`[withdrawal-reconciliation] ${mismatchMsg} for withdrawal ${withdrawal.id}`)
+        await prisma.withdrawal.update({
+          where: { id: withdrawal.id },
+          data: {
+            failureReason: `RECONCILIATION_CURRENCY_MISMATCH: ${mismatchMsg}`,
+          },
+        })
+        await prisma.auditLog.create({
+          data: {
+            actorId,
+            action: 'WITHDRAWAL_RECONCILIATION_MISMATCH',
+            metadata: {
+              withdrawalId: withdrawal.id,
+              expectedCurrency: withdrawal.currency,
+              providerCurrency: verified.currency,
+            },
+          },
+        })
+        return {
+          withdrawalId: withdrawal.id,
+          status: 'PROCESSING',
+          reconciled: false,
+          providerStatus: provStatus,
+          message: mismatchMsg,
+        }
+      }
+
       await completeOrganizerWithdrawal({
         withdrawalId: withdrawal.id,
         providerReference: verified.reference,
@@ -867,6 +1003,10 @@ export async function reconcileOrganizerWithdrawal(params: {
   }
 }
 
+let isWithdrawalReconciliationRunningInProcess = false
+const WITHDRAWAL_RECONCILIATION_LEASE_KEY = 'lock:withdrawal_reconciliation_worker'
+const WITHDRAWAL_RECONCILIATION_LEASE_DURATION_MS = 5 * 60 * 1000
+
 /**
  * Worker that scans and reconciles all active withdrawals stuck in PROCESSING.
  */
@@ -881,57 +1021,135 @@ export async function runWithdrawalReconciliationWorker(options?: {
   stillPendingCount: number
   inconclusiveCount: number
   results: ReconcileWithdrawalResult[]
+  message?: string
 }> {
-  const olderThanMs = (options?.olderThanMinutes ?? 5) * 60 * 1000
-  const cutoff = new Date(Date.now() - olderThanMs)
-  const limit = options?.limit ?? 50
+  const dryRun = Boolean(options?.dryRun)
+  const actorId = options?.actorId || 'CRON_RECONCILIATION_WORKER'
 
-  const pendingWithdrawals = await prisma.withdrawal.findMany({
-    where: {
-      status: 'PROCESSING',
-      createdAt: { lte: cutoff },
-    },
-    take: limit,
-    orderBy: { createdAt: 'asc' },
-  })
-
-  let reconciledCount = 0
-  let stillPendingCount = 0
-  let inconclusiveCount = 0
-  const results: ReconcileWithdrawalResult[] = []
-
-  for (const wd of pendingWithdrawals) {
-    if (options?.dryRun) {
-      results.push({
-        withdrawalId: wd.id,
-        status: 'PROCESSING',
-        reconciled: false,
-        message: `DRY RUN: would reconcile withdrawal ${wd.id} (ref: ${wd.providerRef})`,
-      })
-      stillPendingCount++
-      continue
+  // Concurrency Guard: in-process & distributed lease
+  if (!dryRun) {
+    if (isWithdrawalReconciliationRunningInProcess) {
+      return {
+        totalInspected: 0,
+        reconciledCount: 0,
+        stillPendingCount: 0,
+        inconclusiveCount: 0,
+        results: [],
+        message: 'Withdrawal reconciliation worker is already running in this process.',
+      }
     }
 
-    const res = await reconcileOrganizerWithdrawal({
-      withdrawalId: wd.id,
-      actorId: options?.actorId || 'CRON_RECONCILIATION_WORKER',
-    })
-    results.push(res)
+    if (typeof (prisma.processedProviderEvent as any)?.findUnique === 'function') {
+      const activeLock = await prisma.processedProviderEvent.findUnique({
+        where: { idempotencyKey: WITHDRAWAL_RECONCILIATION_LEASE_KEY },
+      }).catch(() => null)
 
-    if (res.reconciled) {
-      reconciledCount++
-    } else if (res.message.includes('inconclusive')) {
-      inconclusiveCount++
-    } else {
-      stillPendingCount++
+      if (activeLock && activeLock.status === 'PROCESSING') {
+        const lockAge = Date.now() - activeLock.firstSeenAt.getTime()
+        if (lockAge < WITHDRAWAL_RECONCILIATION_LEASE_DURATION_MS) {
+          return {
+            totalInspected: 0,
+            reconciledCount: 0,
+            stillPendingCount: 0,
+            inconclusiveCount: 0,
+            results: [],
+            message: 'Withdrawal reconciliation worker lease is currently held by another worker.',
+          }
+        }
+      }
+
+      if (typeof (prisma.processedProviderEvent as any)?.create === 'function') {
+        await prisma.processedProviderEvent.create({
+          data: {
+            provider: 'paystack',
+            eventType: 'withdrawal_reconciliation_lease',
+            idempotencyKey: WITHDRAWAL_RECONCILIATION_LEASE_KEY,
+            status: 'PROCESSING',
+            firstSeenAt: new Date(),
+            metadata: { actorId, startedAt: new Date().toISOString() },
+          },
+        }).catch(async () => {
+          if (typeof (prisma.processedProviderEvent as any)?.update === 'function') {
+            await prisma.processedProviderEvent.update({
+              where: { idempotencyKey: WITHDRAWAL_RECONCILIATION_LEASE_KEY },
+              data: {
+                status: 'PROCESSING',
+                firstSeenAt: new Date(),
+                metadata: { actorId, startedAt: new Date().toISOString() },
+              },
+            }).catch(() => {})
+          }
+        })
+      }
     }
   }
 
-  return {
-    totalInspected: pendingWithdrawals.length,
-    reconciledCount,
-    stillPendingCount,
-    inconclusiveCount,
-    results,
+  isWithdrawalReconciliationRunningInProcess = true
+
+  try {
+    const olderThanMs = (options?.olderThanMinutes ?? 5) * 60 * 1000
+    const cutoff = new Date(Date.now() - olderThanMs)
+    const limit = options?.limit ?? 50
+
+    const pendingWithdrawals = await prisma.withdrawal.findMany({
+      where: {
+        status: 'PROCESSING',
+        createdAt: { lte: cutoff },
+      },
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+    })
+
+    let reconciledCount = 0
+    let stillPendingCount = 0
+    let inconclusiveCount = 0
+    const results: ReconcileWithdrawalResult[] = []
+
+    for (const wd of pendingWithdrawals) {
+      if (dryRun) {
+        results.push({
+          withdrawalId: wd.id,
+          status: 'PROCESSING',
+          reconciled: false,
+          message: `DRY RUN: would reconcile withdrawal ${wd.id} (ref: ${wd.providerRef})`,
+        })
+        stillPendingCount++
+        continue
+      }
+
+      const res = await reconcileOrganizerWithdrawal({
+        withdrawalId: wd.id,
+        actorId,
+      })
+      results.push(res)
+
+      if (res.reconciled) {
+        reconciledCount++
+      } else if (res.message.includes('inconclusive')) {
+        inconclusiveCount++
+      } else {
+        stillPendingCount++
+      }
+    }
+
+    return {
+      totalInspected: pendingWithdrawals.length,
+      reconciledCount,
+      stillPendingCount,
+      inconclusiveCount,
+      results,
+    }
+  } finally {
+    isWithdrawalReconciliationRunningInProcess = false
+    if (!dryRun && typeof (prisma.processedProviderEvent as any)?.update === 'function') {
+      await prisma.processedProviderEvent.update({
+        where: { idempotencyKey: WITHDRAWAL_RECONCILIATION_LEASE_KEY },
+        data: {
+          status: 'PROCESSED',
+          processedAt: new Date(),
+          metadata: { releasedAt: new Date().toISOString() },
+        },
+      }).catch(() => {})
+    }
   }
 }

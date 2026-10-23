@@ -14,6 +14,12 @@ import {
   buildOrderProceedsIdempotencyKey,
   buildOrderCommissionIdempotencyKey,
 } from '@/lib/financialLedger'
+import {
+  verifyPaystackRefund,
+  type PaystackRequestOptions,
+  type PaystackRefundVerifyResult,
+  sanitizePaystackPayload,
+} from '@/lib/paystack'
 
 type SubscriptionIntent = {
   userId?: string
@@ -142,11 +148,24 @@ export type FinalizePaidEventOrderResult =
   | { status: 'OVERCAPACITY_PAID'; message: string; fulfillmentStatus?: string }
   | { status: 'NOT_FOUND' }
 
+export type FinalizePaidEventOrderInput = {
+  orderId: string
+  paidAt?: Date
+  paymentReference?: string | null
+  providerChannel?: string
+  metadata?: Record<string, unknown>
+}
+
 export async function finalizePaidEventOrderPayment(
-  orderId: string,
-  providerReference?: string | null
+  orderIdOrInput: string | FinalizePaidEventOrderInput,
+  optionalProviderRef?: string | null
 ): Promise<FinalizePaidEventOrderResult> {
-  const paidAt = new Date()
+  const orderId = typeof orderIdOrInput === 'string' ? orderIdOrInput : orderIdOrInput.orderId
+  const providerReference =
+    typeof orderIdOrInput === 'string'
+      ? optionalProviderRef
+      : (orderIdOrInput.paymentReference ?? optionalProviderRef)
+  const paidAt = typeof orderIdOrInput === 'object' && orderIdOrInput.paidAt ? orderIdOrInput.paidAt : new Date()
 
   // ---------------------------------------------------------------------------
   // Single Atomic Database Transaction for Entire Finalization & Ledger Posting
@@ -473,6 +492,9 @@ export async function finalizePaidEventOrderPayment(
       confirmationCode,
       eventOrder,
     }
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
   })
 
   // Post-Transaction Side Effects
@@ -547,7 +569,8 @@ export type ResolveOvercapacityInput = {
   notes?: string
   actorId: string
   providerRefundReference?: string
-  refundMetadata?: Record<string, unknown>
+  refundMetadata?: Prisma.InputJsonObject | Record<string, any>
+  paystackOptions?: PaystackRequestOptions
 }
 
 export type ResolveOvercapacityResult =
@@ -566,18 +589,28 @@ export type ResolveOvercapacityResult =
     }
   | {
       success: false
+      duplicate?: boolean
       error: string
+      status?: string
+      fulfillmentStatus?: string
+      verificationFailed?: boolean
     }
 
 /**
  * Idempotently and auditably resolves an order in OVERCAPACITY_PAID exception state.
  * Supports manual fulfillment (allocating ticket and crediting ledger) or verified provider refund marking.
  * Enforces a strict refund state machine: an order CANNOT become terminal REFUNDED without verified provider evidence.
- * Does NOT invoke live external provider refund APIs.
  */
 export async function resolveOvercapacityPaidOrder(
   input: ResolveOvercapacityInput
 ): Promise<ResolveOvercapacityResult> {
+  if (!input.actorId || typeof input.actorId !== 'string' || !input.actorId.trim()) {
+    return {
+      success: false,
+      error: 'A valid actorId is required to resolve overcapacity orders.',
+    }
+  }
+
   const order = await prisma.paidEventOrder.findUnique({
     where: { id: input.orderId },
     include: {
@@ -613,7 +646,7 @@ export async function resolveOvercapacityPaidOrder(
   const now = new Date()
 
   if (input.resolution === 'MANUAL_REFUND') {
-    // If provider confirmation is missing, transition to intermediate state REFUND_PENDING_PROVIDER.
+    // If provider confirmation reference is missing, transition to intermediate state REFUND_PENDING_PROVIDER.
     // A refund CANNOT become terminal (REFUNDED) until verified provider evidence exists.
     if (!input.providerRefundReference || typeof input.providerRefundReference !== 'string' || !input.providerRefundReference.trim()) {
       await prisma.$transaction(async (tx) => {
@@ -665,7 +698,215 @@ export async function resolveOvercapacityPaidOrder(
       }
     }
 
+    // Authoritative Provider Verification:
+    // Call server-side Paystack refund verification adapter to verify official provider evidence.
+    let refundVerification: PaystackRefundVerifyResult
+    try {
+      refundVerification = await verifyPaystackRefund(cleanRef, input.paystackOptions)
+    } catch (verifyErr: any) {
+      const sanitizedErr = verifyErr instanceof Error ? verifyErr.message : String(verifyErr)
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_VERIFICATION_FAILED',
+          metadata: {
+            orderId: order.id,
+            providerRefundReference: cleanRef,
+            error: sanitizedErr,
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Provider refund verification failed: ${sanitizedErr}`,
+        verificationFailed: true,
+      }
+    }
+
+    // 1. Status Check: Must be processed
+    if (refundVerification.status === 'pending') {
+      await prisma.paidEventOrder.update({
+        where: { id: order.id },
+        data: {
+          fulfillmentStatus: 'REFUND_PENDING_PROVIDER',
+          resolutionNotes: input.notes
+            ? `${input.notes} [Provider refund pending: ${cleanRef}]`
+            : `Provider refund pending: ${cleanRef}`,
+        },
+      })
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_PENDING',
+          metadata: {
+            orderId: order.id,
+            providerRefundReference: cleanRef,
+            refundStatus: refundVerification.status,
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: 'Provider refund is still pending processing at Paystack.',
+        status: 'OVERCAPACITY_PAID',
+        fulfillmentStatus: 'REFUND_PENDING_PROVIDER',
+      }
+    }
+
+    if (refundVerification.status !== 'processed') {
+      await prisma.paidEventOrder.update({
+        where: { id: order.id },
+        data: {
+          fulfillmentStatus: 'REFUND_FAILED',
+          resolutionNotes: input.notes
+            ? `${input.notes} [Provider refund failed: ${cleanRef}]`
+            : `Provider refund failed: ${cleanRef}`,
+        },
+      })
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_FAILED',
+          metadata: {
+            orderId: order.id,
+            providerRefundReference: cleanRef,
+            refundStatus: refundVerification.status,
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Provider reported that the refund status is "${refundVerification.status}" (expected "processed").`,
+        status: 'OVERCAPACITY_PAID',
+        fulfillmentStatus: 'REFUND_FAILED',
+      }
+    }
+
+    // 2. Transaction Association Check: Must match original payment/order transaction
+    if (
+      order.providerReference &&
+      refundVerification.transactionReference &&
+      refundVerification.transactionReference.trim().toLowerCase() !== order.providerReference.trim().toLowerCase()
+    ) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_MISMATCH',
+          metadata: {
+            orderId: order.id,
+            orderProviderReference: order.providerReference,
+            refundTransactionReference: refundVerification.transactionReference,
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Refund transaction reference (${refundVerification.transactionReference}) does not match order payment transaction (${order.providerReference}).`,
+      }
+    }
+
+    // 3. Currency Check: Must match order currency
+    const orderCurrency = (order.currency || 'KES').toUpperCase()
+    if (refundVerification.currency.toUpperCase() !== orderCurrency) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_CURRENCY_MISMATCH',
+          metadata: {
+            orderId: order.id,
+            expectedCurrency: orderCurrency,
+            refundCurrency: refundVerification.currency,
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Refund currency (${refundVerification.currency}) does not match order currency (${orderCurrency}).`,
+      }
+    }
+
+    // 4. Amount & Partial Refund Check:
+    const expectedMinor = toMinorUnits(order.amountKes, order.currency || 'KES')
+    const refundMinor = BigInt(refundVerification.amountMinorUnits)
+
+    if (refundMinor > expectedMinor) {
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_AMOUNT_INVALID',
+          metadata: {
+            orderId: order.id,
+            expectedMinorUnits: expectedMinor.toString(),
+            refundMinorUnits: refundMinor.toString(),
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Refund amount (${refundMinor} minor units) exceeds eligible refundable amount (${expectedMinor} minor units).`,
+      }
+    }
+
+    if (refundMinor < expectedMinor) {
+      await prisma.paidEventOrder.update({
+        where: { id: order.id },
+        data: {
+          fulfillmentStatus: 'REFUND_PARTIAL_RECONCILIATION_REQUIRED',
+          resolutionNotes: input.notes
+            ? `${input.notes} [Partial refund: ${refundMinor}/${expectedMinor} minor units]`
+            : `Partial refund: ${refundMinor}/${expectedMinor} minor units; requires manual reconciliation`,
+        },
+      })
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: input.actorId,
+          action: 'ORDER_OVERCAPACITY_REFUND_PARTIAL',
+          metadata: {
+            orderId: order.id,
+            expectedMinorUnits: expectedMinor.toString(),
+            refundMinorUnits: refundMinor.toString(),
+            attemptedAt: now.toISOString(),
+          },
+        },
+      }).catch(() => {})
+
+      return {
+        success: false,
+        error: `Partial refund detected (${refundMinor} of ${expectedMinor} minor units). Full order refund cannot be marked terminal without manual reconciliation.`,
+        status: 'OVERCAPACITY_PAID',
+        fulfillmentStatus: 'REFUND_PARTIAL_RECONCILIATION_REQUIRED',
+      }
+    }
+
+    // All provider checks passed: Execute atomic state transition under transactional re-check
     await prisma.$transaction(async (tx) => {
+      // Re-verify order inside transaction to serialize concurrent executions
+      const freshOrder =
+        typeof tx.paidEventOrder.findUnique === 'function'
+          ? await tx.paidEventOrder.findUnique({
+              where: { id: order.id },
+              select: { id: true, status: true, fulfillmentStatus: true },
+            })
+          : null
+      if (freshOrder?.fulfillmentStatus === 'REFUNDED') {
+        return
+      }
+
       await tx.paidEventOrder.update({
         where: { id: order.id },
         data: {
@@ -673,7 +914,7 @@ export async function resolveOvercapacityPaidOrder(
           fulfillmentStatus: 'REFUNDED',
           resolvedAt: now,
           resolutionNotes: input.notes
-            ? `${input.notes} [Provider Refund Ref: ${cleanRef}]`
+            ? `${input.notes} [Provider Verified Refund: ${cleanRef}]`
             : `Refund confirmed via provider ref: ${cleanRef}`,
         },
       })
@@ -686,6 +927,16 @@ export async function resolveOvercapacityPaidOrder(
         },
       })
 
+      const sanitizedMeta = sanitizePaystackPayload({
+        ...(input.refundMetadata || {}),
+        verifiedRefundId: refundVerification.refundId,
+        transactionReference: refundVerification.transactionReference,
+        amountMinorUnits: refundVerification.amountMinorUnits,
+        currency: refundVerification.currency,
+        status: refundVerification.status,
+        refundedAt: refundVerification.refundedAt?.toISOString(),
+      })
+
       await tx.auditLog.create({
         data: {
           actorId: input.actorId,
@@ -694,7 +945,7 @@ export async function resolveOvercapacityPaidOrder(
             orderId: order.id,
             amountKes: order.amountKes,
             providerRefundReference: cleanRef,
-            refundMetadata: (input.refundMetadata as Prisma.InputJsonValue) ?? null,
+            refundMetadata: (sanitizedMeta as Prisma.InputJsonValue) ?? null,
             notes: input.notes,
             resolvedAt: now.toISOString(),
           } as Prisma.InputJsonObject,
@@ -917,7 +1168,10 @@ export async function activateSubscriptionPayment(paymentId: string, providerRef
     throw new Error(`Subscription payment ${payment.id} is referencing a missing plan`)
   }
 
-  const effectiveProvider = paymentProvider ?? payment.provider ?? 'intasend'
+  const effectiveProvider = paymentProvider ?? payment.provider
+  if (!effectiveProvider) {
+    throw new Error(`Subscription payment ${payment.id} is missing a valid payment provider`)
+  }
   const effectiveAmount = totalUsd ?? priceUsd ?? payment.amountUsd
 
   const existingSub = await prisma.subscription.findFirst({

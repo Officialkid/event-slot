@@ -166,7 +166,19 @@ export function middlewareHandler(req: NextRequest & { nextauth?: { token?: any 
       return applySecurityHeaders(NextResponse.json({ error: 'Forbidden' }, { status: 403 }))
     }
 
-    return applySecurityHeaders(NextResponse.next())
+    const res = applySecurityHeaders(NextResponse.next())
+    if (
+      isProtectedPage(pathname) ||
+      pathname.startsWith('/api/dashboard') ||
+      pathname.startsWith('/api/organizer') ||
+      pathname.startsWith('/api/admin') ||
+      pathname.startsWith('/api/billing') ||
+      pathname.startsWith('/api/me') ||
+      pathname.startsWith('/api/profile')
+    ) {
+      res.headers.set('Cache-Control', 'private, no-store')
+    }
+    return res
 }
 
 export default withAuth(middlewareHandler, {

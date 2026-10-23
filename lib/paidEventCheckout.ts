@@ -6,7 +6,7 @@ import {
   initializePaystackTransaction,
   PaystackTimeoutError,
 } from "@/lib/paystack";
-import { normalizeMpesaPhone } from "@/lib/intasend";
+import { normalizeMpesaPhone } from "@/lib/phone";
 import { detectCountry } from "@/lib/geoip";
 import { joinPaidEventWaitlist } from "@/lib/paymentFinalizers";
 import { getFullOptions } from "@/lib/registrationQuestionOptions";
@@ -235,6 +235,9 @@ export async function beginPaidEventCheckout(input: BuildPaidOrderInput): Promis
       ticketTier,
       order,
     };
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
   });
 });
 
@@ -277,7 +280,7 @@ export async function beginPaidEventCheckout(input: BuildPaidOrderInput): Promis
   const orderId = reservation.order.id;
   const reference = `pes_${orderId}_${Date.now().toString(36)}`;
   const baseUrl = process.env.NEXTAUTH_URL || "https://www.eventsslot.com";
-  const callbackUrl = `${baseUrl}/events/${reservation.event.slug}/order/${orderId}`;
+  const callbackUrl = `${baseUrl}/pay/${orderId}`;
 
   try {
     const paystack = await initializePaystackTransaction({
@@ -400,7 +403,7 @@ export async function startPaidEventOrderPayment(orderId: string, _mpesaPhone?: 
   const attendeeEmail = order.attendeeEmail?.trim() || `paid-order-${order.id}@eventslot.local`;
   const reference = `pes_${order.id}_${Date.now().toString(36)}`;
   const baseUrl = process.env.NEXTAUTH_URL || "https://www.eventsslot.com";
-  const callbackUrl = `${baseUrl}/events/${order.event.slug}/order/${order.id}`;
+  const callbackUrl = `${baseUrl}/pay/${order.id}`;
 
   const paystack = await initializePaystackTransaction({
     email: attendeeEmail,
