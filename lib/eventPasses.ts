@@ -43,33 +43,73 @@ function normalizePassTierEnum(value: string | null | undefined): OneTimePassTie
   return normalizeOneTimePassTier(value)
 }
 
-export async function syncEventPassStatusForEvent(eventId: string, now: Date = new Date()) {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    select: {
-      id: true,
-      archived: true,
-      status: true,
-      eventDate: true,
-      eventEndAt: true,
-      eventPass: {
-        select: {
-          id: true,
-          status: true,
-          expiresAt: true,
+export type EventWithPassData = {
+  id: string
+  archived?: boolean | null
+  status?: string | null
+  eventDate?: Date | null
+  eventEndAt?: Date | null
+  eventPass?: {
+    id: string
+    status: string
+    expiresAt?: Date | null
+    tier?: string | null
+  } | null
+}
+
+export function needsEventPassSync(event: EventWithPassData, now: Date = new Date()): boolean {
+  if (!event?.eventPass) return false
+
+  const expiry = getEventPassExpiryDate(event.eventDate, event.eventEndAt)
+  const normalizedStatus = (event.status ?? "").trim().toLowerCase()
+  const shouldCancel = !!event.archived || normalizedStatus === "cancelled" || normalizedStatus === "archived"
+
+  if (shouldCancel && event.eventPass.status !== "CANCELLED") return true
+
+  if (event.eventPass.status === "ACTIVE") {
+    if (expiry && expiry.getTime() <= now.getTime()) return true
+    if (expiry && (!event.eventPass.expiresAt || event.eventPass.expiresAt.getTime() !== expiry.getTime())) return true
+  }
+
+  return false
+}
+
+export async function syncEventPassStatusForEvent(
+  eventOrId: string | EventWithPassData,
+  now: Date = new Date()
+) {
+  let event: EventWithPassData | null = null
+
+  if (typeof eventOrId === "string") {
+    event = await prisma.event.findUnique({
+      where: { id: eventOrId },
+      select: {
+        id: true,
+        archived: true,
+        status: true,
+        eventDate: true,
+        eventEndAt: true,
+        eventPass: {
+          select: {
+            id: true,
+            status: true,
+            expiresAt: true,
+          },
         },
       },
-    },
-  })
+    })
+  } else {
+    event = eventOrId
+  }
 
   if (!event?.eventPass) return null
 
   const expiry = getEventPassExpiryDate(event.eventDate, event.eventEndAt)
   const normalizedStatus = (event.status ?? "").trim().toLowerCase()
-  const shouldCancel = event.archived || normalizedStatus === "cancelled" || normalizedStatus === "archived"
+  const shouldCancel = !!event.archived || normalizedStatus === "cancelled" || normalizedStatus === "archived"
 
   if (shouldCancel && event.eventPass.status !== "CANCELLED") {
-    return prisma.eventPass.update({
+    const updated = await prisma.eventPass.update({
       where: { id: event.eventPass.id },
       data: {
         status: "CANCELLED",
@@ -77,29 +117,37 @@ export async function syncEventPassStatusForEvent(eventId: string, now: Date = n
         expiresAt: now,
       },
     })
+    event.eventPass.status = "CANCELLED"
+    event.eventPass.expiresAt = now
+    return updated
   }
 
   if (event.eventPass.status === "ACTIVE") {
     if (expiry && expiry.getTime() <= now.getTime()) {
-      return prisma.eventPass.update({
+      const updated = await prisma.eventPass.update({
         where: { id: event.eventPass.id },
         data: {
           status: "EXPIRED",
           expiresAt: expiry,
         },
       })
+      event.eventPass.status = "EXPIRED"
+      event.eventPass.expiresAt = expiry
+      return updated
     }
 
     if (
       expiry &&
       (!event.eventPass.expiresAt || event.eventPass.expiresAt.getTime() !== expiry.getTime())
     ) {
-      return prisma.eventPass.update({
+      const updated = await prisma.eventPass.update({
         where: { id: event.eventPass.id },
         data: {
           expiresAt: expiry,
         },
       })
+      event.eventPass.expiresAt = expiry
+      return updated
     }
   }
 

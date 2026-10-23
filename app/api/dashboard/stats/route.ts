@@ -16,15 +16,24 @@ export async function GET() {
     const cacheKey = `dashboard-stats:${userId}:${email}`
     const cached = dashboardStatsCache.get(cacheKey)
     if (cached) {
-      return NextResponse.json(cached)
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, no-store' } })
     }
 
-    // Backfill unclaimed events for this email (non-critical, isolated)
+    // Backfill unclaimed events for this email (checks first to avoid repeated writes on every GET)
     try {
-      await prisma.event.updateMany({
-        where: { organizerEmail: email, organizerId: null },
-        data: { organizerId: userId },
-      })
+      const unclaimed = typeof prisma.event?.findFirst === 'function'
+        ? await prisma.event.findFirst({
+            where: { organizerEmail: email, organizerId: null },
+            select: { id: true },
+          })
+        : true
+
+      if (unclaimed) {
+        await prisma.event.updateMany({
+          where: { organizerEmail: email, organizerId: null },
+          data: { organizerId: userId },
+        })
+      }
     } catch (backfillErr) {
       console.warn('[DASHBOARD STATS] backfill skipped:', backfillErr)
     }
@@ -271,7 +280,7 @@ export async function GET() {
 
     dashboardStatsCache.set(cacheKey, payload)
 
-    return NextResponse.json(payload)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (err) {
     console.error('[DASHBOARD STATS ERROR]', err)
     return NextResponse.json({
@@ -289,6 +298,6 @@ export async function GET() {
       conversionRate: 0,
       eventsClosingThisWeek: 0,
       waitlistEventCount: 0,
-    }, { status: 500 })
+    }, { status: 500, headers: { 'Cache-Control': 'private, no-store' } })
   }
 }

@@ -43,7 +43,6 @@
     "googleapis": "^172.0.0",
     "groq-sdk": "^1.2.0",
     "html2canvas": "^1.4.1",
-    "intasend-node": "^1.1.2",
     "jspdf": "^4.2.1",
     "jsqr": "^1.4.0",
     "lru-cache": "^11.3.5",

@@ -28,6 +28,7 @@ const tx = {
   paygInvoice: { deleteMany: jest.fn() },
   message: { updateMany: jest.fn() },
   loginSecurityState: { deleteMany: jest.fn() },
+  financialLedgerEntry: { count: jest.fn().mockResolvedValue(0) },
   user: { delete: jest.fn() },
 }
 
@@ -159,6 +160,25 @@ describe('DELETE /api/admin/users/[id]', () => {
 
     expect(response.status).toBe(400)
     expect(mockTransaction).not.toHaveBeenCalled()
+  })
+
+  it('rejects account deletion if organizer has recorded financial ledger entries', async () => {
+    mockIsAdminEmail.mockReturnValue(false)
+    mockUserFindUnique.mockResolvedValue({
+      id: 'user-with-ledger',
+      email: 'organizer@example.com',
+      name: 'Organizer',
+      _count: { events: 0 },
+    })
+    tx.financialLedgerEntry.count.mockResolvedValueOnce(3)
+
+    const { DELETE } = await import('@/app/api/admin/users/[id]/route')
+    const response = await DELETE(deleteRequest(), { params: Promise.resolve({ id: 'user-with-ledger' }) })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body.error).toMatch(/financial ledger/i)
+    expect(tx.user.delete).not.toHaveBeenCalled()
   })
 })
 

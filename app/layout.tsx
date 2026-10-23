@@ -6,6 +6,7 @@ import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
 import { DevToolsDetector } from "../components/DevToolsDetector";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
+import { AssistantWidget } from "../components/AssistantWidget";
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
 const dmSans = localFont({
@@ -213,6 +214,7 @@ export default async function RootLayout({
           <Toast />
           <DevToolsDetector />
           <CookieConsentBanner />
+          <AssistantWidget />
         </Providers>
       </body>
     </html>

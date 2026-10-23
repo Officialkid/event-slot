@@ -29,6 +29,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV RUN_DB_MIGRATIONS=false
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
@@ -41,6 +42,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
@@ -50,4 +53,4 @@ EXPOSE 3000
 ENV PORT=${PORT:-3000}
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "if [ \"$RUN_DB_MIGRATIONS\" = \"true\" ]; then npx prisma@5.22.0 migrate deploy; fi && node server.js"]
+CMD ["sh", "-c", "if [ \"$RUN_DB_MIGRATIONS\" = \"true\" ]; then npx --no-install prisma migrate deploy; fi && node server.js"]

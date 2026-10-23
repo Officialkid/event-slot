@@ -1,5 +1,6 @@
 import { WithdrawalMethod, WithdrawalStatus } from "@prisma/client"
 import prisma from "@/lib/prisma"
+import { getAuthoritativeOrganizerBalance } from "@/lib/organizerBalanceEngine"
 
 export type SupportedCurrency = "KES" | "USD"
 
@@ -7,6 +8,18 @@ export type OrganizerPaymentsSidebarSummary = {
   visible: boolean
   hasWithdrawableBalance: boolean
   badgeCount: number
+  currencies?: Record<
+    SupportedCurrency,
+    {
+      gross: number
+      commission: number
+      net: number
+      settled: number
+      pendingSettlement: number
+      withdrawable: number
+      withdrawn: number
+    }
+  >
 }
 
 export type OrganizerPaymentsCurrencySummary = {
@@ -16,6 +29,11 @@ export type OrganizerPaymentsCurrencySummary = {
   net: number
   withdrawn: number
   withdrawable: number
+  pendingSettlement: number
+  settled: number
+  disputedOrReversed: number
+  pendingReservations: number
+  otherAdjustments: number
 }
 
 export type OrganizerPaymentTierBreakdown = {
@@ -101,12 +119,14 @@ export type OrganizerPaymentTransactionRow = {
 export type OrganizerWithdrawalRow = {
   id: string
   createdAt: string
+  settledAt: string | null
   amount: number
   currency: SupportedCurrency
   method: WithdrawalMethod
   status: WithdrawalStatus
   providerRef: string | null
   destination: string
+  failureReason: string | null
 }
 
 export type OrganizerPaymentsSecurityState = {
@@ -163,6 +183,11 @@ function getBalanceSummaries(balance: OrganizerBalanceSnapshot | null): Record<S
       net: balance?.netKES ?? 0,
       withdrawn: balance?.withdrawnKES ?? 0,
       withdrawable: Math.max((balance?.netKES ?? 0) - (balance?.withdrawnKES ?? 0), 0),
+      pendingSettlement: 0,
+      settled: 0,
+      disputedOrReversed: 0,
+      pendingReservations: 0,
+      otherAdjustments: 0,
     },
     USD: {
       currency: "USD",
@@ -171,6 +196,11 @@ function getBalanceSummaries(balance: OrganizerBalanceSnapshot | null): Record<S
       net: balance?.netUSD ?? 0,
       withdrawn: balance?.withdrawnUSD ?? 0,
       withdrawable: Math.max((balance?.netUSD ?? 0) - (balance?.withdrawnUSD ?? 0), 0),
+      pendingSettlement: 0,
+      settled: 0,
+      disputedOrReversed: 0,
+      pendingReservations: 0,
+      otherAdjustments: 0,
     },
   }
 }
@@ -233,6 +263,9 @@ async function ensureOrganizerBalanceSnapshot(userId: string): Promise<Organizer
     prisma.payment.findMany({
       where: {
         status: "SUCCESS",
+        paidEventOrder: {
+          status: "PAID",
+        },
         event: {
           organizerId: userId,
           isPaid: true,
@@ -293,6 +326,9 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
     prisma.payment.findMany({
       where: {
         status: "SUCCESS",
+        paidEventOrder: {
+          status: "PAID",
+        },
         event: {
           organizerId: userId,
           isPaid: true,
@@ -351,6 +387,8 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
         providerRef: true,
         destination: true,
         createdAt: true,
+        settledAt: true,
+        failureReason: true,
       },
     }),
     prisma.event.findMany({
@@ -442,7 +480,39 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
       update: balance,
     })
   }
-  const summaryByCurrency = getBalanceSummaries(balance)
+  const [authKes, authUsd] = await Promise.all([
+    getAuthoritativeOrganizerBalance(userId, "KES"),
+    getAuthoritativeOrganizerBalance(userId, "USD"),
+  ])
+
+  const summaryByCurrency: Record<SupportedCurrency, OrganizerPaymentsCurrencySummary> = {
+    KES: {
+      currency: "KES",
+      gross: authKes.formatted.totalGross,
+      commission: authKes.formatted.totalCommission,
+      net: authKes.formatted.totalEntitlement,
+      withdrawn: authKes.formatted.completedWithdrawals,
+      withdrawable: authKes.formatted.available,
+      pendingSettlement: authKes.formatted.pendingSettlement,
+      settled: authKes.formatted.settledEntitlement,
+      disputedOrReversed: authKes.formatted.disputedOrReversed,
+      pendingReservations: authKes.formatted.pendingReservations,
+      otherAdjustments: authKes.formatted.otherAdjustments,
+    },
+    USD: {
+      currency: "USD",
+      gross: authUsd.formatted.totalGross,
+      commission: authUsd.formatted.totalCommission,
+      net: authUsd.formatted.totalEntitlement,
+      withdrawn: authUsd.formatted.completedWithdrawals,
+      withdrawable: authUsd.formatted.available,
+      pendingSettlement: authUsd.formatted.pendingSettlement,
+      settled: authUsd.formatted.settledEntitlement,
+      disputedOrReversed: authUsd.formatted.disputedOrReversed,
+      pendingReservations: authUsd.formatted.pendingReservations,
+      otherAdjustments: authUsd.formatted.otherAdjustments,
+    },
+  }
 
   const transactions: OrganizerPaymentTransactionRow[] = payments.map((payment) => {
     const currency = normalizeCurrency(payment.paidEventOrder?.currency || payment.event.currency)
@@ -629,12 +699,14 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
     withdrawals: withdrawals.map((withdrawal) => ({
       id: withdrawal.id,
       createdAt: withdrawal.createdAt.toISOString(),
+      settledAt: withdrawal.settledAt ? withdrawal.settledAt.toISOString() : null,
       amount: withdrawal.amount,
       currency: normalizeCurrency(withdrawal.currency),
       method: withdrawal.method,
       status: withdrawal.status,
       providerRef: withdrawal.providerRef,
       destination: withdrawal.destination,
+      failureReason: withdrawal.failureReason ?? null,
     })),
     security: {
       email: user?.email ?? null,
@@ -645,24 +717,43 @@ export async function getOrganizerPaymentsDashboardData(userId: string): Promise
 }
 
 export async function getOrganizerPaymentsSidebarSummary(userId: string): Promise<OrganizerPaymentsSidebarSummary> {
-  const balance = await ensureOrganizerBalanceSnapshot(userId)
+  const [kesBalance, usdBalance] = await Promise.all([
+    getAuthoritativeOrganizerBalance(userId, "KES"),
+    getAuthoritativeOrganizerBalance(userId, "USD"),
+  ])
 
-  const withdrawableKes = Math.max((balance?.netKES ?? 0) - (balance?.withdrawnKES ?? 0), 0)
-  const withdrawableUsd = Math.max((balance?.netUSD ?? 0) - (balance?.withdrawnUSD ?? 0), 0)
+  const withdrawableKes = kesBalance.formatted.available
+  const withdrawableUsd = usdBalance.formatted.available
   const badgeCount = Number(withdrawableKes > 0) + Number(withdrawableUsd > 0)
 
   return {
     visible: true,
     hasWithdrawableBalance: badgeCount > 0,
     badgeCount,
+    currencies: {
+      KES: {
+        gross: kesBalance.formatted.totalGross,
+        commission: kesBalance.formatted.totalCommission,
+        net: kesBalance.formatted.totalEntitlement,
+        settled: kesBalance.formatted.settledEntitlement,
+        pendingSettlement: kesBalance.formatted.pendingSettlement,
+        withdrawable: withdrawableKes,
+        withdrawn: kesBalance.formatted.completedWithdrawals,
+      },
+      USD: {
+        gross: usdBalance.formatted.totalGross,
+        commission: usdBalance.formatted.totalCommission,
+        net: usdBalance.formatted.totalEntitlement,
+        settled: usdBalance.formatted.settledEntitlement,
+        pendingSettlement: usdBalance.formatted.pendingSettlement,
+        withdrawable: withdrawableUsd,
+        withdrawn: usdBalance.formatted.completedWithdrawals,
+      },
+    },
   }
 }
 
-export async function getOrganizerWithdrawableBalance(userId: string, currency: SupportedCurrency) {
-  const balance = await ensureOrganizerBalanceSnapshot(userId)
-
-  if (currency === "USD") {
-    return Math.max((balance?.netUSD ?? 0) - (balance?.withdrawnUSD ?? 0), 0)
-  }
-  return Math.max((balance?.netKES ?? 0) - (balance?.withdrawnKES ?? 0), 0)
+export async function getOrganizerWithdrawableBalance(userId: string, currency: SupportedCurrency): Promise<number> {
+  const authBalance = await getAuthoritativeOrganizerBalance(userId, currency)
+  return authBalance.formatted.available
 }

@@ -4,7 +4,9 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hasAdminAccess } from '@/lib/isAdmin'
 import { calculatePaidEventCommission, getPaidEventCommissionRate } from '@/lib/paidEventCommission'
-import { normalizeMpesaPhone, startIntaSendStkPush } from '@/lib/intasend'
+import { normalizeMpesaPhone } from '@/lib/phone'
+import { initializePaystackTransaction } from '@/lib/paystack'
+import { toMinorUnits } from '@/lib/financialLedger'
 
 type ScenarioKey = 'standard-main' | 'free-mini' | 'pro-mini' | 'business-mini'
 
@@ -276,8 +278,8 @@ export async function GET() {
       success: true,
       scenarios,
       appUrl: process.env.APP_URL ?? null,
-      liveProvider: 'INTASEND_MPESA',
-      note: 'Live STK Push uses the current IntaSend-backed M-Pesa flow in this codebase.',
+      liveProvider: 'PAYSTACK',
+      note: 'EventSlot uses Paystack as the sole payment provider. Live testing initiates Paystack checkout transactions.',
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to load payment test config.'
@@ -440,19 +442,24 @@ export async function POST(req: NextRequest) {
 
     try {
       const apiRef = `payment_test_${scenario.key}_${order.id}`
-      const stk = await startIntaSendStkPush({
-        apiRef,
-        phone: normalizeMpesaPhone(body.phone),
-        amountKes: bundle.tier.priceKes,
+      const amountMinor = toMinorUnits(bundle.tier.priceKes, 'KES')
+      const paystack = await initializePaystackTransaction({
         email: attendeeEmail,
-        name: attendeeName,
+        amountMinorUnits: amountMinor,
+        reference: apiRef,
+        currency: 'KES',
+        metadata: {
+          orderId: order.id,
+          scenarioKey: scenario.key,
+          phone: normalizeMpesaPhone(body.phone),
+        },
       })
 
       await prisma.paidEventOrder.update({
         where: { id: order.id },
         data: {
           status: 'PAYMENT_PENDING',
-          checkoutRequestId: stk.invoiceId,
+          checkoutRequestId: paystack.accessCode,
           providerReference: apiRef,
         },
       })
@@ -460,7 +467,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         orderId: order.id,
-        checkoutRequestId: stk.invoiceId,
+        checkoutRequestId: paystack.accessCode,
+        authorizationUrl: paystack.authorizationUrl,
         eventTitle: bundle.event.title,
         ticketTierName: bundle.tier.name,
         amountKes: bundle.tier.priceKes,

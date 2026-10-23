@@ -1,3 +1,5 @@
+import { FLAT_PAID_EVENT_COMMISSION_RATE } from "./paidEventCommission"
+
 export type SubscriptionPlanDefinition = {
   key: "free" | "standard" | "pro" | "business"
   name: string
@@ -23,7 +25,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     activeEvents: "1",
     organizerSeats: "1",
     dataRetention: "14 days",
-    commissionRate: 0.10,
+    commissionRate: FLAT_PAID_EVENT_COMMISSION_RATE,
     highlights: [
       "Best for first-time organisers",
       "One active event at a time",
@@ -40,7 +42,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     activeEvents: "5",
     organizerSeats: "3",
     dataRetention: "90 days",
-    commissionRate: 0.08,
+    commissionRate: FLAT_PAID_EVENT_COMMISSION_RATE,
     highlights: [
       "PDF tickets and QR check-in",
       "Basic analytics and 1 AI insight each month",
@@ -57,7 +59,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     activeEvents: "20",
     organizerSeats: "10",
     dataRetention: "1 year",
-    commissionRate: 0.05,
+    commissionRate: FLAT_PAID_EVENT_COMMISSION_RATE,
     highlights: [
       "Full analytics, AI reports, and email campaigns",
       "Expanded analytics and AI tooling for active organisers",
@@ -74,7 +76,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlanDefinition[] = [
     activeEvents: "Unlimited",
     organizerSeats: "30",
     dataRetention: "Indefinite",
-    commissionRate: 0.03,
+    commissionRate: FLAT_PAID_EVENT_COMMISSION_RATE,
     highlights: [
       "Advanced event operations and higher team capacity",
       "Priority support for teams and agencies",

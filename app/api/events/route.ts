@@ -17,6 +17,7 @@ import { normalizeTicketTiers, sumTierCapacity } from '@/lib/paidEvents'
 import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy'
 import { getPricingRolloutLabel } from '@/lib/pricingRollout'
 import { generateVerifierCode } from '@/lib/verifierCode'
+import { purgeUserCache } from '@/lib/cache'
 
 function generateSlug(title: string): string {
   const base = title
@@ -408,6 +409,10 @@ export async function POST(req: NextRequest) {
         isVirtual:    eventType === 'VIRTUAL',
         meetingLink:  eventType === 'VIRTUAL' ? normalizedVirtualLink : null,
       }).catch(console.error)
+    }
+
+    if (session.user.id) {
+      purgeUserCache(session.user.id, session.user.email ?? null)
     }
 
     return NextResponse.json({ success: true, event }, { status: 201 })

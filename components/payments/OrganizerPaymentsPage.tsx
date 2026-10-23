@@ -7,6 +7,7 @@ import type {
   OrganizerPaymentAttemptRow,
   OrganizerPaymentEventRow,
   OrganizerPaymentRegistrationRow,
+  OrganizerPaymentsCurrencySummary,
   OrganizerPaymentsDashboardData,
   OrganizerWithdrawalRow,
   SupportedCurrency,
@@ -102,16 +103,38 @@ function statusLabel(status: OrganizerWithdrawalRow["status"]) {
       return "Failed"
     case "CANCELLED":
       return "Cancelled"
+    case "REVERSED":
+      return "Reversed"
+    case "PENDING":
+      return "Pending"
+    case "PROCESSING":
     default:
       return "Processing"
   }
 }
 
+function withdrawalStatusTone(status: OrganizerWithdrawalRow["status"]) {
+  switch (status) {
+    case "COMPLETED":
+      return { color: "var(--accent, #C8F55A)", background: "color-mix(in srgb, var(--accent, #C8F55A) 12%, transparent)" }
+    case "PROCESSING":
+    case "PENDING":
+      return { color: "#8AB4FF", background: "rgba(138,180,255,0.12)" }
+    case "REVERSED":
+      return { color: "var(--warning, #FFB84D)", background: "color-mix(in srgb, var(--warning, #FFB84D) 12%, transparent)" }
+    case "CANCELLED":
+      return { color: "var(--text-muted)", background: "color-mix(in srgb, var(--text-muted) 15%, transparent)" }
+    case "FAILED":
+    default:
+      return { color: "var(--error, #FF6B6B)", background: "color-mix(in srgb, var(--error, #FF6B6B) 12%, transparent)" }
+  }
+}
+
 function paymentStatusTone(status: OrganizerPaymentRegistrationRow["paymentStatus"] | OrganizerPaymentAttemptRow["status"]) {
-  if (status === "SUCCESS" || status === "PAID") return { color: "#C8F55A", background: "rgba(200,245,90,0.1)" }
-  if (status === "WAITLIST") return { color: "#FFB84D", background: "rgba(255,184,77,0.12)" }
+  if (status === "SUCCESS" || status === "PAID") return { color: "var(--accent, #C8F55A)", background: "color-mix(in srgb, var(--accent, #C8F55A) 12%, transparent)" }
+  if (status === "WAITLIST") return { color: "var(--warning, #FFB84D)", background: "color-mix(in srgb, var(--warning, #FFB84D) 12%, transparent)" }
   if (status === "PENDING" || status === "PAYMENT_PENDING" || status === "PROCESSING") return { color: "#8AB4FF", background: "rgba(138,180,255,0.12)" }
-  return { color: "#FF8A8A", background: "rgba(255,107,107,0.12)" }
+  return { color: "var(--error, #FF6B6B)", background: "color-mix(in srgb, var(--error, #FF6B6B) 12%, transparent)" }
 }
 
 function trendIcon(color: string) {
@@ -126,8 +149,8 @@ function trendIcon(color: string) {
 function pillStyle(active: boolean): CSSProperties {
   return {
     border: active ? "0.5px solid var(--border-emphasis)" : `0.5px solid ${paymentsBorder}`,
-    background: active ? "rgba(200,245,90,0.08)" : "transparent",
-    color: active ? "var(--accent)" : paymentsTextSecondary,
+    background: active ? "color-mix(in srgb, var(--accent, #C8F55A) 10%, transparent)" : "transparent",
+    color: active ? "var(--accent, #C8F55A)" : paymentsTextSecondary,
     borderRadius: 999,
     padding: "0.55rem 0.95rem",
     fontSize: "0.82rem",
@@ -151,8 +174,8 @@ const inputStyle: CSSProperties = {
 const primaryButtonStyle: CSSProperties = {
   border: "none",
   borderRadius: 999,
-  background: "#C8F55A",
-  color: "#0A0A0A",
+  background: "var(--accent, #C8F55A)",
+  color: "var(--accent-contrast, #0A0A0A)",
   padding: "0.8rem 1.15rem",
   fontSize: "0.82rem",
   fontWeight: 700,
@@ -258,6 +281,209 @@ function StatusPill({ label, tone }: { label: string; tone: ReturnType<typeof pa
     >
       {label}
     </span>
+  )
+}
+
+function FundsSettlementLifecycleCard({
+  currency,
+  summary,
+}: {
+  currency: SupportedCurrency
+  summary: OrganizerPaymentsCurrencySummary
+}) {
+  return (
+    <div className="dashboard-surface" style={{ padding: "1.2rem 1.3rem", background: paymentsSurface }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1.1rem", flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: "1.08rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+            Settlement & Funds Breakdown
+          </h2>
+          <p style={{ margin: "0.25rem 0 0", fontSize: "0.82rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Clear accounting across ticket proceeds, settled provider funds, active withdrawal holds, and completed payouts.
+          </p>
+        </div>
+        <span
+          style={{
+            fontSize: "0.72rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            fontWeight: 700,
+            padding: "0.25rem 0.6rem",
+            borderRadius: 999,
+            background: "color-mix(in srgb, var(--accent, #C8F55A) 10%, transparent)",
+            color: "var(--accent, #C8F55A)",
+            border: "0.5px solid color-mix(in srgb, var(--accent, #C8F55A) 25%, transparent)",
+            fontFamily: "var(--font-dm-sans)",
+          }}
+        >
+          Authoritative Ledger
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+        {/* Settled Earnings */}
+        <div style={{ padding: "0.95rem 1rem", borderRadius: 12, background: paymentsSurfaceAlt, border: `0.5px solid ${paymentsBorder}` }}>
+          <div style={{ fontSize: "0.74rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+            Settled Entitlement
+          </div>
+          <div style={{ marginTop: 4, fontSize: "1.3rem", color: "var(--accent, #C8F55A)", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            {formatMoney(currency, summary.settled)}
+          </div>
+          <div style={{ marginTop: 4, fontSize: "0.74rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Cleared and verified in merchant balance
+          </div>
+        </div>
+
+        {/* Pending Settlement */}
+        <div style={{ padding: "0.95rem 1rem", borderRadius: 12, background: paymentsSurfaceAlt, border: `0.5px solid ${paymentsBorder}` }}>
+          <div style={{ fontSize: "0.74rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+            Pending Settlement
+          </div>
+          <div style={{ marginTop: 4, fontSize: "1.3rem", color: "#8AB4FF", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            {formatMoney(currency, summary.pendingSettlement)}
+          </div>
+          <div style={{ marginTop: 4, fontSize: "0.74rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Paid orders clearing provider network
+          </div>
+        </div>
+
+        {/* In-Flight Reservations */}
+        <div style={{ padding: "0.95rem 1rem", borderRadius: 12, background: paymentsSurfaceAlt, border: `0.5px solid ${paymentsBorder}` }}>
+          <div style={{ fontSize: "0.74rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+            Active Reservations
+          </div>
+          <div style={{ marginTop: 4, fontSize: "1.3rem", color: summary.pendingReservations > 0 ? "var(--warning, #FFB84D)" : paymentsTextSecondary, fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            {formatMoney(currency, summary.pendingReservations)}
+          </div>
+          <div style={{ marginTop: 4, fontSize: "0.74rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Held for in-flight withdrawal requests
+          </div>
+        </div>
+
+        {/* Completed Withdrawals */}
+        <div style={{ padding: "0.95rem 1rem", borderRadius: 12, background: paymentsSurfaceAlt, border: `0.5px solid ${paymentsBorder}` }}>
+          <div style={{ fontSize: "0.74rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+            Total Paid Out
+          </div>
+          <div style={{ marginTop: 4, fontSize: "1.3rem", color: paymentsTextPrimary, fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+            {formatMoney(currency, summary.withdrawn)}
+          </div>
+          <div style={{ marginTop: 4, fontSize: "0.74rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            Completed payouts delivered
+          </div>
+        </div>
+      </div>
+
+      {(summary.disputedOrReversed > 0 || summary.otherAdjustments > 0) ? (
+        <div style={{ marginTop: "1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+          {summary.disputedOrReversed > 0 && (
+            <div style={{ padding: "0.85rem 1rem", borderRadius: 12, background: "rgba(255,107,107,0.06)", border: "0.5px solid rgba(255,107,107,0.2)" }}>
+              <div style={{ fontSize: "0.74rem", color: "var(--error, #FF6B6B)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+                Disputed / Quarantined
+              </div>
+              <div style={{ marginTop: 4, fontSize: "1.1rem", color: "var(--error, #FF6B6B)", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                {formatMoney(currency, summary.disputedOrReversed)}
+              </div>
+              <div style={{ marginTop: 2, fontSize: "0.72rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                Held pending dispute resolution
+              </div>
+            </div>
+          )}
+          {summary.otherAdjustments > 0 && (
+            <div style={{ padding: "0.85rem 1rem", borderRadius: 12, background: "rgba(255,184,77,0.06)", border: "0.5px solid rgba(255,184,77,0.2)" }}>
+              <div style={{ fontSize: "0.74rem", color: "var(--warning, #FFB84D)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+                Refund Deductions
+              </div>
+              <div style={{ marginTop: 4, fontSize: "1.1rem", color: "var(--warning, #FFB84D)", fontWeight: 700, fontFamily: "var(--font-dm-sans)" }}>
+                {formatMoney(currency, summary.otherAdjustments)}
+              </div>
+              <div style={{ marginTop: 2, fontSize: "0.72rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                Debited for processed order refunds
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function FinancialSettlementGuideCard() {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="dashboard-surface" style={{ padding: "1.15rem 1.3rem", background: paymentsSurface }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+            Understanding Your Balances & Settlement
+          </h3>
+          <p style={{ margin: "0.2rem 0 0", fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+            How ticket revenue moves from checkout clearance to your bank or mobile money account.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            ...secondaryButtonStyle,
+            padding: "0.5rem 0.9rem",
+            fontSize: "0.78rem",
+          }}
+        >
+          {expanded ? "Hide Guide" : "Show Guide"}
+        </button>
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: "1.15rem", display: "grid", gap: "1rem", borderTop: `0.5px solid ${paymentsBorder}`, paddingTop: "1rem" }}>
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+              1. Why are successful ticket payments not immediately withdrawable?
+            </span>
+            <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.6, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+              When an attendee pays for a ticket, their registration is confirmed immediately. However, payment processors (e.g. Paystack, M-Pesa, card networks) settle funds into EventSlot&apos;s custodial merchant balance according to their settlement schedule (typically 1–2 business days). While in transit, these funds appear under <strong>Pending Settlement</strong> and become withdrawable as soon as merchant clearance is recorded.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+              2. What does &quot;Settled&quot; mean?
+            </span>
+            <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.6, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+              &quot;Settled&quot; means the money has cleared provider settlement and is backed by verified ledger funds. EventSlot guarantees payout solvency by permitting withdrawals only against verified settled balances.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+              3. Flat 5% Platform Commission & 95% Entitlement
+            </span>
+            <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.6, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+              EventSlot charges a flat 5% platform commission on eligible paid tickets. The remaining 95% is your organizer entitlement. The fee is calculated per transaction using exact integer minor-unit rounding to prevent rounding drift.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+              4. Why might a withdrawal be pending, failed, or reversed?
+            </span>
+            <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.6, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+              When you submit a withdrawal, it enters <strong>Processing</strong> and places a reservation hold on your settled funds to prevent double-spending. If a payout completes, it becomes <strong>Completed</strong>. If the bank or M-Pesa network rejects the payout (e.g., unreachable recipient, phone mismatch, or provider maintenance), it becomes <strong>Failed</strong> and the reservation is immediately released back to your available balance. In rare cases where a completed transfer is later reversed by the provider, the status becomes <strong>Reversed</strong> and the ledger restores the funds.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gap: "0.3rem" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+              5. How do refunds or disputes affect available funds?
+            </span>
+            <p style={{ margin: 0, fontSize: "0.82rem", lineHeight: 1.6, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
+              When a refund is processed (such as for an overcapacity paid order), the refund amount is deducted from the event proceeds. Disputed payments are quarantined into <strong>Disputed / Quarantined</strong>, preventing withdrawal until the dispute is resolved. EventSlot&apos;s platform commission is non-refundable as stated in terms.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -860,6 +1086,8 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
   const [tierFilter, setTierFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [isRefreshingWithdrawals, setIsRefreshingWithdrawals] = useState(false)
+  const [liveWithdrawals, setLiveWithdrawals] = useState<OrganizerWithdrawalRow[] | null>(null)
 
   const summary = data.summaryByCurrency[currency]
   const events = useMemo(() => data.events.filter((event) => event.currency === currency), [currency, data.events])
@@ -880,7 +1108,27 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
 
   const eventOptions = useMemo(() => Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.eventTitle))), [currency, data.transactions])
   const tierOptions = useMemo(() => Array.from(new Set(data.transactions.filter((item) => item.currency === currency).map((item) => item.tierName))), [currency, data.transactions])
-  const withdrawals = useMemo(() => data.withdrawals.filter((item) => item.currency === currency), [currency, data.withdrawals])
+  const withdrawals = useMemo(() => {
+    const list = liveWithdrawals ?? data.withdrawals
+    return list.filter((item) => item.currency === currency)
+  }, [currency, data.withdrawals, liveWithdrawals])
+
+  async function refreshWithdrawals() {
+    setIsRefreshingWithdrawals(true)
+    try {
+      const res = await fetch("/api/organizer/payments/withdrawals")
+      if (res.ok) {
+        const json = await res.json()
+        if (Array.isArray(json.withdrawals)) {
+          setLiveWithdrawals(json.withdrawals)
+        }
+      }
+    } catch {
+      router.refresh()
+    } finally {
+      setIsRefreshingWithdrawals(false)
+    }
+  }
 
   useEffect(() => {
     const nextWorkspaceTab = resolveWorkspaceTab(searchParams.get("tab"))
@@ -952,17 +1200,39 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
       {workspaceTab === "overview" && (
         <div style={{ display: "grid", gap: "1rem" }}>
           <section style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <MetricCard label="Total Gross" value={formatMoney(currency, summary.gross)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
-            <MetricCard label="Commission Deducted" value={formatMoney(currency, summary.commission)} accent={paymentsTextSecondary} />
-            <MetricCard label="Net Earnings" value={formatMoney(currency, summary.net)} accent="#C8F55A" icon={trendIcon("#C8F55A")} />
-            <MetricCard label="Withdrawable Balance" value={formatMoney(currency, summary.withdrawable)} accent="#C8F55A" />
+            <MetricCard
+              label="Gross Ticket Revenue"
+              value={formatMoney(currency, summary.gross)}
+              accent="var(--accent, #C8F55A)"
+              hint="100% of collected ticket sales"
+              icon={trendIcon("var(--accent, #C8F55A)")}
+            />
+            <MetricCard
+              label="Platform Commission (5%)"
+              value={formatMoney(currency, summary.commission)}
+              accent={paymentsTextSecondary}
+              hint="Flat 5% platform fee"
+            />
+            <MetricCard
+              label="Net Entitlement (95%)"
+              value={formatMoney(currency, summary.net)}
+              accent="var(--accent, #C8F55A)"
+              hint="Total earnings before payouts"
+              icon={trendIcon("var(--accent, #C8F55A)")}
+            />
+            <MetricCard
+              label="Available for Withdrawal"
+              value={formatMoney(currency, summary.withdrawable)}
+              accent="var(--accent, #C8F55A)"
+              hint="Verified settled balance"
+            />
           </section>
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>Available now</div>
-                <div style={{ marginTop: 4, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
+                <div style={{ marginTop: 4, fontSize: "1.2rem", color: "var(--accent, #C8F55A)", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
                   {formatMoney(currency, summary.withdrawable)}
                 </div>
               </div>
@@ -979,12 +1249,21 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                 >
                   Withdraw Funds
                 </button>
+                <button type="button" onClick={() => updateWorkspaceTab("withdrawals")} style={secondaryButtonStyle}>
+                  Withdrawal History
+                </button>
                 <button type="button" onClick={() => updateWorkspaceTab("events")} style={secondaryButtonStyle}>
                   View all events
                 </button>
               </div>
             </div>
           </section>
+
+          {/* Detailed Settlement & Funds Lifecycle Breakdown */}
+          <FundsSettlementLifecycleCard currency={currency} summary={summary} />
+
+          {/* Interactive Financial Settlement Guide */}
+          <FinancialSettlementGuideCard />
 
           <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", background: "rgba(255,184,77,0.05)", borderColor: "rgba(255,184,77,0.18)" }}>
             <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.7, color: paymentsTextSecondary, fontFamily: "var(--font-dm-sans)" }}>
@@ -1187,45 +1466,92 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
 
       {workspaceTab === "withdrawals" && (
         <div style={{ display: "grid", gap: "1rem" }}>
-          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-            <div>
-              <div style={{ fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>Withdrawable now</div>
-              <div style={{ marginTop: 4, fontSize: "1rem", color: paymentsTextPrimary, fontFamily: "var(--font-dm-sans)", fontWeight: 600 }}>
-                {formatMoney(currency, summary.withdrawable)}
+          <section className="dashboard-surface" style={{ padding: "1.1rem 1.2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>Withdrawable balance</div>
+                <div style={{ marginTop: 4, fontSize: "1.35rem", color: "var(--accent, #C8F55A)", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>
+                  {formatMoney(currency, summary.withdrawable)}
+                </div>
+                {!data.security.twoFactorEnabled ? (
+                  <div style={{ marginTop: 6, fontSize: "0.78rem", color: "var(--warning, #FFB84D)", fontFamily: "var(--font-dm-sans)" }}>
+                    Enable account 2FA in Profile to unlock withdrawals.
+                  </div>
+                ) : !data.security.paymentPinEnabled ? (
+                  <div style={{ marginTop: 6, fontSize: "0.78rem", color: "var(--warning, #FFB84D)", fontFamily: "var(--font-dm-sans)" }}>
+                    Set your payments PIN in the Security tab to unlock withdrawals.
+                  </div>
+                ) : null}
               </div>
-              {!data.security.twoFactorEnabled ? (
-                <div style={{ marginTop: 6, fontSize: "0.78rem", color: "#FFB84D", fontFamily: "var(--font-dm-sans)" }}>
-                  Enable account 2FA in Profile to unlock withdrawals.
-                </div>
-              ) : !data.security.paymentPinEnabled ? (
-                <div style={{ marginTop: 6, fontSize: "0.78rem", color: "#FFB84D", fontFamily: "var(--font-dm-sans)" }}>
-                  Set your payments PIN in the Security tab to unlock withdrawals.
-                </div>
-              ) : null}
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  type="button"
+                  disabled={summary.withdrawable <= 0 || !data.security.twoFactorEnabled || !data.security.paymentPinEnabled}
+                  onClick={() => setShowWithdrawModal(true)}
+                  style={{
+                    ...primaryButtonStyle,
+                    opacity: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? 1 : 0.5,
+                    cursor: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Withdraw Funds
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              disabled={summary.withdrawable <= 0 || !data.security.twoFactorEnabled || !data.security.paymentPinEnabled}
-              onClick={() => setShowWithdrawModal(true)}
-              style={{
-                ...primaryButtonStyle,
-                opacity: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? 1 : 0.5,
-                cursor: summary.withdrawable > 0 && data.security.twoFactorEnabled && data.security.paymentPinEnabled ? "pointer" : "not-allowed",
-              }}
-            >
-              Withdraw Funds
-            </button>
+
+            <div style={{ marginTop: "1rem", paddingTop: "0.9rem", borderTop: `0.5px solid ${paymentsBorder}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+              <div>
+                <span style={{ fontSize: "0.72rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Settled Funds</span>
+                <div style={{ fontSize: "1rem", color: paymentsTextPrimary, fontWeight: 600, fontFamily: "var(--font-dm-sans)", marginTop: 2 }}>
+                  {formatMoney(currency, summary.settled)}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: "0.72rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Active Holds</span>
+                <div style={{ fontSize: "1rem", color: summary.pendingReservations > 0 ? "var(--warning, #FFB84D)" : paymentsTextSecondary, fontWeight: 600, fontFamily: "var(--font-dm-sans)", marginTop: 2 }}>
+                  {formatMoney(currency, summary.pendingReservations)}
+                </div>
+              </div>
+              <div>
+                <span style={{ fontSize: "0.72rem", color: paymentsTextMuted, textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "var(--font-dm-sans)", fontWeight: 700 }}>Total Paid Out</span>
+                <div style={{ fontSize: "1rem", color: paymentsTextSecondary, fontWeight: 600, fontFamily: "var(--font-dm-sans)", marginTop: 2 }}>
+                  {formatMoney(currency, summary.withdrawn)}
+                </div>
+              </div>
+            </div>
           </section>
 
-          <section className="dashboard-surface" style={{ padding: "1rem 1.1rem" }}>
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
-              Withdrawal history
-            </h2>
+          <section className="dashboard-surface" style={{ padding: "1.1rem 1.2rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "1.05rem", color: paymentsTextPrimary, fontFamily: "var(--font-instrument-serif)", fontWeight: 400 }}>
+                  Withdrawal history
+                </h2>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.8rem", color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+                  Chronological record of withdrawal requests, timestamps, and settlement status.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={refreshWithdrawals}
+                disabled={isRefreshingWithdrawals}
+                style={{
+                  ...secondaryButtonStyle,
+                  padding: "0.45rem 0.85rem",
+                  fontSize: "0.78rem",
+                  opacity: isRefreshingWithdrawals ? 0.7 : 1,
+                }}
+              >
+                {isRefreshingWithdrawals ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
+
             <div className="table-wrapper">
               <table>
                 <thead>
                   <tr>
-                    <th>Date</th>
+                    <th>Requested</th>
+                    <th>Completed</th>
                     <th>Amount</th>
                     <th>Method</th>
                     <th>Status</th>
@@ -1237,17 +1563,35 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
                   {withdrawals.map((item) => (
                     <tr key={item.id}>
                       <td>{formatDateTime(item.createdAt)}</td>
-                      <td>{formatMoney(item.currency, item.amount)}</td>
+                      <td>
+                        {item.settledAt ? (
+                          formatDateTime(item.settledAt)
+                        ) : item.status === "COMPLETED" ? (
+                          <span style={{ color: "var(--accent, #C8F55A)" }}>Completed</span>
+                        ) : item.status === "PROCESSING" || item.status === "PENDING" ? (
+                          <span style={{ color: "#8AB4FF" }}>In progress</span>
+                        ) : (
+                          <span style={{ color: paymentsTextMuted }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{formatMoney(item.currency, item.amount)}</td>
                       <td>{item.method === "MPESA" ? "M-Pesa" : item.method === "PAYBILL" ? "Till / PayBill" : "Bank Transfer"}</td>
-                      <td>{statusLabel(item.status)}</td>
-                      <td>{item.providerRef ?? "Pending"}</td>
+                      <td>
+                        <StatusPill label={statusLabel(item.status)} tone={withdrawalStatusTone(item.status)} />
+                        {item.failureReason && (
+                          <div style={{ marginTop: 4, fontSize: "0.72rem", color: "var(--error, #FF6B6B)", lineHeight: 1.3 }}>
+                            {item.failureReason}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{item.providerRef ?? item.id}</td>
                       <td>{item.destination}</td>
                     </tr>
                   ))}
                   {withdrawals.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-                        No withdrawal requests yet.
+                      <td colSpan={7} style={{ color: paymentsTextMuted, fontFamily: "var(--font-dm-sans)", textAlign: "center", padding: "2rem 1rem" }}>
+                        No withdrawal requests recorded for {currency}. When you request a payout, its progress and provider reference will appear here.
                       </td>
                     </tr>
                   )}
@@ -1255,6 +1599,9 @@ export function OrganizerPaymentsPage({ data }: PaymentsPageProps) {
               </table>
             </div>
           </section>
+
+          {/* Interactive Financial Guide */}
+          <FinancialSettlementGuideCard />
         </div>
       )}
 

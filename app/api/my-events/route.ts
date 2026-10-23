@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { eventListCache } from '@/lib/cache'
-import { syncEventPassStatusForEvent } from '@/lib/eventPasses'
+import { syncEventPassStatusForEvent, needsEventPassSync } from '@/lib/eventPasses'
 
 export async function GET(req: Request) {
   try {
@@ -20,13 +20,22 @@ export async function GET(req: Request) {
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20', 10), 1), 100)
     const skip = (page - 1) * limit
 
-    // Backfill: claim any events created with this email but no organizerId
+    // Backfill: claim any events created with this email but no organizerId (checks first to avoid repeated writes)
     if (email) {
       try {
-        await prisma.event.updateMany({
-          where: { organizerEmail: email, organizerId: null },
-          data: { organizerId: userId },
-        })
+        const unclaimed = typeof prisma.event?.findFirst === 'function'
+          ? await prisma.event.findFirst({
+              where: { organizerEmail: email, organizerId: null },
+              select: { id: true },
+            })
+          : true
+
+        if (unclaimed) {
+          await prisma.event.updateMany({
+            where: { organizerEmail: email, organizerId: null },
+            data: { organizerId: userId },
+          })
+        }
       } catch (backfillErr) {
         console.warn('[my-events] backfill skipped:', backfillErr)
       }
@@ -57,7 +66,7 @@ export async function GET(req: Request) {
       | { success: true; events: unknown[]; pagination: { page: number; limit: number; total: number; totalPages: number } }
       | undefined
     if (cached) {
-      return NextResponse.json(cached)
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, no-store' } })
     }
 
     const [events, total, groupBookings] = await Promise.all([
@@ -83,6 +92,7 @@ export async function GET(req: Request) {
           dataExpired: true,
           eventPass: {
             select: {
+              id: true,
               tier: true,
               status: true,
               expiresAt: true,
@@ -126,7 +136,13 @@ export async function GET(req: Request) {
         : Promise.resolve([]),
     ])
 
-    await Promise.all(events.map((event) => syncEventPassStatusForEvent(event.id).catch(() => null)))
+    // Sync only events that actually require an event-pass state transition
+    const eventsNeedingSync = events.filter((e) =>
+      typeof needsEventPassSync === 'function' ? needsEventPassSync(e) : !!e.eventPass
+    )
+    if (eventsNeedingSync.length > 0) {
+      await Promise.all(eventsNeedingSync.map((event) => syncEventPassStatusForEvent(event).catch(() => null)))
+    }
 
     const payload = {
       success: true as const,
@@ -166,7 +182,7 @@ export async function GET(req: Request) {
 
     eventListCache.set(cacheKey, payload)
 
-    return NextResponse.json(payload)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
   }

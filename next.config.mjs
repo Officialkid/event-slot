@@ -125,7 +125,7 @@ const nextConfig = {
       {
         source: "/_next/static/:path*",
         headers: [
-          { key: "Cache-Control", value: "no-store, must-revalidate" },
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
       // PWA icons — versioned by filename, safe to cache aggressively

@@ -315,7 +315,7 @@ export default function AdminPaymentTestPage() {
         <div>
           <h1 className="text-2xl font-semibold">EventSlot | Payment Test Panel</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            This fires real M-Pesa STK Push requests. The live codebase currently uses the IntaSend-backed M-Pesa flow.
+            This fires real payment checkout requests. The codebase uses Paystack as the sole payment provider.
           </p>
           <p className="mt-2 text-xs text-[var(--text-secondary)]">{config.note}</p>
         </div>

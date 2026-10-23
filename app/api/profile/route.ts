@@ -177,11 +177,24 @@ export async function DELETE() {
         })
       }
 
+      const ledgerCount = await tx.financialLedgerEntry.count({
+        where: { organizerId: user.id },
+      })
+      if (ledgerCount > 0) {
+        throw new Error("CANNOT_DELETE_WITH_FINANCIAL_RECORDS")
+      }
+
       await tx.user.delete({ where: { id: user.id } })
     })
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    if (err instanceof Error && err.message === "CANNOT_DELETE_WITH_FINANCIAL_RECORDS") {
+      return NextResponse.json(
+        { error: "Cannot delete account with existing financial transaction history. Please contact support to deactivate your account." },
+        { status: 400 }
+      )
+    }
     console.error("[profile] DELETE error:", err)
     return NextResponse.json({ error: "Failed to delete account" }, { status: 500 })
   }

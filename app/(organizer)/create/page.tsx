@@ -1194,7 +1194,20 @@ export default function CreateEventPage() {
           groupRegistrationEnabled,
           attendeeConsentEnabled,
           attendeeConsentText: attendeeConsentText.trim() || undefined,
-          isPaid: false,
+          isPaid: Boolean(isPaid),
+          ticketTiers: isPaid && ticketTiers.length > 0
+            ? ticketTiers.map((t) => ({
+                name: t.name.trim(),
+                priceKes: Number(t.priceKes) || 50,
+                capacity: t.capacity ? Number(t.capacity) : undefined,
+                badgeColor: t.badgeColor || "#C8F55A",
+                textColor: t.textColor || "#0A0A0A",
+                metallic: Boolean(t.metallic),
+                presetKey: t.presetKey || undefined,
+                description: t.description?.trim() || undefined,
+                bundleSize: Number(t.bundleSize) || 1,
+              }))
+            : undefined,
           communityLink: communityLink || undefined,
           whatsappNumber: whatsappNumber || undefined,
           contactMode,
@@ -2350,8 +2363,8 @@ export default function CreateEventPage() {
                         }}
                         className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
-                          !showPaidNotice
-                            ? { background: "#15803d", color: "#FFFFFF" }
+                          !isPaid
+                            ? { background: "var(--accent, #15803d)", color: "var(--accent-contrast, #FFFFFF)" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -2360,13 +2373,13 @@ export default function CreateEventPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setShowPaidNotice(true)
-                          setIsPaid(false)
+                          setIsPaid(true)
+                          setShowPaidNotice(false)
                         }}
                         className="rounded-full px-3.5 py-1 text-xs font-bold transition"
                         style={
-                          showPaidNotice
-                            ? { background: "#15803d", color: "#FFFFFF" }
+                          isPaid
+                            ? { background: "var(--accent, #15803d)", color: "var(--accent-contrast, #FFFFFF)" }
                             : { background: "var(--surface-2)", color: "var(--text-secondary)" }
                         }
                       >
@@ -2375,11 +2388,154 @@ export default function CreateEventPage() {
                     </div>
                   </div>
 
-                  {showPaidNotice && (
-                    <PaymentMaintenanceBanner
-                      title="Paid Ticketing is Coming Soon"
-                      message="We are currently finalizing paid-event ticketing with M-Pesa. All events on EventSlot are currently 100% free to organize and attend."
-                    />
+                  {isPaid && (
+                    <div className="rounded-xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] p-3.5 space-y-1.5">
+                      <p className="text-[0.82rem] font-semibold text-[var(--accent)]" style={{ margin: 0 }}>
+                        EventSlot fee: 5% per paid ticket. Organizers receive 95% of the eligible ticket amount.
+                      </p>
+                      <p className="text-[0.74rem] text-[var(--text-secondary)]" style={{ margin: 0 }}>
+                        Attendees pay securely via Paystack (Card or M-Pesa). Funds settle into your organizer balance.
+                      </p>
+                    </div>
+                  )}
+
+                  {isPaid && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[0.75rem] font-semibold" style={labelStyle}>
+                          Ticket Tiers (up to 10)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={addTicketTier}
+                          disabled={ticketTiers.length >= 10}
+                          className="rounded-full border px-3 py-1 text-[0.75rem] font-medium transition disabled:opacity-40"
+                          style={{ borderColor: "color-mix(in srgb, var(--accent) 35%, transparent)", color: "var(--accent)" }}
+                        >
+                          + Add tier
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {ticketTiers.map((tier, index) => (
+                          <div key={tier.id} className="rounded-[10px] border p-3.5 space-y-3" style={cardMutedStyle}>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-[0.78rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                                Tier {index + 1}
+                              </span>
+                              {ticketTiers.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeTicketTier(tier.id)}
+                                  className="text-[0.72rem] text-red-400 hover:text-red-300"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-[0.7rem] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                                  Preset
+                                </label>
+                                <select
+                                  value={tier.presetKey}
+                                  onChange={(e) => updateTicketTier(tier.id, "presetKey", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.84rem] outline-none"
+                                  style={inputStyle}
+                                >
+                                  <option value="">Custom tier</option>
+                                  {TIER_PRESETS.map((preset) => (
+                                    <option key={preset.key} value={preset.key}>
+                                      {preset.defaultName}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="flex items-center justify-between rounded-[8px] border px-3 py-2" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                                <span className="text-[0.7rem] font-semibold text-[var(--text-muted)]">Preview</span>
+                                <TierBadge
+                                  name={tier.name || "Tier"}
+                                  badgeColor={tier.badgeColor}
+                                  textColor={tier.textColor}
+                                  metallic={tier.metallic}
+                                  size="md"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <div className="sm:col-span-2">
+                                <label className="block text-[0.7rem] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                                  Tier Name *
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. VIP, Early Bird"
+                                  value={tier.name}
+                                  onChange={(e) => updateTicketTier(tier.id, "name", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.85rem] outline-none"
+                                  style={inputStyle}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[0.7rem] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                                  Price (KES) *
+                                </label>
+                                <input
+                                  type="number"
+                                  min="50"
+                                  placeholder="500"
+                                  value={tier.priceKes}
+                                  onChange={(e) => updateTicketTier(tier.id, "priceKes", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.85rem] outline-none"
+                                  style={inputStyle}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-[0.7rem] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                                  Tier Capacity (Spots)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder="e.g. 50"
+                                  value={tier.capacity}
+                                  onChange={(e) => updateTicketTier(tier.id, "capacity", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.85rem] outline-none"
+                                  style={inputStyle}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[0.7rem] font-semibold mb-1" style={{ color: "var(--text-muted)" }}>
+                                  Description
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="What does this ticket include?"
+                                  value={tier.description}
+                                  onChange={(e) => updateTicketTier(tier.id, "description", e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-[0.85rem] outline-none"
+                                  style={inputStyle}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {fieldErrors.ticketTiers && (
+                        <p className="text-xs text-red-500 font-semibold mt-1 flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>{fieldErrors.ticketTiers}</span>
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {/* Capacity */}

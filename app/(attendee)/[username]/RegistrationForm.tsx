@@ -2,11 +2,9 @@
 
 import React, { useEffect, useState, useMemo, useRef } from "react"
 import Image from "next/image"
-import { BillingPausedNotice } from "@/components/billing/BillingPausedNotice"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import { getCommunityLinkLabel, normalizeCommunityLink } from "@/lib/communityLink"
-import { getBillingNoticeCopy } from "@/lib/billingNotice"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 import { getRegistrationWindowStatus, computeNextOccurrenceDate, computeOccurrenceEnd } from "@/lib/recurringEvents"
 import { InternationalPhoneInput } from "@/components/registration/InternationalPhoneInput"
@@ -286,7 +284,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [registrationSource, setRegistrationSource] = useState<string>("unknown")
   const [registrationRefCode, setRegistrationRefCode] = useState<string | undefined>(undefined)
   const [registrationUtmSource, setRegistrationUtmSource] = useState<string | undefined>(undefined)
-  const [selectedTierId] = useState<string>(event.ticketTiers?.[0]?.id ?? "")
+  const [selectedTierId, setSelectedTierId] = useState<string>(() => {
+    const available = (event.ticketTiers || []).find((t) => typeof t.capacity !== "number" || t.capacity <= 0 || (t.soldCount ?? 0) < t.capacity)
+    return available?.id ?? event.ticketTiers?.[0]?.id ?? ""
+  })
+  const [tierError, setTierError] = useState("")
   const [registrationMode, setRegistrationMode] = useState<"individual" | "group">("individual")
   const [orgName, setOrgName] = useState("")
   const [orgType, setOrgType] = useState("COMPANY")
@@ -331,6 +333,10 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const registrationClosed = event.status === "closed" || event.status === "archived"
 
   const activeTicketTiers = event.ticketTiers || []
+  const selectedTier = useMemo(
+    () => activeTicketTiers.find((tier) => tier.id === selectedTierId),
+    [activeTicketTiers, selectedTierId]
+  )
   const tierEntryLabel = event.isPaid && activeTicketTiers.length > 0
     ? activeTicketTiers.length === 1
       ? `${activeTicketTiers[0].currency || "KSh"} ${activeTicketTiers[0].priceKes.toLocaleString()}`
@@ -673,7 +679,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   ])
 
   const canAddMore = !event.isPaid && !registrationClosed && attendees.length < maxAttendees
-  const isSubmitBlocked = loading || registrationClosed || event.isPaid
+  const isSubmitBlocked = loading || registrationClosed || windowClosed
 
   function addAttendee() {
     if (!canAddMore) return
@@ -798,6 +804,16 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
   function handleNextStep() {
     if (currentStep?.id === "welcome") {
+      if (event.isPaid && (!selectedTierId || !activeTicketTiers.some((t) => t.id === selectedTierId))) {
+        const msg = "Please select a ticket tier to continue."
+        setTierError(msg)
+        setError(msg)
+        const el = document.getElementById("registration-ticket-tier-selector")
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        return
+      }
+      setTierError("")
+      setError("")
       setCurrentStepIndex(prev => prev + 1)
       scrollToForm()
       return
@@ -964,8 +980,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     setQuestionErrors({})
 
     if (event.isPaid) {
-      setError(getBillingNoticeCopy("paidEventRegistration").error)
-      return
+      if (!selectedTierId || !activeTicketTiers.some((t) => t.id === selectedTierId)) {
+        const msg = "Please select a ticket tier to continue."
+        setTierError(msg)
+        setError(msg)
+        const el = document.getElementById("registration-ticket-tier-selector")
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+        return
+      }
     }
 
     setLoading(true)
@@ -1882,6 +1904,125 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
     )
   }
 
+
+  const renderTicketTierSelector = () => {
+    if (!event.isPaid || activeTicketTiers.length === 0) return null
+
+    return (
+      <div id="registration-ticket-tier-selector" className="space-y-3.5 mb-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[1.05rem] font-bold" style={{ color: "var(--text-primary)" }}>
+            Choose your ticket
+          </h3>
+          <span className="text-[0.7rem] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent)" }}>
+            Paid Admission
+          </span>
+        </div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2" role="radiogroup" aria-label="Ticket tier options">
+          {activeTicketTiers.map((tier) => {
+            const isSelected = selectedTierId === tier.id
+            const isSoldOut = typeof tier.capacity === "number" && tier.capacity > 0 && (tier.soldCount ?? 0) >= tier.capacity
+            return (
+              <div
+                key={tier.id}
+                role="radio"
+                aria-checked={isSelected}
+                tabIndex={isSoldOut ? -1 : 0}
+                onClick={() => {
+                  if (isSoldOut) return
+                  setSelectedTierId(tier.id)
+                  setTierError("")
+                  if (error === "Please select a ticket tier to continue.") setError("")
+                }}
+                onKeyDown={(e) => {
+                  if (isSoldOut) return
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setSelectedTierId(tier.id)
+                    setTierError("")
+                    if (error === "Please select a ticket tier to continue.") setError("")
+                  }
+                }}
+                className={`group relative flex flex-col justify-between rounded-[18px] p-4 text-left transition-all ${
+                  isSoldOut
+                    ? "cursor-not-allowed opacity-55"
+                    : "cursor-pointer hover:border-[var(--accent)] hover:scale-[1.01]"
+                }`}
+                style={{
+                  border: isSelected
+                    ? "2px solid var(--accent)"
+                    : "1px solid color-mix(in srgb, var(--text-primary) 14%, transparent)",
+                  background: isSelected
+                    ? "color-mix(in srgb, var(--accent) 10%, var(--surface))"
+                    : "color-mix(in srgb, var(--surface) 96%, transparent)",
+                  boxShadow: isSelected ? "0 0 0 1.5px var(--accent)" : "none",
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-[0.92rem]" style={{ color: "var(--text-primary)" }}>
+                        {tier.name}
+                      </span>
+                      {tier.presetKey && (
+                        <span
+                          className="text-[0.65rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                          style={{
+                            background: tier.badgeColor || "var(--accent)",
+                            color: tier.textColor || "#0A0A0A",
+                          }}
+                        >
+                          {tier.presetKey}
+                        </span>
+                      )}
+                    </div>
+                    {tier.description && (
+                      <p className="text-[0.76rem] line-clamp-2" style={{ color: "var(--text-secondary)" }}>
+                        {tier.description}
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition"
+                    style={{
+                      borderColor: isSelected ? "var(--accent)" : "color-mix(in srgb, var(--text-primary) 25%, transparent)",
+                      background: isSelected ? "var(--accent)" : "transparent",
+                    }}
+                  >
+                    {isSelected && (
+                      <div className="h-2 w-2 rounded-full" style={{ background: "var(--accent-contrast, #0A0A0A)" }} />
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 8%, transparent)" }}>
+                  <span className="text-[1.05rem] font-bold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+                    {tier.currency || "KES"} {tier.priceKes.toLocaleString()}
+                  </span>
+                  {isSoldOut ? (
+                    <span className="text-[0.7rem] font-bold uppercase tracking-wider text-red-500">
+                      Sold Out
+                    </span>
+                  ) : typeof tier.capacity === "number" && tier.capacity > 0 ? (
+                    <span className="text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
+                      {Math.max(0, tier.capacity - (tier.soldCount ?? 0))} spots left
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {tierError && (
+          <p className="text-xs font-semibold text-red-500 flex items-center gap-1.5 mt-1">
+            <span>⚠️</span>
+            <span>{tierError}</span>
+          </p>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div ref={formContainerRef} className="mx-auto w-full max-w-[840px] scroll-mt-6">
       {duplicateInfo && (
@@ -2352,7 +2493,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     </div>
                   )}
 
-                  {event.isPaid && <BillingPausedNotice context="paidEventRegistration" compact />}
+                  {renderTicketTierSelector()}
                 </div>
               )}
 
@@ -2384,6 +2525,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
               {/* STEP 1: PERSONAL DETAILS */}
               <div className={currentStep?.id === "personal" ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                {compactHeader && renderTicketTierSelector()}
                 <div className="space-y-1">
                   <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
                     Personal Details
@@ -2512,6 +2654,40 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
 
               {/* STEP 3: REVIEW & CONSENT STEP */}
               <div className={isLastStep ? "space-y-6 block animate-fadeIn" : "hidden"}>
+                {event.isPaid && selectedTier && (
+                  <div className="rounded-[18px] p-4 flex items-center justify-between" style={mutedCardStyle}>
+                    <div className="space-y-0.5">
+                      <div className="text-[0.72rem] uppercase font-bold tracking-wider" style={{ color: "var(--accent)" }}>
+                        Selected Ticket Tier
+                      </div>
+                      <div className="text-[0.98rem] font-bold" style={{ color: "var(--text-primary)" }}>
+                        {selectedTier.name}
+                      </div>
+                      {selectedTier.description && (
+                        <p className="text-[0.78rem]" style={{ color: "var(--text-secondary)" }}>
+                          {selectedTier.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[1.2rem] font-bold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+                        {selectedTier.currency || "KES"} {selectedTier.priceKes.toLocaleString()}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targetIdx = steps.findIndex(s => s.id === "welcome" || s.id === "personal")
+                          setCurrentStepIndex(targetIdx !== -1 ? targetIdx : 0)
+                          scrollToForm()
+                        }}
+                        className="text-[0.78rem] font-semibold text-[var(--accent)] hover:underline mt-1"
+                      >
+                        Change tier
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <h3 className="text-[1.25rem] font-bold" style={{ color: "var(--text-primary)" }}>
                     Review &amp; Confirm
@@ -2733,7 +2909,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     <button
                       type="button"
                       onClick={handleNextStep}
-                      disabled={registrationClosed || (event.isPaid ?? false)}
+                      disabled={registrationClosed}
                       className="w-full sm:w-auto rounded-[12px] px-8 py-3.5 text-[0.92rem] font-bold shadow-[0_8px_24px_rgba(200,245,90,0.25)] transition-all bg-[#C8F55A] text-[#0A0A0A] hover:translate-y-[-1px] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {currentStep?.id === "welcome" ? "Start Registration →" : "Continue →"}
@@ -2760,7 +2936,9 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       : loading
                       ? formCopy.submitting
                       : event.isPaid
-                      ? formCopy.paidPaused
+                      ? selectedTier
+                        ? `Proceed to Payment (${selectedTier.currency || "KES"} ${selectedTier.priceKes.toLocaleString()})`
+                        : "Select a Ticket Tier"
                       : attendees.length > 1
                       ? formCopy.submitMany.replace("{count}", String(attendees.length))
                       : formCopy.submit}

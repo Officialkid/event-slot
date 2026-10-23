@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { offerNextPaidWaitlistSpot } from '@/lib/paidEventWaitlist'
 import { failPaidEventOrderPayment, finalizePaidEventOrderPayment } from '@/lib/paymentFinalizers'
-import { paystackFetch } from '@/lib/paystack'
-import { extractInvoiceState, extractProviderReference, getIntaSendPaymentStatus } from '@/lib/intasend'
+import { verifyPaystackTransaction, PaystackTimeoutError } from '@/lib/paystack'
+import { toMinorUnits } from '@/lib/financialLedger'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params
@@ -13,6 +13,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
     select: {
       id: true,
       status: true,
+      fulfillmentStatus: true,
+      providerReference: true,
       holdExpiresAt: true,
       promotionRegistrationId: true,
       attendeeEmail: true,
@@ -67,38 +69,42 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
   if (status === 'PAYMENT_PENDING' && order.id) {
     const paymentOrder = await prisma.paidEventOrder.findUnique({
       where: { id: order.id },
-      select: { checkoutRequestId: true, providerReference: true },
+      select: {
+        checkoutRequestId: true,
+        providerReference: true,
+        amountKes: true,
+        currency: true,
+      },
     })
 
     if (paymentOrder?.providerReference?.startsWith('paystack:')) {
-      const reference = paymentOrder.checkoutRequestId ?? paymentOrder.providerReference.slice('paystack:'.length)
+      const reference = paymentOrder.providerReference.slice('paystack:'.length)
       try {
-        const paystack = await paystackFetch(`/transaction/verify/${reference}`)
-        if (paystack.status && paystack.data?.status === 'success') {
-          await finalizePaidEventOrderPayment(order.id, reference)
-          status = 'PAID'
-        } else if (paystack.data?.status === 'failed' || paystack.data?.status === 'abandoned') {
-          await failPaidEventOrderPayment(order.id, 'FAILED')
-          status = 'FAILED'
-        }
-      } catch {
-        // Keep polling if the provider check is temporarily unavailable.
-      }
-    } else if (paymentOrder?.checkoutRequestId) {
-      try {
-        const providerStatus = await getIntaSendPaymentStatus(paymentOrder.checkoutRequestId)
-        const state = extractInvoiceState(providerStatus)
-        const providerRef = extractProviderReference(providerStatus) ?? paymentOrder.providerReference
+        const paystack = await verifyPaystackTransaction(reference)
+        const expectedMinor = Number(toMinorUnits(paymentOrder.amountKes, paymentOrder.currency || 'KES'))
 
-        if (state === 'COMPLETE') {
-          await finalizePaidEventOrderPayment(order.id, providerRef)
-          status = 'PAID'
-        } else if (state === 'FAILED') {
+        // Strict verification:
+        // 1. Transaction status must be 'success'
+        // 2. Exact amount verification in minor units
+        // 3. Exact currency verification
+        if (
+          paystack.status === 'success' &&
+          paystack.amountMinorUnits === expectedMinor &&
+          paystack.currency === (paymentOrder.currency || 'KES')
+        ) {
+          const finalResult = await finalizePaidEventOrderPayment(order.id, reference)
+          if (finalResult?.status === 'OVERCAPACITY_PAID') {
+            status = 'OVERCAPACITY_PAID'
+          } else {
+            status = 'PAID'
+          }
+        } else if (paystack.status === 'failed' || paystack.status === 'abandoned') {
           await failPaidEventOrderPayment(order.id, 'FAILED')
           status = 'FAILED'
         }
       } catch {
-        // Keep the stored status if the provider check is temporarily unavailable.
+        // INVARIANT: Never mark payment failed on timeout or transient network errors!
+        // Keep order in PAYMENT_PENDING so future poll or webhook can reconcile.
       }
     }
   }
@@ -110,6 +116,8 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
         select: {
           id: true,
           status: true,
+          fulfillmentStatus: true,
+          providerReference: true,
           holdExpiresAt: true,
           attendeeEmail: true,
           amountKes: true,
@@ -134,9 +142,16 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
         },
       })
 
+  const isOvercapacity = status === 'OVERCAPACITY_PAID'
+
   return NextResponse.json({
     success: true,
     status,
+    fulfillmentStatus: (responseOrder as any)?.fulfillmentStatus ?? (order as any).fulfillmentStatus ?? (isOvercapacity ? 'OVERCAPACITY_HOLD' : null),
+    message: isOvercapacity
+      ? 'Payment was successfully received, but the capacity hold expired and the event reached capacity before payment was finalized. Our team has been notified to resolve your registration or process a refund.'
+      : undefined,
+    providerReference: responseOrder?.providerReference ?? order.providerReference ?? null,
     confirmationCode: responseOrder?.registrations[0]?.confirmationCode ?? order.registrations[0]?.confirmationCode ?? null,
     registrationId: responseOrder?.registrations[0]?.id ?? order.registrations[0]?.id ?? null,
     eventTitle: responseOrder?.event.title ?? order.event.title,
@@ -145,5 +160,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ orderId:
     amountKes: responseOrder?.amountKes ?? order.amountKes,
     attendeeEmail: responseOrder?.attendeeEmail ?? order.attendeeEmail,
     holdExpiresAt: (responseOrder?.holdExpiresAt ?? order.holdExpiresAt).toISOString(),
+  }, {
+    headers: { 'Cache-Control': 'private, no-store' },
   })
 }

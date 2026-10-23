@@ -1120,14 +1120,12 @@ export default function EditEventPage() {
               </div>
               <div id="section-tickets" className="scroll-mt-6">
                 {isPaid && (
-                  <PaymentMaintenanceBanner
-                    compact
-                    title="Paid events are coming soon"
-                    message="We are working on this. Paid ticket-tier editing is hidden for now while the payment rollout is still paused."
-                  />
-                )}
-                {false && isPaid && (
                   <div className="mb-4 p-4" style={warningCardStyle}>
+                    <div className="mb-3 rounded-[10px] border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] p-3">
+                      <p className="text-[0.8rem] font-semibold text-[var(--accent)]" style={{ margin: 0 }}>
+                        EventSlot fee: 5% per paid ticket. Organizers receive 95% of the eligible ticket amount.
+                      </p>
+                    </div>
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[0.78rem] font-semibold" style={{ color: "var(--warning)" }}>Paid ticket tiers</p>

@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { z } from "zod"
-import bcrypt from "bcryptjs"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { getOrganizerWithdrawableBalance } from "@/lib/organizerPayments"
+import { billingRatelimit } from "@/lib/ratelimit"
 import { sendBankPayout, sendMpesaPayout, sendPaybillPayout } from "@/services/payouts"
 import { verifyOtpForEmail } from "@/lib/emailOtp"
+import { verifyPaymentPinDurable } from "@/lib/paymentPinSecurity"
+import {
+  requestOrganizerWithdrawal,
+  InsufficientSettledBalanceError,
+} from "@/lib/withdrawalService"
+import type { SupportedCurrency } from "@/lib/organizerPayments"
 
 const payloadSchema = z.object({
   currency: z.enum(["KES", "USD"]),
@@ -25,6 +30,7 @@ const payloadSchema = z.object({
     bankAccountName: z.string().optional(),
     bankBranchCode: z.string().optional(),
   }),
+  clientReference: z.string().max(100).optional(),
 })
 
 function buildDestinationLabel(
@@ -37,7 +43,47 @@ function buildDestinationLabel(
 }
 
 function processingTime(method: "MPESA" | "PAYBILL" | "BANK") {
-  return method === "BANK" ? "1-3 business days" : "Instant"
+  return method === "BANK" ? "1-3 business days" : "Instant to 1 business day"
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const withdrawals = await prisma.withdrawal.findMany({
+      where: { organiserId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        amount: true,
+        amountMinorUnits: true,
+        currency: true,
+        method: true,
+        destination: true,
+        status: true,
+        providerRef: true,
+        failureReason: true,
+        createdAt: true,
+        settledAt: true,
+      },
+    })
+
+    const serializedWithdrawals = withdrawals.map((w) => ({
+      ...w,
+      amountMinorUnits: w.amountMinorUnits != null ? w.amountMinorUnits.toString() : null,
+    }))
+
+    return NextResponse.json(
+      { withdrawals: serializedWithdrawals },
+      { headers: { "Cache-Control": "private, no-store" } }
+    )
+  } catch (error) {
+    console.error("[organizer-withdrawals] GET error:", error)
+    return NextResponse.json({ error: "Failed to load withdrawals." }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -58,11 +104,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Minimum withdrawal is ${currency} ${minimum}.` }, { status: 400 })
     }
 
-    const available = await getOrganizerWithdrawableBalance(session.user.id, currency)
-    if (amount > available) {
-      return NextResponse.json({ error: "Withdrawal amount exceeds your available balance." }, { status: 400 })
+    // Rate limiting: 10 withdrawal attempts per minute per organizer
+    const rateLimitRes = await billingRatelimit.limit(`wd:${session.user.id}`)
+    if (!rateLimitRes.success) {
+      return NextResponse.json(
+        { error: "Too many withdrawal requests. Please wait a moment before trying again." },
+        { status: 429 }
+      )
     }
 
+    // Verify User security credentials (PIN & 2FA)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -81,9 +132,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Turn on account 2FA in Profile before requesting withdrawals." }, { status: 400 })
     }
 
-    const validPin = await bcrypt.compare(parsed.data.paymentPin, user.paymentPinHash)
-    if (!validPin) {
-      return NextResponse.json({ error: "The payments PIN you entered is incorrect." }, { status: 403 })
+    // Durably verify PIN with anti-brute-force lockout and distributed safety
+    const pinVerification = await verifyPaymentPinDurable({
+      userId: session.user.id,
+      pin: parsed.data.paymentPin,
+      paymentPinHash: user.paymentPinHash,
+    })
+
+    if (!pinVerification.success) {
+      return NextResponse.json(
+        { error: pinVerification.error },
+        { status: pinVerification.status }
+      )
     }
 
     if (!user.email) {
@@ -97,100 +157,106 @@ export async function POST(req: NextRequest) {
 
     const destinationLabel = buildDestinationLabel(method, destination)
     const narrative = `EventSlot payout ${currency} ${amount}`
+    const headerIdempotencyKey = req.headers.get("x-idempotency-key") || req.headers.get("idempotency-key")
+    const clientReference = parsed.data.clientReference || headerIdempotencyKey?.trim() || undefined
 
-    let providerRef: string | null = null
-    try {
-      if (method === "MPESA") {
-        if (!destination.mpesaPhone?.trim()) {
-          return NextResponse.json({ error: "M-Pesa phone number is required." }, { status: 400 })
-        }
-        const response = await sendMpesaPayout({
-          phone: destination.mpesaPhone.trim(),
-          amount,
-          currency,
-          narrative,
-        })
-        providerRef = response.trackingId
-      } else if (method === "PAYBILL") {
-        if (!destination.paybillNumber?.trim() || !destination.paybillAccountNumber?.trim()) {
-          return NextResponse.json({ error: "Complete the PayBill destination details." }, { status: 400 })
-        }
-        const response = await sendPaybillPayout({
-          paybillNumber: destination.paybillNumber.trim(),
-          accountNumber: destination.paybillAccountNumber.trim(),
-          amount,
-          currency,
-          narrative,
-        })
-        providerRef = response.trackingId
-      } else {
-        if (!destination.bankName?.trim() || !destination.bankAccountNumber?.trim() || !destination.bankAccountName?.trim() || !destination.bankBranchCode?.trim()) {
-          return NextResponse.json({ error: "Complete the bank transfer details." }, { status: 400 })
-        }
-        const response = await sendBankPayout({
-          bankName: destination.bankName.trim(),
-          accountNumber: destination.bankAccountNumber.trim(),
-          accountName: destination.bankAccountName.trim(),
-          branchCode: destination.bankBranchCode.trim(),
-          amount,
-          currency,
-          narrative,
-        })
-        providerRef = response.trackingId
-      }
-    } catch (error) {
-      console.error("[organizer-withdrawals] payout provider error:", error)
-      const message = error instanceof Error ? error.message : "Withdrawal provider rejected the request."
-      return NextResponse.json({ error: message }, { status: 502 })
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.organiserBalance.upsert({
-        where: { organiserId: session.user.id },
-        create: currency === "USD"
-          ? { organiserId: session.user.id, withdrawnUSD: amount }
-          : { organiserId: session.user.id, withdrawnKES: amount },
-        update: currency === "USD"
-          ? { withdrawnUSD: { increment: amount } }
-          : { withdrawnKES: { increment: amount } },
-      })
-
-      await tx.withdrawal.create({
-        data: {
-          organiserId: session.user.id,
-          amount,
-          currency,
-          method,
-          destination: destinationLabel,
-          status: "PROCESSING",
-          providerRef,
+    // Concurrency-safe atomic reservation with payout dispatch
+    const result = await requestOrganizerWithdrawal(
+      {
+        organizerId: session.user.id,
+        amount,
+        currency,
+        method,
+        destination: destinationLabel,
+        destinationPayload: {
+          phone: destination.mpesaPhone?.trim(),
+          accountNumber: destination.bankAccountNumber?.trim() || destination.paybillAccountNumber?.trim(),
+          bankName: destination.bankName?.trim(),
+          bankCode: destination.bankBranchCode?.trim(),
+          accountName: destination.bankAccountName?.trim(),
         },
-      })
-    })
-
-    await prisma.auditLog.create({
-      data: {
-        actorId: session.user.id,
-        action: "WITHDRAWAL_INITIATED",
-        metadata: {
-          amount,
-          currency,
-          method,
-          destination: destinationLabel,
-          twoFactorEnabled: Boolean(user.twoFactorEnabled),
-          at: new Date().toISOString(),
-        },
+        narrative,
+        clientReference,
       },
-    }).catch(() => {})
+      async ({ amountMinorUnits, reference }) => {
+        if (method === "MPESA") {
+          if (!destination.mpesaPhone?.trim()) {
+            throw new Error("M-Pesa phone number is required.")
+          }
+          const response = await sendMpesaPayout({
+            phone: destination.mpesaPhone.trim(),
+            amount,
+            currency: currency as SupportedCurrency,
+            narrative,
+            reference,
+          })
+          return {
+            reference: response.trackingId || reference,
+            transferCode: (response as any).transferCode,
+            recipientCode: (response as any).recipientCode,
+          }
+        } else if (method === "PAYBILL") {
+          if (!destination.paybillNumber?.trim() || !destination.paybillAccountNumber?.trim()) {
+            throw new Error("Complete the PayBill destination details.")
+          }
+          const response = await sendPaybillPayout({
+            paybillNumber: destination.paybillNumber.trim(),
+            accountNumber: destination.paybillAccountNumber.trim(),
+            amount,
+            currency: currency as SupportedCurrency,
+            narrative,
+            reference,
+          })
+          return {
+            reference: response.trackingId || reference,
+            transferCode: (response as any).transferCode,
+            recipientCode: (response as any).recipientCode,
+          }
+        } else {
+          if (
+            !destination.bankName?.trim() ||
+            !destination.bankAccountNumber?.trim() ||
+            !destination.bankAccountName?.trim() ||
+            !destination.bankBranchCode?.trim()
+          ) {
+            throw new Error("Complete the bank transfer details.")
+          }
+          const response = await sendBankPayout({
+            bankName: destination.bankName.trim(),
+            accountNumber: destination.bankAccountNumber.trim(),
+            accountName: destination.bankAccountName.trim(),
+            branchCode: destination.bankBranchCode.trim(),
+            amount,
+            currency: currency as SupportedCurrency,
+            narrative,
+            reference,
+          })
+          return {
+            reference: response.trackingId || reference,
+            transferCode: (response as any).transferCode,
+            recipientCode: (response as any).recipientCode,
+          }
+        }
+      }
+    )
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.message || "Withdrawal failed." }, { status: 400 })
+    }
 
     return NextResponse.json({
       success: true,
-      reference: providerRef ?? `WD-${Date.now().toString().slice(-6)}`,
+      reference: result.reference,
       destinationLabel,
+      status: result.status,
       processingTime: processingTime(method),
     })
   } catch (error) {
+    if (error instanceof InsufficientSettledBalanceError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     console.error("[organizer-withdrawals] POST error:", error)
-    return NextResponse.json({ error: "Withdrawal failed. Please try again." }, { status: 500 })
+    const msg = error instanceof Error ? error.message : "Withdrawal failed. Please try again."
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
