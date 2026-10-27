@@ -86,7 +86,7 @@ function SignUpForm() {
         return
       }
 
-      router.push(result?.url || targetCallbackUrl)
+      router.push(targetCallbackUrl)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)

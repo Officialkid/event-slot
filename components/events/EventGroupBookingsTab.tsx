@@ -59,12 +59,15 @@ export function EventGroupBookingsTab({
   const [expandedBookingToken, setExpandedBookingToken] = useState<string | null>(null)
   const [delegateSlots, setDelegateSlots] = useState<Record<string, DelegateSlot[]>>({})
   const [loadingDelegates, setLoadingDelegates] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
       setError("")
-      const res = await fetch(`/api/events/${slug}/group-bookings`)
+      const tokenParam = token ? `?token=${encodeURIComponent(token)}` : ""
+      const res = await fetch(`/api/events/${slug}/group-bookings${tokenParam}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to load group bookings")
       setBookings(data.groupBookings || [])
@@ -73,7 +76,28 @@ export function EventGroupBookingsTab({
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [slug, token])
+
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      setDeletingId(bookingId)
+      const params = new URLSearchParams({ bookingId })
+      if (token) params.set("token", token)
+      const res = await fetch(`/api/events/${slug}/group-bookings?${params.toString()}`, {
+        method: "DELETE",
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete group booking")
+      }
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId))
+      setConfirmDeleteId(null)
+    } catch (err: any) {
+      setError(err.message || "Failed to delete group booking")
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     fetchBookings()
@@ -504,6 +528,51 @@ export function EventGroupBookingsTab({
                       >
                         {isExpanded ? "▲ Hide Delegates" : `👥 View Delegates (${b.assignedCount})`}
                       </button>
+
+                      {confirmDeleteId === b.id ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={deletingId === b.id}
+                            onClick={() => handleDeleteBooking(b.id)}
+                            className="rounded-[8px] px-3 py-1.5 text-[0.75rem] font-bold transition hover:opacity-90"
+                            style={{
+                              background: "var(--error, #EF4444)",
+                              color: "#FFFFFF",
+                              border: "none",
+                              cursor: deletingId === b.id ? "wait" : "pointer",
+                            }}
+                          >
+                            {deletingId === b.id ? "Deleting..." : "Confirm Delete"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="rounded-[8px] border px-2.5 py-1.5 text-[0.75rem] font-semibold transition"
+                            style={{
+                              borderColor: "var(--border)",
+                              background: "var(--surface-2)",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(b.id)}
+                          className="rounded-[8px] border px-3 py-1.5 text-[0.75rem] font-bold transition hover:opacity-85"
+                          style={{
+                            borderColor: "color-mix(in srgb, var(--error, #EF4444) 40%, transparent)",
+                            background: "color-mix(in srgb, var(--error, #EF4444) 10%, transparent)",
+                            color: "var(--error, #EF4444)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

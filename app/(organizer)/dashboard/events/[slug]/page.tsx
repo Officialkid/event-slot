@@ -724,7 +724,7 @@ function RegTable({
       <table style={{ minWidth: "100%", borderCollapse: "collapse" }}>
         <thead style={{ background: themeSurfaceAlt }}>
           <tr>
-            {showPosition && <th style={thStyle}>#</th>}
+            <th style={thStyle}>{showPosition ? "#" : "Ticket #"}</th>
             {labels.map(label => <th key={label} style={thStyle}>{label}</th>)}
             <th style={thStyle}>Registered</th>
             <th style={thStyle}>View</th>
@@ -734,14 +734,16 @@ function RegTable({
         <tbody>
           {rowData.length === 0 ? (
             <tr>
-              <td colSpan={labels.length + (showPosition ? 4 : 3)} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
+              <td colSpan={labels.length + 4} style={{ padding: "2rem", textAlign: "center", fontSize: "0.85rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
                 {emptyText}
               </td>
             </tr>
           ) : (
-            rowData.map(reg => (
+            rowData.map((reg, rowIdx) => (
               <tr key={reg.id} style={{ borderTop: "0.5px solid color-mix(in srgb, var(--border-subtle) 62%, transparent)" }} className="reg-row">
-                {showPosition && <td style={tdStyle}>{reg.waitlistPosition}</td>}
+                <td style={{ ...tdStyle, fontWeight: 700, color: themeAccent, whiteSpace: "nowrap" }}>
+                  {showPosition ? reg.waitlistPosition : `#${reg.registrationNumber ?? rowIdx + 1}`}
+                </td>
                 {questions.map(q => {
                   const answer = reg.answers.find(a => a.questionId === q.id)?.value || ""
                   return <td key={q.id} style={tdStyle}>{answer}</td>
@@ -1714,31 +1716,78 @@ export default function EventDashboardPage() {
   // Recent registrations ticker (30s poll)
   const [recentRegs, setRecentRegs] = useState<{ id: string; name: string; submittedAt: string; status: string }[]>([])
 
-  // Recurring editions selector & AI Loyalty Engine
+  // Recurring editions selector & Weekly Monday Reset Engine
+  const getWeekMondayKey = React.useCallback((dateStr?: string | null) => {
+    const d = dateStr ? new Date(dateStr) : new Date()
+    if (isNaN(d.getTime())) return ""
+    const day = d.getDay() // 0 = Sun, 1 = Mon ... 6 = Sat
+    const daysSinceMonday = (day + 6) % 7
+    const monday = new Date(d)
+    monday.setDate(d.getDate() - daysSinceMonday)
+    monday.setHours(0, 0, 0, 0)
+    const yyyy = monday.getFullYear()
+    const mm = String(monday.getMonth() + 1).padStart(2, "0")
+    const dd = String(monday.getDate()).padStart(2, "0")
+    return `${yyyy}-${mm}-${dd}`
+  }, [])
+
+  const currentWeekMondayKey = React.useMemo(() => getWeekMondayKey(), [getWeekMondayKey])
+
   const [selectedEdition, setSelectedEdition] = useState<string>("all")
+  const [editionDefaultInitialized, setEditionDefaultInitialized] = useState(false)
+
+  // Automatically default recurring weekly events to "this-week" (resets every Monday)
+  useEffect(() => {
+    if (!editionDefaultInitialized && eventData) {
+      if (eventData.isRecurring) {
+        setSelectedEdition(currentWeekMondayKey)
+      }
+      setEditionDefaultInitialized(true)
+    }
+  }, [eventData, editionDefaultInitialized, currentWeekMondayKey])
+
+  const getRegWeekKey = React.useCallback(
+    (r: Registration) => getWeekMondayKey(r.occurrenceDate || r.submittedAt),
+    [getWeekMondayKey]
+  )
 
   const distinctEditions = React.useMemo(() => {
     const set = new Set<string>()
+    if (eventData?.isRecurring && currentWeekMondayKey) {
+      set.add(currentWeekMondayKey)
+    }
     for (const r of [...confirmed, ...waitlist]) {
-      if (r.occurrenceDate) {
-        const d = new Date(r.occurrenceDate)
-        if (!isNaN(d.getTime())) {
-          set.add(d.toISOString().split("T")[0])
-        }
-      }
+      const key = getRegWeekKey(r)
+      if (key) set.add(key)
     }
     return Array.from(set).sort().reverse()
-  }, [confirmed, waitlist])
+  }, [confirmed, waitlist, eventData?.isRecurring, currentWeekMondayKey, getRegWeekKey])
+
+  const thisWeekConfirmedCount = React.useMemo(
+    () => confirmed.filter(r => getRegWeekKey(r) === currentWeekMondayKey).length,
+    [confirmed, getRegWeekKey, currentWeekMondayKey]
+  )
 
   const filteredConfirmed = React.useMemo(() => {
     if (selectedEdition === "all") return confirmed
-    return confirmed.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === selectedEdition)
-  }, [confirmed, selectedEdition])
+    // Filter to selected week's Monday cohort and re-sequence ticket numbers #1, #2, #3... for that week
+    const weekRows = confirmed.filter(r => getRegWeekKey(r) === selectedEdition)
+    const chronological = [...weekRows].sort(
+      (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
+    )
+    const weekNumberById = new Map<string, number>()
+    chronological.forEach((r, idx) => weekNumberById.set(r.id, idx + 1))
+
+    return weekRows.map(r => ({
+      ...r,
+      registrationNumber: weekNumberById.get(r.id) ?? r.registrationNumber,
+    }))
+  }, [confirmed, selectedEdition, getRegWeekKey])
 
   const filteredWaitlist = React.useMemo(() => {
     if (selectedEdition === "all") return waitlist
-    return waitlist.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === selectedEdition)
-  }, [waitlist, selectedEdition])
+    return waitlist.filter(r => getRegWeekKey(r) === selectedEdition)
+  }, [waitlist, selectedEdition, getRegWeekKey])
 
   const recurringLoyaltyMetrics = React.useMemo(() => {
     if (!eventData?.isRecurring) return null
@@ -3469,9 +3518,12 @@ export default function EventDashboardPage() {
                 {
                   label: "Confirmed",
                   value: eventData.confirmedCount,
-                  subtitle: groupBookingsTotalSlots > 0
-                    ? `${confirmed.length} individual · ${groupBookingsTotalSlots} in group delegations`
-                    : null,
+                  subtitle: [
+                    eventData.isRecurring ? `This Week (Mon–Sun): ${thisWeekConfirmedCount} registered` : null,
+                    groupBookingsTotalSlots > 0
+                      ? `${confirmed.length} individual · ${groupBookingsTotalSlots} in group delegations`
+                      : null,
+                  ].filter(Boolean).join(" · ") || null,
                 },
                 { label: "Waitlist", value: eventData.waitlistCount },
                 { label: "Capacity", value: capacityDisplay },
@@ -4003,9 +4055,9 @@ export default function EventDashboardPage() {
             {(eventData.isRecurring || distinctEditions.length > 0) && (
               <div style={{ background: themeSurfaceAlt, border: themeBorderSoft, borderRadius: 12, padding: "0.85rem 1.1rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-                      Event Edition:
+                      Weekly Edition (Resets Mon):
                     </span>
                     <select
                       value={selectedEdition}
@@ -4023,29 +4075,39 @@ export default function EventDashboardPage() {
                         cursor: "pointer",
                       }}
                     >
-                      <option value="all">All Editions Combined ({confirmed.length} total)</option>
                       {distinctEditions.map((ed) => {
-                        const count = confirmed.filter(r => r.occurrenceDate && new Date(r.occurrenceDate).toISOString().split("T")[0] === ed).length
-                        const dateFormatted = new Date(ed).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+                        const count = confirmed.filter(r => getRegWeekKey(r) === ed).length
+                        const dateFormatted = new Date(`${ed}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                        const isThisWeek = ed === currentWeekMondayKey
                         return (
                           <option key={ed} value={ed}>
-                            {dateFormatted} ({count} confirmed)
+                            {isThisWeek ? `📅 This Week (Mon ${dateFormatted}) — ${count} confirmed` : `Week of Mon ${dateFormatted} (${count} confirmed)`}
                           </option>
                         )
                       })}
+                      <option value="all">All Weeks Combined ({confirmed.length} total)</option>
                     </select>
                   </div>
-                  {selectedEdition !== "all" && (
+                  {selectedEdition !== "all" ? (
                     <button
                       onClick={() => setSelectedEdition("all")}
                       style={{ background: "transparent", border: "none", color: themeAccent, fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-dm-sans)" }}
                     >
-                      Reset to All Editions
+                      View All Weeks ({confirmed.length})
                     </button>
+                  ) : (
+                    eventData.isRecurring && (
+                      <button
+                        onClick={() => setSelectedEdition(currentWeekMondayKey)}
+                        style={{ background: "transparent", border: "none", color: themeAccent, fontSize: "0.75rem", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-dm-sans)" }}
+                      >
+                        Switch to This Week ({thisWeekConfirmedCount})
+                      </button>
+                    )
                   )}
                 </div>
                 <div style={{ fontSize: "0.75rem", color: themeTextMuted, fontFamily: "var(--font-dm-sans)" }}>
-                  Showing <strong style={{ color: themeTextPrimary }}>{filteredConfirmed.length}</strong> {selectedEdition === "all" ? "across all editions" : "in this edition"}
+                  Showing <strong style={{ color: themeTextPrimary }}>{filteredConfirmed.length}</strong> {selectedEdition === "all" ? "across all weeks" : selectedEdition === currentWeekMondayKey ? "registered this week (Ticket #1, #2, #3...)" : "in this weekly cohort"}
                 </div>
               </div>
             )}

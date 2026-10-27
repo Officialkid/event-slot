@@ -305,7 +305,7 @@ export const authOptions = {
     },
   },
   cookies: (() => {
-    const isProd = process.env.NODE_ENV === 'production' || APP_URL.includes('eventsslot.com')
+    const isProd = process.env.NODE_ENV === 'production'
     const cookieDomain = process.env.COOKIE_DOMAIN || (isProd ? '.eventsslot.com' : undefined)
     if (!cookieDomain) return undefined
 

@@ -10,6 +10,7 @@ export const updateProfileSchema = z.object({
   website: z.string().url().max(500).optional().nullable().or(z.literal('')),
   consentSystemEmails: z.boolean().optional(),
   twoFactorEnabled: z.boolean().optional(),
+  showFollowerCountPublicly: z.boolean().optional(),
   preferredLanguage: z.enum(supportedLanguageCodes).optional(),
 })
 

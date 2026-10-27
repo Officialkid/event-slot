@@ -25,7 +25,7 @@ function formatBroadcastBody(content: string): string {
   if (/<[a-z][\s\S]*>/i.test(content)) {
     return content
   }
-  let formatted = content
+  const formatted = content
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#111827;font-weight:700;">$1</strong>')
     .replace(/\*(.*?)\*/g, '<em style="color:#4B5563;">$1</em>')
 

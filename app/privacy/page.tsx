@@ -33,6 +33,7 @@ const sections: Array<{
       "Usage and security information: activity logs, abuse-prevention signals, rate-limit records, temporary lockout state, and technical metadata.",
       "Country and regional information: sign-up country, login/request-derived country signals, and related analytics used for aggregate growth reporting.",
       "Billing/token information: transaction references and balance data. We do not store card numbers.",
+      "Attendee device convenience profile: optional recurring contact fields (name, email, phone, location, organization, job title) stored strictly client-side on your personal device (browser LocalStorage) for frictionless autofill. Ephemeral or event-specific questions (such as expectations, dietary restrictions, or apparel sizes) are strictly excluded.",
     ],
   },
   {
@@ -87,12 +88,13 @@ const sections: Array<{
   },
   {
     id: 7,
-    title: "Cookies and Tracking",
-    paragraphs: ["We use essential cookies required for security and platform functionality."],
+    title: "Cookies and Local Device Storage",
+    paragraphs: ["We use essential cookies required for security and platform functionality, as well as optional client-side local storage for attendee convenience."],
     bullets: [
       "Session/authentication cookies",
       "CSRF/security cookies",
       "Referral attribution cookie (limited duration)",
+      "Attendee convenience device storage (LocalStorage): saved strictly on your local browser to speed up registration across events. This data is never sent to tracking networks and can be cleared or disabled directly from any registration form at any time.",
     ],
   },
   {
@@ -129,6 +131,7 @@ const sections: Array<{
     paragraphs: [
       "You may request access, correction, or deletion of your personal data, subject to applicable law.",
       "For users in Kenya, we aim to align with rights principles in the Kenya Data Protection Act (2019).",
+      "Attendee Autofill Opt-Out: Attendees can clear or opt out of recurring device autofill at any time directly on any registration form using the 'Clear saved details' action or by unchecking 'Remember my details on this device'.",
       "Contact info@eventsslot.com for privacy requests.",
     ],
   },

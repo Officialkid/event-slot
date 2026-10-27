@@ -78,6 +78,11 @@ export const createEventSchema = z.object({
   questions: z.array(questionSchema).max(30).default([]),
   organizerEmail: z.string().email().max(254).or(z.literal('')).optional(),
   organizerName: z.string().min(1, 'Organizer name is required').max(200),
+  asOrganizationId: z.string().optional().nullable(),
+  timedDropEnabled: z.boolean().optional().default(false),
+  ticketDropOpensAt: z.string().datetime({ offset: true }).optional().nullable(),
+  ticketDropClosesAt: z.string().datetime({ offset: true }).optional().nullable(),
+  dropWaitlistOnExpire: z.boolean().optional().default(true),
 }).superRefine((data, ctx) => {
   // Note: Registration events do not require custom questions because Name and Email are captured by default.
 

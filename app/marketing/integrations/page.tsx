@@ -153,7 +153,7 @@ export default function MarketingIntegrationsPage() {
     setConnectingPlatform(platform)
     const normalized = platform.toLowerCase()
     // Open official OAuth initiation route
-    window.location.href = `/api/marketing/integrations/${normalized}/oauth`
+    window.location.assign(`/api/marketing/integrations/${normalized}/oauth`)
   }
 
   const handleConfirmDisconnect = async () => {

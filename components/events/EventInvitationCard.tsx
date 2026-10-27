@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
+import { FollowButton } from "@/components/following/FollowButton"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 import { computeNextOccurrenceDate, computeOccurrenceEnd, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
@@ -19,7 +20,10 @@ export type EventInvitationCardProps = {
   showRemainingSpots?: boolean
   imageUrl?: string | null
   organizerName?: string | null
+  organizerUsername?: string | null
   organizerIsPioneer?: boolean
+  followerCount?: number
+  showFollowerCountPublicly?: boolean
   capacity?: number | null
   confirmedCount: number
   status: string
@@ -190,7 +194,10 @@ export default function EventInvitationCard({
   showRemainingSpots = true,
   imageUrl,
   organizerName,
+  organizerUsername,
   organizerIsPioneer,
+  followerCount,
+  showFollowerCountPublicly,
   capacity,
   confirmedCount,
   status,
@@ -357,7 +364,6 @@ export default function EventInvitationCard({
             style={{
               objectFit: "contain",
               objectPosition: "center",
-              position: "relative",
               zIndex: 1,
             }}
             onError={handlePosterError}
@@ -516,30 +522,60 @@ export default function EventInvitationCard({
           )}
 
           {displayOrganizerName && (
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.72rem", opacity: 0.5, flexShrink: 0 }}>{cardCopy.host}</span>
-              <span style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 400, display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
-                {cardCopy.hostedBy}{" "}
-                <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{displayOrganizerName}</span>
-                {organizerIsPioneer ? (
-                  <span
-                    title="EventSlot Pioneer - one of our earliest supporters"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.25rem",
-                      fontSize: "0.7rem",
-                      color: "#C8F55A",
-                      border: "1px solid rgba(200,245,90,0.3)",
-                      borderRadius: 999,
-                      padding: "0.1rem 0.5rem",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {cardCopy.pioneer}
-                  </span>
-                ) : null}
-              </span>
+            <div
+              className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 sm:p-3.5"
+              style={{
+                borderColor: "color-mix(in srgb, var(--border) 80%, transparent)",
+                background: "color-mix(in srgb, var(--surface) 50%, var(--surface-muted) 50%)",
+              }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase tracking-wider"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+                    color: "var(--accent)",
+                    border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                  }}
+                >
+                  {displayOrganizerName.slice(0, 2)}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[0.88rem] font-semibold text-[var(--text-primary)] truncate">
+                      {displayOrganizerName}
+                    </span>
+                    {organizerIsPioneer && (
+                      <span
+                        title="EventSlot Pioneer - one of our earliest supporters"
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[0.68rem] font-semibold"
+                        style={{
+                          color: "#C8F55A",
+                          background: "rgba(200,245,90,0.12)",
+                          border: "1px solid rgba(200,245,90,0.3)",
+                        }}
+                      >
+                        {cardCopy.pioneer || "Pioneer"}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[0.74rem] text-[var(--text-muted)] m-0">
+                    Host & Organizer
+                  </p>
+                </div>
+              </div>
+
+              {organizerUsername && (
+                <div className="shrink-0">
+                  <FollowButton
+                    size="sm"
+                    organiserUsername={organizerUsername}
+                    organiserName={displayOrganizerName}
+                    initialFollowerCount={followerCount}
+                    showFollowerCountPublicly={showFollowerCountPublicly}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

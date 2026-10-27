@@ -26,6 +26,7 @@ import {
   getDraftStepLabel,
 } from "@/lib/eventDrafts"
 import { MultiDayScheduleEditor, type MultiDayScheduleItem } from "@/components/events/MultiDayScheduleEditor"
+import { WorkspaceSelector } from "@/components/dashboard/WorkspaceSelector"
 
 type QuestionType = "text" | "textarea" | "number" | "email" | "phone" | "select" | "checkbox" | "file"
 
@@ -185,6 +186,11 @@ export default function CreateEventPage() {
   const [registrationOpensTime, setRegistrationOpensTime] = useState<string>("08:00")
   const [joinOpensAt, setJoinOpensAt] = useState("")
   const [imageUrl, setImageUrl] = useState("")
+  const [asOrganizationId, setAsOrganizationId] = useState<string | null>(null)
+  const [timedDropEnabled, setTimedDropEnabled] = useState(false)
+  const [ticketDropOpensAt, setTicketDropOpensAt] = useState("")
+  const [ticketDropClosesAt, setTicketDropClosesAt] = useState("")
+  const [dropWaitlistOnExpire, setDropWaitlistOnExpire] = useState(true)
 
   // Step 2: Tickets & Capacity
   const [accessType, setAccessType] = useState<"REGISTRATION" | "WALK_IN">("REGISTRATION")
@@ -1161,6 +1167,11 @@ export default function CreateEventPage() {
           eventType,
           virtualLink: eventType === "VIRTUAL" ? virtualLink || undefined : undefined,
           capacity: isRegistrationEvent && capacity ? Number(capacity) : undefined,
+          asOrganizationId: asOrganizationId || undefined,
+          timedDropEnabled,
+          ticketDropOpensAt: timedDropEnabled && ticketDropOpensAt ? safeIsoString(ticketDropOpensAt) : undefined,
+          ticketDropClosesAt: timedDropEnabled && ticketDropClosesAt ? safeIsoString(ticketDropClosesAt) : undefined,
+          dropWaitlistOnExpire,
           deadline: isRegistrationEvent && deadline ? safeIsoString(deadline) : undefined,
           eventDate: serializeDate(eventDate, hasSpecificTime),
           eventEndAt: serializeDate(eventEndAt, hasSpecificTime),
@@ -1617,6 +1628,13 @@ export default function CreateEventPage() {
             {/* ── STEP 1: EVENT IDENTITY ── */}
             {currentStep === 1 && (
               <div className="space-y-5">
+                <WorkspaceSelector
+                  selectedId={asOrganizationId}
+                  onChange={(id: string | null, label?: string) => {
+                    setAsOrganizationId(id)
+                    if (label) setOrganizerName(label)
+                  }}
+                />
                 {/* Quick Presets Bar */}
                 <div className="rounded-[14px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -2640,6 +2658,73 @@ export default function CreateEventPage() {
                         <p className="text-[0.7rem] mt-1" style={{ color: "var(--text-muted)" }}>
                           Registration automatically closes once this deadline passes.
                         </p>
+                      </div>
+
+                      {/* Timed Ticket Drop / Flash Window */}
+                      <div className="pt-3 border-t" style={{ borderColor: "var(--border-subtle)" }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <span className="block text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                              ⚡ Timed Ticket Drop / Flash Window
+                            </span>
+                            <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>
+                              Open tickets for a specific time window with a live countdown timer.
+                            </span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={timedDropEnabled}
+                            onChange={(e) => setTimedDropEnabled(e.target.checked)}
+                            className="rounded cursor-pointer w-4 h-4"
+                            style={{ accentColor: "var(--accent)" }}
+                          />
+                        </div>
+
+                        {timedDropEnabled && (
+                          <div className="space-y-3 mt-3 p-3 rounded-lg border bg-[var(--surface-subtle)]" style={{ borderColor: "var(--border)" }}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                                  Drop Opens At (Optional)
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={ticketDropOpensAt}
+                                  onChange={(e) => setTicketDropOpensAt(e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                                  style={inputStyle}
+                                />
+                                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Countdown begins before this time.</span>
+                              </div>
+                              <div>
+                                <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                                  Drop Closes At (Required)
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={ticketDropClosesAt}
+                                  onChange={(e) => setTicketDropClosesAt(e.target.value)}
+                                  className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                                  style={inputStyle}
+                                />
+                                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Tickets close when this time arrives.</span>
+                              </div>
+                            </div>
+
+                            <label className="flex items-center gap-2 cursor-pointer mt-2">
+                              <input
+                                type="checkbox"
+                                checked={dropWaitlistOnExpire}
+                                onChange={(e) => setDropWaitlistOnExpire(e.target.checked)}
+                                className="rounded w-3.5 h-3.5"
+                                style={{ accentColor: "var(--accent)" }}
+                              />
+                              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                                Auto-route attendees to Waitlist when the drop window ends
+                              </span>
+                            </label>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -7,7 +7,7 @@
  * so they don't bleed into other test files.
  */
 
-import { isAdminEmail, getConfiguredAdminEmails } from '@/lib/isAdmin'
+import { isAdminEmail, getConfiguredAdminEmails, hasAdminAccess } from '@/lib/isAdmin'
 
 describe('isAdminEmail — single SUPER_ADMIN_EMAIL', () => {
   beforeAll(() => {
@@ -131,5 +131,44 @@ describe('getConfiguredAdminEmails', () => {
   it('normalises emails to lowercase', () => {
     const emails = getConfiguredAdminEmails()
     emails.forEach((e) => expect(e).toBe(e.toLowerCase()))
+  })
+})
+
+describe('Security Boundaries & Attack Vector Hardening', () => {
+  it('rejects prefix spoofing attempts on admin identity', () => {
+    expect(isAdminEmail('eventslot.co@attacker.com')).toBe(false)
+    expect(isAdminEmail('eventsslot.co@attacker.com')).toBe(false)
+    expect(isAdminEmail('eventslot.co.attacker@example.com')).toBe(false)
+    expect(isAdminEmail('eventslot.co@evil.org')).toBe(false)
+  })
+
+  it('recognizes canonical project contact email', () => {
+    expect(isAdminEmail('eventsslot.co@gmail.com')).toBe(true)
+    expect(isAdminEmail('eventslot.co@gmail.com')).toBe(true)
+  })
+
+  it('rejects unauthenticated sessions and malformed session objects in hasAdminAccess', () => {
+    expect(hasAdminAccess(null)).toBe(false)
+    expect(hasAdminAccess(undefined)).toBe(false)
+    expect(hasAdminAccess({})).toBe(false)
+    expect(hasAdminAccess({ user: null })).toBe(false)
+    expect(hasAdminAccess({ user: { email: null } })).toBe(false)
+  })
+
+  it('denies administrative access to authenticated standard users', () => {
+    const standardSession = {
+      user: {
+        role: 'USER',
+        email: 'organizer@customdomain.com',
+        isAdmin: false,
+      },
+    }
+    expect(hasAdminAccess(standardSession)).toBe(false)
+  })
+
+  it('grants administrative access to verified super admin accounts', () => {
+    expect(hasAdminAccess({ user: { email: 'eventsslot.co@gmail.com' } })).toBe(true)
+    expect(hasAdminAccess({ user: { email: 'any@domain.com', role: 'SUPER_ADMIN' } })).toBe(true)
+    expect(hasAdminAccess({ user: { email: 'any@domain.com', isAdmin: true } })).toBe(true)
   })
 })

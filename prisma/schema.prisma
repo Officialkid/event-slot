@@ -71,6 +71,12 @@ model Event {
   aiInsightsFreeUsed Boolean @default(false)
   whatsappNumber   String?   // stored without formatting, e.g. "254712345678"
   summaryEmailSent Boolean   @default(false)
+  announcementSentAt DateTime?
+  timedDropEnabled       Boolean   @default(false)
+  ticketDropOpensAt      DateTime?
+  ticketDropClosesAt     DateTime?
+  dropWaitlistOnExpire   Boolean   @default(true)
+  firstPublishedAt   DateTime?
   groupRegistrationEnabled Boolean @default(false)
   allowGroupSelfClaim      Boolean @default(true)
   ticketTiers      TicketTier[]
@@ -217,6 +223,24 @@ model User {
   withdrawals                Withdrawal[]
   marketingMember            MarketingTeamMember?
   financialLedgerEntries     FinancialLedgerEntry[]
+  showFollowerCountPublicly  Boolean   @default(true)
+  followedOrganisers         OrganiserFollower[] @relation("UserFollowedOrganisers")
+  followers                  OrganiserFollower[] @relation("OrganiserFollowers")
+}
+
+model OrganiserFollower {
+  id               String   @id @default(cuid())
+  followerId       String
+  organiserId      String
+  notifyNewEvents  Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  follower         User     @relation("UserFollowedOrganisers", fields: [followerId], references: [id], onDelete: Cascade)
+  organiser        User     @relation("OrganiserFollowers", fields: [organiserId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, organiserId])
+  @@index([organiserId])
+  @@index([followerId])
 }
 
 model LoginSecurityState {

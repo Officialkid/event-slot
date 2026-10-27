@@ -4,6 +4,7 @@ import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { APP_URL } from "@/lib/config"
 import PublicEventShareButton from "@/components/events/PublicEventShareButton"
+import { FollowButton } from "@/components/following/FollowButton"
 
 export const dynamic = "force-dynamic"
 
@@ -203,6 +204,24 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
 
   if (activeRange) {
     andFilters.push(buildRangeFilter(activeRange))
+  } else {
+    // Default discovery: strictly show upcoming events (event has not ended in the past)
+    andFilters.push({
+      OR: [
+        { eventEndAt: { gte: now } },
+        {
+          AND: [
+            { eventEndAt: null },
+            {
+              OR: [
+                { eventDate: { gte: startOfDay(now) } },
+                { eventDate: null },
+              ],
+            },
+          ],
+        },
+      ],
+    })
   }
 
   const events = await prisma.event.findMany({
@@ -216,6 +235,19 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
       location: true,
       imageUrl: true,
       isPaid: true,
+      organizerName: true,
+      organizerId: true,
+      organizer: {
+        select: {
+          username: true,
+          name: true,
+          image: true,
+          showFollowerCountPublicly: true,
+          _count: {
+            select: { followers: true },
+          },
+        },
+      },
     },
     orderBy: getSortOrder(selectedSort),
     take: 100,
@@ -507,7 +539,34 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
                       <p className="mt-1 min-h-[1.2rem] text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
                         {event.location || "Location to be announced"}
                       </p>
-                      <div className="mt-5 flex flex-wrap gap-2">
+
+                      {/* Organizer info + Follow button */}
+                      {(event.organizerName || event.organizer?.name) && (
+                        <div
+                          className="mt-4 pt-3 flex items-center justify-between gap-2 border-t"
+                          style={{ borderColor: "var(--border)" }}
+                        >
+                          <div className="min-w-0 pr-1">
+                            <p className="text-[0.66rem] uppercase tracking-wider text-[var(--text-muted)] m-0">Organized by</p>
+                            <p className="text-[0.82rem] font-semibold text-[var(--text-primary)] truncate m-0">
+                              {event.organizerName || event.organizer?.name}
+                            </p>
+                          </div>
+                          {(event.organizer?.username || event.organizerId) && (
+                            <div className="shrink-0">
+                              <FollowButton
+                                size="sm"
+                                organiserUsername={event.organizer?.username || event.organizerId || ""}
+                                organiserName={event.organizerName || event.organizer?.name || "Organizer"}
+                                initialFollowerCount={event.organizer?._count?.followers}
+                                showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap gap-2">
                         <Link
                           href={`/${event.slug}`}
                           className="inline-flex rounded-full px-4 py-2 text-[0.82rem] font-semibold"

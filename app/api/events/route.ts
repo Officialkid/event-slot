@@ -1,3 +1,4 @@
+import { isAdminEmail } from '@/lib/isAdmin'
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
@@ -18,6 +19,7 @@ import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolic
 import { getPricingRolloutLabel } from '@/lib/pricingRollout'
 import { generateVerifierCode } from '@/lib/verifierCode'
 import { purgeUserCache } from '@/lib/cache'
+import { dispatchNewEventAnnouncements } from '@/services/notifications/followerAnnouncements'
 
 function generateSlug(title: string): string {
   const base = title
@@ -87,6 +89,11 @@ export async function POST(req: NextRequest) {
     }
 
     const {
+      asOrganizationId,
+      timedDropEnabled,
+      ticketDropOpensAt,
+      ticketDropClosesAt,
+      dropWaitlistOnExpire,
       title,
       category,
       description,
@@ -225,7 +232,38 @@ export async function POST(req: NextRequest) {
     if (organizer) {
       organizerId = organizer.id
       sessionEmail = organizer.email ?? sessionEmail
+    }
 
+    let eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
+
+    if (asOrganizationId && asOrganizationId !== session.user.id) {
+      const isCallerAdmin = Boolean(session.user.email && isAdminEmail(session.user.email))
+      const membership = await prisma.teamMember.findFirst({
+        where: {
+          memberId: session.user.id,
+          ownerId: asOrganizationId,
+          status: 'accepted',
+        },
+      })
+
+      if (isCallerAdmin || membership) {
+        const targetOrg = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { id: asOrganizationId },
+              { email: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+              { username: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true, email: true, plan: true, name: true },
+        })
+        if (targetOrg) {
+          organizerId = targetOrg.id
+          if (!eventOrganizerEmail || eventOrganizerEmail === session.user.email) {
+            eventOrganizerEmail = targetOrg.email || sessionEmail
+          }
+        }
+      }
     }
 
     const effectivePlan = getEffectivePlanPolicy(organizer?.plan ?? 'free')
@@ -258,7 +296,7 @@ export async function POST(req: NextRequest) {
     const slug = generateSlug(normalizedTitle)
     const dashboardToken = uuidv4()
     const verifierCode = generateVerifierCode()
-    const eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
+
     const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
     const eventCountryCode = await detectCountry(req).catch(() => null)
     let storedEventContact: string | null = null
@@ -323,6 +361,10 @@ export async function POST(req: NextRequest) {
         verifierCode,
         organizerId,
         countryCode: eventCountryCode ?? undefined,
+        timedDropEnabled: timedDropEnabled ?? false,
+        ticketDropOpensAt: ticketDropOpensAt ? new Date(ticketDropOpensAt) : null,
+        ticketDropClosesAt: ticketDropClosesAt ? new Date(ticketDropClosesAt) : null,
+        dropWaitlistOnExpire: dropWaitlistOnExpire ?? true,
         ticketTiers: isPaid && isRegistrationEvent
           ? {
               create: normalizedTicketTiers.map((tier, index) => ({
@@ -414,6 +456,9 @@ export async function POST(req: NextRequest) {
     if (session.user.id) {
       purgeUserCache(session.user.id, session.user.email ?? null)
     }
+
+    // Trigger new-event notifications to followers if event is public & active (fire-and-forget)
+    void dispatchNewEventAnnouncements(event.id).catch(console.error)
 
     return NextResponse.json({ success: true, event }, { status: 201 })
   } catch (err) {

@@ -184,3 +184,24 @@ export function formatEventDateTime(
   const recurringTag = isRecurring ? ` (Repeats ${recurrenceFrequency?.toLowerCase() || 'weekly'})` : ''
   return `${datePart} at ${timePart}${recurringTag}`
 }
+
+/**
+ * Returns the Monday 00:00:00.000 of the week containing `refDate`.
+ * Weekly recurring events reset their cohort and ticket sequence (#1, #2, #3...) every Monday.
+ */
+export function getStartOfWeekMonday(refDate: Date = new Date()): Date {
+  const d = new Date(refDate)
+  const day = d.getDay() // 0 = Sun, 1 = Mon, ... 6 = Sat
+  const daysSinceMonday = (day + 6) % 7
+  d.setDate(d.getDate() - daysSinceMonday)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+export function getEndOfWeekSunday(refDate: Date = new Date()): Date {
+  const start = getStartOfWeekMonday(refDate)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return end
+}

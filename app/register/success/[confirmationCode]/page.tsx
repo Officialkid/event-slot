@@ -9,6 +9,8 @@ import { AddToCalendarButton } from "@/components/AddToCalendarButton"
 import { isCalendarConnected } from "@/lib/googleCalendar"
 import { buildGoogleCalendarTemplateUrl } from "@/lib/calendarLinks"
 import { VirtualEventAccessPortal } from "@/components/events/VirtualEventAccessPortal"
+import { PostRegistrationFollowCard } from "@/components/registration/PostRegistrationFollowCard"
+import { EventDiscoveryCards } from "@/components/events/EventDiscoveryCards"
 
 type EventQuestion = { id: string; type: string; label: string; required?: boolean }
 type Answer = { questionId: string; value: string }
@@ -110,7 +112,10 @@ export default async function TicketSuccessPage({
           eventType: true,
           isMultiDay: true,
           multiDaySchedule: true,
-          organizer: { select: { username: true } },
+          organizerName: true,
+          organizerId: true,
+          category: true,
+          organizer: { select: { username: true, name: true } },
         },
       },
       ticket: true,
@@ -315,6 +320,26 @@ export default async function TicketSuccessPage({
           />
         </div>
       )}
+
+      {/* ── Follow Organiser Card (Post-Registration Growth Hook) ── */}
+      {(event.organizer?.username || event.organizerId) && (
+        <div style={{ width: "100%", maxWidth: 460, marginTop: "1.25rem" }}>
+          <PostRegistrationFollowCard
+            organiserName={event.organizerName || event.organizer?.name || event.organizer?.username || "the organizer"}
+            organiserUsername={event.organizer?.username || event.organizerId || ""}
+          />
+        </div>
+      )}
+
+      {/* ── More Events & Discovery ── */}
+      <div style={{ width: "100%", maxWidth: 560, marginTop: "2rem" }}>
+        <EventDiscoveryCards
+          currentSlug={eventSlug}
+          organizerId={event.organizerId}
+          organizerName={event.organizerName || event.organizer?.name}
+          category={event.category}
+        />
+      </div>
     </main>
   )
 }

@@ -22,6 +22,7 @@ export async function GET() {
         password: true,
         googleCalendarConnected: true,
         twoFactorEnabled: true,
+        showFollowerCountPublicly: true,
       },
     })
 
@@ -37,6 +38,7 @@ export async function GET() {
       hasPassword: !!user.password,
       calendarConnected: !!user.googleCalendarConnected,
       twoFactorEnabled: !!user.twoFactorEnabled,
+      showFollowerCountPublicly: user.showFollowerCountPublicly ?? true,
     })
   } catch (err) {
     console.error("[profile] GET error:", err)
@@ -66,8 +68,8 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    const { name, twoFactorEnabled, preferredLanguage } = parsed.data
-    const data: { name?: string; twoFactorEnabled?: boolean; preferredLanguage?: string } = {}
+    const { name, twoFactorEnabled, preferredLanguage, showFollowerCountPublicly } = parsed.data
+    const data: { name?: string; twoFactorEnabled?: boolean; preferredLanguage?: string; showFollowerCountPublicly?: boolean } = {}
 
     if (typeof name === "string" && name.trim().length > 0) {
       data.name = name.trim()
@@ -94,6 +96,9 @@ export async function PATCH(req: NextRequest) {
     }
     if (typeof preferredLanguage === "string") {
       data.preferredLanguage = preferredLanguage
+    }
+    if (typeof showFollowerCountPublicly === "boolean") {
+      data.showFollowerCountPublicly = showFollowerCountPublicly
     }
 
     if (Object.keys(data).length === 0) {

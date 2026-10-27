@@ -21,7 +21,7 @@ import { sendEventCapacityMilestones } from '@/lib/capacityNotifications'
 import { getEffectiveEventPlan } from '@/lib/eventPasses'
 import { getFullOptions } from '@/lib/registrationQuestionOptions'
 import { sendRegistrationResponseCopyEmail } from '@/lib/email'
-import { computeNextOccurrenceDate, getRegistrationWindowStatus } from '@/lib/recurringEvents'
+import { computeNextOccurrenceDate, getRegistrationWindowStatus, getStartOfWeekMonday, getEndOfWeekSunday } from '@/lib/recurringEvents'
 type AttendeePayload = { answers: Array<{ questionId: string; value: string }>; baseEmail?: string }
 type EventQuestion = {
   id: string
@@ -106,8 +106,11 @@ export async function POST(req: NextRequest) {
     const effectiveEventPlan = await getEffectiveEventPlan(event.id, event.organizerId)
     const effectivePlan = getEffectivePlanPolicy(effectiveEventPlan.planKey)
     let planWaitlistForced = false
+    let dropWaitlistForced = false
+    const organizerEmail = event.organizer?.email ?? ''
+
     if (event.organizerId) {
-      const organizerEmail = event.organizer?.email ?? ''
+
       const currentCount = event.confirmedCount
       const paygEnabled = Boolean(organizerPlanKey?.paygSettings?.isEnabled)
       if (
@@ -140,6 +143,41 @@ export async function POST(req: NextRequest) {
       const windowStatus = getRegistrationWindowStatus(event)
       if (!windowStatus.isOpen) {
         return NextResponse.json({ success: false, error: windowStatus.label }, { status: 400 })
+      }
+    }
+
+    // 2b. Timed Ticket Drop / Flash Window Check
+    if (event.timedDropEnabled) {
+      const now = new Date()
+      if (event.ticketDropOpensAt && now < new Date(event.ticketDropOpensAt)) {
+        return NextResponse.json({
+          success: false,
+          error: 'Ticket drop has not opened yet.',
+          code: 'DROP_NOT_OPEN',
+        }, { status: 400 })
+      }
+
+      if (event.ticketDropClosesAt && now > new Date(event.ticketDropClosesAt)) {
+        if (event.dropWaitlistOnExpire) {
+          const waitlistCheck = event.organizerId
+            ? await canUseEventFeature(event.organizerId, organizerEmail, event.id, 'hasWaitlist')
+            : { allowed: true }
+          if (waitlistCheck.allowed) {
+            dropWaitlistForced = true
+          } else {
+            return NextResponse.json({
+              success: false,
+              error: 'This ticket drop window has closed and waitlist is unavailable.',
+              code: 'DROP_CLOSED',
+            }, { status: 400 })
+          }
+        } else {
+          return NextResponse.json({
+            success: false,
+            error: 'This ticket drop window has closed.',
+            code: 'DROP_CLOSED',
+          }, { status: 400 })
+        }
       }
     }
 
@@ -265,10 +303,35 @@ export async function POST(req: NextRequest) {
         const freshEvent = await tx.event.findUnique({ where: { slug: eventSlug } })
         if (!freshEvent) throw new Error('Event not found')
 
+        const occurrenceDate = freshEvent.isRecurring
+          ? computeNextOccurrenceDate(freshEvent)
+          : (freshEvent.eventDate ?? new Date())
+
+        // For recurring weekly events, cohort counts and ticket sequence (#1, #2, #3...) reset every Monday
+        let weeklyConfirmedCount = 0
+        if (freshEvent.isRecurring) {
+          const weekStart = getStartOfWeekMonday()
+          const weekEnd = getEndOfWeekSunday()
+          weeklyConfirmedCount = await tx.registration.count({
+            where: {
+              eventId: freshEvent.id,
+              status: 'confirmed',
+              OR: [
+                { submittedAt: { gte: weekStart, lte: weekEnd } },
+                { occurrenceDate: { gte: weekStart, lte: weekEnd } },
+              ],
+            },
+          })
+        }
+
+        const effectiveConfirmedForCapacity = freshEvent.isRecurring
+          ? weeklyConfirmedCount
+          : freshEvent.confirmedCount
+
         let status: 'confirmed' | 'waitlist'
         let waitlistPosition: number | undefined = undefined
 
-        if (freshEvent.capacity != null && freshEvent.confirmedCount >= freshEvent.capacity) {
+        if (freshEvent.capacity != null && effectiveConfirmedForCapacity >= freshEvent.capacity) {
           status = 'waitlist'
         } else {
           status = 'confirmed'
@@ -277,18 +340,15 @@ export async function POST(req: NextRequest) {
         // Override to waitlist if organizer's plan attendee cap is reached and PAYG is not enabled.
         const paygEnabled = Boolean(organizerPlanKey?.paygSettings?.isEnabled)
         if (
+          dropWaitlistForced ||
           planWaitlistForced ||
           (isPricingRolloutActive() &&
             effectivePlan.maxAttendeesPerEvent !== -1 &&
-            freshEvent.confirmedCount >= effectivePlan.maxAttendeesPerEvent &&
+            effectiveConfirmedForCapacity >= effectivePlan.maxAttendeesPerEvent &&
             !paygEnabled)
         ) {
           status = 'waitlist'
         }
-
-        const occurrenceDate = freshEvent.isRecurring
-          ? computeNextOccurrenceDate(freshEvent)
-          : (freshEvent.eventDate ?? new Date())
 
         let registrationId = ''
         let registrationNumber = 0
@@ -304,7 +364,9 @@ export async function POST(req: NextRequest) {
             where: { id: freshEvent.id },
             data: { confirmedCount: { increment: 1 } },
           })
-          registrationNumber = updatedEvent.confirmedCount
+          registrationNumber = freshEvent.isRecurring
+            ? weeklyConfirmedCount + 1
+            : updatedEvent.confirmedCount
           confirmationCode = generateConfirmationCode()
 
           const reg = await tx.registration.create({
@@ -417,6 +479,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Per-registration notifications for organizer (non-blocking)
+
     if (event.organizerId) {
       try {
         for (let i = 0; i < results.length; i++) {

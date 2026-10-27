@@ -14,6 +14,7 @@ import { APP_URL } from '@/lib/config'
 import { parseEventContact, validateAndEncodeEventContact } from '@/lib/eventContact'
 import { getEffectiveEventPlan, syncEventPassStatusForEvent } from '@/lib/eventPasses'
 import { computeNextOccurrenceDate, computeOccurrenceEnd } from '@/lib/recurringEvents'
+import { dispatchNewEventAnnouncements } from '@/services/notifications/followerAnnouncements'
 
 const CONFIRMED_STATUSES = new Set(['confirmed', 'CONFIRMED'])
 const WAITLIST_STATUSES = new Set(['waitlist', 'WAITLISTED', 'waitlisted'])
@@ -251,7 +252,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     const body = await req.json()
-    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isMultiDay, multiDaySchedule, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim } = body
+    const { action, title, organizerName, description, visibility, capacity, deadline, eventDate, eventEndAt, hasSpecificTime, isMultiDay, multiDaySchedule, isRecurring, recurrenceFrequency, recurrenceDayOfWeek, registrationOpensDays, registrationOpensTime, joinOpensAt, location, mapDirectionsUrl, entryFeeLabel, showRemainingSpots, attendeeConsentEnabled, attendeeConsentText, communityLink, questions, imageUrl, archived, category, whatsappNumber, contactMode, questionChangeMode, groupRegistrationEnabled, allowGroupSelfClaim, asOrganizationId, timedDropEnabled, ticketDropOpensAt, ticketDropClosesAt, dropWaitlistOnExpire } = body
 
     const purgeEventOwnerCache = () => {
       if (event.organizerId) {
@@ -430,6 +431,26 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
       )
     }
 
+    let reassignOrganizerId: string | undefined = undefined
+    let reassignOrganizerEmail: string | undefined = undefined
+
+    if (asOrganizationId && (session?.user?.id === event.organizerId || isAdminEmail(session?.user?.email || ''))) {
+      const targetUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: asOrganizationId },
+            { email: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+            { username: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true, email: true },
+      })
+      if (targetUser) {
+        reassignOrganizerId = targetUser.id
+        reassignOrganizerEmail = targetUser.email || undefined
+      }
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       if (shouldResetRegistrationsForQuestionChange) {
         await tx.registrationDraft.deleteMany({ where: { eventId: event.id } })
@@ -477,6 +498,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
           } : {}),
           ...(body.eventType ? { eventType: body.eventType } : {}),
           location: location || null,
+          timedDropEnabled: typeof timedDropEnabled === 'boolean' ? timedDropEnabled : undefined,
+          ticketDropOpensAt: ticketDropOpensAt !== undefined ? (ticketDropOpensAt ? new Date(ticketDropOpensAt) : null) : undefined,
+          ticketDropClosesAt: ticketDropClosesAt !== undefined ? (ticketDropClosesAt ? new Date(ticketDropClosesAt) : null) : undefined,
+          dropWaitlistOnExpire: typeof dropWaitlistOnExpire === 'boolean' ? dropWaitlistOnExpire : undefined,
+          ...(reassignOrganizerId ? { organizerId: reassignOrganizerId, organizerEmail: reassignOrganizerEmail } : {}),
           mapDirectionsUrl: typeof mapDirectionsUrl === 'string' ? mapDirectionsUrl.trim() || null : null,
           entryFeeLabel: typeof entryFeeLabel === 'string' ? entryFeeLabel.trim() || null : null,
           showRemainingSpots: typeof showRemainingSpots === 'boolean' ? showRemainingSpots : undefined,
@@ -522,6 +548,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
     }
 
     purgeEventOwnerCache()
+    // Dispatch new-event email announcements to followers if newly active & public
+    void dispatchNewEventAnnouncements(event.id).catch(console.error)
     return NextResponse.json({ success: true, event: updated, registrationsReset: shouldResetRegistrationsForQuestionChange })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'

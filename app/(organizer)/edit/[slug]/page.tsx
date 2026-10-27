@@ -11,6 +11,7 @@ import { PaymentMaintenanceBanner } from "@/components/billing/PaymentMaintenanc
 import { MultiDayScheduleEditor, type MultiDayScheduleItem } from "@/components/events/MultiDayScheduleEditor"
 import { normalizeInternationalPhoneNumber, type EventContactMode } from "@/lib/eventContact"
 import { TierBadge } from "@/components/TierBadge"
+import { WorkspaceSelector } from "@/components/dashboard/WorkspaceSelector"
 import { TIER_PRESET_COLOR_PALETTE, TIER_PRESETS, getBadgeTextColor, getTierPreset, resolveTierBadgeFields } from "@/lib/tierPresets"
 import { detectTypoSuggestions, applyTypoCorrection } from "@/lib/typoFixer"
 
@@ -182,6 +183,11 @@ export default function EditEventPage() {
   const [accessWindowPreset, setAccessWindowPreset] = useState<"30_MINS_BEFORE" | "15_MINS_BEFORE" | "1_HOUR_BEFORE" | "AT_START" | "CUSTOM">("30_MINS_BEFORE")
   const [capacity, setCapacity] = useState("")
   const [deadline, setDeadline] = useState("")
+  const [asOrganizationId, setAsOrganizationId] = useState<string | null>(null)
+  const [timedDropEnabled, setTimedDropEnabled] = useState(false)
+  const [ticketDropOpensAt, setTicketDropOpensAt] = useState("")
+  const [ticketDropClosesAt, setTicketDropClosesAt] = useState("")
+  const [dropWaitlistOnExpire, setDropWaitlistOnExpire] = useState(true)
   const [eventDate, setEventDate] = useState("")
   const [eventEndAt, setEventEndAt] = useState("")
   const [hasSpecificTime, setHasSpecificTime] = useState(true)
@@ -253,6 +259,11 @@ export default function EditEventPage() {
         setEventType(e.eventType === "VIRTUAL" ? "VIRTUAL" : "PHYSICAL")
         setCapacity(e.capacity != null ? String(e.capacity) : "")
         setDeadline(toDatetimeLocal(e.deadline))
+        setAsOrganizationId(e.organizerId || null)
+        setTimedDropEnabled(Boolean(e.timedDropEnabled))
+        setTicketDropOpensAt(toDatetimeLocal(e.ticketDropOpensAt))
+        setTicketDropClosesAt(toDatetimeLocal(e.ticketDropClosesAt))
+        setDropWaitlistOnExpire(e.dropWaitlistOnExpire !== false)
         setEventDate(toDatetimeLocal(e.eventDate))
         setEventEndAt(toDatetimeLocal(e.eventEndAt))
         const hasSchedule = Array.isArray(e.multiDaySchedule) && e.multiDaySchedule.length > 0
@@ -849,6 +860,11 @@ export default function EditEventPage() {
           visibility,
           capacity: capacity ? Number(capacity) : undefined,
           deadline: deadline ? safeIsoString(deadline) : undefined,
+          asOrganizationId: asOrganizationId || undefined,
+          timedDropEnabled,
+          ticketDropOpensAt: timedDropEnabled && ticketDropOpensAt ? safeIsoString(ticketDropOpensAt) : null,
+          ticketDropClosesAt: timedDropEnabled && ticketDropClosesAt ? safeIsoString(ticketDropClosesAt) : null,
+          dropWaitlistOnExpire,
           eventDate: eventDate ? safeIsoString(eventDate) : undefined,
           eventEndAt: hasSpecificTime && eventEndAt ? safeIsoString(eventEndAt) : undefined,
           hasSpecificTime,
@@ -1051,6 +1067,13 @@ export default function EditEventPage() {
         )}
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+        <WorkspaceSelector
+          selectedId={asOrganizationId}
+          onChange={(id: string | null, label?: string) => {
+            setAsOrganizationId(id)
+            if (label) setOrganizerName(label)
+          }}
+        />
           {/* Event Details */}
           <div id="section-details" className="rounded-[12px] p-6" style={cardStyle}>
             <h2 className="mb-4 text-[1.1rem] font-semibold" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
@@ -1299,6 +1322,73 @@ export default function EditEventPage() {
                   value={deadline}
                   {...bindDateTimeField(setDeadline)}
                 />
+              </div>
+
+              {/* Timed Ticket Drop / Flash Window */}
+              <div className="md:col-span-2 rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="block text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                      ⚡ Timed Ticket Drop / Flash Window
+                    </span>
+                    <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      Open tickets for a specific time window with a live countdown timer on the event page.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={timedDropEnabled}
+                    onChange={(e) => setTimedDropEnabled(e.target.checked)}
+                    className="rounded cursor-pointer w-4 h-4"
+                    style={{ accentColor: "var(--accent)" }}
+                  />
+                </div>
+
+                {timedDropEnabled && (
+                  <div className="space-y-3 mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                          Drop Opens At (Optional)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={ticketDropOpensAt}
+                          onChange={(e) => setTicketDropOpensAt(e.target.value)}
+                          className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                          style={inputStyle}
+                        />
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Countdown begins before this time.</span>
+                      </div>
+                      <div>
+                        <label className="block text-[0.72rem] font-semibold mb-1" style={labelStyle}>
+                          Drop Closes At (Required)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={ticketDropClosesAt}
+                          onChange={(e) => setTicketDropClosesAt(e.target.value)}
+                          className="w-full rounded-[8px] px-3 py-2 text-xs outline-none"
+                          style={inputStyle}
+                        />
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Tickets close when this time arrives.</span>
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer mt-2">
+                      <input
+                        type="checkbox"
+                        checked={dropWaitlistOnExpire}
+                        onChange={(e) => setDropWaitlistOnExpire(e.target.checked)}
+                        className="rounded w-3.5 h-3.5"
+                        style={{ accentColor: "var(--accent)" }}
+                      />
+                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                        Auto-route attendees to Waitlist when the drop window ends
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -1799,7 +1889,7 @@ export default function EditEventPage() {
                   onChange={e => setEntryFeeLabel(e.target.value)}
                 />
                 <p className="mt-1 text-[0.72rem]" style={{ color: "var(--text-muted)" }}>
-                  This only displays the organizer's fee note. It does not collect payment.
+                  This only displays the organizer&apos;s fee note. It does not collect payment.
                 </p>
               </div>
               <div className="md:col-span-2 rounded-[12px] p-4" style={cardMutedStyle}>

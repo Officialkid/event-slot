@@ -96,7 +96,7 @@ export function VirtualEventAccessPortal({
   }, [openTime, end])
 
   const handleJoin = useCallback(async (codeToVerify?: string) => {
-    const code = (codeToVerify || ticketInput).trim()
+    let code = (codeToVerify || ticketInput).trim()
     if (!code) {
       setErrorMessage("Please provide your ticket confirmation code or email.")
       return
@@ -107,22 +107,31 @@ export function VirtualEventAccessPortal({
 
     try {
       // First attempt direct verification via verify-entry
-      const res = await fetch(`/api/events/${eventSlug}/verify-entry`, {
+      let res = await fetch(`/api/events/${eventSlug}/verify-entry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lookupTicketId: code }),
       })
 
-      const data = (await res.json()) as VerifyResponse
+      let data = (await res.json()) as VerifyResponse
       if (!res.ok || !data.success) {
         // If lookup by ticket id didn't find it, try fallback lookup by email/name
         if (data.reason === "TICKET_NOT_FOUND" && code.includes("@")) {
           const lookupRes = await fetch(`/api/events/id/${eventId}/lookup?q=${encodeURIComponent(code)}`)
           const lookupData = await lookupRes.json()
           if (lookupData.found && lookupData.ticketId) {
-            return handleJoin(lookupData.ticketId)
+            code = lookupData.ticketId
+            res = await fetch(`/api/events/${eventSlug}/verify-entry`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lookupTicketId: code }),
+            })
+            data = (await res.json()) as VerifyResponse
           }
         }
+      }
+
+      if (!res.ok || !data.success) {
         setErrorMessage(data.message || "Access verification failed.")
         setVerifyResult(data)
         return

@@ -14,6 +14,8 @@ import { WhatsAppFloatingButton } from "@/components/events/WhatsAppFloatingButt
 import { APP_URL } from "@/lib/config"
 import { parseEventContact } from "@/lib/eventContact"
 import { resolveEventMapPreviewImageUrl } from "@/lib/mapPreview"
+import { FollowButton } from "@/components/following/FollowButton"
+import { EventDiscoveryCards } from "@/components/events/EventDiscoveryCards"
 
 type EventQuestion = {
   id: string
@@ -110,6 +112,10 @@ const getPublicUserProfile = unstable_cache(
       name: true,
       username: true,
       createdAt: true,
+      showFollowerCountPublicly: true,
+      _count: {
+        select: { followers: true },
+      },
       events: {
         where: {
           archived: false,
@@ -181,6 +187,12 @@ async function getEventBySlug(slug: string) {
       faqEnabled: true,
       whatsappNumber: true,
       organizerName: true,
+      organizerId: true,
+      category: true,
+      timedDropEnabled: true,
+      ticketDropOpensAt: true,
+      ticketDropClosesAt: true,
+      dropWaitlistOnExpire: true,
       groupRegistrationEnabled: true,
       allowGroupSelfClaim: true,
       ticketTiers: {
@@ -204,7 +216,7 @@ async function getEventBySlug(slug: string) {
         },
       },
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
-      organizer: { select: { name: true, plan: true, suspended: true, pioneerBadge: { select: { id: true } } } },
+      organizer: { select: { id: true, name: true, username: true, plan: true, suspended: true, showFollowerCountPublicly: true, _count: { select: { followers: true } }, pioneerBadge: { select: { id: true } } } },
     },
   } as any)
 }
@@ -348,7 +360,10 @@ export default async function PublicProfilePage({
             showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}
             organizerName={event.organizerName ?? event.organizer?.name ?? null}
+            organizerUsername={event.organizer?.username || event.organizerId || event.organizer?.id || ""}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
+            followerCount={event.organizer?._count?.followers}
+            showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
             capacity={event.capacity}
             confirmedCount={event.confirmedCount}
             status={event.status}
@@ -377,6 +392,9 @@ export default async function PublicProfilePage({
                   eventType: event.eventType,
                   questions: event.questions as EventQuestion[],
                   organizerName: event.organizerName ?? event.organizer?.name ?? null,
+                  organizerUsername: event.organizer?.username || event.organizerId || event.organizer?.id || "",
+                  organizerId: event.organizerId,
+                  category: event.category,
                   mapDirectionsUrl: event.mapDirectionsUrl,
                   entryFeeLabel: event.entryFeeLabel,
                   showRemainingSpots: event.showRemainingSpots,
@@ -395,10 +413,15 @@ export default async function PublicProfilePage({
                   registrationOpensTime: event.registrationOpensTime,
                   isMultiDay: event.isMultiDay,
                   multiDaySchedule: event.multiDaySchedule as any,
+                  timedDropEnabled: event.timedDropEnabled,
+                  ticketDropOpensAt: toIsoOrNull(event.ticketDropOpensAt),
+                  ticketDropClosesAt: toIsoOrNull(event.ticketDropClosesAt),
+                  dropWaitlistOnExpire: event.dropWaitlistOnExpire,
                 }}
                 showBranding={showBranding}
                 maxAttendees={maxAttendees}
                 compactHeader
+                googleClientId={process.env.GOOGLE_CLIENT_ID}
               />
             </section>
 
@@ -425,6 +448,15 @@ export default async function PublicProfilePage({
                 </div>
               )}
             </section>
+          </div>
+          {/* Discovery Section: More from this Organiser & Events You May Like */}
+          <div className="mt-12 pt-10 border-t border-[var(--border)]">
+            <EventDiscoveryCards
+              currentSlug={username}
+              organizerId={event.organizerId}
+              organizerName={event.organizerName ?? event.organizer?.name}
+              category={event.category}
+            />
           </div>
         </div>
         {parsedContact && (
@@ -514,22 +546,12 @@ export default async function PublicProfilePage({
         </div>
 
         {/* Follow button */}
-        <button
-          disabled
-          title="Follow"
-          style={{
-            background: "transparent",
-            border: "0.5px solid var(--border)",
-            borderRadius: 100,
-            padding: "0.5rem 1.25rem",
-            fontSize: "0.82rem",
-            color: "var(--text-muted)",
-            cursor: "not-allowed",
-            fontFamily: "var(--font-dm-sans)",
-          }}
-        >
-          Follow
-        </button>
+        <FollowButton
+          organiserUsername={user.username || ""}
+          organiserName={displayName}
+          initialFollowerCount={user._count?.followers}
+          showFollowerCountPublicly={user.showFollowerCountPublicly}
+        />
       </div>
 
       {/* Divider */}

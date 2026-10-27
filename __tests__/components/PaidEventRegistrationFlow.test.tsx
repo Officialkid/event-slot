@@ -146,7 +146,7 @@ describe('PaidEventRegistrationFlow Component Integration', () => {
 
   it('initiates paid checkout via POST /api/paid-events/checkout with selected ticketTierId', async () => {
     const fetchMock = global.fetch as jest.Mock
-    fetchMock.mockImplementation(async (url: string, options?: any) => {
+    fetchMock.mockImplementation(async (url: string, options?: RequestInit) => {
       if (typeof url === 'string' && url.includes('/api/paid-events/checkout')) {
         return {
           ok: true,
@@ -207,7 +207,7 @@ describe('PaidEventRegistrationFlow Component Integration', () => {
     }
 
     const fetchMock = global.fetch as jest.Mock
-    fetchMock.mockImplementation(async (url: string, options?: any) => {
+    fetchMock.mockImplementation(async (url: string, options?: RequestInit) => {
       if (typeof url === 'string' && url.includes('/api/register') && !url.includes('/api/register/draft')) {
         return {
           ok: true,

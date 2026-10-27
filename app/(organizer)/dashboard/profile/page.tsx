@@ -27,6 +27,7 @@ interface ProfileData {
   calendarConnected: boolean
   twoFactorEnabled: boolean
   preferredLanguage: SupportedLanguageCode
+  showFollowerCountPublicly?: boolean
 }
 
 const profileSurfaceStyle: React.CSSProperties = {
@@ -287,6 +288,7 @@ export default function ProfilePage() {
 
   // Security
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [showFollowerCountPublicly, setShowFollowerCountPublicly] = useState(true)
   const [securitySaving, setSecuritySaving] = useState(false)
   const [securitySuccess, setSecuritySuccess] = useState(false)
   const [securityError, setSecurityError] = useState("")
@@ -324,6 +326,7 @@ export default function ProfilePage() {
         setName(data.name ?? "")
         setPreferredLanguage(nextPreferredLanguage)
         setTwoFactorEnabled(!!data.twoFactorEnabled)
+        setShowFollowerCountPublicly(data.showFollowerCountPublicly ?? true)
         syncProfileIdentity({ name: data.name, image: data.image, preferredLanguage: nextPreferredLanguage })
 
         if (languageFromSignup && languageFromSignup !== data.preferredLanguage) {
@@ -437,7 +440,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, preferredLanguage }),
+        body: JSON.stringify({ name, preferredLanguage, showFollowerCountPublicly }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -445,7 +448,7 @@ export default function ProfilePage() {
         return
       }
       const trimmedName = name.trim()
-      setProfile(prev => (prev ? { ...prev, name: trimmedName, preferredLanguage } : prev))
+      setProfile(prev => (prev ? { ...prev, name: trimmedName, preferredLanguage, showFollowerCountPublicly } : prev))
       await updateSession({ name: trimmedName })
       syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null, preferredLanguage })
       setDetailsSuccess(true)
@@ -782,6 +785,31 @@ export default function ProfilePage() {
                 </select>
                 <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
                   EventSlot will use this for future translated system text and attendee-facing language choices.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", paddingTop: "0.25rem" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.6rem",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    color: "var(--text-primary)",
+                    fontFamily: "var(--font-dm-sans)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showFollowerCountPublicly}
+                    onChange={(e) => setShowFollowerCountPublicly(e.target.checked)}
+                    style={{ accentColor: "var(--accent, #C8F55A)", width: 16, height: 16 }}
+                  />
+                  <span>Show follower count publicly on your profile</span>
+                </label>
+                <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)" }}>
+                  When enabled, attendees viewing your profile see your follower count badge.
                 </p>
               </div>
 

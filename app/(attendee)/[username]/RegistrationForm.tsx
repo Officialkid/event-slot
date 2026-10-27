@@ -9,6 +9,8 @@ import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 import { getRegistrationWindowStatus, computeNextOccurrenceDate, computeOccurrenceEnd } from "@/lib/recurringEvents"
 import { InternationalPhoneInput } from "@/components/registration/InternationalPhoneInput"
 import { RegistrationStepIndicator, type RegistrationStep } from "@/components/registration/RegistrationStepIndicator"
+import { TimedDropCountdown } from "@/components/events/TimedDropCountdown"
+import { PostRegistrationFollowCard } from "@/components/registration/PostRegistrationFollowCard"
 
 type EventQuestion = {
   id: string
@@ -49,6 +51,13 @@ type EventProps = {
     questions: EventQuestion[]
     organizerEmail: string
     organizerName?: string | null
+    organizerUsername?: string | null
+    organizerId?: string | null
+    category?: string | null
+    timedDropEnabled?: boolean | null
+    ticketDropOpensAt?: Date | string | null
+    ticketDropClosesAt?: Date | string | null
+    dropWaitlistOnExpire?: boolean | null
     eventDate?: Date | string | null
     eventEndAt?: Date | string | null
     deadline?: Date | string | null
@@ -80,6 +89,7 @@ type EventProps = {
   showBranding?: boolean
   maxAttendees?: number
   compactHeader?: boolean
+  googleClientId?: string
 }
 
 function BrandingFooter() {
@@ -1799,6 +1809,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                       </a>
                     </div>
                   )}
+                  {event.organizerUsername && (
+                    <div className="mt-5 w-full">
+                      <PostRegistrationFollowCard
+                        organiserName={event.organizerName || "the organizer"}
+                        organiserUsername={event.organizerUsername}
+                      />
+                    </div>
+                  )}
                   {communityLink && (
                     <div className="mt-5 rounded-[12px] px-5 py-4" style={{ background: "color-mix(in srgb, var(--surface) 96%, var(--text-primary) 4%)", border: "1px solid color-mix(in srgb, var(--text-primary) 12%, transparent)" }}>
                       <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem", fontWeight: 700 }}>
@@ -2115,6 +2133,14 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         <div className="h-2.5 w-full bg-[linear-gradient(90deg,var(--accent)_0%,color-mix(in_srgb,var(--accent)_45%,transparent)_50%,transparent_100%)]" />
 
         <div className="space-y-6 p-5 sm:p-8">
+          {event.timedDropEnabled && (
+            <TimedDropCountdown
+              opensAt={typeof event.ticketDropOpensAt === "string" ? event.ticketDropOpensAt : event.ticketDropOpensAt?.toISOString()}
+              closesAt={typeof event.ticketDropClosesAt === "string" ? event.ticketDropClosesAt : event.ticketDropClosesAt?.toISOString()}
+              waitlistOnExpire={event.dropWaitlistOnExpire ?? true}
+              isFull={Boolean(event.capacity && event.confirmedCount >= event.capacity)}
+            />
+          )}
           {event.groupRegistrationEnabled && (
             <div className="flex rounded-[14px] border p-1.5 shadow-sm mb-4" style={{ borderColor: "color-mix(in srgb, var(--text-primary) 12%, transparent)", background: "color-mix(in srgb, var(--surface) 90%, transparent)" }}>
               <button
