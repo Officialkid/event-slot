@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma'
 import { hasTeamEventAccess } from '@/lib/eventAccess'
 import { hasOrganiserAccess } from '@/lib/adminMode'
 
+const STALE_SENDING_THRESHOLD_MS = 10 * 60 * 1000 // 10 minutes
+
 // GET /api/events/[slug]/campaigns — list campaigns + confirmed count for this event
 export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params
@@ -32,12 +34,27 @@ export async function GET(req: NextRequest, props: { params: Promise<{ slug: str
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Self-heal any campaign stuck in SENDING for >10 minutes due to prior background CPU throttling
+  const staleCutoff = new Date(Date.now() - STALE_SENDING_THRESHOLD_MS)
+  await prisma.emailCampaign.updateMany({
+    where: {
+      eventId: event.id,
+      status: 'SENDING',
+      createdAt: { lt: staleCutoff },
+    },
+    data: {
+      status: 'FAILED',
+      failureReason: 'Interrupted before completion (background timeout). Click "↻ Resend Now" to send.',
+    },
+  }).catch(() => {})
+
   const campaigns = await prisma.emailCampaign.findMany({
     where: { eventId: event.id },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       subject: true,
+      body: true,
       type: true,
       status: true,
       sentAt: true,

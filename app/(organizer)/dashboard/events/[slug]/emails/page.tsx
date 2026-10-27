@@ -10,6 +10,7 @@ type CampaignType = 'REMINDER' | 'UPDATE' | 'THANK_YOU' | 'CUSTOM'
 interface Campaign {
   id: string
   subject: string
+  body?: string
   type: CampaignType
   status: CampaignStatus
   sentAt: string | null
@@ -83,6 +84,7 @@ export default function EmailDashboardPage() {
   const [body, setBody] = useState('')
   const [preview, setPreview] = useState(false)
   const [sending, setSending] = useState(false)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const failedVerificationDomain = campaigns
@@ -147,7 +149,12 @@ export default function EmailDashboardPage() {
         setErrorMsg(data.error ?? 'Failed to send emails.')
         return
       }
-      setSuccessMsg(`✓ Sending to ${data.recipientCount} attendee${data.recipientCount === 1 ? '' : 's'}. Emails will arrive shortly.`)
+      if (data.status === 'FAILED') {
+        setErrorMsg(data.failureReason ?? 'Campaign failed to deliver.')
+        fetchData()
+        return
+      }
+      setSuccessMsg(`✓ Sent to ${data.recipientCount} attendee${data.recipientCount === 1 ? '' : 's'}!`)
       setSubject('')
       setBody('')
       setType('CUSTOM')
@@ -158,6 +165,42 @@ export default function EmailDashboardPage() {
       setErrorMsg('Unable to send emails. Please try again.')
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleRetryCampaign = async (campaign: Campaign) => {
+    setErrorMsg('')
+    setSuccessMsg('')
+    setRetryingId(campaign.id)
+    try {
+      const res = await fetch(`/api/events/${slug}/campaigns/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: campaign.id,
+          subject: campaign.subject,
+          body: campaign.body,
+          type: campaign.type,
+          segment,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMsg(data.error ?? 'Failed to resend campaign.')
+        return
+      }
+      if (data.status === 'FAILED') {
+        setErrorMsg(data.failureReason ?? 'Campaign failed to deliver.')
+        fetchData()
+        return
+      }
+      setSuccessMsg(`✓ Sent "${campaign.subject}" to ${data.recipientCount} attendee${data.recipientCount === 1 ? '' : 's'}!`)
+      fetchData()
+      setTimeout(() => setSuccessMsg(''), 8000)
+    } catch {
+      setErrorMsg('Unable to resend campaign. Please try again.')
+    } finally {
+      setRetryingId(null)
     }
   }
 
@@ -510,6 +553,8 @@ export default function EmailDashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {campaigns.map((c) => {
               const failedDomain = extractEmailVerificationDomain(c.failureReason)
+              const canRetry = c.status === 'FAILED' || c.status === 'SENDING'
+              const isRetrying = retryingId === c.id
               return (
                 <div
                   key={c.id}
@@ -555,27 +600,50 @@ export default function EmailDashboardPage() {
                     </div>
                   )}
                 </div>
-                <span
-                  style={{
-                    background: c.status === 'SENT'
-                      ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
-                      : c.status === 'FAILED'
-                        ? 'color-mix(in srgb, var(--error) 10%, transparent)'
-                        : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
-                    border: `0.5px solid color-mix(in srgb, ${STATUS_COLORS[c.status]} 25%, transparent)`,
-                    borderRadius: 100,
-                    padding: '0.2rem 0.65rem',
-                    fontSize: '0.68rem',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase' as const,
-                    color: STATUS_COLORS[c.status],
-                    fontFamily: 'var(--font-dm-sans)',
-                    whiteSpace: 'nowrap' as const,
-                    flexShrink: 0,
-                  }}
-                >
-                  {c.status}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                  {canRetry && (
+                    <button
+                      type="button"
+                      disabled={isRetrying}
+                      onClick={() => handleRetryCampaign(c)}
+                      style={{
+                        background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                        border: '0.5px solid color-mix(in srgb, var(--accent) 45%, transparent)',
+                        borderRadius: 100,
+                        padding: '0.22rem 0.7rem',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        color: 'var(--accent)',
+                        fontFamily: 'var(--font-dm-sans)',
+                        cursor: isRetrying ? 'wait' : 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {isRetrying ? 'Sending…' : '↻ Resend Now'}
+                    </button>
+                  )}
+                  <span
+                    style={{
+                      background: c.status === 'SENT'
+                        ? 'color-mix(in srgb, var(--accent) 10%, transparent)'
+                        : c.status === 'FAILED'
+                          ? 'color-mix(in srgb, var(--error) 10%, transparent)'
+                          : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+                      border: `0.5px solid color-mix(in srgb, ${STATUS_COLORS[c.status]} 25%, transparent)`,
+                      borderRadius: 100,
+                      padding: '0.2rem 0.65rem',
+                      fontSize: '0.68rem',
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase' as const,
+                      color: STATUS_COLORS[c.status],
+                      fontFamily: 'var(--font-dm-sans)',
+                      whiteSpace: 'nowrap' as const,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {c.status}
+                  </span>
+                </div>
                 </div>
               )
             })}
