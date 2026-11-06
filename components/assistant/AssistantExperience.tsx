@@ -57,6 +57,19 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmingProposalId, setConfirmingProposalId] = useState<string | null>(null)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  async function copyMessageText(content: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedIndex(index)
+      setTimeout(() => {
+        setCopiedIndex(null)
+      }, 2000)
+    } catch {
+      // Fallback
+    }
+  }
 
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null)
   const [quotaExceeded, setQuotaExceeded] = useState(false)
@@ -619,6 +632,33 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                     </div>
                   )}
                   <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                  {msg.role === "assistant" && (
+                    <div className="mt-1.5 flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => copyMessageText(msg.content, i)}
+                        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-[#64748B] hover:text-[#0F172A] dark:text-[#A1A1AA] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                        title="Copy content"
+                      >
+                        {copiedIndex === i ? (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 8.5l3.5 3.5 6.5-7" />
+                            </svg>
+                            <span className="text-[#16A34A] font-medium text-[10px]">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="5" y="5" width="8" height="8" rx="1.5" />
+                              <path d="M3.5 10.5V3.5a1 1 0 011-1h7" />
+                            </svg>
+                            <span className="text-[10px]">Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                   {msg.role === "assistant" && msg.draftPreview && (
                     <EventDraftPreviewCard
                       preview={msg.draftPreview}
@@ -849,28 +889,17 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                 </div>
               )}
 
-              <div className="flex gap-2 items-end">
+              <div className="flex items-center gap-1.5 rounded-full border border-[#E2E8F0] dark:border-[#2A2A2A] bg-[#F8FAFC] dark:bg-[#1C1C1E] px-2 py-1.5 shadow-sm focus-within:border-[#15803D] dark:focus-within:border-[#C8F55A] transition-all">
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={pendingImages.length >= 3 || loading}
-                  title="Upload screenshot (max 3, 4MB each)"
-                  className="w-9 h-9 rounded-full bg-[#F1F5F9] dark:bg-[#2A2A2A] text-[#475569] dark:text-[#E5E5E5] flex items-center justify-center text-sm flex-shrink-0 hover:bg-[#E2E8F0] dark:hover:bg-[#3A3A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Upload poster or screenshot (max 3, 4MB each)"
+                  className="w-8 h-8 rounded-full bg-white dark:bg-[#2C2C2E] text-[#0F172A] dark:text-[#E5E5E5] flex items-center justify-center text-base font-semibold hover:bg-neutral-100 dark:hover:bg-[#3A3A3C] transition-all disabled:opacity-40 shadow-sm flex-shrink-0"
                 >
-                  📎
+                  +
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
-
-                <button
-                  onMouseDown={startRecording}
-                  onMouseUp={stopRecording}
-                  onMouseLeave={stopRecording}
-                  onTouchStart={startRecording}
-                  onTouchEnd={stopRecording}
-                  disabled={loading || transcribing || !sessionId}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-sm ${recording ? "bg-red-500 scale-110 animate-pulse text-white" : "bg-[#F1F5F9] dark:bg-[#2A2A2A] text-[#475569] dark:text-[#E5E5E5] hover:bg-[#E2E8F0] dark:hover:bg-[#3A3A3A]"} disabled:opacity-50`}
-                >
-                  🎙️
-                </button>
 
                 <textarea
                   value={input}
@@ -882,17 +911,45 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                     }
                   }}
                   disabled={loading || transcribing || !sessionId}
-                  placeholder={pendingImages.length > 0 ? "Add a message about this screenshot..." : "Type or attach a screenshot..."}
+                  placeholder={pendingImages.length > 0 ? "Describe this poster..." : "Ask EventSlot Assistant..."}
                   rows={1}
-                  className="flex-1 bg-[#F8FAFC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#2A2A2A] rounded-xl px-3 py-2 text-[#0F172A] dark:text-white text-sm placeholder:text-[#94A3B8] dark:placeholder:text-[#525252] focus:outline-none focus:border-[#15803D] dark:focus:border-[#C8F55A] resize-none transition-colors disabled:opacity-50"
+                  className="flex-1 bg-transparent px-2 py-1 text-xs sm:text-sm text-[#0F172A] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#71717A] focus:outline-none resize-none leading-relaxed"
                 />
 
                 <button
+                  type="button"
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={stopRecording}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                  disabled={loading || transcribing || !sessionId}
+                  title="Hold to record voice message"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
+                    recording
+                      ? "bg-red-500 scale-110 animate-pulse text-white"
+                      : "text-[#64748B] dark:text-[#A1A1AA] hover:text-[#0F172A] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+                  } disabled:opacity-40`}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => void sendMessage(input)}
                   disabled={(!input.trim() && pendingImages.length === 0) || loading || transcribing || !sessionId}
-                  className="w-9 h-9 rounded-full bg-[#15803D] dark:bg-[#C8F55A] text-white dark:text-black flex items-center justify-center flex-shrink-0 hover:bg-[#166534] dark:hover:bg-[#b8e040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
+                  className="w-8 h-8 rounded-full bg-[#15803D] dark:bg-[#C8F55A] text-white dark:text-black flex items-center justify-center font-bold hover:scale-105 transition-all disabled:opacity-30 disabled:scale-100 shadow-sm flex-shrink-0"
+                  title="Send message"
                 >
-                  ↑
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5" />
+                    <polyline points="5 12 12 5 19 12" />
+                  </svg>
                 </button>
               </div>
             </div>

@@ -320,9 +320,20 @@ export async function listAuthorizedEventsForActor(
     return []
   }
 
+  const now = new Date()
+  const activeCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000)
+
   const statusFilter =
     options?.status === "active"
-      ? { status: { in: ["active", "ACTIVE", "published", "PUBLISHED"] } }
+      ? {
+          status: { in: ["active", "ACTIVE", "published", "PUBLISHED"] },
+          archived: false,
+          OR: [
+            { eventDate: null },
+            { eventDate: { gte: activeCutoff } },
+            { eventEndAt: { gte: now } },
+          ],
+        }
       : options?.status === "closed"
         ? { status: { in: ["closed", "CLOSED"] } }
         : {}
@@ -489,8 +500,12 @@ export async function resolveAssistantEventContext(params: {
     }
   }
 
-  // Load authorized events for this actor & workspace
-  const authorizedEvents = await listAuthorizedEventsForActor(actor)
+  // Load authorized active upcoming events for this actor & workspace
+  let authorizedEvents = await listAuthorizedEventsForActor(actor, { status: "active" })
+  if (authorizedEvents.length === 0) {
+    // If no active upcoming events, fallback to all events so we can inform the user
+    authorizedEvents = await listAuthorizedEventsForActor(actor, { status: "all" })
+  }
 
   if (authorizedEvents.length === 0) {
     return {

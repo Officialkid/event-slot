@@ -266,6 +266,8 @@ export function detectsListEventsIntent(message: string): boolean {
   return [
     /\b(?:list|show|view|what\s+are|which)\s+(?:all\s+)?(?:my|our|the)\s+events\b/i,
     /\bevents\s+(?:i\s+have|i\s+manage|in\s+my\s+workspace)\b/i,
+    /\b(?:check|view|show|see|how\s+are)\s+(?:my\s+)?(?:event\s+)?registrations?\b/i,
+    /\bcheck\s+my\s+(?:event\s+)?registrations?\b/i,
   ].some((p) => p.test(lower))
 }
 
@@ -484,18 +486,20 @@ function formatReadCapabilityFallbackReply(
   if (capability === "list_organizer_events") {
     const listData = data as ListOrganizerEventsOutput
     if (!listData.events || listData.events.length === 0) {
-      return "You don't have any authorised events in this workspace yet. When you're ready, I can help you draft your first event!"
+      return "You don't have any active upcoming events in this workspace. When you're ready, I can help you draft a new event!"
     }
     const items = listData.events
       .slice(0, 10)
       .map(
         (ev, idx) =>
-          `${idx + 1}. **${ev.title}** (\`${ev.slug}\`)\n   • Confirmed: ${ev.confirmedCount}${
+          `${idx + 1}. **${ev.title}** (\`${ev.slug}\`)\n   • Confirmed: **${ev.confirmedCount}**${
             ev.capacity ? ` / ${ev.capacity} (${ev.fillRate}% full)` : " confirmed"
-          }\n   • Waitlist: ${ev.waitlistCount} | Status: **${ev.status}**`
+          }\n   • Waitlist: **${ev.waitlistCount}** | Status: **${ev.status}**${
+            ev.eventDate ? `\n   • Date: ${new Date(ev.eventDate).toLocaleDateString("en-KE", { dateStyle: "medium" })}` : ""
+          }`
       )
       .join("\n\n")
-    return `### Your Authorised Events\n\n${items}`
+    return `### Your Active Events & Registrations\n\n${items}`
   }
 
   if (capability === "get_event_summary") {
@@ -1274,7 +1278,7 @@ export async function runAssistantOrchestrator(params: {
       initialPlannedCalls.push({
         capability: "list_organizer_events",
         input: {
-          status: "all",
+          status: "active",
           limit: 10,
           workspaceOrganizerId: params.actor.workspaceOrganizerId ?? null,
         },
