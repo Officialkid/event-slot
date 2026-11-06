@@ -185,7 +185,14 @@ export function parseNaturalDateAndTime(
   pendingDayOfMonth?: number
   pendingMonth?: number
 } {
-  const result: { dateOnly?: string; timeOfDay?: string; note?: string; error?: string } = {}
+  const result: {
+    dateOnly?: string
+    timeOfDay?: string
+    note?: string
+    error?: string
+    pendingDayOfMonth?: number
+    pendingMonth?: number
+  } = {}
 
   const t12 = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?![a-z])/i)
   if (t12) {
@@ -1317,13 +1324,13 @@ function applyCandidateToDraft(
     provenance.virtualLink = source
   }
   if (candidate.virtualLinkPending !== undefined) {
-    target.virtualLinkPending = candidate.virtualLinkPending
+    target.virtualLinkPending = candidate.virtualLinkPending ?? undefined
     if (candidate.virtualLinkPending) {
       target.virtualLink = null
     }
   }
   if (candidate.locationPending !== undefined) {
-    target.locationPending = candidate.locationPending
+    target.locationPending = candidate.locationPending ?? undefined
     if (candidate.locationPending && !target.location) {
       target.location = "Venue to be announced"
     }

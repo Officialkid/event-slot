@@ -47,8 +47,8 @@ export const createEventSchema = z.object({
   accessType: z.enum(['REGISTRATION', 'WALK_IN']).default('REGISTRATION'),
   eventType: z.enum(['PHYSICAL', 'VIRTUAL']).default('PHYSICAL'),
   virtualLink: z.string().max(1000).optional().nullable().or(z.literal('')),  // URL format validated in superRefine (accepts with or without https://)
-  virtualLinkPending: z.boolean().optional().default(false),
-  locationPending: z.boolean().optional().default(false),
+  virtualLinkPending: z.boolean().optional(),
+  locationPending: z.boolean().optional(),
   capacity: z.number().int().positive().optional().nullable(),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),

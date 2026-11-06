@@ -31,6 +31,7 @@ export interface AuthorizedEventCandidate {
   eventDate: Date | null
   deadline: Date | null
   location: string | null
+  description?: string | null
   ticketsEnabled: boolean
   isPaid: boolean
   archived: boolean
@@ -77,6 +78,7 @@ const EVENT_SELECT = {
   eventDate: true,
   deadline: true,
   location: true,
+  description: true,
   ticketsEnabled: true,
   isPaid: true,
   archived: true,
