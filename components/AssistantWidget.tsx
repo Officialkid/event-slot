@@ -131,7 +131,7 @@ export function AssistantWidget() {
     <>
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className="fixed bottom-24 right-4 sm:right-6 md:bottom-8 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full
+        className="fixed bottom-36 right-4 sm:right-6 md:bottom-8 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full
                    bg-[#15803D] text-white shadow-xl hover:bg-[#166534]
                    hover:scale-105 transition-all duration-200
                    flex items-center justify-center border border-white/20"
@@ -149,7 +149,7 @@ export function AssistantWidget() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-36 right-3 sm:right-6 md:bottom-24 z-50 w-[min(400px,calc(100vw-1.5rem))]">
+        <div className="fixed bottom-52 right-3 sm:right-6 md:bottom-24 z-50 w-[min(400px,calc(100vw-1.5rem))]">
           <div className="flex items-center justify-between px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#2A2A2A] border-b-0 rounded-t-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />

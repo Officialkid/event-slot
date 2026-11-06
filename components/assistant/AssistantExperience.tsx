@@ -10,6 +10,14 @@ type AssistantExperienceProps = {
   onClose?: () => void
 }
 
+export type ActionProposalPreview = {
+  title: string
+  summary: string
+  targetEvent: { id: string; slug: string; title: string }
+  fields: Array<{ key: string; label: string; previousValue: any; proposedValue: any }>
+  impactWarnings?: string[]
+}
+
 type Message = {
   role: "user" | "assistant"
   content: string
@@ -19,6 +27,7 @@ type Message = {
   draftPreview?: EventDraftPreview | null
   proposalId?: string | null
   idempotencyKey?: string | null
+  actionProposal?: ActionProposalPreview | null
   confirmedEventResult?: {
     id: string
     title: string
@@ -150,7 +159,8 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     isVoice = false,
     draftPreview?: EventDraftPreview | null,
     proposalId?: string | null,
-    idempotencyKey?: string | null
+    idempotencyKey?: string | null,
+    actionProposal?: ActionProposalPreview | null
   ) {
     setMessages((prev) => [
       ...prev,
@@ -163,6 +173,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         draftPreview,
         proposalId,
         idempotencyKey,
+        actionProposal,
       },
     ])
   }
@@ -251,7 +262,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
       const draftPreview = isEventDraftPreview(data.draftPreview) ? data.draftPreview : null
       const proposalObj =
         data.proposal && typeof data.proposal === "object"
-          ? (data.proposal as { proposalId?: string; idempotencyKey?: string })
+          ? (data.proposal as { proposalId?: string; idempotencyKey?: string; preview?: ActionProposalPreview })
           : null
 
       addMessage(
@@ -261,7 +272,8 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         false,
         draftPreview,
         proposalObj?.proposalId ?? null,
-        proposalObj?.idempotencyKey ?? null
+        proposalObj?.idempotencyKey ?? null,
+        proposalObj?.preview ?? null
       )
       if (data.sessionEnded === true) setSessionEnded(true)
     } catch {
@@ -287,18 +299,20 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         }),
       })
       const data = await parseJsonSafely(res)
-      if (data.ok && data.createdEvent && typeof data.createdEvent === "object") {
+      if (data.ok && (data.createdEvent || data.updatedEvent || data.code === "COMPLETED")) {
         setMessages((prev) =>
           prev.map((m) =>
-            m.draftPreview
+            m.proposalId === proposalId || (m.draftPreview && !m.proposalId)
               ? {
                   ...m,
-                  confirmedEventResult: {
-                    id: String((data.createdEvent as Record<string, unknown>).id),
-                    title: String((data.createdEvent as Record<string, unknown>).title),
-                    slug: String((data.createdEvent as Record<string, unknown>).slug),
-                    sideEffectsDeliveryStatus: data.sideEffectsDeliveryStatus as any,
-                  },
+                  confirmedEventResult: data.createdEvent
+                    ? {
+                        id: String((data.createdEvent as Record<string, unknown>).id),
+                        title: String((data.createdEvent as Record<string, unknown>).title),
+                        slug: String((data.createdEvent as Record<string, unknown>).slug),
+                        sideEffectsDeliveryStatus: data.sideEffectsDeliveryStatus as any,
+                      }
+                    : null,
                   proposalStatus: "COMPLETED",
                   confirmationError: null,
                 }
@@ -314,7 +328,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
             : "FAILED"
         setMessages((prev) =>
           prev.map((m) =>
-            m.draftPreview
+            m.proposalId === proposalId || (m.draftPreview && !m.proposalId)
               ? {
                   ...m,
                   proposalStatus: status,
@@ -323,7 +337,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                       ? data.reply
                       : typeof data.error === "string"
                       ? data.error
-                      : "Event creation could not be completed.",
+                      : "Action could not be completed.",
                 }
               : m
           )
@@ -358,7 +372,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
       if (data.ok) {
         setMessages((prev) =>
           prev.map((m) =>
-            m.draftPreview
+            m.proposalId === proposalId || (m.draftPreview && !m.proposalId)
               ? {
                   ...m,
                   proposalStatus: "CANCELLED",
@@ -619,6 +633,89 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                       errorMessage={msg.confirmationError}
                     />
                   )}
+
+                  {msg.role === "assistant" && msg.actionProposal && (
+                    <div
+                      data-testid="action-proposal-card"
+                      className="mt-2.5 rounded-xl border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#0A0A0A] p-3.5 text-xs text-[#0F172A] dark:text-[#F0EDE6] shadow-sm dark:shadow-lg"
+                    >
+                      <div className="flex items-center justify-between gap-2 border-b border-[#E2E8F0] dark:border-[#2A2A2A] pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block h-2 w-2 rounded-full bg-[#15803D] dark:bg-[#C8F55A]" />
+                          <span className="font-semibold tracking-wide uppercase text-[11px]">
+                            {msg.actionProposal.title}
+                          </span>
+                        </div>
+                        <span className="rounded-full border border-[#15803D]/30 bg-[#15803D]/10 text-[#15803D] dark:border-[#C8F55A]/50 dark:bg-[#C8F55A]/10 dark:text-[#C8F55A] px-2 py-0.5 text-[9px] font-semibold uppercase">
+                          Confirmation Required
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-[11px] text-[#475569] dark:text-[#A3A3A3]">
+                        {msg.actionProposal.summary}
+                      </p>
+
+                      <div className="mt-2.5 space-y-1.5">
+                        {msg.actionProposal.fields.map((f) => (
+                          <div
+                            key={f.key}
+                            className="rounded-lg bg-[#F8FAFC] dark:bg-[#141414] border border-[#F1F5F9] dark:border-transparent px-2.5 py-1.5"
+                          >
+                            <span className="block text-[9px] uppercase tracking-wide text-[#64748B] dark:text-[#8A8A8A]">
+                              {f.label}
+                            </span>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
+                              <span className="text-[#64748B] dark:text-[#8A8A8A] line-through">
+                                {String(f.previousValue ?? "None")}
+                              </span>
+                              <span className="text-[#15803D] dark:text-[#C8F55A] font-semibold">→</span>
+                              <span className="font-medium text-[#0F172A] dark:text-[#F0EDE6]">
+                                {String(f.proposedValue)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {msg.actionProposal.impactWarnings && msg.actionProposal.impactWarnings.length > 0 && (
+                        <div className="mt-2.5 rounded-lg border border-[#F59E0B]/40 bg-[#F59E0B]/10 p-2 text-[10px] text-[#D97706] dark:text-[#F59E0B]">
+                          {msg.actionProposal.impactWarnings.join(" ")}
+                        </div>
+                      )}
+
+                      {msg.proposalStatus === "COMPLETED" ? (
+                        <div className="mt-3 rounded-lg border border-[#15803D]/40 bg-[#15803D]/10 p-2 text-center text-xs font-semibold text-[#15803D] dark:text-[#C8F55A]">
+                          ✓ Change Applied Successfully
+                        </div>
+                      ) : msg.proposalStatus === "CANCELLED" ? (
+                        <div className="mt-3 rounded-lg border border-[#E2E8F0] dark:border-[#3A3A3A] bg-[#F8FAFC] dark:bg-[#141414] p-2 text-center text-xs text-[#64748B] dark:text-[#A3A3A3]">
+                          Proposal Cancelled
+                        </div>
+                      ) : (
+                        msg.proposalId &&
+                        msg.idempotencyKey && (
+                          <div className="mt-3 border-t border-[#E2E8F0] dark:border-[#2A2A2A] pt-2.5 flex gap-2">
+                            <button
+                              type="button"
+                              disabled={loading || confirmingProposalId === msg.proposalId}
+                              onClick={() => void handleConfirmCreation(msg.proposalId!, msg.idempotencyKey!)}
+                              className="flex-1 rounded-lg bg-[#15803D] dark:bg-[#C8F55A] py-1.5 text-xs font-semibold text-white dark:text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+                            >
+                              {confirmingProposalId === msg.proposalId ? "Applying..." : "Confirm & Apply"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={loading || confirmingProposalId === msg.proposalId}
+                              onClick={() => void handleCancelProposal(msg.proposalId!)}
+                              className="rounded-lg border border-[#E2E8F0] dark:border-[#3A3A3A] bg-white dark:bg-[#141414] px-3 py-1.5 text-xs text-[#64748B] dark:text-[#A3A3A3] hover:text-red-500 transition-colors disabled:opacity-40"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -635,6 +732,42 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+            {messages.filter((m) => m.role === "user").length === 0 && !sessionEnded && !quotaExceeded && (
+              <div className="pt-2 pb-1 px-1">
+                <p className="text-[11px] font-medium text-[#64748B] dark:text-[#8A8A8A] mb-2">
+                  Suggestions to get started:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("Create a new event")
+                    }}
+                    className="rounded-full border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#1E1E1E] px-3 py-1.5 text-xs text-[#0F172A] dark:text-[#E5E5E5] hover:border-[#15803D] dark:hover:border-[#C8F55A] hover:text-[#15803D] dark:hover:text-[#C8F55A] transition-colors shadow-sm"
+                  >
+                    ➕ Create a new event
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("Check my event registrations")
+                    }}
+                    className="rounded-full border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#1E1E1E] px-3 py-1.5 text-xs text-[#0F172A] dark:text-[#E5E5E5] hover:border-[#15803D] dark:hover:border-[#C8F55A] hover:text-[#15803D] dark:hover:text-[#C8F55A] transition-colors shadow-sm"
+                  >
+                    📊 Check my registrations
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInput("Draft an event from this poster: ")
+                    }}
+                    className="rounded-full border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#1E1E1E] px-3 py-1.5 text-xs text-[#0F172A] dark:text-[#E5E5E5] hover:border-[#15803D] dark:hover:border-[#C8F55A] hover:text-[#15803D] dark:hover:text-[#C8F55A] transition-colors shadow-sm"
+                  >
+                    📎 Draft from poster
+                  </button>
                 </div>
               </div>
             )}

@@ -445,6 +445,7 @@ export function extractCandidateFieldsFromText(
     cleaned.match(/(?:^|\n|\b)(?:event\s+title|title|event\s+name)\s*[:=-]\s*([^\n,;]+)/i)?.[1] ??
     cleaned.match(/(?:called|named|titled)\s+["“']([^"”']+)["”']/i)?.[1] ??
     cleaned.match(/(?:called|named|titled)\s+(?:the\s+)?([A-Z][A-Za-z0-9\s&'-]{2,60}?)(?=\s+(?:on|at|in|for|with|date|location|venue|capacity|it|its|it's|and|which|that|is|will|scheduled)\b|[.,;\n]|$)/)?.[1] ??
+    cleaned.match(/\b(?:create|draft|new)\s+(?:an?\s+)?(?:virtual\s+|physical\s+)?event\s+["“']?([A-Z][A-Za-z0-9\s&'-]{2,60}?)(?=["”']?(?:\s+(?:on|at|in|for|with|date|location|venue|capacity|it|its|it's|and|which|that|is|will|scheduled|link)\b|[.,;\n]|$))/i)?.[1] ??
     cleaned.match(/["“']([^"”']{3,80})["”']/)?.[1]
 
   if (labeledTitle) {

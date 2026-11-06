@@ -101,7 +101,11 @@ export function EventDraftPreviewCard({
       label: fields.eventType === "VIRTUAL" ? "Virtual Link" : "Venue / Location",
       value:
         fields.eventType === "VIRTUAL"
-          ? fields.virtualLink || "Not specified"
+          ? fields.virtualLinkPending
+            ? "Meeting link will be provided later (Pending)"
+            : fields.virtualLink || "Not specified"
+          : fields.locationPending
+          ? "Venue to be announced (Pending)"
           : fields.location || "Not specified",
     },
     {
@@ -131,10 +135,10 @@ export function EventDraftPreviewCard({
   return (
     <div
       data-testid="event-draft-preview-card"
-      className="mt-2.5 rounded-xl border border-[#2A2A2A] bg-[#0A0A0A] p-3.5 text-xs text-[#0F172A] dark:text-[#F0EDE6] shadow-lg"
+      className="mt-2.5 rounded-xl border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#0A0A0A] p-3.5 text-xs text-[#0F172A] dark:text-[#F0EDE6] shadow-sm dark:shadow-lg"
     >
       {/* Header & non-published status banner */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2A2A2A] pb-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E8F0] dark:border-[#2A2A2A] pb-2.5">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-[#C8F55A]" />
           <span className="font-semibold tracking-wide text-[#0F172A] dark:text-[#F0EDE6] uppercase">
@@ -191,7 +195,7 @@ export function EventDraftPreviewCard({
         })}
 
         {fields.description && (
-          <div className="rounded-lg bg-[#141414] px-2.5 py-1.5">
+          <div className="rounded-lg bg-[#F8FAFC] dark:bg-[#141414] border border-[#F1F5F9] dark:border-transparent px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] tracking-wide text-[#64748B] dark:text-[#8A8A8A] uppercase">
                 Description
@@ -255,7 +259,7 @@ export function EventDraftPreviewCard({
       {validationIssues.length > 0 && (
         <div
           data-testid="draft-validation-issues"
-          className="mt-2.5 rounded-lg border border-[#EF4444]/40 bg-[#141414] p-2.5"
+          className="mt-2.5 rounded-lg border border-[#EF4444]/40 bg-[#EF4444]/10 dark:bg-[#141414] p-2.5"
         >
           <p className="font-semibold text-[#EF4444]">
             Validation Checks ({validationIssues.length})
@@ -272,7 +276,7 @@ export function EventDraftPreviewCard({
       )}
 
       {/* Next step / guidance */}
-      <div className="mt-3 border-t border-[#2A2A2A] pt-2.5">
+      <div className="mt-3 border-t border-[#E2E8F0] dark:border-[#2A2A2A] pt-2.5">
         <p className="text-[11px] text-[#A3A3A3]">{preview.nextRecommendedStep}</p>
         {onSuggestCorrection && missingFields.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">

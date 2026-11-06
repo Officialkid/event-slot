@@ -498,6 +498,7 @@ export async function POST(req: NextRequest) {
         proposalId: orchestratorResult.proposal.proposalId,
         idempotencyKey: orchestratorResult.proposal.idempotencyKey,
         status: orchestratorResult.proposal.status,
+        preview: (orchestratorResult.proposal as any).preview ?? null,
       }
     }
 

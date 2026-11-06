@@ -612,6 +612,83 @@ describe("Phase 1, Prompt 1 — ESA Orchestrator & Guided Event Draft Preparatio
       expect(preview.isLiveEvent).toBe(false)
       expect(mockEventCreate).not.toHaveBeenCalled()
     })
+
+    it("preserves multi-turn draft context across turns without dropping fragments", async () => {
+      const { runAssistantOrchestrator } = await import(
+        "@/lib/assistant/orchestrator"
+      )
+      const { clearSessionDraftPreview } = await import(
+        "@/lib/assistant/draft-preparation"
+      )
+
+      clearSessionDraftPreview("user-multi", "sess-multi-4turn")
+
+      // Turn 1: Title
+      const t1 = await runAssistantOrchestrator({
+        actor: { userId: "user-multi", organizerName: "Creative Hub" },
+        sessionId: "sess-multi-4turn",
+        message: "Create event Creatives Hour",
+      })
+      expect(t1.kind).toBe("DRAFT_PREVIEW")
+      expect(t1.draftPreview?.fields.title).toBe("Creatives Hour")
+
+      // Turn 2: Standalone day
+      const t2 = await runAssistantOrchestrator({
+        actor: { userId: "user-multi", organizerName: "Creative Hub" },
+        sessionId: "sess-multi-4turn",
+        message: "It will be on the 9th.",
+      })
+      expect(t2.kind).toBe("DRAFT_PREVIEW")
+      expect(t2.draftPreview?.fields.title).toBe("Creatives Hour")
+
+      // Turn 3: Month and time
+      const t3 = await runAssistantOrchestrator({
+        actor: { userId: "user-multi", organizerName: "Creative Hub" },
+        sessionId: "sess-multi-4turn",
+        message: "November, at 8pm.",
+      })
+      expect(t3.kind).toBe("DRAFT_PREVIEW")
+      expect(t3.draftPreview?.fields.title).toBe("Creatives Hour")
+      expect(t3.draftPreview?.fields.eventDate).toMatch(/-11-09T20:00:00/)
+
+      // Turn 4: Unlimited capacity
+      const t4 = await runAssistantOrchestrator({
+        actor: { userId: "user-multi", organizerName: "Creative Hub" },
+        sessionId: "sess-multi-4turn",
+        message: "Unlimited capacity, so there is no waitlist.",
+      })
+      expect(t4.kind).toBe("DRAFT_PREVIEW")
+      expect(t4.draftPreview?.fields.title).toBe("Creatives Hour")
+      expect(t4.draftPreview?.fields.capacity).toBeNull()
+      expect(t4.draftPreview?.fields.eventDate).toMatch(/-11-09T20:00:00/)
+    })
+
+    it("supports pending virtual meeting link without validation failure or fake URL", async () => {
+      const { runAssistantOrchestrator } = await import(
+        "@/lib/assistant/orchestrator"
+      )
+      const { clearSessionDraftPreview } = await import(
+        "@/lib/assistant/draft-preparation"
+      )
+
+      clearSessionDraftPreview("user-virt", "sess-virt-link")
+
+      const res = await runAssistantOrchestrator({
+        actor: { userId: "user-virt", organizerName: "Virtual Host" },
+        sessionId: "sess-virt-link",
+        message:
+          "Create a virtual event Cloud Summit on 2026-12-01 at 10:00 AM, link will be provided later.",
+      })
+
+      expect(res.kind).toBe("DRAFT_PREVIEW")
+      expect(res.draftPreview?.fields.title).toBe("Cloud Summit")
+      expect(res.draftPreview?.fields.eventType).toBe("VIRTUAL")
+      expect(res.draftPreview?.fields.virtualLinkPending).toBe(true)
+      expect(res.draftPreview?.fields.virtualLink).toBeNull()
+      // Does not flag missing virtualLink because link is honestly pending
+      const missingKeys = res.draftPreview?.missingFields.map((m) => m.field)
+      expect(missingKeys).not.toContain("virtualLink")
+    })
   })
 })
 

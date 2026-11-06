@@ -133,6 +133,8 @@ export function convertDraftFieldsToCreationInput(
     accessType: fields.accessType,
     eventType: fields.eventType,
     virtualLink: fields.virtualLink ?? "",
+    virtualLinkPending: fields.virtualLinkPending ?? false,
+    locationPending: fields.locationPending ?? false,
     capacity: fields.capacity,
     deadline: fields.deadline,
     eventDate: fields.eventDate,
@@ -275,6 +277,7 @@ export async function executeEventCreationProposal(
     "UPDATE_EVENT_CAPACITY",
     "UPDATE_EVENT_VENUE",
     "UPDATE_EVENT_STATUS",
+    "UPDATE_EVENT_DESCRIPTION",
   ] as const
 
   if (!SUPPORTED_OPERATIONS.includes(op as any)) {
@@ -616,6 +619,17 @@ export async function executeEventCreationProposal(
       }
     }
 
+    if (op === "UPDATE_EVENT_DESCRIPTION") {
+      const desc = validated.description ?? validated.newDescription
+      if (typeof desc !== "string") {
+        return {
+          ok: false,
+          code: "REVALIDATION_FAILED",
+          message: "A valid description text is required.",
+        }
+      }
+    }
+
     try {
       const txResult = await db.$transaction(async (tx) => {
         const claimed = await store.claimPendingProposalForExecution({
@@ -655,6 +669,8 @@ export async function executeEventCreationProposal(
           if (validated.visibility) {
             updateData.visibility = validated.visibility
           }
+        } else if (op === "UPDATE_EVENT_DESCRIPTION") {
+          updateData.description = (validated.description ?? validated.newDescription ?? "").slice(0, 5000)
         }
 
         const updatedEvent = await tx.event.update({
