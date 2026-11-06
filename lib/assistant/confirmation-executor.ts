@@ -172,8 +172,6 @@ export function convertDraftFieldsToCreationInput(
     attendeeConsentEnabled: true,
     groupRegistrationEnabled: false,
     allowGroupSelfClaim: true,
-    virtualLinkPending: false,
-    locationPending: false,
   }
 }
 
