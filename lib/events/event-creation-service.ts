@@ -329,13 +329,16 @@ export async function createEventDomainService(params: CreateEventServiceParams)
 
   // 1. Virtual event link normalization & protocol validation
   const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
-  let normalizedVirtualLink = rawVirtualLink
-  if (rawVirtualLink && !/^https?:\/\//i.test(rawVirtualLink)) {
+  const isVirtualLinkPending = Boolean((input as any).virtualLinkPending) ||
+    rawVirtualLink.toLowerCase() === 'pending' ||
+    rawVirtualLink.toLowerCase() === 'to be announced'
+  let normalizedVirtualLink = isVirtualLinkPending ? '' : rawVirtualLink
+  if (rawVirtualLink && !isVirtualLinkPending && !/^https?:\/\//i.test(rawVirtualLink)) {
     normalizedVirtualLink = `https://${rawVirtualLink}`
   }
 
   if (eventType === 'VIRTUAL') {
-    if (!normalizedVirtualLink) {
+    if (!isVirtualLinkPending && !normalizedVirtualLink) {
       return {
         success: false,
         status: 400,
@@ -343,17 +346,19 @@ export async function createEventDomainService(params: CreateEventServiceParams)
         field: 'virtualLink',
       }
     }
-    try {
-      const parsedUrl = new URL(normalizedVirtualLink)
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('Invalid protocol')
-      }
-    } catch {
-      return {
-        success: false,
-        status: 400,
-        error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).',
-        field: 'virtualLink',
+    if (normalizedVirtualLink) {
+      try {
+        const parsedUrl = new URL(normalizedVirtualLink)
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          throw new Error('Invalid protocol')
+        }
+      } catch {
+        return {
+          success: false,
+          status: 400,
+          error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).',
+          field: 'virtualLink',
+        }
       }
     }
   }

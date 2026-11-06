@@ -32,6 +32,14 @@ export interface EventDraftFields {
   capacityUnlimited?: boolean
   /** A start time (HH:mm, Africa/Nairobi) given before the date; merged once the date arrives. */
   pendingStartTime?: string | null
+  /** A day of month (1-31) stated before the month (e.g. "on the 9th"). */
+  pendingDayOfMonth?: number | null
+  /** A month (1-12) stated before the day of month. */
+  pendingMonth?: number | null
+  /** True when the virtual event meeting link will be provided later. */
+  virtualLinkPending?: boolean
+  /** True when the physical event venue will be announced later. */
+  locationPending?: boolean
 }
 
 export interface DraftMissingField {
@@ -109,6 +117,10 @@ export interface CandidateExtractionOutput {
   whatsappNumber?: string | null
   entryFeeLabel?: string | null
   capacityUnlimited?: boolean | null
+  virtualLinkPending?: boolean | null
+  locationPending?: boolean | null
+  pendingDayOfMonth?: number | null
+  pendingMonth?: number | null
   /** Calendar date (YYYY-MM-DD, Africa/Nairobi) parsed from natural language. */
   dateOnly?: string | null
   /** Start time (HH:mm, Africa/Nairobi) parsed from natural language. */
@@ -165,7 +177,14 @@ function formatYmdLong(y: number, m: number, d: number): string {
 export function parseNaturalDateAndTime(
   text: string,
   now: Date
-): { dateOnly?: string; timeOfDay?: string; note?: string; error?: string } {
+): {
+  dateOnly?: string
+  timeOfDay?: string
+  note?: string
+  error?: string
+  pendingDayOfMonth?: number
+  pendingMonth?: number
+} {
   const result: { dateOnly?: string; timeOfDay?: string; note?: string; error?: string } = {}
 
   const t12 = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?![a-z])/i)
@@ -240,7 +259,24 @@ export function parseNaturalDateAndTime(
     const t = addDays(delta)
     result.dateOnly = `${t.y}-${pad2(t.m)}-${pad2(t.d)}`
     result.note = `I read "${weekday[0].trim()}" as ${formatYmdLong(t.y, t.m, t.d)}. Tell me if you meant a different date.`
+    return result
   }
+
+  // Multi-turn standalone day ("on the 9th", "9th")
+  const standaloneDay = text.match(/\b(?:on\s+the\s+|on\s+)?([1-9]|[12]\d|3[01])(?:st|nd|rd|th)\b/i)
+  if (standaloneDay && !result.dateOnly) {
+    result.pendingDayOfMonth = Number(standaloneDay[1])
+  }
+
+  // Multi-turn standalone month ("in November", "November")
+  const standaloneMonth = text.match(new RegExp(`\\b(?:in\\s+)?${MONTH_PATTERN}\\b`, "i"))
+  if (standaloneMonth && !result.dateOnly) {
+    const mIdx = MONTH_KEYS.indexOf(standaloneMonth[1].slice(0, 3).toLowerCase())
+    if (mIdx >= 0) {
+      result.pendingMonth = mIdx + 1
+    }
+  }
+
   return result
 }
 
@@ -462,18 +498,37 @@ export function extractCandidateFieldsFromText(
     output.eventType = "PHYSICAL"
   }
 
-  // 5. Virtual Link extraction
-  const urlMatch = cleaned.match(
-    /\bhttps?:\/\/(?:[\w-]+\.)+[a-z]{2,}(?:\/[^\s,;)"]*)?/i
-  )
-  if (urlMatch) {
-    output.virtualLink = urlMatch[0].trim()
+  // 5. Virtual Link extraction (including pending link support)
+  const virtualLinkPendingRegex =
+    /\b(?:link\s+(?:will\s+be\s+provided\s+later|provided\s+later|to\s+be\s+announced|to\s+be\s+shared\s+later|shared\s+later|tba|tbd|later)|meeting\s+link\s+(?:will\s+be\s+provided\s+later|provided\s+later|to\s+be\s+announced|to\s+be\s+shared|later)|no\s+link\s+yet|link\s+not\s+yet\s+available|we\s+will\s+share\s+the\s+link\s+later)\b/i
+
+  if (virtualLinkPendingRegex.test(cleaned)) {
+    output.virtualLinkPending = true
     if (!output.eventType) {
       output.eventType = "VIRTUAL"
     }
   }
 
-  // 6. Location / Venue extraction
+  const urlMatch = cleaned.match(
+    /\bhttps?:\/\/(?:[\w-]+\.)+[a-z]{2,}(?:\/[^\s,;)"]*)?/i
+  )
+  if (urlMatch) {
+    output.virtualLink = urlMatch[0].trim()
+    output.virtualLinkPending = false
+    if (!output.eventType) {
+      output.eventType = "VIRTUAL"
+    }
+  }
+
+  // 6. Location / Venue extraction (including pending venue support)
+  const locationPendingRegex =
+    /\b(?:venue\s+(?:will\s+be\s+announced\s+later|to\s+be\s+announced|announced\s+later|tba|tbd|to\s+be\s+confirmed|tbc|later)|location\s+(?:will\s+be\s+announced\s+later|to\s+be\s+announced|announced\s+later|tba|tbd|later)|place\s+to\s+be\s+announced)\b/i
+
+  if (locationPendingRegex.test(cleaned)) {
+    output.locationPending = true
+    output.location = "Venue to be announced"
+  }
+
   const labeledLocation =
     cleaned.match(
       /(?:^|\n|\b)(?:location|venue|place)\s*(?:to|is|[:=-])\s*([^\n.;]+?)(?=\s+(?:and|with|on|for|\d|capacity|date|time|price|ticket)|[\n.;,]|$)/i
@@ -539,6 +594,8 @@ export function extractCandidateFieldsFromText(
     const natural = parseNaturalDateAndTime(cleaned, now)
     if (natural.dateOnly) output.dateOnly = natural.dateOnly
     if (natural.timeOfDay) output.timeOfDay = natural.timeOfDay
+    if (natural.pendingDayOfMonth) output.pendingDayOfMonth = natural.pendingDayOfMonth
+    if (natural.pendingMonth) output.pendingMonth = natural.pendingMonth
     if (natural.dateOnly || natural.timeOfDay) {
       output.uncertainNotes = (output.uncertainNotes ?? []).filter(
         (n) => n.field !== "eventDate"
@@ -953,19 +1010,19 @@ export async function prepareEventDraftPreview(params: {
     })
   }
 
-  if (baseFields.eventType === "PHYSICAL" && (!baseFields.location || !baseFields.location.trim())) {
+  if (baseFields.eventType === "PHYSICAL" && !baseFields.locationPending && (!baseFields.location || !baseFields.location.trim())) {
     missingFields.push({
       field: "location",
       label: "Venue / Location",
-      reason: "Physical events need a venue or location so attendees know where to go.",
+      reason: "Physical events need a venue or location so attendees know where to go (or let me know if venue will be announced later).",
     })
   }
 
-  if (baseFields.eventType === "VIRTUAL" && (!baseFields.virtualLink || !baseFields.virtualLink.trim())) {
+  if (baseFields.eventType === "VIRTUAL" && !baseFields.virtualLinkPending && (!baseFields.virtualLink || !baseFields.virtualLink.trim())) {
     missingFields.push({
       field: "virtualLink",
       label: "Meeting / Stream Link",
-      reason: "Virtual events require a valid meeting URL (Zoom, Google Meet, Microsoft Teams, etc.).",
+      reason: "Virtual events require a valid meeting URL (Zoom, Google Meet, Microsoft Teams, etc.) or note if the link will be provided later.",
     })
   }
 
@@ -998,6 +1055,8 @@ export async function prepareEventDraftPreview(params: {
     accessType: baseFields.accessType,
     eventType: baseFields.eventType,
     virtualLink: baseFields.virtualLink ?? "",
+    virtualLinkPending: Boolean(baseFields.virtualLinkPending),
+    locationPending: Boolean(baseFields.locationPending),
     capacity: baseFields.capacity,
     deadline: baseFields.deadline,
     eventDate: baseFields.eventDate,
@@ -1146,8 +1205,29 @@ function mergeNaturalDateTime(
   candidate: CandidateExtractionOutput,
   source: DraftFieldSource
 ): void {
+  // Update pending day/month fragments across turns
+  if (candidate.pendingDayOfMonth) target.pendingDayOfMonth = candidate.pendingDayOfMonth
+  if (candidate.pendingMonth) target.pendingMonth = candidate.pendingMonth
+
+  // Try to resolve date if we have both day and month across turns
+  let resolvedDateOnly = candidate.dateOnly
+  if (!resolvedDateOnly && target.pendingDayOfMonth && target.pendingMonth) {
+    const today = nairobiToday(new Date())
+    let y = today.y
+    const m = target.pendingMonth
+    const d = target.pendingDayOfMonth
+    if (isValidYmd(y, m, d)) {
+      if (y * 10000 + m * 100 + d < today.y * 10000 + today.m * 100 + today.d) {
+        y += 1
+      }
+      resolvedDateOnly = `${y}-${pad2(m)}-${pad2(d)}`
+      target.pendingDayOfMonth = null
+      target.pendingMonth = null
+    }
+  }
+
   const existing = target.eventDate ? nairobiDateTimeParts(target.eventDate) : null
-  const date = candidate.dateOnly ?? existing?.date ?? null
+  const date = resolvedDateOnly ?? existing?.date ?? null
   const time =
     candidate.timeOfDay ?? target.pendingStartTime ?? existing?.time ?? null
 
@@ -1215,7 +1295,7 @@ function applyCandidateToDraft(
     target.eventDate = candidate.eventDate
     target.pendingStartTime = null
     provenance.eventDate = source
-  } else if (candidate.dateOnly || candidate.timeOfDay) {
+  } else if (candidate.dateOnly || candidate.timeOfDay || candidate.pendingDayOfMonth || candidate.pendingMonth || target.pendingDayOfMonth || target.pendingMonth) {
     mergeNaturalDateTime(target, provenance, uncertainFields, candidate, source)
   }
   if (candidate.eventEndAt !== undefined && candidate.eventEndAt !== null) {
@@ -1232,7 +1312,20 @@ function applyCandidateToDraft(
   }
   if (candidate.virtualLink !== undefined && candidate.virtualLink !== null) {
     target.virtualLink = candidate.virtualLink
+    target.virtualLinkPending = false
     provenance.virtualLink = source
+  }
+  if (candidate.virtualLinkPending !== undefined) {
+    target.virtualLinkPending = candidate.virtualLinkPending
+    if (candidate.virtualLinkPending) {
+      target.virtualLink = null
+    }
+  }
+  if (candidate.locationPending !== undefined) {
+    target.locationPending = candidate.locationPending
+    if (candidate.locationPending && !target.location) {
+      target.location = "Venue to be announced"
+    }
   }
   if (candidate.capacity !== undefined && candidate.capacity !== null) {
     target.capacity = candidate.capacity

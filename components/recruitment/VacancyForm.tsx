@@ -292,7 +292,7 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
             >
               {OPPORTUNITY_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
-                  {t.label} — {t.description}
+                  {t.label}
                 </option>
               ))}
             </select>

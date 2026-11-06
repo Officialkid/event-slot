@@ -362,6 +362,14 @@ export function detectsUpdateVenueIntent(message: string): boolean {
 }
 
 // Capability 9 Intent Detection
+export function detectsUpdateDescriptionIntent(message: string): boolean {
+  const lower = message.toLowerCase().trim()
+  return [
+    /\b(?:update|change|set|edit|rewrite)\s+(?:the\s+)?(?:event\s+)?(?:description|about|details)\b/i,
+    /\b(?:new\s+description)\s*(?:is|to|:)\b/i,
+  ].some((p) => p.test(lower))
+}
+
 export function detectsUpdateStatusIntent(message: string): boolean {
   const lower = message.toLowerCase().trim()
   return [
@@ -632,8 +640,9 @@ async function handleMutatingManagementProposal(params: {
   const isCapacity = detectsUpdateCapacityIntent(sanitizedMessage)
   const isVenue = detectsUpdateVenueIntent(sanitizedMessage)
   const isStatus = detectsUpdateStatusIntent(sanitizedMessage)
+  const isDescription = detectsUpdateDescriptionIntent(sanitizedMessage)
 
-  if (!isReschedule && !isCapacity && !isVenue && !isStatus) {
+  if (!isReschedule && !isCapacity && !isVenue && !isStatus && !isDescription) {
     return null
   }
 
@@ -1015,6 +1024,82 @@ async function handleMutatingManagementProposal(params: {
           capability: "update_event_status",
           ok: true,
           riskLevel: "WRITE_HIGH",
+        },
+      ],
+      iterationsUsed: 1,
+      usedLiveEventData: true,
+      clarification: null,
+      capabilityError: null,
+      draftPreview: null,
+      proposal: savedProposal,
+    }
+  }
+
+  // 5. Update Description
+  if (isDescription) {
+    const descMatch =
+      sanitizedMessage.match(/\b(?:description|about|details)\s*(?:to|is|[:=])\s*([\s\S]+)/i) ||
+      sanitizedMessage.match(/\b(?:set|update|change|rewrite)\s+(?:the\s+)?(?:event\s+)?(?:description|about)\s+(?:to)\s+([\s\S]+)/i)
+
+    if (!descMatch) {
+      return {
+        kind: "ANSWER",
+        reply: `What new description would you like to set for "${event.title}"?`,
+        toolCallsExecuted,
+        iterationsUsed: 1,
+        usedLiveEventData: true,
+        clarification: null,
+        capabilityError: null,
+        draftPreview: null,
+      }
+    }
+
+    const newDescription = descMatch[1].trim()
+    const preview: ActionPreviewCard = {
+      title: `Confirm Description Update: ${event.title}`,
+      summary: `Update description for "${event.title}".`,
+      targetEvent: { id: event.id, slug: event.slug, title: event.title },
+      fields: [
+        {
+          key: "description",
+          label: "Event Description",
+          previousValue: event.description ?? "Not set",
+          proposedValue: newDescription,
+        },
+      ],
+      impactWarnings: [
+        "The updated description will appear on the public event page immediately.",
+      ],
+    }
+
+    const proposal = createActionProposal({
+      capability: "update_event_description",
+      riskLevel: "WRITE_LOW",
+      validatedInput: {
+        eventIdOrSlug: event.id,
+        description: newDescription,
+        workspaceOrganizerId: actor.workspaceOrganizerId ?? null,
+      },
+      preview,
+      actor,
+      targetEventId: event.id,
+      sessionId,
+      operation: "UPDATE_EVENT_DESCRIPTION",
+    })
+
+    const savedProposal = await store.savePendingProposal(proposal)
+
+    return {
+      kind: "ACTION_PROPOSAL",
+      reply: truncateOutput(
+        `I have prepared a confirmation proposal to update the description of "${event.title}". Please review the details below and confirm to apply the change.`,
+        limits.maxOutputChars
+      ),
+      toolCallsExecuted: [
+        {
+          capability: "update_event_description",
+          ok: true,
+          riskLevel: "WRITE_LOW",
         },
       ],
       iterationsUsed: 1,

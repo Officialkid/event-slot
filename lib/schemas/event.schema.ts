@@ -47,6 +47,8 @@ export const createEventSchema = z.object({
   accessType: z.enum(['REGISTRATION', 'WALK_IN']).default('REGISTRATION'),
   eventType: z.enum(['PHYSICAL', 'VIRTUAL']).default('PHYSICAL'),
   virtualLink: z.string().max(1000).optional().nullable().or(z.literal('')),  // URL format validated in superRefine (accepts with or without https://)
+  virtualLinkPending: z.boolean().optional().default(false),
+  locationPending: z.boolean().optional().default(false),
   capacity: z.number().int().positive().optional().nullable(),
   deadline: z.string().datetime({ offset: true }).optional().nullable(),
   eventDate: z.string().datetime({ offset: true }).optional().nullable(),
@@ -86,7 +88,7 @@ export const createEventSchema = z.object({
 }).superRefine((data, ctx) => {
   // Note: Registration events do not require custom questions because Name and Email are captured by default.
 
-  if (data.eventType === 'VIRTUAL' && !data.virtualLink?.trim()) {
+  if (data.eventType === 'VIRTUAL' && !data.virtualLinkPending && !data.virtualLink?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['virtualLink'],
