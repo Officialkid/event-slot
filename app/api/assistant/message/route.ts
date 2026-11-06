@@ -456,6 +456,7 @@ export async function POST(req: NextRequest) {
       proposalId: string
       idempotencyKey: string
       status: string
+      preview?: any
     } | null = null
 
     if (
