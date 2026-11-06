@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { hasAdminAccess } from "@/lib/isAdmin"
+import { checkRecruitmentAccess } from "@/lib/recruitment/permissions"
 import AdminSidebar from "./AdminSidebar"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,8 +13,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/signin?callbackUrl=/admin&reason=admin')
   }
 
-  if (!hasAdminAccess(session)) {
-    redirect('/unauthorized')
+  const isGlobalAdmin = hasAdminAccess(session)
+  if (!isGlobalAdmin) {
+    const recruitmentAccess = await checkRecruitmentAccess(session)
+    if (!recruitmentAccess.authorized) {
+      redirect('/unauthorized')
+    }
   }
 
   return (
@@ -79,7 +84,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }
       `}</style>
       <div className="admin-layout-wrapper">
-        <AdminSidebar />
+        <AdminSidebar isGlobalAdmin={isGlobalAdmin} />
         <main className="admin-layout-main">
           <div className="admin-topbar">
             <Link href="/admin" className="admin-topbar-brand">

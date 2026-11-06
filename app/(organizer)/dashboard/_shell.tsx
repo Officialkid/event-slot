@@ -155,6 +155,14 @@ function IconPlus() {
   )
 }
 
+function IconSparkles() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+    </svg>
+  )
+}
+
 function IconDotsHorizontal() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
@@ -169,6 +177,7 @@ function IconDotsHorizontal() {
 
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
+  { labelKey: "assistant", href: "/dashboard/assistant", icon: <IconSparkles />, exact: false },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
   { labelKey: "history", href: "/dashboard/history", icon: <IconHistory />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
@@ -188,6 +197,7 @@ const MOBILE_TAB_ITEMS = [
 
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
+  if (pathname.startsWith("/dashboard/assistant")) return "EventSlot Assistant"
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
   if (pathname.startsWith("/dashboard/history")) return getI18nMessage(language, "history")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
@@ -267,10 +277,10 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-hdr-logo"
           style={{ textDecoration: "none", display: "inline-block", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--text-primary)" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--text-primary)" }}>
             Event
           </span>
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--accent)" }}>
             Slot
           </span>
         </Link>
@@ -279,7 +289,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-logo-e"
           style={{ textDecoration: "none", display: "none", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>E</span>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--accent)" }}>E</span>
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -457,7 +467,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
       >
         {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
-          const label = t(item.labelKey)
+          const label = (item.labelKey as string) === "assistant" ? "EventSlot Assistant" : t(item.labelKey as I18nMessageKey)
           const tutorialTarget =
             item.href === "/dashboard/events"
               ? "my-events-nav"
@@ -1487,7 +1497,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       >
         {MOBILE_TAB_ITEMS.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
-          const label = t(item.labelKey)
+          const label = (item.labelKey as string) === "assistant" ? "EventSlot Assistant" : t(item.labelKey as I18nMessageKey)
           return (
             <Link
               key={item.href}

@@ -1,78 +1,30 @@
 import type { Metadata } from "next"
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowRight, CheckCircle2, QrCode, Sparkles, Users2 } from "lucide-react"
 import { MarketingFooter } from "@/components/MarketingFooter"
-import SmartCTA from "@/components/SmartCTA"
-import { MobileInstallButton } from "@/components/MobileInstallButton"
 import { EarlyTesterPrompt } from "@/components/marketing/EarlyTesterPrompt"
-import prisma from "@/lib/prisma"
+import { SpatialHero } from "@/components/marketing/SpatialHero"
+import { InteractiveDemonstrationEngine } from "@/components/marketing/InteractiveDemonstrationEngine"
+import { WhyEventSlotGrid } from "@/components/marketing/WhyEventSlotGrid"
+import { JourneyFinalCTA } from "@/components/marketing/JourneyFinalCTA"
 
 export const metadata: Metadata = {
-  title: "EventSlot - Smart Event Registration Platform with Built-in Waitlist",
+  title: "EventSlot — Smart Event Registration & Waitlist Platform",
   description:
-    "The fastest event registration system with automatic waitlist management. Create an event, share one link, and let EventSlot handle registrations, confirmations, and waitlists automatically.",
+    "The modern event registration system with automated capacity waitlists, instant mobile QR door check-in, and clear organizer analytics. Run your event without spreadsheets.",
   alternates: { canonical: "https://www.eventsslot.com" },
   openGraph: {
-    title: "EventSlot - Smart Event Registration Platform with Built-in Waitlist",
+    title: "EventSlot — Smart Event Registration & Waitlist Platform",
     description:
-      "Create events, share one link, and fill slots automatically. EventSlot manages registrations and waitlists without spreadsheets.",
+      "Every great event starts with a better experience. Create events, share one link, and let capacity flow automatically.",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "EventSlot Event Registration Platform" }],
   },
 }
 
-const heroStats = [
-  { label: "Setup time", value: "Under 10 min" },
-  { label: "Check-in ready", value: "QR and walk-in" },
-  { label: "Organizer view", value: "Live dashboard" },
-]
-
-const featureCards = [
-  {
-    icon: Users2,
-    title: "Registrations and waitlist in one flow",
-    description:
-      "Keep capacity under control, promote waitlisted guests automatically, and stop chasing spreadsheets before every event.",
-  },
-  {
-    icon: QrCode,
-    title: "Fast door check-in for any crowd",
-    description:
-      "Use tickets, QR codes, or walk-in mode to move people through the entrance with a simple mobile-friendly flow.",
-  },
-  {
-    icon: Sparkles,
-    title: "Clean reporting after the event",
-    description:
-      "Track turnout, export attendance data, and see what actually happened so the next event starts from facts.",
-  },
-]
-
-const workflowSteps = [
-  {
-    step: "01",
-    title: "Create the event",
-    text: "Set the format, dates, venue, capacity, and any attendee questions in one place.",
-  },
-  {
-    step: "02",
-    title: "Share one public link",
-    text: "Invite attendees with a registration page or a walk-in QR flow that works well on mobile.",
-  },
-  {
-    step: "03",
-    title: "Run the day with confidence",
-    text: "Watch check-ins, manage capacity, and keep organizers updated from the dashboard as the event moves.",
-  },
-]
-
-const audiencePills = [
-  "Campus events",
-  "Church gatherings",
-  "Workshops",
-  "Conferences",
-  "Limited-capacity events",
-  "Open walk-ins",
+const trustItems = [
+  "Zero-Cost Free Entry",
+  "Automated Capacity Waitlist",
+  "Instant QR Door Check-In",
+  "Venue Walk-In Poster Mode",
+  "One-Click CSV & Attendance Exports",
 ]
 
 const jsonLd = [
@@ -93,17 +45,13 @@ const jsonLd = [
       priceCurrency: "KES",
       description: "Free plan available",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      reviewCount: "12",
-    },
     featureList: [
       "Event registration management",
       "Automatic waitlist system",
       "QR code ticket generation",
       "Confirmation tickets",
       "Organizer dashboard",
+      "Walk-in venue check-in mode",
     ],
   },
   {
@@ -116,259 +64,59 @@ const jsonLd = [
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://www.eventsslot.com/search?q={search_term_string}",
+        urlTemplate: "https://www.eventsslot.com/events?q={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },
   },
 ]
 
-async function isTesterPromptEnabled() {
-  try {
-    const settings = await prisma.appTesterSettings.findUnique({ where: { id: "default" } })
-    return settings?.promptEnabled ?? true
-  } catch {
-    return process.env.NEXT_PUBLIC_APP_TESTER_PROMPT_ENABLED !== "false"
-  }
-}
+const testerPromptEnabled = process.env.NEXT_PUBLIC_APP_TESTER_PROMPT_ENABLED !== "false"
 
-export default async function Home() {
-  const testerPromptEnabled = await isTesterPromptEnabled()
+export default function Home() {
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-primary)]">
+    <main className="min-h-screen bg-white text-[#0A0A0A] selection:bg-[rgba(200,245,90,0.4)] selection:text-[#0A0A0A]">
+      {/* Search Engine Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* Early Play Store Tester Prompt (Preserved) */}
       <EarlyTesterPrompt enabled={testerPromptEnabled} />
 
-      <section className="marketing-shell px-4 pb-10 pt-6 sm:px-6 lg:px-8 lg:pb-14 lg:pt-10">
-        <div className="marketing-panel marketing-grid overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
-          <div className="relative z-10 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center">
-            <div className="marketing-fade-up max-w-2xl">
-              <div className="marketing-eyebrow">
-                <span className="inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
-                Built for modern event teams
-              </div>
+      {/* 01. Signature Spatial Hero Section */}
+      <SpatialHero />
 
-              <h1 className="marketing-display-title mt-6 max-w-3xl font-semibold text-[var(--text-primary)]">
-                Run registration, waitlist, and walk-in check-in from one sharp system.
-              </h1>
-
-              <p className="mt-6 max-w-xl text-[1rem] leading-7 text-[var(--text-secondary)] sm:text-[1.05rem]">
-                EventSlot helps teams launch events quickly, control capacity, and keep the day
-                moving with a clean organizer dashboard that works on mobile too.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <Link href="/signup" className="marketing-button-primary">
-                  Try It Now
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/pricing" className="marketing-button-secondary">
-                  View pricing
-                </Link>
-                <div className="sm:w-auto">
-                  <MobileInstallButton />
-                </div>
-              </div>
-
-              <div className="mt-10 grid gap-3 sm:grid-cols-3">
-                {heroStats.map((item) => (
-                  <div key={item.label} className="marketing-stat-block">
-                    <div className="text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                      {item.label}
-                    </div>
-                    <div className="mt-2 text-[1.1rem] font-semibold text-[var(--text-primary)]">{item.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-2">
-                {audiencePills.map((item) => (
-                  <span key={item} className="marketing-chip">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="marketing-fade-up marketing-fade-up-delay-1 relative">
-              <div className="marketing-dashboard-frame">
-                <div className="marketing-window-bar">
-                  <span className="marketing-window-dot bg-[#F7685B]" />
-                  <span className="marketing-window-dot bg-[#F2C94C]" />
-                  <span className="marketing-window-dot bg-[#33D69F]" />
-                  <span className="ml-3 text-[0.7rem] text-[var(--text-muted)]">
-                    EventSlot organizer view
-                  </span>
-                </div>
-                <div className="relative px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-                  <div className="relative overflow-hidden rounded-[20px] border border-[var(--border-subtle)] bg-[var(--surface)]">
-                    <Image
-                      src="/assets/dashboard-laptop.png"
-                      alt="EventSlot dashboard preview"
-                      width={1400}
-                      height={900}
-                      priority
-                      className="h-auto w-full object-cover"
-                    />
-                  </div>
-
-                  <div className="absolute -bottom-4 right-0 hidden w-[34%] max-w-[220px] rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface)] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.18)] sm:block">
-                    <div className="overflow-hidden rounded-[16px] border border-[var(--border-subtle)] bg-[var(--surface)]">
-                      <Image
-                        src="/assets/organizer-mobile.png"
-                        alt="EventSlot mobile organizer preview"
-                        width={520}
-                        height={1000}
-                        className="h-auto w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-5 sm:px-6 lg:px-8">
+      {/* 02. Verified Capability Bar */}
+      <section className="border-y border-[#E5E7EB] bg-[#FAFAF9] py-4 px-4 sm:px-6 lg:px-8">
         <div className="marketing-shell flex flex-wrap items-center justify-between gap-4">
-          <div className="text-[0.82rem] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            Registration events, waitlists, and walk-in attendance
+          <div className="text-[0.76rem] font-bold uppercase tracking-[0.16em] text-[#166534] flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
+            Verified Capabilities
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.92rem] text-[var(--text-secondary)]">
-            <span>Free events</span>
-            <span>Ticket tiers</span>
-            <span>Live dashboard</span>
-            <span>Attendance exports</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="benefits" className="marketing-shell px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-          <div className="max-w-xl">
-            <div className="marketing-section-label">Core workflow</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]" style={{ color: "var(--text-primary)" }}>
-              Everything your team needs to build a calmer event day.
-            </h2>
-            <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]" style={{ color: "var(--text-secondary)" }}>
-              The product is designed around the moments that usually get messy: filling limited
-              slots, handling late demand, and counting who actually showed up.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {featureCards.map((card, index) => {
-              const Icon = card.icon
-              return (
-                <article
-                  key={card.title}
-                  className={`marketing-card marketing-fade-up ${index === 2 ? "md:col-span-2" : ""}`}
-                >
-                  <div className="marketing-icon-wrap">
-                    <Icon className="h-5 w-5 text-[var(--accent)]" />
-                  </div>
-                  <h3 className="mt-6 text-[1.2rem] font-semibold text-[var(--text-primary)]">{card.title}</h3>
-                  <p className="mt-3 max-w-xl text-[0.98rem] leading-7 text-[var(--text-secondary)]">
-                    {card.description}
-                  </p>
-                </article>
-              )
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="marketing-shell px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
-          <div className="marketing-card p-3 sm:p-4">
-            <div className="overflow-hidden rounded-[22px] border border-[var(--border-subtle)] bg-[var(--surface)]">
-              <Image
-                src="/assets/event-checkin.png"
-                alt="EventSlot walk-in check-in page"
-                width={1200}
-                height={820}
-                className="h-auto w-full object-cover"
-              />
-            </div>
-          </div>
-
-          <div className="max-w-xl">
-            <div className="marketing-section-label">Walk-in ready</div>
-            <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
-              Open a QR code, collect check-ins, and watch the count rise live.
-            </h2>
-            <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]">
-              Walk-in mode is built for real venues, not just tidy demos. Organizers can create the
-              event early, print the code ahead of time, and let attendees check in quickly when the
-              day arrives.
-            </p>
-
-            <ul className="mt-6 space-y-3">
-              {[
-                "Public mobile page for attendee check-in",
-                "Duplicate-safe daily attendance counts",
-                "Organizer dashboard with per-day totals",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[0.98rem] text-[var(--text-secondary)]">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[var(--border-subtle)] bg-[var(--surface-muted)] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <div className="marketing-shell">
-          <div className="marketing-section-label">How it works</div>
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            {workflowSteps.map((item) => (
-            <article key={item.step} className="marketing-card marketing-fade-up">
-                <div className="text-[0.8rem] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-                  Step {item.step}
-                </div>
-                <h3 className="mt-5 text-[1.2rem] font-semibold text-[var(--text-primary)]">{item.title}</h3>
-                <p className="mt-3 text-[0.98rem] leading-7 text-[var(--text-secondary)]">
-                  {item.text}
-                </p>
-              </article>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.85rem] text-[#475569] font-medium">
+            {trustItems.map((item) => (
+              <span key={item} className="flex items-center gap-2">
+                <span className="text-[#16A34A]">·</span>
+                <span>{item}</span>
+              </span>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="get-started" className="marketing-shell px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="marketing-panel overflow-hidden px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div className="max-w-2xl">
-              <div className="marketing-section-label">Get started</div>
-              <h2 className="marketing-section-title mt-4 font-semibold text-[var(--text-primary)]">
-                Launch the next event with a better front door.
-              </h2>
-              <p className="mt-5 text-[1rem] leading-7 text-[var(--text-secondary)]">
-                Start free, publish the event page, and give your team a cleaner way to manage
-                registrations, attendance, and follow-up after the event.
-              </p>
-            </div>
+      {/* 03. Interactive Product Demonstration Engine (Stages 1-6) */}
+      <InteractiveDemonstrationEngine />
 
-            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-              <SmartCTA className="marketing-button-primary justify-center">
-                Try It Now
-              </SmartCTA>
-              <Link href="/how-it-works" className="marketing-button-secondary">
-                Explore the workflow
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 04. Practical Benefits Grounded in Product Truth */}
+      <WhyEventSlotGrid />
 
+      {/* 05. Final High-Contrast Conversion Banner */}
+      <JourneyFinalCTA />
+
+      {/* 06. Official Marketing Footer */}
       <MarketingFooter />
     </main>
   )

@@ -135,3 +135,5 @@ export function EarlyTesterPrompt({ enabled = true }: { enabled?: boolean }) {
     </aside>
   )
 }
+
+export default EarlyTesterPrompt

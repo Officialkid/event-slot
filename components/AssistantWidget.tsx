@@ -80,14 +80,14 @@ export function AssistantWidget() {
 
   function renderMemoryPanel() {
     return (
-      <div className="border-b border-[#2A2A2A] bg-[#0A0A0A] px-4 py-3">
+      <div className="border-x border-b border-[#E2E8F0] dark:border-[#2A2A2A] bg-[#F8FAFC] dark:bg-[#0A0A0A] px-4 py-3">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-white text-xs font-medium">Conversation Memory</p>
+          <p className="text-[#0F172A] dark:text-white text-xs font-semibold">Conversation Memory</p>
           <button
             onClick={() => {
               void toggleMemory()
             }}
-            className={`relative w-10 h-5 rounded-full transition-colors ${memoryEnabled ? "bg-[var(--accent)]" : "bg-neutral-600"}`}
+            className={`relative w-10 h-5 rounded-full transition-colors ${memoryEnabled ? "bg-[#15803D]" : "bg-neutral-300 dark:bg-neutral-600"}`}
             aria-label="Toggle conversation memory"
           >
             <span
@@ -95,15 +95,15 @@ export function AssistantWidget() {
             />
           </button>
         </div>
-        <p className="text-[#525252] text-xs mb-2">
+        <p className="text-[#64748B] dark:text-[#525252] text-xs mb-2">
           {memoryEnabled
             ? "The assistant remembers your past conversations."
             : "Memory is off. Each session starts fresh."}
         </p>
-        <p className="text-[#6E6E6E] text-[11px] mb-2">
+        <p className="text-[#64748B] dark:text-[#6E6E6E] text-[11px] mb-1">
           Sessions remembered: {memorySessionCount}
         </p>
-        <p className="text-[#6E6E6E] text-[11px] mb-2">
+        <p className="text-[#64748B] dark:text-[#6E6E6E] text-[11px] mb-2">
           Last updated: {memoryLastUpdated ? new Date(memoryLastUpdated).toLocaleString("en-KE") : "Never"}
         </p>
         {memoryEnabled && (
@@ -111,7 +111,7 @@ export function AssistantWidget() {
             onClick={() => {
               void clearMemory()
             }}
-            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+            className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors font-medium"
           >
             Clear memory
           </button>
@@ -131,10 +131,10 @@ export function AssistantWidget() {
     <>
       <button
         onClick={() => setIsOpen((o) => !o)}
-        className="fixed bottom-28 right-6 z-50 h-14 w-14 rounded-full md:bottom-6
-                   bg-[var(--accent)] text-[var(--accent-contrast,#FFFFFF)] shadow-xl hover:opacity-90
-                   hover:scale-110 transition-all duration-200
-                   flex items-center justify-center"
+        className="fixed bottom-24 right-4 sm:right-6 md:bottom-8 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full
+                   bg-[#15803D] text-white shadow-xl hover:bg-[#166534]
+                   hover:scale-105 transition-all duration-200
+                   flex items-center justify-center border border-white/20"
         aria-label="Toggle EventSlot Assistant"
       >
         {isOpen ? (
@@ -149,11 +149,17 @@ export function AssistantWidget() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-44 right-4 z-50 w-[min(384px,calc(100vw-2rem))] sm:right-6 md:bottom-24">
-          <div className="flex items-center justify-end px-2 py-1 bg-[#0A0A0A] border border-[#2A2A2A] border-b-0 rounded-t-2xl">
+        <div className="fixed bottom-36 right-3 sm:right-6 md:bottom-24 z-50 w-[min(400px,calc(100vw-1.5rem))]">
+          <div className="flex items-center justify-between px-3.5 py-2 bg-[#F8FAFC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#2A2A2A] border-b-0 rounded-t-2xl shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />
+              <span className="text-xs font-semibold text-[#0F172A] dark:text-white">
+                Event<span className="text-[#15803D] dark:text-[#C8F55A]">Slot</span> Assistant
+              </span>
+            </div>
             <button
               onClick={() => setShowMemorySettings((previous) => !previous)}
-              className="text-xs text-[#525252] hover:text-[#A3A3A3] transition-colors"
+              className="text-xs text-[#64748B] hover:text-[#0F172A] dark:text-[#525252] dark:hover:text-[#A3A3A3] transition-colors p-1"
               title="Memory settings"
               aria-label="Memory settings"
             >

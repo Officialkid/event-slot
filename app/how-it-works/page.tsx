@@ -76,8 +76,8 @@ export default function HowItWorksPage() {
                 Try It Now
                 <ArrowRight className="h-4 w-4" />
               </SmartCTA>
-              <Link href="/pricing" className="marketing-button-secondary">
-                View pricing
+              <Link href="/events" className="marketing-button-secondary">
+                Browse events
               </Link>
             </div>
           </div>

@@ -1,56 +1,16 @@
-import { isAdminEmail } from '@/lib/isAdmin'
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
-import prisma from '@/lib/prisma'
-import { v4 as uuidv4 } from 'uuid'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { normalizeCommunityLink } from '@/lib/communityLink'
+import { isAdminEmail } from '@/lib/isAdmin'
 import { createEventSchema } from '@/lib/schemas/event.schema'
-import { encrypt } from '@/lib/encrypt'
-import { processFirstEventReferral, scoreEventCreation } from '@/lib/referral'
 import { detectCountry } from '@/lib/geoip'
-import { createCalendarEvent } from '@/lib/googleCalendar'
-import { APP_URL } from '@/lib/config'
-import { canCreateEvent } from '@/lib/planEnforcement'
-import { validateAndEncodeEventContact } from '@/lib/eventContact'
-import { normalizeTicketTiers, sumTierCapacity } from '@/lib/paidEvents'
-import { getEffectivePlanPolicy, getNextPlanKey } from '@/lib/effectivePlanPolicy'
-import { getPricingRolloutLabel } from '@/lib/pricingRollout'
-import { generateVerifierCode } from '@/lib/verifierCode'
-import { purgeUserCache } from '@/lib/cache'
-import { dispatchNewEventAnnouncements } from '@/services/notifications/followerAnnouncements'
-
-function generateSlug(title: string): string {
-  const base = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  const suffix = Math.random().toString(36).substring(2, 6)
-  return `${base}-${suffix}`
-}
-
-function getDurationMins(startIso: string | null | undefined, endIso: string | null | undefined) {
-  if (!startIso || !endIso) return 120
-  const diff = Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000)
-  return diff > 0 ? diff : 120
-}
+import { createEventDomainService } from '@/lib/events/event-creation-service'
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const enforcement = await canCreateEvent(session.user.id, session.user.email ?? '')
-    if (!enforcement.allowed) {
-      return NextResponse.json(
-        { error: enforcement.reason, upgradeRequired: enforcement.upgradeRequired, code: 'PLAN_LIMIT_EVENTS' },
-        { status: 403 }
-      )
     }
 
     let rawBody: unknown
@@ -88,398 +48,39 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const {
-      asOrganizationId,
-      timedDropEnabled,
-      ticketDropOpensAt,
-      ticketDropClosesAt,
-      dropWaitlistOnExpire,
-      title,
-      category,
-      description,
-      visibility,
-      accessType,
-      eventType,
-      virtualLink,
-      capacity,
-      deadline,
-      eventDate,
-      eventEndAt,
-      hasSpecificTime,
-      isMultiDay,
-      multiDaySchedule,
-      isRecurring,
-      recurrenceFrequency,
-      recurrenceDayOfWeek,
-      registrationOpensDays,
-      registrationOpensTime,
-      joinOpensAt,
-      location,
-      mapDirectionsUrl,
-      entryFeeLabel,
-      showRemainingSpots,
-      attendeeConsentEnabled,
-      attendeeConsentText,
-      isPaid,
-      ticketPrice,
-      ticketTiers,
-      communityLink,
-      whatsappNumber,
-      contactMode,
-      imageUrl,
-      questions,
-      organizerEmail,
-      organizerName,
-      groupRegistrationEnabled,
-      allowGroupSelfClaim,
-    } = parsed.data
-
-    const normalizedTitle = title.trim()
-    const normalizedOrganizerName = organizerName.trim()
-    const normalizedOrganizerEmail = (organizerEmail ?? '').trim()
-    const isWalkInEvent = accessType === 'WALK_IN'
-    const isRegistrationEvent = !isWalkInEvent
-    const rawVirtualLink = eventType === 'VIRTUAL' ? (virtualLink ?? '').trim() : ''
-    let normalizedVirtualLink = rawVirtualLink
-    if (rawVirtualLink && !/^https?:\/\//i.test(rawVirtualLink)) {
-      normalizedVirtualLink = `https://${rawVirtualLink}`
-    }
-
-    if (eventType === 'VIRTUAL') {
-      if (!normalizedVirtualLink) {
-        return NextResponse.json(
-          { success: false, error: 'A meeting link is required for virtual events.', field: 'virtualLink' },
-          { status: 400 }
-        )
-      }
-      try {
-        const parsedUrl = new URL(normalizedVirtualLink)
-        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-          throw new Error('Invalid protocol')
-        }
-      } catch {
-        return NextResponse.json(
-          { success: false, error: 'Please provide a valid meeting URL (e.g. Google Meet, Zoom, Microsoft Teams, or YouTube Live).', field: 'virtualLink' },
-          { status: 400 }
-        )
-      }
-    }
-
     const pregeneratedGoogleEventId =
       typeof rawBody === 'object' && rawBody !== null && 'googleEventId' in rawBody
         ? String((rawBody as { googleEventId?: unknown }).googleEventId || '').trim() || null
         : null
 
-    const computedJoinOpensAt =
-      eventType === 'VIRTUAL'
-        ? joinOpensAt
-          ? new Date(joinOpensAt)
-          : eventDate
-          ? new Date(new Date(eventDate).getTime() - 30 * 60 * 1000)
-          : undefined
-        : joinOpensAt
-        ? new Date(joinOpensAt)
-        : undefined
+    const eventCountryCode = await detectCountry(req).catch(() => null)
 
-    const normalizedTicketTiers = isPaid && isRegistrationEvent
-      ? normalizeTicketTiers(ticketTiers, { ticketPrice, capacity })
-      : []
-
-    if (isPaid && isRegistrationEvent && normalizedTicketTiers.length === 0) {
-      return NextResponse.json({ success: false, error: 'At least one ticket tier is required for paid events' }, { status: 400 })
-    }
-
-    if (isPaid && isRegistrationEvent && normalizedTicketTiers.some((tier) => tier.priceKes < 50 || tier.priceKes > 500000)) {
-      return NextResponse.json({ success: false, error: 'Each ticket tier must be between KSh 50 and KSh 500,000' }, { status: 400 })
-    }
-
-    if (isWalkInEvent && !imageUrl?.trim()) {
-      return NextResponse.json(
-        { success: false, error: 'Walk-in events need a poster image so the share card always includes one.' },
-        { status: 400 }
-      )
-    }
-
-    if (isWalkInEvent && visibility === 'PUBLIC') {
-      return NextResponse.json(
-        { success: false, error: 'Walk-in events stay private in this version.' },
-        { status: 400 }
-      )
-    }
-
-    if (visibility === 'PUBLIC' && !imageUrl?.trim()) {
-      return NextResponse.json(
-        { success: false, error: 'Public events require a poster image so they can appear on the Events page.' },
-        { status: 400 }
-      )
-    }
-
-    for (const question of isRegistrationEvent ? questions : []) {
-      const usesOptions = question.type === 'select' || question.type === 'checkbox'
-      if (usesOptions && (!Array.isArray(question.options) || question.options.length === 0)) {
-        return NextResponse.json({ success: false, error: `Question "${question.label}" needs at least one option` }, { status: 400 })
-      }
-    }
-
-    let organizerId: string | null = null
-    let sessionEmail = session.user.email ?? ''
-
-    const organizer = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, email: true, plan: true, name: true },
+    const result = await createEventDomainService({
+      actor: {
+        userId: session.user.id,
+        userEmail: session.user.email,
+        isAdmin: Boolean(session.user.email && isAdminEmail(session.user.email)),
+      },
+      input: parsed.data,
+      googleEventId: pregeneratedGoogleEventId,
+      countryCode: eventCountryCode,
+      sideEffects: true,
     })
 
-    if (organizer) {
-      organizerId = organizer.id
-      sessionEmail = organizer.email ?? sessionEmail
-    }
-
-    let eventOrganizerEmail = normalizedOrganizerEmail || sessionEmail || ''
-
-    if (asOrganizationId && asOrganizationId !== session.user.id) {
-      const isCallerAdmin = Boolean(session.user.email && isAdminEmail(session.user.email))
-      const membership = await prisma.teamMember.findFirst({
-        where: {
-          memberId: session.user.id,
-          ownerId: asOrganizationId,
-          status: 'accepted',
-        },
-      })
-
-      if (isCallerAdmin || membership) {
-        const targetOrg = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { id: asOrganizationId },
-              { email: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
-              { username: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
-            ],
-          },
-          select: { id: true, email: true, plan: true, name: true },
-        })
-        if (targetOrg) {
-          organizerId = targetOrg.id
-          if (!eventOrganizerEmail || eventOrganizerEmail === session.user.email) {
-            eventOrganizerEmail = targetOrg.email || sessionEmail
-          }
-        }
-      }
-    }
-
-    const effectivePlan = getEffectivePlanPolicy(organizer?.plan ?? 'free')
-    const requestedCapacity = isWalkInEvent
-      ? null
-      : isPaid
-        ? sumTierCapacity(normalizedTicketTiers)
-        : capacity
-
-    if (
-      isRegistrationEvent &&
-      !isPaid &&
-      effectivePlan.maxAttendeesPerEvent !== -1 &&
-      requestedCapacity &&
-      requestedCapacity > effectivePlan.maxAttendeesPerEvent
-    ) {
+    if (!result.success) {
+      const { status, success, ...rest } = result
       return NextResponse.json(
         {
           success: false,
-          error: `Your ${effectivePlan.displayName} plan currently includes up to ${effectivePlan.maxAttendeesPerEvent} attendees per event.`,
-          code: 'PLAN_LIMIT_ATTENDEES',
-          upgradeRequired: getNextPlanKey(organizer?.plan ?? 'free'),
-          limit: effectivePlan.maxAttendeesPerEvent,
-          pricingStartsAtLabel: getPricingRolloutLabel(),
+          ...rest,
         },
-        { status: 403 }
+        { status }
       )
     }
 
-    const slug = generateSlug(normalizedTitle)
-    const dashboardToken = uuidv4()
-    const verifierCode = generateVerifierCode()
-
-    const encryptedVirtualLink = normalizedVirtualLink ? encrypt(normalizedVirtualLink) : null
-    const eventCountryCode = await detectCountry(req).catch(() => null)
-    let storedEventContact: string | null = null
-    if (whatsappNumber?.trim()) {
-      const validatedContact = validateAndEncodeEventContact(whatsappNumber, contactMode ?? 'WHATSAPP')
-      if (!validatedContact.ok) {
-        return NextResponse.json({ success: false, error: validatedContact.error }, { status: 400 })
-      }
-      storedEventContact = validatedContact.stored
-    }
-
-    const event = await prisma.event.create({
-      data: {
-        title: normalizedTitle,
-        description,
-        visibility,
-        accessType,
-        eventType,
-        virtualLink: encryptedVirtualLink?.encrypted,
-        virtualLinkIv: encryptedVirtualLink?.iv,
-        capacity: isWalkInEvent ? null : isPaid ? sumTierCapacity(normalizedTicketTiers) : capacity,
-        deadline: isWalkInEvent ? null : deadline ? new Date(deadline) : undefined,
-        eventDate: eventDate ? new Date(eventDate) : undefined,
-        eventEndAt: eventEndAt ? new Date(eventEndAt) : isWalkInEvent && eventDate ? new Date(eventDate) : undefined,
-        hasSpecificTime: hasSpecificTime ?? true,
-        isMultiDay: isMultiDay ?? false,
-        multiDaySchedule: isMultiDay && Array.isArray(multiDaySchedule) ? multiDaySchedule : undefined,
-        isRecurring: isRecurring ?? false,
-        recurrenceFrequency: isRecurring ? (recurrenceFrequency || 'WEEKLY') : undefined,
-        recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : undefined,
-        registrationOpensDays: isRecurring ? (registrationOpensDays || 4) : undefined,
-        registrationOpensTime: isRecurring ? (registrationOpensTime || '08:00') : undefined,
-        joinOpensAt: computedJoinOpensAt,
-        location: eventType === 'VIRTUAL'
-          ? (normalizedVirtualLink.includes('meet.google.com')
-              ? 'Online - Google Meet'
-              : normalizedVirtualLink.includes('zoom.us')
-              ? 'Online - Zoom'
-              : normalizedVirtualLink.includes('teams.microsoft')
-              ? 'Online - Microsoft Teams'
-              : 'Online - Virtual Event')
-          : location || undefined,
-        mapDirectionsUrl: eventType === 'VIRTUAL' ? undefined : mapDirectionsUrl?.trim() || undefined,
-        entryFeeLabel: entryFeeLabel?.trim() || undefined,
-        showRemainingSpots: showRemainingSpots ?? true,
-        attendeeConsentEnabled: attendeeConsentEnabled ?? true,
-        attendeeConsentText: attendeeConsentText?.trim() || undefined,
-        isPaid: isWalkInEvent ? false : isPaid,
-        ticketPrice: isWalkInEvent ? undefined : isPaid ? normalizedTicketTiers[0]?.priceKes ?? Number(ticketPrice) : undefined,
-        paymentsLive: false,
-        ticketsEnabled: true,
-        communityLink: normalizeCommunityLink(communityLink) || undefined,
-        whatsappNumber: storedEventContact || undefined,
-        imageUrl: imageUrl || undefined,
-        groupRegistrationEnabled: groupRegistrationEnabled ?? false,
-        allowGroupSelfClaim: allowGroupSelfClaim ?? true,
-        questions: isWalkInEvent ? [] : questions,
-        organizerEmail: eventOrganizerEmail,
-        organizerName: normalizedOrganizerName,
-        slug,
-        dashboardToken,
-        verifierCode,
-        organizerId,
-        countryCode: eventCountryCode ?? undefined,
-        timedDropEnabled: timedDropEnabled ?? false,
-        ticketDropOpensAt: ticketDropOpensAt ? new Date(ticketDropOpensAt) : null,
-        ticketDropClosesAt: ticketDropClosesAt ? new Date(ticketDropClosesAt) : null,
-        dropWaitlistOnExpire: dropWaitlistOnExpire ?? true,
-        ticketTiers: isPaid && isRegistrationEvent
-          ? {
-              create: normalizedTicketTiers.map((tier, index) => ({
-                name: tier.name,
-                presetKey: tier.presetKey ?? undefined,
-                badgeColor: tier.badgeColor ?? undefined,
-                textColor: tier.textColor ?? undefined,
-                metallic: tier.metallic ?? undefined,
-                prestige: tier.prestige ?? undefined,
-                priceKes: tier.priceKes,
-                currency: tier.currency ?? "KES",
-                capacity: tier.capacity,
-                description: tier.description ?? undefined,
-                bundleSize: tier.bundleSize ?? 1,
-                sortOrder: index,
-              })),
-            }
-          : undefined,
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        dashboardToken: true,
-        verifierCode: true,
-        visibility: true,
-        accessType: true,
-        capacity: true,
-      },
-    } as any)
-
-    if (organizerId) {
-      try {
-        const existingEvents = await prisma.event.count({
-          where: { organizerId },
-        })
-
-        if (existingEvents === 1) {
-          await processFirstEventReferral(organizerId)
-        }
-
-        await scoreEventCreation(organizerId)
-      } catch (rewardErr) {
-        console.warn('[events][community-rewards] failed to process:', rewardErr)
-      }
-    }
-
-    if (pregeneratedGoogleEventId && organizerId) {
-      await prisma.calendarEventSync.upsert({
-        where: {
-          userId_eventId_role: {
-            userId: organizerId,
-            eventId: event.id,
-            role: 'organiser',
-          },
-        },
-        update: {
-          googleEventId: pregeneratedGoogleEventId,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-        },
-        create: {
-          userId: organizerId,
-          eventId: event.id,
-          googleEventId: pregeneratedGoogleEventId,
-          role: 'organiser',
-          syncStatus: 'synced',
-        },
-      }).catch(console.error)
-    }
-
-    // Auto-push to organiser's Google Calendar if not pregenerated
-    if (!pregeneratedGoogleEventId && organizerId && eventDate) {
-      createCalendarEvent({
-        userId:       organizerId,
-        eventSlotId:  event.id,
-        role:         'organiser',
-        title:        `[EventSlot] ${normalizedTitle}`,
-        description:  `${description ?? ''}\n\nManage event: ${APP_URL}/dashboard/events/${event.slug}`,
-        location:     eventType === 'VIRTUAL' ? 'Online - Google Meet' : location || null,
-        startDate:    new Date(eventDate),
-        durationMins: getDurationMins(eventDate, eventEndAt),
-        eventUrl:     `${APP_URL}/dashboard/events/${event.slug}`,
-        isVirtual:    eventType === 'VIRTUAL',
-        meetingLink:  eventType === 'VIRTUAL' ? normalizedVirtualLink : null,
-      }).catch(console.error)
-    }
-
-    if (session.user.id) {
-      purgeUserCache(session.user.id, session.user.email ?? null)
-    }
-
-    // Trigger new-event notifications to followers if event is public & active (fire-and-forget)
-    void dispatchNewEventAnnouncements(event.id).catch(console.error)
-
-    return NextResponse.json({ success: true, event }, { status: 201 })
+    return NextResponse.json({ success: true, event: result.event }, { status: 201 })
   } catch (err) {
-    console.error('[events/POST] Error creating event:', err)
-
-    if (err instanceof Prisma.PrismaClientKnownRequestError) {
-      if (err.code === 'P2002') {
-        return NextResponse.json(
-          { success: false, error: 'A similar event already exists. Please retry.' },
-          { status: 409 }
-        )
-      }
-
-      if (err.code === 'P1001' || err.code === 'P1002') {
-        return NextResponse.json(
-          { success: false, error: 'Database is temporarily unavailable. Please try again shortly.' },
-          { status: 503 }
-        )
-      }
-    }
-
+    console.error('[events/POST] Unexpected error creating event:', err)
     const errorMessage = err instanceof Error ? err.message : 'Failed to create event. Please try again.'
     return NextResponse.json(
       { success: false, error: errorMessage },

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 
 const navItems = [
   { label: "Overview", href: "/admin" },
+  { label: "Careers & Recruitment", href: "/admin/recruitment" },
   { label: "Users", href: "/admin/users" },
   { label: "Events", href: "/admin/events" },
   { label: "Messages", href: "/admin/messages" },
@@ -23,11 +24,15 @@ const navItems = [
   { label: "Payment Tests", href: "/admin/test/payments" },
 ]
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isGlobalAdmin = true }: { isGlobalAdmin?: boolean }) {
   const pathname = usePathname()
   const [flaggedCount, setFlaggedCount] = useState(0)
   const [pendingTesterCount, setPendingTesterCount] = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const visibleNavItems = isGlobalAdmin
+    ? navItems
+    : navItems.filter((item) => item.href === "/admin/recruitment")
 
   useEffect(() => {
     let cancelled = false
@@ -160,7 +165,7 @@ export default function AdminSidebar() {
       </div>
 
       <nav style={{ padding: "1.25rem 0.75rem", flex: 1, overflowY: "auto" }}>
-        {navItems.map(item => {
+        {visibleNavItems.map(item => {
           const isActive = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href)
           return (
             <Link

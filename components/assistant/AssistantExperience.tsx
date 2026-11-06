@@ -2,6 +2,8 @@
 
 import Image from "next/image"
 import { useState, useRef, useEffect, useCallback } from "react"
+import type { EventDraftPreview } from "@/lib/assistant/draft-preparation"
+import { EventDraftPreviewCard } from "@/components/assistant/EventDraftPreviewCard"
 
 type AssistantExperienceProps = {
   fullPage?: boolean
@@ -14,6 +16,26 @@ type Message = {
   timestamp: Date
   isVoice?: boolean
   images?: string[]
+  draftPreview?: EventDraftPreview | null
+  proposalId?: string | null
+  idempotencyKey?: string | null
+  confirmedEventResult?: {
+    id: string
+    title: string
+    slug: string
+    sideEffectsDeliveryStatus?: "ALL_DISPATCHED" | "PARTIALLY_DISPATCHED" | "FAILED" | "NONE"
+  } | null
+  proposalStatus?: "PENDING" | "EXECUTING" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "FAILED" | null
+  confirmationError?: string | null
+}
+
+function isEventDraftPreview(value: unknown): value is EventDraftPreview {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    typeof (value as { draftId?: unknown }).draftId === "string" &&
+    (value as { isLiveEvent?: unknown }).isLiveEvent === false
+  )
 }
 
 export function AssistantExperience({ fullPage = false, onClose }: AssistantExperienceProps) {
@@ -25,6 +47,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmingProposalId, setConfirmingProposalId] = useState<string | null>(null)
 
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null)
   const [quotaExceeded, setQuotaExceeded] = useState(false)
@@ -120,8 +143,28 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     }
   }
 
-  function addMessage(role: "user" | "assistant", content: string, images?: string[], isVoice = false) {
-    setMessages((prev) => [...prev, { role, content, timestamp: new Date(), images, isVoice }])
+  function addMessage(
+    role: "user" | "assistant",
+    content: string,
+    images?: string[],
+    isVoice = false,
+    draftPreview?: EventDraftPreview | null,
+    proposalId?: string | null,
+    idempotencyKey?: string | null
+  ) {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role,
+        content,
+        timestamp: new Date(),
+        images,
+        isVoice,
+        draftPreview,
+        proposalId,
+        idempotencyKey,
+      },
+    ])
   }
 
   const startSession = useCallback(async (selectedChannel: "text" | "voice") => {
@@ -205,10 +248,132 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         return
       }
 
-      addMessage("assistant", typeof data.reply === "string" ? data.reply : "I had trouble processing that. Please try again.")
+      const draftPreview = isEventDraftPreview(data.draftPreview) ? data.draftPreview : null
+      const proposalObj =
+        data.proposal && typeof data.proposal === "object"
+          ? (data.proposal as { proposalId?: string; idempotencyKey?: string })
+          : null
+
+      addMessage(
+        "assistant",
+        typeof data.reply === "string" ? data.reply : "I had trouble processing that. Please try again.",
+        undefined,
+        false,
+        draftPreview,
+        proposalObj?.proposalId ?? null,
+        proposalObj?.idempotencyKey ?? null
+      )
       if (data.sessionEnded === true) setSessionEnded(true)
     } catch {
       addMessage("assistant", "I'm having trouble responding right now. Please try again shortly.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleConfirmCreation(proposalId: string, idempotencyKey: string) {
+    if (!sessionId || loading || confirmingProposalId) return
+    setLoading(true)
+    setConfirmingProposalId(proposalId)
+    try {
+      const res = await fetch("/api/assistant/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          actionType: "CONFIRM_ACTION",
+          proposalId,
+          idempotencyKey,
+        }),
+      })
+      const data = await parseJsonSafely(res)
+      if (data.ok && data.createdEvent && typeof data.createdEvent === "object") {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.draftPreview
+              ? {
+                  ...m,
+                  confirmedEventResult: {
+                    id: String((data.createdEvent as Record<string, unknown>).id),
+                    title: String((data.createdEvent as Record<string, unknown>).title),
+                    slug: String((data.createdEvent as Record<string, unknown>).slug),
+                    sideEffectsDeliveryStatus: data.sideEffectsDeliveryStatus as any,
+                  },
+                  proposalStatus: "COMPLETED",
+                  confirmationError: null,
+                }
+              : m
+          )
+        )
+      } else {
+        const status =
+          data.code === "PROPOSAL_CANCELLED"
+            ? "CANCELLED"
+            : data.code === "PROPOSAL_EXPIRED"
+            ? "EXPIRED"
+            : "FAILED"
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.draftPreview
+              ? {
+                  ...m,
+                  proposalStatus: status,
+                  confirmationError:
+                    typeof data.reply === "string"
+                      ? data.reply
+                      : typeof data.error === "string"
+                      ? data.error
+                      : "Event creation could not be completed.",
+                }
+              : m
+          )
+        )
+      }
+      addMessage(
+        "assistant",
+        typeof data.reply === "string" ? data.reply : "Action completed."
+      )
+    } catch {
+      addMessage("assistant", "I'm having trouble executing that confirmation right now.")
+    } finally {
+      setLoading(false)
+      setConfirmingProposalId(null)
+    }
+  }
+
+  async function handleCancelProposal(proposalId: string) {
+    if (!sessionId || loading || confirmingProposalId) return
+    setLoading(true)
+    try {
+      const res = await fetch("/api/assistant/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          actionType: "CANCEL_ACTION",
+          proposalId,
+        }),
+      })
+      const data = await parseJsonSafely(res)
+      if (data.ok) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.draftPreview
+              ? {
+                  ...m,
+                  proposalStatus: "CANCELLED",
+                  confirmationError: null,
+                }
+              : m
+          )
+        )
+      }
+      addMessage(
+        "assistant",
+        typeof data.reply === "string" ? data.reply : "Action cancelled."
+      )
+    } catch {
+      addMessage("assistant", "I'm having trouble cancelling that action right now.")
     } finally {
       setLoading(false)
     }
@@ -358,15 +523,15 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-[#2A2A2A] bg-[#141414]"
+      className="flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-[#E2E8F0] dark:border-[#2A2A2A] bg-white dark:bg-[#141414] text-[#0F172A] dark:text-[#F0EDE6]"
       style={fullPage ? { width: "100%", height: "calc(100dvh - 8.5rem)" } : { width: "min(384px, calc(100vw - 2rem))", height: "min(560px, calc(100dvh - 8rem))" }}
     >
-      <div className="flex items-center justify-between px-4 py-3 bg-[#0A0A0A] border-b border-[#2A2A2A]">
+      <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] dark:bg-[#0A0A0A] border-b border-[#E2E8F0] dark:border-[#2A2A2A]">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-          <span className="text-sm font-semibold text-white">
-            Event<span className="text-[#C8F55A]">Slot</span>
-            <span className="text-[#A3A3A3] font-normal"> Assistant</span>
+          <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />
+          <span className="text-sm font-semibold text-[#0F172A] dark:text-white">
+            Event<span className="text-[#15803D] dark:text-[#C8F55A]">Slot</span>
+            <span className="text-[#64748B] dark:text-[#A3A3A3] font-normal"> Assistant</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -375,28 +540,23 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
               type="button"
               onClick={() => void toggleMemory()}
               disabled={memoryBusy}
-              className={`text-[11px] border rounded-full px-2 py-0.5 transition-colors ${
+              className={`text-[11px] border rounded-full px-2.5 py-0.5 transition-colors ${
                 memoryEnabled
-                  ? "border-[#C8F55A]/70 text-[#C8F55A]"
-                  : "border-[#3A3A3A] text-[#7A7A7A] hover:text-[#A3A3A3]"
+                  ? "border-[#15803D]/60 bg-[#15803D]/10 text-[#15803D] dark:border-[#C8F55A]/70 dark:bg-transparent dark:text-[#C8F55A]"
+                  : "border-[#E2E8F0] bg-white text-[#64748B] dark:border-[#3A3A3A] dark:bg-transparent dark:text-[#7A7A7A] hover:text-[#0F172A] dark:hover:text-[#A3A3A3]"
               } disabled:opacity-50`}
               title={memoryEnabled ? "Assistant memory is ON" : "Assistant memory is OFF"}
             >
               Memory {memoryEnabled ? "ON" : "OFF"}
             </button>
           )}
-          {creditsRemaining !== null && !quotaExceeded && (
-            <span className="text-xs" style={{ color: creditColor }}>
-              {creditsRemaining} credits
-            </span>
-          )}
           {sessionId && !sessionEnded && (
-            <button onClick={endSession} className="text-xs text-[#525252] hover:text-[#A3A3A3] transition-colors">
+            <button onClick={endSession} className="text-xs text-[#64748B] hover:text-[#0F172A] dark:text-[#525252] dark:hover:text-[#A3A3A3] transition-colors">
               End
             </button>
           )}
           {onClose && (
-            <button onClick={onClose} aria-label="Close assistant" className="text-xs text-[#525252] hover:text-[#A3A3A3] transition-colors">
+            <button onClick={onClose} aria-label="Close assistant" className="text-xs text-[#64748B] hover:text-[#0F172A] dark:text-[#525252] dark:hover:text-[#A3A3A3] transition-colors">
               Close
             </button>
           )}
@@ -422,8 +582,10 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                    msg.role === "user" ? "bg-[#C8F55A] text-black rounded-br-sm" : "bg-[#1E1E1E] text-[#E5E5E5] rounded-bl-sm"
+                  className={`${
+                    msg.draftPreview ? "w-full max-w-[95%]" : "max-w-[82%]"
+                  } rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    msg.role === "user" ? "bg-[#15803D] text-white rounded-br-sm shadow-sm" : "bg-[#F1F5F9] dark:bg-[#1E1E1E] text-[#0F172A] dark:text-[#E5E5E5] rounded-bl-sm border border-[#E2E8F0] dark:border-transparent"
                   }`}
                 >
                   {msg.isVoice && <span className="block text-xs opacity-50 mb-1">Voice</span>}
@@ -443,19 +605,33 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                     </div>
                   )}
                   <p style={{ whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                  {msg.role === "assistant" && msg.draftPreview && (
+                    <EventDraftPreviewCard
+                      preview={msg.draftPreview}
+                      proposalId={msg.proposalId}
+                      idempotencyKey={msg.idempotencyKey}
+                      onSuggestCorrection={(promptText) => setInput(promptText)}
+                      onConfirmCreation={handleConfirmCreation}
+                      onCancelProposal={handleCancelProposal}
+                      isConfirming={confirmingProposalId === msg.proposalId || loading}
+                      confirmedEventResult={msg.confirmedEventResult}
+                      proposalStatus={msg.proposalStatus}
+                      errorMessage={msg.confirmationError}
+                    />
+                  )}
                 </div>
               </div>
             ))}
 
             {(loading || transcribing) && sessionId && (
               <div className="flex justify-start">
-                <div className="bg-[#1E1E1E] rounded-2xl rounded-bl-sm px-4 py-3">
+                <div className="bg-[#F1F5F9] dark:bg-[#1E1E1E] rounded-2xl rounded-bl-sm px-4 py-3 border border-[#E2E8F0] dark:border-transparent">
                   {transcribing ? (
-                    <span className="text-xs text-[#525252] animate-pulse">Transcribing...</span>
+                    <span className="text-xs text-[#64748B] dark:text-[#525252] animate-pulse">Transcribing...</span>
                   ) : (
                     <div className="flex gap-1">
                       {[0, 1, 2].map((i) => (
-                        <div key={i} className="w-2 h-2 rounded-full bg-[#525252] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                        <div key={i} className="w-2 h-2 rounded-full bg-[#94A3B8] dark:bg-[#525252] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                       ))}
                     </div>
                   )}
@@ -466,11 +642,11 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
           </div>
 
           {showFeedback && !feedbackSubmitted && (
-            <div className="border-t border-[#2A2A2A] p-4 bg-[#0A0A0A]">
-              <p className="text-white text-xs font-semibold mb-2">How was your experience?</p>
+            <div className="border-t border-[#E2E8F0] dark:border-[#2A2A2A] p-4 bg-[#F8FAFC] dark:bg-[#0A0A0A]">
+              <p className="text-[#0F172A] dark:text-white text-xs font-semibold mb-2">How was your experience?</p>
               <div className="flex gap-1 mb-3">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button key={star} onClick={() => setFeedbackRating(star)} className={`text-xl transition-all ${star <= feedbackRating ? "text-[#C8F55A]" : "text-[#2A2A2A]"}`}>
+                  <button key={star} onClick={() => setFeedbackRating(star)} className={`text-xl transition-all ${star <= feedbackRating ? "text-[#15803D] dark:text-[#C8F55A]" : "text-[#CBD5E1] dark:text-[#2A2A2A]"}`}>
                     ★
                   </button>
                 ))}
@@ -482,9 +658,9 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                     onChange={(e) => setFeedbackComment(e.target.value.slice(0, 200))}
                     placeholder="Any comments? (optional)"
                     rows={2}
-                    className="w-full bg-[#141414] border border-[#2A2A2A] rounded-lg px-3 py-2 text-white text-xs placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] resize-none mb-2"
+                    className="w-full bg-white dark:bg-[#141414] border border-[#E2E8F0] dark:border-[#2A2A2A] rounded-lg px-3 py-2 text-[#0F172A] dark:text-white text-xs placeholder:text-[#94A3B8] dark:placeholder:text-[#525252] focus:outline-none focus:border-[#15803D] dark:focus:border-[#C8F55A] resize-none mb-2"
                   />
-                  <button onClick={submitFeedback} className="w-full bg-[#C8F55A] text-black text-xs font-bold py-2 rounded-lg hover:bg-[#b8e040] transition-colors">
+                  <button onClick={submitFeedback} className="w-full bg-[#15803D] dark:bg-[#C8F55A] text-white dark:text-black text-xs font-bold py-2 rounded-lg hover:bg-[#166534] dark:hover:bg-[#b8e040] transition-colors">
                     Submit Feedback
                   </button>
                 </>
@@ -516,7 +692,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
           )}
 
           {!sessionEnded && !quotaExceeded && (
-            <div className="border-t border-[#2A2A2A] p-3">
+            <div className="border-t border-[#E2E8F0] dark:border-[#2A2A2A] p-3 bg-white dark:bg-[#141414]">
               {imagePreviews.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-2">
                   {imagePreviews.map((src, i) => (
@@ -545,7 +721,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                   onClick={() => fileInputRef.current?.click()}
                   disabled={pendingImages.length >= 3 || loading}
                   title="Upload screenshot (max 3, 4MB each)"
-                  className="w-9 h-9 rounded-full bg-[#2A2A2A] flex items-center justify-center text-sm flex-shrink-0 hover:bg-[#3A3A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-9 h-9 rounded-full bg-[#F1F5F9] dark:bg-[#2A2A2A] text-[#475569] dark:text-[#E5E5E5] flex items-center justify-center text-sm flex-shrink-0 hover:bg-[#E2E8F0] dark:hover:bg-[#3A3A3A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   📎
                 </button>
@@ -558,7 +734,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                   onTouchStart={startRecording}
                   onTouchEnd={stopRecording}
                   disabled={loading || transcribing || !sessionId}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-sm ${recording ? "bg-red-500 scale-110 animate-pulse" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"} disabled:opacity-50`}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all text-sm ${recording ? "bg-red-500 scale-110 animate-pulse text-white" : "bg-[#F1F5F9] dark:bg-[#2A2A2A] text-[#475569] dark:text-[#E5E5E5] hover:bg-[#E2E8F0] dark:hover:bg-[#3A3A3A]"} disabled:opacity-50`}
                 >
                   🎙️
                 </button>
@@ -575,24 +751,17 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                   disabled={loading || transcribing || !sessionId}
                   placeholder={pendingImages.length > 0 ? "Add a message about this screenshot..." : "Type or attach a screenshot..."}
                   rows={1}
-                  className="flex-1 bg-[#0A0A0A] border border-[#2A2A2A] rounded-xl px-3 py-2 text-white text-sm placeholder:text-[#525252] focus:outline-none focus:border-[#C8F55A] resize-none transition-colors disabled:opacity-50"
+                  className="flex-1 bg-[#F8FAFC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#2A2A2A] rounded-xl px-3 py-2 text-[#0F172A] dark:text-white text-sm placeholder:text-[#94A3B8] dark:placeholder:text-[#525252] focus:outline-none focus:border-[#15803D] dark:focus:border-[#C8F55A] resize-none transition-colors disabled:opacity-50"
                 />
 
                 <button
                   onClick={() => void sendMessage(input)}
                   disabled={(!input.trim() && pendingImages.length === 0) || loading || transcribing || !sessionId}
-                  className="w-9 h-9 rounded-full bg-[#C8F55A] text-black flex items-center justify-center flex-shrink-0 hover:bg-[#b8e040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
+                  className="w-9 h-9 rounded-full bg-[#15803D] dark:bg-[#C8F55A] text-white dark:text-black flex items-center justify-center flex-shrink-0 hover:bg-[#166534] dark:hover:bg-[#b8e040] transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
                 >
                   ↑
                 </button>
               </div>
-
-              {creditsRemaining !== null && (
-                <p className="text-xs text-center mt-1.5" style={{ color: creditColor }}>
-                  {creditsRemaining} of 20 credits remaining
-                  {pendingImages.length > 0 && ` · images cost ${pendingImages.length * 3} credits`}
-                </p>
-              )}
             </div>
           )}
         </>
