@@ -149,8 +149,8 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
       compensation,
       shortSummary,
       description,
-      responsibilities,
-      qualifications,
+      responsibilities: responsibilities || "",
+      qualifications: qualifications || "",
       skills: skillsArray,
       status: submitStatus,
       opensAt: opensAt ? new Date(opensAt).toISOString() : null,
@@ -201,27 +201,27 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
           <span>Back to Vacancies</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => handleSubmit("DRAFT")}
             disabled={loading}
-            className="rounded-full border border-[#D1D5DB] bg-white px-5 py-2 text-xs font-semibold text-[#374151] hover:border-[#15803D] transition shadow-sm disabled:opacity-50"
+            className="rounded-full border border-[#D1D5DB] bg-white px-5 py-2 text-xs font-semibold text-[#374151] hover:border-[#15803D] transition shadow-xs disabled:opacity-50"
           >
-            Save Draft
+            Save as Draft
           </button>
           <button
             type="button"
             onClick={() => handleSubmit("PUBLISHED")}
             disabled={loading}
-            className="rounded-full bg-[#C8F55A] px-6 py-2 text-xs font-bold text-[#0A0A0A] hover:bg-[#b8e040] transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+            className="rounded-full bg-[#C8F55A] px-6 py-2 text-xs font-bold text-[#0A0A0A] hover:bg-[#b8e040] transition shadow-sm disabled:opacity-50"
           >
-            <Save className="h-3.5 w-3.5" />
-            <span>Publish Vacancy</span>
+            {isEditing ? "Update & Publish" : "Publish Vacancy"}
           </button>
         </div>
       </div>
 
+      {/* Notifications */}
       {error && (
         <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-xs text-[#991B1B] flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0 text-[#DC2626]" />
@@ -236,11 +236,16 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
         </div>
       )}
 
-      {/* 1. Basic Information */}
+      {/* 1. Basic Opportunity Info */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm space-y-5">
-        <h3 className="text-base font-bold text-[#0A0A0A] border-b border-[#F1F5F9] pb-3">
-          1. Basic Information
-        </h3>
+        <div className="border-b border-[#F1F5F9] pb-3">
+          <h3 className="text-base font-bold text-[#0A0A0A]">
+            1. Role Identity &amp; Opportunity Taxonomy
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            Core details that categorize this opening across the public portal.
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -252,7 +257,7 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
               required
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
-              placeholder="e.g. Senior Backend Engineer"
+              placeholder="e.g. Senior Frontend Engineer"
               className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
@@ -262,16 +267,16 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
               URL Slug *
             </label>
             <div className="flex rounded-xl border border-[#D1D5DB] bg-[#F8FAFC] overflow-hidden focus-within:border-[#15803D]">
-              <span className="px-3 py-2.5 text-xs text-[#94A3B8] border-r border-[#E2E8F0]">
+              <span className="px-3 py-2.5 text-xs text-[#64748B] select-none border-r border-[#E2E8F0]">
                 /careers/
               </span>
               <input
                 type="text"
                 required
                 value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="senior-backend-engineer"
-                className="w-full px-3 py-2.5 text-sm bg-transparent text-[#0A0A0A] focus:outline-none"
+                onChange={(e) => setSlug(autoSlug(e.target.value))}
+                placeholder="senior-frontend-engineer"
+                className="w-full bg-white px-3 py-2.5 text-xs text-[#0A0A0A] focus:outline-none"
               />
             </div>
           </div>
@@ -283,11 +288,11 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
+              className="w-full rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             >
               {OPPORTUNITY_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
-                  {t.label}
+                  {t.label} — {t.description}
                 </option>
               ))}
             </select>
@@ -302,23 +307,23 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
               required
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              placeholder="e.g. Engineering, Design, Community"
+              placeholder="e.g. Engineering, Marketing, Operations"
               className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Work Arrangement
+              Work Arrangement *
             </label>
             <select
               value={workArrangement}
               onChange={(e) => setWorkArrangement(e.target.value)}
-              className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
+              className="w-full rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             >
-              {WORK_ARRANGEMENTS.map((w) => (
-                <option key={w.value} value={w.value}>
-                  {w.label}
+              {WORK_ARRANGEMENTS.map((wa) => (
+                <option key={wa.value} value={wa.value}>
+                  {wa.label}
                 </option>
               ))}
             </select>
@@ -326,13 +331,14 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Location
+              Primary Location *
             </label>
             <input
               type="text"
+              required
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g. Nairobi, Kenya / Remote (Africa)"
+              placeholder="e.g. Nairobi, Kenya or Remote"
               className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
@@ -379,81 +385,96 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
 
           <div className="sm:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Full Description *
+              About the Role / Full Description *
             </label>
             <textarea
               required
-              rows={5}
+              rows={6}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Detailed description of the opportunity and team context..."
+              placeholder="Detailed description of the opportunity, team context, and mission. (You may paste your full job description here)..."
               className="w-full rounded-xl border border-[#D1D5DB] p-3 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
 
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Key Responsibilities *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#475569]">
+                Key Responsibilities (Optional)
+              </label>
+              <span className="text-[0.68rem] text-[#64748B]">
+                Optional if already covered in Full Description above
+              </span>
+            </div>
             <textarea
-              required
-              rows={5}
+              rows={4}
               value={responsibilities}
               onChange={(e) => setResponsibilities(e.target.value)}
-              placeholder="List the key deliverables and daily responsibilities..."
+              placeholder="Specific daily responsibilities or deliverables (optional if included in description)..."
               className="w-full rounded-xl border border-[#D1D5DB] p-3 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
 
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Qualifications &amp; Requirements *
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#475569]">
+                Qualifications &amp; Requirements (Optional)
+              </label>
+              <span className="text-[0.68rem] text-[#64748B]">
+                Optional if already covered in Full Description above
+              </span>
+            </div>
             <textarea
-              required
-              rows={5}
+              rows={4}
               value={qualifications}
               onChange={(e) => setQualifications(e.target.value)}
-              placeholder="Requirements, experience levels, and practical competencies..."
+              placeholder="Required education, experience levels, and practical competencies (optional if included in description)..."
               className="w-full rounded-xl border border-[#D1D5DB] p-3 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
 
           <div className="sm:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Key Skills Tags (Comma-separated)
+              Skills &amp; Competencies (Comma-separated)
             </label>
             <input
               type="text"
               value={skillsText}
               onChange={(e) => setSkillsText(e.target.value)}
-              placeholder="e.g. Next.js, TypeScript, PostgreSQL, Prisma, Event Operations"
+              placeholder="e.g. Accounting, Bookkeeping, Financial Reporting, Excel, Tax Compliance"
               className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
           </div>
         </div>
       </section>
 
-      {/* 2. Schedule, Deadlines & Document Requirements */}
+      {/* 2. Schedule, Lifecycle & Documents */}
       <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm space-y-5">
-        <h3 className="text-base font-bold text-[#0A0A0A] border-b border-[#F1F5F9] pb-3">
-          2. Recruitment Schedule &amp; Documents
-        </h3>
+        <div className="border-b border-[#F1F5F9] pb-3">
+          <h3 className="text-base font-bold text-[#0A0A0A]">
+            2. Schedule, Status &amp; Document Requirements
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5">
+            Configure application windows, publication state, and required candidate uploads.
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1">
-              Application Opening Date
+              Publication Status
             </label>
-            <input
-              type="datetime-local"
-              value={opensAt}
-              onChange={(e) => setOpensAt(e.target.value)}
-              className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
-            />
-            <span className="text-[0.7rem] text-[#64748B] mt-1 block">
-              Default is now if omitted.
-            </span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full rounded-xl border border-[#D1D5DB] bg-white px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
+            >
+              {VACANCY_STATUSES.map((st) => (
+                <option key={st.value} value={st.value}>
+                  {st.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -466,16 +487,16 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
               onChange={(e) => setClosesAt(e.target.value)}
               className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
             />
-            <span className="text-[0.7rem] text-[#64748B] mt-1 block">
-              Leave empty for rolling recruitment / open until filled.
-            </span>
+            <p className="text-[0.7rem] text-[#64748B] mt-1">
+              Leave blank for rolling applications with no fixed deadline.
+            </p>
           </div>
 
-          <div className="sm:col-span-2 pt-3 border-t border-[#F1F5F9]">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-3">
-              Required Documents
+          <div className="sm:col-span-2 pt-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-2">
+              Mandatory Document Uploads
             </label>
-            <div className="flex flex-wrap gap-5 text-xs text-[#374151]">
+            <div className="flex flex-wrap gap-4 text-xs">
               <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -518,14 +539,14 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
               3. Vacancy-Specific Application Questions
             </h3>
             <p className="text-xs text-[#64748B] mt-0.5">
-              Add custom intake questions relevant to this specific role.
+              Add intake questions relevant to this specific role (supports short text, long text, multiple choice, Yes/No, and URL).
             </p>
           </div>
 
           <button
             type="button"
             onClick={handleAddQuestion}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs font-semibold text-[#0A0A0A] hover:border-[#15803D] transition shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs font-semibold text-[#0A0A0A] hover:border-[#15803D] transition shadow-xs"
           >
             <Plus className="h-3.5 w-3.5" />
             Add Question
@@ -559,7 +580,7 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
                     type="text"
                     value={q.label}
                     onChange={(e) => handleUpdateQuestion(idx, "label", e.target.value)}
-                    placeholder="e.g. Share a link to a project or system you architected..."
+                    placeholder="e.g. Describe your experience with financial record-keeping..."
                     className="w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-xs text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
                   />
                 </div>
@@ -584,24 +605,80 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
                 </div>
               </div>
 
+              {/* Dynamic Option Builder for Single / Multiple Choice */}
               {(q.type === "SINGLE_CHOICE" || q.type === "MULTIPLE_CHOICE") && (
-                <div>
-                  <label className="block text-[0.7rem] font-semibold text-[#64748B] mb-1">
-                    Options (Comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={Array.isArray(q.options) ? q.options.join(", ") : ""}
-                    onChange={(e) =>
-                      handleUpdateQuestion(
-                        idx,
-                        "options",
-                        e.target.value.split(",").map((s) => s.trim()).filter(Boolean)
+                <div className="rounded-lg border border-[#E2E8F0] bg-white p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[0.7rem] font-bold text-[#374151]">
+                      Choices / Options ({Array.isArray(q.options) ? q.options.length : 0})
+                    </label>
+                    <span className="text-[0.65rem] text-[#64748B]">
+                      Add as many choices as needed (e.g. 10 or more)
+                    </span>
+                  </div>
+
+                  {/* Individual Option Rows */}
+                  <div className="space-y-1.5">
+                    {(Array.isArray(q.options) && q.options.length > 0 ? q.options : [""]).map(
+                      (opt, optIdx) => (
+                        <div key={optIdx} className="flex items-center gap-2">
+                          <span className="text-[0.68rem] font-bold text-[#94A3B8] w-4 text-right">
+                            {optIdx + 1}.
+                          </span>
+                          <input
+                            type="text"
+                            value={opt}
+                            onChange={(e) => {
+                              const opts = Array.isArray(q.options) ? [...q.options] : [""]
+                              opts[optIdx] = e.target.value
+                              handleUpdateQuestion(idx, "options", opts)
+                            }}
+                            placeholder={`Choice ${optIdx + 1} (e.g. ${
+                              optIdx === 0
+                                ? "Instagram"
+                                : optIdx === 1
+                                ? "LinkedIn"
+                                : optIdx === 2
+                                ? "Facebook"
+                                : "Twitter / X"
+                            })`}
+                            className="flex-1 rounded-lg border border-[#D1D5DB] bg-white px-3 py-1.5 text-xs text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const opts = (Array.isArray(q.options) ? q.options : []).filter(
+                                (_, i) => i !== optIdx
+                              )
+                              handleUpdateQuestion(idx, "options", opts)
+                            }}
+                            className="text-[#94A3B8] hover:text-[#DC2626] p-1 transition"
+                            title="Remove choice"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       )
-                    }
-                    placeholder="Option 1, Option 2, Option 3"
-                    className="w-full rounded-lg border border-[#D1D5DB] bg-white px-3 py-2 text-xs text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
-                  />
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#F1F5F9]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const opts = Array.isArray(q.options) ? [...q.options, ""] : [""]
+                        handleUpdateQuestion(idx, "options", opts)
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#D1D5DB] bg-[#F8FAFC] px-3 py-1.5 text-xs font-semibold text-[#0A0A0A] hover:border-[#15803D] hover:bg-white transition"
+                    >
+                      <Plus className="h-3 w-3 text-[#15803D]" />
+                      <span>Add Choice / Option</span>
+                    </button>
+
+                    <span className="text-[0.65rem] text-[#94A3B8]">
+                      Click &quot;Add Choice&quot; to add more options
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -621,9 +698,21 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
 
           {questions.length === 0 && (
             <div className="py-6 text-center text-xs text-[#64748B] border border-dashed border-[#CBD5E1] rounded-xl">
-              No custom questions configured. The standard personal and background info will be collected.
+              No custom questions configured yet. Standard personal and background info will be collected.
             </div>
           )}
+
+          {/* Add Question Button at Bottom of Questions List */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleAddQuestion}
+              className="inline-flex items-center gap-2 rounded-xl border border-dashed border-[#15803D] bg-[rgba(200,245,90,0.12)] px-4 py-2.5 text-xs font-bold text-[#0A0A0A] hover:bg-[rgba(200,245,90,0.25)] transition w-full justify-center shadow-2xs"
+            >
+              <Plus className="h-4 w-4 text-[#15803D]" />
+              Add Another Question
+            </button>
+          </div>
         </div>
       </section>
 
@@ -641,7 +730,7 @@ export function VacancyForm({ initialData, isEditing = false }: VacancyFormProps
             type="button"
             onClick={() => handleSubmit("DRAFT")}
             disabled={loading}
-            className="rounded-full border border-[#D1D5DB] bg-white px-6 py-2.5 text-xs font-semibold text-[#374151] hover:border-[#15803D] transition shadow-sm disabled:opacity-50"
+            className="rounded-full border border-[#D1D5DB] bg-white px-6 py-2.5 text-xs font-semibold text-[#374151] hover:border-[#15803D] transition shadow-xs disabled:opacity-50"
           >
             Save as Draft
           </button>

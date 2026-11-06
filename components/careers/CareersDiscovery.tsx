@@ -4,6 +4,9 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { Search, MapPin, Briefcase, Clock, ArrowRight, Building, CheckCircle2 } from "lucide-react"
 import { OPPORTUNITY_TYPES, type VacancyTypeValue } from "@/lib/recruitment/types"
+import { formatNairobiDeadline } from "@/lib/recruitment/format"
+
+export { formatNairobiDeadline }
 
 export interface VacancyListItem {
   id: string
@@ -21,23 +24,6 @@ export interface VacancyListItem {
 
 interface CareersDiscoveryProps {
   initialVacancies: VacancyListItem[]
-}
-
-export function formatNairobiDeadline(dateVal: string | Date | null): string {
-  if (!dateVal) return "Open until filled"
-  const d = typeof dateVal === "string" ? new Date(dateVal) : dateVal
-  if (isNaN(d.getTime())) return "Open until filled"
-
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Africa/Nairobi",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(d)
 }
 
 export function CareersDiscovery({ initialVacancies }: CareersDiscoveryProps) {
@@ -203,8 +189,7 @@ export function CareersDiscovery({ initialVacancies }: CareersDiscoveryProps) {
 
                   {/* Title */}
                   <h3 className="mt-4 text-[1.25rem] font-semibold text-[#0A0A0A] leading-snug group-hover:text-[#15803D] transition">
-                    <Link href={`/careers/${vacancy.slug}`} className="focus:outline-none">
-                      <span className="absolute inset-0" aria-hidden="true" />
+                    <Link href={`/careers/${vacancy.slug}`} className="hover:underline">
                       {vacancy.title}
                     </Link>
                   </h3>
@@ -218,7 +203,7 @@ export function CareersDiscovery({ initialVacancies }: CareersDiscoveryProps) {
                     <span>·</span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3.5 w-3.5 text-[#94A3B8]" />
-                      {vacancy.location} ({vacancy.workArrangement.toLowerCase()})
+                      {vacancy.location} ({(vacancy.workArrangement || "REMOTE").toLowerCase()})
                     </span>
                   </div>
 
@@ -228,19 +213,35 @@ export function CareersDiscovery({ initialVacancies }: CareersDiscoveryProps) {
                   </p>
                 </div>
 
-                {/* Footer with Deadline & CTA */}
-                <div className="mt-6 pt-4 border-t border-[#F1F5F9] flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5 text-[#64748B]">
-                    <Clock className="h-3.5 w-3.5 text-[#94A3B8]" />
+                {/* Footer with Deadline & Dual CTAs (View Role & Apply) */}
+                <div className="mt-6 pt-4 border-t border-[#F1F5F9] flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-1.5 text-[#64748B] min-w-0">
+                    <Clock className="h-3.5 w-3.5 text-[#94A3B8] shrink-0" />
                     <span className="truncate">
                       {vacancy.closesAt
                         ? `Closes: ${formatNairobiDeadline(vacancy.closesAt)}`
                         : "Open until filled"}
                     </span>
                   </div>
-                  <span className="font-semibold text-[#15803D] group-hover:translate-x-0.5 transition flex items-center gap-1 shrink-0">
-                    View Role <ArrowRight className="h-3 w-3" />
-                  </span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href={`/careers/${vacancy.slug}`}
+                      className="font-semibold text-[#475569] hover:text-[#15803D] transition px-2 py-1 flex items-center gap-1"
+                    >
+                      <span>View Role</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+
+                    {!vacancy.isClosed && (
+                      <Link
+                        href={`/careers/${vacancy.slug}/apply`}
+                        className="rounded-full bg-[#C8F55A] hover:bg-[#b8e040] text-[#0A0A0A] font-bold px-4 py-1.5 shadow-sm transition hover:scale-[1.02]"
+                      >
+                        Apply
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </article>
             )

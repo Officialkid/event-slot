@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma"
 import { MarketingFooter } from "@/components/MarketingFooter"
 import { GuidedApplicationForm } from "@/components/careers/GuidedApplicationForm"
 import { OPPORTUNITY_TYPES, type VacancyQuestion } from "@/lib/recruitment/types"
-import { formatNairobiDeadline } from "@/components/careers/CareersDiscovery"
+import { formatNairobiDeadline } from "@/lib/recruitment/format"
 import { ArrowLeft, Clock, AlertCircle, ShieldCheck } from "lucide-react"
 
 export const dynamic = "force-dynamic"

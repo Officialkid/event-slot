@@ -432,14 +432,19 @@ export function GuidedApplicationForm({ vacancy }: GuidedApplicationFormProps) {
                       )}
 
                       {q.type === "URL" && (
-                        <input
-                          type="url"
-                          required={q.required}
-                          value={val}
-                          onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                          placeholder="https://..."
-                          className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
-                        />
+                        <div>
+                          <input
+                            type="text"
+                            required={q.required}
+                            value={val}
+                            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                            placeholder={q.placeholder || "e.g. linkedin.com/in/... or @handle"}
+                            className="w-full rounded-xl border border-[#D1D5DB] px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:border-[#15803D] focus:outline-none"
+                          />
+                          <p className="mt-1 text-[0.7rem] text-[#64748B]">
+                            Enter profile links, website URLs, or social handles.
+                          </p>
+                        </div>
                       )}
 
                       {q.type === "YES_NO" && (

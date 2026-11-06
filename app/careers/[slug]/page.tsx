@@ -7,7 +7,8 @@ import {
   OPPORTUNITY_TYPES,
   type VacancyQuestion,
 } from "@/lib/recruitment/types"
-import { formatNairobiDeadline } from "@/components/careers/CareersDiscovery"
+import { formatNairobiDeadline } from "@/lib/recruitment/format"
+import { FormattedJobContent } from "@/components/careers/FormattedJobContent"
 import {
   MapPin,
   Building,
@@ -82,6 +83,20 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
     ? (vacancy.questions as unknown as VacancyQuestion[])
     : []
 
+  const formattedDeadline = formatNairobiDeadline(vacancy.closesAt)
+  const arrangementLabel = (vacancy.workArrangement || "REMOTE").toLowerCase()
+
+  // Determine if responsibilities and qualifications are distinct from description
+  const hasDistinctResponsibilities =
+    Boolean(vacancy.responsibilities &&
+    vacancy.responsibilities.trim().length > 0 &&
+    vacancy.responsibilities.trim() !== vacancy.description.trim())
+
+  const hasDistinctQualifications =
+    Boolean(vacancy.qualifications &&
+    vacancy.qualifications.trim().length > 0 &&
+    vacancy.qualifications.trim() !== vacancy.description.trim())
+
   return (
     <main className="min-h-screen bg-[#FDFCFB] text-[#0A0A0A]">
       {/* Top Breadcrumb Nav */}
@@ -116,7 +131,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-0.5 text-xs font-semibold text-[#475569]">
                 <MapPin className="h-3 w-3 text-[#94A3B8]" />
-                {vacancy.location} ({vacancy.workArrangement.toLowerCase()})
+                {vacancy.location} ({arrangementLabel})
               </span>
             </div>
 
@@ -147,11 +162,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
 
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-[#15803D]" />
-                <span>
-                  {vacancy.closesAt
-                    ? `Deadline: ${formatNairobiDeadline(vacancy.closesAt.toISOString())}`
-                    : "Rolling application / open until filled"}
-                </span>
+                <span>{vacancy.closesAt ? `Deadline: ${formattedDeadline}` : "Rolling application / open until filled"}</span>
               </div>
             </div>
 
@@ -167,7 +178,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
                 </div>
               </div>
             ) : (
-              <div className="mt-8">
+              <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   href={`/careers/${vacancy.slug}/apply`}
                   className="inline-flex items-center gap-2 rounded-full bg-[#C8F55A] px-8 py-3.5 text-sm font-bold text-[#0A0A0A] shadow-[0_10px_25px_rgba(200,245,90,0.35)] hover:bg-[#b8e040] hover:scale-[1.01] transition"
@@ -188,35 +199,31 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
           <div className="space-y-10">
             {/* About the role */}
             <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
-              <h2 className="text-xl font-semibold text-[#0A0A0A]">About the Role</h2>
-              <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[#374151]">
-                {vacancy.description}
-              </div>
+              <h2 className="text-xl font-semibold text-[#0A0A0A] mb-4">About the Role</h2>
+              <FormattedJobContent content={vacancy.description} />
             </section>
 
-            {/* Responsibilities */}
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
-              <h2 className="text-xl font-semibold text-[#0A0A0A]">What You Will Do</h2>
-              <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[#374151]">
-                {vacancy.responsibilities}
-              </div>
-            </section>
+            {/* Responsibilities (rendered cleanly if distinct) */}
+            {hasDistinctResponsibilities && (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
+                <h2 className="text-xl font-semibold text-[#0A0A0A] mb-4">What You Will Do</h2>
+                <FormattedJobContent content={vacancy.responsibilities} />
+              </section>
+            )}
 
-            {/* Qualifications */}
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
-              <h2 className="text-xl font-semibold text-[#0A0A0A]">
-                What We Are Looking For
-              </h2>
-              <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[#374151]">
-                {vacancy.qualifications}
-              </div>
-            </section>
+            {/* Qualifications (rendered cleanly if distinct) */}
+            {hasDistinctQualifications && (
+              <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
+                <h2 className="text-xl font-semibold text-[#0A0A0A] mb-4">What We Are Looking For</h2>
+                <FormattedJobContent content={vacancy.qualifications} />
+              </section>
+            )}
 
             {/* Skills Tags */}
-            {vacancy.skills.length > 0 && (
+            {vacancy.skills && vacancy.skills.length > 0 && (
               <section className="rounded-2xl border border-[#E5E7EB] bg-white p-6 sm:p-8 shadow-sm">
                 <h2 className="text-base font-semibold text-[#0A0A0A]">
-                  Relevant Skills &amp; Experience
+                  Relevant Skills &amp; Competencies
                 </h2>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {vacancy.skills.map((skill) => (
@@ -283,7 +290,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
                 <div>
                   <dt className="text-[#94A3B8]">Work Arrangement</dt>
                   <dd className="mt-0.5 font-semibold text-[#0A0A0A] capitalize">
-                    {vacancy.workArrangement.toLowerCase()}
+                    {arrangementLabel}
                   </dd>
                 </div>
                 {vacancy.compensation && (
@@ -303,9 +310,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
                 <div>
                   <dt className="text-[#94A3B8]">Application Deadline</dt>
                   <dd className="mt-0.5 font-semibold text-[#0A0A0A]">
-                    {vacancy.closesAt
-                      ? formatNairobiDeadline(vacancy.closesAt.toISOString())
-                      : "Open until filled"}
+                    {formattedDeadline}
                   </dd>
                 </div>
               </dl>
@@ -327,7 +332,7 @@ export default async function VacancyDetailPage({ params }: VacancyDetailPagePro
                 ) : (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-[#15803D] shrink-0" />
-                    <span>CV / Résumé</span>
+                    <span>CV / Résumé (Mandatory)</span>
                   </div>
                 )}
 

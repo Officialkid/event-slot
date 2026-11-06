@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { checkRecruitmentAccess, getPermittedVacancyIds } from "@/lib/recruitment/permissions"
-import { formatNairobiDeadline } from "@/components/careers/CareersDiscovery"
+import { formatNairobiDeadline } from "@/lib/recruitment/format"
 import {
   Briefcase,
   FileText,
