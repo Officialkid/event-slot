@@ -5,6 +5,7 @@ import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
 import { FollowButton } from "@/components/following/FollowButton"
+import { OrganizedByCard } from "@/components/events/OrganizedByCard"
 import type { SupportedLanguageCode } from "@/lib/i18n/languages"
 import { computeNextOccurrenceDate, computeOccurrenceEnd, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
@@ -21,6 +22,12 @@ export type EventInvitationCardProps = {
   imageUrl?: string | null
   organizerName?: string | null
   organizerUsername?: string | null
+  organizerImage?: string | null
+  organizerOrganizationName?: string | null
+  hostedEventsCount?: number
+  contactPhone?: string | null
+  contactWhatsapp?: string | null
+  contactEmail?: string | null
   organizerIsPioneer?: boolean
   followerCount?: number
   showFollowerCountPublicly?: boolean
@@ -195,6 +202,12 @@ export default function EventInvitationCard({
   imageUrl,
   organizerName,
   organizerUsername,
+  organizerImage,
+  organizerOrganizationName,
+  hostedEventsCount = 1,
+  contactPhone,
+  contactWhatsapp,
+  contactEmail,
   organizerIsPioneer,
   followerCount,
   showFollowerCountPublicly,
@@ -520,64 +533,6 @@ export default function EventInvitationCard({
               </span>
             </div>
           )}
-
-          {displayOrganizerName && (
-            <div
-              className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3 sm:p-3.5"
-              style={{
-                borderColor: "color-mix(in srgb, var(--border) 80%, transparent)",
-                background: "color-mix(in srgb, var(--surface) 50%, var(--surface-muted) 50%)",
-              }}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase tracking-wider"
-                  style={{
-                    background: "color-mix(in srgb, var(--accent) 18%, transparent)",
-                    color: "var(--accent)",
-                    border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
-                  }}
-                >
-                  {displayOrganizerName.slice(0, 2)}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[0.88rem] font-semibold text-[var(--text-primary)] truncate">
-                      {displayOrganizerName}
-                    </span>
-                    {organizerIsPioneer && (
-                      <span
-                        title="EventSlot Pioneer - one of our earliest supporters"
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-[0.68rem] font-semibold"
-                        style={{
-                          color: "#C8F55A",
-                          background: "rgba(200,245,90,0.12)",
-                          border: "1px solid rgba(200,245,90,0.3)",
-                        }}
-                      >
-                        {cardCopy.pioneer || "Pioneer"}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[0.74rem] text-[var(--text-muted)] m-0">
-                    Host & Organizer
-                  </p>
-                </div>
-              </div>
-
-              {organizerUsername && (
-                <div className="shrink-0">
-                  <FollowButton
-                    size="sm"
-                    organiserUsername={organizerUsername}
-                    organiserName={displayOrganizerName}
-                    initialFollowerCount={followerCount}
-                    showFollowerCountPublicly={showFollowerCountPublicly}
-                  />
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {isMultiDay && Array.isArray(multiDaySchedule) && multiDaySchedule.length > 1 && (
@@ -703,6 +658,22 @@ export default function EventInvitationCard({
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {displayOrganizerName && (
+          <div className="pt-2 px-1">
+            <OrganizedByCard
+              organizerName={organizerOrganizationName || displayOrganizerName}
+              organizerUsername={organizerUsername}
+              organizerImage={organizerImage}
+              followerCount={followerCount}
+              hostedEventsCount={hostedEventsCount}
+              showFollowerCountPublicly={showFollowerCountPublicly}
+              contactPhone={contactPhone}
+              contactWhatsapp={contactWhatsapp}
+              contactEmail={contactEmail}
+            />
           </div>
         )}
 

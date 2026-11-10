@@ -18,6 +18,11 @@ export async function GET() {
         name: true,
         email: true,
         image: true,
+        username: true,
+        organizationName: true,
+        contactPhone: true,
+        contactWhatsapp: true,
+        contactEmail: true,
         preferredLanguage: true,
         password: true,
         googleCalendarConnected: true,
@@ -34,6 +39,11 @@ export async function GET() {
       name: user.name,
       email: user.email,
       image: user.image,
+      username: user.username,
+      organizationName: user.organizationName,
+      contactPhone: user.contactPhone,
+      contactWhatsapp: user.contactWhatsapp,
+      contactEmail: user.contactEmail,
       preferredLanguage: user.preferredLanguage,
       hasPassword: !!user.password,
       calendarConnected: !!user.googleCalendarConnected,
@@ -68,11 +78,51 @@ export async function PATCH(req: NextRequest) {
       )
     }
 
-    const { name, twoFactorEnabled, preferredLanguage, showFollowerCountPublicly } = parsed.data
-    const data: { name?: string; twoFactorEnabled?: boolean; preferredLanguage?: string; showFollowerCountPublicly?: boolean } = {}
+    const {
+      name,
+      username,
+      organizationName,
+      contactPhone,
+      contactWhatsapp,
+      contactEmail,
+      twoFactorEnabled,
+      preferredLanguage,
+      showFollowerCountPublicly,
+    } = parsed.data
+    const data: {
+      name?: string
+      username?: string
+      organizationName?: string | null
+      contactPhone?: string | null
+      contactWhatsapp?: string | null
+      contactEmail?: string | null
+      twoFactorEnabled?: boolean
+      preferredLanguage?: string
+      showFollowerCountPublicly?: boolean
+    } = {}
 
     if (typeof name === "string" && name.trim().length > 0) {
       data.name = name.trim()
+    }
+    if (typeof username === "string" && username.trim().length > 0) {
+      const cleanUsername = username.toLowerCase().trim()
+      const existing = await prisma.user.findUnique({ where: { username: cleanUsername } })
+      if (existing && existing.id !== session.user.id) {
+        return NextResponse.json({ error: "Username is already taken" }, { status: 409 })
+      }
+      data.username = cleanUsername
+    }
+    if (organizationName !== undefined) {
+      data.organizationName = typeof organizationName === "string" ? organizationName.trim() : null
+    }
+    if (contactPhone !== undefined) {
+      data.contactPhone = typeof contactPhone === "string" ? contactPhone.trim() : null
+    }
+    if (contactWhatsapp !== undefined) {
+      data.contactWhatsapp = typeof contactWhatsapp === "string" ? contactWhatsapp.trim() : null
+    }
+    if (contactEmail !== undefined) {
+      data.contactEmail = typeof contactEmail === "string" ? contactEmail.trim().toLowerCase() : null
     }
     if (typeof twoFactorEnabled === "boolean") {
       data.twoFactorEnabled = twoFactorEnabled

@@ -11,6 +11,7 @@ import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
+import { CompleteAccountModal } from "@/components/onboarding/CompleteAccountModal"
 import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 import { DEFAULT_LANGUAGE, type SupportedLanguageCode } from "@/lib/i18n/languages"
@@ -1848,6 +1849,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           onSkip={tutorial.handleSkip}
         />
       )}
+
+      <CompleteAccountModal />
     </>
   )
 }

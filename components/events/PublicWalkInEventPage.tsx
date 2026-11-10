@@ -115,6 +115,14 @@ export default function PublicWalkInEventPage({ event }: WalkInEventPageProps) {
           entryFeeLabel={event.entryFeeLabel}
           imageUrl={event.imageUrl}
           organizerName={event.organizerName ?? event.organizer?.name ?? null}
+          organizerUsername={event.organizer?.username ?? null}
+          organizerImage={event.organizer?.image ?? null}
+          organizerOrganizationName={event.organizer?.organizationName ?? null}
+          followerCount={event.organizer?._count?.followers ?? 0}
+          hostedEventsCount={event.organizer?._count?.events ?? 1}
+          contactPhone={event.organizer?.contactPhone ?? null}
+          contactWhatsapp={event.organizer?.contactWhatsapp ?? null}
+          contactEmail={event.organizer?.contactEmail ?? null}
           organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
           confirmedCount={0}
           status={event.status}

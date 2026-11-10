@@ -175,6 +175,10 @@ model User {
   countryName              String?
   preferredLanguage        String   @default("en")
   username                 String?  @unique
+  organizationName         String?
+  contactPhone             String?
+  contactWhatsapp          String?
+  contactEmail             String?
   resetToken               String?
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)

@@ -111,6 +111,11 @@ const getPublicUserProfile = unstable_cache(
     select: {
       name: true,
       username: true,
+      image: true,
+      organizationName: true,
+      contactPhone: true,
+      contactWhatsapp: true,
+      contactEmail: true,
       createdAt: true,
       showFollowerCountPublicly: true,
       _count: {
@@ -216,7 +221,23 @@ async function getEventBySlug(slug: string) {
         },
       },
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
-      organizer: { select: { id: true, name: true, username: true, plan: true, suspended: true, showFollowerCountPublicly: true, _count: { select: { followers: true } }, pioneerBadge: { select: { id: true } } } },
+      organizer: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+          organizationName: true,
+          contactPhone: true,
+          contactWhatsapp: true,
+          contactEmail: true,
+          plan: true,
+          suspended: true,
+          showFollowerCountPublicly: true,
+          _count: { select: { followers: true, events: true } },
+          pioneerBadge: { select: { id: true } },
+        },
+      },
     },
   } as any)
 }
@@ -361,6 +382,12 @@ export default async function PublicProfilePage({
             imageUrl={event.imageUrl}
             organizerName={event.organizerName ?? event.organizer?.name ?? null}
             organizerUsername={event.organizer?.username || event.organizerId || event.organizer?.id || ""}
+            organizerImage={event.organizer?.image ?? null}
+            organizerOrganizationName={event.organizer?.organizationName ?? null}
+            hostedEventsCount={event.organizer?._count?.events ?? 1}
+            contactPhone={event.organizer?.contactPhone ?? null}
+            contactWhatsapp={event.organizer?.contactWhatsapp ?? null}
+            contactEmail={event.organizer?.contactEmail ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
             followerCount={event.organizer?._count?.followers}
             showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
@@ -471,7 +498,7 @@ export default async function PublicProfilePage({
     )
   }
 
-  const displayName = user.name ?? user.username ?? "Organizer"
+  const displayName = user.organizationName ?? user.name ?? user.username ?? "Organizer"
   const initials = displayName
     .split(" ")
     .map((w: string) => w[0]?.toUpperCase() ?? "")
@@ -500,26 +527,42 @@ export default async function PublicProfilePage({
           marginBottom: "2.5rem",
         }}
       >
-        {/* Initials circle */}
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: "rgba(200,245,90,0.12)",
-            border: "0.5px solid rgba(200,245,90,0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.4rem",
-            fontWeight: 600,
-            color: "#C8F55A",
-            fontFamily: "var(--font-dm-sans)",
-            flexShrink: 0,
-          }}
-        >
-          {initials}
-        </div>
+        {/* Profile Avatar / Photo */}
+        {user.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.image}
+            alt={displayName}
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "1.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(200,245,90,0.12)",
+              border: "0.5px solid rgba(200,245,90,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.4rem",
+              fontWeight: 600,
+              color: "#C8F55A",
+              fontFamily: "var(--font-dm-sans)",
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+        )}
 
         <div style={{ flex: 1 }}>
           <h1
