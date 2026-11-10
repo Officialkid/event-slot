@@ -30,8 +30,18 @@ type WalkInEventPageProps = {
     faqs?: { id: string; question: string; answer: string }[]
     organizer?: {
       name: string | null
+      username?: string | null
+      image?: string | null
+      organizationName?: string | null
+      contactPhone?: string | null
+      contactWhatsapp?: string | null
+      contactEmail?: string | null
       plan?: string | null
       pioneerBadge?: { id: string } | null
+      _count?: {
+        followers?: number
+        events?: number
+      } | null
     } | null
     mapPreviewImageUrl?: string | null
     isMultiDay?: boolean
