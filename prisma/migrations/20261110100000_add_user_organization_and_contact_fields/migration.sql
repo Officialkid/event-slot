@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "organizationName" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "contactPhone" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "contactWhatsapp" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "contactEmail" TEXT;

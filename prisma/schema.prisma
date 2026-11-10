@@ -97,6 +97,9 @@ model Event {
   calendarSyncs    CalendarEventSync[]
   eventPass        EventPass?
   financialLedgerEntries FinancialLedgerEntry[]
+  creationProposalId     String?                 @unique
+  creationProposal       AssistantActionProposal? @relation("EventToCreationProposal", fields: [creationProposalId], references: [id], onDelete: SetNull)
+  sideEffectOutboxItems  EventCreationSideEffectOutbox[]
 }
 
 model EventFAQ {
@@ -172,6 +175,10 @@ model User {
   countryName              String?
   preferredLanguage        String   @default("en")
   username                 String?  @unique
+  organizationName         String?
+  contactPhone             String?
+  contactWhatsapp          String?
+  contactEmail             String?
   resetToken               String?
   resetTokenExpiry         DateTime?
   consentSystemEmails      Boolean   @default(false)
@@ -226,6 +233,17 @@ model User {
   showFollowerCountPublicly  Boolean   @default(true)
   followedOrganisers         OrganiserFollower[] @relation("UserFollowedOrganisers")
   followers                  OrganiserFollower[] @relation("OrganiserFollowers")
+  actionProposals            AssistantActionProposal[] @relation("UserActionProposals")
+  sideEffectOutboxItems      EventCreationSideEffectOutbox[] @relation("OrganizerSideEffects")
+  vacanciesCreated           Vacancy[]                       @relation("VacancyCreator")
+  hiringLeadVacancies        Vacancy[]                       @relation("VacancyHiringLead")
+  applicationNotes           ApplicationInternalNote[]       @relation("UserApplicationNotes")
+  applicationStatusChanges   ApplicationStatusHistory[]      @relation("UserStatusChanges")
+  reviewerAssignments        RecruitmentReviewerAssignment[] @relation("ReviewerUser")
+  reviewerAssignmentsCreated RecruitmentReviewerAssignment[] @relation("AssignedByAdmin")
+  reviewerAssignmentsRevoked RecruitmentReviewerAssignment[] @relation("RevokedByAdmin")
+  recruitmentInvitationsCreated  RecruitmentReviewerInvitation[] @relation("RecruitmentInvitationsCreated")
+  recruitmentInvitationsAccepted RecruitmentReviewerInvitation[] @relation("RecruitmentInvitationsAccepted")
 }
 
 model OrganiserFollower {
@@ -1074,6 +1092,7 @@ model AssistantSession {
   startedAt     DateTime           @default(now())
   endedAt       DateTime?
   messages      AssistantMessage[]
+  actionProposals AssistantActionProposal[] @relation("SessionActionProposals")
 }
 
 model ChatQuota {
@@ -1118,6 +1137,101 @@ enum SessionStatus {
 enum MessageRole {
   USER
   ASSISTANT
+}
+
+enum ActionProposalStatus {
+  PENDING
+  CONFIRMED
+  EXECUTING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+model AssistantActionProposal {
+  id                      String               @id @default(cuid())
+  idempotencyKey          String               @unique
+  capability              String
+  operation               String
+  riskLevel               String
+  status                  ActionProposalStatus @default(PENDING)
+  actorId                 String
+  actor                   User                 @relation("UserActionProposals", fields: [actorId], references: [id], onDelete: Cascade)
+  sessionId               String?
+  session                 AssistantSession?    @relation("SessionActionProposals", fields: [sessionId], references: [id], onDelete: SetNull)
+  workspaceOrganizerId    String?
+  targetEventId           String?
+  draftId                 String
+  draftVersion            String
+  validatedInput          Json
+  previewCard             Json
+  resultMetadata          Json?
+  failureReason           String?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  expiresAt               DateTime
+  confirmedAt             DateTime?
+  executionStartedAt      DateTime?
+  executionLeaseExpiresAt DateTime?
+  completedAt             DateTime?
+  failedAt                DateTime?
+  cancelledAt             DateTime?
+  createdEvent            Event?               @relation("EventToCreationProposal")
+  sideEffectOutboxItems   EventCreationSideEffectOutbox[] @relation("ProposalToSideEffects")
+
+  @@index([actorId, status])
+  @@index([sessionId, status])
+  @@index([draftId, draftVersion])
+  @@index([status, executionLeaseExpiresAt])
+  @@index([expiresAt])
+}
+
+enum SideEffectType {
+  CALENDAR_SYNC
+  COMMUNITY_REFERRAL
+  FOLLOWER_ANNOUNCEMENT
+  USER_CACHE_PURGE
+}
+
+enum SideEffectOutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  AMBIGUOUS_OUTCOME
+}
+
+model EventCreationSideEffectOutbox {
+  id                       String                 @id @default(cuid())
+  idempotencyKey           String                 @unique
+  eventId                  String
+  event                    Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  creationProposalId       String?
+  creationProposal         AssistantActionProposal? @relation("ProposalToSideEffects", fields: [creationProposalId], references: [id], onDelete: SetNull)
+  organizerId              String
+  organizer                User                   @relation("OrganizerSideEffects", fields: [organizerId], references: [id], onDelete: Cascade)
+  sideEffectType           SideEffectType
+  status                   SideEffectOutboxStatus @default(PENDING)
+  payload                  Json
+  attempts                 Int                    @default(0)
+  maxAttempts              Int                    @default(5)
+  nextAttemptAt            DateTime               @default(now())
+  processingLeaseExpiresAt DateTime?
+  leaseToken               String?
+  lastError                String?
+  resultMetadata           Json?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  attemptedAt              DateTime?
+  completedAt              DateTime?
+  failedAt                 DateTime?
+
+  @@index([status, nextAttemptAt, processingLeaseExpiresAt])
+  @@index([eventId, sideEffectType])
+  @@index([creationProposalId])
+  @@index([organizerId, status])
 }
 
 model TokenBalance {
@@ -1805,5 +1919,239 @@ model MarketingAuditLog {
   @@index([entityType, createdAt])
   @@index([actorId])
 }
+
+// ─── Recruitment / Careers Portal ──────────────────────────────────────────
+
+enum VacancyType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+  VOLUNTEER
+  CONSULTANT
+}
+
+enum WorkArrangement {
+  REMOTE
+  HYBRID
+  ON_SITE
+}
+
+enum VacancyStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  ASSESSMENT_INTERVIEW
+  REFERENCE_CHECKS
+  OFFER_MADE
+  HIRED
+  NOT_SELECTED
+  WITHDRAWN
+}
+
+enum ReviewerRole {
+  HIRING_MANAGER
+  REVIEWER
+  HR_CONSULTANT
+}
+
+model Vacancy {
+  id                  String                          @id @default(cuid())
+  slug                String                          @unique
+  title               String
+  type                VacancyType
+  department          String
+  location            String
+  workArrangement     WorkArrangement                 @default(REMOTE)
+  openingsCount       Int                             @default(1)
+  shortSummary        String                          @db.Text
+  description         String                          @db.Text
+  responsibilities    String                          @db.Text
+  qualifications      String                          @db.Text
+  skills              String[]                        @default([])
+  compensation        String?
+  coverImageUrl       String?
+  status              VacancyStatus                   @default(DRAFT)
+  opensAt             DateTime?
+  closesAt            DateTime?
+  requiredDocuments   Json                            @default("[]")
+  optionalDocuments   Json                            @default("[]")
+  questions           Json                            @default("[]")
+  hiringLeadId        String?
+  hiringLead          User?                           @relation("VacancyHiringLead", fields: [hiringLeadId], references: [id])
+  createdById         String?
+  createdBy           User?                           @relation("VacancyCreator", fields: [createdById], references: [id])
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  closedAt            DateTime?
+  archivedAt          DateTime?
+  applications        JobApplication[]
+  reviewerAssignments RecruitmentReviewerAssignment[]
+  reviewerInvitations RecruitmentReviewerInvitation[]
+  auditLogs           RecruitmentAuditLog[]
+
+  @@index([status])
+  @@index([type])
+  @@index([department])
+  @@index([closesAt])
+}
+
+model JobApplication {
+  id                  String                          @id @default(cuid())
+  referenceCode       String                          @unique
+  vacancyId           String
+  vacancy             Vacancy                         @relation(fields: [vacancyId], references: [id], onDelete: Restrict)
+  fullName            String
+  email               String
+  phone               String?
+  location            String?
+  status              ApplicationStatus               @default(SUBMITTED)
+  statusReason        String?
+  answers             Json                            @default("[]")
+  education           Json?
+  experience          Json?
+  skills              String[]                        @default([])
+  portfolioLinks      String[]                        @default([])
+  documents           ApplicationDocument[]
+  notes               ApplicationInternalNote[]
+  timeline            ApplicationStatusHistory[]
+  reviewerAssignments RecruitmentReviewerAssignment[]
+  reviewerInvitations RecruitmentReviewerInvitation[]
+  submittedAt         DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  lastStatusUpdateAt  DateTime                        @default(now())
+  submissionIp        String?
+
+  @@index([vacancyId])
+  @@index([email])
+  @@index([status])
+  @@index([referenceCode])
+  @@index([submittedAt])
+}
+
+model ApplicationDocument {
+  id              String         @id @default(cuid())
+  applicationId   String
+  application     JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType    String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  storageProvider String         @default("local")
+  storageKey      String
+  checksum        String?
+  createdAt       DateTime       @default(now())
+
+  @@index([applicationId])
+}
+
+model ApplicationInternalNote {
+  id            String         @id @default(cuid())
+  applicationId String
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User           @relation("UserApplicationNotes", fields: [authorId], references: [id])
+  note          String         @db.Text
+  createdAt     DateTime       @default(now())
+
+  @@index([applicationId])
+}
+
+model ApplicationStatusHistory {
+  id             String             @id @default(cuid())
+  applicationId  String
+  application    JobApplication     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus ApplicationStatus?
+  newStatus      ApplicationStatus
+  changedById    String?
+  changedBy      User?              @relation("UserStatusChanges", fields: [changedById], references: [id])
+  publicReason   String?
+  createdAt      DateTime           @default(now())
+
+  @@index([applicationId])
+}
+
+model RecruitmentReviewerAssignment {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation("ReviewerUser", fields: [userId], references: [id], onDelete: Cascade)
+  role             ReviewerRole    @default(REVIEWER)
+  vacancyId        String?
+  vacancy          Vacancy?        @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  applicationId    String?
+  application      JobApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  assignedById     String
+  assignedBy       User            @relation("AssignedByAdmin", fields: [assignedById], references: [id])
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  revokedById      String?
+  revokedBy        User?           @relation("RevokedByAdmin", fields: [revokedById], references: [id])
+  revocationReason String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([vacancyId])
+  @@index([applicationId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model RecruitmentAuditLog {
+  id            String    @id @default(cuid())
+  actorId       String?
+  actorEmail    String?
+  actorName     String?
+  action        String
+  targetType    String
+  targetId      String
+  vacancyId     String?
+  vacancy       Vacancy?  @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
+  previousValue Json?
+  newValue      Json?
+  details       String?
+  ipAddress     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([targetType, targetId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model RecruitmentReviewerInvitation {
+  id               String          @id @default(cuid())
+  email            String
+  role             ReviewerRole    @default(REVIEWER)
+  vacancyId        String?
+  vacancy          Vacancy?        @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  applicationId    String?
+  application      JobApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  tokenHash        String          @unique
+  invitedById      String
+  invitedBy        User            @relation("RecruitmentInvitationsCreated", fields: [invitedById], references: [id])
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  acceptedById     String?
+  acceptedBy       User?           @relation("RecruitmentInvitationsAccepted", fields: [acceptedById], references: [id])
+  revokedAt        DateTime?
+  revocationReason String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([email])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+
 
 

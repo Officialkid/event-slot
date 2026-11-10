@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useMemo, useRef } from "react"
+import { useSession } from "next-auth/react"
 import Image from "next/image"
 import CountdownTimer from "@/components/CountdownTimer"
 import { EventDescriptionBlock, type PublicEventTranslation } from "@/components/events/EventDescriptionBlock"
@@ -11,6 +12,14 @@ import { InternationalPhoneInput } from "@/components/registration/International
 import { RegistrationStepIndicator, type RegistrationStep } from "@/components/registration/RegistrationStepIndicator"
 import { TimedDropCountdown } from "@/components/events/TimedDropCountdown"
 import { PostRegistrationFollowCard } from "@/components/registration/PostRegistrationFollowCard"
+import {
+  getSavedAttendeeProfile,
+  saveAttendeeProfile,
+  matchAnswersWithProfile,
+  extractProfileFromAnswers,
+  extractProfileFromSearchParams,
+  type AttendeeProfile,
+} from "@/lib/attendeeProfileStore"
 
 type EventQuestion = {
   id: string
@@ -265,6 +274,9 @@ function isPersonalQuestion(q: EventQuestion): boolean {
 }
 
 export default function RegistrationForm({ event, showBranding = false, maxAttendees = 3, compactHeader = false }: EventProps) {
+  const sessionContext = typeof useSession === "function" ? useSession() : null
+  const session = sessionContext?.data
+  const authStatus = sessionContext?.status ?? "unauthenticated"
   const formContainerRef = useRef<HTMLDivElement>(null)
   const [attendees, setAttendees] = useState<AttendeeAnswers[]>([emptyAnswers(event.questions)])
   const [loading, setLoading] = useState(false)
@@ -311,6 +323,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   const [groupError, setGroupError] = useState("")
   const [groupFieldErrors, setGroupFieldErrors] = useState<Record<string, string>>({})
   const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({})
+  const [prefillNotice, setPrefillNotice] = useState<{ source: string; count: number } | null>(null)
   const [groupCopied, setGroupCopied] = useState(false)
   const [managerCopied, setManagerCopied] = useState(false)
   const [paymentMethod] = useState<"mpesa" | "card">("mpesa")
@@ -472,6 +485,76 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
       }
     } catch {}
   }, [event.slug])
+
+  useEffect(() => {
+    let cancelled = false
+    const runPrefill = async () => {
+      let combinedProfile: Partial<AttendeeProfile> = {}
+      let sourceName = ""
+      if (typeof window !== "undefined" && window.location.search) {
+        const queryProfile = extractProfileFromSearchParams(new URLSearchParams(window.location.search))
+        if (Object.values(queryProfile).some(Boolean)) {
+          combinedProfile = { ...combinedProfile, ...queryProfile }
+          sourceName = "invitation link"
+        }
+      }
+      const localProfile = getSavedAttendeeProfile()
+      if (localProfile) {
+        combinedProfile = { ...localProfile, ...combinedProfile }
+        if (!sourceName) sourceName = "previous registration"
+      }
+      if (authStatus === "authenticated") {
+        if (session?.user) {
+          if (session.user.name) combinedProfile.name = session.user.name
+          if (session.user.email) combinedProfile.email = session.user.email
+          sourceName = "verified account"
+        }
+        try {
+          const res = await fetch("/api/me/registration-profile", { cache: "no-store" })
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.success && data?.profile) {
+              combinedProfile = { ...combinedProfile, ...data.profile }
+              sourceName = "verified account"
+            }
+          }
+        } catch {}
+      }
+      if (cancelled) return
+      setAttendees((prevAttendees) => {
+        const currentFirst = prevAttendees[0] || emptyAnswers(event.questions)
+        const { prefilledAnswers, prefilledFieldsCount } = matchAnswersWithProfile(
+          event.questions,
+          combinedProfile,
+          currentFirst
+        )
+        if (prefilledFieldsCount > 0) {
+          setPrefillNotice({
+            source: sourceName || "profile",
+            count: prefilledFieldsCount,
+          })
+          const updated = [...prevAttendees]
+          updated[0] = prefilledAnswers
+          return updated
+        }
+        return prevAttendees
+      })
+      if (combinedProfile.email) {
+        setBaseEmails((prev) => {
+          if (!prev[0]?.trim()) {
+            const next = [...prev]
+            next[0] = combinedProfile.email!
+            return next
+          }
+          return prev
+        })
+      }
+    }
+    void runPrefill()
+    return () => {
+      cancelled = true
+    }
+  }, [authStatus, event.questions, session])
 
   useEffect(() => {
     if (!paidCheckout?.orderId) return
@@ -1055,6 +1138,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         })
         const data = await res.json()
         if (data.success) {
+          try {
+            const primaryAnswers = attendees[0] || {}
+            const primaryProfile = extractProfileFromAnswers(event.questions, primaryAnswers, baseEmails[0])
+            saveAttendeeProfile(primaryProfile)
+          } catch {}
           setBulkResult(data)
         } else if (data.duplicate) {
           setDuplicateInfo({
@@ -1754,7 +1842,7 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
   }
 
   if (bulkResult) {
-    const isSingle = bulkResult.results.length === 1
+    const isSingle = (bulkResult.results || []).length === 1
     const communityLink = normalizeCommunityLink(event.communityLink)
 
     return (
@@ -2133,6 +2221,32 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
         <div className="h-2.5 w-full bg-[linear-gradient(90deg,var(--accent)_0%,color-mix(in_srgb,var(--accent)_45%,transparent)_50%,transparent_100%)]" />
 
         <div className="space-y-6 p-5 sm:p-8">
+          {prefillNotice && prefillNotice.count > 0 && (
+            <div
+              role="status"
+              className="flex items-center justify-between gap-3 rounded-[12px] p-3 text-[0.82rem] font-medium border"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+                color: "var(--text-primary)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--accent)" }} />
+                <span>
+                  Details pre-filled from your {prefillNotice.source} ({prefillNotice.count} field{prefillNotice.count > 1 ? "s" : ""}). You can edit or change any value below.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrefillNotice(null)}
+                className="text-xs opacity-70 hover:opacity-100 transition-opacity"
+                aria-label="Dismiss notification"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {event.timedDropEnabled && (
             <TimedDropCountdown
               opensAt={typeof event.ticketDropOpensAt === "string" ? event.ticketDropOpensAt : event.ticketDropOpensAt?.toISOString()}
