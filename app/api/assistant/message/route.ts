@@ -508,6 +508,7 @@ export async function POST(req: NextRequest) {
       kind: orchestratorResult?.kind ?? "ANSWER",
       draftPreview: orchestratorResult?.draftPreview ?? null,
       proposal,
+      eventRegistrationsOverview: orchestratorResult?.eventRegistrationsOverview ?? null,
       clarification: orchestratorResult?.clarification ?? null,
       capabilityError: orchestratorResult?.capabilityError ?? null,
       toolCallsExecuted: orchestratorResult?.toolCallsExecuted ?? [],

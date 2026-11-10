@@ -13,6 +13,21 @@ export function AssistantWidget() {
   const [showMemorySettings, setShowMemorySettings] = useState(false)
 
   useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (isOpen) {
+        document.documentElement.setAttribute("data-assistant-open", "true")
+      } else {
+        document.documentElement.removeAttribute("data-assistant-open")
+      }
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.removeAttribute("data-assistant-open")
+      }
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     if (!isOpen) {
       setShowMemorySettings(false)
       return
@@ -132,7 +147,7 @@ export function AssistantWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 right-4 sm:right-6 md:bottom-8 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full
+          className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-4 md:left-auto md:right-6 md:bottom-8 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full
                      bg-[#15803D] text-white shadow-xl hover:bg-[#166534]
                      hover:scale-105 transition-all duration-200
                      flex items-center justify-center border border-white/20"
@@ -145,7 +160,7 @@ export function AssistantWidget() {
       )}
 
       {isOpen && (
-        <div className="fixed bottom-3 right-3 sm:right-6 md:bottom-6 z-[60] w-[min(420px,calc(100vw-1.5rem))]">
+        <div className="fixed inset-x-0 bottom-0 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[420px] z-[70] max-h-[88vh] sm:max-h-[620px] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#F8FAFC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#2A2A2A] border-b-0 rounded-t-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />

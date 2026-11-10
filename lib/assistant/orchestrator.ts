@@ -6,6 +6,7 @@ import {
   type EventInsightsOutput,
   type EventSummaryOutput,
   type ListOrganizerEventsOutput,
+  type OrganizerEventSummaryItem,
 } from "@/lib/assistant/capability-registry"
 import {
   createActionProposal,
@@ -100,6 +101,7 @@ export interface OrchestratorResult {
   capabilityError: OrchestratorCapabilityError | null
   draftPreview: EventDraftPreview | null
   proposal?: PendingActionProposal<any> | null
+  eventRegistrationsOverview?: OrganizerEventSummaryItem[] | null
 }
 
 export interface AssistantLLMAdapter {
@@ -488,18 +490,7 @@ function formatReadCapabilityFallbackReply(
     if (!listData.events || listData.events.length === 0) {
       return "You don't have any active upcoming events in this workspace. When you're ready, I can help you draft a new event!"
     }
-    const items = listData.events
-      .slice(0, 10)
-      .map(
-        (ev, idx) =>
-          `${idx + 1}. **${ev.title}** (\`${ev.slug}\`)\n   • Confirmed: **${ev.confirmedCount}**${
-            ev.capacity ? ` / ${ev.capacity} (${ev.fillRate}% full)` : " confirmed"
-          }\n   • Waitlist: **${ev.waitlistCount}** | Status: **${ev.status}**${
-            ev.eventDate ? `\n   • Date: ${new Date(ev.eventDate).toLocaleDateString("en-KE", { dateStyle: "medium" })}` : ""
-          }`
-      )
-      .join("\n\n")
-    return `### Your Active Events & Registrations\n\n${items}`
+    return "Here is an overview of your active events and current registration numbers. Click any event below to view its details or manage attendees."
   }
 
   if (capability === "get_event_summary") {
@@ -1495,6 +1486,8 @@ CONVERSATION INTELLIGENCE DIRECTIVES FOR THIS TURN
 • Detected User Intent: ${detectedIntent.intent} (${detectedIntent.primaryGoal})
 • Known Event Context: ${JSON.stringify(conversationState.eventContext)}
 • Response Style: ${complexity === "SHORT_QUERY" ? "Concise, direct answer (under 3 sentences, no fluff)" : "Well-structured response with clear headings, bullet points, and steps"}
+• UI Card Integration: When reporting event registrations or lists of events, give a friendly 1-2 sentence conversational intro. DO NOT generate markdown tables (e.g. | Title | Capacity |); the user interface automatically renders interactive visual cards with progress bars and action buttons for each event.
+• Export CTA: Do NOT append sales pitches or report export reminders unless the user explicitly requested a downloadable report or export.
 • Tone: Natural, conversational, confident, helpful. Avoid sounding like a dry documentation page.
 ═══════════════════════════════════════════════`
 
@@ -1517,6 +1510,22 @@ CONVERSATION INTELLIGENCE DIRECTIVES FOR THIS TURN
     console.warn("[ESA Orchestrator] LLM generation fallback triggered:", error)
   }
 
+  // Extract structured registrations overview if list_organizer_events was called
+  const listEventsCall = verifiedToolResults.find(
+    (r) => r.capability === "list_organizer_events" && r.envelope.ok
+  )
+  const eventRegistrationsOverview: OrganizerEventSummaryItem[] | null = listEventsCall
+    ? ((listEventsCall.envelope.data as ListOrganizerEventsOutput).events ?? null)
+    : null
+
+  // If we have structured event cards, strip any ugly markdown ASCII tables the LLM may have emitted
+  if (eventRegistrationsOverview && eventRegistrationsOverview.length > 0 && reply.includes("|---")) {
+    reply = reply.replace(/\|[^\n]+\|\n\|[-:\s|]+\|\n(?:\|[^\n]+\|\n?)*/g, "").trim()
+    if (!reply) {
+      reply = "Here is an overview of your active events and current registration numbers:"
+    }
+  }
+
   if (!(reply || "").trim() && verifiedToolResults.length > 0) {
     const lastSuccess = verifiedToolResults[verifiedToolResults.length - 1]
     if (lastSuccess.envelope.ok) {
@@ -1532,10 +1541,6 @@ CONVERSATION INTELLIGENCE DIRECTIVES FOR THIS TURN
       "I'm having trouble responding right now. Please try again in a moment or contact info@eventsslot.com."
   }
 
-  if (usedLiveEventData && !reply.includes(FULL_REPORT_CTA)) {
-    reply = `${reply.trim()}\n\n${FULL_REPORT_CTA}`
-  }
-
   return {
     kind: "ANSWER",
     reply: truncateOutput(reply, limits.maxOutputChars),
@@ -1545,5 +1550,6 @@ CONVERSATION INTELLIGENCE DIRECTIVES FOR THIS TURN
     clarification: null,
     capabilityError: null,
     draftPreview: null,
+    eventRegistrationsOverview,
   }
 }

@@ -4,6 +4,10 @@ import Image from "next/image"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { EventDraftPreview } from "@/lib/assistant/draft-preparation"
 import { EventDraftPreviewCard } from "@/components/assistant/EventDraftPreviewCard"
+import {
+  EventRegistrationsCard,
+  type RegistrationOverviewEvent,
+} from "@/components/assistant/EventRegistrationsCard"
 
 type AssistantExperienceProps = {
   fullPage?: boolean
@@ -28,6 +32,7 @@ type Message = {
   proposalId?: string | null
   idempotencyKey?: string | null
   actionProposal?: ActionProposalPreview | null
+  eventRegistrationsOverview?: RegistrationOverviewEvent[] | null
   confirmedEventResult?: {
     id: string
     title: string
@@ -173,7 +178,8 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
     draftPreview?: EventDraftPreview | null,
     proposalId?: string | null,
     idempotencyKey?: string | null,
-    actionProposal?: ActionProposalPreview | null
+    actionProposal?: ActionProposalPreview | null,
+    eventRegistrationsOverview?: RegistrationOverviewEvent[] | null
   ) {
     setMessages((prev) => [
       ...prev,
@@ -187,6 +193,7 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         proposalId,
         idempotencyKey,
         actionProposal,
+        eventRegistrationsOverview,
       },
     ])
   }
@@ -277,6 +284,9 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         data.proposal && typeof data.proposal === "object"
           ? (data.proposal as { proposalId?: string; idempotencyKey?: string; preview?: ActionProposalPreview })
           : null
+      const eventRegistrationsOverview = Array.isArray(data.eventRegistrationsOverview)
+        ? (data.eventRegistrationsOverview as RegistrationOverviewEvent[])
+        : null
 
       addMessage(
         "assistant",
@@ -286,7 +296,8 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
         draftPreview,
         proposalObj?.proposalId ?? null,
         proposalObj?.idempotencyKey ?? null,
-        proposalObj?.preview ?? null
+        proposalObj?.preview ?? null,
+        eventRegistrationsOverview
       )
       if (data.sessionEnded === true) setSessionEnded(true)
     } catch {
@@ -755,6 +766,15 @@ export function AssistantExperience({ fullPage = false, onClose }: AssistantExpe
                         )
                       )}
                     </div>
+                  )}
+
+                  {msg.role === "assistant" && msg.eventRegistrationsOverview && msg.eventRegistrationsOverview.length > 0 && (
+                    <EventRegistrationsCard
+                      events={msg.eventRegistrationsOverview}
+                      onSelectEventForInsights={(title) => {
+                        setInput(`Give me registration insights for ${title}`)
+                      }}
+                    />
                   )}
                 </div>
               </div>

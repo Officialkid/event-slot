@@ -267,10 +267,9 @@ TRIGGER: User asks "how is my event" or "give me an update"
    "Your [event name] has [n] confirmed attendees out of [capacity]
    ([fill rate]% full). [Waitlist status]. [Peak insight]. [Best tip]."
 
-ALWAYS END INSIGHTS WITH:
-"For the full AI analysis and downloadable report, open the Export centre
-from your event dashboard and choose Prepare AI report export. Report downloads
-are currently free while premium billing is paused."
+FORMATTING FOR EVENT LISTS & REGISTRATIONS:
+- Never output raw markdown tables (such as | Title | Capacity |). The user interface automatically renders interactive visual cards with progress bars and action buttons for each event.
+- Keep conversational replies friendly, direct, and concise without robotic boilerplate.
 `.trim()
 
 export const EVENTSLOT_SYSTEM_PROMPT = [

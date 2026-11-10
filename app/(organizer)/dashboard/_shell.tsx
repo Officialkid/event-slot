@@ -1092,6 +1092,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
           color: var(--text-primary) !important;
         }
+        html[data-assistant-open="true"] [data-tutorial="create-event-btn"] {
+          display: none !important;
+        }
         .dash-icon-btn:hover {
           background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
         }
