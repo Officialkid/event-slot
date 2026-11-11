@@ -672,12 +672,22 @@ export default function OrganizationDashboardPage() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <Link
-                          href={`/dashboard/${ev.slug}`}
-                          className="font-bold text-[var(--accent)] hover:underline"
-                        >
-                          Manage
-                        </Link>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <Link
+                            href={`/dashboard/events/${ev.slug}`}
+                            className="font-bold text-[var(--accent)] hover:underline"
+                          >
+                            Manage
+                          </Link>
+                          <span className="text-[var(--text-muted)] opacity-40">•</span>
+                          <Link
+                            href={`/dashboard/events/${ev.slug}#gate`}
+                            className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                            title="Gate Control & Verifier Access Code"
+                          >
+                            Gate Control
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

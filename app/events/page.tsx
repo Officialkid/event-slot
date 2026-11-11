@@ -15,6 +15,7 @@ import prisma from "@/lib/prisma"
 import { APP_URL } from "@/lib/config"
 import PublicEventShareButton from "@/components/events/PublicEventShareButton"
 import { FollowButton } from "@/components/following/FollowButton"
+import { computeNextOccurrenceDate, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
 export const dynamic = "force-dynamic"
 
@@ -191,6 +192,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
   const andFilters: Prisma.EventWhereInput[] = [
     {
       OR: [
+        { isRecurring: true },
         { deadline: null },
         { deadline: { gt: now } },
       ],
@@ -227,11 +229,17 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
   }
 
   if (activeRange) {
-    andFilters.push(buildRangeFilter(activeRange))
-  } else {
-    // Default discovery: strictly show upcoming events (event has not ended in the past)
     andFilters.push({
       OR: [
+        { isRecurring: true },
+        buildRangeFilter(activeRange),
+      ],
+    })
+  } else {
+    // Default discovery: strictly show upcoming events or recurring rolling events
+    andFilters.push({
+      OR: [
+        { isRecurring: true },
         { eventEndAt: { gte: now } },
         {
           AND: [
@@ -259,6 +267,12 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
       location: true,
       imageUrl: true,
       isPaid: true,
+      isRecurring: true,
+      recurrenceFrequency: true,
+      recurrenceDayOfWeek: true,
+      registrationOpensDays: true,
+      registrationOpensTime: true,
+      deadline: true,
       organizerName: true,
       organizerId: true,
       organizer: {
@@ -504,7 +518,26 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => {
-              const dateParts = getEventDateBadgeParts(event.eventDate)
+              const effectiveDate = event.isRecurring
+                ? computeNextOccurrenceDate({
+                    eventDate: event.eventDate,
+                    isRecurring: event.isRecurring,
+                    recurrenceFrequency: event.recurrenceFrequency,
+                    recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+                  })
+                : event.eventDate
+              const dateParts = getEventDateBadgeParts(effectiveDate)
+              const windowStatus = event.isRecurring
+                ? getRegistrationWindowStatus({
+                    isRecurring: event.isRecurring,
+                    recurrenceFrequency: event.recurrenceFrequency,
+                    recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+                    registrationOpensDays: event.registrationOpensDays,
+                    registrationOpensTime: event.registrationOpensTime,
+                    deadline: event.deadline,
+                    eventDate: event.eventDate,
+                  })
+                : null
 
               return (
                 <article
@@ -539,8 +572,13 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
                       </span>
                     </div>
 
-                    {/* Paid / Free Badge (Top Right) */}
-                    <div className="absolute top-3 right-3 pointer-events-none">
+                    {/* Paid / Free Badge & Recurring Badge (Top Right) */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
+                      {event.isRecurring && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.7rem] font-bold shadow-xs backdrop-blur-md bg-emerald-950/85 text-[#C8F55A] border border-emerald-500/40">
+                          🔄 {event.recurrenceFrequency === "BIWEEKLY" ? "Bi-weekly" : event.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"}
+                        </span>
+                      )}
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold shadow-xs backdrop-blur-md border ${
                           event.isPaid
@@ -569,13 +607,33 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
                     <div className="mt-3 space-y-1.5 text-[0.82rem] text-[var(--text-secondary)]">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3.5 w-3.5 shrink-0 text-[#166534] dark:text-[#C8F55A]" />
-                        <span className="truncate">{formatEventDate(event.eventDate, event.eventEndAt)}</span>
+                        <span className="truncate">
+                          {event.isRecurring
+                            ? `${formatEventDate(effectiveDate)} • Rolling ${event.recurrenceFrequency?.toLowerCase() || "weekly"}`
+                            : formatEventDate(event.eventDate, event.eventEndAt)}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-3.5 w-3.5 shrink-0 text-[#166534] dark:text-[#C8F55A]" />
                         <span className="truncate">{event.location || "Location to be announced"}</span>
                       </div>
                     </div>
+
+                    {/* Window Status / Notify Me Banner for Recurring Events */}
+                    {event.isRecurring && windowStatus && !windowStatus.isOpen && (
+                      <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-[0.76rem] text-amber-700 dark:text-amber-300">
+                        <div className="flex items-center gap-1.5 truncate font-medium">
+                          <span>⏳</span>
+                          <span className="truncate">{windowStatus.label}</span>
+                        </div>
+                        <Link
+                          href={`/${event.slug}`}
+                          className="shrink-0 font-bold underline hover:no-underline text-emerald-700 dark:text-[#C8F55A]"
+                        >
+                          Notify me
+                        </Link>
+                      </div>
+                    )}
 
                     {/* Organizer Row + Quick Follow */}
                     {(event.organizerName || event.organizer?.name) && (
