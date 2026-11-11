@@ -175,19 +175,22 @@ export async function verifyWorkspaceMembership(
   }
 
   // Check modern first-class OrganizationMember
-  const orgMember = await prisma.organizationMember.findFirst({
-    where: {
-      userId: actor.userId,
-      status: "ACTIVE",
-      organization: {
-        OR: [
-          { id: workspaceId },
-          { handle: workspaceId.toLowerCase() },
-        ],
-      },
-    },
-    select: { id: true, role: true },
-  })
+  const orgMember =
+    typeof prisma.organizationMember?.findFirst === "function"
+      ? await prisma.organizationMember.findFirst({
+          where: {
+            userId: actor.userId,
+            status: "ACTIVE",
+            organization: {
+              OR: [
+                { id: workspaceId },
+                { handle: workspaceId.toLowerCase() },
+              ],
+            },
+          },
+          select: { id: true, role: true },
+        })
+      : null
 
   if (orgMember) {
     return { allowed: true, isPlatformAdmin: false }
@@ -238,15 +241,18 @@ export async function authorizeEventRecordAccess(
 
   // Check organization ownership
   if (event.organizationId) {
-    const orgMembership = await prisma.organizationMember.findUnique({
-      where: {
-        organizationId_userId: {
-          organizationId: event.organizationId,
-          userId: actor.userId,
-        },
-      },
-      select: { role: true, status: true },
-    })
+    const orgMembership =
+      typeof prisma.organizationMember?.findUnique === "function"
+        ? await prisma.organizationMember.findUnique({
+            where: {
+              organizationId_userId: {
+                organizationId: event.organizationId,
+                userId: actor.userId,
+              },
+            },
+            select: { role: true, status: true },
+          })
+        : null
 
     if (orgMembership && orgMembership.status === "ACTIVE") {
       if (orgMembership.role === "OWNER") return { allowed: true, accessRole: "owner" }
