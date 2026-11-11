@@ -666,6 +666,7 @@ export default function EventInvitationCard({
             <OrganizedByCard
               organizerName={organizerOrganizationName || displayOrganizerName}
               organizerUsername={organizerUsername}
+              targetType={organizerOrganizationName ? "organization" : "organizer"}
               organizerImage={organizerImage}
               followerCount={followerCount}
               hostedEventsCount={hostedEventsCount}

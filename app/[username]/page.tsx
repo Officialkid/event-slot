@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { unstable_cache } from "next/cache"
 import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
@@ -221,6 +221,19 @@ async function getEventBySlug(slug: string) {
         },
       },
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          logo: true,
+          contactPhone: true,
+          contactWhatsapp: true,
+          contactEmail: true,
+          verificationStatus: true,
+          _count: { select: { followers: true, events: true } },
+        },
+      },
       organizer: {
         select: {
           id: true,
@@ -264,7 +277,19 @@ export async function generateMetadata({
     } catch {
       return {}
     }
-    if (!event) return {}
+    if (!event) {
+      const org = await prisma.organization.findUnique({
+        where: { handle: username.toLowerCase() },
+        select: { name: true, publicationStatus: true },
+      })
+      if (org && org.publicationStatus === "PUBLISHED") {
+        return {
+          title: `${org.name} — EventSlot`,
+          description: `Explore events hosted by ${org.name} on EventSlot.`,
+        }
+      }
+      return {}
+    }
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = APP_URL
     const isWalkInEvent = event.accessType === "WALK_IN"
@@ -323,7 +348,16 @@ export default async function PublicProfilePage({
     } catch {
       notFound()
     }
-    if (!event) notFound()
+    if (!event) {
+      const org = await prisma.organization.findUnique({
+        where: { handle: username.toLowerCase() },
+        select: { id: true, publicationStatus: true },
+      })
+      if (org && org.publicationStatus === "PUBLISHED") {
+        redirect(`/org/${username.toLowerCase()}`)
+      }
+      notFound()
+    }
 
     const isWalkInEvent = event.accessType === "WALK_IN"
 
@@ -380,17 +414,17 @@ export default async function PublicProfilePage({
             entryFeeLabel={event.entryFeeLabel}
             showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}
-            organizerName={event.organizerName ?? event.organizer?.name ?? null}
-            organizerUsername={event.organizer?.username || event.organizerId || event.organizer?.id || ""}
-            organizerImage={event.organizer?.image ?? null}
-            organizerOrganizationName={event.organizer?.organizationName ?? null}
-            hostedEventsCount={event.organizer?._count?.events ?? 1}
-            contactPhone={event.organizer?.contactPhone ?? null}
-            contactWhatsapp={event.organizer?.contactWhatsapp ?? null}
-            contactEmail={event.organizer?.contactEmail ?? null}
+            organizerName={event.organization?.name ?? event.organizerName ?? event.organizer?.name ?? null}
+            organizerUsername={event.organization?.handle ?? event.organizer?.username ?? event.organizerId ?? ""}
+            organizerImage={event.organization?.logo ?? event.organizer?.image ?? null}
+            organizerOrganizationName={event.organization?.name ?? event.organizer?.organizationName ?? null}
+            hostedEventsCount={event.organization?._count?.events ?? event.organizer?._count?.events ?? 1}
+            contactPhone={event.organization?.contactPhone ?? event.organizer?.contactPhone ?? null}
+            contactWhatsapp={event.organization?.contactWhatsapp ?? event.organizer?.contactWhatsapp ?? null}
+            contactEmail={event.organization?.contactEmail ?? event.organizer?.contactEmail ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
-            followerCount={event.organizer?._count?.followers}
-            showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
+            followerCount={event.organization?._count?.followers ?? event.organizer?._count?.followers}
+            showFollowerCountPublicly={event.organization ? true : event.organizer?.showFollowerCountPublicly}
             capacity={event.capacity}
             confirmedCount={event.confirmedCount}
             status={event.status}

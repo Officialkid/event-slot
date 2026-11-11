@@ -40,6 +40,8 @@ export interface EventDraftFields {
   virtualLinkPending?: boolean
   /** True when the physical event venue will be announced later. */
   locationPending?: boolean
+  /** Organization ID or handle when drafting under an organization workspace */
+  asOrganizationId?: string | null
 }
 
 export interface DraftMissingField {

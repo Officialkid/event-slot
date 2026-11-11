@@ -78,6 +78,24 @@ function IconUsers() {
   )
 }
 
+function IconBuilding() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" />
+      <path d="M16 6h.01" />
+      <path d="M12 6h.01" />
+      <path d="M12 10h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 10h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 10h.01" />
+      <path d="M8 14h.01" />
+    </svg>
+  )
+}
+
 function IconTrophy() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
@@ -621,6 +639,38 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   message="Invite teammates and manage shared event access from here."
                 />
               </span>
+            </Link>
+          )
+        })()}
+        {(() => {
+          const active = getIsActive(pathname, "/dashboard/organization", false)
+          return (
+            <Link
+              href="/dashboard/organization"
+              onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: "Organizations", y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
+              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                background: active ? navActiveBackground : "transparent",
+                color: active ? accentText : navIdleColor,
+              }}
+            >
+              <IconBuilding />
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>Organizations</span>
             </Link>
           )
         })()}
@@ -1686,6 +1736,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {([
                   { label: t("profile"), href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: t("team"), href: "/dashboard/team", icon: <IconUsers />, show: true },
+                  { label: "Organizations", href: "/dashboard/organization", icon: <IconBuilding />, show: true },
                   { label: t("myPayments"), href: "/dashboard/payments", icon: <IconPayments />, show: false },
                   { label: t("billing"), href: "/dashboard/billing", icon: <IconBilling />, show: false },
                   { label: t("feedback"), href: "/dashboard/feedback", icon: <IconFeedback />, show: true },

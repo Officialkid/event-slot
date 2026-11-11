@@ -4,7 +4,6 @@ import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
-import { AssistantWidget } from "../components/AssistantWidget";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
 
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
@@ -196,7 +195,6 @@ export default async function RootLayout({
           <Nav />
           {children}
           <Toast />
-          <AssistantWidget />
           <CookieConsentBanner />
         </Providers>
       </body>

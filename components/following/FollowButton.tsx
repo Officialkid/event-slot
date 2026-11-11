@@ -7,6 +7,7 @@ import { FollowAuthModal } from './FollowAuthModal'
 interface FollowButtonProps {
   organiserUsername: string
   organiserName: string
+  targetType?: 'organizer' | 'organization'
   initialFollowerCount?: number
   initialIsFollowing?: boolean
   showFollowerCountPublicly?: boolean
@@ -17,6 +18,7 @@ interface FollowButtonProps {
 export function FollowButton({
   organiserUsername,
   organiserName,
+  targetType = 'organizer',
   initialFollowerCount,
   initialIsFollowing,
   showFollowerCountPublicly = true,
@@ -34,6 +36,11 @@ export function FollowButton({
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null)
 
+  const apiBasePath =
+    targetType === 'organization'
+      ? `/api/organizations/${encodeURIComponent(organiserUsername)}/follow`
+      : `/api/organizers/${encodeURIComponent(organiserUsername)}/follow`
+
   const showToast = useCallback((msg: string) => {
     setStatusFeedback(msg)
     setTimeout(() => {
@@ -43,7 +50,7 @@ export function FollowButton({
 
   const executeFollowRequest = useCallback(
     async (nextFollowing: boolean, nextNotify = true): Promise<boolean> => {
-      const res = await fetch(`/api/organizers/${encodeURIComponent(organiserUsername)}/follow`, {
+      const res = await fetch(apiBasePath, {
         method: nextFollowing ? 'POST' : 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +75,7 @@ export function FollowButton({
       }
       return true
     },
-    [organiserUsername]
+    [apiBasePath]
   )
 
   // Fetch live follow status and handle ?autoFollow=<organiserUsername> return from Sign Up / Sign In
@@ -76,7 +83,7 @@ export function FollowButton({
     let cancelled = false
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`/api/organizers/${encodeURIComponent(organiserUsername)}/follow`, {
+        const res = await fetch(apiBasePath, {
           cache: 'no-store',
         })
         const data = await res.json()

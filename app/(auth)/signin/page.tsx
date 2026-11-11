@@ -28,7 +28,7 @@ function SignInForm() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resending, setResending] = useState(false)
   const [isLocalhost, setIsLocalhost] = useState(false)
-  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [showEmailForm, setShowEmailForm] = useState(didRegister)
 
   useEffect(() => {
     if (resendCooldown <= 0) return

@@ -52,6 +52,7 @@ export interface CreatedEventSummary {
   visibility: string
   accessType: string
   capacity: number | null
+  organizationId?: string | null
 }
 
 export interface EventSideEffectsSummary {
@@ -423,6 +424,9 @@ export async function createEventDomainService(params: CreateEventServiceParams)
 
   // 5. Target Organizer & Workspace Authorization Check
   let targetOrganizer: { id: string; email: string | null; plan: string | null; name: string | null }
+  let resolvedOrganizationId: string | null = null
+  let resolvedOrganizationName: string | null = null
+  let resolvedOrganizationEmail: string | null = null
 
   const actorUser = await db.user.findUnique({
     where: { id: actor.userId },
@@ -443,46 +447,91 @@ export async function createEventDomainService(params: CreateEventServiceParams)
       actor.isAdmin || (actor.userEmail && isAdminEmail(actor.userEmail))
     )
 
-    const membership = await db.teamMember.findFirst({
-      where: {
-        memberId: actor.userId,
-        ownerId: asOrganizationId,
-        status: 'accepted',
-      },
-    })
-
-    // Strict security boundary: caller MUST be an admin or an accepted team member of this workspace.
-    // If not, reject with 403 Forbidden. NEVER silently fall back to personal account!
-    if (!isCallerAdmin && !membership) {
-      return {
-        success: false,
-        status: 403,
-        code: 'FORBIDDEN',
-        error: 'You are not authorized to create events in this workspace.',
-      }
-    }
-
-    const targetOrg = await db.user.findFirst({
+    // Check modern first-class Organization table first
+    const cleanOrgKey = asOrganizationId.trim()
+    const firstClassOrg = await db.organization.findFirst({
       where: {
         OR: [
-          { id: asOrganizationId },
-          { email: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
-          { username: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+          { id: cleanOrgKey },
+          { handle: { equals: cleanOrgKey.toLowerCase(), mode: 'insensitive' } },
         ],
       },
-      select: { id: true, email: true, plan: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        handle: true,
+        contactEmail: true,
+      },
     })
 
-    if (!targetOrg) {
-      return {
-        success: false,
-        status: 404,
-        code: 'WORKSPACE_NOT_FOUND',
-        error: 'Workspace organization not found.',
-      }
-    }
+    if (firstClassOrg) {
+      // Authorize caller against OrganizationMember
+      const membership = await db.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: firstClassOrg.id,
+            userId: actor.userId,
+          },
+        },
+        select: { id: true, role: true, status: true },
+      })
 
-    targetOrganizer = targetOrg
+      if (!isCallerAdmin && (!membership || membership.status !== 'ACTIVE')) {
+        return {
+          success: false,
+          status: 403,
+          code: 'FORBIDDEN',
+          error: 'You are not authorized to create events in this organization workspace.',
+        }
+      }
+
+      resolvedOrganizationId = firstClassOrg.id
+      resolvedOrganizationName = firstClassOrg.name
+      resolvedOrganizationEmail = firstClassOrg.contactEmail
+      targetOrganizer = actorUser
+    } else {
+      // Fallback to legacy TeamMember check
+      const membership = await db.teamMember.findFirst({
+        where: {
+          memberId: actor.userId,
+          ownerId: asOrganizationId,
+          status: 'accepted',
+        },
+      })
+
+      // Strict security boundary: caller MUST be an admin or an accepted team member of this workspace.
+      // If not, reject with 403 Forbidden. NEVER silently fall back to personal account!
+      if (!isCallerAdmin && !membership) {
+        return {
+          success: false,
+          status: 403,
+          code: 'FORBIDDEN',
+          error: 'You are not authorized to create events in this workspace.',
+        }
+      }
+
+      const targetOrg = await db.user.findFirst({
+        where: {
+          OR: [
+            { id: asOrganizationId },
+            { email: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+            { username: { equals: asOrganizationId.toLowerCase().trim(), mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true, email: true, plan: true, name: true },
+      })
+
+      if (!targetOrg) {
+        return {
+          success: false,
+          status: 404,
+          code: 'WORKSPACE_NOT_FOUND',
+          error: 'Workspace organization not found.',
+        }
+      }
+
+      targetOrganizer = targetOrg
+    }
   } else {
     targetOrganizer = actorUser
   }
@@ -618,12 +667,14 @@ export async function createEventDomainService(params: CreateEventServiceParams)
           groupRegistrationEnabled: groupRegistrationEnabled ?? false,
           allowGroupSelfClaim: allowGroupSelfClaim ?? true,
           questions: isWalkInEvent ? [] : questions,
-          organizerEmail: eventOrganizerEmail,
-          organizerName: normalizedOrganizerName,
+          organizerEmail: resolvedOrganizationEmail || eventOrganizerEmail,
+          organizerName: resolvedOrganizationName || normalizedOrganizerName,
           slug,
           dashboardToken,
           verifierCode,
           organizerId: targetOrganizer.id,
+          organizationId: resolvedOrganizationId,
+          creatorId: actor.userId,
           countryCode: countryCode ?? undefined,
           timedDropEnabled: timedDropEnabled ?? false,
           ticketDropOpensAt: ticketDropOpensAt ? new Date(ticketDropOpensAt) : null,
@@ -658,10 +709,23 @@ export async function createEventDomainService(params: CreateEventServiceParams)
           visibility: true,
           accessType: true,
           capacity: true,
+          organizationId: true,
         },
       })
 
       createdEvent = dbEvent
+      if (resolvedOrganizationId) {
+        await db.organizationAuditLog.create({
+          data: {
+            organizationId: resolvedOrganizationId,
+            actorId: actor.userId,
+            action: 'EVENT_CREATED',
+            targetType: 'EVENT',
+            targetId: dbEvent.id,
+            metadata: { title: dbEvent.title, slug: dbEvent.slug },
+          },
+        }).catch(() => {})
+      }
       break
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

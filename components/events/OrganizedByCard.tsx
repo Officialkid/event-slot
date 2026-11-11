@@ -7,6 +7,7 @@ import { FollowButton } from "@/components/following/FollowButton"
 export interface OrganizedByCardProps {
   organizerName: string
   organizerUsername?: string | null
+  targetType?: 'organizer' | 'organization'
   organizerImage?: string | null
   followerCount?: number
   hostedEventsCount?: number
@@ -20,6 +21,7 @@ export interface OrganizedByCardProps {
 export function OrganizedByCard({
   organizerName,
   organizerUsername,
+  targetType = 'organizer',
   organizerImage,
   followerCount = 0,
   hostedEventsCount = 1,
@@ -171,6 +173,7 @@ export function OrganizedByCard({
               <FollowButton
                 size="md"
                 className="w-full justify-center"
+                targetType={targetType}
                 organiserUsername={organizerUsername}
                 organiserName={organizerName}
                 initialFollowerCount={followerCount}

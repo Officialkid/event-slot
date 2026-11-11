@@ -196,3 +196,6 @@ export function AssistantWidget() {
     </>
   )
 }
+
+export default AssistantWidget
+

@@ -83,6 +83,7 @@ const EVENT_SELECT = {
   isPaid: true,
   archived: true,
   createdAt: true,
+  organizationId: true,
 } as const
 
 type RawEventRecord = {
@@ -93,6 +94,7 @@ type RawEventRecord = {
   visibility: string
   eventType: string
   organizerId: string | null
+  organizationId?: string | null
   capacity: number | null
   confirmedCount: number
   waitlistCount: number
@@ -172,6 +174,26 @@ export async function verifyWorkspaceMembership(
     return { allowed: true, isPlatformAdmin: true }
   }
 
+  // Check modern first-class OrganizationMember
+  const orgMember = await prisma.organizationMember.findFirst({
+    where: {
+      userId: actor.userId,
+      status: "ACTIVE",
+      organization: {
+        OR: [
+          { id: workspaceId },
+          { handle: workspaceId.toLowerCase() },
+        ],
+      },
+    },
+    select: { id: true, role: true },
+  })
+
+  if (orgMember) {
+    return { allowed: true, isPlatformAdmin: false }
+  }
+
+  // Fallback to legacy TeamMember
   const membership = await prisma.teamMember.findFirst({
     where: {
       ownerId: workspaceId,
@@ -186,10 +208,11 @@ export async function verifyWorkspaceMembership(
 
 /**
  * Authorizes an actor's access to a specific event record using EventSlot's authoritative RBAC rules:
- * 1. Workspace boundary check (if workspaceOrganizerId is set, event.organizerId must match it).
- * 2. Event owner (event.organizerId === actor.userId).
- * 3. Accepted team member / workspace collaborator explicitly assigned to the event (`hasTeamEventAccess`).
- * 4. Super-admin / platform admin access (`hasAdminAccess` or active Admin Mode session for the event).
+ * 1. Workspace boundary check (if workspaceOrganizerId is set, event.organizerId or event.organizationId must match it).
+ * 2. Organization member check (if event has organizationId, active OrganizationMember role).
+ * 3. Event owner (event.organizerId === actor.userId).
+ * 4. Accepted team member / workspace collaborator explicitly assigned to the event (`hasTeamEventAccess`).
+ * 5. Super-admin / platform admin access (`hasAdminAccess` or active Admin Mode session for the event).
  */
 export async function authorizeEventRecordAccess(
   actor: AssistantActorContext,
@@ -200,13 +223,36 @@ export async function authorizeEventRecordAccess(
   }
 
   const workspaceId = actor.workspaceOrganizerId?.trim() || null
-  if (workspaceId && event.organizerId !== workspaceId) {
-    return { allowed: false, accessRole: null }
+  if (workspaceId) {
+    const matchesOrg = event.organizationId && event.organizationId === workspaceId
+    const matchesOrganizer = event.organizerId && event.organizerId === workspaceId
+    if (!matchesOrg && !matchesOrganizer) {
+      return { allowed: false, accessRole: null }
+    }
   }
 
   const workspaceCheck = await verifyWorkspaceMembership(actor)
   if (!workspaceCheck.allowed) {
     return { allowed: false, accessRole: null }
+  }
+
+  // Check organization ownership
+  if (event.organizationId) {
+    const orgMembership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: event.organizationId,
+          userId: actor.userId,
+        },
+      },
+      select: { role: true, status: true },
+    })
+
+    if (orgMembership && orgMembership.status === "ACTIVE") {
+      if (orgMembership.role === "OWNER") return { allowed: true, accessRole: "owner" }
+      if (orgMembership.role === "ADMIN") return { allowed: true, accessRole: "admin" }
+      return { allowed: true, accessRole: "team_member" }
+    }
   }
 
   if (event.organizerId && event.organizerId === actor.userId) {

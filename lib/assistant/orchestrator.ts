@@ -1514,9 +1514,10 @@ CONVERSATION INTELLIGENCE DIRECTIVES FOR THIS TURN
   const listEventsCall = verifiedToolResults.find(
     (r) => r.capability === "list_organizer_events" && r.envelope.ok
   )
-  const eventRegistrationsOverview: OrganizerEventSummaryItem[] | null = listEventsCall
-    ? ((listEventsCall.envelope.data as ListOrganizerEventsOutput).events ?? null)
-    : null
+  const eventRegistrationsOverview: OrganizerEventSummaryItem[] | null =
+    listEventsCall && listEventsCall.envelope.ok
+      ? ((listEventsCall.envelope.data as ListOrganizerEventsOutput).events ?? null)
+      : null
 
   // If we have structured event cards, strip any ugly markdown ASCII tables the LLM may have emitted
   if (eventRegistrationsOverview && eventRegistrationsOverview.length > 0 && reply.includes("|---")) {

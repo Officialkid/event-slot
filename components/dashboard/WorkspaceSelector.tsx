@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Building2, User, ShieldCheck, CheckCircle2, Search, Loader2 } from "lucide-react"
+import { Building2, User, ShieldCheck, CheckCircle2, Search, Loader2, ExternalLink } from "lucide-react"
 
 export interface WorkspacePersona {
   id: string
@@ -191,6 +191,17 @@ export function WorkspaceSelector({ selectedId, onChange }: WorkspaceSelectorPro
             </button>
           )
         })}
+      </div>
+
+      <div className="mt-3 pt-2.5 flex items-center justify-between text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]">
+        <span>Managing an organization or team?</span>
+        <a
+          href="/dashboard/organization"
+          className="font-semibold text-[var(--accent)] hover:underline flex items-center gap-1"
+        >
+          <span>Organization Hub</span>
+          <ExternalLink className="w-3 h-3" />
+        </a>
       </div>
 
       {/* Admin Concierge: Assign by Email, Username, or ID */}

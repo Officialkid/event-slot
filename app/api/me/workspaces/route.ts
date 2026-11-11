@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   try {
-    const [user, teamMemberships] = await Promise.all([
+    const [user, orgMemberships, legacyTeamMemberships] = await Promise.all([
       prisma.user.findUnique({
         where: { id: session.user.id },
         select: {
@@ -21,6 +21,26 @@ export async function GET() {
           email: true,
           image: true,
         },
+      }),
+      prisma.organizationMember.findMany({
+        where: {
+          userId: session.user.id,
+          status: 'ACTIVE',
+        },
+        include: {
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              logo: true,
+              publicationStatus: true,
+              verificationStatus: true,
+              contactEmail: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.teamMember.findMany({
         where: {
@@ -47,9 +67,39 @@ export async function GET() {
 
     const isPlatformAdmin = Boolean(user.email && isAdminEmail(user.email))
 
-    const organizations = teamMemberships
-      .map(tm => tm.owner)
-      .filter((owner): owner is NonNullable<typeof owner> => Boolean(owner))
+    // Map modern first-class Organization models
+    const modernOrgs = orgMemberships.map((m) => ({
+      id: m.organization.id,
+      name: m.organization.name,
+      handle: m.organization.handle,
+      username: m.organization.handle, // Backwards compatibility for components expecting username
+      email: m.organization.contactEmail,
+      image: m.organization.logo,
+      role: m.role,
+      publicationStatus: m.organization.publicationStatus,
+      verificationStatus: m.organization.verificationStatus,
+      isOrganization: true,
+    }))
+
+    // Map legacy team memberships (deduplicated by id)
+    const existingOrgIds = new Set(modernOrgs.map((o) => o.id))
+    const legacyOrgs = legacyTeamMemberships
+      .map((tm) => tm.owner)
+      .filter((owner): owner is NonNullable<typeof owner> => Boolean(owner) && !existingOrgIds.has(owner.id))
+      .map((owner) => ({
+        id: owner.id,
+        name: owner.name || owner.username || 'Workspace',
+        handle: owner.username || owner.id,
+        username: owner.username,
+        email: owner.email,
+        image: owner.image,
+        role: 'ADMIN',
+        publicationStatus: 'PUBLISHED',
+        verificationStatus: 'UNVERIFIED',
+        isOrganization: false,
+      }))
+
+    const combinedOrganizations = [...modernOrgs, ...legacyOrgs]
 
     return NextResponse.json({
       success: true,
@@ -60,13 +110,7 @@ export async function GET() {
         email: user.email,
         image: user.image,
       },
-      organizations: organizations.map(org => ({
-        id: org.id,
-        name: org.name || org.username || 'Organization',
-        username: org.username,
-        email: org.email,
-        image: org.image,
-      })),
+      organizations: combinedOrganizations,
       isAdmin: isPlatformAdmin,
     })
   } catch (error) {
