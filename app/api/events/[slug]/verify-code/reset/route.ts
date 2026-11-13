@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { hasTeamEventAccess } from "@/lib/eventAccess"
-import { hasOrganiserAccess } from "@/lib/adminMode"
+import { hasAdminAccess } from "@/lib/isAdmin"
 import { generateVerifierCode } from "@/lib/verifierCode"
 
 export async function POST(
@@ -33,9 +33,9 @@ export async function POST(
 
     const session = await getServerSession(authOptions)
     const isOwner = Boolean(session?.user?.id && event.organizerId === session.user.id)
-    const isPlatformAdmin = hasOrganiserAccess(session)
+    const isPlatformAdmin = hasAdminAccess(session)
     const isTeamMember = session?.user?.id
-      ? await hasTeamEventAccess(session.user.id, event.id)
+      ? await hasTeamEventAccess({ userId: session.user.id, organizerId: event.organizerId, eventId: event.id })
       : false
     const hasDashboardToken = Boolean(token && event.dashboardToken && token === event.dashboardToken)
 
