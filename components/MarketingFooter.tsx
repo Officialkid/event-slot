@@ -24,8 +24,8 @@ export function MarketingFooter() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 text-[0.84rem]" style={{ color: "var(--text-secondary)" }}>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
 
-            <Link href="/for-universities" className="transition-colors hover:text-[var(--text-primary)]">
-              Organizations
+            <Link href="/organizations" className="transition-colors hover:text-[var(--text-primary)]">
+              EventSlot Organization
             </Link>
             <Link href="/careers" className="transition-colors hover:text-[var(--text-primary)]">
               Careers
