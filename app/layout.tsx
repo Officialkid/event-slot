@@ -1,23 +1,29 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Nav from "../components/Nav";
 import Providers from "../components/Providers";
 import { Toast } from "../components/Toast";
-import { DevToolsDetector } from "../components/DevToolsDetector";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
 
 import { seedPrivilegedAccounts } from "@/lib/seedAdmins";
 
-const dmSans = localFont({
-  src: "./fonts/GeistVF.woff",
+const dmSans = DM_Sans({
+  subsets: ["latin"],
   variable: "--font-dm-sans",
-  weight: "100 900",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-instrument-serif",
+  weight: "400",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#a3e635",
+  themeColor: "#C8F55A",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -147,7 +153,7 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png",   sizes: "180x180", type: "image/png" },
     ],
     other: [
-      { rel: "mask-icon", url: "/favicon.svg", color: "#a3e635" },
+      { rel: "mask-icon", url: "/favicon.svg", color: "#C8F55A" },
     ],
   },
   other: {
@@ -157,20 +163,6 @@ export const metadata: Metadata = {
     "format-detection": "telephone=no",
   },
 };
-
-const themeInitScript = `
-  (() => {
-    try {
-      const storedTheme = window.localStorage.getItem("eventslot-theme");
-      const nextTheme = storedTheme === "light" || storedTheme === "dark"
-        ? storedTheme
-        : "light";
-      document.documentElement.setAttribute("data-theme", nextTheme);
-      document.documentElement.style.background = nextTheme === "dark" ? "#0A0A0A" : "#F8FAFC";
-      document.documentElement.style.color = nextTheme === "dark" ? "#FFFFFF" : "#0F172A";
-    } catch {}
-  })();
-`;
 
 export default async function RootLayout({
   children,
@@ -192,29 +184,18 @@ export default async function RootLayout({
       data-theme="light"
       suppressHydrationWarning
       style={{
-        background: "#F8FAFC",
-        color: "#0F172A",
+        background: "#FFFFFF",
+        color: "#0A0A0A",
         fontFamily: "var(--font-dm-sans)",
       }}
-      className={dmSans.variable}
+      className={`${dmSans.variable} ${instrumentSerif.variable}`}
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        {/* Microsoft tile meta */}
-        <meta name="msapplication-config" content="/browserconfig.xml" />
-        {/* PWA theme color for Android Chrome address bar */}
-        <meta name="theme-color" content="#15803D" />
-        {/* Prevent iOS phone-number auto-detection */}
-        <meta name="format-detection" content="telephone=no" />
-      </head>
-      <body className="antialiased">
+      <body className="antialiased bg-white text-[#0F172A]">
         <Providers>
           <Nav />
           {children}
           <Toast />
-          <DevToolsDetector />
           <CookieConsentBanner />
-
         </Providers>
       </body>
     </html>

@@ -74,3 +74,11 @@ scripts/screenshots_verification/
 
 
 investor-package/node_modules/
+
+prompt*_test_results.json
+test_run_baseline.json
+generate_*.py
+scripts/*.mjs
+scripts/add-prefill-tests.js
+scripts/apply-registration-prefill.js
+scripts/fix-prefill-tests.js

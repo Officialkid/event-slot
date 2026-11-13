@@ -251,6 +251,7 @@ export const authOptions = {
               id: true,
               isAdmin: true,
               username: true,
+              organizationName: true,
               onboardingCompleted: true,
               onboardingSkipped: true,
               suspended: true,
@@ -263,6 +264,7 @@ export const authOptions = {
           if (user) {
             session.user.isAdmin = session.user.isAdmin || user.isAdmin || configuredAdminEmails.has((session.user.email ?? '').trim().toLowerCase())
             session.user.username = user.username ?? null
+            session.user.organizationName = user.organizationName ?? null
             session.user.onboardingCompleted = user.onboardingCompleted ?? false
             session.user.onboardingSkipped = user.onboardingSkipped ?? false
             session.user.suspended = user.suspended ?? false

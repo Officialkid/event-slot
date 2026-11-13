@@ -1,16 +1,27 @@
 import type { Metadata } from "next"
 import { Prisma } from "@prisma/client"
 import Link from "next/link"
+import {
+  Calendar,
+  MapPin,
+  Search,
+  Sparkles,
+  RotateCcw,
+  SlidersHorizontal,
+  ArrowRight,
+  Compass,
+} from "lucide-react"
 import prisma from "@/lib/prisma"
 import { APP_URL } from "@/lib/config"
 import PublicEventShareButton from "@/components/events/PublicEventShareButton"
 import { FollowButton } from "@/components/following/FollowButton"
+import { computeNextOccurrenceDate, getRegistrationWindowStatus } from "@/lib/recurringEvents"
 
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Events — EventSlot",
-  description: "Browse public events on EventSlot and register with the existing EventSlot flow.",
+  title: "Events — Discover Public Events on EventSlot",
+  description: "Browse upcoming events, conferences, and meetups on EventSlot. Register instantly with zero friction.",
   alternates: { canonical: `${APP_URL}/events` },
 }
 
@@ -20,7 +31,7 @@ function formatEventDate(value: Date | null, endValue?: Date | null) {
   const formatFull = (date: Date) =>
     date.toLocaleDateString("en-GB", {
       day: "numeric",
-      month: "long",
+      month: "short",
       year: "numeric",
     })
 
@@ -28,7 +39,19 @@ function formatEventDate(value: Date | null, endValue?: Date | null) {
     return formatFull(value)
   }
 
-  return `${formatFull(value)} to ${formatFull(endValue)}`
+  return `${formatFull(value)} — ${formatFull(endValue)}`
+}
+
+function getEventDateBadgeParts(value: Date | null) {
+  if (!value) {
+    return { month: "TBA", day: "--", weekday: "" }
+  }
+  const date = new Date(value)
+  return {
+    month: date.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
+    day: date.toLocaleDateString("en-GB", { day: "numeric" }),
+    weekday: date.toLocaleDateString("en-GB", { weekday: "short" }),
+  }
 }
 
 type EventsSearchParams = Promise<{
@@ -165,9 +188,11 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
     ? { start: startOfDay(exactDate), end: endOfDay(exactDate) }
     : getDateWindowRange(selectedWindow, now)
   const activeFiltersCount = [query, selectedDate, selectedWindow !== "all"].filter(Boolean).length
+
   const andFilters: Prisma.EventWhereInput[] = [
     {
       OR: [
+        { isRecurring: true },
         { deadline: null },
         { deadline: { gt: now } },
       ],
@@ -185,6 +210,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
       ],
     },
   ]
+
   const where: Prisma.EventWhereInput = {
     visibility: "PUBLIC",
     archived: false,
@@ -203,11 +229,17 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
   }
 
   if (activeRange) {
-    andFilters.push(buildRangeFilter(activeRange))
-  } else {
-    // Default discovery: strictly show upcoming events (event has not ended in the past)
     andFilters.push({
       OR: [
+        { isRecurring: true },
+        buildRangeFilter(activeRange),
+      ],
+    })
+  } else {
+    // Default discovery: strictly show upcoming events or recurring rolling events
+    andFilters.push({
+      OR: [
+        { isRecurring: true },
         { eventEndAt: { gte: now } },
         {
           AND: [
@@ -235,6 +267,12 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
       location: true,
       imageUrl: true,
       isPaid: true,
+      isRecurring: true,
+      recurrenceFrequency: true,
+      recurrenceDayOfWeek: true,
+      registrationOpensDays: true,
+      registrationOpensTime: true,
+      deadline: true,
       organizerName: true,
       organizerId: true,
       organizer: {
@@ -253,168 +291,95 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
     take: 100,
   })
 
+  // Quick filter options
+  const filterTabs = [
+    { label: "All Upcoming", window: "all" },
+    { label: "Today", window: "today" },
+    { label: "This Week", window: "this-week" },
+    { label: "This Month", window: "this-month" },
+    { label: "Next 30 Days", window: "next-30-days" },
+  ]
+
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8" style={{ background: "var(--page-bg)" }}>
+    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8" style={{ background: "var(--page-bg)" }}>
       <div className="mx-auto max-w-6xl">
-        <div className={`max-w-3xl ${events.length === 0 ? "mb-8" : "mb-5"}`}>
-          <p
-            className={`font-semibold uppercase tracking-[0.18em] ${events.length === 0 ? "mb-2 text-[0.78rem]" : "mb-1 text-[0.72rem]"}`}
-            style={{ color: "#C8F55A" }}
-          >
-            Discover
-          </p>
-          <h1
-            className={events.length === 0 ? "text-[2.2rem] sm:text-[3rem]" : "text-[1.8rem] leading-tight sm:text-[2.35rem]"}
-            style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}
-          >
-            Public events on EventSlot
-          </h1>
-          <p
-            className={events.length === 0 ? "mt-3 text-[0.95rem]" : "mt-2 max-w-2xl text-[0.88rem] leading-7 sm:text-[0.95rem]"}
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Browse publicly listed events and jump straight into the existing registration experience.
-          </p>
+        {/* Header Section */}
+        <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-wider bg-emerald-100/80 text-[#166534] dark:bg-emerald-950/50 dark:text-[#C8F55A] dark:border dark:border-emerald-800/40">
+              <Sparkles className="h-3 w-3" />
+              Discover Events
+            </div>
+            <h1
+              className="mt-3 text-[2rem] leading-tight sm:text-[2.6rem] font-medium"
+              style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}
+            >
+              Public events on EventSlot
+            </h1>
+            <p className="mt-2 text-[0.92rem] leading-6" style={{ color: "var(--text-secondary)" }}>
+              Browse upcoming experiences, reserve your spot in seconds, and follow active event organizers.
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[0.82rem] font-medium shadow-xs" style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-secondary)" }}>
+              <Compass className="h-4 w-4 text-[#166534] dark:text-[#C8F55A]" />
+              <strong className="text-[var(--text-primary)]">{events.length}</strong> public {events.length === 1 ? "event" : "events"} available
+            </span>
+          </div>
         </div>
 
-        {events.length === 0 ? (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <section
-              className="rounded-[24px] border p-8 sm:p-10"
-              style={{
-                borderColor: "rgba(200,245,90,0.18)",
-                background:
-                  "radial-gradient(circle at top left, rgba(200,245,90,0.14), transparent 36%), var(--surface)",
-              }}
-            >
-              <p className="mb-3 inline-flex rounded-full px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.12em]" style={{ background: "rgba(200,245,90,0.12)", color: "#C8F55A" }}>
-                Discovery page
-              </p>
-              <h2 className="text-[1.7rem] sm:text-[2.2rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                There are no public events available right now
-              </h2>
-              <p className="mt-3 max-w-2xl text-[0.95rem] leading-7" style={{ color: "var(--text-secondary)" }}>
-                This page is where EventSlot showcases events that organisers have chosen to make public. When a public event is published, visitors will see the poster, event name, date, location, and whether it is free or paid, then continue into the normal EventSlot registration page.
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[18px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <h3 className="text-[0.82rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "#C8F55A" }}>For attendees</h3>
-                  <p className="mt-2 text-[0.82rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    Discover open events in one place instead of relying only on shared links.
-                  </p>
-                </div>
-                <div className="rounded-[18px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <h3 className="text-[0.82rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "#C8F55A" }}>For organisers</h3>
-                  <p className="mt-2 text-[0.82rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    Mark an event as public and add a poster to make it discoverable here.
-                  </p>
-                </div>
-                <div className="rounded-[18px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <h3 className="text-[0.82rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "#C8F55A" }}>Same registration flow</h3>
-                  <p className="mt-2 text-[0.82rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    The Events page helps people discover events, but registration still happens on the existing event page.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <aside className="rounded-[24px] border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <h3 className="text-[1.15rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                How public visibility works
-              </h3>
-              <div className="mt-5 space-y-4">
-                <div className="rounded-[16px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <p className="text-[0.76rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "#C8F55A" }}>Public</p>
-                  <p className="mt-2 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    The event appears on this page and anyone can open the existing registration page.
-                  </p>
-                </div>
-                <div className="rounded-[16px] border p-4" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-                  <p className="text-[0.76rem] font-semibold uppercase tracking-[0.08em]" style={{ color: "#C8F55A" }}>Private</p>
-                  <p className="mt-2 text-[0.84rem] leading-6" style={{ color: "var(--text-secondary)" }}>
-                    The event stays off public discovery and is only accessible through the shared registration link.
-                  </p>
-                </div>
-                <p className="text-[0.78rem] leading-6" style={{ color: "var(--text-muted)" }}>
-                  Public listings only show active public events. Private, archived, cancelled, and expired events are excluded automatically.
-                </p>
-              </div>
-            </aside>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border px-4 py-4 sm:px-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <div>
-                <p className="text-[0.76rem] font-semibold uppercase tracking-[0.12em]" style={{ color: "#C8F55A" }}>
-                  Live listings
-                </p>
-                <p className="mt-2 text-[0.84rem] sm:text-[0.88rem]" style={{ color: "var(--text-secondary)" }}>
-                  Search, filter, and open the normal EventSlot registration page for any public event.
-                </p>
-              </div>
-              <div className="inline-flex rounded-full px-4 py-2 text-[0.8rem] font-semibold" style={{ background: "rgba(200,245,90,0.12)", color: "#C8F55A" }}>
-                {events.length} public {events.length === 1 ? "event" : "events"}
-              </div>
-            </div>
-
-            <form
-              method="get"
-              className="grid gap-3 rounded-[20px] border p-4 sm:p-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.72fr)_minmax(0,0.72fr)_minmax(0,0.72fr)]"
-              style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-            >
-              <label className="block">
-                <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.1em]" style={{ color: "#C8F55A" }}>
+        {/* Search and Filter Bar */}
+        <div className="mb-8 space-y-3">
+          <form
+            method="get"
+            className="rounded-[20px] border p-4 sm:p-5 shadow-xs"
+            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+              {/* Search text input */}
+              <div className="sm:col-span-2 lg:col-span-5">
+                <label className="mb-1.5 flex items-center gap-1.5 text-[0.74rem] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <Search className="h-3.5 w-3.5 text-[#166534] dark:text-[#C8F55A]" />
                   Search
-                </span>
-                <input
-                  type="search"
-                  name="q"
-                  defaultValue={query}
-                  placeholder="Search by event name or location"
-                  className="w-full rounded-[14px] border px-4 py-3 text-[0.92rem] outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
-                />
-              </label>
+                </label>
+                <div className="relative">
+                  <input
+                    type="search"
+                    name="q"
+                    defaultValue={query}
+                    placeholder="Search by event title or city/venue..."
+                    className="w-full rounded-[14px] border px-4 py-2.5 text-[0.92rem] outline-none transition-colors focus:border-[#166534] dark:focus:border-[#C8F55A]"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              </div>
 
-              <label className="block">
-                <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.1em]" style={{ color: "#C8F55A" }}>
-                  Exact date
-                </span>
+              {/* Exact date */}
+              <div className="sm:col-span-1 lg:col-span-3">
+                <label className="mb-1.5 flex items-center gap-1.5 text-[0.74rem] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <Calendar className="h-3.5 w-3.5 text-[#166534] dark:text-[#C8F55A]" />
+                  Specific Date
+                </label>
                 <input
                   type="date"
                   name="date"
                   defaultValue={selectedDate}
-                  className="w-full rounded-[14px] border px-4 py-3 text-[0.92rem] outline-none"
+                  className="w-full rounded-[14px] border px-3.5 py-2.5 text-[0.9rem] outline-none transition-colors focus:border-[#166534] dark:focus:border-[#C8F55A]"
                   style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
                 />
-              </label>
+              </div>
 
-              <label className="block">
-                <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.1em]" style={{ color: "#C8F55A" }}>
-                  Time window
-                </span>
-                <select
-                  name="window"
-                  defaultValue={selectedWindow}
-                  className="w-full rounded-[14px] border px-4 py-3 text-[0.92rem] outline-none"
-                  style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
-                >
-                  <option value="all">All upcoming events</option>
-                  <option value="today">Today</option>
-                  <option value="this-week">This week</option>
-                  <option value="this-month">This month</option>
-                  <option value="next-30-days">Next 30 days</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-[0.72rem] font-semibold uppercase tracking-[0.1em]" style={{ color: "#C8F55A" }}>
+              {/* Sort Order */}
+              <div className="sm:col-span-1 lg:col-span-2">
+                <label className="mb-1.5 flex items-center gap-1.5 text-[0.74rem] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-[#166534] dark:text-[#C8F55A]" />
                   Sort
-                </span>
+                </label>
                 <select
                   name="sort"
                   defaultValue={selectedSort}
-                  className="w-full rounded-[14px] border px-4 py-3 text-[0.92rem] outline-none"
+                  className="w-full rounded-[14px] border px-3 py-2.5 text-[0.9rem] outline-none transition-colors focus:border-[#166534] dark:focus:border-[#C8F55A]"
                   style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
                 >
                   <option value="soonest">Soonest first</option>
@@ -422,165 +387,296 @@ export default async function EventsPage({ searchParams }: { searchParams: Event
                   <option value="newest">Newest listing</option>
                   <option value="alphabetical">A to Z</option>
                 </select>
-              </label>
+              </div>
 
-              <div className="flex flex-wrap items-end gap-3 lg:col-span-4">
+              {/* Hidden window input for preserving tab state on manual search */}
+              <input type="hidden" name="window" value={selectedWindow} />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-2">
                 <button
                   type="submit"
-                  className="inline-flex rounded-full px-5 py-3 text-[0.84rem] font-semibold"
-                  style={{ background: "#C8F55A", color: "#0A0A0A", border: "none" }}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 px-4 text-[0.86rem] font-semibold text-white shadow-xs transition-all active:scale-95"
+                  style={{ background: "#166534" }}
                 >
-                  Apply filters
+                  <Search className="h-3.5 w-3.5" />
+                  Apply
                 </button>
-                <Link
-                  href="/events"
-                  className="inline-flex rounded-full border px-5 py-3 text-[0.84rem] font-semibold"
-                  style={{ borderColor: "var(--border)", color: "var(--text-secondary)", textDecoration: "none" }}
-                >
-                  Clear
-                </Link>
+                {activeFiltersCount > 0 && (
+                  <Link
+                    href="/events"
+                    className="inline-flex items-center justify-center rounded-full border p-2.5 text-[0.84rem] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+                    title="Clear filters"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Link>
+                )}
               </div>
-            </form>
+            </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-              <p className="text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
-                {activeFiltersCount > 0
-                  ? `Showing ${events.length} result${events.length === 1 ? "" : "s"} for your current filters.`
-                  : `Showing ${events.length} public event${events.length === 1 ? "" : "s"} right now.`}
+            {/* Quick Filter Window Pills */}
+            <div className="mt-4 pt-3.5 border-t flex flex-wrap items-center gap-2" style={{ borderColor: "var(--border)" }}>
+              <span className="text-[0.75rem] font-medium text-[var(--text-muted)] mr-1">Time frame:</span>
+              {filterTabs.map((tab) => {
+                const isActive = selectedWindow === tab.window && !selectedDate
+                const href = buildEventsPageHref({
+                  q: query,
+                  window: tab.window,
+                  sort: selectedSort,
+                })
+
+                return (
+                  <Link
+                    key={tab.window}
+                    href={href}
+                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-[0.78rem] font-medium transition-all ${
+                      isActive
+                        ? "bg-[#166534] text-white shadow-xs dark:bg-[#C8F55A] dark:text-[#0A0A0A]"
+                        : "border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-zinc-400 bg-[var(--surface-2)]"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </form>
+
+          {/* Active Filter Tags Bar */}
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border px-4 py-2.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+              <p className="text-[0.82rem] text-[var(--text-secondary)] m-0">
+                Found <strong className="text-[var(--text-primary)]">{events.length}</strong> matching event{events.length === 1 ? "" : "s"}.
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {query ? (
                   <Link
                     href={buildEventsPageHref({ date: selectedDate, window: selectedWindow, sort: selectedSort })}
-                    className="inline-flex rounded-full border px-3 py-1.5 text-[0.76rem] font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)", textDecoration: "none" }}
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.75rem] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--surface)]"
+                    style={{ borderColor: "var(--border)" }}
                   >
-                    Search: {query}
+                    <span>Search: {query}</span>
+                    <span className="text-xs opacity-60">×</span>
                   </Link>
                 ) : null}
                 {selectedDate ? (
                   <Link
                     href={buildEventsPageHref({ q: query, window: selectedWindow, sort: selectedSort })}
-                    className="inline-flex rounded-full border px-3 py-1.5 text-[0.76rem] font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)", textDecoration: "none" }}
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[0.75rem] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--surface)]"
+                    style={{ borderColor: "var(--border)" }}
                   >
-                    Date: {selectedDate}
+                    <span>Date: {selectedDate}</span>
+                    <span className="text-xs opacity-60">×</span>
                   </Link>
                 ) : null}
-                {selectedWindow !== "all" ? (
-                  <Link
-                    href={buildEventsPageHref({ q: query, date: selectedDate, sort: selectedSort })}
-                    className="inline-flex rounded-full border px-3 py-1.5 text-[0.76rem] font-semibold"
-                    style={{ borderColor: "var(--border)", color: "var(--text-secondary)", textDecoration: "none" }}
-                  >
-                    Window: {selectedWindow.replaceAll("-", " ")}
-                  </Link>
-                ) : null}
+                <Link
+                  href="/events"
+                  className="text-[0.75rem] font-semibold text-[#166534] dark:text-[#C8F55A] hover:underline ml-1"
+                >
+                  Clear all
+                </Link>
               </div>
             </div>
+          )}
+        </div>
 
-            {events.length === 0 ? (
-              <section className="rounded-[20px] border p-8 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                <h3 className="text-[1.4rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                  No public events match those filters
-                </h3>
-                <p className="mx-auto mt-3 max-w-2xl text-[0.9rem] leading-7" style={{ color: "var(--text-secondary)" }}>
-                  Try clearing the exact date, changing the time window, or searching with a shorter event name or location.
-                </p>
-                <div className="mt-5">
-                  <Link
-                    href="/events"
-                    className="inline-flex rounded-full px-5 py-3 text-[0.84rem] font-semibold"
-                    style={{ background: "#C8F55A", color: "#0A0A0A", textDecoration: "none" }}
-                  >
-                    Reset filters
-                  </Link>
-                </div>
-              </section>
-            ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {events.map((event) => (
-                  <article
-                    key={event.id}
-                    className="overflow-hidden rounded-[18px] border"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}
-                  >
-                    <Link href={`/${event.slug}`} style={{ textDecoration: "none" }}>
-                      <div
-                        style={{
-                          aspectRatio: "4 / 5",
-                          background: event.imageUrl
-                            ? "var(--surface-muted)"
-                            : "linear-gradient(135deg, rgba(200,245,90,0.18), rgba(17,24,39,0.2))",
-                          overflow: "hidden",
-                        }}
-                      >
-                        {event.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={event.imageUrl}
-                            alt={event.title}
-                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                          />
-                        ) : null}
-                      </div>
-                    </Link>
+        {/* Event Grid or Empty State */}
+        {events.length === 0 ? (
+          <div className="rounded-[24px] border p-10 sm:p-14 text-center max-w-2xl mx-auto" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100/70 text-[#166534] dark:bg-emerald-950/50 dark:text-[#C8F55A]">
+              <Calendar className="h-7 w-7" />
+            </div>
+            <h2 className="mt-5 text-[1.6rem] sm:text-[1.9rem] font-medium" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
+              {activeFiltersCount > 0 ? "No events match those filters" : "No public events available right now"}
+            </h2>
+            <p className="mx-auto mt-2.5 max-w-md text-[0.92rem] leading-6" style={{ color: "var(--text-secondary)" }}>
+              {activeFiltersCount > 0
+                ? "Try searching with broader terms, clearing the specific date, or switching the time frame to 'All Upcoming'."
+                : "Check back shortly or explore past public listings once organizers publish new upcoming events."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              {activeFiltersCount > 0 && (
+                <Link
+                  href="/events"
+                  className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[0.84rem] font-semibold text-white shadow-xs transition-all active:scale-95"
+                  style={{ background: "#166534" }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset all filters
+                </Link>
+              )}
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 rounded-full border px-5 py-2.5 text-[0.84rem] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+              >
+                Back to home
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => {
+              const effectiveDate = event.isRecurring
+                ? computeNextOccurrenceDate({
+                    eventDate: event.eventDate,
+                    isRecurring: event.isRecurring,
+                    recurrenceFrequency: event.recurrenceFrequency,
+                    recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+                  })
+                : event.eventDate
+              const dateParts = getEventDateBadgeParts(effectiveDate)
+              const windowStatus = event.isRecurring
+                ? getRegistrationWindowStatus({
+                    isRecurring: event.isRecurring,
+                    recurrenceFrequency: event.recurrenceFrequency,
+                    recurrenceDayOfWeek: event.recurrenceDayOfWeek,
+                    registrationOpensDays: event.registrationOpensDays,
+                    registrationOpensTime: event.registrationOpensTime,
+                    deadline: event.deadline,
+                    eventDate: event.eventDate,
+                  })
+                : null
 
-                    <div className="p-5">
-                      <div className="mb-3 inline-flex rounded-full px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.08em]" style={{ background: "rgba(200,245,90,0.12)", color: "#C8F55A" }}>
-                        {event.isPaid ? "Paid" : "Free"}
-                      </div>
-                      <h2 className="text-[1.2rem]" style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}>
-                        {event.title}
-                      </h2>
-                      <p className="mt-2 text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
-                        {formatEventDate(event.eventDate, event.eventEndAt)}
-                      </p>
-                      <p className="mt-1 min-h-[1.2rem] text-[0.82rem]" style={{ color: "var(--text-secondary)" }}>
-                        {event.location || "Location to be announced"}
-                      </p>
-
-                      {/* Organizer info + Follow button */}
-                      {(event.organizerName || event.organizer?.name) && (
-                        <div
-                          className="mt-4 pt-3 flex items-center justify-between gap-2 border-t"
-                          style={{ borderColor: "var(--border)" }}
-                        >
-                          <div className="min-w-0 pr-1">
-                            <p className="text-[0.66rem] uppercase tracking-wider text-[var(--text-muted)] m-0">Organized by</p>
-                            <p className="text-[0.82rem] font-semibold text-[var(--text-primary)] truncate m-0">
-                              {event.organizerName || event.organizer?.name}
-                            </p>
-                          </div>
-                          {(event.organizer?.username || event.organizerId) && (
-                            <div className="shrink-0">
-                              <FollowButton
-                                size="sm"
-                                organiserUsername={event.organizer?.username || event.organizerId || ""}
-                                organiserName={event.organizerName || event.organizer?.name || "Organizer"}
-                                initialFollowerCount={event.organizer?._count?.followers}
-                                showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
-                              />
-                            </div>
-                          )}
+              return (
+                <article
+                  key={event.id}
+                  className="group flex flex-col overflow-hidden rounded-[20px] border shadow-xs transition-all duration-300 hover:shadow-md hover:border-emerald-600/30"
+                  style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                >
+                  {/* Poster Image with Floating Calendar Date & Pricing Badges */}
+                  <div className="relative aspect-[16/10] sm:aspect-[4/5] overflow-hidden bg-[var(--surface-muted)]">
+                    <Link href={`/${event.slug}`} className="block h-full w-full">
+                      {event.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={event.imageUrl}
+                          alt={event.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-800/10 via-zinc-800/5 to-zinc-900/10">
+                          <Calendar className="h-12 w-12 text-zinc-400/40" />
                         </div>
                       )}
+                    </Link>
 
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          href={`/${event.slug}`}
-                          className="inline-flex rounded-full px-4 py-2 text-[0.82rem] font-semibold"
-                          style={{ background: "#C8F55A", color: "#0A0A0A", textDecoration: "none" }}
-                        >
-                          Register
-                        </Link>
-                        <PublicEventShareButton title={event.title} url={`${APP_URL}/${event.slug}`} />
+                    {/* Calendar Date Badge (Top Left) */}
+                    <div className="absolute top-3 left-3 flex flex-col items-center justify-center w-12 h-14 rounded-xl bg-white/95 dark:bg-zinc-900/90 backdrop-blur-md shadow-md text-center py-1 px-1 border border-black/5 dark:border-white/10 pointer-events-none">
+                      <span className="text-[0.62rem] font-bold uppercase tracking-wider text-[#166534] dark:text-[#C8F55A] leading-tight">
+                        {dateParts.month}
+                      </span>
+                      <span className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 leading-tight">
+                        {dateParts.day}
+                      </span>
+                    </div>
+
+                    {/* Paid / Free Badge & Recurring Badge (Top Right) */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
+                      {event.isRecurring && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.7rem] font-bold shadow-xs backdrop-blur-md bg-emerald-950/85 text-[#C8F55A] border border-emerald-500/40">
+                          🔄 {event.recurrenceFrequency === "BIWEEKLY" ? "Bi-weekly" : event.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Weekly"}
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold shadow-xs backdrop-blur-md border ${
+                          event.isPaid
+                            ? "bg-amber-500/90 text-white border-amber-600/40"
+                            : "bg-white/95 text-[#166534] dark:bg-zinc-900/90 dark:text-[#C8F55A] border-black/5 dark:border-white/10"
+                        }`}
+                      >
+                        {event.isPaid ? "Paid" : "Free"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Content Body */}
+                  <div className="flex flex-1 flex-col p-5">
+                    {/* Event Title */}
+                    <Link href={`/${event.slug}`} className="group-hover:text-[#166534] dark:group-hover:text-[#C8F55A] transition-colors">
+                      <h2
+                        className="text-[1.25rem] font-medium line-clamp-2 leading-snug"
+                        style={{ fontFamily: "var(--font-instrument-serif)", color: "var(--text-primary)" }}
+                      >
+                        {event.title}
+                      </h2>
+                    </Link>
+
+                    {/* Date & Location Rows */}
+                    <div className="mt-3 space-y-1.5 text-[0.82rem] text-[var(--text-secondary)]">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 shrink-0 text-[#166534] dark:text-[#C8F55A]" />
+                        <span className="truncate">
+                          {event.isRecurring
+                            ? `${formatEventDate(effectiveDate)} • Rolling ${event.recurrenceFrequency?.toLowerCase() || "weekly"}`
+                            : formatEventDate(event.eventDate, event.eventEndAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-[#166534] dark:text-[#C8F55A]" />
+                        <span className="truncate">{event.location || "Location to be announced"}</span>
                       </div>
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
+
+                    {/* Window Status / Notify Me Banner for Recurring Events */}
+                    {event.isRecurring && windowStatus && !windowStatus.isOpen && (
+                      <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2 text-[0.76rem] text-amber-700 dark:text-amber-300">
+                        <div className="flex items-center gap-1.5 truncate font-medium">
+                          <span>⏳</span>
+                          <span className="truncate">{windowStatus.label}</span>
+                        </div>
+                        <Link
+                          href={`/${event.slug}`}
+                          className="shrink-0 font-bold underline hover:no-underline text-emerald-700 dark:text-[#C8F55A]"
+                        >
+                          Notify me
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Organizer Row + Quick Follow */}
+                    {(event.organizerName || event.organizer?.name) && (
+                      <div
+                        className="mt-4 pt-3.5 flex items-center justify-between gap-2 border-t"
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        <div className="min-w-0 pr-1">
+                          <p className="text-[0.66rem] uppercase tracking-wider text-[var(--text-muted)] m-0">Organized by</p>
+                          <p className="text-[0.82rem] font-semibold text-[var(--text-primary)] truncate m-0">
+                            {event.organizerName || event.organizer?.name}
+                          </p>
+                        </div>
+                        {(event.organizer?.username || event.organizerId) && (
+                          <div className="shrink-0">
+                            <FollowButton
+                              size="sm"
+                              organiserUsername={event.organizer?.username || event.organizerId || ""}
+                              organiserName={event.organizerName || event.organizer?.name || "Organizer"}
+                              initialFollowerCount={event.organizer?._count?.followers}
+                              showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Footer */}
+                    <div className="mt-4 pt-3 flex items-center gap-2 border-t" style={{ borderColor: "var(--border)" }}>
+                      <Link
+                        href={`/${event.slug}`}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full py-2 px-4 text-[0.84rem] font-semibold text-white shadow-xs transition-all active:scale-95"
+                        style={{ background: "#166534" }}
+                      >
+                        <span>Register</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                      <PublicEventShareButton title={event.title} url={`${APP_URL}/${event.slug}`} />
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
           </div>
         )}
       </div>

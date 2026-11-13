@@ -2,6 +2,11 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import {
+  isMemoryEnabled,
+  resolveAndUpdateMemoryPreference,
+  sanitizeMemoryText,
+} from '@/lib/assistant-memory'
 
 type DocChunk = {
   source: string
@@ -261,34 +266,23 @@ export async function resolveMemoryPreference(
   userId: string,
   inputEnabled?: boolean,
 ): Promise<boolean> {
-  try {
-    if (typeof inputEnabled === 'boolean') {
-      const pref = await prisma.userMemoryPreference.upsert({
-        where: { userId },
-        update: { memoryEnabled: inputEnabled },
-        create: { userId, memoryEnabled: inputEnabled },
-      })
-      return pref.memoryEnabled
-    }
-
-    const pref = await prisma.userMemoryPreference.findUnique({ where: { userId } })
-    return Boolean(pref?.memoryEnabled)
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-      return false
-    }
-    throw error
-  }
+  return resolveAndUpdateMemoryPreference(userId, inputEnabled)
 }
 
 export async function getMemoryContext(userId: string, memoryEnabled: boolean): Promise<string> {
   if (!memoryEnabled) return ''
 
   try {
+    const serverEnabled = await isMemoryEnabled(userId)
+    if (!serverEnabled) return ''
+
     const memory = await prisma.userMemory.findUnique({ where: { userId } })
     if (!memory?.summary) return ''
 
-    return `User memory summary (only use if relevant, never mention hidden storage): ${truncate(memory.summary, 900)}`
+    const sanitized = sanitizeMemoryText(memory.summary)
+    if (!sanitized) return ''
+
+    return `User memory summary (only use if relevant, never mention hidden storage): ${truncate(sanitized, 900)}`
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
       return ''
@@ -307,6 +301,9 @@ export async function updateUserMemory(params: {
   const { userId, sessionId, userMessage, assistantReply, preferredLanguage } = params
 
   try {
+    const enabled = await isMemoryEnabled(userId)
+    if (!enabled) return
+
     const existing = await prisma.userMemory.findUnique({ where: { userId } })
     const existingFacts = toObject(existing?.keyFacts)
     const previousSessionId = typeof existingFacts.lastSessionId === 'string' ? existingFacts.lastSessionId : null
@@ -315,18 +312,21 @@ export async function updateUserMemory(params: {
       ? existingFacts.recentIssues.filter((item): item is string => typeof item === 'string')
       : []
 
-    const issueHint = /error|failed|can't|cannot|problem|issue/i.test(userMessage)
-      ? truncate(userMessage.replace(/\s+/g, ' '), 140)
+    const sanitizedUserMessage = sanitizeMemoryText(userMessage)
+    const sanitizedAssistantReply = sanitizeMemoryText(assistantReply)
+
+    const issueHint = /error|failed|can't|cannot|problem|issue/i.test(sanitizedUserMessage)
+      ? truncate(sanitizedUserMessage.replace(/\s+/g, ' '), 140)
       : null
 
     const recentIssues = issueHint
       ? [issueHint, ...previousIssues].slice(0, 5)
       : previousIssues.slice(0, 5)
 
-    const updateStamp = `User asked: ${truncate(userMessage.replace(/\s+/g, ' '), 220)}\nAssistant replied: ${truncate(assistantReply.replace(/\s+/g, ' '), 260)}`
+    const updateStamp = `User asked: ${truncate(sanitizedUserMessage.replace(/\s+/g, ' '), 220)}\nAssistant replied: ${truncate(sanitizedAssistantReply.replace(/\s+/g, ' '), 260)}`
 
     const mergedSummary = existing?.summary
-      ? truncate(`${existing.summary}\n${updateStamp}`, 1800)
+      ? truncate(`${sanitizeMemoryText(existing.summary)}\n${updateStamp}`, 1800)
       : updateStamp
 
     const nextSessionCount = existing
@@ -340,6 +340,9 @@ export async function updateUserMemory(params: {
       recentIssues,
       updatedAtIso: new Date().toISOString(),
     }
+
+    const stillEnabled = await isMemoryEnabled(userId)
+    if (!stillEnabled) return
 
     await prisma.userMemory.upsert({
       where: { userId },

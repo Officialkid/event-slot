@@ -64,8 +64,10 @@ if (-not (Test-Path $archivePath)) {
 
 Write-Host "Archive created ($( (Get-Item $archivePath).Length ) bytes). Submitting to Cloud Build..."
 
+$cloudbuildConfig = Join-Path $repoRoot 'cloudbuild.yaml'
+
 gcloud builds submit `
   --project=$projectId `
-  --config=cloudbuild.yaml `
+  --config=$cloudbuildConfig `
   "--substitutions=_SERVICE=$service,_REGION=$region,_REPOSITORY=$repository,_IMAGE_TAG=$imageTag" `
   $archivePath

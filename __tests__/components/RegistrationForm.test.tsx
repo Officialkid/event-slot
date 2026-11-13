@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import RegistrationForm from '@/app/(attendee)/[username]/RegistrationForm'
+import { useSession } from 'next-auth/react'
+import { saveAttendeeProfile } from '@/lib/attendeeProfileStore'
 
 const baseEvent = {
   slug: 'restore-test',
@@ -18,6 +20,10 @@ const baseEvent = {
 
 describe('RegistrationForm', () => {
   beforeEach(() => {
+    ;(useSession as jest.Mock).mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+    })
     jest.useFakeTimers()
     global.fetch = jest.fn() as typeof fetch
     window.localStorage.clear()
@@ -471,6 +477,57 @@ describe('RegistrationForm', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/we will notify you if a slot opens/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('Privacy-Guarded Registration Prefill (Workstream 3)', () => {
+    it('prefills matching recurrent contact details when authenticated session and profile API are present', async () => {
+      ;(useSession as jest.Mock).mockReturnValue({
+        data: { user: { name: 'Dr. Jane Muthoni', email: 'jane@example.com' } },
+        status: 'authenticated',
+      })
+      const fetchMock = global.fetch as jest.Mock
+      fetchMock.mockImplementation(async (url: string) => {
+        if (typeof url === 'string' && url.includes('/api/me/registration-profile')) {
+          return {
+            ok: true,
+            json: async () => ({
+              success: true,
+              profile: {
+                name: 'Dr. Jane Muthoni',
+                email: 'jane@example.com',
+              },
+            }),
+          }
+        }
+        return {
+          ok: true,
+          json: async () => ({ success: true }),
+        }
+      })
+
+      render(<RegistrationForm event={baseEvent} />)
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Dr. Jane Muthoni')).toBeInTheDocument()
+      })
+      expect(screen.getByText(/Details pre-filled from your verified account/i)).toBeInTheDocument()
+    })
+
+    it('prefills from local device profile when unauthenticated returning guest visits', async () => {
+      saveAttendeeProfile({ name: 'Guest Developer', email: 'guest@example.com' })
+      const fetchMock = global.fetch as jest.Mock
+      fetchMock.mockImplementation(async () => ({
+        ok: true,
+        json: async () => ({ success: true }),
+      }))
+
+      render(<RegistrationForm event={baseEvent} />)
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Guest Developer')).toBeInTheDocument()
+      })
+      expect(screen.getByText(/Details pre-filled from your previous registration/i)).toBeInTheDocument()
     })
   })
 })

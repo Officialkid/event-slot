@@ -1,4 +1,15 @@
+export const brand = {
+  lime: '#C8F55A',
+  nearBlack: '#0A0A0A',
+  offWhite: '#F0EDE6',
+} as const
+
 export const colors = {
+  // Brand foundation
+  brandLime: '#C8F55A',
+  brandNearBlack: '#0A0A0A',
+  brandOffWhite: '#F0EDE6',
+
   // Backgrounds
   pageBg: '#0A0A0A',
   surfaceBg: '#141414',
@@ -7,11 +18,14 @@ export const colors = {
 
   // Borders
   border: '#2A2A2A',
+  borderSubtle: 'rgba(240, 237, 230, 0.08)',
+  borderAccent: 'rgba(200, 245, 90, 0.25)',
 
   // Accent (lime — EventSlot brand)
   accent: '#C8F55A',
   accentHover: '#b8e040',
-  accentDim: 'rgba(200,245,90,0.1)',
+  accentDim: 'rgba(200, 245, 90, 0.1)',
+  accentGlow: 'rgba(200, 245, 90, 0.18)',
 
   // Text
   textPrimary: '#FFFFFF',

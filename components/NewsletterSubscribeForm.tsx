@@ -52,8 +52,8 @@ export function NewsletterSubscribeForm() {
       </p>
 
       {status === "success" ? (
-        <div className="flex items-center gap-2 text-xs text-[#C8F55A] bg-[#C8F55A]/10 border border-[#C8F55A]/20 px-3.5 py-2.5 rounded-xl animate-in fade-in">
-          <span>✓</span>
+        <div className="flex items-center gap-3 text-sm font-medium text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 px-4 py-3 rounded-xl animate-in fade-in shadow-sm">
+          <span className="text-base text-emerald-400 font-bold">✓</span>
           <span>{message}</span>
         </div>
       ) : (
@@ -64,13 +64,13 @@ export function NewsletterSubscribeForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email address"
             disabled={loading}
-            className="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-[#737373] focus:outline-none focus:border-[#C8F55A] transition-colors"
+            className="flex-1 bg-[#141414] border border-[#262626] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-[#737373] focus:outline-none focus:border-[#16A34A] transition-colors"
             required
           />
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-[#C8F55A] text-[#0A0A0A] font-semibold rounded-xl text-xs sm:text-sm hover:bg-[#b5e648] disabled:opacity-50 transition-all shrink-0 cursor-pointer shadow-sm shadow-[#C8F55A]/20"
+            className="px-5 py-2.5 bg-[#16A34A] text-white font-semibold rounded-xl text-sm hover:bg-[#15803D] disabled:opacity-50 transition-all shrink-0 cursor-pointer shadow-sm"
           >
             {loading ? "Subscribing..." : "Subscribe"}
           </button>
@@ -78,7 +78,10 @@ export function NewsletterSubscribeForm() {
       )}
 
       {status === "error" && (
-        <p className="text-xs text-red-400 mt-2">{message}</p>
+        <div className="mt-2.5 flex items-center gap-2.5 text-sm font-medium text-amber-300 bg-amber-950/40 border border-amber-500/30 px-4 py-3 rounded-xl animate-in fade-in">
+          <span className="text-base">ℹ️</span>
+          <span>{message}</span>
+        </div>
       )}
     </div>
   )

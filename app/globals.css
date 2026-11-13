@@ -5,10 +5,10 @@
 :root,
 html[data-theme="light"] {
   color-scheme: light;
-  background: #F8FAFC;
+  background: #FFFFFF;
   color: #0F172A;
 
-  --bg-page: #F8FAFC;
+  --bg-page: #FFFFFF;
   --bg-surface: #FFFFFF;
   --bg-elevated: #F1F5F9;
   --bg-input: #FFFFFF;
@@ -52,7 +52,15 @@ html[data-theme="light"] {
   --small-size: 0.75rem;
   --label-size: 0.72rem;
 
-  --font-instrument-serif: Georgia, "Times New Roman", serif;
+  --font-instrument-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-dm-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --brand-lime: #C8F55A;
+  --brand-black: #0A0A0A;
+  --brand-offwhite: #F0EDE6;
+  --brand-glow: rgba(200, 245, 90, 0.18);
+  --brand-border-glow: rgba(200, 245, 90, 0.28);
+  --brand-surface-translucent: rgba(20, 22, 20, 0.94);
 }
 
 html[data-theme="dark"] {
@@ -96,6 +104,16 @@ html[data-theme="dark"] {
   --text-hint: var(--text-muted);
   --accent-muted: var(--accent-dim);
   --border-emphasis: rgba(34, 197, 94, 0.3);
+
+  --font-instrument-serif: var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  --font-dm-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --brand-lime: #C8F55A;
+  --brand-black: #0A0A0A;
+  --brand-offwhite: #F0EDE6;
+  --brand-glow: rgba(200, 245, 90, 0.24);
+  --brand-border-glow: rgba(200, 245, 90, 0.36);
+  --brand-surface-translucent: rgba(14, 16, 14, 0.96);
 }
 
 html {
@@ -815,4 +833,16 @@ html[data-theme="light"] .marketing-card p {
 
 body.admin-mode-active .admin-mode-aware-layout {
   padding-top: 72px;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

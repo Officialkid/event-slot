@@ -68,15 +68,13 @@ describe("dashboard theme coverage", () => {
     expect(verifierPage).toContain("<ScannerHome")
   })
 
-  it("informs existing users that preferred language can be changed in profile", () => {
-    const shell = readFileSync(
-      path.join(root, "app/(organizer)/dashboard/_shell.tsx"),
+  it("allows setting preferred language in profile without distracting banners on dashboard", () => {
+    const profile = readFileSync(
+      path.join(root, "app/(organizer)/dashboard/profile/page.tsx"),
       "utf8"
     )
 
-    expect(shell).toContain("New: choose your preferred language")
-    expect(shell).toContain("eventslot:language-notice-dismissed")
-    expect(shell).toContain('href="/dashboard/profile"')
-    expect(shell).toContain("Dismiss language preference notice")
+    expect(profile).toContain("preferredLanguage")
+    expect(profile).toContain("SupportedLanguageCode")
   })
 })

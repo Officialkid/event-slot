@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma"
+import {
+  authorizeEventRecordAccess,
+  listAuthorizedEventsForActor,
+  type AssistantActorContext,
+} from "@/lib/assistant/context-resolver"
 
 export interface EventInsights {
   eventTitle: string
@@ -64,25 +69,67 @@ function isWaitlisted(status: string): boolean {
 
 export async function getEventInsights(
   eventId: string,
-  requestingUserId: string
+  requestingUserId: string,
+  actorContext?: Omit<AssistantActorContext, "userId">
 ): Promise<EventInsights | null> {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: {
-      registrations: {
-        where: {
-          status: {
-            in: ["CONFIRMED", "WAITLISTED", "confirmed", "waitlisted", "WAITLIST"],
-          },
+  if (!eventId || !requestingUserId) return null
+
+  const includeRegistrations = {
+    registrations: {
+      where: {
+        status: {
+          in: ["CONFIRMED", "WAITLISTED", "confirmed", "waitlisted", "WAITLIST"],
         },
-        select: { status: true, submittedAt: true },
-        orderBy: { submittedAt: "asc" },
       },
+      select: { status: true, submittedAt: true },
+      orderBy: { submittedAt: "asc" as const },
     },
+  }
+
+  const byId = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: includeRegistrations,
   })
 
+  const event =
+    byId ??
+    (await prisma.event.findUnique({
+      where: { slug: eventId },
+      include: includeRegistrations,
+    }))
+
   if (!event) return null
-  if (event.organizerId !== requestingUserId) return null
+
+  const auth = await authorizeEventRecordAccess(
+    {
+      userId: requestingUserId,
+      userEmail: actorContext?.userEmail,
+      userRole: actorContext?.userRole,
+      isAdmin: actorContext?.isAdmin,
+      workspaceOrganizerId: actorContext?.workspaceOrganizerId,
+    },
+    {
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      status: event.status,
+      visibility: event.visibility,
+      eventType: event.eventType,
+      organizerId: event.organizerId,
+      capacity: event.capacity,
+      confirmedCount: event.confirmedCount,
+      waitlistCount: event.waitlistCount,
+      eventDate: event.eventDate,
+      deadline: event.deadline,
+      location: event.location,
+      ticketsEnabled: event.ticketsEnabled,
+      isPaid: event.isPaid,
+      archived: event.archived,
+      createdAt: event.createdAt,
+    }
+  )
+
+  if (!auth.allowed) return null
 
   const registrations = event.registrations as RegistrationLite[]
   const confirmed = registrations.filter((r) => isConfirmed(r.status))
@@ -193,38 +240,47 @@ export async function getEventInsights(
   }
 }
 
-export async function getOrganizerEventSummaries(userId: string) {
-  const events = await prisma.event.findMany({
-    where: { organizerId: userId },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      capacity: true,
-      eventDate: true,
-      _count: {
-        select: {
-          registrations: true,
-        },
-      },
+export async function getOrganizerEventSummaries(
+  userId: string,
+  options?: {
+    workspaceOrganizerId?: string | null
+    status?: "active" | "closed" | "all"
+    limit?: number
+    userEmail?: string | null
+    userRole?: string | null
+    isAdmin?: boolean | null
+  }
+) {
+  const authorizedEvents = await listAuthorizedEventsForActor(
+    {
+      userId,
+      userEmail: options?.userEmail,
+      userRole: options?.userRole,
+      isAdmin: options?.isAdmin,
+      workspaceOrganizerId: options?.workspaceOrganizerId,
     },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  })
+    {
+      status: options?.status ?? "all",
+      limit: options?.limit ?? 10,
+    }
+  )
 
-  return events.map((event) => {
+  return authorizedEvents.map((event) => {
     const capacity = event.capacity ?? 0
-    const registrations = event._count.registrations
+    const registrations = event.confirmedCount
     const fillRate = capacity > 0 ? Math.round((registrations / capacity) * 100) : 0
 
     return {
       id: event.id,
+      slug: event.slug,
       title: event.title,
       status: event.status,
       registrations,
+      waitlistCount: event.waitlistCount,
       capacity,
       fillRate,
       startDate: event.eventDate,
+      accessRole: event.accessRole,
     }
   })
 }

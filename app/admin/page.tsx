@@ -230,6 +230,10 @@ export default function AdminOverviewPage() {
       fetch("/api/admin/stats").then(r => r.json()),
       fetch("/api/admin/revenue").then(r => r.json()),
     ]).then(([s, r]) => {
+      if (s?.error === "Not found" || s?.error === "Unauthorized") {
+        window.location.href = "/admin/recruitment"
+        return
+      }
       setStats(s)
       setRevenue(r)
     }).finally(() => setLoading(false))

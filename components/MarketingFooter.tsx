@@ -9,7 +9,7 @@ export function MarketingFooter() {
           <div className="lg:col-span-6">
             <p className="text-[1.1rem] font-semibold">
               <span style={{ color: "var(--text-primary)" }}>Event</span>
-              <span className="text-[#C8F55A]">Slot</span>
+              <span className="text-[#166534] dark:text-[#C8F55A]">Slot</span>
             </p>
             <p className="mt-2 text-[0.84rem] leading-6 max-w-sm" style={{ color: "var(--text-muted)" }}>
               Smart registration, waitlist, and walk-in attendance for modern event teams.
@@ -23,11 +23,12 @@ export function MarketingFooter() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-6 text-[0.84rem]" style={{ color: "var(--text-secondary)" }}>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link href="/pricing" className="transition-colors hover:text-[var(--text-primary)]">
-              Pricing
-            </Link>
+
             <Link href="/for-universities" className="transition-colors hover:text-[var(--text-primary)]">
-              Universities
+              Organizations
+            </Link>
+            <Link href="/careers" className="transition-colors hover:text-[var(--text-primary)]">
+              Careers
             </Link>
             <Link href="/privacy" className="transition-colors hover:text-[var(--text-primary)]">
               Privacy Policy

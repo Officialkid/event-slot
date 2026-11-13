@@ -11,6 +11,7 @@ import { getRegistrationWindowStatus, computeNextOccurrenceDate, computeOccurren
 import { InternationalPhoneInput } from "@/components/registration/InternationalPhoneInput"
 import { RegistrationStepIndicator, type RegistrationStep } from "@/components/registration/RegistrationStepIndicator"
 import { TimedDropCountdown } from "@/components/events/TimedDropCountdown"
+import { RecurringNotifyCard } from "@/components/events/RecurringNotifyCard"
 import { PostRegistrationFollowCard } from "@/components/registration/PostRegistrationFollowCard"
 import {
   getSavedAttendeeProfile,
@@ -2253,6 +2254,15 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
               closesAt={typeof event.ticketDropClosesAt === "string" ? event.ticketDropClosesAt : event.ticketDropClosesAt?.toISOString()}
               waitlistOnExpire={event.dropWaitlistOnExpire ?? true}
               isFull={Boolean(event.capacity && event.confirmedCount >= event.capacity)}
+            />
+          )}
+          {windowClosed && recurringWindow && (
+            <RecurringNotifyCard
+              slug={event.slug}
+              eventTitle={event.title}
+              label={recurringWindow.label}
+              opensAt={recurringWindow.opensAt}
+              initialEmail={attendees[0]?.email || ""}
             />
           )}
           {event.groupRegistrationEnabled && (

@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { unstable_cache } from "next/cache"
 import prisma from "@/lib/prisma"
 import RegistrationForm from "../(attendee)/[username]/RegistrationForm"
@@ -111,6 +111,11 @@ const getPublicUserProfile = unstable_cache(
     select: {
       name: true,
       username: true,
+      image: true,
+      organizationName: true,
+      contactPhone: true,
+      contactWhatsapp: true,
+      contactEmail: true,
       createdAt: true,
       showFollowerCountPublicly: true,
       _count: {
@@ -216,7 +221,36 @@ async function getEventBySlug(slug: string) {
         },
       },
       faqs: { orderBy: { order: 'asc' }, select: { id: true, question: true, answer: true } },
-      organizer: { select: { id: true, name: true, username: true, plan: true, suspended: true, showFollowerCountPublicly: true, _count: { select: { followers: true } }, pioneerBadge: { select: { id: true } } } },
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          logo: true,
+          contactPhone: true,
+          contactWhatsapp: true,
+          contactEmail: true,
+          verificationStatus: true,
+          _count: { select: { followers: true, events: true } },
+        },
+      },
+      organizer: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+          organizationName: true,
+          contactPhone: true,
+          contactWhatsapp: true,
+          contactEmail: true,
+          plan: true,
+          suspended: true,
+          showFollowerCountPublicly: true,
+          _count: { select: { followers: true, events: true } },
+          pioneerBadge: { select: { id: true } },
+        },
+      },
     },
   } as any)
 }
@@ -243,7 +277,19 @@ export async function generateMetadata({
     } catch {
       return {}
     }
-    if (!event) return {}
+    if (!event) {
+      const org = await prisma.organization.findUnique({
+        where: { handle: username.toLowerCase() },
+        select: { name: true, publicationStatus: true },
+      })
+      if (org && org.publicationStatus === "PUBLISHED") {
+        return {
+          title: `${org.name} — EventSlot`,
+          description: `Explore events hosted by ${org.name} on EventSlot.`,
+        }
+      }
+      return {}
+    }
     const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - event.confirmedCount) : null
     const base = APP_URL
     const isWalkInEvent = event.accessType === "WALK_IN"
@@ -302,7 +348,16 @@ export default async function PublicProfilePage({
     } catch {
       notFound()
     }
-    if (!event) notFound()
+    if (!event) {
+      const org = await prisma.organization.findUnique({
+        where: { handle: username.toLowerCase() },
+        select: { id: true, publicationStatus: true },
+      })
+      if (org && org.publicationStatus === "PUBLISHED") {
+        redirect(`/org/${username.toLowerCase()}`)
+      }
+      notFound()
+    }
 
     const isWalkInEvent = event.accessType === "WALK_IN"
 
@@ -359,11 +414,17 @@ export default async function PublicProfilePage({
             entryFeeLabel={event.entryFeeLabel}
             showRemainingSpots={event.showRemainingSpots}
             imageUrl={event.imageUrl}
-            organizerName={event.organizerName ?? event.organizer?.name ?? null}
-            organizerUsername={event.organizer?.username || event.organizerId || event.organizer?.id || ""}
+            organizerName={event.organization?.name ?? event.organizerName ?? event.organizer?.name ?? null}
+            organizerUsername={event.organization?.handle ?? event.organizer?.username ?? event.organizerId ?? ""}
+            organizerImage={event.organization?.logo ?? event.organizer?.image ?? null}
+            organizerOrganizationName={event.organization?.name ?? event.organizer?.organizationName ?? null}
+            hostedEventsCount={event.organization?._count?.events ?? event.organizer?._count?.events ?? 1}
+            contactPhone={event.organization?.contactPhone ?? event.organizer?.contactPhone ?? null}
+            contactWhatsapp={event.organization?.contactWhatsapp ?? event.organizer?.contactWhatsapp ?? null}
+            contactEmail={event.organization?.contactEmail ?? event.organizer?.contactEmail ?? null}
             organizerIsPioneer={Boolean(event.organizer?.pioneerBadge)}
-            followerCount={event.organizer?._count?.followers}
-            showFollowerCountPublicly={event.organizer?.showFollowerCountPublicly}
+            followerCount={event.organization?._count?.followers ?? event.organizer?._count?.followers}
+            showFollowerCountPublicly={event.organization ? true : event.organizer?.showFollowerCountPublicly}
             capacity={event.capacity}
             confirmedCount={event.confirmedCount}
             status={event.status}
@@ -471,7 +532,7 @@ export default async function PublicProfilePage({
     )
   }
 
-  const displayName = user.name ?? user.username ?? "Organizer"
+  const displayName = user.organizationName ?? user.name ?? user.username ?? "Organizer"
   const initials = displayName
     .split(" ")
     .map((w: string) => w[0]?.toUpperCase() ?? "")
@@ -500,26 +561,42 @@ export default async function PublicProfilePage({
           marginBottom: "2.5rem",
         }}
       >
-        {/* Initials circle */}
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: "rgba(200,245,90,0.12)",
-            border: "0.5px solid rgba(200,245,90,0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.4rem",
-            fontWeight: 600,
-            color: "#C8F55A",
-            fontFamily: "var(--font-dm-sans)",
-            flexShrink: 0,
-          }}
-        >
-          {initials}
-        </div>
+        {/* Profile Avatar / Photo */}
+        {user.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.image}
+            alt={displayName}
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "1.5px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              background: "rgba(200,245,90,0.12)",
+              border: "0.5px solid rgba(200,245,90,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.4rem",
+              fontWeight: 600,
+              color: "#C8F55A",
+              fontFamily: "var(--font-dm-sans)",
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+        )}
 
         <div style={{ flex: 1 }}>
           <h1

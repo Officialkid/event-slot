@@ -62,6 +62,71 @@ export function EventGroupBookingsTab({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  // Direct modal creation state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState("")
+  const [newOrgName, setNewOrgName] = useState("")
+  const [newOrgType, setNewOrgType] = useState("COMPANY")
+  const [newContactName, setNewContactName] = useState("")
+  const [newContactEmail, setNewContactEmail] = useState("")
+  const [newContactPhone, setNewContactPhone] = useState("")
+  const [newTotalSlots, setNewTotalSlots] = useState("10")
+  const [createdBookingResult, setCreatedBookingResult] = useState<any>(null)
+
+  const handleCreateGroupBooking = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newOrgName.trim()) {
+      setCreateError("Organization name is required")
+      return
+    }
+    if (!newContactName.trim()) {
+      setCreateError("Contact name is required")
+      return
+    }
+    if (!newContactEmail.trim() || !newContactEmail.includes("@")) {
+      setCreateError("A valid contact email is required")
+      return
+    }
+    if (!newContactPhone.trim() || newContactPhone.trim().length < 9) {
+      setCreateError("A valid phone number is required (at least 9 digits)")
+      return
+    }
+    const slots = Number(newTotalSlots)
+    if (!Number.isInteger(slots) || slots < 1 || slots > 500) {
+      setCreateError("Reserved slots must be between 1 and 500")
+      return
+    }
+
+    setCreating(true)
+    setCreateError("")
+
+    try {
+      const res = await fetch(`/api/events/${slug}/group-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgName: newOrgName.trim(),
+          orgType: newOrgType,
+          contactName: newContactName.trim(),
+          contactEmail: newContactEmail.trim(),
+          contactPhone: newContactPhone.trim(),
+          totalSlots: slots,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to reserve group booking")
+      }
+      setCreatedBookingResult(data.booking)
+      void fetchBookings()
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to reserve group booking")
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
@@ -203,6 +268,21 @@ export function EventGroupBookingsTab({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateModal(true)
+                setCreatedBookingResult(null)
+                setCreateError("")
+              }}
+              className="rounded-[8px] px-3.5 py-1.5 text-[0.78rem] font-bold transition hover:opacity-90 flex items-center gap-1.5 shadow-sm"
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-contrast, #000)",
+              }}
+            >
+              <span>➕ Reserve Group Allocation</span>
+            </button>
             <button
               onClick={fetchBookings}
               disabled={loading}
@@ -373,15 +453,27 @@ export function EventGroupBookingsTab({
             When groups or organizations register, their delegation summary, slot allocations, and manager links will appear right here.
           </p>
           {groupRegistrationEnabled ? (
-            <div className="mt-5 flex justify-center gap-3">
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(true)
+                  setCreatedBookingResult(null)
+                  setCreateError("")
+                }}
+                className="rounded-[10px] px-4 py-2 text-xs font-bold transition hover:opacity-90 shadow-sm"
+                style={{ background: "var(--accent)", color: "var(--accent-contrast, #000)" }}
+              >
+                ➕ Reserve Group Allocation
+              </button>
               <a
                 href={publicUrl || `/${slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-[10px] px-4 py-2 text-xs font-bold transition hover:opacity-90"
-                style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+                className="rounded-[10px] border px-4 py-2 text-xs font-bold transition hover:opacity-90"
+                style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-primary)" }}
               >
-                ↗ Test Group Registration on Public Page
+                ↗ Public Registration Page
               </a>
             </div>
           ) : (
@@ -675,6 +767,252 @@ export function EventGroupBookingsTab({
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Reserve Group Allocation Modal */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          onClick={() => !creating && setShowCreateModal(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-[20px] border p-6 space-y-4 shadow-2xl"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              color: "var(--text-primary)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {createdBookingResult ? (
+              <div className="space-y-4 text-center">
+                <div
+                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
+                  style={{
+                    background: "color-mix(in srgb, var(--accent) 20%, transparent)",
+                    color: "var(--accent)",
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold">Group Allocation Reserved!</h3>
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Reserved <strong>{createdBookingResult.totalSlots} slots</strong> for <strong>{createdBookingResult.orgName}</strong>.
+                </p>
+
+                <div className="space-y-3 text-left pt-2">
+                  <div className="rounded-[12px] border p-3 text-xs space-y-1.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                    <span className="font-bold block" style={{ color: "var(--accent)" }}>
+                      📋 Delegation Manager Link (For Group Admin / HR)
+                    </span>
+                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      Open to assign attendee names or upload CSV roster:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={createdBookingResult.managerUrl}
+                        className="w-full rounded-[6px] border px-2.5 py-1.5 text-[11px] font-mono"
+                        style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-secondary)" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(createdBookingResult.managerUrl, "new-mgr")}
+                        className="rounded-[6px] border px-3 py-1.5 text-xs font-bold shrink-0"
+                        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+                      >
+                        {copiedKey === "new-mgr" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[12px] border p-3 text-xs space-y-1.5" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                    <span className="font-bold block" style={{ color: "var(--accent)" }}>
+                      🔗 Member Self-Claim Link (Share on WhatsApp / Email)
+                    </span>
+                    <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      Forward to attendees so each member claims their individual ticket:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={createdBookingResult.claimUrl}
+                        className="w-full rounded-[6px] border px-2.5 py-1.5 text-[11px] font-mono"
+                        style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-secondary)" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(createdBookingResult.claimUrl, "new-claim")}
+                        className="rounded-[6px] border px-3 py-1.5 text-xs font-bold shrink-0"
+                        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+                      >
+                        {copiedKey === "new-claim" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false)
+                      setCreatedBookingResult(null)
+                    }}
+                    className="w-full rounded-[10px] py-2.5 text-xs font-bold"
+                    style={{ background: "var(--accent)", color: "var(--accent-contrast, #000)" }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateGroupBooking} className="space-y-3.5">
+                <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: "var(--border)" }}>
+                  <h3 className="text-base font-bold">Reserve Group Allocation</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="text-sm font-semibold p-1 hover:opacity-70"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {createError && (
+                  <div className="rounded-[8px] p-2.5 text-xs font-semibold" style={{ background: "color-mix(in srgb, var(--error, #EF4444) 15%, transparent)", color: "var(--error, #EF4444)" }}>
+                    {createError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Organization Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Grace Fellowship, Google"
+                      value={newOrgName}
+                      onChange={(e) => setNewOrgName(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Organization Type
+                    </label>
+                    <select
+                      value={newOrgType}
+                      onChange={(e) => setNewOrgType(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    >
+                      <option value="COMPANY">Company / Corporate</option>
+                      <option value="CHURCH">Church / Fellowship</option>
+                      <option value="SCHOOL">School / High School</option>
+                      <option value="UNIVERSITY">University / Campus</option>
+                      <option value="NGO">NGO / Non-profit</option>
+                      <option value="SPONSOR">Sponsor / Partner</option>
+                      <option value="FAMILY_TEAM">Family / Team</option>
+                      <option value="OTHER">Other Delegation</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Contact Person Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Pastor John, Jane Doe"
+                      value={newContactName}
+                      onChange={(e) => setNewContactName(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Number of Slots *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={500}
+                      value={newTotalSlots}
+                      onChange={(e) => setNewTotalSlots(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs font-bold"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Contact Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="contact@org.com"
+                      value={newContactEmail}
+                      onChange={(e) => setNewContactEmail(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+                      Contact Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. +254 700 000000"
+                      value={newContactPhone}
+                      onChange={(e) => setNewContactPhone(e.target.value)}
+                      className="w-full rounded-[8px] border px-3 py-2 text-xs"
+                      style={{ borderColor: "var(--border)", background: "var(--bg-page)", color: "var(--text-primary)" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                  <button
+                    type="button"
+                    disabled={creating}
+                    onClick={() => setShowCreateModal(false)}
+                    className="rounded-[8px] border px-4 py-2 text-xs font-semibold"
+                    style={{ borderColor: "var(--border)", background: "var(--surface-2)", color: "var(--text-secondary)" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="rounded-[8px] px-5 py-2 text-xs font-bold"
+                    style={{ background: "var(--accent)", color: "var(--accent-contrast, #000)" }}
+                  >
+                    {creating ? "Reserving Slots..." : "Reserve & Generate Links →"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
     </div>

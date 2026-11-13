@@ -129,6 +129,9 @@ Every feature in EventSlot is directly grounded in real-world organizer needs an
 | **2026-09-08** | `4dfa286` | **Cloud Vault** | Cloudflare R2 Cold Storage Archive Vault: Automated attendee compression and zero-egress archival. |
 | **2026-09-09** | `1bb7928` | **Cohort Telemetry** | Multi-Event Cohort Telemetry: Multi-event filtering popover aggregating live turnout, velocity, and capacity. |
 | **2026-09-09** | `8ac4f21` | **Executive Reporting** | Gemini AI Presentation Deck Generator & 16:9 Landscape Print/PDF export for committee board meetings. |
+| **2026-10-15** | `3a1102f` | **Attendee Profiles** | Attendee Registration Profile System: Public attendee profile cards, social links, and registration history. |
+| **2026-11-05** | `8f902ac` | **Landing Page** | Complete Public Landing Page Revamp: High-converting hero, interactive features showcase, and discovery feed. |
+| **2026-11-11** | `MIG-20261111` | **Org Workspaces** | Enterprise Organization Workspaces: Dual persona switcher, 3-tier RBAC, crypto invites, org analytics. |
 
 ---
 
@@ -170,14 +173,46 @@ If network boundaries or API quotas interrupt generative inference, the system f
 
 ---
 
-## 💳 Chapter 8: The Active Frontier & Future Horizon
+## 🌐 Chapter 8: Public Event Discovery, Mobile TWA & Custom Form Workflows
 
-### 8.1 The Active Frontier: Payment Gateway Integration
-EventSlot's primary engineering focus today is completing the **Universal Payment Processing Engine**. This unlocks:
-- Multi-currency checkout (M-Pesa STK push, Credit/Debit Cards, Paystack, Bank Transfers).
-- Multi-tier paid ticketing with automated financial reconciliation.
+### 8.1 The Public Event Discovery Engine
+To bridge the gap between private organizer links and community-wide event participation, EventSlot deployed a real-time public event discovery index at `/events`. Attendees can browse by category, filter by physical vs. virtual attendance, and search for active summits across the continent.
+
+### 8.2 Trusted Web Activity (TWA) & Mobile Play Store Packaging
+By packaging the core Next.js application into a Trusted Web Activity (TWA) with native camera barcode scanning drivers, EventSlot achieved Google Play Store readiness without maintaining costly fragmented codebases across Android and Web.
+
+---
+
+## 🏢 Chapter 9: The Milestone Evolution — Enterprise Organization Workspaces
+
+### 9.1 From Individual Organizers to Organization Governance
+As institutions and movements like *I Speak Society* and *The Disruptors Movement* adopted EventSlot, relying solely on personal accounts created severe operational bottlenecks:
+- Team members could not create or edit events under the brand name without sharing passwords.
+- Revenue withdrawals and bank details were inappropriately exposed to event managers and ushers.
+- Ushers verifying tickets at physical gates risked accidental access to financial or administrative settings.
+
+To resolve this, the board approved the complete **Organization Workspaces** architecture.
+
+### 9.2 The Seven Core Pillars of the Organization Architecture
+1. **Dual Persona Switcher (`/api/me/workspaces`):** Organizers switch instantly between their personal workspace and corporate organizations with a single click.
+2. **Server-Authoritative RBAC (`lib/organizationPermissions.ts`):** Fixed 3-tier hierarchy (`OWNER`, `ADMIN`, `EVENT_MANAGER`) covering 25 granular permissions with anti-escalation safeguards.
+3. **32-Byte Cryptographic Invitations:** High-entropy single-use email invites and multi-use links stored exclusively as SHA-256 hashes (`tokenHash`).
+4. **Event Ownership Transfers & Creator Attribution:** Personal events can be safely transferred into organizations while immutably preserving the original human author (`creatorId`).
+5. **Segregated Organization Audience Following (`OrganizationFollower`):** Fans and attendees subscribe directly to organizations rather than individual founders.
+6. **Zero-Login Ticket Gate Integrity:** The physical ticket scanner (`/verify-tickets/[slug]`) remains 100% unauthenticated, scoped only to ticket check-ins.
+7. **Financial Governance Foundation:** Payout settings are isolated in `OrganizationFinanceProfile`, with automated settlements strictly disabled until KYB validation is completed.
+
+---
+
+## 💳 Chapter 10: The Active Frontier & Global 5-Year Roadmap
+
+### 10.1 The Active Frontier: Universal Payment Processing Engine
+EventSlot's primary commercial priority is activating the **Universal Payment Processing Engine**, supporting:
+- Multi-currency checkout (M-Pesa STK push, Credit/Debit cards, Paystack, Bank Transfers).
+- Multi-tier paid ticketing with automated settlement reconciliation.
 - Instant organizer payouts, split ticketing commissions, and refund management.
 
-### 8.2 The 5-Year Horizon
-EventSlot is evolving from a rapid campus registration tool into the definitive operating system for live and virtual experiences across Africa and the world. By unifying smart ticketing, fraud-proof cryptographic check-ins, AI organizer assistance, and seamless payments, EventSlot removes every ounce of friction between an organizer's vision and an attendee's seat.
+### 10.2 The 5-Year Vision: The Operating System for African & Global Events
+EventSlot is evolving from a rapid campus registration tool into the definitive operating system for live and virtual experiences across Africa and the global diaspora. By unifying smart ticketing, fraud-proof cryptographic check-ins, multi-member organization governance, AI organizer assistance, and seamless payments, EventSlot removes every ounce of friction between an organizer's vision and an attendee's seat.
+
 

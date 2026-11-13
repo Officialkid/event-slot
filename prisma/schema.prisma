@@ -100,6 +100,14 @@ model Event {
   creationProposalId     String?                 @unique
   creationProposal       AssistantActionProposal? @relation("EventToCreationProposal", fields: [creationProposalId], references: [id], onDelete: SetNull)
   sideEffectOutboxItems  EventCreationSideEffectOutbox[]
+  organizationId         String?
+  organization           Organization?           @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creatorId              String?
+  creator                User?                   @relation("EventCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  transferRequests       EventTransferRequest[]
+
+  @@index([organizationId])
+  @@index([creatorId])
 }
 
 model EventFAQ {
@@ -244,6 +252,16 @@ model User {
   reviewerAssignmentsRevoked RecruitmentReviewerAssignment[] @relation("RevokedByAdmin")
   recruitmentInvitationsCreated  RecruitmentReviewerInvitation[] @relation("RecruitmentInvitationsCreated")
   recruitmentInvitationsAccepted RecruitmentReviewerInvitation[] @relation("RecruitmentInvitationsAccepted")
+  organizationsCreated           Organization[]                  @relation("OrganizationCreator")
+  organizationMemberships        OrganizationMember[]
+  organizationInvitationsCreated OrganizationInvitation[]        @relation("OrganizationInvitationsCreated")
+  organizationInvitationsAccepted OrganizationInvitation[]       @relation("OrganizationInvitationsAccepted")
+  followedOrganizations          OrganizationFollower[]          @relation("UserFollowedOrganizations")
+  organizationAuditLogs          OrganizationAuditLog[]          @relation("ActorAuditLogs")
+  organizationVerificationRequests OrganizationVerificationRequest[] @relation("VerificationRequester")
+  eventsCreated                  Event[]                         @relation("EventCreator")
+  transfersInitiated             EventTransferRequest[]          @relation("TransferInitiator")
+  transfersApproved              EventTransferRequest[]          @relation("TransferApprover")
 }
 
 model OrganiserFollower {
@@ -2150,6 +2168,230 @@ model RecruitmentReviewerInvitation {
   @@index([tokenHash])
   @@index([expiresAt])
   @@index([revokedAt])
+}
+
+// ==========================================
+// ORGANIZATION WORKSPACES ARCHITECTURE
+// ==========================================
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  EVENT_MANAGER
+}
+
+enum OrganizationMemberStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum OrganizationPublicationStatus {
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum OrganizationVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+  REVOKED
+}
+
+enum OrganizationInvitationType {
+  EMAIL
+  LINK
+}
+
+enum OrganizationInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+  DECLINED
+}
+
+enum OrganizationFinanceStatus {
+  UNCONFIGURED
+  PENDING_REVIEW
+  ENABLED
+  RESTRICTED
+  DISABLED
+}
+
+enum EventTransferStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model Organization {
+  id                   String                         @id @default(cuid())
+  name                 String
+  handle               String                         @unique
+  description          String?                        @db.Text
+  logo                 String?
+  coverImage           String?
+  category             String?
+  website              String?
+  socialLinks          Json?
+  contactEmail         String?
+  contactPhone         String?
+  contactWhatsapp      String?
+  publicationStatus    OrganizationPublicationStatus  @default(DRAFT)
+  verificationStatus   OrganizationVerificationStatus @default(UNVERIFIED)
+  verifiedAt           DateTime?
+  verificationEvidence Json?
+  publishedAt          DateTime?
+  createdById          String
+  createdBy            User                           @relation("OrganizationCreator", fields: [createdById], references: [id])
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  members              OrganizationMember[]
+  invitations          OrganizationInvitation[]
+  events               Event[]
+  followers            OrganizationFollower[]
+  auditLogs            OrganizationAuditLog[]
+  verificationRequests OrganizationVerificationRequest[]
+  financeProfile       OrganizationFinanceProfile?
+
+  @@index([handle])
+  @@index([publicationStatus])
+  @@index([verificationStatus])
+  @@index([createdById])
+}
+
+model OrganizationMember {
+  id             String                   @id @default(cuid())
+  organizationId String
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrganizationRole         @default(EVENT_MANAGER)
+  status         OrganizationMemberStatus @default(ACTIVE)
+  invitedById    String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+}
+
+model OrganizationInvitation {
+  id             String                       @id @default(cuid())
+  organizationId String
+  organization   Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           OrganizationInvitationType   @default(EMAIL)
+  email          String?
+  tokenHash      String                       @unique
+  role           OrganizationRole             @default(EVENT_MANAGER)
+  createdById    String
+  createdBy      User                         @relation("OrganizationInvitationsCreated", fields: [createdById], references: [id])
+  expiresAt      DateTime
+  maxUses        Int                          @default(1)
+  usesCount      Int                          @default(0)
+  status         OrganizationInvitationStatus @default(PENDING)
+  acceptedById   String?
+  acceptedBy     User?                        @relation("OrganizationInvitationsAccepted", fields: [acceptedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  @@index([organizationId])
+  @@index([tokenHash])
+  @@index([email])
+  @@index([status])
+}
+
+model OrganizationFollower {
+  id              String       @id @default(cuid())
+  followerId      String
+  follower        User         @relation("UserFollowedOrganizations", fields: [followerId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  notifyNewEvents Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+
+  @@unique([followerId, organizationId])
+  @@index([organizationId])
+  @@index([followerId])
+}
+
+model OrganizationAuditLog {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actor          User?         @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  action         String
+  targetType     String?
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([action])
+}
+
+model OrganizationVerificationRequest {
+  id             String                         @id @default(cuid())
+  organizationId String
+  organization   Organization                   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedById  String
+  requestedBy    User                           @relation("VerificationRequester", fields: [requestedById], references: [id])
+  status         OrganizationVerificationStatus @default(PENDING)
+  evidence       Json?
+  reviewedById   String?
+  reviewNotes    String?
+  reviewedAt     DateTime?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model OrganizationFinanceProfile {
+  id              String                    @id @default(cuid())
+  organizationId  String                    @unique
+  organization    Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status          OrganizationFinanceStatus @default(UNCONFIGURED)
+  currency        String                    @default("KES")
+  payoutMethod    String?
+  beneficiaryName String?
+  settlementNotes String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([status])
+}
+
+model EventTransferRequest {
+  id              String              @id @default(cuid())
+  eventId         String
+  event           Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sourceOwnerType String              // "PERSONAL" | "ORGANIZATION"
+  sourceOwnerId   String
+  targetOwnerType String              // "PERSONAL" | "ORGANIZATION"
+  targetOwnerId   String
+  status          EventTransferStatus @default(PENDING)
+  initiatedById   String
+  initiatedBy     User                @relation("TransferInitiator", fields: [initiatedById], references: [id])
+  approvedById    String?
+  approvedBy      User?               @relation("TransferApprover", fields: [approvedById], references: [id])
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([eventId])
+  @@index([status])
 }
 
 

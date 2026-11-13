@@ -12,6 +12,7 @@ declare module 'next-auth' {
       plan?: 'free' | 'standard' | 'pro' | 'business'
       isAdmin: boolean
       username: string | null
+      organizationName?: string | null
       onboardingCompleted: boolean
       onboardingSkipped: boolean
       suspended: boolean

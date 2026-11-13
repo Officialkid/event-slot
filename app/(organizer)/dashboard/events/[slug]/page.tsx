@@ -1911,11 +1911,44 @@ export default function EventDashboardPage() {
   const [copiedTeamInviteKey, setCopiedTeamInviteKey] = useState<string | null>(null)
   const [copiedVerifierCode, setCopiedVerifierCode] = useState(false)
   const [copiedVerifierLink, setCopiedVerifierLink] = useState(false)
+  const [resettingVerifierCode, setResettingVerifierCode] = useState(false)
+  const [resetVerifierSuccess, setResetVerifierSuccess] = useState(false)
   const [showVerifierQrModal, setShowVerifierQrModal] = useState(false)
   const [verifierQrDataUrl, setVerifierQrDataUrl] = useState("")
   const [generatingVerifierQr, setGeneratingVerifierQr] = useState(false)
   const [shareFeedback, setShareFeedback] = useState("")
   const hasPendingTeamInvite = eventTeam.some((member) => member.status === "pending")
+
+  const handleResetVerifierCode = async () => {
+    if (!eventData?.slug) return
+    const confirmed = window.confirm(
+      "Are you sure you want to reset the gate verifier access code? The current code and link will immediately stop working, and anyone using the previous verifier link will lose gate access."
+    )
+    if (!confirmed) return
+
+    setResettingVerifierCode(true)
+    try {
+      const res = await fetch(`/api/events/${eventData.slug}/verify-code/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token || eventData.dashboardToken }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to reset verifier code")
+      }
+      if (data.verifierCode) {
+        setEventData((prev) => prev ? { ...prev, verifierCode: data.verifierCode } : prev)
+        setVerifierQrDataUrl("")
+        setResetVerifierSuccess(true)
+        window.setTimeout(() => setResetVerifierSuccess(false), 3000)
+      }
+    } catch (err: any) {
+      alert(err.message || "Could not reset verifier code. Please try again.")
+    } finally {
+      setResettingVerifierCode(false)
+    }
+  }
 
   const openVerifierQrModal = async (link: string) => {
     setShowVerifierQrModal(true)
@@ -3110,6 +3143,29 @@ export default function EventDashboardPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={resettingVerifierCode}
+                  onClick={async () => {
+                    await handleResetVerifierCode()
+                    setShowVerifierQrModal(false)
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: themeBorderSoft,
+                    borderRadius: "100px",
+                    padding: "0.65rem 1rem",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    color: "var(--warning, #F59E0B)",
+                    cursor: resettingVerifierCode ? "wait" : "pointer",
+                    fontFamily: "var(--font-dm-sans)",
+                    opacity: resettingVerifierCode ? 0.6 : 1,
+                  }}
+                  title="Revoke the current access code and generate a new one for gate staff"
+                >
+                  {resettingVerifierCode ? "Resetting Code..." : "🔄 Reset Access Code"}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowVerifierQrModal(false)}
                   style={{
                     background: "transparent",
@@ -3186,9 +3242,32 @@ export default function EventDashboardPage() {
                 )}
               </div>
 
-              {/* Meta: date, location, deadline */}
-              {(eventData.eventDate || eventData.location || eventData.eventType === "VIRTUAL" || eventData.deadline) && (
+              {/* Meta: date, location, deadline, recurrence */}
+              {(eventData.eventDate || eventData.location || eventData.eventType === "VIRTUAL" || eventData.deadline || eventData.isRecurring) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.875rem", marginTop: "0.5rem" }}>
+                  {eventData.isRecurring && (
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        color: "var(--accent)",
+                        fontFamily: "var(--font-dm-sans)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        fontWeight: 700,
+                        background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+                        border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+                        padding: "0.15rem 0.6rem",
+                        borderRadius: "100px",
+                      }}
+                    >
+                      <span>🔄</span>
+                      <span>
+                        Recurring: {eventData.recurrenceFrequency === "BIWEEKLY" ? "Every 2 Weeks" : eventData.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Every Week"}
+                        {typeof eventData.recurrenceDayOfWeek === "number" ? ` on ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][eventData.recurrenceDayOfWeek]}` : ""}
+                      </span>
+                    </span>
+                  )}
                   {eventData.eventDate && (
                     <span style={{ fontSize: "0.78rem", color: themeTextSecondary, fontFamily: "var(--font-dm-sans)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                       <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><rect x="1.5" y="3" width="13" height="11" rx="2"/><path d="M1.5 7h13M5 1.5v3M11 1.5v3"/></svg>
@@ -3557,6 +3636,100 @@ export default function EventDashboardPage() {
               </a>
             ) : null}
             </div>
+
+            {/* Recurring Event Schedule & Rolling Cycle Overview */}
+            {eventData.isRecurring && (
+              <div
+                style={{
+                  background: themeSurface,
+                  border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)",
+                  borderRadius: 14,
+                  padding: "1.25rem 1.4rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.85rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "1.2rem" }}>🔄</span>
+                    <div>
+                      <h3 style={{ fontSize: "0.95rem", fontWeight: 700, color: themeTextPrimary, margin: 0, fontFamily: "var(--font-dm-sans)" }}>
+                        Active Rolling Cycle &amp; Schedule
+                      </h3>
+                      <p style={{ fontSize: "0.78rem", color: themeTextSecondary, margin: "0.15rem 0 0", fontFamily: "var(--font-dm-sans)" }}>
+                        One permanent public link &amp; QR code. Attendee cohorts and tickets reset every cycle.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/edit/${slug}`}
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      color: "var(--accent)",
+                      textDecoration: "none",
+                      border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)",
+                      borderRadius: 8,
+                      padding: "0.35rem 0.75rem",
+                      background: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.3rem",
+                    }}
+                  >
+                    <span>⚙️ Edit Recurrence</span>
+                  </Link>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: "0.75rem",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  <div style={{ background: themeSurfaceAlt, borderRadius: 10, padding: "0.75rem 0.9rem", border: themeBorderSoft }}>
+                    <span style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: themeTextMuted, display: "block" }}>
+                      Repeat Frequency
+                    </span>
+                    <strong style={{ fontSize: "0.88rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                      {eventData.recurrenceFrequency === "BIWEEKLY" ? "Every 2 Weeks" : eventData.recurrenceFrequency === "MONTHLY" ? "Monthly" : "Every Week"}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: themeSurfaceAlt, borderRadius: 10, padding: "0.75rem 0.9rem", border: themeBorderSoft }}>
+                    <span style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: themeTextMuted, display: "block" }}>
+                      Event Day
+                    </span>
+                    <strong style={{ fontSize: "0.88rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                      {typeof eventData.recurrenceDayOfWeek === "number"
+                        ? `Every ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][eventData.recurrenceDayOfWeek]}`
+                        : "Same Day Weekly"}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: themeSurfaceAlt, borderRadius: 10, padding: "0.75rem 0.9rem", border: themeBorderSoft }}>
+                    <span style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: themeTextMuted, display: "block" }}>
+                      Registration Window
+                    </span>
+                    <strong style={{ fontSize: "0.88rem", color: themeTextPrimary, fontFamily: "var(--font-dm-sans)" }}>
+                      Opens {eventData.registrationOpensDays ?? 4} days prior at {eventData.registrationOpensTime || "08:00 AM"}
+                    </strong>
+                  </div>
+
+                  <div style={{ background: themeSurfaceAlt, borderRadius: 10, padding: "0.75rem 0.9rem", border: themeBorderSoft }}>
+                    <span style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: themeTextMuted, display: "block" }}>
+                      Current Cohort
+                    </span>
+                    <strong style={{ fontSize: "0.88rem", color: "var(--accent)", fontFamily: "var(--font-dm-sans)" }}>
+                      {thisWeekConfirmedCount} this cycle
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Register someone + Email Attendees action buttons */}
             <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
@@ -5350,6 +5523,31 @@ export default function EventDashboardPage() {
                       title="Display QR code for gate team to scan and start"
                     >
                       <span>📱 Show Gate QR</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={resettingVerifierCode}
+                      onClick={handleResetVerifierCode}
+                      style={{
+                        background: resetVerifierSuccess ? "#15803D" : themeSurfaceAlt,
+                        border: themeBorderSoft,
+                        borderRadius: 8,
+                        padding: "0.5rem 0.9rem",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        color: resetVerifierSuccess ? "#FFFFFF" : themeTextPrimary,
+                        cursor: resettingVerifierCode ? "wait" : "pointer",
+                        fontFamily: "var(--font-dm-sans)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        opacity: resettingVerifierCode ? 0.6 : 1,
+                        transition: "all 0.2s ease",
+                      }}
+                      title="Reset and rotate the verifier code for new volunteer shifts or security"
+                    >
+                      <span>🔄</span>
+                      <span>{resettingVerifierCode ? "Resetting..." : resetVerifierSuccess ? "Code Reset!" : "Reset Code"}</span>
                     </button>
                   </div>
                 </div>

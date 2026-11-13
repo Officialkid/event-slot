@@ -122,8 +122,8 @@ export default function WaitlistSystemPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <SmartCTA className="marketing-button-primary">Try It Now</SmartCTA>
-              <Link href="/pricing" className="marketing-button-secondary">
-                View pricing
+              <Link href="/events" className="marketing-button-secondary">
+                Browse events
               </Link>
             </div>
           </div>

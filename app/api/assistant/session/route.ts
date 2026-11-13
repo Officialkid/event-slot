@@ -18,18 +18,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const ip =
-      req.headers.get('x-forwarded-for') ??
-      req.headers.get('x-real-ip') ??
-      'unknown'
-    const ipHash = createHash('sha256').update(ip).digest('hex')
+    const ipHash = createHash('sha256')
+      .update(`user:${authSession.user.id}:${process.env.IP_HASH_SALT ?? 'eventslot-salt'}`)
+      .digest('hex')
 
-    // Daily limit check
+    // Daily limit check keyed by authenticated user identity (never trusting x-forwarded-for)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
     const todaySessions = await prisma.assistantSession.count({
-      where: { ipHash, startedAt: { gte: today } },
+      where: {
+        OR: [{ userId: authSession.user.id }, { ipHash }],
+        startedAt: { gte: today },
+      },
     })
 
     if (todaySessions >= DAILY_SESSION_LIMIT) {

@@ -11,6 +11,7 @@ import OnboardingTourSelector from "@/components/OnboardingTourSelector"
 import { TokenChip } from "@/components/TokenChip"
 import { useTutorial } from "@/hooks/useTutorial"
 import { PlanBadge } from "@/components/ui/PlanBadge"
+import { CompleteAccountModal } from "@/components/onboarding/CompleteAccountModal"
 import { SidebarInstallPrompt } from "@/components/dashboard/SidebarInstallPrompt"
 import { applyTheme, resolveCurrentTheme, type ThemeMode } from "@/lib/themeClient"
 import { DEFAULT_LANGUAGE, type SupportedLanguageCode } from "@/lib/i18n/languages"
@@ -73,6 +74,24 @@ function IconUsers() {
       <path d="M1 14c0-2.761 2.239-5 5-5s5 2.239 5 5" />
       <path d="M12 7c1.105 0 2 .895 2 2v1" />
       <path d="M10 4a2 2 0 110 3.999" />
+    </svg>
+  )
+}
+
+function IconBuilding() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" />
+      <path d="M16 6h.01" />
+      <path d="M12 6h.01" />
+      <path d="M12 10h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 10h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 10h.01" />
+      <path d="M8 14h.01" />
     </svg>
   )
 }
@@ -155,6 +174,14 @@ function IconPlus() {
   )
 }
 
+function IconSparkles() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+    </svg>
+  )
+}
+
 function IconDotsHorizontal() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
@@ -169,6 +196,7 @@ function IconDotsHorizontal() {
 
 const NAV_ITEMS = [
   { labelKey: "dashboard", href: "/dashboard", icon: <IconGrid />, exact: true },
+  { labelKey: "assistant", href: "/dashboard/assistant", icon: <IconSparkles />, exact: false },
   { labelKey: "myEvents", href: "/dashboard/events", icon: <IconCalendar />, exact: false },
   { labelKey: "history", href: "/dashboard/history", icon: <IconHistory />, exact: false },
   { labelKey: "myPayments", href: "/dashboard/payments", icon: <IconPayments />, exact: false },
@@ -188,6 +216,7 @@ const MOBILE_TAB_ITEMS = [
 
 function getMobilePageTitle(pathname: string, language: SupportedLanguageCode): string {
   if (pathname === "/dashboard") return getI18nMessage(language, "dashboard")
+  if (pathname.startsWith("/dashboard/assistant")) return "EventSlot Assistant"
   if (pathname.startsWith("/dashboard/events")) return getI18nMessage(language, "myEvents")
   if (pathname.startsWith("/dashboard/history")) return getI18nMessage(language, "history")
   if (pathname.startsWith("/dashboard/notifications")) return getI18nMessage(language, "notifications")
@@ -267,10 +296,10 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-hdr-logo"
           style={{ textDecoration: "none", display: "inline-block", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--text-primary)" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--text-primary)" }}>
             Event
           </span>
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--accent)" }}>
             Slot
           </span>
         </Link>
@@ -279,7 +308,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           className="dash-logo-e"
           style={{ textDecoration: "none", display: "none", marginBottom: "1.25rem" }}
         >
-          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.18rem", color: "var(--accent)" }}>E</span>
+          <span style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "1.38rem", fontWeight: 600, color: "var(--accent)" }}>E</span>
         </Link>
 
         <div className="dash-avatar-wrap" style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -457,7 +486,7 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
       >
         {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
-          const label = t(item.labelKey)
+          const label = (item.labelKey as string) === "assistant" ? "EventSlot Assistant" : t(item.labelKey as I18nMessageKey)
           const tutorialTarget =
             item.href === "/dashboard/events"
               ? "my-events-nav"
@@ -610,6 +639,38 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   message="Invite teammates and manage shared event access from here."
                 />
               </span>
+            </Link>
+          )
+        })()}
+        {(() => {
+          const active = getIsActive(pathname, "/dashboard/organization", false)
+          return (
+            <Link
+              href="/dashboard/organization"
+              onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: "Organizations", y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
+              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                background: active ? navActiveBackground : "transparent",
+                color: active ? accentText : navIdleColor,
+              }}
+            >
+              <IconBuilding />
+              <span className="dash-nav-lbl" style={{ flex: 1 }}>Organizations</span>
             </Link>
           )
         })()}
@@ -781,7 +842,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const [moreOpen, setMoreOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [theme, setTheme] = useState<ThemeMode>("dark")
-  const [languageNoticeDismissed, setLanguageNoticeDismissed] = useState(true)
   const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguageCode>(DEFAULT_LANGUAGE)
   const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; image: string | null } | null>(null)
   const moreSheetRef = useRef<HTMLDivElement>(null)
@@ -830,15 +890,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   useEffect(() => {
     setTheme(resolveCurrentTheme())
-    setLanguageNoticeDismissed(
-      window.localStorage.getItem("eventslot:language-notice-dismissed") === "true"
-    )
   }, [])
-
-  function dismissLanguageNotice() {
-    window.localStorage.setItem("eventslot:language-notice-dismissed", "true")
-    setLanguageNoticeDismissed(true)
-  }
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -1080,6 +1132,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         .dash-sl-link:not(.dash-sl-active):hover {
           background: color-mix(in srgb, var(--text-primary) 4%, transparent) !important;
           color: var(--text-primary) !important;
+        }
+        html[data-assistant-open="true"] [data-tutorial="create-event-btn"] {
+          display: none !important;
         }
         .dash-icon-btn:hover {
           background: color-mix(in srgb, var(--text-primary) 6%, transparent) !important;
@@ -1360,82 +1415,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             className="dash-content md:pb-0"
             style={{ flex: 1, background: pageBg, paddingBottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
           >
-            {!languageNoticeDismissed && !pathname.startsWith("/dashboard/profile") && (
-              <section
-                aria-label="New language preference notice"
-                style={{
-                  margin: "0 0 1rem",
-                  border: `0.5px solid ${accentBorderSoft}`,
-                  background: accentSurface,
-                  borderRadius: 16,
-                  padding: "1rem",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "1rem",
-                  boxShadow: isLight ? "0 18px 36px rgba(17,24,39,0.06)" : "none",
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      margin: "0 0 0.35rem",
-                      color: primaryText,
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "0.92rem",
-                      fontWeight: 800,
-                    }}
-                  >
-                    New: choose your preferred language
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: secondaryText,
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "0.82rem",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    EventSlot is preparing multilingual support. Set your preferred language now so future system text and attendee-facing tools can adapt to you.
-                  </p>
-                  <Link
-                    href="/dashboard/profile"
-                    style={{
-                      display: "inline-flex",
-                      marginTop: "0.75rem",
-                      color: accentColor,
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "0.82rem",
-                      fontWeight: 800,
-                      textDecoration: "none",
-                    }}
-                  >
-                    Update in Profile
-                  </Link>
-                </div>
-                <button
-                  type="button"
-                  onClick={dismissLanguageNotice}
-                  aria-label="Dismiss language preference notice"
-                  style={{
-                    border: `0.5px solid ${shellBorder}`,
-                    background: "transparent",
-                    color: mutedText,
-                    borderRadius: 999,
-                    width: 30,
-                    height: 30,
-                    cursor: "pointer",
-                    flexShrink: 0,
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "1rem",
-                    lineHeight: 1,
-                  }}
-                >
-                  x
-                </button>
-              </section>
-            )}
             {children}
           </main>
         </div>
@@ -1487,7 +1466,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       >
         {MOBILE_TAB_ITEMS.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
-          const label = t(item.labelKey)
+          const label = (item.labelKey as string) === "assistant" ? "EventSlot Assistant" : t(item.labelKey as I18nMessageKey)
           return (
             <Link
               key={item.href}
@@ -1672,6 +1651,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 {([
                   { label: t("profile"), href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: t("team"), href: "/dashboard/team", icon: <IconUsers />, show: true },
+                  { label: "Organizations", href: "/dashboard/organization", icon: <IconBuilding />, show: true },
                   { label: t("myPayments"), href: "/dashboard/payments", icon: <IconPayments />, show: false },
                   { label: t("billing"), href: "/dashboard/billing", icon: <IconBilling />, show: false },
                   { label: t("feedback"), href: "/dashboard/feedback", icon: <IconFeedback />, show: true },
@@ -1838,6 +1818,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           onSkip={tutorial.handleSkip}
         />
       )}
+
+      <CompleteAccountModal />
     </>
   )
 }

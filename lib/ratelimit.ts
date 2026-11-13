@@ -120,3 +120,9 @@ export const reportDownloadRatelimit = makeLimiter(5, 60, 'reports')
 
 /** Billing / payment initiation: 10 req / min per user */
 export const billingRatelimit = makeLimiter(10, 60, 'billing')
+
+/** Careers application submission: 5 attempts / 5 min per IP */
+export const careerApplicationRatelimit = makeLimiter(5, 300, 'careers-apply')
+
+/** Careers application status tracking: 15 lookups / min per IP */
+export const careerTrackRatelimit = makeLimiter(15, 60, 'careers-track')

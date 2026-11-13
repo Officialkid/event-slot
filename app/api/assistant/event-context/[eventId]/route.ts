@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { getEventInsights } from "@/lib/event-insights"
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   const session = await getServerSession(authOptions)
@@ -14,7 +14,15 @@ export async function GET(
   }
 
   const { eventId } = await params
-  const insights = await getEventInsights(eventId, session.user.id)
+  const url = new URL(req.url)
+  const workspaceOrganizerId = url.searchParams.get("asOrganizationId")
+
+  const insights = await getEventInsights(eventId, session.user.id, {
+    userEmail: session.user.email,
+    userRole: session.user.role,
+    isAdmin: (session.user as { isAdmin?: boolean | null }).isAdmin,
+    workspaceOrganizerId,
+  })
 
   if (!insights) {
     return NextResponse.json(

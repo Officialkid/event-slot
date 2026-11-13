@@ -23,6 +23,11 @@ interface ProfileData {
   name: string | null
   email: string | null
   image: string | null
+  username: string | null
+  organizationName: string | null
+  contactPhone: string | null
+  contactWhatsapp: string | null
+  contactEmail: string | null
   hasPassword: boolean
   calendarConnected: boolean
   twoFactorEnabled: boolean
@@ -281,6 +286,11 @@ export default function ProfilePage() {
 
   // Details form
   const [name, setName] = useState("")
+  const [username, setUsername] = useState("")
+  const [organizationName, setOrganizationName] = useState("")
+  const [contactPhone, setContactPhone] = useState("")
+  const [contactWhatsapp, setContactWhatsapp] = useState("")
+  const [contactEmail, setContactEmail] = useState("")
   const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguageCode>(DEFAULT_LANGUAGE)
   const [detailsSaving, setDetailsSaving] = useState(false)
   const [detailsSuccess, setDetailsSuccess] = useState(false)
@@ -324,6 +334,11 @@ export default function ProfilePage() {
         const nextPreferredLanguage = languageFromSignup ?? data.preferredLanguage ?? DEFAULT_LANGUAGE
         setProfile(data)
         setName(data.name ?? "")
+        setUsername(data.username ?? "")
+        setOrganizationName(data.organizationName ?? "")
+        setContactPhone(data.contactPhone ?? "")
+        setContactWhatsapp(data.contactWhatsapp ?? "")
+        setContactEmail(data.contactEmail ?? "")
         setPreferredLanguage(nextPreferredLanguage)
         setTwoFactorEnabled(!!data.twoFactorEnabled)
         setShowFollowerCountPublicly(data.showFollowerCountPublicly ?? true)
@@ -440,7 +455,16 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, preferredLanguage, showFollowerCountPublicly }),
+        body: JSON.stringify({
+          name,
+          username: username.trim() || undefined,
+          organizationName: organizationName.trim() || null,
+          contactPhone: contactPhone.trim() || null,
+          contactWhatsapp: contactWhatsapp.trim() || null,
+          contactEmail: contactEmail.trim() || null,
+          preferredLanguage,
+          showFollowerCountPublicly,
+        }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -448,7 +472,17 @@ export default function ProfilePage() {
         return
       }
       const trimmedName = name.trim()
-      setProfile(prev => (prev ? { ...prev, name: trimmedName, preferredLanguage, showFollowerCountPublicly } : prev))
+      setProfile(prev => (prev ? {
+        ...prev,
+        name: trimmedName,
+        username: username.trim() || null,
+        organizationName: organizationName.trim() || null,
+        contactPhone: contactPhone.trim() || null,
+        contactWhatsapp: contactWhatsapp.trim() || null,
+        contactEmail: contactEmail.trim() || null,
+        preferredLanguage,
+        showFollowerCountPublicly,
+      } : prev))
       await updateSession({ name: trimmedName })
       syncProfileIdentity({ name: trimmedName, image: profile?.image ?? null, preferredLanguage })
       setDetailsSuccess(true)
@@ -736,6 +770,18 @@ export default function ProfilePage() {
                 onChange={setName}
               />
               <Field
+                label="Organization / Brand Name"
+                value={organizationName}
+                onChange={setOrganizationName}
+                note="Displayed on your public events as the official host/organizer name (e.g. Dunsin Oyekan Ministries)."
+              />
+              <Field
+                label="Username / Profile Handle"
+                value={username}
+                onChange={setUsername}
+                note={`Your public EventSlot page: eventsslot.com/@${username || "your-handle"}`}
+              />
+              <Field
                 label={t("email")}
                 type="email"
                 value={profile.email ?? ""}
@@ -746,6 +792,38 @@ export default function ProfilePage() {
                   : undefined
                 }
               />
+
+              <div style={{ marginTop: "0.5rem", borderTop: "0.5px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", paddingTop: "1rem" }}>
+                <p style={{ margin: "0 0 0.85rem", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)" }}>
+                  Organization Main Office Contacts
+                </p>
+                <p style={{ margin: "0 0 1rem", fontSize: "0.74rem", color: "var(--text-muted)", fontFamily: "var(--font-dm-sans)", lineHeight: 1.5 }}>
+                  These direct contact channels appear on your event pages when attendees click &ldquo;Contact&rdquo; on the Organized By card.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <Field
+                    label="Main Office / Reception Phone"
+                    type="tel"
+                    value={contactPhone}
+                    onChange={setContactPhone}
+                    note="e.g. +254 712 345 678 (Direct office call line)"
+                  />
+                  <Field
+                    label="Office WhatsApp Line"
+                    type="tel"
+                    value={contactWhatsapp}
+                    onChange={setContactWhatsapp}
+                    note="e.g. +254 712 345 678 (Direct WhatsApp link for attendee inquiries)"
+                  />
+                  <Field
+                    label="Public Inquiry Email"
+                    type="email"
+                    value={contactEmail}
+                    onChange={setContactEmail}
+                    note="Official public support/inquiry email displayed to attendees"
+                  />
+                </div>
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 <label
                   style={{
