@@ -8,6 +8,7 @@ const navItems = [
   { label: "Overview", href: "/admin" },
   { label: "Careers & Recruitment", href: "/admin/recruitment" },
   { label: "Users", href: "/admin/users" },
+  { label: "Organizations", href: "/admin/organizations" },
   { label: "Events", href: "/admin/events" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Org Feedback", href: "/admin/feedback" },

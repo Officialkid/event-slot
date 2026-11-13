@@ -80,8 +80,6 @@ export function WorkspaceSelector({ selectedId, onChange }: WorkspaceSelectorPro
   }
 
   if (loading) return null
-  // If user has no organization workspaces and is not admin, hide the selector to keep UI clean and simple
-  if (organizations.length === 0 && !isAdmin) return null
 
   return (
     <div
@@ -110,7 +108,7 @@ export function WorkspaceSelector({ selectedId, onChange }: WorkspaceSelectorPro
       </div>
 
       <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-        Choose whether this event is published under your personal profile or an organization workspace. Attendees who follow the event will follow this entity.
+        Choose whether this event is published under your individual organizer profile or an organization workspace. Attendees who follow the event will follow this entity.
       </p>
 
       {/* Workspace options grid */}
@@ -146,7 +144,7 @@ export function WorkspaceSelector({ selectedId, onChange }: WorkspaceSelectorPro
                 {personal.name}
               </span>
               <span className="block text-[11px] truncate" style={{ color: "var(--text-muted)" }}>
-                Personal Profile {personal.username ? `(@${personal.username})` : ""}
+                Individual Organizer {personal.username ? `(@${personal.username})` : ""}
               </span>
             </div>
           </button>
@@ -191,6 +189,39 @@ export function WorkspaceSelector({ selectedId, onChange }: WorkspaceSelectorPro
             </button>
           )
         })}
+
+        {/* If no organizations, offer 1-click create organization option */}
+        {organizations.length === 0 && (
+          <a
+            href="/dashboard/organization"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-lg border text-left transition-all hover:border-[var(--accent)]"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderColor: "var(--border)",
+              textDecoration: "none",
+            }}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--accent) 15%, transparent)",
+                color: "var(--accent)",
+              }}
+            >
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                + Host as Organization
+              </span>
+              <span className="block text-[11px] truncate" style={{ color: "var(--accent)" }}>
+                Set up an organization workspace →
+              </span>
+            </div>
+          </a>
+        )}
       </div>
 
       <div className="mt-3 pt-2.5 flex items-center justify-between text-[11px] text-[var(--text-muted)] border-t border-[var(--border)]">

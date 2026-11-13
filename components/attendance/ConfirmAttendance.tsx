@@ -128,8 +128,8 @@ export default function ConfirmAttendance({ eventSlug }: { eventSlug: string }) 
               {result.attendeeName && (
                 <p style={{ margin: "0.35rem 0 0", color: "var(--text-secondary)", fontSize: "0.82rem" }}>{result.attendeeName}</p>
               )}
-              <p style={{ margin: "0.35rem 0 0", color: "var(--text-muted)", fontSize: "0.75rem" }}>
-                Confirmation #{result.registrationNumber ?? "N/A"}
+              <p style={{ margin: "0.35rem 0 0", color: "var(--accent, #C8F55A)", fontSize: "0.78rem", fontWeight: 700, fontFamily: "var(--font-dm-sans, monospace)" }}>
+                E-Ticket #{typeof result.registrationNumber === "number" ? String(result.registrationNumber).padStart(3, "0") : "N/A"}
               </p>
               {result.canDownloadTicket && result.ticketUrl ? (
                 <a

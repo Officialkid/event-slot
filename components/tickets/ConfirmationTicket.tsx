@@ -19,6 +19,9 @@ export type TicketData = {
   ticketTierMetallic?: boolean | null
   amountPaidKes?: number | null
   verifyUrl: string
+  ticketNumber?: number | null
+  organizationName?: string | null
+  occurrenceDate?: string | null
   isMultiDay?: boolean
   multiDaySchedule?: Array<{
     dayNumber: number
@@ -183,6 +186,24 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
               </div>
             )}
 
+            {ticket.occurrenceDate && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", marginTop: "0.15rem" }}>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: "rgba(200,245,90,0.15)",
+                    border: "1px solid rgba(200,245,90,0.3)",
+                    color: "var(--accent, #C8F55A)",
+                  }}
+                >
+                  🗓️ Session: {ticket.occurrenceDate}
+                </span>
+              </div>
+            )}
+
             {ticket.attendanceDays && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
                 <span style={{ fontSize: "0.85rem", lineHeight: 1.2 }}>🗓️</span>
@@ -286,6 +307,51 @@ export default function ConfirmationTicket({ ticket }: { ticket: TicketData }) {
             gap: "0.25rem",
           }}
         >
+          {/* Organization & E-Ticket Number Pill */}
+          {(ticket.organizationName || (typeof ticket.ticketNumber === "number" && ticket.ticketNumber > 0)) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                marginBottom: "0.45rem",
+                flexWrap: "wrap",
+              }}
+            >
+              {ticket.organizationName && (
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {ticket.organizationName}
+                </span>
+              )}
+              {typeof ticket.ticketNumber === "number" && ticket.ticketNumber > 0 && (
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.05em",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
+                    background: "rgba(200,245,90,0.16)",
+                    color: "var(--accent, #C8F55A)",
+                    border: "1px solid rgba(200,245,90,0.35)",
+                    fontFamily: "var(--font-dm-sans, monospace)",
+                  }}
+                >
+                  E-Ticket #{String(ticket.ticketNumber).padStart(3, "0")}
+                </span>
+              )}
+            </div>
+          )}
+
           <div style={{ textAlign: "center" }}>
             <p
               style={{

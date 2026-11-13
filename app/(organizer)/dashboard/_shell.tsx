@@ -471,6 +471,36 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
             )}
           </div>
         </div>
+
+        {/* Workspace Quick-Access */}
+        <div style={{ marginTop: "0.6rem" }}>
+          <Link
+            href="/dashboard/organization"
+            onClick={onNavClick}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.35rem 0.6rem",
+              borderRadius: "8px",
+              background: "color-mix(in srgb, var(--accent) 8%, var(--surface))",
+              border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+              textDecoration: "none",
+              transition: "all 0.15s ease",
+            }}
+            className="hover:opacity-90"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <IconBuilding />
+              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Workspaces
+              </span>
+            </div>
+            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--accent)", letterSpacing: "0.02em" }}>
+              Switch →
+            </span>
+          </Link>
+        </div>
       </div>
 
       {/* Nav items */}
@@ -484,6 +514,57 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
           gap: 2,
         }}
       >
+        {/* Organizations — Prominently placed at the very top of navigation */}
+        {(() => {
+          const active = getIsActive(pathname, "/dashboard/organization", false)
+          return (
+            <Link
+              href="/dashboard/organization"
+              onClick={onNavClick}
+              onMouseEnter={e => {
+                if (collapsed) {
+                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
+                  setTooltip({ label: "Organizations", y: rect.top + rect.height / 2 })
+                }
+              }}
+              onMouseLeave={() => setTooltip(null)}
+              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-dm-sans)",
+                textDecoration: "none",
+                background: active ? navActiveBackground : "transparent",
+                color: active ? accentText : navIdleColor,
+                fontWeight: active ? 700 : 600,
+              }}
+            >
+              <IconBuilding />
+              <span className="dash-nav-lbl" style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Organizations</span>
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    padding: "1px 6px",
+                    borderRadius: 999,
+                    background: "rgba(200,245,90,0.18)",
+                    color: "var(--accent, #C8F55A)",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Workspaces
+                </span>
+              </span>
+            </Link>
+          )
+        })()}
+
         {visibleNavItems.map(item => {
           const active = getIsActive(pathname, item.href, item.exact)
           const label = (item.labelKey as string) === "assistant" ? "EventSlot Assistant" : t(item.labelKey as I18nMessageKey)
@@ -639,38 +720,6 @@ function SidebarInner({ pathname, name, email, plan, image, initials, unreadCoun
                   message="Invite teammates and manage shared event access from here."
                 />
               </span>
-            </Link>
-          )
-        })()}
-        {(() => {
-          const active = getIsActive(pathname, "/dashboard/organization", false)
-          return (
-            <Link
-              href="/dashboard/organization"
-              onClick={onNavClick}
-              onMouseEnter={e => {
-                if (collapsed) {
-                  const rect = (e.currentTarget as HTMLAnchorElement).getBoundingClientRect()
-                  setTooltip({ label: "Organizations", y: rect.top + rect.height / 2 })
-                }
-              }}
-              onMouseLeave={() => setTooltip(null)}
-              className={`dash-sl-link${active ? " dash-sl-active" : ""}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "0.6rem 1rem",
-                borderRadius: 8,
-                fontSize: "0.875rem",
-                fontFamily: "var(--font-dm-sans)",
-                textDecoration: "none",
-                background: active ? navActiveBackground : "transparent",
-                color: active ? accentText : navIdleColor,
-              }}
-            >
-              <IconBuilding />
-              <span className="dash-nav-lbl" style={{ flex: 1 }}>Organizations</span>
             </Link>
           )
         })()}
@@ -1649,9 +1698,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 </div>
 
                 {([
+                  { label: "Organizations", href: "/dashboard/organization", icon: <IconBuilding />, show: true },
                   { label: t("profile"), href: "/dashboard/profile", icon: <IconUser />, show: true },
                   { label: t("team"), href: "/dashboard/team", icon: <IconUsers />, show: true },
-                  { label: "Organizations", href: "/dashboard/organization", icon: <IconBuilding />, show: true },
                   { label: t("myPayments"), href: "/dashboard/payments", icon: <IconPayments />, show: false },
                   { label: t("billing"), href: "/dashboard/billing", icon: <IconBilling />, show: false },
                   { label: t("feedback"), href: "/dashboard/feedback", icon: <IconFeedback />, show: true },

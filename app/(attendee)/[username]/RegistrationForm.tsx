@@ -1877,9 +1877,11 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
                     </span>
                   </div>
                   {r.registrationNumber && (
-                    <p className="mt-2 text-center text-[0.75rem] font-mono" style={{ color: "var(--text-muted)" }}>
-                      Registration #{String(r.registrationNumber).padStart(4, "0")}
-                    </p>
+                    <div className="mt-2.5 flex justify-center">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[0.78rem] font-extrabold font-mono bg-emerald-500/10 text-emerald-500 border border-emerald-500/25">
+                        E-Ticket #{String(r.registrationNumber).padStart(3, "0")}
+                      </span>
+                    </div>
                   )}
                   {r.confirmationCode && (
                     <div className="mt-5 flex justify-center w-full">
@@ -2151,8 +2153,8 @@ export default function RegistrationForm({ event, showBranding = false, maxAtten
             </p>
             <div style={{ background: "color-mix(in srgb, var(--surface) 92%, transparent)", border: "1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)", borderRadius: 12, padding: "0.875rem 1rem", marginBottom: "1.25rem" }}>
               {duplicateInfo.registrationNumber !== null && (
-                <p style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
-                  Registration #{String(duplicateInfo.registrationNumber).padStart(4, "0")}
+                <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--accent, #C8F55A)", fontFamily: "var(--font-dm-sans)", marginBottom: "0.25rem" }}>
+                  E-Ticket #{String(duplicateInfo.registrationNumber).padStart(3, "0")}
                 </p>
               )}
               {duplicateInfo.name && (

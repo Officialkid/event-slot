@@ -75,6 +75,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
           organizer: {
             select: { name: true },
           },
+          organization: {
+            select: { name: true },
+          },
         },
       },
     },
@@ -117,6 +120,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ confirma
       eventTitle: registration.event.title,
       attendeeName,
       ticketId: registration.confirmationCode ?? registration.id,
+      ticketNumber: registration.registrationNumber ?? undefined,
+      organizationName: registration.event.organization?.name ?? undefined,
+      occurrenceDate: registration.occurrenceDate ?? undefined,
       eventId: registration.event.id,
       userId: registration.id,
       eventDate: registration.event.eventDate,

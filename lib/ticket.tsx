@@ -108,6 +108,9 @@ export interface TicketPDFData {
   eventTitle: string
   attendeeName: string
   ticketId: string
+  ticketNumber?: number | null
+  organizationName?: string | null
+  occurrenceDate?: Date | null
   eventId: string
   userId: string
   eventDate: Date | null
@@ -201,12 +204,31 @@ export async function generateTicketPDF(data: TicketPDFData): Promise<Buffer> {
                   </Text>
                 </View>
               )}
-              <Text style={styles.ticketId}>#{data.ticketId}</Text>
+              <Text style={styles.ticketId}>
+                {typeof data.ticketNumber === 'number' && data.ticketNumber > 0
+                  ? `E-Ticket #${String(data.ticketNumber).padStart(3, '0')} • `
+                  : ''}
+                {data.organizationName ? `${data.organizationName} • ` : ''}
+                #{data.ticketId}
+              </Text>
 
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>DATE</Text>
                 <Text style={styles.metaValue}>{dateStr}</Text>
               </View>
+              {data.occurrenceDate ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>SESSION</Text>
+                  <Text style={styles.metaValue}>
+                    {data.occurrenceDate.toLocaleDateString('en-KE', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>TIME</Text>
                 <Text style={styles.metaValue}>{timeStr}</Text>

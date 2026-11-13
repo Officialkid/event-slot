@@ -416,6 +416,7 @@ export default async function PublicProfilePage({
             imageUrl={event.imageUrl}
             organizerName={event.organization?.name ?? event.organizerName ?? event.organizer?.name ?? null}
             organizerUsername={event.organization?.handle ?? event.organizer?.username ?? event.organizerId ?? ""}
+            targetType={event.organization ? "organization" : "organizer"}
             organizerImage={event.organization?.logo ?? event.organizer?.image ?? null}
             organizerOrganizationName={event.organization?.name ?? event.organizer?.organizationName ?? null}
             hostedEventsCount={event.organization?._count?.events ?? event.organizer?._count?.events ?? 1}

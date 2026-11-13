@@ -24,6 +24,7 @@ export type EventInvitationCardProps = {
   organizerUsername?: string | null
   organizerImage?: string | null
   organizerOrganizationName?: string | null
+  targetType?: "organizer" | "organization"
   hostedEventsCount?: number
   contactPhone?: string | null
   contactWhatsapp?: string | null
@@ -204,6 +205,7 @@ export default function EventInvitationCard({
   organizerUsername,
   organizerImage,
   organizerOrganizationName,
+  targetType,
   hostedEventsCount = 1,
   contactPhone,
   contactWhatsapp,
@@ -666,7 +668,7 @@ export default function EventInvitationCard({
             <OrganizedByCard
               organizerName={organizerOrganizationName || displayOrganizerName}
               organizerUsername={organizerUsername}
-              targetType={organizerOrganizationName ? "organization" : "organizer"}
+              targetType={targetType ?? (organizerOrganizationName ? "organization" : "organizer")}
               organizerImage={organizerImage}
               followerCount={followerCount}
               hostedEventsCount={hostedEventsCount}

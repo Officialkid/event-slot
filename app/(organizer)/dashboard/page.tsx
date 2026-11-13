@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { formatDistanceToNow } from "date-fns"
 import { ORGANIZER_SURFACE_COPY } from "@/lib/organizerSurfaceContent"
@@ -341,11 +342,13 @@ function CapacityModal({
 
 export default function DashboardOverviewPage() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [capacityEvent, setCapacityEvent] = useState<EventNearCapacity | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [profileName, setProfileName] = useState<string | null>(null)
+  const [showPersonaPrompt, setShowPersonaPrompt] = useState(false)
   const [adminStats, setAdminStats] = useState<{
     totalUsers: number
     newUsersThisMonth: number
@@ -359,6 +362,7 @@ export default function DashboardOverviewPage() {
   const [securityBannerDismissed, setSecurityBannerDismissed] = useState(true)
   const [groupBookings, setGroupBookings] = useState<OrgGroupBooking[]>([])
   const [copiedBookingId, setCopiedBookingId] = useState<string | null>(null)
+  const [workspaces, setWorkspaces] = useState<{ organizations: Array<{ id: string; name: string; handle: string; logo?: string | null; publicationStatus: string; verificationStatus: string }> } | null>(null)
 
   function handleDismissSecurityBanner() {
     try {
@@ -391,6 +395,12 @@ export default function DashboardOverviewPage() {
         if (typeof d.isAdmin === "boolean") setIsAdmin(d.isAdmin)
       })
       .catch(() => {})
+    fetch("/api/me/workspaces")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.success) setWorkspaces(d)
+      })
+      .catch(() => {})
     fetch("/api/profile")
       .then(r => r.ok ? r.json() : null)
       .then(profile => {
@@ -401,6 +411,10 @@ export default function DashboardOverviewPage() {
           const dismissed = localStorage.getItem("eventslot_security_banner_dismissed_nov2026")
           if (!dismissed && profile && !profile.twoFactorEnabled) {
             setSecurityBannerDismissed(false)
+          }
+          const personaChosen = localStorage.getItem("eventslot_onboarding_persona_chosen")
+          if (!personaChosen) {
+            setShowPersonaPrompt(true)
           }
         } catch {}
       })
@@ -447,6 +461,79 @@ export default function DashboardOverviewPage() {
       )}
 
       <OrganizerPostEventFeedbackModal />
+
+      {/* Welcome Onboarding Choice Modal — 100% Optional */}
+      {showPersonaPrompt && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 text-center animate-fadeIn">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/15 text-[var(--accent)] mx-auto flex items-center justify-center text-2xl">
+              👋
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">Welcome to EventSlot!</h2>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">
+                How will you be hosting events on EventSlot? (You can use both anytime!)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.setItem("eventslot_onboarding_persona_chosen", "individual")
+                  } catch {}
+                  setShowPersonaPrompt(false)
+                }}
+                className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all flex flex-col justify-between cursor-pointer group"
+              >
+                <div>
+                  <span className="text-2xl mb-2 block">👤</span>
+                  <span className="block font-bold text-sm text-[var(--text-primary)]">Individual Organizer</span>
+                  <span className="block text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    Host personal meetups, gatherings, workshops or popups under your name.
+                  </span>
+                </div>
+                <span className="mt-4 text-xs font-bold text-[var(--accent)] group-hover:underline">Continue as Individual →</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.setItem("eventslot_onboarding_persona_chosen", "organization")
+                  } catch {}
+                  setShowPersonaPrompt(false)
+                  router.push("/dashboard/organization")
+                }}
+                className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] transition-all flex flex-col justify-between cursor-pointer group"
+              >
+                <div>
+                  <span className="text-2xl mb-2 block">🏛️</span>
+                  <span className="block font-bold text-sm text-[var(--text-primary)]">Organization Workspace</span>
+                  <span className="block text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    Host for a company, church, student society or event agency with team access.
+                  </span>
+                </div>
+                <span className="mt-4 text-xs font-bold text-[var(--accent)] group-hover:underline">Set Up Organization →</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.setItem("eventslot_onboarding_persona_chosen", "dismissed")
+                } catch {}
+                setShowPersonaPrompt(false)
+              }}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] underline cursor-pointer"
+            >
+              I'll decide later, take me to my dashboard
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         {!securityBannerDismissed && (
@@ -665,6 +752,89 @@ export default function DashboardOverviewPage() {
 
         {/* Sections — single column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+          {/* Organization Workspaces Spotlight */}
+          <section
+            style={{
+              ...surfaceStyle,
+              borderRadius: 16,
+              padding: "1.35rem 1.5rem",
+              border: "1px solid color-mix(in srgb, var(--accent) 35%, transparent)",
+              background: "color-mix(in srgb, var(--accent) 4%, var(--surface))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "1rem",
+            }}
+          >
+            <div style={{ maxWidth: 580 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                <span style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)" }}>
+                  🏢 Organization Workspaces
+                </span>
+                {workspaces && workspaces.organizations.length > 0 && (
+                  <span style={{ fontSize: "0.68rem", background: "color-mix(in srgb, var(--accent) 18%, transparent)", color: "var(--accent)", borderRadius: 999, padding: "1px 8px", fontWeight: 700 }}>
+                    {workspaces.organizations.length} Active
+                  </span>
+                )}
+              </div>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", margin: "0 0 0.25rem" }}>
+                {workspaces && workspaces.organizations.length > 0
+                  ? "Manage your Organization Workspaces"
+                  : "Scale with an Organization Workspace"}
+              </h3>
+              <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: 0, lineHeight: 1.45 }}>
+                {workspaces && workspaces.organizations.length > 0
+                  ? "Collaborate with your team, host verified organization events, and view cross-event performance."
+                  : "Host events under your society, church, university or company brand. Invite teammates and build a unified follower audience."}
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flexWrap: "wrap" }}>
+              {workspaces && workspaces.organizations.map(org => (
+                <Link
+                  key={org.id}
+                  href={`/dashboard/organization?org=${encodeURIComponent(org.handle)}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.45rem 0.85rem",
+                    borderRadius: 10,
+                    fontSize: "0.8rem",
+                    fontWeight: 700,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-primary)",
+                    textDecoration: "none",
+                  }}
+                  className="hover:border-[var(--accent)] transition-colors"
+                >
+                  <span>🏛️</span>
+                  <span>{org.name}</span>
+                </Link>
+              ))}
+              <Link
+                href="/dashboard/organization"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.5rem 1rem",
+                  borderRadius: 10,
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  background: "var(--accent)",
+                  color: "#0A0A0A",
+                  textDecoration: "none",
+                }}
+                className="hover:opacity-90 transition-opacity"
+              >
+                <span>+</span>
+                <span>{workspaces && workspaces.organizations.length > 0 ? "All Workspaces" : "Create Organization"}</span>
+              </Link>
+            </div>
+          </section>
 
           {/* Organization / Group Delegations */}
           {groupBookings.length > 0 && (
