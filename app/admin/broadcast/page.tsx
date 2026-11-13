@@ -76,6 +76,7 @@ export default function AdminBroadcastPage() {
   // UI state
   const [viewMode, setViewMode] = useState<"editor" | "preview">("editor")
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingBodyImage, setUploadingBodyImage] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
@@ -85,6 +86,7 @@ export default function AdminBroadcastPage() {
   const [loadingScheduled, setLoadingScheduled] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const bodyFileInputRef = useRef<HTMLInputElement>(null)
 
   // Calculate min and max dates for scheduling (tomorrow up to 90 days)
   const { minDate, maxDate } = useMemo(() => {
@@ -204,6 +206,41 @@ export default function AdminBroadcastPage() {
     } finally {
       setUploadingImage(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  // Upload inline body image to Cloudflare R2 and insert into content
+  const handleBodyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingBodyImage(true)
+    setStatusError(null)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setContent((prev) => {
+          const imgMarkdown = `\n\n![Image description](${data.url})\n\n`
+          return prev + imgMarkdown
+        })
+        setStatusMessage("Image uploaded and inserted into message content!")
+      } else {
+        setStatusError(data.error || "Failed to upload image")
+      }
+    } catch {
+      setStatusError("Network error while uploading image")
+    } finally {
+      setUploadingBodyImage(false)
+      if (bodyFileInputRef.current) bodyFileInputRef.current.value = ""
     }
   }
 
@@ -791,6 +828,52 @@ export default function AdminBroadcastPage() {
                   </div>
                 )}
 
+                {/* 3b. Optional Top Announcement Image for Clean Announcement Mode */}
+                {layoutType === "TEXT_MINIMAL" && (
+                  <div className="rounded-xl border p-4 space-y-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                        Top Announcement Image / Banner (Optional)
+                      </label>
+                      {bannerUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setBannerUrl("")}
+                          className="text-[11px] font-semibold text-red-500 hover:underline"
+                        >
+                          Remove Image
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={bannerUrl}
+                        onChange={(e) => setBannerUrl(e.target.value)}
+                        placeholder="https://cdn.eventsslot.com/banners/announcement.jpg"
+                        className="rounded-lg px-3 py-2 text-xs flex-1 focus:outline-none"
+                        style={{
+                          background: "var(--bg-input)",
+                          borderColor: "var(--border)",
+                          color: "var(--text-primary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="px-3.5 py-2 rounded-lg text-xs font-bold transition shrink-0"
+                        style={{
+                          background: "var(--accent)",
+                          color: "var(--accent-contrast)",
+                        }}
+                      >
+                        {uploadingImage ? "Uploading..." : "Upload Image"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* 4. Subject & Content */}
                 <div className="space-y-4">
                   <div>
@@ -812,13 +895,36 @@ export default function AdminBroadcastPage() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                       <label className="block text-sm font-bold" style={{ color: "var(--text-primary)" }}>
                         Message Content (Markdown supported) *
                       </label>
-                      <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Tip: You can use <code style={{ color: "var(--accent)" }}>{"{{name}}"}</code> for attendee name.
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => bodyFileInputRef.current?.click()}
+                          disabled={uploadingBodyImage}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition hover:opacity-90"
+                          style={{
+                            background: "var(--bg-elevated)",
+                            borderColor: "var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          <span>🖼️</span>
+                          <span>{uploadingBodyImage ? "Uploading..." : "Add Image into Message"}</span>
+                        </button>
+                        <input
+                          ref={bodyFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleBodyImageUpload}
+                        />
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                          Tip: Use <code style={{ color: "var(--accent)" }}>{"{{name}}"}</code>
+                        </span>
+                      </div>
                     </div>
                     <textarea
                       rows={8}
@@ -869,6 +975,59 @@ export default function AdminBroadcastPage() {
                           border: "1px solid var(--border)",
                         }}
                       />
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="sm:col-span-2 pt-1">
+                      <div className="text-[11px] font-semibold mb-1.5" style={{ color: "var(--text-muted)" }}>
+                        Quick Presets:
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCtaText("Create Workspace")
+                            setCtaUrl("https://www.eventsslot.com/dashboard/organization")
+                          }}
+                          className="px-2.5 py-1 rounded-md border text-[11px] font-medium transition hover:border-[var(--accent)]"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        >
+                          🏢 Create Workspace (/dashboard/organization)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCtaText("Learn About Organizations")
+                            setCtaUrl("https://www.eventsslot.com/organizations")
+                          }}
+                          className="px-2.5 py-1 rounded-md border text-[11px] font-medium transition hover:border-[var(--accent)]"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        >
+                          ℹ️ Organizations Info (/organizations)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCtaText("Explore Events")
+                            setCtaUrl("https://www.eventsslot.com/events")
+                          }}
+                          className="px-2.5 py-1 rounded-md border text-[11px] font-medium transition hover:border-[var(--accent)]"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        >
+                          🎟️ Explore Events (/events)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCtaText("Go to Dashboard")
+                            setCtaUrl("https://www.eventsslot.com/dashboard")
+                          }}
+                          className="px-2.5 py-1 rounded-md border text-[11px] font-medium transition hover:border-[var(--accent)]"
+                          style={{ background: "var(--bg-input)", borderColor: "var(--border)", color: "var(--text-secondary)" }}
+                        >
+                          📊 Dashboard (/dashboard)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

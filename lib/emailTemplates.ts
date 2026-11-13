@@ -160,11 +160,18 @@ export function renderBroadcastEmail(options: BroadcastTemplateOptions): string 
     };box-shadow:0 4px 20px rgba(0,0,0,0.03);">
 
       ${
-        isHeroLayout && bannerUrl
-          ? `
+        bannerUrl
+          ? isHeroLayout
+            ? `
       <!-- Hero Banner / Event Poster -->
       <div style="width:100%;margin:0;background:#F9FAFB;text-align:center;">
         <img src="${bannerUrl}" alt="${subject}" style="width:100%;max-width:100%;height:auto;display:block;border-bottom:1px solid #E5E7EB;" />
+      </div>
+      `
+            : `
+      <!-- Featured Header Image -->
+      <div style="width:100%;margin:0 0 24px 0;text-align:center;">
+        <img src="${bannerUrl}" alt="${subject}" style="width:100%;max-width:100%;max-height:380px;object-fit:cover;border-radius:12px;display:block;margin:0 auto;border:1px solid #E5E7EB;" />
       </div>
       `
           : ""
